@@ -5,6 +5,11 @@ export const runtime = "nodejs";
 type OpenAIImageItem = { b64_json: string };
 type OpenAIImageResponse = { data: OpenAIImageItem[] };
 
+function demoImageUrl(seed: string) {
+  // Image démo 1024x1024 (gratuite) avec un "seed" pour varier
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/1024/1024`;
+}
+
 // GET = test santé
 export async function GET() {
   return NextResponse.json({ ok: true, hint: "POST {sector, context, offer, headline, cta}" });
@@ -13,22 +18,24 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "OPENAI_API_KEY manquante sur Vercel > Project > Settings > Environment Variables." },
-        { status: 500 }
-      );
-    }
-
     const body = (await req.json()) as {
       sector: string; context: string; offer: string; headline: string; cta: string;
     };
+
     const { sector, context, offer, headline, cta } = body || {};
     if (!sector || !context || !offer || !headline || !cta) {
       return NextResponse.json(
         { error: "Champs manquants. Attendus: sector, context, offer, headline, cta." },
         { status: 400 }
       );
+    }
+
+    // Si pas de clé → renvoie direct une image démo (permet de montrer le produit)
+    if (!apiKey) {
+      return NextResponse.json({
+        demo: true,
+        url: demoImageUrl(`${sector}-${context}-${offer}`)
+      });
     }
 
     const prompt = `
@@ -50,7 +57,7 @@ Zones de texte bien contrastées, composition publicitaire nette.
           model,
           prompt,
           size: "1024x1024",
-          n: 1, // ✅ l’API n’autorise que 1
+          n: 1, // l’API n’autorise que 1
         }),
       });
     }
@@ -62,7 +69,20 @@ Zones de texte bien contrastées, composition publicitaire nette.
 
     if (!res.ok) {
       const text = await res.text();
-      return NextResponse.json({ error: "OpenAI error", status: res.status, details: text }, { status: 500 });
+
+      // 🔁 Fallback démo si le blocage vient de la facturation
+      if (text.includes("billing_hard_limit_reached")) {
+        return NextResponse.json({
+          demo: true,
+          url: demoImageUrl(`${sector}-${context}-${offer}`),
+          note: "OpenAI billing hard limit reached – image démo renvoyée.",
+        });
+      }
+
+      return NextResponse.json(
+        { error: "OpenAI error", status: res.status, details: text },
+        { status: 500 }
+      );
     }
 
     const data = (await res.json()) as OpenAIImageResponse; // { data: [{b64_json}] }
