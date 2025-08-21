@@ -1,15 +1,25 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+
+type Sector = 'restaurant' | 'coach' | 'ecommerce';
 
 export default function GeneratePage() {
-  const [sector, setSector] = useState<'restaurant' | 'coach' | 'ecommerce'>('restaurant');
-  const [context, setContext] = useState('canicule');
-  const [offer, setOffer] = useState('Granité maison');
-  const [headline, setHeadline] = useState('Besoin de frais ?');
-  const [cta, setCta] = useState('Réserver');
-  const [loading, setLoading] = useState(false);
+  const [sector, setSector] = useState<Sector>('restaurant');
+  const [context, setContext] = useState<string>('canicule');
+  const [offer, setOffer] = useState<string>('Granité maison');
+  const [headline, setHeadline] = useState<string>('Besoin de frais ?');
+  const [cta, setCta] = useState<string>('Réserver');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  function handleSectorChange(e: ChangeEvent<HTMLSelectElement>) {
+    setSector(e.target.value as Sector);
+  }
+  function handleInput(setter: (v: string) => void) {
+    return (e: ChangeEvent<HTMLInputElement>) => setter(e.target.value);
+  }
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
@@ -26,59 +36,55 @@ export default function GeneratePage() {
         <h1 className="text-3xl font-bold mb-6">Générer une image</h1>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          {/* Secteur */}
           <div>
             <label className="block text-sm mb-1">Secteur</label>
             <select
               value={sector}
-              onChange={(e) => setSector(e.target.value as any)}
+              onChange={handleSectorChange}
               className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
             >
               <option value="restaurant">Restaurant</option>
               <option value="coach">Coach</option>
-              <option value="ecommerce">E-commerce</option>
+              <option value="ecommerce">E‑commerce</option>
             </select>
           </div>
 
-          {/* Contexte */}
           <div>
-            <label className="block text-sm mb-1">Contexte</label>
+            <label className="block text-sm mb-1">Contexte (actualité / événement)</label>
             <input
               value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder='Ex: "canicule", "festival", "journée du chocolat"…'
+              onChange={handleInput(setContext)}
+              placeholder='Ex: "canicule", "festival de la ville", "journée du chocolat"…'
               className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
             />
           </div>
 
-          {/* Offre */}
           <div>
-            <label className="block text-sm mb-1">Offre</label>
+            <label className="block text-sm mb-1">Offre mise en avant</label>
             <input
               value={offer}
-              onChange={(e) => setOffer(e.target.value)}
-              placeholder='Ex: "Granité maison", "Menu -20%"…'
+              onChange={handleInput(setOffer)}
+              placeholder='Ex: "Granité maison", "Menu canicule -20%"…'
               className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
             />
           </div>
 
-          {/* Accroche + CTA */}
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm mb-1">Accroche</label>
               <input
                 value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
+                onChange={handleInput(setHeadline)}
                 placeholder='Ex: "Besoin de frais ?"'
                 className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">CTA</label>
+              <label className="block text-sm mb-1">CTA (bouton)</label>
               <input
                 value={cta}
-                onChange={(e) => setCta(e.target.value)}
-                placeholder='Ex: "Réserver"'
+                onChange={handleInput(setCta)}
+                placeholder='Ex: "Réserver", "Commander"…'
                 className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
               />
             </div>
