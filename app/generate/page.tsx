@@ -1,4 +1,3 @@
-cat > app/generate/page.tsx <<'TSX'
 'use client';
 
 import Image from 'next/image';
@@ -145,4 +144,3 @@ export default function GeneratePage() {
     </main>
   );
 }
-TSX
