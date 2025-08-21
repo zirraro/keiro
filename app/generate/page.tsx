@@ -1,3 +1,4 @@
+cat > app/generate/page.tsx <<'TSX'
 'use client';
 
 import Image from 'next/image';
@@ -127,7 +128,6 @@ export default function GeneratePage() {
           <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {images.map((src, i) => (
               <div key={i} className="rounded overflow-hidden border border-neutral-800">
-                {/* next/image pour éviter le warning LCP & eslint */}
                 <Image
                   src={src}
                   alt={`gen-${i}`}
@@ -145,3 +145,4 @@ export default function GeneratePage() {
     </main>
   );
 }
+TSX
