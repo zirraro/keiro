@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 
+type OpenAIImageItem = { b64_json: string };
+type OpenAIImageResponse = { data: OpenAIImageItem[] };
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json() as {
+      sector: string; context: string; offer: string; headline: string; cta: string;
+    };
     const { sector, context, offer, headline, cta } = body;
 
     const prompt = `
@@ -13,7 +18,6 @@ Style: clair, lisible mobile, look innovant pour réseaux sociaux.
 Intégrer des zones de texte bien contrastées.
 `;
 
-    // Appel OpenAI Images (serveur) — nécessite OPENAI_API_KEY sur Vercel
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -34,9 +38,9 @@ Intégrer des zones de texte bien contrastées.
       return NextResponse.json({ error: "OpenAI error", details: text }, { status: 500 });
     }
 
-    const data = await res.json(); // { data: [{b64_json: "..."}] }
+    const data = (await res.json()) as OpenAIImageResponse;
     return NextResponse.json({ data });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
     return NextResponse.json({ error: "Erreur lors de la génération" }, { status: 500 });
   }

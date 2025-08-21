@@ -1,8 +1,11 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 
 type Sector = 'restaurant' | 'coach' | 'ecommerce';
+type OpenAIImageItem = { b64_json: string };
+type OpenAIImageResponse = { data?: { data?: OpenAIImageItem[] } };
 
 export default function GeneratePage() {
   const [sector, setSector] = useState<Sector>('restaurant');
@@ -11,8 +14,7 @@ export default function GeneratePage() {
   const [headline, setHeadline] = useState<string>('Besoin de frais ?');
   const [cta, setCta] = useState<string>('Réserver');
   const [loading, setLoading] = useState<boolean>(false);
-
-  const [images, setImages] = useState<string[]>([]); // <= on affiche ici
+  const [images, setImages] = useState<string[]>([]);
 
   function handleSectorChange(e: ChangeEvent<HTMLSelectElement>) {
     setSector(e.target.value as Sector);
@@ -33,18 +35,17 @@ export default function GeneratePage() {
         body: JSON.stringify({ sector, context, offer, headline, cta }),
       });
 
-      const json = await res.json();
+      const json = (await res.json()) as OpenAIImageResponse;
 
       if (!res.ok) {
-        alert("Erreur de génération (voir console)");
         console.error(json);
-      } else {
-        // Transforme les b64 en data URLs affichables
-        const list = (json.data?.data || []).map(
-          (d: any) => `data:image/png;base64,${d.b64_json}`
-        );
-        setImages(list);
+        alert("Erreur de génération (voir console)");
+        return;
       }
+
+      const items = json.data?.data ?? [];
+      const list = items.map((d) => `data:image/png;base64,${d.b64_json}`);
+      setImages(list);
     } catch (err) {
       console.error(err);
       alert("Erreur réseau");
@@ -122,12 +123,20 @@ export default function GeneratePage() {
           </button>
         </form>
 
-        {/* Affichage des images générées */}
         {images.length > 0 && (
           <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {images.map((src, i) => (
               <div key={i} className="rounded overflow-hidden border border-neutral-800">
-                <img src={src} alt={`gen-${i}`} className="w-full h-auto" />
+                {/* next/image pour éviter le warning LCP & eslint */}
+                <Image
+                  src={src}
+                  alt={`gen-${i}`}
+                  width={1024}
+                  height={1024}
+                  className="w-full h-auto"
+                  unoptimized
+                  priority={i === 0}
+                />
               </div>
             ))}
           </div>
