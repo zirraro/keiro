@@ -22,7 +22,7 @@ Intégrer des zones de texte bien contrastées.
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: \`Bearer \${process.env.OPENAI_API_KEY}\`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-image-1",
