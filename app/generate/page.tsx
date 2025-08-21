@@ -12,6 +12,8 @@ export default function GeneratePage() {
   const [cta, setCta] = useState<string>('Réserver');
   const [loading, setLoading] = useState<boolean>(false);
 
+  const [images, setImages] = useState<string[]>([]); // <= on affiche ici
+
   function handleSectorChange(e: ChangeEvent<HTMLSelectElement>) {
     setSector(e.target.value as Sector);
   }
@@ -22,20 +24,41 @@ export default function GeneratePage() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setImages([]);
 
-    alert(
-      `OK !\nSecteur: ${sector}\nContexte: ${context}\nOffre: ${offer}\nAccroche: ${headline}\nCTA: ${cta}\n\n➡️ Demain on branchera l’IA ici.`
-    );
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sector, context, offer, headline, cta }),
+      });
 
-    setLoading(false);
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert("Erreur de génération (voir console)");
+        console.error(json);
+      } else {
+        // Transforme les b64 en data URLs affichables
+        const list = (json.data?.data || []).map(
+          (d: any) => `data:image/png;base64,${d.b64_json}`
+        );
+        setImages(list);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur réseau");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Générer une image</h1>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4 max-w-xl">
           <div>
             <label className="block text-sm mb-1">Secteur</label>
             <select
@@ -95,9 +118,20 @@ export default function GeneratePage() {
             disabled={loading}
             className="w-full sm:w-auto px-5 py-2 rounded bg-white text-black font-semibold disabled:opacity-50"
           >
-            {loading ? 'Préparation…' : 'Générer 3 images (bientôt)'}
+            {loading ? 'Génération en cours…' : 'Générer 3 images'}
           </button>
         </form>
+
+        {/* Affichage des images générées */}
+        {images.length > 0 && (
+          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {images.map((src, i) => (
+              <div key={i} className="rounded overflow-hidden border border-neutral-800">
+                <img src={src} alt={`gen-${i}`} className="w-full h-auto" />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );
