@@ -13,8 +13,9 @@ export default function GeneratePage() {
   const [offer, setOffer] = useState<string>('Granité maison');
   const [headline, setHeadline] = useState<string>('Besoin de frais ?');
   const [cta, setCta] = useState<string>('Réserver');
+
   const [loading, setLoading] = useState<boolean>(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null); // ✅ une seule image
 
   function handleSectorChange(e: ChangeEvent<HTMLSelectElement>) {
     setSector(e.target.value as Sector);
@@ -26,7 +27,7 @@ export default function GeneratePage() {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    setImages([]);
+    setImage(null);
 
     try {
       const res = await fetch("/api/generate", {
@@ -48,9 +49,12 @@ export default function GeneratePage() {
         return;
       }
 
-      const items = (json as OpenAIImageResponse).data?.data ?? [];
-      const list = items.map((d) => `data:image/png;base64,${d.b64_json}`);
-      setImages(list);
+      const item = (json as OpenAIImageResponse).data?.data?.[0];
+      if (!item?.b64_json) {
+        alert("Réponse inattendue de l’IA");
+        return;
+      }
+      setImage(`data:image/png;base64,${item.b64_json}`);
     } catch (err) {
       console.error(err);
       alert("Erreur réseau");
@@ -124,25 +128,23 @@ export default function GeneratePage() {
             disabled={loading}
             className="w-full sm:w-auto px-5 py-2 rounded bg-white text-black font-semibold disabled:opacity-50"
           >
-            {loading ? 'Génération en cours…' : 'Générer 3 images'}
+            {loading ? 'Génération en cours…' : 'Générer 1 image'}
           </button>
         </form>
 
-        {images.length > 0 && (
-          <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {images.map((src, i) => (
-              <div key={i} className="rounded overflow-hidden border border-neutral-800">
-                <Image
-                  src={src}
-                  alt={`gen-${i}`}
-                  width={1024}
-                  height={1024}
-                  className="w-full h-auto"
-                  unoptimized
-                  priority={i === 0}
-                />
-              </div>
-            ))}
+        {image && (
+          <div className="mt-8 max-w-md">
+            <div className="rounded overflow-hidden border border-neutral-800">
+              <Image
+                src={image}
+                alt="image générée"
+                width={1024}
+                height={1024}
+                className="w-full h-auto"
+                unoptimized
+                priority
+              />
+            </div>
           </div>
         )}
       </div>
