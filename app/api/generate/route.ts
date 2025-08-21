@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs"; // assure un runtime Node (pas Edge)
+export const runtime = "nodejs"; // force le runtime Node (pas Edge)
 
 type OpenAIImageItem = { b64_json: string };
 type OpenAIImageResponse = { data: OpenAIImageItem[] };
 
-// GET = test rapide dans le navigateur
+// GET = petit test santé (ouvre /api/generate dans le navigateur)
 export async function GET() {
-  return NextResponse.json({ ok: true, hint: "POST here with {sector,context,offer,headline,cta}" });
+  return NextResponse.json({
+    ok: true,
+    hint: "POST ici avec {sector, context, offer, headline, cta}",
+  });
 }
 
 export async function POST(req: Request) {
@@ -15,13 +18,20 @@ export async function POST(req: Request) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "OPENAI_API_KEY absente sur Vercel → Project → Settings → Environment Variables." },
+        {
+          error:
+            "OPENAI_API_KEY absente. Ajoute-la dans Vercel → Project → Settings → Environment Variables (Production).",
+        },
         { status: 500 }
       );
     }
 
     const body = (await req.json()) as {
-      sector: string; context: string; offer: string; headline: string; cta: string;
+      sector: string;
+      context: string;
+      offer: string;
+      headline: string;
+      cta: string;
     };
 
     const { sector, context, offer, headline, cta } = body || {};
@@ -36,13 +46,13 @@ export async function POST(req: Request) {
 Crée une affiche moderne 9:16 pour ${sector}.
 Contexte: ${context}. Offre: ${offer}.
 Accroche: "${headline}". Bouton/CTA: "${cta}".
-Style: clair, lisible mobile, look innovant pour réseaux sociaux.
-Zones de texte bien contrastées.
+Style: clair, lisible mobile, innovant pour réseaux sociaux.
+Zones de texte bien contrastées, composition publicitaire nette.
 `;
 
-    // Modèle: certains comptes n'ont pas "gpt-image-1". On tente d'abord, puis fallback "dall-e-3".
+    // Appel OpenAI Images — on tente gpt-image-1 puis fallback dall-e-3 si indispo
     async function callOpenAI(model: "gpt-image-1" | "dall-e-3") {
-      const res = await fetch("https://api.openai.com/v1/images/generations", {
+      return fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,12 +65,11 @@ Zones de texte bien contrastées.
           size: "1024x1024",
         }),
       });
-      return res;
     }
 
     let res = await callOpenAI("gpt-image-1");
     if (res.status === 404 || res.status === 400) {
-      // modèle indisponible → on retente avec dall-e-3
+      // modèle pas dispo sur ton compte → on tente dall-e-3
       res = await callOpenAI("dall-e-3");
     }
 

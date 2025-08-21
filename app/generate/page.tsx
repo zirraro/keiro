@@ -35,18 +35,20 @@ export default function GeneratePage() {
         body: JSON.stringify({ sector, context, offer, headline, cta }),
       });
 
-      const json = await res.json();
-if (!res.ok) {
-  const msg =
-    (json && (json.details || json.error || json.message || JSON.stringify(json))) ||
-    `Erreur HTTP ${res.status}`;
-  alert(msg);
-  console.error("API error:", json);
-  return;
-}
+      const json = (await res.json()) as OpenAIImageResponse | { error?: string; details?: string; message?: string };
 
+      if (!res.ok) {
+        const msg =
+          (json as any)?.details ||
+          (json as any)?.error ||
+          (json as any)?.message ||
+          `Erreur HTTP ${res.status}`;
+        alert(msg);
+        console.error("API error:", json);
+        return;
+      }
 
-      const items = json.data?.data ?? [];
+      const items = (json as OpenAIImageResponse).data?.data ?? [];
       const list = items.map((d) => `data:image/png;base64,${d.b64_json}`);
       setImages(list);
     } catch (err) {
