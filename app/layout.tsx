@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Générez des visuels qui surfent sur l’actualité',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout(<ToastProvider>{ children }</ToastProvider>: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body className={`${jakarta.className} bg-neutral-950 text-neutral-100`}>
