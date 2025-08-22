@@ -3,18 +3,14 @@
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 
-/* Types */
 type Objective = 'promo' | 'event' | 'leads';
 type Sector = 'restaurant' | 'cafe' | 'bar' | 'ecommerce' | 'beauty' | 'fitness' | 'other';
 type Platform = 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'x';
-type AdvancedFormat = 'auto' | 'square' | 'vertical' | 'wide';
 
-type APIDemo = { demo?: true; url?: string; note?: string };
-type OpenAIItem = { b64_json: string };
-type APIOk = { data?: { data?: OpenAIItem[] } };
-type APIResp = (APIOk & APIDemo) | { error?: string; details?: string; message?: string };
+type APIResp =
+  | { images: string[]; demo?: boolean; note?: string }
+  | { error?: string; details?: string; message?: string };
 
-/* Presets concis */
 const TREND_SUGGESTIONS = ['Canicule', 'Match des Bleus', 'Rentrée', 'Black Friday'];
 const DEFAULT_CTA: Record<Objective, string> = { promo: 'Découvrir', event: 'Réserver', leads: 'Contact' };
 const DEFAULT_HEADLINE: Record<Objective, string> = {
@@ -46,45 +42,27 @@ const PLATFORM_LABEL: Record<Platform, string> = {
   x: 'X (Twitter)',
 };
 
-/* Mapping format auto par plateforme */
-function autoFormatFor(platform: Platform): AdvancedFormat {
-  switch (platform) {
-    case 'instagram': return 'square';   // feed carré par défaut (1:1)
-    case 'tiktok':    return 'vertical'; // 9:16
-    case 'facebook':  return 'square';   // polyvalent (1:1)
-    case 'linkedin':  return 'wide';     // 1.91:1
-    case 'x':         return 'wide';     // 16:9 approx
-    default:          return 'square';
-  }
-}
-
 export default function GeneratePage() {
-  /* Étapes */
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  /* Choix guidés */
+  const [platform, setPlatform] = useState<Platform>('instagram');
   const [objective, setObjective] = useState<Objective>('promo');
-  const [platform, setPlatform] = useState<Platform>('instagram'); // ✅ on demande juste la plateforme
   const [sector, setSector] = useState<Sector>('restaurant');
   const [otherSector, setOtherSector] = useState<string>('');
   const [businessType, setBusinessType] = useState<string>('');
 
   const [context, setContext] = useState<string>('Canicule');
-  const [highlight, setHighlight] = useState<string>(SECTOR_PRESETS['restaurant'].highlight); // “Mise en avant”
+  const [highlight, setHighlight] = useState<string>(SECTOR_PRESETS['restaurant'].highlight);
   const [headline, setHeadline] = useState<string>(DEFAULT_HEADLINE['promo']);
   const [cta, setCta] = useState<string>(DEFAULT_CTA['promo']);
   const [brandColor, setBrandColor] = useState<string>('#2b82f6');
 
-  /* Options avancées (repliées) */
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [advFormat, setAdvFormat] = useState<AdvancedFormat>('auto'); // Auto par défaut
+  const [variants, setVariants] = useState<1 | 3>(1); // ✅ 1 ou 3 propositions
 
-  /* Résultat */
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [note, setNote] = useState<string | null>(null);
 
-  /* Sync */
   function onObjective(o: Objective) {
     setObjective(o);
     setHeadline(DEFAULT_HEADLINE[o]);
@@ -97,6 +75,7 @@ export default function GeneratePage() {
       setHighlight(SECTOR_PRESETS[next].highlight);
     }
   }
+
   function inspireMe() {
     const sectors: Sector[] = ['restaurant', 'cafe', 'bar', 'ecommerce', 'beauty', 'fitness'];
     const rndSector = sectors[Math.floor(Math.random() * sectors.length)] as Exclude<Sector, 'other'>;
@@ -105,11 +84,7 @@ export default function GeneratePage() {
     setObjective(objs[Math.floor(Math.random() * objs.length)]);
     setContext(TREND_SUGGESTIONS[Math.floor(Math.random() * TREND_SUGGESTIONS.length)]);
     if (!businessType) {
-      setBusinessType(
-        rndSector === 'restaurant' ? 'restaurant italien' :
-        rndSector === 'beauty' ? 'salon de coiffure' :
-        ''
-      );
+      setBusinessType(rndSector === 'restaurant' ? 'restaurant italien' : rndSector === 'beauty' ? 'salon de coiffure' : '');
     }
   }
 
@@ -118,16 +93,10 @@ export default function GeneratePage() {
     return SECTOR_LABEL[sector];
   }, [sector, otherSector]);
 
-  /* Format effectif (auto ou avancé) */
-  const effectiveFormat: AdvancedFormat = useMemo(() => {
-    if (advFormat === 'auto') return autoFormatFor(platform);
-    return advFormat;
-  }, [platform, advFormat]);
-
   const brief = useMemo(
     () =>
       [
-        `Plateforme: ${PLATFORM_LABEL[platform]} (format: ${effectiveFormat})`,
+        `Plateforme: ${PLATFORM_LABEL[platform]}`,
         `Objectif: ${objective}`,
         `Secteur: ${sectorDisplay}${businessType ? ` — ${businessType}` : ''}`,
         `Contexte: ${context}`,
@@ -135,57 +104,41 @@ export default function GeneratePage() {
         `Accroche: "${headline}"`,
         `CTA: "${cta}"`,
         `Couleur: ${brandColor}`,
+        `Propositions: ${variants}`,
       ].join('\n'),
-    [platform, effectiveFormat, objective, sectorDisplay, businessType, context, highlight, headline, cta, brandColor]
+    [platform, objective, sectorDisplay, businessType, context, highlight, headline, cta, brandColor, variants]
   );
-
-  /* Appel API (1 image) */
-  async function generateOnce(): Promise<string | null> {
-    // mapping : “highlight” -> “offer” pour la route existante
-    const body = {
-      sector: sectorDisplay,
-      context,
-      offer: highlight,
-      headline,
-      cta,
-      meta: {
-        objective,
-        brandColor,
-        businessType,
-        platform,
-        format: effectiveFormat, // on passe le format effectif (auto-résolu)
-      },
-    };
-
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const json = (await res.json()) as APIResp;
-
-    if (!('data' in json) && !('demo' in json)) {
-      const msg = (json as any).details || (json as any).error || (json as any).message || 'Erreur API';
-      throw new Error(msg);
-    }
-    if ((json as any).demo && (json as any).url) {
-      if ((json as any).note) setNote((json as any).note as string);
-      return (json as any).url as string;
-    }
-    const item = (json as any).data?.data?.[0] as OpenAIItem | undefined;
-    if (!item?.b64_json) return null;
-    return `data:image/png;base64,${item.b64_json}`;
-  }
 
   async function onGenerate() {
     setLoading(true);
     setImages([]);
     setNote(null);
     try {
-      const img = await generateOnce();
-      if (img) setImages([img]);
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sector: sectorDisplay,
+          context,
+          offer: highlight,   // mapping “mise en avant”
+          headline,
+          cta,
+          meta: { objective, brandColor, businessType, platform },
+          variants,           // ✅ 1 ou 3
+        }),
+      });
+      const json = (await res.json()) as APIResp;
+
+      if ('images' in json) {
+        setImages(json.images || []);
+        if ('note' in json && json.note) setNote(json.note as string);
+      } else {
+        const msg = (json as any).details || (json as any).error || (json as any).message || 'Erreur API';
+        alert(msg);
+        console.error(json);
+      }
     } catch (e: any) {
-      alert(e.message || 'Erreur');
+      alert(e?.message || 'Erreur réseau');
       console.error(e);
     } finally {
       setLoading(false);
@@ -210,7 +163,6 @@ export default function GeneratePage() {
         {/* ÉTAPE 1 — Plateforme + Objectif + Secteur */}
         {step === 1 && (
           <div className="space-y-6">
-            {/* Plateforme */}
             <div>
               <p className="text-sm text-neutral-300 mb-2">Plateforme</p>
               <div className="grid grid-cols-5 gap-2">
@@ -219,16 +171,14 @@ export default function GeneratePage() {
                     key={p}
                     onClick={() => setPlatform(p)}
                     className={`p-3 rounded-lg border text-center ${platform === p ? 'bg-white text-black border-white' : 'border-neutral-700 hover:bg-neutral-900'}`}
-                    title={PLATFORM_LABEL[p]}
                   >
                     {PLATFORM_LABEL[p]}
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-neutral-500 mt-2">Le bon format est choisi automatiquement pour chaque plateforme.</p>
+              <p className="text-xs text-neutral-500 mt-2">On adapte automatiquement le format selon la plateforme.</p>
             </div>
 
-            {/* Objectif */}
             <div>
               <p className="text-sm text-neutral-300 mb-2">Objectif</p>
               <div className="grid grid-cols-3 gap-2">
@@ -247,7 +197,6 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            {/* Secteur */}
             <div>
               <p className="text-sm text-neutral-300 mb-2">Secteur</p>
               <div className="grid grid-cols-3 gap-2">
@@ -275,7 +224,7 @@ export default function GeneratePage() {
                   <input
                     value={otherSector}
                     onChange={(e) => setOtherSector(e.target.value)}
-                    placeholder='Ex : "pharmacie", "salle d’escalade", "librairie"…'
+                    placeholder='Ex : "pharmacie", "librairie", "salle d’escalade"…'
                     className="w-full p-2 rounded border border-neutral-700 bg-neutral-900"
                   />
                   <p className="text-xs text-neutral-500 mt-1">Astuce : ajoutez un mot‑clé (ex. “italien”, “bio”, “local”…)</p>
@@ -283,7 +232,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* Type de business */}
             <div>
               <label className="block text-sm mb-1">Type de business (précision)</label>
               <input
@@ -359,7 +307,7 @@ export default function GeneratePage() {
           </div>
         )}
 
-        {/* ÉTAPE 3 — Couleur & Options avancées & Génération */}
+        {/* ÉTAPE 3 — Couleur, nb de propositions, génération */}
         {step === 3 && (
           <div className="space-y-6">
             <div>
@@ -370,33 +318,21 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            {/* Options avancées minimalistes */}
-            <div className="border border-neutral-800 rounded-lg">
-              <button type="button" onClick={() => setShowAdvanced((s) => !s)} className="w-full text-left px-4 py-3 text-sm flex items-center justify-between hover:bg-neutral-900">
-                Options avancées (facultatif)
-                <span className="text-neutral-400">{showAdvanced ? '−' : '+'}</span>
-              </button>
-              {showAdvanced && (
-                <div className="px-4 pb-4">
-                  <label className="block text-sm mb-2">Format (par défaut : Auto selon la plateforme)</label>
-                  <div className="flex gap-2">
-                    {(['auto', 'square', 'vertical', 'wide'] as AdvancedFormat[]).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setAdvFormat(f)}
-                        className={`px-3 py-1 rounded-full border text-sm ${
-                          advFormat === f ? 'bg-white text-black border-white' : 'border-neutral-700 hover:bg-neutral-900'
-                        }`}
-                      >
-                        {f === 'auto' ? 'Auto' : f === 'square' ? 'Carré' : f === 'vertical' ? 'Vertical' : 'Large'}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-neutral-500 mt-2">
-                    Auto = {PLATFORM_LABEL[platform]} → {autoFormatFor(platform)}.
-                  </p>
-                </div>
-              )}
+            {/* Nombre de propositions */}
+            <div>
+              <p className="text-sm text-neutral-300 mb-2">Nombre de propositions</p>
+              <div className="flex gap-2">
+                {[1, 3].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setVariants(n as 1 | 3)}
+                    className={`px-3 py-1 rounded-full border text-sm ${variants === n ? 'bg-white text-black border-white' : 'border-neutral-700 hover:bg-neutral-900'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">3 variantes = 3 appels IA (plus de crédit utilisé).</p>
             </div>
 
             <div className="rounded-lg border border-neutral-800 p-4 bg-neutral-900/40">
@@ -418,7 +354,7 @@ export default function GeneratePage() {
         <div className="mt-10">
           {loading && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
+              {[...Array(variants)].map((_, i) => (
                 <div key={i} className="h-64 rounded-lg bg-neutral-800 animate-pulse" />
               ))}
             </div>
