@@ -7,11 +7,9 @@ import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
-import { Modal } from '../../components/ui/modal';
-import { Stepper } from '../../components/ui/stepper';
 import { useToast } from '../../components/ui/toast';
 
+/* --- Types & presets --- */
 type Objective = 'promo' | 'event' | 'leads';
 type Sector = 'restaurant' | 'cafe' | 'bar' | 'ecommerce' | 'beauty' | 'fitness' | 'other';
 type Platform = 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'x';
@@ -71,10 +69,7 @@ export default function GeneratePage() {
   const [images, setImages] = useState<string[]>([]);
   const [note, setNote] = useState<string | null>(null);
 
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewIdx, setPreviewIdx] = useState(0);
-
-  const { push } = useToast();
+  const { addToast } = useToast();
 
   function onObjective(o: Objective) {
     setObjective(o);
@@ -98,7 +93,7 @@ export default function GeneratePage() {
     if (!businessType) {
       setBusinessType(rndSector === 'restaurant' ? 'restaurant italien' : rndSector === 'beauty' ? 'salon de coiffure' : '');
     }
-    push({ text: "Brief mis à jour ✨", tone: "info" });
+    addToast('Brief mis à jour ✨');
   }
 
   const sectorDisplay = useMemo(() => {
@@ -133,27 +128,32 @@ export default function GeneratePage() {
         body: JSON.stringify({
           sector: sectorDisplay,
           context,
-          offer: highlight,
+          offer: highlight, // mapping “mise en avant”
           headline,
           cta,
           meta: { objective, brandColor, businessType, platform },
           variants,
         }),
       });
-      const json = (await res.json()) as APIResp;
 
+      const json = (await res.json()) as APIResp;
       if ('images' in json) {
         setImages(json.images || []);
         if ('note' in json && json.note) setNote(json.note as string);
-        push({ text: json?.note ? "Images de démo chargées" : "Images générées ✅", tone: json?.note ? "info" : "success" });
+        addToast(json?.note ? 'Images de démo chargées' : 'Images générées ✅');
         setStep(3);
       } else {
-        const msg = (json as any).details || (json as any).error || (json as any).message || 'Erreur API';
-        push({ text: msg, tone: "error" });
+        const msg =
+          ('details' in json && json.details) ||
+          ('error' in json && json.error) ||
+          ('message' in json && json.message) ||
+          'Erreur API';
+        addToast('Erreur', msg);
         console.error(json);
       }
-    } catch (e: any) {
-      push({ text: e?.message || 'Erreur réseau', tone: "error" });
+    } catch (e) {
+      const err = e as { message?: string };
+      addToast('Erreur réseau', err?.message || '');
       console.error(e);
     } finally {
       setLoading(false);
@@ -168,10 +168,22 @@ export default function GeneratePage() {
           <div className="text-xs sm:text-sm text-neutral-400">Keiro · Génération IA</div>
         </div>
 
-        <Stepper step={step} total={3} />
+        {/* Étapes (indicateur simple) */}
+        <div className="mb-4">
+          <div className="flex justify-between text-xs text-neutral-400 mb-1">
+            <span>Étape {step}/3</span>
+            <span>{Math.round(((step - 1) / 2) * 100)}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-400"
+              style={{ width: `${Math.round(((step - 1) / 2) * 100)}%` }}
+            />
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Colonne gauche: formulaire (Cards) */}
+          {/* Colonne gauche */}
           <div className="lg:col-span-2 space-y-6">
             {/* Étape 1 */}
             {step === 1 && (
@@ -354,16 +366,14 @@ export default function GeneratePage() {
                 {loading ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[...Array(variants)].map((_, i) => (
-                      <Skeleton key={i} className="h-64" />
+                      <div key={i} className="h-64 rounded-xl bg-neutral-800 animate-pulse" />
                     ))}
                   </div>
                 ) : images.length > 0 ? (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {images.map((src, i) => (
                       <Card key={i} className="overflow-hidden">
-                        <button onClick={() => { setPreviewIdx(i); setPreviewOpen(true); }}>
-                          <Image src={src} alt={`gen-${i}`} width={1024} height={1024} className="w-full h-auto" unoptimized />
-                        </button>
+                        <Image src={src} alt={`gen-${i}`} width={1024} height={1024} className="w-full h-auto" unoptimized />
                         <div className="flex items-center gap-4 p-3 text-sm">
                           <a href={src} download={`keiro-${i + 1}.png`} className="underline underline-offset-4 hover:opacity-80">
                             Télécharger
@@ -405,6 +415,18 @@ export default function GeneratePage() {
                     <a href="/generate"><Button className="w-full">Recommencer</Button></a>
                   )}
                 </div>
+
+                {/* Bouton test toast */}
+                <div className="mt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => addToast('Toast de test', 'Tout fonctionne ✅')}
+                  >
+                    Tester le toast
+                  </Button>
+                </div>
+
                 {note && <div className="mt-3 text-xs text-yellow-400">{note}</div>}
               </Card>
 
@@ -418,26 +440,6 @@ export default function GeneratePage() {
           </div>
         </div>
       </div>
-
-      {/* Prévisualisation modale */}
-      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)}>
-        <div className="p-3 flex items-center justify-between border-b border-neutral-900">
-          <div className="text-sm text-neutral-300">Prévisualisation</div>
-          <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Fermer</Button>
-        </div>
-        <div className="p-4">
-          {images[previewIdx] && (
-            <Image
-              src={images[previewIdx]}
-              alt="preview"
-              width={1280}
-              height={1280}
-              className="w-full h-auto rounded-lg"
-              unoptimized
-            />
-          )}
-        </div>
-      </Modal>
     </main>
   );
 }
