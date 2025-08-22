@@ -146,7 +146,7 @@ export default function GeneratePage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <main className="min-h-screen bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,.15),transparent)] bg-neutral-950 text-neutral-100 p-6">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Créer un visuel</h1>
 
