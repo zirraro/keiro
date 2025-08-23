@@ -10,7 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Modal } from '../../components/ui/modal';
 import { Stepper } from '../../components/ui/stepper';
-import { useToast } from '../../components/ui/toast-compat';
+import { useToastCompat } from '../../components/ui/toast-compat';
 import { TiltCard } from '../../components/ui/tilt-card';
 import { SectionReveal } from '../../components/ui/section-reveal';
 
@@ -385,7 +385,7 @@ export default function GeneratePage() {
                               className="underline underline-offset-4 hover:opacity-80"
                               onClick={() => {
                                 navigator.clipboard.writeText(src);
-                                push({ text: "Lien copié ��", tone: "info" });
+                                push({ text: "Lien copié 📋", tone: "info" });
                               }}
                             >
                               Copier l’URL
