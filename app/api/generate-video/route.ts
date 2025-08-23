@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     const { prompt } = await req.json();
 
     const token = process.env.REPLICATE_API_TOKEN;
-    const model = process.env.REPLICATE_VIDEO_MODEL;
+    const model = process.env.REPLICATE_VIDEO_MODEL || "stability-ai/stable-diffusion";
 
     if (!token || !model) {
       return NextResponse.json(
@@ -17,9 +17,10 @@ export async function POST(req: Request) {
 
     const replicate = new Replicate({ auth: token });
 
-    const output = await replicate.run(model as any, {
+    // Test simple avec stable-diffusion (génère une image)
+    const output = await replicate.run(model, {
       input: {
-        prompt: prompt || "A demo video of a cat playing piano",
+        prompt: prompt || "a futuristic city skyline at sunset, cinematic lighting"
       },
     });
 
@@ -27,10 +28,7 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Replicate error", err);
     return NextResponse.json(
-      {
-        error: "Replicate create failed",
-        detail: err, // 👈 envoie tout le message Replicate
-      },
+      { error: "Replicate create failed", detail: err },
       { status: 422 }
     );
   }
