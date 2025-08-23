@@ -19,8 +19,7 @@ export function ShineButton({
       {...props}
     >
       <span className="relative z-10">{children}</span>
-
-      {/* Shine effect without styled-jsx */}
+      {/* Effet shine sans styled-jsx */}
       <span aria-hidden className="pointer-events-none absolute inset-0">
         <span
           className={cn(
