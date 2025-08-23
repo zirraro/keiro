@@ -78,7 +78,7 @@ export default function GeneratePage() {
                   <Button
                     key={p}
                     type="button"
-                    variant={platform===p ? 'default' : 'outline'}
+                    variant={platform===p ? 'primary' : 'outline'}
                     onClick={(e)=>{e.preventDefault(); setPlatform(p);}}
                     className="w-full"
                   >
@@ -95,7 +95,7 @@ export default function GeneratePage() {
                   <Button
                     key={o}
                     type="button"
-                    variant={objective===o ? 'default' : 'outline'}
+                    variant={objective===o ? 'primary' : 'outline'}
                     onClick={(e)=>{e.preventDefault(); setObjective(o); setHeadline(o==='promo'?'À ne pas manquer': o==='event'?'C’est maintenant':'On vous écoute'); setCta(o==='promo'?'Découvrir': o==='event'?'Réserver':'Contact');}}
                     className="w-full"
                   >
@@ -151,7 +151,7 @@ export default function GeneratePage() {
                 <div className="text-sm text-neutral-300 mb-1">Variantes</div>
                 <div className="flex gap-2">
                   {[1,3].map(n=>(
-                    <Button key={n} type="button" variant={variants===n ? 'default':'outline'} onClick={(e)=>{e.preventDefault(); setVariants(n as 1|3);}}>
+                    <Button key={n} type="button" variant={variants===n ? 'primary':'outline'} onClick={(e)=>{e.preventDefault(); setVariants(n as 1|3);}}>
                       {n}
                     </Button>
                   ))}
