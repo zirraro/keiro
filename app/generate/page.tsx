@@ -10,7 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Modal } from '../../components/ui/modal';
 import { Stepper } from '../../components/ui/stepper';
-import { useToast } from '../../components/ui/toast';
+import { useToast } from '../../components/ui/toast-compat';
 import { TiltCard } from '../../components/ui/tilt-card';
 import { SectionReveal } from '../../components/ui/section-reveal';
 
@@ -76,7 +76,7 @@ export default function GeneratePage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(0);
 
-  const { push } = useToast();
+  const { push } = useToastCompat();
 
   function onObjective(o: Objective) {
     setObjective(o);
