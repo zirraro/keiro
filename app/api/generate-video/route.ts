@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     const prompt = `Créer une courte vidéo promo ${sector}, contexte: ${context}, mise en avant: ${offer}, accroche: "${headline}", CTA: "${cta}".`;
 
     const token = process.env.REPLICATE_API_TOKEN;
-    const version = process.env.REPLICATE_MODEL_VERSION; // doit pointer vers un modèle vidéo compatible
+    const videoModel = process.env.REPLICATE_VIDEO_MODEL || 'stability-ai/stable-video-diffusion-img2vid'; // doit pointer vers un modèle vidéo compatible
 
     // Fallback démo si l’API n’est pas prête côté env
     if (!token || !version) {
