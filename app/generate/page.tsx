@@ -64,7 +64,7 @@ export default function GeneratePage() {
           setImages(json.images);
           setStep(3);
         } else {
-          alert(json?.error || json?.details || 'Erreur API (image)');
+          alert(typeof json?.error || json?.details || 'Erreur API (image)' === 'string' ? json?.error || json?.details || 'Erreur API (image)' : JSON.stringify(json?.error || json?.details || 'Erreur API (image)', null, 2));
         }
       } else {
         // Vidéo: nouvel endpoint
@@ -82,12 +82,12 @@ export default function GeneratePage() {
           setVideoUrl(json.video as string);
           setStep(3);
         } else {
-          alert(json?.error || 'Erreur API (video)');
+          alert(typeof json?.error || 'Erreur API (video)' === 'string' ? json?.error || 'Erreur API (video)' : JSON.stringify(json?.error || 'Erreur API (video)', null, 2));
         }
       }
     } catch (e: unknown) {
       const msg = (e as { message?: string })?.message || 'Erreur réseau';
-      alert(msg);
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2));
     } finally {
       setLoading(false);
     }
