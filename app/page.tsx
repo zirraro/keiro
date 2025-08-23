@@ -2,7 +2,6 @@ import Spotlight from "../components/site/spotlight";
 import GridBG from "../components/site/grid-bg";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Button } from "../components/ui/button";
 import LogosMarquee from "../components/site/logos-marquee";
 import { TiltCard } from "../components/ui/tilt-card";
 import { SectionReveal } from "../components/ui/section-reveal";
