@@ -263,7 +263,7 @@ export default function GeneratePage() {
 
                   <div className="mt-6 flex items-center justify-between">
                     <Button variant="outline" onClick={inspireMe}>🎲 Inspire‑moi</Button>
-                    <Button onClick={() => setStep(2)}>Continuer</Button>
+                    <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStep(2); }}>Continuer</Button>
                   </div>
                 </TiltCard>
               </SectionReveal>
@@ -346,7 +346,7 @@ export default function GeneratePage() {
 
                     <div className="flex items-center justify-between">
                       <Button variant="outline" onClick={() => setStep(1)}>← Retour</Button>
-                      <Button onClick={onGenerate} disabled={loading}>
+                      <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGenerate(); }} disabled={loading}>
                         {loading ? 'Génération…' : 'Générer'}
                       </Button>
                     </div>
