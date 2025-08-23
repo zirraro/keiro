@@ -1,93 +1,110 @@
 import { NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
-type VideoResp =
-  | { videos: string[]; demo?: boolean; note?: string }
-  | { error: string; details?: string };
+export const runtime = 'nodejs';
+
+type Body = {
+  sector?: string;
+  context?: string;
+  offer?: string;
+  headline?: string;
+  cta?: string;
+  meta?: {
+    objective?: string;
+    brandColor?: string;
+    businessType?: string;
+    platform?: string;
+  };
+};
 
 export async function POST(req: Request) {
-  // --- ENV
-  const token = process.env.REPLICATE_API_TOKEN as string | undefined;
-  // modèle vidéo par défaut si non fourni
-  const videoModel =
-    process.env.REPLICATE_VIDEO_MODEL || 'stability-ai/stable-video-diffusion-img2vid';
-
-  // --- Fallback démo si l’API n’est pas prête (token manquant par ex.)
-  if (!token || !videoModel) {
-    return NextResponse.json(
-      {
-        demo: true,
-        note:
-          "Mode démo (REPLICATE_API_TOKEN ou REPLICATE_VIDEO_MODEL manquant). " +
-          "Ajoute les variables d'env dans Vercel pour activer la génération vidéo.",
-        videos: [
-          // petite vidéo placeholder publique
-          'https://media.w3.org/2010/05/sintel/trailer_hd.mp4',
-        ],
-      } satisfies VideoResp,
-      { status: 200 },
-    );
-  }
-
-  // --- Client Replicate
-  const replicate = new Replicate({ auth: token });
-
-  // --- Corps de requête
-  const body = (await req.json()) as {
-    prompt?: string;
-    image?: string; // URL image de départ pour img2vid
-    meta?: Record<string, unknown>;
-  };
-
-  const prompt = body?.prompt ?? 'short promo video';
-  const image = body?.image ?? undefined;
-
-  // Entrées pour SVD img2vid
-  const input: Record<string, unknown> = {
-    // Pour SVD : soit image+prompt, soit prompt seul selon la version.
-    // On passe image si fournie; sinon le modèle utilisera juste le prompt.
-    prompt,
-    fps: 12,
-    motion_bucket_id: 127,
-    cond_aug: 0.02,
-    decoding_t: 7,
-    // image optionnelle :
-    ...(image ? { image } : {}),
-  };
-
   try {
-    // IMPORTANT : on appelle le modèle par son identifiant (pas une version)
+    const body = (await req.json()) as Body | undefined;
+
+    const token = process.env.REPLICATE_API_TOKEN || '';
+    const videoModelEnv =
+      process.env.REPLICATE_VIDEO_MODEL ||
+      'stability-ai/stable-video-diffusion-img2vid';
+
+    // ✅ Typage explicite pour satisfaire replicate.run()
+    const videoModel =
+      videoModelEnv as `${string}/${string}` | `${string}/${string}:${string}`;
+
+    // Fallback démo si env manquant
+    if (!token || !videoModelEnv) {
+      return NextResponse.json(
+        {
+          demo: true,
+          note:
+            "Mode démo (clé ou modèle Replicate manquant). Ajoute REPLICATE_API_TOKEN et REPLICATE_VIDEO_MODEL.",
+          videos: [
+            // petite vidéo de démo (gif/mp4 public neutre)
+            'https://cdn.jsdelivr.net/gh/ismamz/stock-assets@main/video/placeholder-clip-1.mp4',
+          ],
+        },
+        { status: 200 }
+      );
+    }
+
+    const replicate = new Replicate({ auth: token });
+
+    // Prompt très simple (à affiner plus tard)
+    const promptParts = [
+      body?.headline || 'Annonce courte et dynamique',
+      body?.offer,
+      body?.context,
+      body?.sector,
+      body?.meta?.businessType,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    // Chaque modèle a ses champs — on reste générique.
+    const input: Record<string, unknown> = {
+      prompt: promptParts,
+      // Valeurs par défaut raisonnables (le modèle ignorera ce qui ne le concerne pas)
+      fps: 24,
+      num_frames: 48,
+      // Certaines implémentations acceptent "width"/"height" ou "resolution"
+      width: 768,
+      height: 768,
+    };
+
+    // ✅ Appel typé
     const output = (await replicate.run(videoModel, { input })) as any;
 
-    // Replicate peut renvoyer une string (url) ou un tableau de frames/urls.
+    // Normaliser la sortie en tableau d’URLs
     let urls: string[] = [];
-    if (Array.isArray(output)) {
-      urls = output.filter(Boolean);
-    } else if (typeof output === 'string') {
+    if (typeof output === 'string') {
       urls = [output];
-    } else if (output?.output && Array.isArray(output.output)) {
-      urls = output.output.filter(Boolean);
+    } else if (Array.isArray(output)) {
+      urls = output.map((o) => String(o));
+    } else if (output?.output) {
+      const out = output.output;
+      urls = Array.isArray(out) ? out.map((o: any) => String(o)) : [String(out)];
     }
 
     if (!urls.length) {
       return NextResponse.json(
-        { error: 'Aucune sortie vidéo renvoyée par le modèle.' } satisfies VideoResp,
-        { status: 502 },
+        { error: 'Aucune vidéo renvoyée par le modèle.' },
+        { status: 422 }
       );
     }
 
-    return NextResponse.json(
-      { videos: urls } satisfies VideoResp,
-      { status: 200 },
-    );
-  } catch (e: unknown) {
-    const err = e as { message?: string; status?: number; title?: string; detail?: string };
+    return NextResponse.json({ videos: urls }, { status: 200 });
+  } catch (err: any) {
+    const msg =
+      err?.error?.message ||
+      err?.message ||
+      'Replicate create failed (video)';
+    const detail = err?.error || err?.response || err;
     return NextResponse.json(
       {
         error: 'Replicate create failed',
-        details: err?.message || err?.detail || err?.title || 'unknown error',
-      } satisfies VideoResp,
-      { status: Number(err?.status) || 500 },
+        detail: typeof detail === 'string' ? detail : undefined,
+        message: msg,
+      },
+      { status: 422 }
     );
   }
 }
