@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 
 type Objective = 'promo' | 'event' | 'leads';
 type Platform = 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'x';
@@ -70,43 +72,43 @@ export default function GeneratePage() {
         {step===1 && (
           <div className="space-y-4 border border-neutral-800 rounded-lg p-4">
             <div>
-              <label className="text-sm text-neutral-300">Plateforme</label>
-              <div className="mt-2 grid grid-cols-5 gap-2">
+              <div className="text-sm text-neutral-300 mb-2">Plateforme</div>
+              <div className="grid grid-cols-5 gap-2">
                 {(['instagram','tiktok','facebook','linkedin','x'] as Platform[]).map(p => (
-                  <button
+                  <Button
                     key={p}
                     type="button"
+                    variant={platform===p ? 'default' : 'outline'}
                     onClick={(e)=>{e.preventDefault(); setPlatform(p);}}
-                    className={`px-3 py-2 rounded border ${platform===p ? 'bg-white text-black' : 'border-neutral-700'}`}
-                  >{p}</button>
+                    className="w-full"
+                  >
+                    {p}
+                  </Button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-neutral-300">Objectif</label>
-              <div className="mt-2 flex gap-2">
+              <div className="text-sm text-neutral-300 mb-2">Objectif</div>
+              <div className="grid grid-cols-3 gap-2">
                 {(['promo','event','leads'] as Objective[]).map(o => (
-                  <button
+                  <Button
                     key={o}
                     type="button"
+                    variant={objective===o ? 'default' : 'outline'}
                     onClick={(e)=>{e.preventDefault(); setObjective(o); setHeadline(o==='promo'?'À ne pas manquer': o==='event'?'C’est maintenant':'On vous écoute'); setCta(o==='promo'?'Découvrir': o==='event'?'Réserver':'Contact');}}
-                    className={`px-3 py-2 rounded border ${objective===o ? 'bg-white text-black' : 'border-neutral-700'}`}
+                    className="w-full"
                   >
-                    {o}
-                  </button>
+                    {o === 'promo' ? 'Mise en avant' : o === 'event' ? 'Événement' : 'Leads'}
+                  </Button>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={(e)=>{e.preventDefault(); e.stopPropagation(); setStep(2);}}
-                className="px-4 py-2 rounded bg-white text-black"
-              >
+            <div className="flex items-center justify-end">
+              <Button type="button" onClick={(e)=>{e.preventDefault(); e.stopPropagation(); setStep(2);}}>
                 Continuer
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -115,85 +117,56 @@ export default function GeneratePage() {
         {step===2 && (
           <div className="space-y-4 border border-neutral-800 rounded-lg p-4">
             <div>
-              <label className="text-sm text-neutral-300">Secteur</label>
-              <input
-                className="mt-1 w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
-                value={sector}
-                onChange={(e)=>setSector(e.target.value)}
-                placeholder="restaurant, café, e‑commerce…"
-              />
+              <div className="text-sm text-neutral-300 mb-1">Secteur</div>
+              <Input value={sector} onChange={(e)=>setSector(e.target.value)} placeholder="restaurant, café, e‑commerce…" />
             </div>
             <div>
-              <label className="text-sm text-neutral-300">Contexte (actualité)</label>
-              <input
-                className="mt-1 w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
-                value={context}
-                onChange={(e)=>setContext(e.target.value)}
-                placeholder='Ex: "canicule", "rentrée", "Black Friday"…'
-              />
+              <div className="text-sm text-neutral-300 mb-1">Contexte (actualité)</div>
+              <Input value={context} onChange={(e)=>setContext(e.target.value)} placeholder='Ex: "canicule", "rentrée", "Black Friday"…' />
             </div>
             <div>
-              <label className="text-sm text-neutral-300">Mise en avant</label>
-              <input
-                className="mt-1 w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
-                value={highlight}
-                onChange={(e)=>setHighlight(e.target.value)}
-                placeholder='Ex: "Nouvelle terrasse"'
-              />
+              <div className="text-sm text-neutral-300 mb-1">Mise en avant</div>
+              <Input value={highlight} onChange={(e)=>setHighlight(e.target.value)} placeholder='Ex: "Nouvelle terrasse"' />
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-neutral-300">Accroche</label>
-                <input
-                  className="mt-1 w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
-                  value={headline}
-                  onChange={(e)=>setHeadline(e.target.value)}
-                  placeholder='Ex: "On se rafraîchit ?"'
-                />
+                <div className="text-sm text-neutral-300 mb-1">Accroche</div>
+                <Input value={headline} onChange={(e)=>setHeadline(e.target.value)} placeholder='Ex: "On se rafraîchit ?"' />
               </div>
               <div>
-                <label className="text-sm text-neutral-300">CTA</label>
-                <input
-                  className="mt-1 w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2"
-                  value={cta}
-                  onChange={(e)=>setCta(e.target.value)}
-                  placeholder='Ex: "Réserver", "Découvrir"'
-                />
+                <div className="text-sm text-neutral-300 mb-1">CTA</div>
+                <Input value={cta} onChange={(e)=>setCta(e.target.value)} placeholder='Ex: "Réserver", "Découvrir"' />
               </div>
             </div>
+
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-neutral-300">Couleur de marque</label>
-                <div className="mt-1 flex items-center gap-3">
+                <div className="text-sm text-neutral-300 mb-1">Couleur de marque</div>
+                <div className="flex items-center gap-3">
                   <input type="color" value={brandColor} onChange={(e)=>setBrandColor(e.target.value)} className="w-12 h-10 bg-neutral-900 border border-neutral-700 rounded"/>
-                  <input className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2" value={brandColor} onChange={(e)=>setBrandColor(e.target.value)} />
+                  <Input value={brandColor} onChange={(e)=>setBrandColor(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="text-sm text-neutral-300">Variantes</label>
-                <div className="mt-2 flex gap-2">
+                <div className="text-sm text-neutral-300 mb-1">Variantes</div>
+                <div className="flex gap-2">
                   {[1,3].map(n=>(
-                    <button key={n} type="button" onClick={(e)=>{e.preventDefault(); setVariants(n as 1|3);}}
-                      className={`px-3 py-2 rounded border ${variants===n ? 'bg-white text-black' : 'border-neutral-700'}`}>
+                    <Button key={n} type="button" variant={variants===n ? 'default':'outline'} onClick={(e)=>{e.preventDefault(); setVariants(n as 1|3);}}>
                       {n}
-                    </button>
+                    </Button>
                   ))}
                 </div>
+                <p className="text-xs text-neutral-500 mt-1">3 variantes = 3 crédits IA.</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
-              <button type="button" onClick={(e)=>{e.preventDefault(); setStep(1);}} className="px-4 py-2 rounded border border-neutral-700">
+              <Button type="button" variant="outline" onClick={(e)=>{e.preventDefault(); setStep(1);}}>
                 ← Retour
-              </button>
-              <button
-                type="button"
-                onClick={onGenerate}
-                disabled={loading}
-                className="px-4 py-2 rounded bg-white text-black disabled:opacity-50"
-              >
+              </Button>
+              <Button type="button" onClick={onGenerate} disabled={loading}>
                 {loading ? 'Génération…' : 'Générer'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -208,11 +181,17 @@ export default function GeneratePage() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {images.map((src, i) => (
                   <div key={i} className="rounded overflow-hidden border border-neutral-800">
-                    {/* Image non optimisée pour simplifier */}
                     <img src={src} alt={"gen-"+i} className="w-full h-auto"/>
                     <div className="p-3 text-sm flex gap-4">
                       <a href={src} download={`keiro-${i+1}.png`} className="underline">Télécharger</a>
-                      <button type="button" className="underline" onClick={()=>navigator.clipboard.writeText(src)}>Copier l’URL</button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={()=>navigator.clipboard.writeText(src)}
+                        className="px-2 py-1 h-auto"
+                      >
+                        Copier l’URL
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -221,9 +200,9 @@ export default function GeneratePage() {
               <div className="text-neutral-400">Aucune image pour le moment.</div>
             )}
             <div>
-              <button type="button" onClick={()=>{setStep(1);}} className="px-4 py-2 rounded border border-neutral-700">
+              <Button type="button" variant="outline" onClick={()=>{setStep(1);}}>
                 Recommencer
-              </button>
+              </Button>
             </div>
           </div>
         )}
