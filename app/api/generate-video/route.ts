@@ -1,131 +1,93 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import Replicate from 'replicate';
 
-export const dynamic = "force-dynamic";
-
-type Body = {
-  sector?: string;
-  context?: string;
-  offer?: string;
-  headline?: string;
-  cta?: string;
-  meta?: Record<string, unknown>;
-};
-
-async function createReplicatePrediction(version: string, prompt: string, token: string) {
-  // Crée la prédiction
-  const resp = await fetch("https://api.replicate.com/v1/predictions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Token ${token}`,
-    },
-    body: JSON.stringify({
-      version,
-      input: {
-        prompt,               // texte de prompt
-        // ⚠️ adapte ces champs au modèle que tu utilises réellement
-        // par exemple pour un modèle "video generation", certains attendent: "fps", "duration", "resolution", etc.
-        // on reste minimal ici pour éviter les erreurs de schéma
-      },
-    }),
-  });
-
-  if (!resp.ok) {
-    const t = await resp.text().catch(() => "");
-    throw new Error(`Replicate create failed (${resp.status}): ${t}`);
-  }
-
-  return resp.json() as Promise<{
-    id: string;
-    status: string;
-    urls: { get: string };
-  }>;
-}
-
-async function pollPrediction(getUrl: string, token: string, timeoutMs = 45000, intervalMs = 2500) {
-  const started = Date.now();
-  // On poll jusqu'à 45s pour essayer de récupérer une URL de sortie
-  while (Date.now() - started < timeoutMs) {
-    const r = await fetch(getUrl, {
-      headers: { Authorization: `Token ${token}` },
-      cache: "no-store",
-    });
-    if (!r.ok) {
-      const t = await r.text().catch(() => "");
-      throw new Error(`Replicate get failed (${r.status}): ${t}`);
-    }
-    const j = await r.json();
-    if (j.status === "succeeded") {
-      // beaucoup de modèles retournent output: string[] ou string
-      const out = j.output;
-      if (Array.isArray(out) && out.length > 0) return { url: out[0], raw: j };
-      if (typeof out === "string") return { url: out, raw: j };
-      return { url: null, raw: j };
-    }
-    if (j.status === "failed" || j.status === "canceled") {
-      throw new Error(`Replicate status=${j.status}: ${JSON.stringify(j)}`);
-    }
-    await new Promise((res) => setTimeout(res, intervalMs));
-  }
-  return { url: null, raw: { timeout: true } };
-}
+type VideoResp =
+  | { videos: string[]; demo?: boolean; note?: string }
+  | { error: string; details?: string };
 
 export async function POST(req: Request) {
-  try {
-    const body = (await req.json()) as Body;
+  // --- ENV
+  const token = process.env.REPLICATE_API_TOKEN as string | undefined;
+  // modèle vidéo par défaut si non fourni
+  const videoModel =
+    process.env.REPLICATE_VIDEO_MODEL || 'stability-ai/stable-video-diffusion-img2vid';
 
-    // petit contrôle d’input (non bloquant)
-    const sector = body?.sector ?? "commerce";
-    const context = body?.context ?? "actualité locale";
-    const offer = body?.offer ?? "mise en avant";
-    const headline = body?.headline ?? "Titre vidéo";
-    const cta = body?.cta ?? "Découvrir";
-
-    // Compose un prompt simple
-    const prompt = `Créer une courte vidéo promo ${sector}, contexte: ${context}, mise en avant: ${offer}, accroche: "${headline}", CTA: "${cta}".`;
-
-    const token = process.env.REPLICATE_API_TOKEN;
-    const videoModel = process.env.REPLICATE_VIDEO_MODEL || 'stability-ai/stable-video-diffusion-img2vid'; // doit pointer vers un modèle vidéo compatible
-
-    // Fallback démo si l’API n’est pas prête côté env
-    if (!token || !version) {
-      return NextResponse.json(
-        {
-          demo: true,
-          note:
-            "REPLICATE_API_TOKEN ou REPLICATE_MODEL_VERSION manquant(s). Retour d’une vidéo démo.",
-          url: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
-        },
-        { status: 200 }
-      );
-    }
-
-    const created = await createReplicatePrediction(version, prompt, token);
-    const polled = await pollPrediction(created.urls.get, token);
-
-    if (polled.url) {
-      return NextResponse.json(
-        { url: polled.url, status: "succeeded" },
-        { status: 200 }
-      );
-    }
-
-    // pas d'URL dans le temps imparti -> propose polling côté client
+  // --- Fallback démo si l’API n’est pas prête (token manquant par ex.)
+  if (!token || !videoModel) {
     return NextResponse.json(
       {
-        status: "processing",
-        predictionUrl: created.urls.get,
+        demo: true,
         note:
-          "Traitement en cours côté Replicate. Re-poller l’URL 'predictionUrl' depuis le client si besoin.",
-      },
-      { status: 200 }
+          "Mode démo (REPLICATE_API_TOKEN ou REPLICATE_VIDEO_MODEL manquant). " +
+          "Ajoute les variables d'env dans Vercel pour activer la génération vidéo.",
+        videos: [
+          // petite vidéo placeholder publique
+          'https://media.w3.org/2010/05/sintel/trailer_hd.mp4',
+        ],
+      } satisfies VideoResp,
+      { status: 200 },
+    );
+  }
+
+  // --- Client Replicate
+  const replicate = new Replicate({ auth: token });
+
+  // --- Corps de requête
+  const body = (await req.json()) as {
+    prompt?: string;
+    image?: string; // URL image de départ pour img2vid
+    meta?: Record<string, unknown>;
+  };
+
+  const prompt = body?.prompt ?? 'short promo video';
+  const image = body?.image ?? undefined;
+
+  // Entrées pour SVD img2vid
+  const input: Record<string, unknown> = {
+    // Pour SVD : soit image+prompt, soit prompt seul selon la version.
+    // On passe image si fournie; sinon le modèle utilisera juste le prompt.
+    prompt,
+    fps: 12,
+    motion_bucket_id: 127,
+    cond_aug: 0.02,
+    decoding_t: 7,
+    // image optionnelle :
+    ...(image ? { image } : {}),
+  };
+
+  try {
+    // IMPORTANT : on appelle le modèle par son identifiant (pas une version)
+    const output = (await replicate.run(videoModel, { input })) as any;
+
+    // Replicate peut renvoyer une string (url) ou un tableau de frames/urls.
+    let urls: string[] = [];
+    if (Array.isArray(output)) {
+      urls = output.filter(Boolean);
+    } else if (typeof output === 'string') {
+      urls = [output];
+    } else if (output?.output && Array.isArray(output.output)) {
+      urls = output.output.filter(Boolean);
+    }
+
+    if (!urls.length) {
+      return NextResponse.json(
+        { error: 'Aucune sortie vidéo renvoyée par le modèle.' } satisfies VideoResp,
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(
+      { videos: urls } satisfies VideoResp,
+      { status: 200 },
     );
   } catch (e: unknown) {
-    const err = e as Error;
-    console.error("generate-video error:", err);
+    const err = e as { message?: string; status?: number; title?: string; detail?: string };
     return NextResponse.json(
-      { error: err?.message ?? "Unknown error" },
-      { status: 500 }
+      {
+        error: 'Replicate create failed',
+        details: err?.message || err?.detail || err?.title || 'unknown error',
+      } satisfies VideoResp,
+      { status: Number(err?.status) || 500 },
     );
   }
 }
