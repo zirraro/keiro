@@ -168,7 +168,7 @@ export default function GeneratePage() {
   }
 
   return (
-    <main className="min-h-screen p-6 bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,.14),transparent)] bg-neutral-950 text-neutral-100">
+    <main className="relative z-10 pointer-events-auto min-h-screen p-6 bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,.14),transparent)] bg-neutral-950 text-neutral-100">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl font-bold">Créer un visuel</h1>
