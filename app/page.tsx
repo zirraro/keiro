@@ -2,7 +2,7 @@ import Spotlight from "../components/site/spotlight";
 import GridBG from "../components/site/grid-bg";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { ShineButton } from "../components/ui/shine-button";
+import { Button } from "../components/ui/button";
 import LogosMarquee from "../components/site/logos-marquee";
 import { TiltCard } from "../components/ui/tilt-card";
 import { SectionReveal } from "../components/ui/section-reveal";
@@ -31,7 +31,7 @@ export default function Home() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="/generate">
-                <ShineButton>Générer un visuel</ShineButton>
+                <Button>Générer un visuel</Button>
               </a>
               <a href="#how-it-works">
                 <Button variant="outline">Voir comment ça marche</Button>
@@ -129,7 +129,7 @@ export default function Home() {
               <div className="text-lg font-semibold">Prêt à essayer Keiro ?</div>
               <div className="text-sm text-neutral-400">Générez un premier visuel en moins d’une minute.</div>
             </div>
-            <a href="/generate"><ShineButton>Commencer maintenant</ShineButton></a>
+            <a href="/generate"><Button>Commencer maintenant</Button></a>
           </TiltCard>
         </section>
       </SectionReveal>
