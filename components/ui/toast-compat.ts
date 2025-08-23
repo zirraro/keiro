@@ -1,7 +1,6 @@
 'use client';
 import { useToast as useRawToast } from './toast';
 
-// Normalise l'API pour toujours exposer push(...)
 export function useToastCompat() {
   const t: any = useRawToast?.() ?? {};
   const push =

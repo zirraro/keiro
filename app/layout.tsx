@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/dashboard" className="hover:text-white transition">Dashboard</Link>
                 <Link href="/generate" className="hover:text-white transition">Générer</Link>
                 <Link href="/pricing" className="hover:text-white transition">Tarifs</Link>
-                <Link href="/brand" className="hover:text-white transition">Marque</Link>
+                <Link href="/assets" className="hover:text-white transition">Marque</Link>
               </nav>
             </div>
           </header>
