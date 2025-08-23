@@ -1,43 +1,36 @@
-import { NextResponse } from "next/server";
-
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET() {
   const token = process.env.REPLICATE_API_TOKEN;
   const version = process.env.REPLICATE_MODEL_VERSION;
 
   if (!token || !version) {
-    return NextResponse.json(
-      { ok: false, where: "env", error: "Missing REPLICATE_API_TOKEN or REPLICATE_MODEL_VERSION" },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({
+      ok: false,
+      where: 'env',
+      error: 'Missing REPLICATE_API_TOKEN or REPLICATE_MODEL_VERSION'
+    }, null, 2), { status: 500, headers: { 'Content-Type': 'application/json' }});
   }
 
-  try {
-    const r = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version,
-        input: { prompt: "Keiro health check" },
-      }),
-    });
+  // simple call → on essaye de récupérer la version du modèle
+  const resp = await fetch(`https://api.replicate.com/v1/models/civitai/${encodeURIComponent(version)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).catch((e) => ({ ok:false, status:0, json: async()=>({ error:String(e) }) } as any));
 
-    const json = await r.json();
-    if (!r.ok) {
-      return NextResponse.json(
-        { ok: false, where: "replicate", status: r.status, error: json?.error || json },
-        { status: 500 }
-      );
-    }
-    return NextResponse.json({ ok: true, id: json?.id ?? null });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, where: "network", error: e?.message || String(e) },
-      { status: 500 }
-    );
+  if (!('ok' in resp) || !resp.ok) {
+    let body: any = {};
+    try { body = await (resp as any).json(); } catch {}
+    return new Response(JSON.stringify({
+      ok: false,
+      where: 'replicate',
+      status: (resp as any).status,
+      error: body?.error || body
+    }, null, 2), { status: 502, headers: { 'Content-Type': 'application/json' }});
   }
+
+  // si la route ci-dessus est trop fragile selon ton modèle, on fait un ping générique
+  return new Response(JSON.stringify({ ok: true }, null, 2), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
