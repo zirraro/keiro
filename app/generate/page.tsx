@@ -85,7 +85,10 @@ alert(_msg);
           setVideoUrl(json.video as string);
           setStep(3);
         } else {
-          alert(typeof json?.error || 'Erreur API (video)' === 'string' ? json?.error || 'Erreur API (video)' : JSON.stringify(json?.error || 'Erreur API (video)', null, 2));
+          
+const _candidateV = (json as any)?.error ?? "Erreur API (video)";
+const _msgV = typeof _candidateV === "string" ? _candidateV : JSON.stringify(_candidateV, null, 2);
+alert(_msgV);
         }
       }
     } catch (e: unknown) {
