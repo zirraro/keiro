@@ -150,12 +150,17 @@ export default function GeneratePage() {
         push({ text: json?.note ? "Images de démo chargées" : "Images générées ✅", tone: json?.note ? "info" : "success" });
         setStep(3);
       } else {
-        const msg = (json as any).details || (json as any).error || (json as any).message || 'Erreur API';
+        const msg =
+          (json as { details?: string; error?: string; message?: string }).details ||
+          (json as { error?: string }).error ||
+          (json as { message?: string }).message ||
+          'Erreur API';
         push({ text: msg, tone: "error" });
         console.error(json);
       }
-    } catch (e: any) {
-      push({ text: e?.message || 'Erreur réseau', tone: "error" });
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      push({ text: err?.message || 'Erreur réseau', tone: "error" });
       console.error(e);
     } finally {
       setLoading(false);
@@ -368,10 +373,21 @@ export default function GeneratePage() {
                             <Image src={src} alt={`gen-${i}`} width={1024} height={1024} className="w-full h-auto" unoptimized />
                           </button>
                           <div className="flex items-center gap-4 p-3 text-sm">
-                            <a href={src} download={`keiro-${i + 1}.png`} className="underline underline-offset-4 hover:opacity-80">
+                            <a
+                              href={src}
+                              download={`keiro-${i + 1}.png`}
+                              className="underline underline-offset-4 hover:opacity-80"
+                              onClick={() => push({ text: "Image téléchargée ✅", tone: "success" })}
+                            >
                               Télécharger
                             </a>
-                            <button className="underline underline-offset-4 hover:opacity-80" onClick={() => navigator.clipboard.writeText(src)}>
+                            <button
+                              className="underline underline-offset-4 hover:opacity-80"
+                              onClick={() => {
+                                navigator.clipboard.writeText(src);
+                                push({ text: "Lien copié ��", tone: "info" });
+                              }}
+                            >
                               Copier l’URL
                             </button>
                           </div>
@@ -417,7 +433,7 @@ export default function GeneratePage() {
       <Modal open={previewOpen} onClose={() => setPreviewOpen(false)}>
         <div className="p-3 flex items-center justify-between border-b border-neutral-900">
           <div className="text-sm text-neutral-300">Prévisualisation</div>
-          <Button variant="ghost" onClick={() => setPreviewOpen(false)}>Fermer</Button>
+          <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fermer</Button>
         </div>
         <div className="p-4">
           {images[previewIdx] && (
