@@ -1,5 +1,9 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "../../lib/supabase/client";
 import { Button } from "../../components/ui/button";
@@ -10,7 +14,6 @@ type Org = { id: string, name: string };
 type Asset = { id: string; name: string | null; url: string | null; kind: string | null };
 
 export default function AssetsPage() {
-  const sb = supabaseBrowser();
   const [org, setOrg] = useState<Org | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -18,6 +21,7 @@ export default function AssetsPage() {
 
   useEffect(() => {
     (async () => {
+      const sb = supabaseBrowser(); // <-- créé côté client, au runtime
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
       const { data: o } = await sb.from('orgs').select('*').eq('owner_id', user.id).maybeSingle();
@@ -30,6 +34,7 @@ export default function AssetsPage() {
 
   async function onUpload(file?: File | null) {
     if (!file || !org) return;
+    const sb = supabaseBrowser();
     const { data: { user } } = await sb.auth.getUser();
     if (!user) return;
     const path = `${user.id}/${Date.now()}_${file.name}`;
