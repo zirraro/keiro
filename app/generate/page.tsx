@@ -64,7 +64,10 @@ export default function GeneratePage() {
           setImages(json.images);
           setStep(3);
         } else {
-          alert(typeof json?.error || json?.details || 'Erreur API (image)' === 'string' ? json?.error || json?.details || 'Erreur API (image)' : JSON.stringify(json?.error || json?.details || 'Erreur API (image)', null, 2));
+          
+const _candidate = (json as any)?.error ?? (json as any)?.details ?? "Erreur API (image)";
+const _msg = typeof _candidate === "string" ? _candidate : JSON.stringify(_candidate, null, 2);
+alert(_msg);
         }
       } else {
         // Vidéo: nouvel endpoint
