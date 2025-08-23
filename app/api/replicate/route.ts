@@ -36,10 +36,13 @@ export async function GET() {
   try {
     const replicate = new Replicate({ auth: token });
 
-    // Décompose owner/name[:version]
-    const [owner, nameAndMaybeVersion] = modelId.split("/");
-    const name = nameAndMaybeVersion.split(":")[0];
+    // Décomposition safe sans supposer "owner/name" correct
+    const parts = modelId.split("/");
+    const owner = parts[0] || "stability-ai";
+    const nameAndMaybeVersion = parts[1] || "stable-diffusion";
+    const name = nameAndMaybeVersion.split(":")[0] || "stable-diffusion";
 
+    // API Replicate v1: models.get(owner, name)
     const mdl = await replicate.models.get(owner, name);
 
     return NextResponse.json({
