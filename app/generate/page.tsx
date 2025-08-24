@@ -22,7 +22,7 @@ type APIImageResp =
   | { error?: string; details?: string; message?: string };
 
 type APIVideoCreate =
-  | { ok: true; predictionId?: string; videos?: string[]; model?: string }
+  | { ok: true; predictionId?: string; videos?: string[]; model?: string; demo?: boolean }
   | { ok: false; error?: string; detail?: string };
 
 type APIVideoStatus = {
@@ -90,9 +90,9 @@ export default function GeneratePage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(0);
 
-  // ---- ÉTAT VIDÉO (nouveau) ----
+  // ---- ÉTAT VIDÉO ----
   const [videoPrompt, setVideoPrompt] = useState<string>('cinématique, léger mouvement de caméra');
-  const [videoImageUrl, setVideoImageUrl] = useState<string>(''); // facultatif : si tu mets une image → image-to-video
+  const [videoImageUrl, setVideoImageUrl] = useState<string>(''); // si rempli => image-to-video
   const [videoRatio, setVideoRatio] = useState<'16:9' | '9:16' | '1:1'>('16:9');
   const [videoDuration, setVideoDuration] = useState<number>(5);
   const [videoPredictionId, setVideoPredictionId] = useState<string | null>(null);
@@ -106,9 +106,7 @@ export default function GeneratePage() {
       pollRef.current = null;
     }
   }
-  useEffect(() => {
-    return () => clearVideoPoll();
-  }, []);
+  useEffect(() => () => clearVideoPoll(), []);
 
   const sectorDisplay = useMemo(() => {
     if (sector === 'other') return otherSector.trim() || 'Autre';
@@ -156,6 +154,7 @@ export default function GeneratePage() {
     alert('Brief mis à jour ✨');
   }
 
+  // ---------- IMAGES ----------
   async function onGenerateImages() {
     setLoading(true);
     setImages([]);
@@ -198,7 +197,7 @@ export default function GeneratePage() {
     }
   }
 
-  // ---------- VIDÉO : création + polling ----------
+  // ---------- VIDÉO ----------
   async function onGenerateVideo() {
     try {
       setVideoUrl(null);
@@ -223,7 +222,7 @@ export default function GeneratePage() {
         return;
       }
 
-      // Deux cas : l’API renvoie déjà des URLs (demo/safe) ou un predictionId (prod)
+      // Démo: l’API renvoie directement une URL
       if ((json as any).videos && Array.isArray((json as any).videos) && (json as any).videos.length > 0) {
         setVideoUrl((json as any).videos[0]);
         setVideoStatus('succeeded');
@@ -242,7 +241,7 @@ export default function GeneratePage() {
       setVideoStatus('processing');
       setStep(3);
 
-      // Polling toutes les 5s
+      // Polling 5s
       clearVideoPoll();
       pollRef.current = setInterval(async () => {
         try {
@@ -257,9 +256,11 @@ export default function GeneratePage() {
             clearVideoPoll();
             setVideoStatus('failed');
             alert(status.error || 'La génération vidéo a échoué.');
-          } else {
-            // starting / processing → on continue
-            setVideoStatus(status.status === 404 ? 'failed' : (status.status as any));
+          } else if (status.status === 404) {
+            // Si jamais l’ID n’existe pas/plus
+            clearVideoPoll();
+            setVideoStatus('failed');
+            alert('Prediction introuvable (404).');
           }
         } catch (err) {
           console.error(err);
@@ -372,7 +373,7 @@ export default function GeneratePage() {
                     </section>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between">
+                  <div className="mt-6 flex flex-wrap gap-3 items-center justify-between">
                     <Button type="button" variant="outline" onClick={inspireMe}>🎲 Inspire‑moi</Button>
                     <Button type="button" onClick={() => setStep(2)}>Continuer</Button>
                   </div>
@@ -441,7 +442,7 @@ export default function GeneratePage() {
                         <h2 className="text-sm text-neutral-300 mb-2">Nombre de propositions (images)</h2>
                         <div className="flex gap-2">
                           {[1, 3].map((n) => (
-                            <Badge key={n} active={variants === n as 1 | 3} onClick={() => setVariants(n as 1 | 3)}>
+                            <Badge key={n} active={variants === (n as 1 | 3)} onClick={() => setVariants(n as 1 | 3)}>
                               {n}
                             </Badge>
                           ))}
@@ -450,13 +451,11 @@ export default function GeneratePage() {
                       </section>
                     </div>
 
-                    {/* Bloc vidéo (nouveau) */}
+                    {/* Bloc vidéo */}
                     <section className="rounded-lg border border-neutral-800 p-4 bg-neutral-900/40">
                       <div className="flex items-center justify-between">
                         <h2 className="text-sm text-neutral-300">Vidéo (beta)</h2>
-                        <div className="text-xs text-neutral-400">
-                          Modèle: Replicate (ex: luma/ray)
-                        </div>
+                        <div className="text-xs text-neutral-400">Modèle: Replicate</div>
                       </div>
                       <div className="mt-3 grid sm:grid-cols-2 gap-3">
                         <Input
@@ -490,16 +489,10 @@ export default function GeneratePage() {
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-neutral-500 mt-2">
-                        Lancement = création de prédiction → polling automatique jusqu’à disponibilité de l’URL vidéo.
-                      </p>
+                      <p className="text-xs text-neutral-500 mt-2">Le bouton ci-dessous lance la génération vidéo.</p>
                     </section>
 
-                    <section className="rounded-lg border border-neutral-800 p-4 bg-neutral-900/40">
-                      <p className="text-sm text-neutral-300 mb-2">Brief envoyé à l’IA (image) :</p>
-                      <pre className="text-xs whitespace-pre-wrap text-neutral-300">{brief}</pre>
-                    </section>
-
+                    {/* CTA clairs : Images & Vidéo */}
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex gap-2">
                         <Button type="button" variant="outline" onClick={() => setStep(1)}>← Retour</Button>
@@ -570,7 +563,7 @@ export default function GeneratePage() {
                     {videoStatus === 'failed' && (
                       <p className="text-red-400 text-sm">La génération vidéo a échoué.</p>
                     )}
-                    {isVideoBusy && (
+                    {(videoStatus === 'starting' || videoStatus === 'processing') && (
                       <div className="text-neutral-400 text-sm">Génération vidéo en cours…</div>
                     )}
                     {videoUrl ? (
@@ -630,9 +623,14 @@ export default function GeneratePage() {
               </div>
               <div className="mt-4">
                 {step < 3 ? (
-                  <Button type="button" onClick={() => (step === 1 ? setStep(2) : onGenerateImages())} className="w-full">
-                    {step === 1 ? 'Continuer' : (loading ? 'Génération images…' : 'Générer images')}
-                  </Button>
+                  <div className="grid gap-2">
+                    <Button type="button" onClick={() => (step === 1 ? setStep(2) : onGenerateImages())} className="w-full">
+                      {step === 1 ? 'Continuer' : (loading ? 'Génération images…' : 'Générer images')}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={onGenerateVideo} disabled={isVideoBusy} className="w-full">
+                      {isVideoBusy ? 'Génération vidéo…' : 'Générer la vidéo'}
+                    </Button>
+                  </div>
                 ) : (
                   <a href="/generate"><Button type="button" className="w-full">Recommencer</Button></a>
                 )}

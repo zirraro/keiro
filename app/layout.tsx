@@ -1,40 +1,25 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
-import Onboarding from "../components/site/onboarding";
-import { ToastProvider } from "../components/ui/toast";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400","500","600","700"],
-  display: "swap",
-});
+import './globals.css';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Keiro",
-  description: "Générateur d'images et vidéos basé sur l'actualité",
+  title: 'Keiro',
+  description: 'Génération IA d’images et de vidéos pour le social.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
-      <body className={`${jakarta.className} bg-neutral-950 text-neutral-100`}>
-        <ToastProvider>
-          <Onboarding />
-          <header className="border-b border-neutral-900 bg-neutral-950/80 backdrop-blur-md sticky top-0 z-50">
-            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-              <Link href="/" className="font-bold text-lg text-white">Keiro</Link>
-              <nav className="flex gap-4 text-sm text-neutral-300">
-                <Link href="/dashboard" className="hover:text-white transition">Dashboard</Link>
-                <Link href="/generate" className="hover:text-white transition">Générer</Link>
-                <Link href="/pricing" className="hover:text-white transition">Tarifs</Link>
-                <Link href="/assets" className="hover:text-white transition">Marque</Link>
-              </nav>
-            </div>
-          </header>
-          <main>{children}</main>
-        </ToastProvider>
+    <html lang="fr" className="bg-neutral-950">
+      <body className="min-h-screen text-neutral-100 antialiased">
+        {/* Décors globaux éventuels → doivent avoir pointer-events:none et z négatif */}
+        <div id="global-decor" className="pointer-events-none fixed inset-0 -z-10">
+          {/* Si tu avais des composants décoratifs globaux, importe-les ici,
+              ex: <Spotlight/>, <GridBG/>, etc. avec pointer-events-none */}
+        </div>
+
+        {/* Couche interactive principale */}
+        <div id="app" className="relative z-50">
+          {children}
+        </div>
       </body>
     </html>
   );

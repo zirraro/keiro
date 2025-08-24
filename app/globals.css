@@ -29,3 +29,17 @@ body {
 main, .fix-pointer {
   pointer-events: auto !important;
 }
+
+/* ---- Anti overlay click-shield (soft) ---- */
+/* Tout décor plein écran identifié comme "decor" ou "bg" ne capte pas les clics */
+#global-decor, .decor, .bg-decor {
+  pointer-events: none !important;
+  z-index: -10 !important;
+}
+
+/* La couche applicative doit capter les interactions */
+#app, .interactive-layer {
+  position: relative;
+  z-index: 50;
+  pointer-events: auto;
+}
