@@ -3,75 +3,110 @@ import Replicate from "replicate";
 
 export const dynamic = "force-dynamic";
 
-// Fallback démo (vidéo publique légère)
-const DEMO_VIDEO =
-  "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"; // remplaçable par un asset hébergé chez toi
-
 type ReqBody = {
   prompt?: string;
-  imageUrl?: string;             // si présent => image-to-video
+  imageUrl?: string;
   ratio?: "16:9" | "9:16" | "1:1";
-  duration?: number;             // secondes
+  duration?: number;
 };
-
-// Modèle Replicate (ex: Luma Ray)
-const OWNER = process.env.REPLICATE_OWNER || "luma";
-const NAME  = process.env.REPLICATE_NAME  || "ray";
-// Version connue (tu peux la garder configurable via env)
-const VERSION = process.env.REPLICATE_VERSION || "ec16dc44af18758ec1ff7998f5779896f84f5834ea53991d15f65711686a9a79";
-
-// Permet d'activer un mode démo forçé (sans crédit) si besoin
-const DEMO_MODE = process.env.VIDEO_DEMO_MODE === "1";
 
 export async function POST(req: Request) {
   try {
-    const token = process.env.REPLICATE_API_TOKEN;
+    const DEMO = process.env.KEIRO_DEMO === "1";
+
+    // URLs de démo (vidéos publiques déjà hébergées)
+    const DEMO_VIDEOS: Record<string, string> = {
+      "16:9": "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+      "1:1":  "https://replicate.delivery/xezq/rwFkDD2QRCYcD9vD6wB2iGgf7x6DFGSls7i9SRubOqjdiInKA/tmp_io0vsr0.mp4",
+      "9:16": "https://samplelib.com/lib/preview/mp4/sample-5s.mp4"
+    };
+
     const body = (await req.json().catch(() => ({}))) as ReqBody;
+    const { prompt, imageUrl, ratio = "16:9", duration = 5 } = body;
 
-    const prompt   = (body.prompt || "").trim();
-    const imageUrl = (body.imageUrl || "").trim();
-    const ratio    = body.ratio || "16:9";
-    const duration = Math.max(2, Math.min(10, body.duration || 5));
-
-    // Si DEMO_MODE ou pas de token → renvoie direct une vidéo de démo
-    if (DEMO_MODE || !token) {
+    // MODE DEMO : on renvoie immédiatement une (fausse) vidéo générée
+    if (DEMO) {
+      const demoUrl = DEMO_VIDEOS[ratio] ?? DEMO_VIDEOS["16:9"];
       return NextResponse.json({
         ok: true,
-        model: `${OWNER}/${NAME}`,
-        demo: true,
-        videos: [DEMO_VIDEO],
+        model: "demo",
+        predictionId: `demo-${Date.now()}`,
+        videos: [demoUrl],
+        note: "Mode démo activé — aucun crédit consommé."
       });
     }
 
-    const replicate = new Replicate({ auth: token! });
+    // MODE RÉEL : utilise Replicate (Luma Ray)
+    const token = process.env.REPLICATE_API_TOKEN;
+    if (!token) {
+      return NextResponse.json({ ok: false, error: "Missing REPLICATE_API_TOKEN" }, { status: 500 });
+    }
 
-    // Création de prediction (SDK v1)
-    const prediction = await replicate.predictions.create({
-      version: VERSION,
-      input: imageUrl
-        ? { prompt: prompt || "cinematic shot", image: imageUrl, aspect_ratio: ratio, duration }
-        : { prompt: prompt || "cinematic shot", aspect_ratio: ratio, duration },
+    const replicate = new Replicate({ auth: token });
+    const owner = "luma";
+    const name = "ray";
+
+    // Récupérer la dernière version du modèle
+    const mdl: any = await replicate.models.get(owner, name);
+    const versionId: string | undefined =
+      mdl?.latest_version?.id ?? mdl?.default_example?.version;
+
+    if (!versionId) {
+      return NextResponse.json({ ok: false, error: "No model version found" }, { status: 500 });
+    }
+
+    // Construire l'input (text->video ou image->video)
+    const aspect_ratio =
+      ratio === "16:9" ? "16:9" : ratio === "9:16" ? "9:16" : "1:1";
+
+    const input: Record<string, any> = {
+      prompt: prompt ?? "cinematic b-roll, natural light, soft motion",
+      aspect_ratio,
+      duration: Math.max(2, Math.min(duration, 10))
+    };
+
+    if (imageUrl) {
+      // image-to-video
+      input.image = imageUrl;
+    }
+
+    // Lancer la prédiction
+    const prediction: any = await replicate.predictions.create({
+      version: versionId,
+      input
     });
 
-    // Deux options :
-    // 1) On renvoie l'ID et le frontend poll via /api/replicate/prediction/[id]
-    // 2) (optionnel) On attend la complétion ici. Pour l’instant on choisit 1).
+    // Attendre la fin (polling simple ici côté serveur)
+    let poll = prediction;
+    const started = Date.now();
+    const MAX_MS = 120000; // 120s max
+    while (poll?.status && ["starting","processing"].includes(poll.status)) {
+      if (Date.now() - started > MAX_MS) {
+        break;
+      }
+      await new Promise(r => setTimeout(r, 3000));
+      poll = await replicate.predictions.get(poll.id);
+    }
+
+    if (poll?.status === "succeeded" && poll?.output) {
+      const out = Array.isArray(poll.output) ? poll.output : [poll.output];
+      return NextResponse.json({
+        ok: true,
+        model: `${owner}/${name}`,
+        versionId,
+        predictionId: poll.id,
+        videos: out
+      });
+    }
+
     return NextResponse.json({
-      ok: true,
-      model: `${OWNER}/${NAME}`,
-      predictionId: prediction?.id,
-      versionId: prediction?.version,
-    });
+      ok: false,
+      error: "Video generation failed",
+      detail: poll?.error || poll?.status || "unknown",
+      predictionId: poll?.id ?? null
+    }, { status: 500 });
+
   } catch (e: any) {
-    // Si le provider renvoie 402/404/… => démo pour ne pas cramer de crédits.
-    const msg = e?.message || String(e);
-    return NextResponse.json({
-      ok: true,
-      model: `${OWNER}/${NAME}`,
-      demo: true,
-      videos: [DEMO_VIDEO],
-      note: "Fallback démo (pas de crédit consommé).",
-      detail: msg,
-    });
+    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
