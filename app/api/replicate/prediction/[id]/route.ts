@@ -1,13 +1,13 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
+  _req: Request,
+  context: any
 ) {
   try {
-    const id = params?.id;
+    const id = context?.params?.id as string | undefined;
     const token = process.env.REPLICATE_API_TOKEN;
 
     if (!token) {
@@ -37,8 +37,8 @@ export async function GET(
       {
         ok: r.ok,
         id,
-        status: json?.status,          // starting | processing | succeeded | failed | canceled
-        output: json?.output ?? null,  // string | string[] | null
+        status: json?.status ?? null,          // starting | processing | succeeded | failed | canceled
+        output: json?.output ?? null,          // string | string[] | null
         error: json?.error ?? null,
         logs: json?.logs ?? "",
         metrics: json?.metrics ?? null,
