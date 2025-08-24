@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server";
 
-function sanitize(val?: string | null) {
-  if (!val) return null;
-  let raw = String(val).trim();
-  // Si quelqu'un a collé "export VAR=xxx"
-  const eq = raw.indexOf("=");
-  if (raw.startsWith("export ") && eq !== -1) raw = raw.slice(eq + 1).trim();
-  raw = raw.replace(/^["']|["']$/g, "");   // enlève guillemets
-  raw = raw.split(/\s+/)[0];               // 1er token uniquement
-  return raw;
-}
-
 export async function GET() {
-  const rawModel = process.env.REPLICATE_MODEL_VERSION ?? null;
-  const rawToken = process.env.REPLICATE_API_TOKEN ?? null;
-
-  const cleanedModel = sanitize(rawModel);
-  const okModel = cleanedModel && cleanedModel.includes("/")
-    ? cleanedModel
-    : "stability-ai/stable-diffusion";
-
-  return NextResponse.json({
-    ok: true,
-    hasToken: !!rawToken,
-    raw: { REPLICATE_MODEL_VERSION: rawModel },
-    cleaned: { REPLICATE_MODEL_VERSION: okModel }
-  });
+  try {
+    return NextResponse.json({
+      ok: true,
+      has: {
+        REPLICATE_API_TOKEN: !!process.env.REPLICATE_API_TOKEN,
+        REPLICATE_MODEL_VERSION: !!process.env.REPLICATE_MODEL_VERSION,
+        OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+      },
+      model: process.env.REPLICATE_MODEL_VERSION || "stability-ai/stable-diffusion",
+      env: process.env.VERCEL_ENV || process.env.NODE_ENV || "unknown",
+    });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
+  }
 }
