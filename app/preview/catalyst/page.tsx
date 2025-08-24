@@ -18,7 +18,7 @@ export default function CatalystPreview() {
   );
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+    <main className="min-h-screen bg-white text-neutral-900">
       {/* HERO premium */}
       <section className="relative overflow-hidden">
         {/* blob/halo */}
@@ -36,46 +36,46 @@ export default function CatalystPreview() {
             <h1 className="mt-4 text-4xl md:text-5xl font-extrabold leading-tight">
               Le studio IA <span className="text-blue-400">qui surfe sur l’actu</span>.
             </h1>
-            <p className="mt-4 text-lg text-neutral-300">
+            <p className="mt-4 text-lg text-neutral-600">
               Créez des visuels prêts pour Instagram, TikTok, Facebook, LinkedIn & X — en partant de votre secteur, de votre angle et des tendances du jour.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="/generate"><Button>Commencer gratuitement</Button></a>
               <a href="#pricing"><Button variant="outline">Voir les tarifs</Button></a>
             </div>
-            <div className="mt-4 text-xs text-neutral-400">
+            <div className="mt-4 text-xs text-neutral-600">
               Pas de carte requise • Export PNG HD • 1 à 3 variantes
             </div>
           </div>
 
           {/* Mockup app premium‑like */}
           <Card className="relative overflow-hidden">
-            <div className="aspect-[4/3] bg-neutral-900/60 p-5">
-              <div className="h-full w-full rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+            <div className="aspect-[4/3] bg-white/60 p-5">
+              <div className="h-full w-full rounded-xl border border-neutral-200 bg-white p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-neutral-800 p-3">
-                    <div className="text-xs text-neutral-400 mb-1">Brief</div>
-                    <div className="h-24 rounded bg-neutral-900" />
-                    <div className="mt-2 h-2 rounded bg-neutral-800 w-2/3" />
-                    <div className="mt-1 h-2 rounded bg-neutral-800 w-1/2" />
+                  <div className="rounded-lg border border-neutral-200 p-3">
+                    <div className="text-xs text-neutral-600 mb-1">Brief</div>
+                    <div className="h-24 rounded bg-white" />
+                    <div className="mt-2 h-2 rounded bg-neutral-100 w-2/3" />
+                    <div className="mt-1 h-2 rounded bg-neutral-100 w-1/2" />
                   </div>
-                  <div className="rounded-lg border border-neutral-800 p-3">
-                    <div className="text-xs text-neutral-400 mb-1">Aperçu</div>
-                    <div className="h-40 rounded bg-neutral-900" />
+                  <div className="rounded-lg border border-neutral-200 p-3">
+                    <div className="text-xs text-neutral-600 mb-1">Aperçu</div>
+                    <div className="h-40 rounded bg-white" />
                     <div className="mt-2 flex gap-2">
-                      <div className="h-2 rounded bg-neutral-800 w-1/2" />
-                      <div className="h-2 rounded bg-neutral-800 w-1/3" />
+                      <div className="h-2 rounded bg-neutral-100 w-1/2" />
+                      <div className="h-2 rounded bg-neutral-100 w-1/3" />
                     </div>
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
                   <div className="h-8 w-24 rounded bg-blue-600/80" />
-                  <div className="h-8 w-24 rounded border border-neutral-800" />
+                  <div className="h-8 w-24 rounded border border-neutral-200" />
                 </div>
               </div>
             </div>
@@ -91,19 +91,19 @@ export default function CatalystPreview() {
       {/* Features premium */}
       <section className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-4">
         <Card className="p-5">
-          <div className="text-sm text-neutral-400">01</div>
+          <div className="text-sm text-neutral-600">01</div>
           <div className="mt-1 text-lg font-semibold">Guidage intelligent</div>
-          <p className="mt-2 text-sm text-neutral-400">Plateforme, objectif, tendance : Keiro prépare le bon brief pour des visuels qui convertissent.</p>
+          <p className="mt-2 text-sm text-neutral-600">Plateforme, objectif, tendance : Keiro prépare le bon brief pour des visuels qui convertissent.</p>
         </Card>
         <Card className="p-5">
-          <div className="text-sm text-neutral-400">02</div>
+          <div className="text-sm text-neutral-600">02</div>
           <div className="mt-1 text-lg font-semibold">Variantes instantanées</div>
-          <p className="mt-2 text-sm text-neutral-400">Obtenez jusqu’à 3 propositions d’un coup pour choisir en quelques secondes.</p>
+          <p className="mt-2 text-sm text-neutral-600">Obtenez jusqu’à 3 propositions d’un coup pour choisir en quelques secondes.</p>
         </Card>
         <Card className="p-5">
-          <div className="text-sm text-neutral-400">03</div>
+          <div className="text-sm text-neutral-600">03</div>
           <div className="mt-1 text-lg font-semibold">Prêt pour les réseaux</div>
-          <p className="mt-2 text-sm text-neutral-400">Formats auto (carré, vertical, large) selon IG, TikTok, FB, LinkedIn ou X.</p>
+          <p className="mt-2 text-sm text-neutral-600">Formats auto (carré, vertical, large) selon IG, TikTok, FB, LinkedIn ou X.</p>
         </Card>
       </section>
 
@@ -112,7 +112,7 @@ export default function CatalystPreview() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-3xl font-extrabold">Tarifs simples, sans surprise</h2>
-            <p className="text-neutral-400 mt-1">Payez pour la valeur — pas pour la complexité.</p>
+            <p className="text-neutral-600 mt-1">Payez pour la valeur — pas pour la complexité.</p>
           </div>
           <Toggle value={billing} onChange={setBilling} left="Mensuel" right="Annuel -2 mois" />
         </div>
@@ -124,10 +124,10 @@ export default function CatalystPreview() {
               <h3 className="text-xl font-semibold">Starter</h3>
               <div className="text-2xl font-extrabold">
                 {price(19, 190)}€
-                <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
               </div>
             </div>
-            <p className="mt-1 text-sm text-neutral-400">Lancez-vous en solo.</p>
+            <p className="mt-1 text-sm text-neutral-600">Lancez-vous en solo.</p>
             <ul className="mt-4 space-y-2 text-sm text-neutral-200">
               <li>• 50 images / {annual ? "an" : "mois"}</li>
               <li>• 1 proposition par génération</li>
@@ -145,10 +145,10 @@ export default function CatalystPreview() {
               <h3 className="text-xl font-semibold">Pro {badge("Recommandé")}</h3>
               <div className="text-2xl font-extrabold">
                 {price(49, 490)}€
-                <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
               </div>
             </div>
-            <p className="mt-1 text-sm text-neutral-400">Pour poster souvent et tester.</p>
+            <p className="mt-1 text-sm text-neutral-600">Pour poster souvent et tester.</p>
             <ul className="mt-4 space-y-2 text-sm text-neutral-200">
               <li>• 250 images / {annual ? "an" : "mois"}</li>
               <li>• Jusqu’à 3 variantes par génération</li>
@@ -166,10 +166,10 @@ export default function CatalystPreview() {
               <h3 className="text-xl font-semibold">Business</h3>
               <div className="text-2xl font-extrabold">
                 {price(149, 1490)}€
-                <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
               </div>
             </div>
-            <p className="mt-1 text-sm text-neutral-400">Pour les petites équipes.</p>
+            <p className="mt-1 text-sm text-neutral-600">Pour les petites équipes.</p>
             <ul className="mt-4 space-y-2 text-sm text-neutral-200">
               <li>• 1000 images / {annual ? "an" : "mois"}</li>
               <li>• Espace marque (logo, couleurs)</li>
@@ -186,15 +186,15 @@ export default function CatalystPreview() {
         <div className="mt-10 grid md:grid-cols-3 gap-4">
           <Card className="p-5">
             <div className="font-semibold">Quand est-ce que je paie ?</div>
-            <p className="text-sm text-neutral-400 mt-1">Uniquement quand vous générez de vraies images (les appels IA ont un coût). L’essai ne requiert pas de carte.</p>
+            <p className="text-sm text-neutral-600 mt-1">Uniquement quand vous générez de vraies images (les appels IA ont un coût). L’essai ne requiert pas de carte.</p>
           </Card>
           <Card className="p-5">
             <div className="font-semibold">Puis-je annuler ?</div>
-            <p className="text-sm text-neutral-400 mt-1">Oui, à tout moment. Vos visuels restent téléchargeables.</p>
+            <p className="text-sm text-neutral-600 mt-1">Oui, à tout moment. Vos visuels restent téléchargeables.</p>
           </Card>
           <Card className="p-5">
             <div className="font-semibold">Et pour les vidéos ?</div>
-            <p className="text-sm text-neutral-400 mt-1">C’est prévu. Elles seront incluses à partir du plan Pro (crédits séparés).</p>
+            <p className="text-sm text-neutral-600 mt-1">C’est prévu. Elles seront incluses à partir du plan Pro (crédits séparés).</p>
           </Card>
         </div>
       </section>
@@ -204,7 +204,7 @@ export default function CatalystPreview() {
         <Card className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <div className="text-lg font-semibold">Prêt à essayer Keiro ?</div>
-            <div className="text-sm text-neutral-400">Générez un premier visuel en moins d’une minute.</div>
+            <div className="text-sm text-neutral-600">Générez un premier visuel en moins d’une minute.</div>
           </div>
           <a href="/generate"><Button>Commencer maintenant</Button></a>
         </Card>

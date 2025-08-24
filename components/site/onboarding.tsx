@@ -30,9 +30,9 @@ export default function Onboarding() {
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6">
-      <div className="bg-neutral-900 rounded-2xl p-6 max-w-md w-full text-center border border-neutral-800">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full text-center border border-neutral-200">
         <h2 className="text-xl font-bold mb-2">{slides[step].title}</h2>
-        <p className="text-neutral-300 mb-6">{slides[step].desc}</p>
+        <p className="text-neutral-600 mb-6">{slides[step].desc}</p>
         <Button onClick={next} className="w-full">
           {step === slides.length - 1 ? "Commencer" : "Suivant"}
         </Button>

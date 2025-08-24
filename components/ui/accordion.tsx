@@ -12,14 +12,14 @@ export function AccordionItem({
 }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 overflow-hidden">
+    <div className="rounded-xl border border-neutral-200 bg-white/50 overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-900/70"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/70"
       >
         <span className="font-medium">{title}</span>
         <span className={cn(
-          "transition-transform text-neutral-400",
+          "transition-transform text-neutral-600",
           open ? "rotate-45" : "rotate-0"
         )}>+</span>
       </button>
@@ -27,7 +27,7 @@ export function AccordionItem({
         "px-4 overflow-hidden transition-[max-height,opacity] duration-300",
         open ? "opacity-100 max-h-96 py-2" : "opacity-0 max-h-0"
       )}>
-        <div className="text-sm text-neutral-400 pb-3">{children}</div>
+        <div className="text-sm text-neutral-600 pb-3">{children}</div>
       </div>
     </div>
   );

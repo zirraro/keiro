@@ -2,7 +2,7 @@
 
 export default function Spotlight() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10">
+    <div className="pointer-events-none absolute inset-0 pointer-events-none -z-10 decor -z-10">
       {/* Halo central */}
       <div
         className="absolute -top-64 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] rounded-full opacity-30 blur-3xl"

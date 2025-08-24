@@ -32,7 +32,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="bg-neutral-800 text-white px-4 py-2 rounded-lg shadow-lg border border-neutral-700"
+            className="bg-neutral-100 text-white px-4 py-2 rounded-lg shadow-lg border border-neutral-300"
           >
             <strong>{toast.title}</strong>
             {toast.description && <p className="text-sm">{toast.description}</p>}

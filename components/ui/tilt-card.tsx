@@ -37,7 +37,7 @@ export function TiltCard({
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       className={cn(
-        "relative rounded-2xl border border-neutral-800 bg-neutral-900/60 backdrop-blur-sm",
+        "relative rounded-2xl border border-neutral-200 bg-white/60 backdrop-blur-sm",
         "transition-transform [transform:perspective(800px)_rotateX(var(--rx))_rotateY(var(--ry))]",
         "shadow-[0_10px_30px_-10px_rgba(0,0,0,.6)] hover:shadow-[0_16px_50px_-12px_rgba(0,0,0,.75)]",
         "before:absolute before:inset-0 before:rounded-2xl before:opacity-0 hover:before:opacity-100 before:transition-opacity",

@@ -12,7 +12,7 @@ export function Modal({
         "absolute inset-0 flex items-center justify-center p-4",
       )}>
         <div className={cn(
-          "w-full max-w-4xl rounded-2xl border border-neutral-800 bg-neutral-950",
+          "w-full max-w-4xl rounded-2xl border border-neutral-200 bg-white",
           "shadow-[0_20px_60px_-20px_rgba(0,0,0,.8)]",
           className
         )}>

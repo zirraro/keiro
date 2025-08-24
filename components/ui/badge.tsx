@@ -10,7 +10,7 @@ export function Badge({
         "px-3 py-1 rounded-full border text-sm transition",
         active
           ? "bg-white text-black border-white"
-          : "border-neutral-700 text-neutral-200 hover:bg-neutral-900",
+          : "border-neutral-300 text-neutral-200 hover:bg-white",
         className
       )}
       {...props}

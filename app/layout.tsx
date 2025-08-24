@@ -1,25 +1,18 @@
-import './globals.css';
-import type { Metadata } from 'next';
+export const dynamic = 'force-dynamic';
+
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Keiro',
-  description: 'Génération IA d’images et de vidéos pour le social.',
+  title: "Keiro",
+  description: "Générez des visuels et vidéos IA orientés actu.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="bg-neutral-950">
-      <body className="min-h-screen text-neutral-100 antialiased">
-        {/* Décors globaux éventuels → doivent avoir pointer-events:none et z négatif */}
-        <div id="global-decor" className="pointer-events-none fixed inset-0 -z-10">
-          {/* Si tu avais des composants décoratifs globaux, importe-les ici,
-              ex: <Spotlight/>, <GridBG/>, etc. avec pointer-events-none */}
-        </div>
-
-        {/* Couche interactive principale */}
-        <div id="app" className="relative z-50">
-          {children}
-        </div>
+    <html lang="fr">
+      <body className="min-h-screen bg-white text-neutral-900 antialiased">
+        {children}
       </body>
     </html>
   );

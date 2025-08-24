@@ -24,11 +24,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6 flex items-center justify-center">
+    <main className="min-h-screen bg-white text-neutral-900 p-6 flex items-center justify-center">
       <TiltCard className="max-w-md w-full p-6">
         <h1 className="text-2xl font-bold mb-4">Connexion</h1>
         {sent ? (
-          <p className="text-neutral-300">Vérifie ta boîte mail pour valider la connexion.</p>
+          <p className="text-neutral-600">Vérifie ta boîte mail pour valider la connexion.</p>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
