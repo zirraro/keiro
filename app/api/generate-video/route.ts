@@ -3,12 +3,11 @@ import Replicate from "replicate";
 
 export const dynamic = "force-dynamic";
 
-// Types léger côté input
 type ReqBody = {
   prompt?: string;
-  imageUrl?: string; // si présent => image-to-video, sinon text-to-video
+  imageUrl?: string; // si présent => image-to-video
   ratio?: "16:9" | "9:16" | "1:1";
-  duration?: number; // en secondes (ex: 5)
+  duration?: number; // secondes (5-10)
 };
 
 export async function POST(req: Request) {
@@ -23,40 +22,32 @@ export async function POST(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as ReqBody;
     const {
-      prompt = "cinematic city b-roll at golden hour, soft camera moves, film look",
+      prompt = "cinematic coffee shop b-roll, shallow depth of field, natural light",
       imageUrl,
       ratio = "1:1",
       duration = 5,
     } = body;
 
-    const replicate = new Replicate({ auth: token! });
+    const replicate = new Replicate({ auth: token });
 
-    // ⚠️ Modèle vidéo Luma (Dream Machine) hébergé sur Replicate
-    // - text-to-video: fournir "prompt"
-    // - image-to-video: fournir "image"
-    // Docs modèle: https://replicate.com/luma/ray (API)
+    // 🚫 NE PAS LIRE process.env.REPLICATE_VIDEO_MODEL
+    // ✅ Forcer le modèle Luma (Dream Machine) via Replicate
     const model = "luma/ray" as `${string}/${string}`;
 
-    // Prépare l'input selon le mode
     const input: Record<string, unknown> = {
-      aspect_ratio: ratio,    // "16:9" | "9:16" | "1:1"
-      duration,               // 5..10s en général
+      aspect_ratio: ratio,
+      duration,
     };
 
     if (imageUrl) {
-      // image-to-video
       input.image = imageUrl;
       if (prompt) input.prompt = prompt;
     } else {
-      // text-to-video
       input.prompt = prompt;
     }
 
-    // Exécute la génération
-    // Le SDK peut renvoyer soit une string (URL vidéo), soit un objet/array selon le modèle
     const output = (await replicate.run(model, { input })) as any;
 
-    // Essaie d’en tirer des URLs vidéos
     let videos: string[] = [];
     if (typeof output === "string") {
       videos = [output];
@@ -65,7 +56,6 @@ export async function POST(req: Request) {
     } else if (output?.video) {
       videos = [output.video];
     } else if (output?.output) {
-      // parfois { output: [url] }
       const out = output.output;
       if (typeof out === "string") videos = [out];
       else if (Array.isArray(out)) videos = out.filter((x: unknown) => typeof x === "string");
@@ -78,14 +68,10 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, videos, raw: output });
+    return NextResponse.json({ ok: true, model, videos });
   } catch (err: any) {
     return NextResponse.json(
-      {
-        ok: false,
-        error: "Replicate video generation failed",
-        detail: err?.message || String(err),
-      },
+      { ok: false, error: "Replicate video generation failed", detail: err?.message || String(err) },
       { status: 500 }
     );
   }
