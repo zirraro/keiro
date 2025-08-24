@@ -24,3 +24,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* --- TEMP FIX: assure le clic --- */
+main, .fix-pointer {
+  pointer-events: auto !important;
+}
