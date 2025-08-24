@@ -3,18 +3,22 @@ import Replicate from "replicate";
 
 export const dynamic = "force-dynamic";
 
-type GenVideoRequest = {
+type Body = {
   prompt?: string;
-  imageUrl?: string;          // Required by stable-video-diffusion
+  imageUrl?: string;
   fps?: number;
   num_frames?: number;
-  motion_bucket_id?: number;
   seed?: number;
 };
+
+const DEMO_IMAGE =
+  "https://replicate.delivery/pbxt/8o3w3vN9/test-square.png"; // image publique carrée
 
 export async function POST(req: Request) {
   try {
     const token = process.env.REPLICATE_API_TOKEN;
+    const model = process.env.REPLICATE_VIDEO_MODEL || "stability-ai/stable-video-diffusion-img2vid";
+
     if (!token) {
       return NextResponse.json(
         { ok: false, error: "Missing REPLICATE_API_TOKEN" },
@@ -22,15 +26,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = (await req.json().catch(() => ({}))) as GenVideoRequest;
-    const {
-      prompt = "",
-      imageUrl,
-      fps = 24,
-      num_frames = 25,
-      motion_bucket_id = 127,
-      seed,
-    } = body;
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const prompt = (body.prompt || "").trim();
+    const imageUrl = (body.imageUrl || "").trim() || DEMO_IMAGE; // <- fallback démo
+    const fps = body.fps ?? 24;
+    const num_frames = body.num_frames ?? 25;
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -40,30 +40,23 @@ export async function POST(req: Request) {
     }
 
     const replicate = new Replicate({ auth: token });
+    const input = {
+      input_image: imageUrl,
+      prompt,
+      fps,
+      num_frames,
+    };
 
-    // Model owner/name (no version needed for JS SDK)
-    const model = (process.env.REPLICATE_VIDEO_MODEL ||
-      "stability-ai/stable-video-diffusion-img2vid") as `${string}/${string}`;
+    // La plupart des modèles img2vid sur Replicate acceptent replicate.run("<owner>/<name>", { input })
+    const output = (await replicate.run(model as `${string}/${string}`, { input })) as any;
 
-    const output = (await replicate.run(model, {
-      input: {
-        prompt,
-        image: imageUrl,
-        fps,
-        num_frames,
-        motion_bucket_id,
-        seed,
-      },
-    })) as unknown;
-
-    return NextResponse.json({ ok: true, output });
-  } catch (err: unknown) {
-    const e = err as { message?: string; stack?: string };
+    return NextResponse.json({ ok: true, model, output });
+  } catch (err: any) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Video generation failed",
-        detail: e?.message || String(err),
+        error: "Replicate create failed",
+        detail: err?.message || String(err),
       },
       { status: 500 }
     );

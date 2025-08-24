@@ -20,6 +20,7 @@ export default function GeneratePage() {
   const [headline, setHeadline] = useState('À ne pas manquer');
   const [cta, setCta] = useState('Découvrir');
   const [brandColor, setBrandColor] = useState('#2b82f6');
+const [imageUrl, setImageUrl] = useState<string>("");
   const [variants, setVariants] = useState<1|3>(1);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>([]);
