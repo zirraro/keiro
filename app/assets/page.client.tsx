@@ -48,12 +48,12 @@ export default function AssetsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100 p-6">
+    <main className="min-h-screen bg-white text-neutral-900 p-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Librairie d’assets</h1>
         <TiltCard className="p-5">
           <div className="flex items-center gap-3">
-            <select value={kind} onChange={(e)=>setKind(e.target.value as any)} className="bg-neutral-900 border border-neutral-800 rounded px-3 py-2">
+            <select value={kind} onChange={(e)=>setKind(e.target.value as any)} className="bg-white border border-neutral-200 rounded px-3 py-2">
               <option value="logo">Logo</option>
               <option value="palette">Palette</option>
               <option value="font">Font</option>
@@ -67,7 +67,7 @@ export default function AssetsPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {assets.map(a => (
             <TiltCard key={a.id} className="p-4">
-              <div className="text-xs text-neutral-400">{a.kind}</div>
+              <div className="text-xs text-neutral-600">{a.kind}</div>
               <div className="font-medium">{a.name}</div>
               {a.url && <a href={a.url} target="_blank" className="text-sm underline underline-offset-4 mt-2 inline-block">Voir</a>}
             </TiltCard>

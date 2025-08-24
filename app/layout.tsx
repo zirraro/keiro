@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className="bg-neutral-950">
-      <body className="min-h-screen text-neutral-100 antialiased">
+    <html lang="fr" className="bg-white">
+      <body className="min-h-screen text-neutral-900 antialiased">
         {/* Décors globaux éventuels → doivent avoir pointer-events:none et z négatif */}
         <div id="global-decor" className="pointer-events-none fixed inset-0 -z-10">
           {/* Si tu avais des composants décoratifs globaux, importe-les ici,

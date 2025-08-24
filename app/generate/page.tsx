@@ -137,11 +137,11 @@ export default function GenerateSimple() {
   }
 
   return (
-    <main className="relative z-50 pointer-events-auto min-h-screen p-6 bg-neutral-950">
+    <main className="relative z-50 pointer-events-auto min-h-screen p-6 bg-white bg-white text-neutral-900">
       <div className="max-w-3xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Générer</h1>
-          <div className="text-sm text-neutral-400">Keiro · Démo cliquable</div>
+          <div className="text-sm text-neutral-600">Keiro · Démo cliquable</div>
         </header>
 
         {/* Toggle mode */}
@@ -155,16 +155,16 @@ export default function GenerateSimple() {
         </div>
 
         {/* Form */}
-        <div className="space-y-4 rounded-lg border border-neutral-800 p-4">
+        <div className="space-y-4 rounded-lg border border-neutral-200 p-4">
           <div>
-            <label className="text-sm text-neutral-300">Prompt</label>
+            <label className="text-sm text-neutral-600">Prompt</label>
             <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Décris ta scène…" />
           </div>
 
           {mode === 'video' && (
             <>
               <div>
-                <label className="text-sm text-neutral-300">Image (optionnel pour text→video)</label>
+                <label className="text-sm text-neutral-600">Image (optionnel pour text→video)</label>
                 <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL image pour image→vidéo" />
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -173,7 +173,7 @@ export default function GenerateSimple() {
                 <Button type="button" variant={ratio === '9:16' ? 'primary' : 'outline'} onClick={() => setRatio('9:16')}>9:16</Button>
               </div>
               <div>
-                <label className="text-sm text-neutral-300">Durée (sec)</label>
+                <label className="text-sm text-neutral-600">Durée (sec)</label>
                 <Input type="number" min={2} max={8} value={duration} onChange={(e) => setDuration(parseInt(e.target.value || '5', 10))} />
               </div>
             </>
@@ -188,7 +188,7 @@ export default function GenerateSimple() {
 
         {/* Statut du polling */}
         {predictionId && (
-          <div className="text-sm text-neutral-300">
+          <div className="text-sm text-neutral-600">
             Requête envoyée (id: <span className="font-mono">{predictionId}</span>) — statut: <span className="font-semibold">{predictionStatus}</span>…<br/>
             La page rafraîchira automatiquement la vidéo dès qu’elle est prête.
           </div>
@@ -201,7 +201,7 @@ export default function GenerateSimple() {
         {images.length > 0 && (
           <div className="grid sm:grid-cols-2 gap-4">
             {images.map((src, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border border-neutral-800">
+              <div key={i} className="rounded-lg overflow-hidden border border-neutral-200">
                 <img src={src} alt={`img-${i}`} className="w-full h-auto" />
                 <div className="p-2 text-xs">
                   <a href={src} download className="underline">Télécharger</a>
@@ -214,7 +214,7 @@ export default function GenerateSimple() {
         {videos.length > 0 && (
           <div className="space-y-4">
             {videos.map((src, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border border-neutral-800">
+              <div key={i} className="rounded-lg overflow-hidden border border-neutral-200">
                 <video src={src} controls className="w-full h-auto"></video>
                 <div className="p-2 text-xs">
                   <a href={src} download className="underline">Télécharger</a>

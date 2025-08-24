@@ -20,13 +20,13 @@ export default function PricingPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,.14),transparent)] text-neutral-100">
+    <main className="min-h-screen bg-[radial-gradient(1200px_600px_at_50%_-10%,rgba(59,130,246,.06),transparent)] bg-white text-neutral-900">
       <section className="max-w-6xl mx-auto px-4 pt-16 pb-10">
         <SectionReveal>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-4xl font-extrabold">Tarifs simples, sans surprise</h1>
-              <p className="text-neutral-300 mt-2">Payez pour la valeur — pas pour la complexité.</p>
+              <p className="text-neutral-600 mt-2">Payez pour la valeur — pas pour la complexité.</p>
             </div>
             <Toggle value={billing} onChange={setBilling} left="Mensuel" right="Annuel -2 mois" />
           </div>
@@ -39,10 +39,10 @@ export default function PricingPage() {
                 <h3 className="text-xl font-semibold">Starter</h3>
                 <div className="text-2xl font-extrabold">
                   {price(19, 190)}€
-                  <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                  <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
                 </div>
               </div>
-              <p className="mt-1 text-sm text-neutral-400">Lancez-vous en solo.</p>
+              <p className="mt-1 text-sm text-neutral-600">Lancez-vous en solo.</p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-200">
                 <li>• 50 images / {annual ? "an" : "mois"}</li>
                 <li>• 1 proposition par génération</li>
@@ -61,10 +61,10 @@ export default function PricingPage() {
                 <h3 className="text-xl font-semibold">Pro {badge("Recommandé")}</h3>
                 <div className="text-2xl font-extrabold">
                   {price(49, 490)}€
-                  <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                  <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
                 </div>
               </div>
-              <p className="mt-1 text-sm text-neutral-400">Pour poster souvent et tester.</p>
+              <p className="mt-1 text-sm text-neutral-600">Pour poster souvent et tester.</p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-200">
                 <li>• 250 images / {annual ? "an" : "mois"}</li>
                 <li>• Jusqu’à 3 variantes par génération</li>
@@ -83,10 +83,10 @@ export default function PricingPage() {
                 <h3 className="text-xl font-semibold">Business</h3>
                 <div className="text-2xl font-extrabold">
                   {price(149, 1490)}€
-                  <span className="text-sm text-neutral-400 font-medium">/{annual ? "an" : "mois"}</span>
+                  <span className="text-sm text-neutral-600 font-medium">/{annual ? "an" : "mois"}</span>
                 </div>
               </div>
-              <p className="mt-1 text-sm text-neutral-400">Pour les petites équipes.</p>
+              <p className="mt-1 text-sm text-neutral-600">Pour les petites équipes.</p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-200">
                 <li>• 1000 images / {annual ? "an" : "mois"}</li>
                 <li>• Espace marque (logo, couleurs)</li>
@@ -126,7 +126,7 @@ export default function PricingPage() {
           <Card className="p-6 mt-10 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <div className="text-lg font-semibold">Prêt à essayer Keiro ?</div>
-              <div className="text-sm text-neutral-400">Générez un premier visuel en moins d’une minute.</div>
+              <div className="text-sm text-neutral-600">Générez un premier visuel en moins d’une minute.</div>
             </div>
             <a href="/generate"><Button>Commencer maintenant</Button></a>
           </Card>

@@ -6,10 +6,10 @@ export default function LogosMarquee() {
     "Shopify", "Stripe", "Zapier", "Notion", "Figma"
   ];
   return (
-    <div className="relative overflow-hidden border border-neutral-800 rounded-xl bg-neutral-900/40">
+    <div className="relative overflow-hidden border border-neutral-200 rounded-xl bg-neutral-50">
       <div className="flex gap-10 py-3 animate-[scroll_20s_linear_infinite] whitespace-nowrap px-4">
         {[...items, ...items].map((label, i) => (
-          <span key={i} className="text-neutral-300 text-sm opacity-80">
+          <span key={i} className="text-neutral-600 text-sm opacity-80">
             {label}
           </span>
         ))}

@@ -3,61 +3,75 @@ import Replicate from "replicate";
 
 export const dynamic = "force-dynamic";
 
+// Fallback démo (vidéo publique légère)
+const DEMO_VIDEO =
+  "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"; // remplaçable par un asset hébergé chez toi
+
 type ReqBody = {
   prompt?: string;
-  imageUrl?: string;
+  imageUrl?: string;             // si présent => image-to-video
   ratio?: "16:9" | "9:16" | "1:1";
-  duration?: number;
+  duration?: number;             // secondes
 };
 
-const VERSION = process.env.REPLICATE_VIDEO_VERSION
-  || "ec16dc44af18758ec1ff7998f5779896f84f5834ea53991d15f65711686a9a79"; // luma/ray
+// Modèle Replicate (ex: Luma Ray)
+const OWNER = process.env.REPLICATE_OWNER || "luma";
+const NAME  = process.env.REPLICATE_NAME  || "ray";
+// Version connue (tu peux la garder configurable via env)
+const VERSION = process.env.REPLICATE_VERSION || "ec16dc44af18758ec1ff7998f5779896f84f5834ea53991d15f65711686a9a79";
 
-function mapAspect(r?: string) {
-  switch ((r || "").trim()) {
-    case "9:16": return "9:16";
-    case "1:1":  return "1:1";
-    default:     return "16:9";
-  }
-}
+// Permet d'activer un mode démo forçé (sans crédit) si besoin
+const DEMO_MODE = process.env.VIDEO_DEMO_MODE === "1";
 
 export async function POST(req: Request) {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) {
-    return NextResponse.json({ ok: false, error: "Missing REPLICATE_API_TOKEN" }, { status: 500 });
-  }
-
-  let body: ReqBody = {};
-  try { body = await req.json(); } catch {}
-
-  const input: any = {
-    prompt: body.prompt || "test prompt",
-    aspect_ratio: mapAspect(body.ratio),
-    duration: Math.min(Math.max(Number(body.duration) || 5, 5), 6),
-    loop: false,
-    seed: 123,
-  };
-  if (body.imageUrl) input.image = body.imageUrl;
-
-  const replicate = new Replicate({ auth: token });
-
   try {
-    const pred = await replicate.predictions.create({ version: VERSION, input });
-    return NextResponse.json({ ok: true, id: pred.id, status: pred.status, input });
-  } catch (e: any) {
-    const msg = e?.message || String(e);
-    if (/402/.test(msg) || /Payment Required/i.test(msg)) {
-      // Mode gratuit démo
+    const token = process.env.REPLICATE_API_TOKEN;
+    const body = (await req.json().catch(() => ({}))) as ReqBody;
+
+    const prompt   = (body.prompt || "").trim();
+    const imageUrl = (body.imageUrl || "").trim();
+    const ratio    = body.ratio || "16:9";
+    const duration = Math.max(2, Math.min(10, body.duration || 5));
+
+    // Si DEMO_MODE ou pas de token → renvoie direct une vidéo de démo
+    if (DEMO_MODE || !token) {
       return NextResponse.json({
         ok: true,
+        model: `${OWNER}/${NAME}`,
         demo: true,
-        note: "Pas de crédits — vidéos démo renvoyées",
-        videos: [
-          "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-          "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
-        ]
+        videos: [DEMO_VIDEO],
       });
     }
-    return NextResponse.json({ ok: false, error: "Replicate call failed", detail: msg }, { status: 500 });
+
+    const replicate = new Replicate({ auth: token! });
+
+    // Création de prediction (SDK v1)
+    const prediction = await replicate.predictions.create({
+      version: VERSION,
+      input: imageUrl
+        ? { prompt: prompt || "cinematic shot", image: imageUrl, aspect_ratio: ratio, duration }
+        : { prompt: prompt || "cinematic shot", aspect_ratio: ratio, duration },
+    });
+
+    // Deux options :
+    // 1) On renvoie l'ID et le frontend poll via /api/replicate/prediction/[id]
+    // 2) (optionnel) On attend la complétion ici. Pour l’instant on choisit 1).
+    return NextResponse.json({
+      ok: true,
+      model: `${OWNER}/${NAME}`,
+      predictionId: prediction?.id,
+      versionId: prediction?.version,
+    });
+  } catch (e: any) {
+    // Si le provider renvoie 402/404/… => démo pour ne pas cramer de crédits.
+    const msg = e?.message || String(e);
+    return NextResponse.json({
+      ok: true,
+      model: `${OWNER}/${NAME}`,
+      demo: true,
+      videos: [DEMO_VIDEO],
+      note: "Fallback démo (pas de crédit consommé).",
+      detail: msg,
+    });
   }
 }
