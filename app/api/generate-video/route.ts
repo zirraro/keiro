@@ -1,55 +1,85 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
 
-export const runtime = "nodejs";
-
-type ModelId = `${string}/${string}` | `${string}/${string}:${string}`;
-
-// FREE sanity-check model (image) — just to validate your token/SDK pipeline.
-// (You can override with env REPLICATE_VIDEO_MODEL if you want.)
-const DEFAULT_MODEL: ModelId = "stability-ai/stable-diffusion";
+type Body = {
+  sector?: string;
+  context?: string;
+  offer?: string;
+  headline?: string;
+  cta?: string;
+  meta?: { objective?: string; brandColor?: string; businessType?: string; platform?: string };
+  variants?: 1 | 3;
+};
 
 export async function POST(req: Request) {
-  const token = process.env.REPLICATE_API_TOKEN;
-  const modelId = (process.env.REPLICATE_VIDEO_MODEL?.trim() || DEFAULT_MODEL) as ModelId;
-
-  if (!token) {
-    return NextResponse.json(
-      { error: "Missing REPLICATE_API_TOKEN in env" },
-      { status: 500 }
-    );
-  }
-
   try {
-    const body = (await req.json().catch(() => ({}))) as Partial<{
-      prompt: string;
-    }>;
-    const prompt =
-      body?.prompt ||
-      "a futuristic city skyline at sunset, cinematic lighting, ultra detailed";
+    const token = process.env.REPLICATE_API_TOKEN;
+    const model = process.env.REPLICATE_MODEL_VERSION || "stability-ai/stable-diffusion";
+
+    // sécurité env
+    if (!token) {
+      return NextResponse.json(
+        { error: "Missing REPLICATE_API_TOKEN" },
+        { status: 500 }
+      );
+    }
+
+    const body = (await req.json()) as Body;
+
+    const {
+      sector = "",
+      context = "",
+      offer = "",
+      headline = "",
+      cta = "",
+      meta = {},
+      variants = 1,
+    } = body || {};
+
+    // Prompt simple mais propre
+    const prompt = [
+      headline && `Headline: ${headline}`,
+      sector && `Sector: ${sector}`,
+      meta?.businessType && `Business: ${meta.businessType}`,
+      context && `Context: ${context}`,
+      offer && `Highlight: ${offer}`,
+      meta?.objective && `Objective: ${meta.objective}`,
+      meta?.platform && `Platform: ${meta.platform}`,
+      meta?.brandColor && `Brand color accent: ${meta.brandColor}`,
+      "style: clean, bold, highly legible social ad, professional, photographic quality, soft lighting",
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     const replicate = new Replicate({ auth: token });
 
-    // We only test the pipe with an image model (cheapest), to isolate auth/model issues.
-    const output = (await replicate.run(modelId, {
-      input: { prompt },
-    })) as unknown;
+    // Stable Diffusion (image) — gratuit pour vérifier toute la chaîne
+    const output = (await replicate.run(model as `${string}/${string}`, {
+      input: {
+        prompt,
+        num_outputs: variants,
+        // tailles raisonnables pour un premier test
+        width: 768,
+        height: 768,
+        num_inference_steps: 30,
+        guidance_scale: 7.5,
+      },
+    })) as string[] | string;
 
-    return NextResponse.json({ ok: true, modelId, output }, { status: 200 });
+    const images = Array.isArray(output) ? output : [output];
+
+    return NextResponse.json({
+      images,
+      note:
+        "Démo via Stable Diffusion (Replicate) — la chaîne fonctionne ✅. On branchera ensuite un vrai modèle vidéo.",
+    });
   } catch (err: any) {
-    // Replicate errors usually carry {title, detail, status}
-    const title = err?.title || "Replicate create failed";
-    const detail =
-      err?.detail ||
-      err?.message ||
-      (typeof err === "string" ? err : JSON.stringify(err));
-    const status = Number(err?.status) || 422;
-
-    console.error("Replicate error:", { title, detail, status });
-    return NextResponse.json({ error: title, detail, status }, { status });
+    return NextResponse.json(
+      {
+        error: "Replicate create failed",
+        detail: err?.message || String(err),
+      },
+      { status: 500 }
+    );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({ ok: true });
 }
