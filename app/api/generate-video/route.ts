@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 type ReqBody = {
   prompt?: string;
-  imageUrl?: string; // optionnel : si fourni => image-to-video, sinon text-to-video
+  imageUrl?: string; // si fourni => image-to-video ; sinon text-to-video
   ratio?: "16:9" | "9:16" | "1:1";
   duration?: number; // secondes
 };
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const replicate = new Replicate({ auth: token });
 
     // 1) Récupère la dernière version du modèle (SDK v1)
-    const mdl: any = await replicate.models.get({ owner: OWNER, name: NAME });
+    const mdl: any = await replicate.models.get(OWNER, NAME);
     const versionId: string | undefined =
       mdl?.latest_version?.id ?? mdl?.default_example?.version;
     if (!versionId) {
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2) Construit l'input (ray accepte prompt seul, ou image + prompt)
+    // 2) Construit l'input
     const input: Record<string, unknown> = {
       aspect_ratio: ratio,
       duration,
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
       input,
     });
 
-    // 4) Polling jusqu'au résultat
+    // 4) Polling
     const start = Date.now();
     while (pred.status === "starting" || pred.status === "processing") {
       await new Promise((r) => setTimeout(r, 1500));
       pred = await replicate.predictions.get(pred.id);
-      if (Date.now() - start > 120000) break; // 2 min max
+      if (Date.now() - start > 120000) break; // 2 minutes max
     }
 
     if (pred.status !== "succeeded") {
