@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/replicate/prediction/:id
- * Renvoie l'état de la prédiction Replicate (status, output, logs…)
+ * Renvoie l'état de la prédiction Replicate (status, output, logs, metrics).
  */
 export async function GET(
   _req: Request,
@@ -26,13 +26,11 @@ export async function GET(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      // On ne met PAS de cache pour pouvoir poller
       cache: "no-store",
     });
 
     const json = await res.json();
 
-    // Réponse normalisée
     return NextResponse.json({
       ok: res.ok,
       id,
@@ -44,9 +42,6 @@ export async function GET(
       raw: process.env.NODE_ENV === "development" ? json : undefined,
     }, { status: res.ok ? 200 : res.status });
   } catch (e: any) {
-    return NextResponse.json({
-      ok: false,
-      error: e?.message || String(e),
-    }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
   }
 }
