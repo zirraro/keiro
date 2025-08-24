@@ -5,21 +5,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const token = process.env.REPLICATE_API_TOKEN;
-  const owner = "luma";
-  const name = "ray";
-
+  const demo = process.env.REPLICATE_DEMO;
   let versionId: string | null = null;
   let error: string | null = null;
 
-  if (!token) {
-    return NextResponse.json({ ok: false, error: "Missing REPLICATE_API_TOKEN" }, { status: 500 });
-  }
-
   try {
-    const replicate = new Replicate({ auth: token });
-    // ✅ SDK v1: deux arguments (owner, name)
-    const mdl: any = await replicate.models.get(owner, name);
-    versionId = mdl?.latest_version?.id ?? mdl?.default_example?.version ?? null;
+    if (token) {
+      const replicate = new Replicate({ auth: token });
+      const mdl: any = await replicate.models.get("luma", "ray");
+      versionId = mdl?.latest_version?.id ?? mdl?.default_example?.version ?? null;
+    }
   } catch (e: any) {
     error = e?.message || String(e);
   }
@@ -27,10 +22,12 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     hasToken: !!token,
-    owner,
-    name,
+    demo,
     versionId,
     error,
-    vercelEnv: process.env.VERCEL_ENV,
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV
+    }
   });
 }
