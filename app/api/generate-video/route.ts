@@ -5,10 +5,13 @@ export const dynamic = "force-dynamic";
 
 type ReqBody = {
   prompt?: string;
-  imageUrl?: string; // si présent => image-to-video
+  imageUrl?: string; // optionnel : si fourni => image-to-video, sinon text-to-video
   ratio?: "16:9" | "9:16" | "1:1";
-  duration?: number; // secondes (5-10)
+  duration?: number; // secondes
 };
+
+const OWNER = "luma";
+const NAME = "ray";
 
 export async function POST(req: Request) {
   try {
@@ -21,24 +24,31 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json().catch(() => ({}))) as ReqBody;
-    const {
-      prompt = "cinematic coffee shop b-roll, shallow depth of field, natural light",
-      imageUrl,
-      ratio = "1:1",
-      duration = 5,
-    } = body;
+    const prompt =
+      body.prompt ??
+      "cinematic coffee shop b-roll, shallow depth of field, natural light";
+    const imageUrl = body.imageUrl;
+    const ratio = body.ratio ?? "1:1";
+    const duration = body.duration ?? 5;
 
     const replicate = new Replicate({ auth: token });
 
-    // 🚫 NE PAS LIRE process.env.REPLICATE_VIDEO_MODEL
-    // ✅ Forcer le modèle Luma (Dream Machine) via Replicate
-    const model = "luma/ray" as `${string}/${string}`;
+    // 1) Récupère la dernière version du modèle (SDK v1)
+    const mdl: any = await replicate.models.get({ owner: OWNER, name: NAME });
+    const versionId: string | undefined =
+      mdl?.latest_version?.id ?? mdl?.default_example?.version;
+    if (!versionId) {
+      return NextResponse.json(
+        { ok: false, error: "Cannot resolve model version", mdl },
+        { status: 500 }
+      );
+    }
 
+    // 2) Construit l'input (ray accepte prompt seul, ou image + prompt)
     const input: Record<string, unknown> = {
       aspect_ratio: ratio,
       duration,
     };
-
     if (imageUrl) {
       input.image = imageUrl;
       if (prompt) input.prompt = prompt;
@@ -46,32 +56,56 @@ export async function POST(req: Request) {
       input.prompt = prompt;
     }
 
-    const output = (await replicate.run(model, { input })) as any;
+    // 3) Lance la prediction
+    let pred = await replicate.predictions.create({
+      version: versionId,
+      input,
+    });
 
-    let videos: string[] = [];
-    if (typeof output === "string") {
-      videos = [output];
-    } else if (Array.isArray(output)) {
-      videos = output.filter((x) => typeof x === "string");
-    } else if (output?.video) {
-      videos = [output.video];
-    } else if (output?.output) {
-      const out = output.output;
-      if (typeof out === "string") videos = [out];
-      else if (Array.isArray(out)) videos = out.filter((x: unknown) => typeof x === "string");
+    // 4) Polling jusqu'au résultat
+    const start = Date.now();
+    while (pred.status === "starting" || pred.status === "processing") {
+      await new Promise((r) => setTimeout(r, 1500));
+      pred = await replicate.predictions.get(pred.id);
+      if (Date.now() - start > 120000) break; // 2 min max
     }
 
-    if (!videos.length) {
+    if (pred.status !== "succeeded") {
       return NextResponse.json(
-        { ok: false, error: "No video URL in output", raw: output },
+        {
+          ok: false,
+          error: "Prediction failed",
+          status: pred.status,
+          logs: pred.logs,
+          output: pred.output,
+        },
         { status: 502 }
       );
     }
 
-    return NextResponse.json({ ok: true, model, videos });
-  } catch (err: any) {
+    // 5) Normalise la sortie
+    let videos: string[] = [];
+    const out: any = pred.output;
+    if (typeof out === "string") videos = [out];
+    else if (Array.isArray(out))
+      videos = out.filter((x: unknown) => typeof x === "string");
+    else if (out?.video) videos = [out.video];
+
+    if (!videos.length) {
+      return NextResponse.json(
+        { ok: false, error: "No video URL in output", output: out },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ ok: true, model: `${OWNER}/${NAME}`, versionId, videos });
+  } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: "Replicate video generation failed", detail: err?.message || String(err) },
+      {
+        ok: false,
+        error: "Replicate video generation failed",
+        detail: e?.message || String(e),
+      },
       { status: 500 }
     );
   }
