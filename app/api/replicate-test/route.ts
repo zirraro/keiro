@@ -25,8 +25,8 @@ async function handle({ prompt }: { prompt: string }) {
 
     const replicate = new Replicate({ auth: token });
 
-    // 1) Récupère la dernière version du modèle
-    const mdl = await replicate.models.get(`${OWNER}/${NAME}`);
+    // 1) Récupère la dernière version du modèle (signature: get(owner, name))
+    const mdl = await (replicate as any).models.get(OWNER, NAME);
     const versionId =
       (mdl as any)?.latest_version?.id ||
       (mdl as any)?.default_example?.version;
@@ -38,7 +38,7 @@ async function handle({ prompt }: { prompt: string }) {
       );
     }
 
-    // 2) Construit owner/name:version et lance le run
+    // 2) owner/name:version
     const modelWithVersion = `${OWNER}/${NAME}:${versionId}` as `${string}/${string}:${string}`;
 
     const output = (await replicate.run(modelWithVersion, {
