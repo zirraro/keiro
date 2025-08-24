@@ -8,57 +8,52 @@ type Body = {
   imageUrl?: string;
   fps?: number;
   num_frames?: number;
-  seed?: number;
 };
 
-const DEMO_IMAGE =
-  "https://replicate.delivery/pbxt/8o3w3vN9/test-square.png"; // image publique carrée
+const DEFAULT_IMAGE =
+  "https://replicate.delivery/pbxt/8o3w3vN9/test-square.png"; // fallback démo (public)
+const MODEL = "stability-ai/stable-video-diffusion-img2vid";   // img2vid (besoin d'une image)
 
 export async function POST(req: Request) {
   try {
     const token = process.env.REPLICATE_API_TOKEN;
-    const model = process.env.REPLICATE_VIDEO_MODEL || "stability-ai/stable-video-diffusion-img2vid";
-
     if (!token) {
-      return NextResponse.json(
-        { ok: false, error: "Missing REPLICATE_API_TOKEN" },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: "Missing REPLICATE_API_TOKEN" }, { status: 500 });
     }
 
     const body = (await req.json().catch(() => ({}))) as Body;
-    const prompt = (body.prompt || "").trim();
-    const imageUrl = (body.imageUrl || "").trim() || DEMO_IMAGE; // <- fallback démo
-    const fps = body.fps ?? 24;
-    const num_frames = body.num_frames ?? 25;
+    const prompt = body.prompt || "short dynamic social clip, aesthetic lighting, cinematic";
+    const imageUrl = (body.imageUrl && body.imageUrl.trim()) || DEFAULT_IMAGE; // <-- fallback auto
+    const fps = Number.isFinite(body.fps) ? Number(body.fps) : 24;
+    const num_frames = Number.isFinite(body.num_frames) ? Number(body.num_frames) : 25;
 
-    if (!imageUrl) {
-      return NextResponse.json(
-        { ok: false, error: "imageUrl is required for this video model" },
-        { status: 400 }
-      );
+    // validation rapide
+    if (!/^https?:\/\/.+/i.test(imageUrl)) {
+      return NextResponse.json({ ok: false, error: "imageUrl must be a valid http(s) URL" }, { status: 400 });
     }
 
     const replicate = new Replicate({ auth: token });
-    const input = {
-      input_image: imageUrl,
+
+    const input: Record<string, unknown> = {
       prompt,
+      image: imageUrl,
       fps,
       num_frames,
     };
 
-    // La plupart des modèles img2vid sur Replicate acceptent replicate.run("<owner>/<name>", { input })
-    const output = (await replicate.run(model as `${string}/${string}`, { input })) as any;
+    // Appel Replicate (modèle public)
+    const output = (await replicate.run(MODEL as `${string}/${string}`, { input })) as unknown;
 
-    return NextResponse.json({ ok: true, model, output });
+    return NextResponse.json({
+      ok: true,
+      model: MODEL,
+      usedImage: imageUrl,
+      input,
+      output,
+    });
   } catch (err: any) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Replicate create failed",
-        detail: err?.message || String(err),
-      },
-      { status: 500 }
-    );
+    const message =
+      err?.response?.data || err?.message || "Video generation failed";
+    return NextResponse.json({ ok: false, error: String(message) }, { status: 500 });
   }
 }
