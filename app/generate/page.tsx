@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 
@@ -18,11 +18,73 @@ export default function GenerateSimple() {
   const [videos, setVideos] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Polling state
+  const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [predictionStatus, setPredictionStatus] = useState<string | null>(null);
+  const pollTimer = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimer.current) clearInterval(pollTimer.current);
+    };
+  }, []);
+
+  async function pollPrediction(id: string) {
+    // Clear any previous timer
+    if (pollTimer.current) clearInterval(pollTimer.current);
+
+    setPredictionStatus('starting');
+
+    pollTimer.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/replicate/prediction/${id}`, { cache: 'no-store' });
+        const json = await r.json();
+
+        setPredictionStatus(json?.status || 'unknown');
+
+        if (json?.status === 'succeeded') {
+          if (pollTimer.current) clearInterval(pollTimer.current);
+
+          // Normaliser la sortie en tableau d’urls
+          let urls: string[] = [];
+          if (Array.isArray(json?.output)) {
+            urls = json.output.filter(Boolean);
+          } else if (typeof json?.output === 'string') {
+            urls = [json.output];
+          } else if (json?.output?.length) {
+            urls = [...json.output];
+          }
+
+          setVideos(urls);
+          setLoading(false);
+          setPredictionId(null);
+          return;
+        }
+
+        if (json?.status === 'failed' || json?.error) {
+          if (pollTimer.current) clearInterval(pollTimer.current);
+          setError(json?.error || 'La génération a échoué.');
+          setLoading(false);
+          setPredictionId(null);
+          return;
+        }
+      } catch (e: any) {
+        if (pollTimer.current) clearInterval(pollTimer.current);
+        setError(e?.message || 'Erreur pendant le polling.');
+        setLoading(false);
+        setPredictionId(null);
+      }
+    }, 3000);
+  }
+
   async function generate() {
     setLoading(true);
     setImages([]);
     setVideos([]);
     setError(null);
+    setPredictionId(null);
+    setPredictionStatus(null);
+
     try {
       if (mode === 'image') {
         const res = await fetch('/api/generate', {
@@ -33,33 +95,43 @@ export default function GenerateSimple() {
         const json = await res.json();
         if (json?.images?.length) {
           setImages(json.images);
+          setLoading(false);
         } else {
           setError(json?.error || 'Erreur API image');
+          setLoading(false);
         }
       } else {
-        const isImg2Vid = Boolean(imageUrl);
+        const payload = imageUrl
+          ? { prompt, imageUrl, ratio, duration }
+          : { prompt, ratio, duration };
+
         const res = await fetch('/api/generate-video', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            isImg2Vid
-              ? { prompt, imageUrl, ratio, duration }
-              : { prompt, ratio, duration }
-          ),
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
+
+        // 3 cas:
+        // 1) vidéos prêtes (urls)
         if (json?.videos?.length) {
           setVideos(json.videos);
-        } else if (json?.id) {
-          // Mode "id" (polling côté client si nécessaire)
-          setError(`Requête envoyée (id=${json.id}). Ajoute du polling pour récupérer la vidéo finale.`);
-        } else {
-          setError(json?.detail || json?.error || 'Erreur API video');
+          setLoading(false);
+          return;
         }
+        // 2) id renvoyé -> on poll
+        if (json?.id) {
+          setPredictionId(json.id);
+          setPredictionStatus('starting');
+          pollPrediction(json.id);
+          return;
+        }
+        // 3) erreur
+        setError(json?.detail || json?.error || 'Erreur API video');
+        setLoading(false);
       }
     } catch (e: any) {
       setError(e?.message || 'Erreur réseau');
-    } finally {
       setLoading(false);
     }
   }
@@ -113,6 +185,14 @@ export default function GenerateSimple() {
             </Button>
           </div>
         </div>
+
+        {/* Statut du polling */}
+        {predictionId && (
+          <div className="text-sm text-neutral-300">
+            Requête envoyée (id: <span className="font-mono">{predictionId}</span>) — statut: <span className="font-semibold">{predictionStatus}</span>…<br/>
+            La page rafraîchira automatiquement la vidéo dès qu’elle est prête.
+          </div>
+        )}
 
         {/* Erreur */}
         {error && <div className="text-sm text-red-400">{error}</div>}
