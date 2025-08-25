@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-/**
- * GET /api/replicate/prediction/:id
- * Renvoie l'état de la prédiction Replicate (status, output, logs, metrics).
- */
-export async function GET(
-  _req: Request,
-  ctx: { params: { id: string } }
-) {
+export async function GET(_req: Request, ctx: any) {
   try {
-    const id = ctx?.params?.id;
+    const id = ctx?.params?.id as string | undefined;
     if (!id) {
       return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
     }
@@ -22,26 +16,33 @@ export async function GET(
     }
 
     const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      // Pas de cache côté Vercel
       cache: "no-store",
+      // Evite certains proxy issues
+      next: { revalidate: 0 },
     });
 
     const json = await res.json();
-
+    // Normalise la réponse pour le front
     return NextResponse.json({
-      ok: res.ok,
-      id,
-      status: json?.status ?? null,
+      ok: res.ok && !json?.error,
+      id: json?.id ?? id,
+      status: json?.status ?? res.status,
       output: json?.output ?? null,
       error: json?.error ?? null,
       logs: json?.logs ?? "",
       metrics: json?.metrics ?? null,
-      raw: process.env.NODE_ENV === "development" ? json : undefined,
-    }, { status: res.ok ? 200 : res.status });
+      raw: !res.ok ? json : undefined,
+    }, { status: res.ok ? 200 : (json?.status ?? 500) });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e?.message || String(e) },
+      { status: 500 }
+    );
   }
 }
