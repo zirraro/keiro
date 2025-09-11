@@ -1,19 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 
-/** Client côté serveur.
- *  Utilise la SERVICE_ROLE si dispo (pour créer bucket/supprimer), sinon ANON.
- */
-export function supabaseAdmin() {
-  const url = process.env.SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Missing SUPABASE_URL or KEY");
-  return createClient(url, key);
-}
-
-export function publicUrlFromPath(path: string) {
-  // path: bucket/path/to/file
-  const url = process.env.SUPABASE_URL;
-  if (!url) return null;
-  return `${url.replace(/\/$/, "")}/storage/v1/object/public/${path.replace(/^\/+/, "")}`;
+export function supabaseServer() {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        // IMPORTANT: ne pas mémoriser cookies(), l'appeler ici à chaque fois
+        get(name: string) {
+          return cookies().get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+  return supabase
 }

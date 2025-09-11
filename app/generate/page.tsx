@@ -1,229 +1,195 @@
-'use client';
+"use client";
+import { useEffect, useState } from "react";
 
-import { useEffect, useRef, useState } from 'react';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+type NewsItem = {
+  id: string;
+  source: string;
+  title: string;
+  url: string;
+  summary: string;
+  publishedAt?: string;
+  image?: string;
+  angles: string[];
+};
 
-type Mode = 'image' | 'video';
+export default function GeneratePage() {
+  const [loadingGen, setLoadingGen] = useState(false);
+  const [loadingPub, setLoadingPub] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [caption, setCaption] = useState<string>("");
 
-export default function GenerateSimple() {
-  const [mode, setMode] = useState<Mode>('image');
-  const [prompt, setPrompt] = useState('Un café cosy en lumière naturelle, b-roll cinématique');
-  const [imageUrl, setImageUrl] = useState('https://replicate.delivery/pbxt/8o3w3vN9/test-square.png');
-  const [ratio, setRatio] = useState<'16:9' | '1:1' | '9:16'>('1:1');
-  const [duration, setDuration] = useState<number>(5);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [selected, setSelected] = useState<NewsItem | null>(null);
+  const [chosenAngle, setChosenAngle] = useState<string>("");
 
-  const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
-  const [videos, setVideos] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  // Polling state
-  const [predictionId, setPredictionId] = useState<string | null>(null);
-  const [predictionStatus, setPredictionStatus] = useState<string | null>(null);
-  const pollTimer = useRef<NodeJS.Timeout | null>(null);
+  const [brandId, setBrandId] = useState<string>("keiroai");
+  const [campaignId, setCampaignId] = useState<string>("default");
+  const [userId, setUserId] = useState<string>("keiroai-demo");
 
   useEffect(() => {
-    return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current);
-    };
+    (async () => {
+      setNewsLoading(true);
+      try {
+        const r = await fetch("/api/news");
+        const j = await r.json();
+        if (j.ok) setNews(j.items);
+      } finally {
+        setNewsLoading(false);
+      }
+    })();
   }, []);
 
-  async function pollPrediction(id: string) {
-    // Clear any previous timer
-    if (pollTimer.current) clearInterval(pollTimer.current);
-
-    setPredictionStatus('starting');
-
-    pollTimer.current = setInterval(async () => {
-      try {
-        const r = await fetch(`/api/replicate/prediction/${id}`, { cache: 'no-store' });
-        const json = await r.json();
-
-        setPredictionStatus(json?.status || 'unknown');
-
-        if (json?.status === 'succeeded') {
-          if (pollTimer.current) clearInterval(pollTimer.current);
-
-          // Normaliser la sortie en tableau d’urls
-          let urls: string[] = [];
-          if (Array.isArray(json?.output)) {
-            urls = json.output.filter(Boolean);
-          } else if (typeof json?.output === 'string') {
-            urls = [json.output];
-          } else if (json?.output?.length) {
-            urls = [...json.output];
-          }
-
-          setVideos(urls);
-          setLoading(false);
-          setPredictionId(null);
-          return;
-        }
-
-        if (json?.status === 'failed' || json?.error) {
-          if (pollTimer.current) clearInterval(pollTimer.current);
-          setError(json?.error || 'La génération a échoué.');
-          setLoading(false);
-          setPredictionId(null);
-          return;
-        }
-      } catch (e: any) {
-        if (pollTimer.current) clearInterval(pollTimer.current);
-        setError(e?.message || 'Erreur pendant le polling.');
-        setLoading(false);
-        setPredictionId(null);
-      }
-    }, 3000);
-  }
-
-  async function generate() {
-    setLoading(true);
-    setImages([]);
-    setVideos([]);
-    setError(null);
-    setPredictionId(null);
-    setPredictionStatus(null);
-
+  const onGenerate = async () => {
+    setLoadingGen(true);
     try {
-      if (mode === 'image') {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
-        });
-        const json = await res.json();
-        if (json?.images?.length) {
-          setImages(json.images);
-          setLoading(false);
-        } else {
-          setError(json?.error || 'Erreur API image');
-          setLoading(false);
-        }
+      const r = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          news: selected
+            ? {
+                title: selected.title,
+                summary: selected.summary,
+                url: selected.url,
+                angle: chosenAngle || selected.angles[0],
+                source: selected.source,
+              }
+            : null,
+          brandId,
+          campaignId,
+        }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setImageUrl(j.imageUrl);
+        setCaption(j.caption);
       } else {
-        const payload = imageUrl
-          ? { prompt, imageUrl, ratio, duration }
-          : { prompt, ratio, duration };
-
-        const res = await fetch('/api/generate-video', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const json = await res.json();
-
-        // 3 cas:
-        // 1) vidéos prêtes (urls)
-        if (json?.videos?.length) {
-          setVideos(json.videos);
-          setLoading(false);
-          return;
-        }
-        // 2) id renvoyé -> on poll
-        if (json?.id) {
-          setPredictionId(json.id);
-          setPredictionStatus('starting');
-          pollPrediction(json.id);
-          return;
-        }
-        // 3) erreur
-        setError(json?.detail || json?.error || 'Erreur API video');
-        setLoading(false);
+        alert("Erreur génération: " + j.error);
       }
-    } catch (e: any) {
-      setError(e?.message || 'Erreur réseau');
-      setLoading(false);
+    } finally {
+      setLoadingGen(false);
     }
-  }
+  };
+
+  const onPublish = async () => {
+    if (!imageUrl) return alert("Rien à publier");
+    setLoadingPub(true);
+    try {
+      const r = await fetch("/api/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl, caption, userId, brand: brandId, campaignId }),
+      });
+      const j = await r.json();
+      if (j.ok) alert("Envoyé à Make ✅");
+      else alert("Erreur publish: " + j.error);
+    } finally {
+      setLoadingPub(false);
+    }
+  };
+
+  const prettyDate = (d?: string) => (d ? new Date(d).toLocaleString() : "");
 
   return (
-    <main className="relative z-50 pointer-events-auto min-h-screen p-6 bg-white bg-white text-neutral-900">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Générer</h1>
-          <div className="text-sm text-neutral-600">Keiro · Démo cliquable</div>
-        </header>
+    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto", fontFamily: "system-ui" }}>
+      <h1>Générer & Publier sur Instagram</h1>
 
-        {/* Toggle mode */}
-        <div className="flex gap-2">
-          <Button type="button" variant={mode === 'image' ? 'primary' : 'outline'} onClick={() => setMode('image')}>
-            Image
-          </Button>
-          <Button type="button" variant={mode === 'video' ? 'primary' : 'outline'} onClick={() => setMode('video')}>
-            Vidéo
-          </Button>
-        </div>
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, margin: "16px 0" }}>
+        <label>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>Brand</div>
+          <input value={brandId} onChange={(e) => setBrandId(e.target.value)} style={{ width: "100%", padding: 8 }} />
+        </label>
+        <label>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>Campaign</div>
+          <input value={campaignId} onChange={(e) => setCampaignId(e.target.value)} style={{ width: "100%", padding: 8 }} />
+        </label>
+        <label>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>User ID</div>
+          <input value={userId} onChange={(e) => setUserId(e.target.value)} style={{ width: "100%", padding: 8 }} />
+        </label>
+      </section>
 
-        {/* Form */}
-        <div className="space-y-4 rounded-lg border border-neutral-200 p-4">
-          <div>
-            <label className="text-sm text-neutral-600">Prompt</label>
-            <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Décris ta scène…" />
-          </div>
+      <section>
+        <h2>1) Choisis une actu pour orienter la créa</h2>
+        {newsLoading ? (
+          <div>Chargement de la veille…</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+            {news.map((n) => {
+              const isSel = selected?.id === n.id;
+              return (
+                <article key={n.id} style={{
+                  border: isSel ? "2px solid #000" : "1px solid #ddd",
+                  borderRadius: 12, overflow: "hidden",
+                  boxShadow: isSel ? "0 4px 20px rgba(0,0,0,0.15)" : "0 1px 6px rgba(0,0,0,0.08)"
+                }}>
+                  {n.image ? (
+                    <img src={n.image} alt="" style={{ width: "100%", height: 150, objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ height: 150, background: "#f3f3f3" }} />
+                  )}
+                  <div style={{ padding: 12 }}>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>{n.source} · {prettyDate(n.publishedAt)}</div>
+                    <h3 style={{ margin: "6px 0 8px" }}>{n.title}</h3>
+                    <p style={{ fontSize: 14, opacity: 0.85 }}>{n.summary}</p>
 
-          {mode === 'video' && (
-            <>
-              <div>
-                <label className="text-sm text-neutral-600">Image (optionnel pour text→video)</label>
-                <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL image pour image→vidéo" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button type="button" variant={ratio === '16:9' ? 'primary' : 'outline'} onClick={() => setRatio('16:9')}>16:9</Button>
-                <Button type="button" variant={ratio === '1:1' ? 'primary' : 'outline'} onClick={() => setRatio('1:1')}>1:1</Button>
-                <Button type="button" variant={ratio === '9:16' ? 'primary' : 'outline'} onClick={() => setRatio('9:16')}>9:16</Button>
-              </div>
-              <div>
-                <label className="text-sm text-neutral-600">Durée (sec)</label>
-                <Input type="number" min={2} max={8} value={duration} onChange={(e) => setDuration(parseInt(e.target.value || '5', 10))} />
-              </div>
-            </>
-          )}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                      {n.angles.map((a) => (
+                        <button
+                          key={a}
+                          onClick={() => { setSelected(n); setChosenAngle(a); }}
+                          style={{
+                            padding: "6px 10px", borderRadius: 999,
+                            border: chosenAngle === a && selected?.id === n.id ? "2px solid #111" : "1px solid #ccc",
+                            background: "#fff", cursor: "pointer", fontSize: 12
+                          }}
+                        >
+                          {a}
+                        </button>
+                      ))}
+                    </div>
 
-          <div className="flex justify-end">
-            <Button type="button" onClick={generate} disabled={loading}>
-              {loading ? 'Génération…' : (mode === 'image' ? 'Générer image' : 'Générer vidéo')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Statut du polling */}
-        {predictionId && (
-          <div className="text-sm text-neutral-600">
-            Requête envoyée (id: <span className="font-mono">{predictionId}</span>) — statut: <span className="font-semibold">{predictionStatus}</span>…<br/>
-            La page rafraîchira automatiquement la vidéo dès qu’elle est prête.
-          </div>
-        )}
-
-        {/* Erreur */}
-        {error && <div className="text-sm text-red-400">{error}</div>}
-
-        {/* Résultats */}
-        {images.length > 0 && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {images.map((src, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border border-neutral-200">
-                <img src={src} alt={`img-${i}`} className="w-full h-auto" />
-                <div className="p-2 text-xs">
-                  <a href={src} download className="underline">Télécharger</a>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {videos.length > 0 && (
-          <div className="space-y-4">
-            {videos.map((src, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border border-neutral-200">
-                <video src={src} controls className="w-full h-auto"></video>
-                <div className="p-2 text-xs">
-                  <a href={src} download className="underline">Télécharger</a>
-                </div>
-              </div>
-            ))}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <a href={n.url} target="_blank" rel="noreferrer" style={{ fontSize: 13 }}>Lire la source</a>
+                      <button
+                        onClick={() => { setSelected(n); if (!chosenAngle) setChosenAngle(n.angles[0]); }}
+                        style={{ marginLeft: "auto", padding: "6px 10px", borderRadius: 8, border: "1px solid #111", background: "#111", color: "#fff" }}
+                      >
+                        Utiliser cette actu
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
+
+      <section style={{ marginTop: 24 }}>
+        <h2>2) Générer le visuel & la légende</h2>
+        <button onClick={onGenerate} disabled={loadingGen} style={{ padding: 12 }}>
+          {loadingGen ? "Génération..." : "Générer à partir de l’actu sélectionnée"}
+        </button>
+
+        {imageUrl && (
+          <section style={{ marginTop: 24 }}>
+            <img src={imageUrl} alt="preview" style={{ width: 360, borderRadius: 12 }} />
+            <div style={{ marginTop: 12 }}>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={6}
+                style={{ width: "100%" }}
+              />
+            </div>
+            <button onClick={onPublish} disabled={loadingPub} style={{ padding: 12, marginTop: 12 }}>
+              {loadingPub ? "Publication..." : "Publier (Make → Instagram)"}
+            </button>
+          </section>
+        )}
+      </section>
     </main>
   );
 }
