@@ -1,24 +1,11 @@
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
-
+/** No-op server stub to satisfy imports during local demos */
 export function supabaseServer() {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        // IMPORTANT: ne pas mémoriser cookies(), l'appeler ici à chaque fois
-        get(name: string) {
-          return cookies().get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          cookies().set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          cookies().set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-  return supabase
+  return {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+      getSession: async () => ({ data: { session: null }, error: null }),
+    },
+    from: () => ({ select: async () => ({ data: [], error: null }) }),
+  } as any;
 }
+export default supabaseServer;
