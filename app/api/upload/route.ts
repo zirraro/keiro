@@ -14,26 +14,14 @@ export async function POST(req: NextRequest) {
 
     const form = await req.formData();
     const file = form.get("file") as File | null;
-    if (!file) {
-      return new Response(JSON.stringify({ ok:false, error:"Missing file field" }), { status: 400 });
-    }
-
-    if (file.size > MAX_SIZE) {
-      return new Response(JSON.stringify({ ok:false, error:"File too large" }), { status: 413 });
-    }
+    if (!file) return new Response(JSON.stringify({ ok:false, error:"Missing file field" }), { status: 400 });
+    if (file.size > MAX_SIZE) return new Response(JSON.stringify({ ok:false, error:"File too large" }), { status: 413 });
 
     const type = (file.type || "image/jpeg").toLowerCase();
-    if (!ALLOWED.includes(type)) {
-      return new Response(JSON.stringify({ ok:false, error:`Unsupported type: ${type}` }), { status: 415 });
-    }
+    if (!ALLOWED.includes(type)) return new Response(JSON.stringify({ ok:false, error:`Unsupported type: ${type}` }), { status: 415 });
 
     const ext = ({
-      "image/jpeg":"jpg",
-      "image/jpg":"jpg",
-      "image/png":"png",
-      "image/webp":"webp",
-      "image/gif":"gif",
-      "image/svg+xml":"svg",
+      "image/jpeg":"jpg","image/jpg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif","image/svg+xml":"svg",
     } as Record<string,string>)[type] || "jpg";
 
     const buf = Buffer.from(await file.arrayBuffer());
@@ -42,8 +30,7 @@ export async function POST(req: NextRequest) {
     const url = await uploadPublicBlob({ filename, content: buf, contentType: type });
 
     return new Response(JSON.stringify({ ok:true, url }), {
-      status: 200,
-      headers: { "content-type":"application/json" }
+      status: 200, headers: { "content-type":"application/json" }
     });
   } catch (e:any) {
     return new Response(JSON.stringify({ ok:false, error: e?.message || "unexpected error" }), { status: 500 });
