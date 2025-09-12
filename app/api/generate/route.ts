@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       const imgRes = await fetch("https://picsum.photos/1080/1080");
       const arr = Buffer.from(await imgRes.arrayBuffer());
       const finalImg = await ensureInstagramImage(arr, "4:5");
-      const imageUrl = await uploadPublicBlob(`ig-${Date.now()}.jpg`, finalImg);
+      const imageUrl = await uploadPublicBlob({ filename: `ig-${Date.now()}.jpg`, content: finalImg, contentType: "image/jpeg" });
       return Response.json({ ok: true, imageUrl, caption });
     } catch (e) {
       console.error("Upload Blob KO → fallback public:", e);

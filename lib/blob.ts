@@ -1,22 +1,27 @@
 import { put } from "@vercel/blob";
 
-/**
- * Upload a public blob to Vercel Blob.
- * @param content Buffer | Uint8Array | string
- * @param opts { filename: string; contentType?: string }
- * @returns public URL string
- */
-export async function uploadPublicBlob(
-  content: Buffer | Uint8Array | string,
-  opts: { filename: string; contentType?: string }
-): Promise<string> {
-  const { filename, contentType } = opts;
-  const res = await put(filename, content, {
+type UploadOpts = {
+  filename: string;
+  content: Buffer | Uint8Array | ArrayBuffer;
+  contentType?: string;
+};
+
+/** Signature officielle (objet) */
+export async function uploadPublicBlob(opts: UploadOpts): Promise<string> {
+  const { filename, content, contentType = "image/jpeg" } = opts;
+  const file = typeof Buffer !== "undefined" && Buffer.isBuffer(content)
+    ? content
+    : Buffer.from(content as ArrayBuffer);
+
+  const { url } = await put(filename, file, {
     access: "public",
     contentType,
     addRandomSuffix: false,
   });
-  return res.url;
+  return url;
 }
 
-export default uploadPublicBlob;
+/** Wrapper rétro-compatible : uploadPublicBlob(filename, content) */
+export async function uploadPublicBlobLegacy(filename: string, content: Buffer | ArrayBuffer, contentType = "image/jpeg") {
+  return uploadPublicBlob({ filename, content: Buffer.isBuffer(content) ? content : Buffer.from(content as ArrayBuffer), contentType });
+}
