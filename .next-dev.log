@@ -1,0 +1,374 @@
+
+> keiro@0.1.0 dev
+> next dev -p 3002 -H 0.0.0.0
+
+   ▲ Next.js 15.5.0
+   - Local:        http://localhost:3002
+   - Network:      http://0.0.0.0:3002
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1668ms
+ ○ Compiling /api/news/social ...
+ ✓ Compiled /api/news/social in 3.1s (275 modules)
+ ○ Compiling /api/news ...
+ ✓ Compiled /api/news in 3.3s (699 modules)
+ GET /api/news?hours=48 200 in 8804ms
+ GET /api/news/social?hours=48&strict=0 200 in 12127ms
+ ○ Compiling /trendy ...
+ ✓ Compiled /trendy in 3.1s (1000 modules)
+ GET /trendy 200 in 3527ms
+ ✓ Compiled /favicon.ico in 328ms (781 modules)
+ GET /favicon.ico 200 in 667ms
+ GET /api/news?hours=48 200 in 4958ms
+ GET /api/news/social?hours=48&limit=12 200 in 5649ms
+ ○ Compiling / ...
+ ✓ Compiled / in 759ms (1063 modules)
+ GET / 200 in 1226ms
+ ✓ Compiled /generate in 455ms (1070 modules)
+ GET /generate 200 in 576ms
+ GET /api/news?hours=48 200 in 4843ms
+ GET /api/news/social?window=48h&limit=12&minScore=0.45 200 in 4885ms
+ GET /trendy 200 in 208ms
+ GET /api/news 200 in 814ms
+ GET /api/news/social?window=48h&limit=12&minScore=0.45 200 in 820ms
+ GET /api/news?hours=48 200 in 9242ms
+ GET /api/news?hours=48 200 in 4772ms
+ GET /api/news/social?hours=48&limit=12 200 in 4791ms
+ ✓ Compiled in 1108ms (640 modules)
+ GET /trendy 200 in 251ms
+ GET /trendy 200 in 83ms
+ ✓ Compiled /api/news/social in 493ms (404 modules)
+ ○ Compiling /api/news ...
+ ✓ Compiled /api/news in 784ms (827 modules)
+ GET /api/news?hours=48 200 in 7853ms
+ GET /api/news/social?hours=48&strict=0 200 in 8476ms
+ GET /api/news?hours=48 200 in 10684ms
+ GET /api/news/social?hours=48&strict=0 200 in 11361ms
+ GET /trendy 200 in 198ms
+ ✓ Compiled /favicon.ico in 319ms (841 modules)
+ GET /favicon.ico 200 in 642ms
+ GET /api/news?hours=48 200 in 4805ms
+ GET /api/news/social?hours=48&strict=0 200 in 5458ms
+ GET /api/news?hours=168 200 in 4716ms
+ GET /api/news/social?hours=168&strict=0 200 in 4867ms
+ GET /api/news?hours=168 200 in 4973ms
+ GET /api/news/social?hours=168&strict=1 200 in 4992ms
+ GET /api/news?hours=24 200 in 4755ms
+ GET /api/news/social?hours=24&strict=1 200 in 4791ms
+ GET /api/news?hours=24 200 in 4566ms
+ GET /api/news/social?hours=24&strict=0 200 in 4584ms
+ GET /api/news?hours=48 200 in 4661ms
+ GET /api/news/social?hours=48&strict=0 200 in 4705ms
+ GET /api/news?hours=168 200 in 4545ms
+ GET /api/news/social?hours=168&strict=0 200 in 4582ms
+ ✓ Compiled in 2.1s (640 modules)
+ GET /trendy 200 in 175ms
+ GET /trendy 200 in 33ms
+ GET /generate 200 in 162ms
+ ✓ Compiled /api/news in 208ms (414 modules)
+ ✓ Compiled (841 modules)
+ GET /favicon.ico 200 in 775ms
+ GET /api/news 200 in 7617ms
+ GET /api/news?hours=48 200 in 9277ms
+ GET /api/news/social?hours=48&strict=0 200 in 10040ms
+ GET /trendy 200 in 201ms
+ GET /api/news/social?hours=48&strict=0 200 in 4755ms
+ GET /api/news?hours=48 200 in 5204ms
+ ✓ Compiled in 3.6s (640 modules)
+ GET /generate 200 in 2708ms
+ GET /trendy 200 in 2714ms
+ GET /trendy 200 in 298ms
+ GET /generate 200 in 284ms
+ GET /trendy 200 in 142ms
+ GET /trendy 200 in 184ms
+ ✓ Compiled /api/news/social in 310ms (825 modules)
+ ✓ Compiled (827 modules)
+ GET /api/news?hours=48 200 in 9082ms
+ GET /api/news/social?hours=48&strict=0 200 in 10244ms
+ GET /api/news 200 in 10645ms
+ GET /generate 200 in 208ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1057ms (841 modules)
+ GET /favicon.ico 200 in 1490ms
+ GET /api/news?hours=48 200 in 5202ms
+ GET /api/news/social?hours=48&strict=0 200 in 8749ms
+ GET /api/news 200 in 10802ms
+ ✓ Compiled in 2.1s (640 modules)
+ GET /trendy 200 in 261ms
+ ✓ Compiled /api/news/social in 395ms (825 modules)
+ ✓ Compiled (827 modules)
+ GET /trendy 200 in 1032ms
+ GET /generate 200 in 1073ms
+ GET /api/news/social?hours=48&strict=0 200 in 6979ms
+ GET /api/news 200 in 6981ms
+ GET /generate 200 in 3505ms
+ GET /api/news?hours=48 200 in 9455ms
+ ✓ Compiled /favicon.ico in 318ms (841 modules)
+ GET /favicon.ico 200 in 667ms
+ GET /api/news 200 in 6783ms
+ GET /api/news?hours=48 200 in 8836ms
+ GET /api/news/social?hours=48&strict=0 200 in 9530ms
+ ○ Compiling /api/generate ...
+ ✓ Compiled /api/generate in 1987ms (1190 modules)
+ POST /api/generate 200 in 3997ms
+ ✓ Compiled in 1792ms (640 modules)
+ GET /trendy 200 in 176ms
+ GET /trendy 200 in 35ms
+ GET /generate 200 in 215ms
+ ✓ Compiled /api/news in 208ms (414 modules)
+ ✓ Compiled /api/news/social in 0ms (839 modules)
+ ✓ Compiled in 0ms (841 modules)
+ ✓ Compiled in 1ms (841 modules)
+ GET /favicon.ico 200 in 864ms
+ ✓ Compiled in 0ms (841 modules)
+ GET /api/news 200 in 6651ms
+ GET /api/news?hours=48 200 in 11315ms
+ GET /api/news/social?hours=48&strict=0 200 in 12898ms
+ ✓ Compiled in 1734ms (640 modules)
+ GET /generate 200 in 273ms
+ GET /trendy 200 in 92ms
+ GET /generate 200 in 175ms
+ ✓ Compiled /api/news/social in 209ms (825 modules)
+ ✓ Compiled (827 modules)
+ GET /api/news?hours=48 200 in 7534ms
+ GET /api/news/social?hours=48&strict=0 200 in 8095ms
+ GET /api/news 200 in 11770ms
+ GET /api/news 200 in 14339ms
+ GET /api/news/social?hours=48&strict=0 200 in 16342ms
+ GET /api/news?hours=48 200 in 18105ms
+ GET /generate 200 in 10033ms
+ GET / 200 in 180ms
+ ✓ Compiled /favicon.ico in 309ms (841 modules)
+ GET /favicon.ico 200 in 670ms
+ GET /favicon.ico 200 in 72ms
+ GET /api/news?hours=48 200 in 8738ms
+ GET /api/news/social?hours=48&strict=0 200 in 9501ms
+ GET /api/news 200 in 9887ms
+ ○ Compiling /api/generate ...
+ ✓ Compiled /api/generate in 822ms (961 modules)
+ POST /api/generate 200 in 2708ms
+ POST /api/generate 200 in 1375ms
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1258ms (182 modules)
+ ○ Compiling /login ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (108kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /login in 1495ms (768 modules)
+ GET /login?redirectedFrom=%2Fstudio 200 in 1866ms
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /generate 200 in 91ms
+ ✓ Compiled /api/news/social in 293ms (950 modules)
+ ✓ Compiled (952 modules)
+ GET /api/news 200 in 10175ms
+ GET /api/news?hours=48 200 in 10636ms
+ GET /api/news/social?hours=48&strict=0 200 in 11484ms
+ GET /trendy 200 in 245ms
+ GET / 200 in 225ms
+ ○ Compiling /news ...
+ GET /api/news?hours=48 200 in 4224ms
+ GET /api/news/social?hours=48&strict=0 200 in 4258ms
+ ✓ Compiled /news in 3s (1190 modules)
+ GET /news 200 in 3149ms
+ ✓ Compiled /api/brands in 453ms (1193 modules)
+TypeError: supabase.from(...).select(...).order is not a function
+    at GET (app/api/brands/route.ts:8:6)
+   6 |     .from('brands')
+   7 |     .select('*')
+>  8 |     .order('created_at', { ascending: false })
+     |      ^
+   9 |
+  10 |   return new Response(JSON.stringify({ data, error }), {
+  11 |     status: error ? 500 : 200,
+ GET /api/brands 500 in 639ms
+TypeError: supabase.from(...).select(...).order is not a function
+    at GET (app/api/brands/route.ts:8:6)
+   6 |     .from('brands')
+   7 |     .select('*')
+>  8 |     .order('created_at', { ascending: false })
+     |      ^
+   9 |
+  10 |   return new Response(JSON.stringify({ data, error }), {
+  11 |     status: error ? 500 : 200,
+ GET /api/brands 500 in 67ms
+ ✓ Compiled in 2.3s (595 modules)
+ GET / 200 in 424ms
+ GET /trendy 200 in 222ms
+ GET /generate 200 in 251ms
+ GET /news 200 in 192ms
+ GET /generate 200 in 55ms
+ GET / 200 in 155ms
+ GET /trendy 200 in 76ms
+ ○ Compiling /api/news/social ...
+ ✓ Compiled /api/news/social in 691ms (361 modules)
+ ✓ Compiled /api/news in 329ms (784 modules)
+ GET / 200 in 208ms
+ GET /api/news/social?hours=48&strict=0 200 in 1737ms
+ GET /api/news?hours=48 200 in 6179ms
+ GET /trendy 200 in 563ms
+ GET /api/news?hours=48 200 in 4807ms
+ GET /api/news/social?hours=48&strict=0 200 in 4839ms
+ GET / 200 in 2019ms
+ GET /generate 200 in 81ms
+ GET /api/news 200 in 6669ms
+ GET /api/news?hours=48 200 in 8850ms
+ GET /api/news/social?hours=48&strict=0 200 in 8882ms
+ GET / 200 in 4004ms
+ GET /trendy 200 in 56ms
+ GET /api/news?hours=48 200 in 4208ms
+ GET /api/news/social?hours=48&strict=0 200 in 4252ms
+ ✓ Compiled in 3.9s (1080 modules)
+ GET /generate 200 in 423ms
+ GET /trendy 200 in 436ms
+ GET / 200 in 456ms
+ GET /news 200 in 480ms
+ GET / 200 in 544ms
+ GET /trendy 200 in 494ms
+ GET /generate 200 in 497ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /news 200 in 1200ms
+ GET /generate 200 in 1204ms
+ GET /trendy 200 in 1478ms
+ GET / 200 in 1725ms
+ GET /api/news?hours=48 200 in 11029ms
+ GET /api/news?hours=48 200 in 11879ms
+ GET /api/news/social?hours=48&strict=0 200 in 12097ms
+ GET /api/news/social?hours=48&strict=0 200 in 12114ms
+ GET / 200 in 12830ms
+ GET /api/news 200 in 25245ms
+ GET /api/news?hours=48 200 in 26554ms
+ GET /api/news 200 in 27441ms
+ GET /api/news?hours=48 200 in 28145ms
+ GET /api/news/social?hours=48&strict=0 200 in 28152ms
+ GET /api/news/social?hours=48&strict=0 200 in 28186ms
+ GET / 200 in 17395ms
+ GET /trendy 200 in 625ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /api/brands in 1046ms (848 modules)
+ ✓ Compiled (851 modules)
+TypeError: supabase.from(...).select(...).order is not a function
+    at GET (app/api/brands/route.ts:8:6)
+   6 |     .from('brands')
+   7 |     .select('*')
+>  8 |     .order('created_at', { ascending: false })
+     |      ^
+   9 |
+  10 |   return new Response(JSON.stringify({ data, error }), {
+  11 |     status: error ? 500 : 200,
+ GET /api/brands 500 in 1890ms
+ GET /favicon.ico 200 in 2438ms
+ GET /favicon.ico 200 in 97ms
+ GET /favicon.ico 200 in 9ms
+ GET /favicon.ico 200 in 18ms
+ GET /favicon.ico 200 in 13ms
+ GET /favicon.ico 200 in 353ms
+ GET /api/news 200 in 8919ms
+ GET /api/news?hours=48 200 in 8974ms
+ GET /api/news/social?hours=48&strict=0 200 in 10854ms
+ GET /api/news?hours=48 200 in 16356ms
+ GET /api/news/social?hours=48&strict=0 200 in 18797ms
+ GET /api/news?hours=48 200 in 17121ms
+ GET /api/news/social?hours=48&strict=0 200 in 18981ms
+ GET /generate 200 in 124ms
+ GET /api/news 200 in 5128ms
+ GET /api/news?hours=48 200 in 8825ms
+ GET /api/news/social?hours=48&strict=0 200 in 8899ms
+ GET /api/news 200 in 16099ms
+ GET /api/news?hours=48 200 in 16395ms
+ GET /api/news/social?hours=48&strict=0 200 in 16454ms
+ GET /api/news?hours=48 200 in 5491ms
+ GET /api/news/social?hours=48&strict=1 200 in 5532ms
+ GET / 200 in 53ms
+ GET /trendy?hours=24 200 in 171ms
+ GET /api/news?hours=48 200 in 4793ms
+ GET /api/news/social?hours=48&strict=0 200 in 4817ms
+ GET /generate 200 in 1035ms
+ GET / 200 in 29ms
+ ✓ Compiled in 2.4s (1080 modules)
+ GET /trendy 200 in 310ms
+ GET /news 200 in 347ms
+ GET /generate 200 in 453ms
+ GET /trendy 200 in 241ms
+ GET / 200 in 345ms
+ GET /generate 200 in 196ms
+ GET / 200 in 122ms
+ GET / 200 in 66ms
+ GET / 200 in 169ms
+ GET /generate 200 in 82ms
+ GET /api/news 200 in 5290ms
+ GET /api/news/social?hours=48&strict=0 200 in 8352ms
+ GET / 200 in 3891ms
+ GET / 200 in 4084ms
+ GET /api/news?hours=48 200 in 9739ms
+ ✓ Compiled in 2s (652 modules)
+ GET /trendy 200 in 457ms
+ GET /generate 200 in 471ms
+ GET / 200 in 543ms
+ GET /news 200 in 201ms
+ GET / 200 in 172ms
+ GET /generate 200 in 69ms
+ GET / 200 in 131ms
+ GET /trendy 200 in 97ms
+ GET / 200 in 122ms
+ ✓ Compiled in 2.2s (652 modules)
+ GET /news 200 in 213ms
+ GET /trendy 200 in 86ms
+ GET /generate 200 in 194ms
+ GET / 200 in 293ms
+ GET /trendy 200 in 243ms
+ GET /generate 200 in 194ms
+ GET / 200 in 519ms
+ GET / 200 in 420ms
+ GET / 200 in 378ms
+ GET / 200 in 141ms
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 1602ms (423 modules)
+ GET /favicon.ico 200 in 1762ms
+ GET / 200 in 92ms
+ GET / 200 in 48ms
+ GET / 200 in 38ms
+ GET /trendy 200 in 38ms
+ ○ Compiling /api/news/social ...
+ ✓ Compiled /api/news/social in 965ms (425 modules)
+ ○ Compiling /api/news ...
+ ✓ Compiled /api/news in 1669ms (848 modules)
+ GET /api/news?hours=48 200 in 8794ms
+ GET /api/news/social?hours=48&strict=0 200 in 11021ms
+ GET /api/news?hours=48 200 in 12264ms
+ GET /api/news/social?hours=48&strict=0 200 in 13303ms
+ GET /generate 200 in 4406ms
+ GET /generate 200 in 44ms
+ GET /generate 200 in 41ms
+ GET /api/news 200 in 8042ms
+ GET /api/news?hours=48 200 in 15153ms
+ GET /api/news 200 in 16027ms
+ GET /api/news/social?hours=48&strict=0 200 in 16030ms
+ GET /api/news?hours=48 200 in 16778ms
+ GET /api/news/social?hours=48&strict=0 200 in 16830ms
+ GET / 200 in 55ms
+ GET /generate 200 in 32ms
+ GET /api/news 200 in 4967ms
+ GET / 200 in 5361ms
+ GET /api/news 200 in 9544ms
+ GET /api/news?hours=48 200 in 14055ms
+ GET /api/news/social?hours=48&strict=0 200 in 14150ms
+ GET / 200 in 9164ms
+ GET /api/news?hours=48 200 in 18438ms
+ GET /api/news/social?hours=48&strict=0 200 in 18524ms
+ GET / 200 in 35ms
+ ✓ Compiled in 1244ms (246 modules)
+ GET /generate 200 in 94ms
+ GET /news 200 in 173ms
+ GET / 200 in 275ms
+ GET /generate 200 in 179ms
+ GET /trendy 200 in 180ms
+ GET / 200 in 159ms
+ GET /trendy 200 in 103ms
+ GET / 200 in 90ms
+ GET / 200 in 142ms
+ GET / 200 in 158ms
+ GET /favicon.ico 200 in 52ms
+ GET / 200 in 75ms
