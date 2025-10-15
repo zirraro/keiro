@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#eff6ff" offset="0"/>
+      <stop stop-color="#dbeafe" offset="1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="24" fill="url(#g)"/>
+  <g fill="#1f2937" font-family="Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial" font-weight="700">
+    <text x="60" y="96" font-size="56">Sports</text>
+  </g>
+  <g fill="#3b82f6">
+    <circle cx="1080" cy="72" r="8"/>
+    <circle cx="1120" cy="112" r="6"/>
+    <circle cx="1040" cy="136" r="5"/>
+  </g>
+</svg>

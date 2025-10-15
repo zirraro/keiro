@@ -1,0 +1,139 @@
+import { NextResponse, NextRequest } from "next/server";
+import { cacheGet, cacheSet } from "@/lib/serverCache";
+
+type Item = {
+  id: string;
+  title: string;
+  source?: string;
+  url?: string;
+  link?: string;
+  thumbnailUrl?: string;
+  published?: string;
+  topic?: string;
+  _score?: number;
+};
+
+const NEWSDATA_KEY = process.env.NEWSDATA_API_KEY || process.env.NEWSDATA_KEY;
+
+const TOPIC_KEYWORDS: Record<string,string[]> = {
+  technology:["technologie","tech","numérique","innovation","IA","cloud","cyber","startup"],
+  science:["science","recherche","découverte","espace","physique","bio"],
+  world:["monde","international","UE","ONU","USA","Europe","guerre"],
+  business:["économie","entreprise","finance","bourse","marché","acquisition","CA"],
+  sports:["sport","football","foot","rugby","tennis","basket","JO","olympique","PSG","Ligue 1"],
+  health:["santé","médical","hôpital","maladie","vaccin","santé publique"],
+  ai:["intelligence artificielle","IA","LLM","GPT","copilote","modèle"],
+  startups:["startup","levée de fonds","seed","série A","VC","incubateur"],
+  crypto:["crypto","bitcoin","ethereum","token","web3","wallet","NFT"],
+  blockchain:["blockchain","smart contract","DeFi","web3"],
+  gaming:["jeu vidéo","jeux vidéo","gaming","console","Steam","PlayStation","Xbox","Nintendo"],
+  esports:["esport","e-sport","tournoi","league","LAN"],
+  mode:["mode","fashion","collection","défilé","luxe"],
+  beaute:["beauté","cosmétique","soins","make-up"],
+  food:["restaurant","gastronomie","cuisine","menu","chef","fast-food","restauration"],
+  restauration:["restaurant","chaîne de restaurants","ouverture","table","gastronomie"],
+  immobilier:["immobilier","logement","loyer","m2","constructeur"],
+  architecture:["architecture","bâtiment","urbanisme","design"],
+  art:["art","exposition","galerie","musée","vernissage"],
+  culture:["culture","cinéma","film","musique","livre","série"],
+  mobilite:["mobilité","transport","SNCF","RATP","vélo","autopartage"],
+  auto:["automobile","voiture","électrique","Tesla","hybride"],
+  environment:["environnement","écologie","biodiversité","COP","pollution","vert"],
+  climat:["climat","réchauffement","CO2","neutralité"],
+  economie:["économie","croissance","PIB","inflation","chômage"],
+  bourse:["bourse","CAC 40","actions","trading","indice"],
+};
+
+function topicScore(text: string, topic: string): number {
+  const kws = TOPIC_KEYWORDS[topic] || [];
+  const t = (text || "").toLowerCase();
+  let s = 0;
+  for (const k of kws) if (t.includes(k.toLowerCase())) s++;
+  return s;
+}
+function scoreItems(items: Item[], topic: string): Item[] {
+  return items.map(it => {
+    const txt = `${it.title || ""} - ${it.source || ""}`;
+    return { ...it, _score: topicScore(txt, topic) };
+  }).sort((a,b) => (b._score || 0) - (a._score || 0));
+}
+
+function mapNewsData(js: any): Item[] {
+  const arr = Array.isArray(js?.results) ? js.results : [];
+  return arr.map((a:any, i:number) => ({
+    id: a.link || String(i),
+    title: a.title,
+    source: a.source_id || a.source || (Array.isArray(a.creator) ? a.creator[0] : undefined),
+    url: a.link,
+    link: a.link,
+    thumbnailUrl: a.image_url,
+    published: a.pubDate,
+  }));
+}
+
+async function http(url: string, ms=12000) {
+  const c = new AbortController();
+  const t = setTimeout(()=>c.abort(), ms);
+  try {
+    const res = await fetch(url, { signal:c.signal, cache:"no-store" });
+    return res;
+  } catch(e) {
+    return new Response(null, { status: 599 });
+  } finally { clearTimeout(t); }
+}
+
+async function newsdataSearch(q: string, limit: number, country?: string) {
+  if (!NEWSDATA_KEY) return [] as Item[];
+  const u = new URL("https://newsdata.io/api/1/news");
+  u.searchParams.set("apikey", NEWSDATA_KEY);
+  u.searchParams.set("q", q);
+  u.searchParams.set("language", "fr");
+  if (country) u.searchParams.set("country", country);
+  u.searchParams.set("page", "0");
+  u.searchParams.set("size", String(limit));
+  const r = await http(u.toString());
+  if (!r || !("ok" in r) || !r.ok) return [];
+  return mapNewsData(await r.json());
+}
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const cat   = (searchParams.get("cat") || searchParams.get("topic") || "technology").toLowerCase();
+  const q     = (searchParams.get("q") || "").trim();
+  const limit = Math.min(parseInt(searchParams.get("limit") || "30", 10) || 30, 50);
+  const cacheKey = `newsdata:${cat}:${limit}:${q}`;
+
+  const cached = cacheGet<{items:Item[]}>(cacheKey, 15*60*1000);
+  if (cached) {
+    return new NextResponse(JSON.stringify(cached), {
+      status: 200,
+      headers: { "content-type":"application/json", "x-cache":"hit" }
+    });
+  }
+
+  const seedQ = q || (TOPIC_KEYWORDS[cat]?.slice(0,8).join(" OR ") || cat);
+
+  let src = "";
+  let items: Item[] = await newsdataSearch(seedQ, limit, "fr");
+  if (items.length) src = "newsdata:fr";
+  if (!items.length) { items = await newsdataSearch(seedQ, limit); if (items.length) src = "newsdata"; }
+
+  items = items.map(it => ({ ...it, topic: cat }));
+
+  const scored   = scoreItems(items, cat);
+  const filtered = scored.filter(it => (it._score || 0) > 0);
+  const final    = (filtered.length ? filtered : scored).slice(0, limit)
+                   .map(({_score, ...rest}) => rest);
+
+  const payload = { items: final };
+  cacheSet(cacheKey, payload, 15*60*1000);
+
+  return new NextResponse(JSON.stringify(payload), {
+    status: 200,
+    headers: {
+      "content-type":"application/json",
+      "x-source": src || "none",
+      "x-total": String(final.length),
+      "x-debug": `cat=${cat}&q=${encodeURIComponent(seedQ)}`,
+    }
+  });
+}

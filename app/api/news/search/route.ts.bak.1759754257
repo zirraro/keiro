@@ -1,0 +1,148 @@
+import { NextRequest, NextResponse } from "next/server";
+
+type Item = {
+  id: string;
+  title: string;
+  source?: string;
+  url?: string;
+  link?: string;
+  thumbnailUrl?: string;
+  published?: string;
+  topic?: string;
+  _score?: number;
+};
+
+const KEY = process.env.NEWSDATA_API_KEY || process.env.NEWSDATA_KEY;
+
+// Mots-clés par catégorie (scoring & fallback de recherche)
+const GROUPS: Record<string, string[]> = {
+  iatech: [
+    "intelligence artificielle","IA","LLM","OpenAI","GPT","copilote",
+    "Apple","Google","Microsoft","smartphone","gadget","application",
+    "technologie","tech","numérique","robot","deep learning"
+  ],
+  business: [
+    "startup","levée de fonds","e-commerce","SaaS","acquisition","fusion",
+    "marché","M&A","licorne","entreprise","croissance"
+  ],
+  finance: [
+    "bourse","CAC 40","actions","trading","banque","taux","inflation",
+    "épargne","obligations","bitcoin","ethereum","crypto","blockchain","web3"
+  ],
+  sports: [
+    "sport","football","foot","PSG","OM","Ligue 1","JO","olympique",
+    "rugby","tennis","basket","NBA"
+  ],
+  gaming: [
+    "jeu vidéo","jeux vidéo","gaming","esport","tournoi","streamer",
+    "PlayStation","Xbox","Nintendo","Steam","AAA","indé"
+  ],
+  pop: [
+    "people","célébrité","musique","cinéma","film","série","festival",
+    "TikTok","YouTube","influenceur","créateur"
+  ],
+  food: [
+    "restaurant","gastronomie","franchise","dark kitchen","menu","chef",
+    "fast-food","bistrot","brasserie","ouverture"
+  ],
+  lifestyle: [
+    "tendance","voyage","tourisme","hôtel","mode","beauté","luxe"
+  ],
+  health: [
+    "santé","bien-être","fitness","hôpital","vaccin","maladie","prévention"
+  ],
+  auto: [
+    "automobile","voiture","véhicule électrique","Tesla","batterie",
+    "mobilité","transport","SNCF","RATP"
+  ],
+  environment: [
+    "environnement","écologie","climat","biodiversité","COP",
+    "canicule","inondation","météo extrême"
+  ],
+  realestate: [
+    "immobilier","logement","loyer","construction","architecture","urbanisme"
+  ],
+  world: [
+    "France","international","Monde","politique","élections","gouvernement","sécurité"
+  ],
+};
+
+// Alias des anciennes valeurs → catégories actuelles
+const ALIAS: Record<string, string> = {
+  ai: "iatech", technology: "iatech",
+  startups: "business", business: "business",
+  finance: "finance", crypto: "finance",
+  sports: "sports",
+  gaming: "gaming", esports: "gaming",
+  pop: "pop", culture: "pop", beaute: "lifestyle", mode: "lifestyle",
+  food: "food", restauration: "food",
+  lifestyle: "lifestyle",
+  health: "health", sante: "health",
+  auto: "auto", mobilite: "auto",
+  environment: "environment", climat: "environment",
+  realestate: "realestate", immobilier: "realestate", architecture: "realestate",
+  world: "world",
+  iatech: "iatech",
+};
+
+function buildQuery(cat: string, q: string) {
+  if (q) return q;
+  const key = ALIAS[cat] ?? cat;
+  const kw = GROUPS[key] || [];
+  return kw.slice(0, 12).join(" OR ") || key;
+}
+
+function mapNewsData(js: any): Item[] {
+  const arr = Array.isArray(js?.results) ? js.results : [];
+  return arr.map((a: any, i: number) => ({
+    id: a.link || String(i),
+    title: a.title,
+    source: a.source_id || a.source || (Array.isArray(a.creator) ? a.creator[0] : undefined),
+    url: a.link,
+    link: a.link,
+    thumbnailUrl: a.image_url,
+    published: a.pubDate,
+  }));
+}
+
+async function newsdata(query: string, limit: number) {
+  if (!KEY) return [] as Item[];
+  const u = new URL("https://newsdata.io/api/1/news");
+  u.searchParams.set("apikey", KEY);
+  u.searchParams.set("language", "fr");
+  u.searchParams.set("q", query);
+  u.searchParams.set("size", String(limit));
+  const res = await fetch(u.toString(), { cache: "no-store" });
+  if (!res.ok) return [];
+  return mapNewsData(await res.json());
+}
+
+function score(items: Item[], cat: string) {
+  const key = ALIAS[cat] ?? cat;
+  const kws = GROUPS[key] || [];
+  return items
+    .map(it => {
+      const hay = `${it.title ?? ""} ${it.source ?? ""}`.toLowerCase();
+      let s = 0;
+      for (const k of kws) if (hay.includes(k.toLowerCase())) s++;
+      return { ...it, _score: s };
+    })
+    .sort((a, b) => (b._score || 0) - (a._score || 0))
+    .map(({ _score, ...rest }) => rest);
+}
+
+export async function GET(req: NextRequest) {
+  const sp = new URL(req.url).searchParams;
+  const rawCat = (sp.get("cat") || sp.get("topic") || "iatech").toLowerCase();
+  const cat = ALIAS[rawCat] ?? rawCat;
+  const q = (sp.get("q") || "").trim();
+  const limit = Math.min(parseInt(sp.get("limit") || "30", 10) || 30, 50);
+
+  const query = buildQuery(cat, q);
+  let items = await newsdata(query, limit);
+  items = items.map(it => ({ ...it, topic: cat }));
+
+  items = score(items, cat).slice(0, limit);
+
+  return NextResponse.json({ items }, { status: 200 });
+}

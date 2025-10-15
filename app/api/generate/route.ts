@@ -1,60 +1,79 @@
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
+import { randomUUID } from "crypto";
+import { promises as fs } from "fs";
+import path from "path";
 
-import { NextRequest } from "next/server";
-import { ensureInstagramImage } from "@/lib/ensureInstagramImage";
-import { uploadPublicBlob } from "@/lib/blob";
-
-type Body = {
-  news?: { title: string; summary: string; url: string; angle: string; source?: string } | null;
-  brandId?: string;
-  campaignId?: string;
-};
-
-const BRAND_PRESETS: Record<string, { voice: string; hashtags: string[]; cta: string[] }> = {
-  keiroai: {
-    voice: "Clair, orienté impact, marketing temps réel",
-    hashtags: ["#KeiroAI", "#Marketing", "#AI", "#Growth", "#Design"],
-    cta: ["Lance ta campagne en 1 clic", "Teste KeiroAI", "Passe en Fast Marketing"],
-  },
-};
-
-function buildCaption(body: Body) {
-  const b = BRAND_PRESETS["keiroai"];
-  if (!body.news) return `Post généré automatiquement ✨ ${b.hashtags.join(" ")}`;
-  const { title, summary, url, angle, source } = body.news;
-  const hook = `Actu : ${title}${source ? ` — ${source}` : ""}`;
-  const value = `Angle : ${angle}. ${summary}`;
-  const action = b.cta[0];
-  const tags = b.hashtags.join(" ");
-  return `${hook}\n\n${value}\n\n${action}\n${url}\n\n${tags}`;
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Body;
-    const caption = buildCaption(body);
-
-    // 1) Pas de token → fallback image publique (utile en dev)
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return Response.json({ ok: true, imageUrl: "https://picsum.photos/1080/1350", caption });
+    const API_KEY = process.env.OPENAI_API_KEY;
+    if (!API_KEY) {
+      return NextResponse.json({ error: "Missing OPENAI_API_KEY" }, { status: 200 });
     }
 
-    // 2) Token présent → tente l'upload; si échec → fallback public
-    try {
-      const imgRes = await fetch("https://picsum.photos/1080/1080");
-      const arr = Buffer.from(await imgRes.arrayBuffer());
-      const finalImg = await ensureInstagramImage(arr, "4:5");
-      const imageUrl = await uploadPublicBlob({ filename: `ig-${Date.now()}.jpg`, content: finalImg, contentType: "image/jpeg" });
-      return Response.json({ ok: true, imageUrl, caption });
-    } catch (e) {
-      console.error("Upload Blob KO → fallback public:", e);
-      return Response.json({ ok: true, imageUrl: "https://picsum.photos/1080/1350", caption });
+    const body = await req.json().catch(() => ({}));
+    const {
+      kind = "image",
+      prompt,
+      brand = "",
+      goal = "",
+      tone = "",
+      constraints = "",
+      cta = "",
+      hashtags = "",
+      article,
+    } = body || {};
+
+    if (kind !== "image") {
+      return NextResponse.json({ error: "Only image generation is implemented." }, { status: 400 });
     }
-  } catch (e: any) {
-    console.error("Erreur /api/generate:", e);
-    return new Response(JSON.stringify({ ok: false, error: e.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+
+    // Compose a robust prompt from provided fields (fallbacks if needed)
+    const title =
+      article?.title ||
+      (body?.news?.title ?? "").trim() ||
+      "Créer un visuel social percutant lié à l'actualité";
+    const basePrompt =
+      prompt ||
+      [
+        `Sujet: ${title}`,
+        article?.url ? `Source: ${article?.source || ""} — ${article?.url}` : undefined,
+        brand ? `Marque: ${brand}` : undefined,
+        goal ? `Objectif: ${goal}` : undefined,
+        tone ? `Tonalité: ${tone}` : undefined,
+        constraints ? `Contraintes: ${constraints}` : undefined,
+        cta ? `CTA: ${cta}` : undefined,
+        hashtags ? `Hashtags: ${hashtags}` : undefined,
+        `Plateforme: Instagram | Format: Portrait (1080x1350)`,
+        `Sortie: visuel prêt à poster (pas de texte trop dense).`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+    const openai = new OpenAI({ apiKey: API_KEY });
+
+    // Génération synchronisée
+    const res = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: basePrompt,
+      size: "1024x1024", // ou "1024x1344" si tu veux portrait strict
     });
+
+    const b64 = res?.data?.[0]?.b64_json;
+    if (!b64) {
+      return NextResponse.json({ error: "No image content returned." }, { status: 500 });
+    }
+
+    const id = randomUUID();
+    const outPath = path.join(process.cwd(), "public", "previews", `${id}.png`);
+    await fs.writeFile(outPath, Buffer.from(b64, "base64"));
+
+    const url = `/previews/${id}.png`;
+    return NextResponse.json({ url, id }, { status: 200, headers: { "Cache-Control": "no-store" } });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err?.message || "Generation failed." },
+      { status: 500 }
+    );
   }
 }

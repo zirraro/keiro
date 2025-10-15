@@ -1,0 +1,104 @@
+import { NextResponse } from "next/server";
+
+const CAT: Record<string, { q?: string }> = {
+  technology: { q: "technologie OR numérique OR innovation OR IA" },
+  science:     { q: "science OR recherche OR découverte" },
+  world:       { q: "monde OR international OR géopolitique" },
+  business:    { q: "économie OR finance OR entreprise OR marché" },
+  sports:      { q: "sport OR football OR foot OR rugby OR tennis OR basket" },
+  health:      { q: "santé OR médecine OR hôpital OR vaccin" },
+  ai:          { q: "intelligence artificielle OR IA" },
+  startups:    { q: "startup OR levée de fonds OR innovation" },
+  crypto:      { q: "crypto OR bitcoin OR ethereum OR blockchain" },
+  blockchain:  { q: "blockchain OR web3 OR token" },
+  gaming:      { q: "jeu vidéo OR gaming OR Nintendo OR PlayStation OR Xbox" },
+  esports:     { q: "esport OR compétition gaming OR tournoi" },
+  mode:        { q: "mode OR fashion OR luxe OR collection" },
+  beaute:      { q: "beauté OR cosmétique OR soins" },
+  food:        { q: "gastronomie OR restaurant OR cuisine" },
+  restauration:{ q: "restaurant OR restauration OR chaîne de restaurants" },
+  immobilier:  { q: "immobilier OR logement OR construction" },
+  architecture:{ q: "architecture OR design urbain" },
+  art:         { q: "art OR exposition OR galerie OR musée" },
+  culture:     { q: "culture OR cinéma OR musique OR livre" },
+  mobilite:    { q: "mobilité OR transport OR véhicule électrique" },
+  auto:        { q: "automobile OR voiture électrique OR Tesla" },
+  environment: { q: "environnement OR écologie OR durable" },
+  climat:      { q: "climat OR réchauffement OR COP" },
+  economie:    { q: "économie OR marché OR croissance" },
+  bourse:      { q: "bourse OR CAC40 OR actions OR trading" },
+};
+
+function normGNews(j:any, limit:number) {
+  const arr = Array.isArray(j?.articles) ? j.articles : [];
+  return arr.slice(0, limit).map((a:any)=>({
+    id: a.url,
+    title: a.title,
+    url: a.url,
+    source: a.source?.name || "",
+    published: a.publishedAt,
+    thumbnailUrl: a.image || "",
+    topic: "",
+  }));
+}
+
+function normNewsData(j:any, limit:number) {
+  const arr = Array.isArray(j?.results) ? j.results : [];
+  return arr.slice(0, limit).map((a:any)=>({
+    id: a.link || a.url,
+    title: a.title,
+    url: a.link || a.url,
+    source: a.source_id || a.source || "",
+    published: a.pubDate || a.date,
+    thumbnailUrl: a.image_url || "",
+    topic: "",
+  }));
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const cat = (url.searchParams.get("cat") || "technology").toLowerCase();
+  const timeframe = (url.searchParams.get("timeframe") || "24h").toLowerCase();
+  const limit = Math.max(1, Math.min(30, Number(url.searchParams.get("limit") || "12")));
+  const userQ = (url.searchParams.get("q") || "").trim();
+  const qParts = [CAT[cat]?.q, userQ].filter(Boolean);
+  const q = qParts.length ? qParts.join(" ") : cat;
+
+  // ----- 1) GNews -----
+  const GKEY = process.env.GNEWS_API_KEY || process.env.GNEWS_KEY;
+  if (GKEY) {
+    try {
+      const g = new URL("https://gnews.io/api/v4/search");
+      g.searchParams.set("lang", "fr");
+      g.searchParams.set("country", "fr");
+      g.searchParams.set("max", String(limit));
+      g.searchParams.set("q", q);
+      g.searchParams.set("apikey", GKEY);
+      const r = await fetch(g.toString(), { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        const items = normGNews(j, limit);
+        if (items.length) return NextResponse.json({ items });
+      }
+    } catch {}
+  }
+
+  // ----- 2) NewsData -----
+  const ND = process.env.NEWSDATA_API_KEY || process.env.NEWSDATA_KEY;
+  if (ND) {
+    try {
+      const n = new URL("https://newsdata.io/api/1/news");
+      n.searchParams.set("apikey", ND);
+      n.searchParams.set("language", "fr");
+      n.searchParams.set("q", q);
+      const r = await fetch(n.toString(), { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        const items = normNewsData(j, limit);
+        if (items.length) return NextResponse.json({ items });
+      }
+    } catch {}
+  }
+
+  return NextResponse.json({ items: [] });
+}

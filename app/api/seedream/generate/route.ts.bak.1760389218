@@ -1,0 +1,68 @@
+export const runtime = 'nodejs';
+import { NextResponse } from 'next/server';
+import { Agent, fetch as undiciFetch } from 'undici';
+
+function json(status: number, body: any) {
+  return new NextResponse(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+export async function POST(req: Request) {
+  try {
+    const { prompt, size = '1024x1024' } = await req.json().catch(() => ({}));
+    if (!prompt) return json(400, { error: 'bad_request', message: 'missing prompt' });
+
+    const rawKey = (process.env.SEEDREAM_API_KEY || '').trim();
+    if (!rawKey) return json(500, { error: 'missing_key' });
+
+    // Mode mock pour débloquer l’UI pendant debug réseau
+    if ((process.env.SEEDREAM_MOCK || '') === '1') {
+      const place = `https://picsum.photos/seed/${encodeURIComponent(prompt)}/1024/1024`;
+      return json(200, { url: place, debug: { mock: true } });
+    }
+
+    const base = (process.env.SEEDREAM_BASE_URL || 'https://api.seedream.ai').replace(/\/+$/, '');
+    const sniVar = (process.env.SEEDREAM_SNI || '').trim();
+    const insecure = (process.env.SEEDREAM_INSECURE || '') === '1';
+
+    const u = new URL(base);
+    const servername = sniVar ? (sniVar.toLowerCase() === 'disable' ? undefined : sniVar) : u.hostname;
+
+    const dispatcher = new Agent({
+      connect: {
+        servername,           // SNI explicite
+        // @ts-ignore
+        tls: { rejectUnauthorized: !insecure }, // relax TLS si INSECURE=1 (diagnostic)
+        // @ts-ignore
+        alpnProtocols: ['http/1.1'],           // évite ALPN bizarres
+        timeout: 30_000,
+      },
+    });
+
+    const res = await undiciFetch(`${base}/v1/images/generate`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${rawKey}`,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify({ prompt, size }),
+      dispatcher,
+    });
+
+    const text = await res.text();
+    // Essaie JSON, sinon retourne texte brut pour debug
+    try {
+      const data = JSON.parse(text);
+      if (!res.ok) return json(res.status, data);
+      return json(200, data);
+    } catch {
+      if (!res.ok) return json(res.status, { error: 'upstream_error', body: text });
+      return json(200, { raw: text });
+    }
+  } catch (e: any) {
+    return json(500, { error: 'network_error', message: String(e?.stack || e?.message || e) });
+  }
+}

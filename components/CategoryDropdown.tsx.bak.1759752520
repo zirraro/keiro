@@ -1,0 +1,39 @@
+"use client";
+type Opt = { label: string; value: string };
+
+export const VIRAL_CATEGORIES: Opt[] = [
+  { label: "IA",                     value: "ai" },
+  { label: "Tech",                   value: "technology" },
+  { label: "Business & Startups",    value: "business" },
+  { label: "Finance / Bourse",       value: "finance" },
+  { label: "Crypto",                 value: "crypto" },
+  { label: "Sports",                 value: "sports" },
+  { label: "Gaming / Esports",       value: "gaming" },
+  { label: "Pop-culture",            value: "pop" },
+  { label: "Restauration / Food",    value: "food" },
+  { label: "Lifestyle & Voyage",     value: "lifestyle" },
+  { label: "Santé & Bien-être",      value: "health" },
+  { label: "Auto & Mobilité",        value: "auto" },
+  { label: "Environnement & Climat", value: "environment" },
+  { label: "Immobilier & Archi",     value: "realestate" },
+  { label: "Monde / Actu",           value: "world" },
+];
+
+export default function CategoryDropdown({
+  value, onChange, options = VIRAL_CATEGORIES, className = "",
+}: { value: string; onChange: (v: string) => void; options?: Opt[]; className?: string }) {
+  return (
+    <div className={"inline-flex items-center gap-2 " + className}>
+      <label className="text-sm text-neutral-600">Catégorie</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}

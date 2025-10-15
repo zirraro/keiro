@@ -1,0 +1,63 @@
+"use client";
+
+type Opt = { label: string; value: string };
+
+const DEFAULT_CATEGORIES: Opt[] = [
+  // Base
+  { label: "Tech", value: "technology" },
+  { label: "Business", value: "business" },
+  { label: "Science", value: "science" },
+  { label: "Santé", value: "health" },
+  { label: "Sports", value: "sports" },
+  // IA / Startups
+  { label: "IA", value: "ai" },
+  { label: "Startups", value: "startups" },
+  // Crypto / Blockchain
+  { label: "Crypto", value: "crypto" },
+  { label: "Blockchain", value: "blockchain" },
+  // Gaming / Esports
+  { label: "Gaming", value: "gaming" },
+  { label: "Esports", value: "esports" },
+  // Mode / Beauté
+  { label: "Mode", value: "mode" },
+  { label: "Beauté", value: "beaute" },
+  // Food / Restauration
+  { label: "Food", value: "food" },
+  { label: "Restauration", value: "restauration" },
+  // Immobilier / Architecture
+  { label: "Immobilier", value: "immobilier" },
+  { label: "Architecture", value: "architecture" },
+  // Art / Culture
+  { label: "Art", value: "art" },
+  { label: "Culture", value: "culture" },
+  // Mobilité / Auto
+  { label: "Mobilité", value: "mobilite" },
+  { label: "Auto", value: "auto" },
+  // Environnement / Climat
+  { label: "Environnement", value: "environment" },
+  { label: "Climat", value: "climat" },
+  // Économie / Bourse
+  { label: "Économie", value: "economie" },
+  { label: "Bourse", value: "bourse" },
+  // Monde
+  { label: "Monde", value: "world" },
+];
+
+export default function CategoryDropdown({
+  value, onChange, options = DEFAULT_CATEGORIES, className = "",
+}: { value: string; onChange: (v: string) => void; options?: Opt[]; className?: string; }) {
+  return (
+    <div className={"inline-flex items-center gap-2 " + className}>
+      <label className="text-sm text-neutral-600">Catégorie</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}

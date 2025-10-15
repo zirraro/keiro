@@ -1,0 +1,94 @@
+import { NextResponse } from 'next/server';
+import https from 'https';
+import type { RequestInit } from 'undici';
+import { Agent } from 'undici';
+
+export const runtime = 'nodejs';
+
+export async function POST(req: Request) {
+  let payload: any = {};
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'bad_request', message: 'JSON invalide' }, { status: 400 });
+  }
+
+  const prompt = (payload?.prompt ?? '').toString().trim();
+  const size   = (payload?.size ?? '512x512').toString();
+  if (!prompt) {
+    return NextResponse.json({ error: 'missing_prompt' }, { status: 400 });
+  }
+
+  const rawKey = (process.env.SEEDREAM_API_KEY || '').trim();
+  if (!rawKey) {
+    return NextResponse.json({ error: 'missing_key' }, { status: 500 });
+  }
+
+  const base = (process.env.SEEDREAM_BASE_URL || 'https://api.seedream.ai').replace(/\/+$/,'');
+  const url  = `${base}/v1/images/generate`;
+  const hostname = new URL(base).hostname;
+
+  // 1) Tentative via fetch/undici avec SNI forcé
+  const dispatcher = new Agent({ connect: { servername: hostname, timeout: 30_000 } });
+  const init: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${rawKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'Keiro/seedream-proxy'
+    } as any,
+    body: JSON.stringify({ prompt, size }),
+    dispatcher
+  };
+
+  try {
+    const res = await fetch(url, init as any);
+    const text = await res.text();
+    let data: any; try { data = JSON.parse(text); } catch { data = text; }
+
+    if (!res.ok) {
+      return NextResponse.json({ error: 'upstream_error', status: res.status, data }, { status: res.status });
+    }
+    return NextResponse.json(data);
+  } catch (e: any) {
+    // 2) Fallback Node https.request avec SNI explicit
+    try {
+      const out = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+        const u = new URL(url);
+        const req = https.request({
+          protocol: u.protocol,
+          hostname: u.hostname,
+          port: u.port || 443,
+          path: u.pathname + u.search,
+          method: 'POST',
+          headers: {
+            'Host': hostname,
+            'Authorization': `Bearer ${rawKey}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'Keiro/seedream-proxy'
+          },
+          servername: hostname,           // SNI explicite
+          rejectUnauthorized: true,
+          timeout: 30000
+        }, (resp) => {
+          let chunks: Buffer[] = [];
+          resp.on('data', (d) => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
+          resp.on('end', () => resolve({ status: resp.statusCode || 502, body: Buffer.concat(chunks).toString('utf8') }));
+        });
+        req.on('error', reject);
+        req.write(JSON.stringify({ prompt, size }));
+        req.end();
+      });
+
+      let data: any; try { data = JSON.parse(out.body); } catch { data = out.body; }
+      if (out.status < 200 || out.status >= 300) {
+        return NextResponse.json({ error: 'upstream_error', status: out.status, data }, { status: out.status });
+      }
+      return NextResponse.json(data);
+    } catch (e2: any) {
+      return NextResponse.json({ error: 'network_error', message: String(e2?.message || e2) }, { status: 500 });
+    }
+  }
+}

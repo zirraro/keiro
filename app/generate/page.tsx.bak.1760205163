@@ -1,0 +1,413 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+
+// === Fallback image deterministic (no external call) ===
+function hashStr(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+const PALETTE = ['#EEF2FF','#E0F2FE','#E6FFFA','#FEE2E2','#FDF2F8','#ECFCCB','#FDE68A','#FFE4E6'];
+const CAT_EMOJI: Record<string,string> = {
+  technology:'🤖', business:'📈', finance:'💹', sports:'🏆', gaming:'🎮',
+  culture:'🎬', food:'🍽️', lifestyle:'✨', sante:'🩺', auto:'🚗',
+  climat:'🌍', immo:'🏠', world:'🌐', IA:'🤖'
+};
+
+export function placeholderSvg(title: string, source: string, cat: string, idx: number): string {
+  // hashStr, PALETTE et CAT_EMOJI doivent exister dans ce fichier
+  const t = `${title||''}|${source||''}|${cat||''}|${String(idx ?? '')}`;
+  const h = hashStr(t);
+  const bg = PALETTE[h % PALETTE.length];
+  const emoji = (CAT_EMOJI as any)[cat] ?? '📰';
+  const safe = (title||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${bg}" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="${bg}" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#g)"/>
+  <text x="50%" y="46%" dominant-baseline="middle" text-anchor="middle" font-size="64">${emoji}</text>
+  <text x="50%" y="68%" dominant-baseline="middle" text-anchor="middle" font-size="20" fill="#111" opacity="0.9">${safe.slice(0, 90)}</text>
+</svg>`;
+  return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+
+type NewsItem = {
+  id?: string;
+  title: string;
+  description?: string;
+  url: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+const cls = (...a: (string | false | undefined)[]) => a.filter(Boolean).join(' ');
+
+/** Catégories FR -> slugs backend */
+const CATEGORIES: { label: string; slug: string }[] = [
+  { label: 'Hooks viraux', slug: 'technology' }, // (si tu ajoutes le vrai hook, on ajustera côté API)
+  { label: 'IA',          slug: 'technology' },
+  { label: 'Business',    slug: 'business' },
+  { label: 'Finance',     slug: 'finance' },
+  { label: 'Sports',      slug: 'sports' },
+  { label: 'Gaming',      slug: 'gaming' },
+  { label: 'Culture',     slug: 'culture' },
+  { label: 'Food',        slug: 'food' },
+  { label: 'Lifestyle',   slug: 'lifestyle' },
+  { label: 'Sante',       slug: 'sante' },
+  { label: 'Auto',        slug: 'auto' },
+  { label: 'Climat',      slug: 'climat' },
+  { label: 'Immo',        slug: 'immo' },
+  { label: 'Monde',       slug: 'world' },
+];
+
+const PERIODS: { label: string; value: '24h' | '7d' }[] = [
+  { label: 'Dernières 24h', value: '24h' },
+  { label: 'Derniers 7 jours', value: '7d' },
+];
+
+export default function GeneratePage() {
+  /** Filtres */
+  const [categorySlug, setCategorySlug] = useState<string>('technology');
+  const [period, setPeriod] = useState<'24h' | '7d'>('24h');
+  const [limit, setLimit] = useState<number>(12);
+
+  /** News */
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [selected, setSelected] = useState<NewsItem | null>(null);
+
+  /** Aperçu news (modal) */
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<NewsItem | null>(null);
+
+  /** Logo (dropzone/URL) — séparé de l’assistant */
+  const [logoUrl, setLogoUrl] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+
+  /** Assistant (détaillé) */
+  const [brand, setBrand] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [audience, setAudience] = useState('');
+  const [goal, setGoal] = useState('notoriété');
+  const [channels, setChannels] = useState('Instagram Reels, TikTok, LinkedIn');
+  const [format, setFormat] = useState('post statique');
+  const [ratio, setRatio] = useState('1:1');
+  const [tone, setTone] = useState('moderne');
+  const [brandColors, setBrandColors] = useState('couleurs brand');
+  const [doList, setDoList] = useState('mettre le logo, CTA clair');
+  const [dontList, setDontList] = useState('pas de texte trop long');
+  const [references, setReferences] = useState('style Apple Keynote, minimalisme');
+  const [legal, setLegal] = useState('pas de mention concurrente, pas de promesse de résultat');
+  const [mood, setMood] = useState('futuriste, tech-friendly');
+  const [cta, setCta] = useState('Découvrir');
+  const [hashtags, setHashtags] = useState('#AI #Keiro');
+  const [punch, setPunch] = useState(6);   // 1..10
+  const [risk, setRisk] = useState(4);     // 1..10
+
+  /** Génération image */
+  const [busyGen, setBusyGen] = useState(false);
+  const [genUrl, setGenUrl] = useState<string | null>(null);
+  const [genErr, setGenErr] = useState<string | null>(null);
+
+  /** Fetch news */
+  useEffect(() => {
+    setLoading(true);
+    setErrMsg(null);
+    fetch(`/api/news/search?cat=${encodeURIComponent(categorySlug)}&timeframe=${period}&limit=${limit}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(j => {
+        const arr = Array.isArray(j?.items) ? j.items : [];
+        setItems(arr);
+        if (selected && !arr.find((x: NewsItem) => x.url === selected.url)) {
+          setSelected(null);
+        }
+      })
+      .catch(e => setErrMsg(String(e?.message || e)))
+      .finally(() => setLoading(false));
+  }, [categorySlug, period, limit]); // eslint-disable-line
+
+  /** Ligne source compacte */
+  const selectedLine = useMemo(() => {
+    if (!selected) return '';
+    const when = selected.publishedAt ? new Date(selected.publishedAt).toLocaleString() : '';
+    const src = selected.source ? ` • ${selected.source}` : '';
+    return `${selected.title}${src}${when ? ' — ' + when : ''}`;
+  }, [selected]);
+
+  /** Dropzone */
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setLogoUrl(url);
+    }
+  }
+
+  async function generateImage() {
+    setBusyGen(true);
+    setGenErr(null);
+    setGenUrl(null);
+    try {
+      const payload: any = {
+        brand: brand || 'Ma Marque',
+        tone,
+        cta,
+        ...(selected ? { newsTitle: selected.title } : {}),
+        meta: {
+          industry, audience, goal, channels, format, ratio, brandColors,
+          doList, dontList, references, legal, mood, hashtags, punch, risk, logoUrl,
+          source: selected?.source ?? null,
+        },
+      };
+      const r = await fetch('/api/generate/image', {
+        method: 'POST',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.message || `HTTP ${r.status}`);
+      if (j?.kind === 'image' && typeof j?.url === 'string') {
+        setGenUrl(j.url);
+      } else if (j?.kind === 'error') {
+        throw new Error(`${j.code||'ERROR'}: ${j.message||'upstream'}`);
+      } else {
+        throw new Error('Réponse inattendue du service image');
+      }
+    } catch (e:any) {
+      setGenErr(String(e?.message || e));
+    } finally {
+      setBusyGen(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-6">
+      {/* Fil d’ariane */}
+      <div className="flex items-center justify-between mb-4">
+        
+      </div>
+
+      {/* 2 colonnes : liste (gauche) + colonne droite */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+        {/* COLONNE GAUCHE */}
+        <section>
+          {/* Filtres */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <label className="text-sm">
+              <span className="mr-2 text-neutral-600">Catégorie</span>
+              <select
+                className="rounded-md border border-neutral-300 px-2 py-1 text-sm"
+                value={categorySlug}
+                onChange={(e)=>setCategorySlug(e.target.value)}
+              >
+                {CATEGORIES.map((c,i) => (
+                  <option key={`${c.slug}-${i}`} value={c.slug}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="mr-2 text-neutral-600">Période</span>
+              <select
+                className="rounded-md border border-neutral-300 px-2 py-1 text-sm"
+                value={period}
+                onChange={(e)=>setPeriod(e.target.value as '24h'|'7d')}
+              >
+                {PERIODS.map(p => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="mr-2 text-neutral-600"># cartes</span>
+              <select
+                className="rounded-md border border-neutral-300 px-2 py-1 text-sm"
+                value={String(limit)}
+                onChange={(e)=>setLimit(parseInt(e.target.value,10))}
+              >
+                {[6,9,12,15].map(n => (<option key={n} value={n}>{n}</option>))}
+              </select>
+            </label>
+          </div>
+
+          {/* État */}
+          {loading && <div className="text-sm text-neutral-500 mb-2">Chargement…</div>}
+          {errMsg && <div className="text-sm text-red-600 mb-2">Erreur: {errMsg}</div>}
+          {!loading && items.length === 0 && (
+            <div className="text-sm text-neutral-500 border border-dashed rounded-md p-3">
+              Aucune actualité pertinente pour cette catégorie/période.
+            </div>
+          )}
+
+          {/* Grille 3 colonnes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.slice(0, limit).map((it, i) => (
+              <article
+                key={it.url || String(i)}
+                className={cls(
+                  "rounded-xl border border-neutral-200 bg-white overflow-hidden transition",
+                  selected?.url === it.url ? "ring-2 ring-black" : "hover:shadow-md"
+                )}
+              >
+                {it.image ? (
+  <a href={it.url} target="_blank" rel="noreferrer">
+    <img
+      src={(it.image) || "#", ((typeof category!=="undefined"?category:"technology") as any), i)}
+      alt={it.title}
+      className="w-full h-[200px] object-cover"
+      loading="lazy"
+    />
+  </a>
+) : (
+  {it.image ? (
+      <img
+        src={it.image}
+        alt={it.title || "Aperçu"}
+        className="w-full h-[200px] object-cover rounded-t-xl"
+        loading="lazy"
+      />
+    ) : (
+      <div className="w-full h-[200px] flex items-center justify-center bg-neutral-100 text-neutral-400 text-sm">
+        (Aperçu image non disponible)
+      </div>
+    )}
+)}
+                <div className="p-3">
+                  <div className="text-[11px] text-neutral-500 mb-1">
+                    {it.source || '—'} {it.publishedAt ? `• ${new Date(it.publishedAt).toLocaleString()}` : ''}
+                  </div>
+                  <h3 className="font-medium leading-snug mb-1 line-clamp-2">{it.title}</h3>
+
+                  {/* APERÇU court directement sur la carte */}
+
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={()=>{ setPreviewItem(it); setPreviewOpen(true); }}
+                      className="px-2.5 py-1.5 rounded-md border border-neutral-300 text-[13px] hover:bg-neutral-50"
+                    >
+                      Aperçu
+                    </button>
+                    <a
+                      href={it.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1.5 rounded-md border border-neutral-300 text-[13px] hover:bg-neutral-50"
+                    >
+                      Voir la source
+                    </a>
+                    <button
+                      onClick={()=>setSelected(it)}
+                      className={cls(
+                        "px-2.5 py-1.5 rounded-md text-[13px]",
+                        selected?.url === it.url ? "bg-black text-white" : "bg-neutral-900 text-white hover:opacity-90"
+                      )}
+                    >
+                      Utiliser cette actu
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* COLONNE DROITE */}
+        <aside className="lg:sticky lg:top-20 h-fit space-y-4">
+          {/* Bloc Logo séparé */}
+          <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+            <h3 className="font-semibold mb-3">Insérer un logo</h3>
+            <div
+              className={cls(
+                "mb-3 rounded-md border-2 border-dashed p-3 text-center cursor-pointer",
+                dragOver ? "border-black bg-neutral-50" : "border-neutral-300"
+              )}
+              onDragOver={(e)=>{e.preventDefault(); setDragOver(true);}}
+              onDragLeave={()=>setDragOver(false)}
+              onDrop={onDrop}
+            >
+              {logoUrl ? (
+                <div className="flex items-center justify-center">
+                  <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+                </div>
+              ) : (
+}
+
+                {genUrl && (
+                  <div className="mt-3">
+                    <h4 className="text-sm font-medium mb-2">Aperçu image</h4>
+                    <img src={genUrl} alt="aperçu" className="w-full rounded-lg border" />
+                    <div className="mt-2">
+                      <a href={genUrl} target="_blank" rel="noreferrer"
+                         className="text-sm underline text-neutral-700">
+                        Ouvrir l’image
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* MODAL APERÇU NEWS */}
+      {previewOpen && previewItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={()=>{ setPreviewOpen(false); setPreviewItem(null); }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg max-w-2xl w-[92vw] overflow-hidden"
+            onClick={(e)=>e.stopPropagation()}
+          >
+            {previewItem.image && (
+              <img src={previewItem.image} alt={previewItem.title} className="w-full h-[220px] object-cover" />
+            )}
+            <div className="p-4">
+              <div className="text-xs text-neutral-500 mb-1">
+                {previewItem.source || '—'} {previewItem.publishedAt ? `• ${new Date(previewItem.publishedAt).toLocaleString()}` : ''}
+              </div>
+              <h3 className="font-semibold text-lg mb-2">{previewItem.title}</h3>
+              {previewItem.description && (
+                <p className="text-sm text-neutral-700 whitespace-pre-line mb-3">{previewItem.description}</p>
+              )}
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewItem.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-md border border-neutral-300 text-sm hover:bg-neutral-50"
+                >
+                  Lire la source
+                </a>
+                <button
+                  onClick={()=>{ setSelected(previewItem); setPreviewOpen(false); }}
+                  className="px-3 py-1.5 rounded-md text-sm bg-neutral-900 text-white hover:opacity-90"
+                >
+                  Utiliser cette actu
+                </button>
+                <button
+                  onClick={()=>{ setPreviewOpen(false); setPreviewItem(null); }}
+                  className="ml-auto px-3 py-1.5 rounded-md text-sm border border-neutral-300 hover:bg-neutral-50"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

@@ -7,6 +7,18 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+  if (body.article && !body.news) body.news = body.article;
+  if (!body.news || !body.news.title) {
+    body.news = {
+      title: "Génération générique",
+      summary: "",
+      topic: (body.topic || "business"),
+      url: "",
+      source: ""
+    };
+  }
+
+  if (body.article && !body.news) body.news = body.article; // compat ancien client
     const news = body?.news;
     const ref = body?.refinement;
 

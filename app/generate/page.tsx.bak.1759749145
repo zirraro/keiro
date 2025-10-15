@@ -1,0 +1,156 @@
+"use client";
+import { safeHref } from "@/lib/safeHref";
+import CategoryDropdown from "@/components/CategoryDropdown";
+import PeriodDropdown   from "@/components/PeriodDropdown";
+import { safeHref }     from "@/lib/safeHref";
+
+function safeUrl(u?: string) {
+  if (!u) return "#";
+  return /^https?:\/\//i.test(u) ? u : "#";
+}
+import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NewsCard } from "@/components/news-card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NewsItem } from "@/types";
+const TOPICS = [
+  { id: "technology", label: "Tech" },
+  { id: "business", label: "Business" },
+  { id: "science", label: "Science" },
+  { id: "health", label: "Santé" },
+  { id: "sports", label: "Sports" },
+  { id: "ai", label: "IA" },
+  { id: "startups", label: "Startups" },
+  { id: "crypto", label: "Crypto" },
+  { id: "gaming", label: "Gaming" },
+  { id: "esports", label: "Esports" },
+  { id: "mode", label: "Mode" },
+  { id: "beaute", label: "Beauté" },
+  { id: "food", label: "Food" },
+  { id: "restauration", label: "Restauration" },
+  { id: "immobilier", label: "Immobilier" },
+  { id: "architecture", label: "Architecture" },
+  { id: "art", label: "Art" },
+  { id: "culture", label: "Culture" },
+  { id: "mobilite", label: "Mobilité" },
+  { id: "auto", label: "Auto" },
+  { id: "environnement", label: "Environnement" },
+  { id: "climat", label: "Climat" },
+  { id: "economie", label: "Économie" },
+  { id: "bourse", label: "Bourse" }
+];
+export default function GeneratePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTopic, setActiveTopic] = useState(searchParams.get("topic") || "technology");
+  const [timeframe, setTimeframe] = useState(searchParams.get("timeframe") || "24h");
+  const [q, setQ] = useState(searchParams.get("q") || "");
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(9);
+  const fetchNews = useCallback(async (abort = false) => {
+    if (!abort) {
+      setLoading(true);
+      const qs = new URLSearchParams();
+      qs.set("cat", activeTopic);
+      qs.set("timeframe", timeframe);
+      qs.set("limit", "30");
+      if (q) qs.set("q", q);
+      const res = await fetch(`/api/news/search?${qs.toString()}`, { cache: "no-store" });
+      const json = await res.json().catch(() => ({ items: [] }));
+      if (!abort && json && Array.isArray(json.items)) {
+        const json = await res.json().catch(() => ({})); setItems(Array.isArray(json.items) ? json.items : []);
+        setLimit(9);
+      }
+    }
+    setLoading(false);
+  }, [activeTopic, timeframe, q]);
+  useEffect(() => { fetchNews(); }, [activeTopic, timeframe, q]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("topic", activeTopic);
+    params.set("timeframe", timeframe);
+    if (q) params.set("q", q); else params.delete("q");
+    router.replace(`/generate?${params.toString()}`);
+  }, [activeTopic, timeframe, q, router]);
+  const loadMore = () => {
+    setLimit(prev => Math.min(prev + 6, items.length));
+  };
+  return (
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">Actualités</h1>
+      
+      <div className="grid grid-cols-1 gap-4 mb-6">
+        <div>
+          <Label htmlFor="search" className="sr-only">Rechercher</Label>
+          <div className="relative">
+            <Input
+              id="search"
+              placeholder="Rechercher des actualités..."
+              className="w-full"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="absolute right-0 top-0 h-full"
+              onClick={() => fetchNews()}
+            >
+              Rechercher
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div className="border-b mb-4 overflow-x-auto">
+          <div>
+            {TOPICS.map(topic => (
+              <div>
+                {topic.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        
+        {TOPICS.map(topic => (
+          <div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array(6).fill(0).map((_, i) => (
+                  <div key={i} className="border rounded-lg overflow-hidden">
+                    <Skeleton className="h-48 w-full" />
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {items.slice(0, limit).map((item, index) => (
+                    <NewsCard key={index} item={item} />
+                  ))}
+                </div>
+                
+                {limit < items.length && (
+                  <div className="flex justify-center mt-6">
+                    <Button onClick={loadMore}>Charger plus d'actualités</Button>
+                </div>
+                )}
+                {items.length === 0 && (
+                  <div className="text-center py-12">
+                    <h3 className="text-xl font-medium">Aucune actualité trouvée</h3>
+                    <p className="text-muted-foreground mt-2">Essayez de modifier vos critères de recherche</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );

@@ -1,0 +1,572 @@
+"use client";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+type NewsItem = {
+  id: string;
+  title: string;
+  url?: string;
+  link?: string;
+  source?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  hot?: boolean;
+  score?: number;
+  topic?: string;
+};
+
+function clsx(...arr: Array<string | false | undefined>) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function safeHref(u?: string): string {
+  if (!u) return "#";
+  try {
+    const x = new URL(u);
+    return x.toString();
+  } catch {
+    const clean = String(u).trim();
+    if (/^https?:\/\//i.test(clean)) return clean;
+    return "https://" + clean.replace(/^\/+/, "");
+  }
+}
+
+
+function CategoryDropdown({
+  value,
+  onChange,
+  className = "",
+}: { value: string; onChange: (v: string) => void; className?: string; }) {
+  const OPTIONS = [
+    { label: "Technologie", value: "technology" },
+    { label: "Science", value: "science" },
+    { label: "Monde", value: "world" },
+    { label: "Économie", value: "business" },
+    { label: "Sports", value: "sports" },
+    { label: "Santé", value: "health" },
+    { label: "Gaming", value: "gaming" },
+    { label: "Restauration", value: "food" },
+    { label: "Environnement", value: "environment" },
+    { label: "Crypto", value: "crypto" },
+    { label: "IA", value: "ai" },
+  ];
+  return (
+    <div className={"inline-flex items-center gap-2 " + className}>
+      <label className="text-sm text-neutral-600">Catégorie</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function PeriodDropdown({
+  value,
+  onChange,
+  className = "",
+}: { value: string; onChange: (v: string) => void; className?: string; }) {
+  const PERIODS = [
+    { label: "24 h", value: "24h" },
+    { label: "48 h", value: "48h" },
+    { label: "72 h", value: "72h" },
+    { label: "7 j",  value: "7d"  },
+  ];
+  return (
+    <div className={"inline-flex items-center gap-2 " + className}>
+      <label className="text-sm text-neutral-600">Période</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+
+function InlineProgress({ value = 0, label }: { value?: number; label?: string }) {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <div className="w-full rounded-md border p-3">
+      <div className="mb-1 text-xs text-neutral-600">{label ?? `Chargement ${v}%`}</div>
+      <div className="h-2 w-full rounded bg-neutral-200">
+        <div className="h-2 rounded bg-black transition-[width] duration-300 ease-out" style={{ width: `${v}%` }} />
+      </div>
+    </div>
+  );
+}
+
+
+function CardImage({ item }: { item: NewsItem }) {
+  const [err, setErr] = useState(false);
+  const isBadThumb = useMemo(() => {
+    const h = (item.thumbnailUrl || "").toLowerCase();
+    if (!h) return true;
+    if (h.includes("news.google") || h.includes("encrypted-tbn")) return true;
+    return false;
+  }, [item.thumbnailUrl]);
+  const src =
+    !err && !isBadThumb && item.thumbnailUrl
+      ? item.thumbnailUrl!
+      : item.url || item.link
+      ? `/api/og?url=${encodeURIComponent(item.url || item.link || "")}`
+      : "";
+
+  if (!src || err) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-[11px] text-neutral-500">
+        Aperçu indisponible
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={item.title || "aperçu"}
+      className="h-full w-full object-contain bg-white"
+      loading="lazy"
+      onError={() => setErr(true)}
+    />
+  );
+}
+
+
+function InlinePreview({ selected }:{ selected?: NewsItem | null }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center text-center px-4 text-neutral-500">
+      <div>
+        <div className="text-sm font-medium mb-1">Aperçu du rendu</div>
+        <div className="text-xs">Sélectionnez une actu puis lancez une génération.</div>
+        {selected?.title && (
+          <div className="mt-2 text-xs text-neutral-600 line-clamp-2 max-w-[32rem]">{selected.title}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function GeneratePage() {
+
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => setLogo(String(r.result||""));
+    r.readAsDataURL(f);
+  }
+
+  // Filtres
+  const [activeTopic, setActiveTopic] = useState("technology");
+  const [timeframe, setTimeframe] = useState("24h");
+  const [q, setQ] = useState("");
+
+  // Actus état
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(9);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Panneau prompt
+  const [brand, setBrand] = useState("");
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("#AI #Marketing #Keiro");
+
+  // --- Logo ---
+  const [logoDataUrl, setLogoDataUrl] = useState<string>("");
+  // --- Progression ---
+  const [progress, setProgress] = useState<number>(0);
+  const progressTimer = useRef<NodeJS.Timeout|null>(null);
+
+  // Génération
+  const [busyImg, setBusyImg] = useState(false);
+  const [busyVid, setBusyVid] = useState(false);
+  const [status, setStatus] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [logo, setLogo] = useState<string>("");
+  const [previewKind, setPreviewKind] = useState<"image" | "video" | "">("");
+  const [progress, setProgress] = useState(0);
+  const progressRef = useRef<NodeJS.Timeout | null>(null);
+
+  const selectedArticle = useMemo(
+    () => items.find((x) => x.id === selectedId) || null,
+    [items, selectedId]
+  );
+
+  
+  const fetchNews = useCallback(async () => {
+      setLoading(true);
+      const qs = new URLSearchParams();
+      qs.set("cat", activeTopic);
+      qs.set("timeframe", timeframe);
+      qs.set("limit", "30");
+      if (q) qs.set("q", q);
+      const url = (activeTopic === "hooks")
+        ? `/api/news/hooks?subject=${encodeURIComponent(q||"")}&limit=30`
+        : `/api/news/search?${qs.toString()}`;
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        const json = await res.json().catch(() => ({ items: [] }));
+        setItems(Array.isArray(json.items) ? json.items : []);
+        setLimit(9);
+      } catch {
+        setItems([]); setLimit(0);
+      } finally { setLoading(false); }
+    }, [activeTopic, timeframe, q]);
+
+  useEffect(() => { fetchNews(); }, [fetchNews]);
+
+  
+  const promptPreview = useMemo(() => {
+    const first = selectedArticle || items[0];
+    const title = first?.title ? `Sujet: ${first.title}` : "Sujet: (sélection à venir)";
+    const sourceLine = first?.source ? `Source: ${first.source} — ${first.url || first.link || ""}` : first?.url || first?.link ? `Source: ${first.url || first.link}` : "Source: —";
+    return [
+      `Marque: ${brand || "—"}`,
+      `Objectif: ${goal || "—"}`,
+      `Tonalité: ${tone || "—"}`,
+      `Contraintes: ${constraints || "—"}`,
+      `CTA: ${cta || "—"}`,
+      `Hashtags: ${hashtags || "—"}`,
+      title,
+      sourceLine,
+      `Plateforme: Instagram | Format: Portrait (1080x1350)`,
+      `Sortie attendue: visuel social percutant (ou story vidéo), prêt à poster.`
+    ].join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, items, selectedArticle]);
+
+  
+  async 
+  async function handleGenerate2(kind: "image"|"video") {
+    try {
+      const first: any = (selectedArticle || items?.[0]) || {};
+      setStatus(kind === "image" ? "Préparation de l’image…" : "Préparation de la vidéo…");
+      setPreviewUrl("");
+      setPreviewKind("");
+
+      // progress simulé jusqu’à 95%
+      setProgress(3);
+      if (progressRef.current) { clearInterval(progressRef.current); }
+      progressRef.current = setInterval(() => {
+        setProgress((p) => p < 95 ? p + 3 : 95);
+      }, 350);
+
+      const payload: any = {
+        kind,
+        news: first?.title ? first : undefined,
+        brand, goal, tone, constraints, cta, hashtags,
+        logo
+      };
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const json = await res.json().catch(() => ({} as any));
+
+      // stop progress
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+      setProgress(100);
+
+      const direct = json?.url || json?.assetUrl || json?.previewUrl;
+      if (direct) {
+        setPreviewUrl(String(direct));
+        setPreviewKind(kind);
+        setStatus("Génération terminée.");
+        return;
+      }
+
+      // fallback OG si pas d’URL
+      const u = first?.url || first?.link;
+      if (u) {
+        setPreviewUrl(`/api/og?url=${encodeURIComponent(u)}`);
+        setPreviewKind("image");
+        setStatus("Génération demandée (aperçu OG affiché).");
+        return;
+      }
+
+      setStatus("Génération demandée (pas d’aperçu disponible).");
+
+    } catch (e) {
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+      setStatus("Erreur pendant la génération.");
+    }
+  }
+
+
+async function handleGenerate(kind: "image" | "video") {
+    const url = kind === "image" ? "/api/generate" : "/api/generate-video";
+    const setter = kind === "image" ? setBusyImg : setBusyVid;
+    setter(true);
+    setStatus("");
+    setPreviewKind(kind);
+    setPreviewUrl("");
+    setProgress(0);
+
+    // Progression douce 0→95%
+    if (progressRef.current) clearInterval(progressRef.current);
+    progressRef.current = setInterval(() => {
+      setProgress(p => (p < 95 ? p + 3 : 95));
+    }, 600);
+
+    try {
+      const payload: any = {
+        kind,
+        prompt: promptPreview,
+        brand, goal, tone, constraints, cta, hashtags,
+      };
+      if (selectedArticle?.title) {
+        payload.news = {
+          title: selectedArticle.title,
+          summary: selectedArticle.snippet || "",
+          topic: selectedArticle.topic || activeTopic,
+          url: selectedArticle?.url || selectedArticle?.link || "",
+        };
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        setStatus(json?.error || "Erreur lors de la génération.");
+        return;
+      }
+
+      // Heuristique d’URL d’asset
+      const cand = json?.url || json?.image_url || json?.video_url || json?.image || json?.video || json?.output?.[0];
+      if (typeof cand === "string") {
+        setPreviewUrl(cand);
+        setProgress(100);
+        setStatus("Génération terminée.");
+      } else if (json?.jobId) {
+        setStatus(`Tâche en cours #${json.jobId}…`);
+        // Si vous avez /api/generate/status, vous pouvez poll ici et
+        // setProgress(100) + setPreviewUrl(...) quand c’est prêt.
+      } else {
+        setStatus("Génération demandée (pas de lien direct renvoyé).");
+      }
+    } catch (e: any) {
+      setStatus(String(e?.message || e) || "Erreur inconnue.");
+    } finally {
+      setter(false);
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+      setProgress(p => (previewUrl ? 100 : Math.min(p, 95)));
+    }
+  }
+
+  const loadMore = () => setLimit(l => Math.min(l + 3, items.length));
+
+  return (
+    <div className="mx-auto max-w-[1400px] p-4">
+      {/* Filtres en haut
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <CategoryDropdown value={activeTopic} onChange={(v)=>{ setActiveTopic(v); setLimit(9); setSelectedId(null); }} />
+        <PeriodDropdown value={timeframe} onChange={(v)=>{ setTimeframe(v); setLimit(9); setSelectedId(null); }} />
+        <div className="ml-2 flex items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher une actu…"
+            className="h-9 w-64 rounded-md border px-3 text-sm"
+          />
+          <button
+            onClick={() => { setLimit(9); setSelectedId(null); fetchNews(); }}
+            className="h-9 rounded-md border px-3 text-sm bg-white hover:bg-neutral-100"
+          >
+            Rechercher
+          </button>
+        </div>
+      </div>
+
+      {/* grille + panneau de droite
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Cartes actu
+        <div className="lg:col-span-8 xl:col-span-9">
+          {loading ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">Chargement…</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">
+              Aucune actualité trouvée.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {items.slice(0, limit).map((it) => {
+                  const selected = selectedId === it.id;
+                  return (
+                    <article
+                      key={it.id}
+                      onClick={() => setSelectedId(it.id)}
+                      className={clsx(
+                        "cursor-pointer rounded-lg border bg-white shadow-sm transition hover:shadow-md",
+                        selected && "ring-2 ring-black"
+                      )}
+                    >
+                      {/* image
+                      <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-neutral-100">
+                        <CardImage item={it} />
+                      </div>
+
+                      <div className="p-4">
+                        <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
+                          <span className="truncate">{it.source || "—"}</span>
+                          <span className="inline-flex items-center gap-1">
+                            {it.hot && (
+                              <span className="rounded bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">hot</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <h3 className="mb-2 line-clamp-3 text-sm font-medium">
+                          {it.title || "Sans titre"}
+                        </h3>
+
+                        {it.snippet && (
+                          <p className="mb-3 line-clamp-3 text-xs text-neutral-600">
+                            {it.snippet}
+                          </p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <a
+                            href={safeHref(it.url || it.link)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-neutral-600 underline hover:text-black"
+                            onClick={(e)=>e.stopPropagation()}
+                          >
+                            Voir la source
+                          </a>
+
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedId(it.id); }}
+                            className={clsx(
+                              "rounded-md px-3 py-1 text-xs",
+                              selected ? "bg-black text-white" : "bg-neutral-900 text-white hover:bg-neutral-800"
+                            )}
+                          >
+                            {selected ? "Sélectionnée" : "Utiliser cette actu"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {limit < items.length && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    className="inline-flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100"
+                  >
+                    + 3 actus
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panneau de droite
+        <aside className="lg:col-span-4 xl:col-span-3">
+          <div className="sticky top-4 space-y-4">
+            <LogoUploader
+  value={logoDataUrl}
+  onChange={(data)=>setLogoDataUrl(data)}
+/>
+            </div>
+
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Assistant de prompt</h4>
+
+              {selectedArticle ? (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  <div className="mb-1 font-medium text-neutral-800">Actualité sélectionnée</div>
+                  <div className="line-clamp-2">{selectedArticle.title}</div>
+                  <div className="mt-1 truncate opacity-70">
+                    {selectedArticle.source || "—"} — {selectedArticle?.url || selectedArticle?.link || "—"}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  Aucune actualité sélectionnée — vous pouvez générer sans, mais la sortie sera plus générique.
+                </div>
+              )}
+
+                <div className="mb-3">
+
+                  <label className="mb-1 block text-xs font-medium text-neutral-700">Ajouter un logo</label>
+
+                  <label htmlFor="logo-input" className="flex h-24 cursor-pointer items-center justify-center rounded-md border border-dashed bg-white text-xs text-neutral-600 hover:bg-neutral-50">
+
+                    <span>{logo ? "Logo sélectionné • cliquer pour changer" : "Cliquer pour sélectionner ou déposer une image"}</span>
+
+                    <input id="logo-input" type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+
+                  </label>
+
+                  {logo && (
+
+                    <div className="mt-2 flex items-center gap-2">
+
+                      <img src={logo} alt="logo" className="h-8 w-8 rounded border object-contain bg-white" />
+
+                      <button type="button" onClick={() => setLogo("")} className="text-xs underline">Retirer</button>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+
+              <div className="space-y-2">
+                <input placeholder="Marque / Produit" className="w-full rounded-md border px-3 py-2 text-sm" value={brand} onChange={e => setBrand(e.target.value)} />
+                <textarea placeholder="Objectif (ex: trafic, conversion…)" className="w-full rounded-md border px-3 py-2 text-sm" rows={3} value={goal} onChange={e => setGoal(e.target.value)} />
+                <input placeholder="Tonalité / Style" className="w-full rounded-md border px-3 py-2 text-sm" value={tone} onChange={e => setTone(e.target.value)} />
+                <input placeholder="Couleurs / Contraintes" className="w-full rounded-md border px-3 py-2 text-sm" value={constraints} onChange={e => setConstraints(e.target.value)} />
+                <input placeholder="Call to Action" className="w-full rounded-md border px-3 py-2 text-sm" value={cta} onChange={e => setCta(e.target.value)} />
+                <input placeholder="Hashtags" className="w-full rounded-md border px-3 py-2 text-sm" value={hashtags} onChange={e => setHashtags(e.target.value)} />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button onClick={() => handleGenerate2("image")} disabled={busyImg} className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-50">
+                  {busyImg ? "Génération…" : "Générer une image"}
+                </button>
+                <button onClick={() => handleGenerate2("video")} disabled={busyVid} className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50">
+                  {busyVid ? "Génération…" : "Générer une vidéo"}
+                </button>
+              </div>
+
+              {status && (
+                <div className="mt-3 rounded-md border bg-neutral-50 p-2 text-xs text-neutral-700 break-all">
+                  {status}
+                </div>
+              )}
+            </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+
+  useEffect(() => {
+    return () => { if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; } };
+  }, []);

@@ -1,0 +1,466 @@
+"use client";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+/* ---------------- Types ---------------- */
+type NewsItem = {
+  id: string;
+  title: string;
+  url?: string;
+  link?: string;
+  source?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  topic?: string;
+};
+
+/* -------------- Helpers -------------- */
+function InlineProgress({ value = 0, label }: { value?: number; label?: string }) {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <div className="w-full rounded-md border p-3">
+      <div className="mb-1 text-xs text-neutral-600">{label ?? `Chargement ${v}%`}</div>
+      <div className="h-2 w-full rounded bg-neutral-200">
+        <div className="h-2 rounded bg-black transition-all" style={{ width: `${v}%` }} />
+      </div>
+    </div>
+  );
+}
+function proxyImage(u: string) {
+  return `https://images.weserv.nl/?url=${encodeURIComponent(u)}&w=1200&h=630&fit=cover&we=1`;
+}
+
+/* -------------- Filtres -------------- */
+function CategoryDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const OPTIONS = [
+    { label: "Hooks viraux", value: "hooks" },
+    { label: "IA & Tech grand public", value: "iatech" },
+    { label: "Business & Startups", value: "business" },
+    { label: "Finance & Crypto", value: "finance" },
+    { label: "Sports", value: "sports" },
+    { label: "Gaming & Esports", value: "gaming" },
+    { label: "Pop-culture & Influence", value: "pop" },
+    { label: "Food / Restauration", value: "food" },
+    { label: "Lifestyle & Voyage", value: "lifestyle" },
+    { label: "Santé & Bien-être", value: "health" },
+    { label: "Auto & Mobilité (EV)", value: "auto" },
+    { label: "Environnement & Climat", value: "environment" },
+    { label: "Immobilier & Architecture", value: "realestate" },
+    { label: "Monde / Politique", value: "world" },
+  ];
+  return (
+    <div className="inline-flex items-center gap-2">
+      <label className="text-sm text-neutral-600">Catégorie</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+function PeriodDropdown({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const PERIODS = [
+    { label: "24 h", value: "24h" },
+    { label: "48 h", value: "48h" },
+    { label: "72 h", value: "72h" },
+    { label: "7 j", value: "7d" },
+  ];
+  return (
+    <div className="inline-flex items-center gap-2">
+      <label className="text-sm text-neutral-600">Période</label>
+      <select
+        className="h-9 rounded-md border px-3 text-sm bg-white"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {PERIODS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/* -------------- Page -------------- */
+export default function GeneratePage() {
+  // Filtres
+  const [activeTopic, setActiveTopic] = useState<string>("technology");
+  const [timeframe, setTimeframe] = useState<string>("24h");
+  const [q, setQ] = useState<string>("");
+
+  // News
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [limit, setLimit] = useState<number>(9);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Assistant
+  const [brand, setBrand] = useState("");
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("");
+
+  // Génération
+  const [busyImg, setBusyImg] = useState(false);
+  const [busyVid, setBusyVid] = useState(false);
+  const [status, setStatus] = useState("");
+  const [progress, setProgress] = useState(0);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewKind, setPreviewKind] = useState<"" | "image" | "video">("");
+
+  // Logo (dropzone) — bordure extérieure en pointillé (une seule zone)
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
+
+  const selectedArticle = useMemo(
+    () => items.find((x) => x.id === selectedId) || null,
+    [items, selectedId]
+  );
+
+  const promptPreview = useMemo(() => {
+    const first = selectedArticle || items[0];
+    const title = first?.title ? `Sujet: ${first.title}` : "Sujet: (sélection à venir)";
+    const sourceLine = first
+      ? `Source: ${first.source ?? "—"} — ${(first.url || first.link || "")}`
+      : "Source: —";
+    return [
+      `Marque: ${brand || "—"}`,
+      `Objectif: ${goal || "—"}`,
+      `Tonalité: ${tone || "—"}`,
+      `Contraintes: ${constraints || "—"}`,
+      `CTA: ${cta || "—"}`,
+      `Hashtags: ${hashtags || "—"}`,
+      title,
+      sourceLine,
+    ].join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, selectedArticle, items]);
+
+  // Mappage catégories "virales" -> API /news/search
+  const mapTopic = (v: string) => {
+    const m: Record<string, string> = {
+      iatech: "technology",
+      finance: "business",
+      pop: "world",
+      lifestyle: "world",
+      realestate: "business",
+      auto: "business",
+    };
+    return m[v] || v;
+  };
+
+  const fetchNews = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (activeTopic === "hooks") {
+        const url = `/api/news/hooks?subject=${encodeURIComponent(q || "")}&limit=30`;
+        const r = await fetch(url, { cache: "no-store" });
+        const js = await r.json().catch(() => ({ items: [] }));
+        setItems(Array.isArray(js.items) ? js.items : []);
+      } else {
+        const p = new URLSearchParams();
+        p.set("cat", mapTopic(activeTopic));
+        p.set("timeframe", timeframe);
+        p.set("limit", "30");
+        if (q) p.set("q", q);
+        const r = await fetch(`/api/news/search?${p.toString()}`, { cache: "no-store" });
+        const js = await r.json().catch(() => ({ items: [] }));
+        setItems(Array.isArray(js.items) ? js.items : []);
+      }
+      setLimit(9);
+      setSelectedId(null);
+    } catch {
+      setItems([]);
+      setLimit(0);
+      setSelectedId(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTopic, timeframe, q]);
+
+  useEffect(() => { fetchNews(); }, [fetchNews]);
+
+  const loadMore = () => setLimit((l) => Math.min(l + 3, items.length));
+
+  // --- Dropzone handlers ---
+  const onLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setLogoUrl(url);
+    setStatus(`Logo chargé: ${f.name}`);
+  };
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    setLogoUrl(url);
+    setStatus(`Logo chargé: ${f.name}`);
+  };
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); };
+  const onDragLeave = () => setDragOver(false);
+
+  function clearProgress() {
+    if (progressRef.current) {
+      clearInterval(progressRef.current);
+      progressRef.current = null;
+    }
+  }
+
+  // ---- Génération IA: prompt enrichi + image de référence de l'actu ----
+  function buildImagePrompt(): { prompt: string; referenceUrl: string | null } {
+    const first = selectedArticle || items[0];
+    const parts: string[] = [];
+
+    // Contexte marque / produit
+    parts.push(`Crée une image publicitaire social-first, moderne et impactante.`);
+    if (brand) parts.push(`Marque/produit: ${brand}.`);
+    if (goal) parts.push(`Objectif: ${goal}.`);
+    if (tone) parts.push(`Tonalité/Style: ${tone}.`);
+    if (constraints) parts.push(`Contraintes: ${constraints}.`);
+    if (cta) parts.push(`Call-to-action: ${cta}.`);
+    if (hashtags) parts.push(`Hashtags: ${hashtags}.`);
+
+    // Actu comme inspiration (texte)
+    if (first?.title) parts.push(`Inspiration actu: "${first.title}" (${first.source ?? "source inconnue"}).`);
+
+    parts.push(`Cohérence de palette avec la marque, visuel lisible, focalisé produit/bénéfice. Espace possible pour logo, pas de textes illisibles.`);
+    const prompt = parts.join(" ");
+
+    // Image de référence : vignette de l'article si dispo; sinon OG proxifié
+    let referenceUrl: string | null = null;
+    if (first?.thumbnailUrl) referenceUrl = first.thumbnailUrl;
+    else if (first?.url || first?.link) {
+      referenceUrl = `/api/og?url=${encodeURIComponent(first.url || first.link || "")}`;
+    }
+    return { prompt, referenceUrl };
+  }
+
+  async function handleGenerate(kind: "image" | "video") {
+    if (busyImg || busyVid) return;
+    if (kind === "image") setBusyImg(true); else setBusyVid(true);
+    setStatus("Génération en cours…");
+    setPreviewUrl("");
+    setProgress(5);
+    if (progressRef.current) clearInterval(progressRef.current);
+    progressRef.current = setInterval(() => setProgress((p) => (p < 95 ? p + 5 : 95)), 400);
+
+    try {
+      const { prompt, referenceUrl } = buildImagePrompt();
+      const r = await fetch("/api/generate/image", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt, referenceUrl, size: "1024x1024" }),
+      });
+      const js = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setStatus(js?.error || "Erreur lors de la génération.");
+      } else {
+        setPreviewUrl(js.url || "");
+        setStatus("Génération terminée.");
+        setPreviewKind("image");
+        setProgress(100);
+      }
+    } catch {
+      setStatus("Erreur lors de la génération.");
+    } finally {
+      if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+      if (kind === "image") setBusyImg(false); else setBusyVid(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-screen-2xl p-4">
+      {/* Barre filtres */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <CategoryDropdown value={activeTopic} onChange={setActiveTopic} />
+        <PeriodDropdown value={timeframe} onChange={setTimeframe} />
+        <div className="ml-2 flex items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher une actu…"
+            className="h-9 w-64 rounded-md border px-3 text-sm"
+          />
+          <button
+            onClick={fetchNews}
+            className="h-9 rounded-md border px-3 text-sm bg-white hover:bg-neutral-100"
+          >
+            Rechercher
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-[1fr_380px]">
+        {/* Liste d'actus */}
+        <div>
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-md border p-3">
+                  <div className="h-40 w-full rounded bg-neutral-100" />
+                  <div className="mt-2 h-4 w-3/4 rounded bg-neutral-100" />
+                  <div className="mt-2 h-4 w-1/2 rounded bg-neutral-100" />
+                </div>
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-medium">Aucune actualité trouvée</h3>
+              <p className="text-neutral-600 mt-2">Modifiez vos critères ou essayez une autre catégorie.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.slice(0, limit).map((it) => (
+                  <div
+                    key={it.id}
+                    className={`rounded-md border p-3 cursor-pointer ${selectedId === it.id ? "ring-2 ring-black" : ""}`}
+                    onClick={() => setSelectedId(it.id)}
+                  >
+                    <div className="h-40 w-full overflow-hidden rounded bg-neutral-50 flex items-center justify-center">
+                      {it.thumbnailUrl ? (
+                        <img src={it.thumbnailUrl} alt="" className="max-h-full max-w-full object-cover w-full" />
+                      ) : (
+                        <div className="text-xs text-neutral-400">Aperçu indisponible</div>
+                      )}
+                    </div>
+                    <div className="mt-2 line-clamp-2 font-medium">{it.title}</div>
+                    <div className="mt-1 text-xs text-neutral-600">{it.source || "—"}</div>
+                    <div className="mt-2">
+                      <a
+                        className="text-sm underline"
+                        href={(it.url || it.link || "#")}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Voir la source
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {limit < items.length && (
+                <div className="flex justify-center mt-6">
+                  <button className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100" onClick={loadMore}>
+                    Charger plus d'actualités
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panneau droit */}
+        <aside className="space-y-4">
+          {/* DROPZONE LOGO : bordure extérieure en pointillé */}
+          <div className="rounded-lg border bg-white p-4">
+            <h3 className="mb-2 text-base font-medium">Sélectionner un logo</h3>
+            <div
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              className={`flex h-28 w-full items-center justify-center rounded-lg border-2 border-dashed
+               ${dragOver ? "border-neutral-400 bg-neutral-50" : "border-neutral-300 bg-white"}`}
+            >
+              <label className="cursor-pointer text-neutral-600">
+                <input type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
+                Déposez votre logo ici (optionnel)
+              </label>
+            </div>
+            {logoUrl && (
+              <div className="mt-2 flex items-center justify-between">
+                <img src={logoUrl} className="h-10 object-contain" alt="logo" />
+                <button className="text-xs underline" onClick={() => setLogoUrl("")}>Retirer</button>
+              </div>
+            )}
+          </div>
+
+          {/* Assistant de prompt */}
+          <div className="rounded-lg border bg-white p-4">
+            <h3 className="text-base font-medium">Assistant de prompt</h3>
+
+            {selectedArticle ? (
+              <div className="mt-3 mb-3 rounded-md border bg-neutral-50 p-3 text-xs">
+                <div className="font-medium text-neutral-800">Actualité sélectionnée</div>
+                <div className="line-clamp-2">{selectedArticle.title}</div>
+                <div className="mt-1 truncate opacity-70">
+                  {selectedArticle.source || "—"} — {(selectedArticle.url || selectedArticle.link || "—")}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                Aucune actualité sélectionnée — vous pouvez générer sans, mais la sortie sera plus générique.
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <input placeholder="Marque / Produit" className="w-full rounded-md border px-3 py-2 text-sm" value={brand} onChange={(e) => setBrand(e.target.value)} />
+              <textarea placeholder="Objectif (ex: trafic, conversion…)" className="w-full rounded-md border px-3 py-2 text-sm" rows={3} value={goal} onChange={(e) => setGoal(e.target.value)} />
+              <input placeholder="Tonalité / Style" className="w-full rounded-md border px-3 py-2 text-sm" value={tone} onChange={(e) => setTone(e.target.value)} />
+              <input placeholder="Couleurs / Contraintes" className="w-full rounded-md border px-3 py-2 text-sm" value={constraints} onChange={(e) => setConstraints(e.target.value)} />
+              <input placeholder="Call to Action" className="w-full rounded-md border px-3 py-2 text-sm" value={cta} onChange={(e) => setCta(e.target.value)} />
+              <input placeholder="Hashtags" className="w-full rounded-md border px-3 py-2 text-sm" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <button onClick={() => handleGenerate("image")} disabled={busyImg} className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-50">
+                {busyImg ? "Génération…" : "Générer une image"}
+              </button>
+              <button onClick={() => handleGenerate("video")} disabled={busyVid} className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50">
+                {busyVid ? "Génération…" : "Générer une vidéo"}
+              </button>
+            </div>
+
+            {status && (
+              <div className="mt-3 rounded-md border bg-neutral-50 p-2 text-xs text-neutral-700 break-all">
+                {status}
+              </div>
+            )}
+          </div>
+
+          {/* Aperçu */}
+          <div className="rounded-lg border bg-white p-4">
+            <h4 className="mb-3 font-medium">Aperçu</h4>
+            {!previewUrl && (busyImg || busyVid) ? (
+              <InlineProgress value={progress} label={`Génération ${progress}%`} />
+            ) : !previewUrl ? (
+              <div className="h-64 rounded-md bg-neutral-50 flex items-center justify-center text-xs text-neutral-400">Aucun aperçu</div>
+            ) : previewKind === "video" ? (
+              <video className="h-64 w-full rounded-md border bg-black" src={previewUrl} controls playsInline />
+            ) : (
+              <div className="h-64 w-full rounded-md border bg-white flex items-center justify-center">
+                <img className="max-h-full max-w-full object-contain" src={previewUrl} alt="aperçu" />
+              </div>
+            )}
+            {previewUrl && (
+              <div className="mt-2 text-right">
+                <a href={previewUrl} target="_blank" rel="noreferrer" className="text-sm underline">Ouvrir l’asset</a>
+              </div>
+            )}
+          </div>
+
+          {/* Prompt final (lecture seule) */}
+          <div className="rounded-lg border bg-white p-4">
+            <h4 className="mb-2 font-medium">Prompt final</h4>
+            <textarea className="h-64 w-full rounded-md border px-3 py-2 text-sm" value={promptPreview} readOnly />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

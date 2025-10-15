@@ -1,0 +1,123 @@
+'use client';
+import React from 'react';
+import SocialAssistant from '../components/SocialAssistant';
+
+function useQuery(){
+  const sp = typeof window!=='undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  return {
+    image: sp.get('image') || '',
+    title: sp.get('title') || ''
+  };
+}
+
+export default function EditorPage(){
+  const { image, title } = useQuery();
+  const canvasRef = React.useRef<HTMLCanvasElement|null>(null);
+  const [imgObj, setImgObj] = React.useState<HTMLImageElement|null>(null);
+  const [scale, setScale] = React.useState(1);
+  const [logo, setLogo] = React.useState<HTMLImageElement|null>(null);
+  const [logoUrl, setLogoUrl] = React.useState<string>('');
+  const [seedText, setSeedText] = React.useState<string>(title || '');
+
+  React.useEffect(()=>{
+    if (!image) return;
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = ()=> setImgObj(im);
+    im.src = image;
+  },[image]);
+
+  React.useEffect(()=>{
+    if (!logoUrl) { setLogo(null); return; }
+    const lg = new Image();
+    lg.crossOrigin = 'anonymous';
+    lg.onload = ()=> setLogo(lg);
+    lg.src = logoUrl;
+  },[logoUrl]);
+
+  React.useEffect(()=>{
+    const c = canvasRef.current;
+    const ctx = c?.getContext('2d');
+    if (!c || !ctx || !imgObj) return;
+    const W = c.width, H = c.height;
+    ctx.clearRect(0,0,W,H);
+
+    // fond blanc
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0,0,W,H);
+
+    // dessine l'image centrée avec scale
+    const iw = imgObj.width * scale;
+    const ih = imgObj.height * scale;
+    const x = (W - iw)/2;
+    const y = (H - ih)/2;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(imgObj, x, y, iw, ih);
+
+    // logo optionnel en haut à droite
+    if (logo){
+      const lw = Math.min(W, H) * 0.18;
+      const lh = lw * (logo.height / logo.width);
+      const pad = 12;
+      const lx = W - lw - pad;
+      const ly = pad;
+
+      // contour pointillé
+      ctx.setLineDash([6,4]);
+      ctx.strokeStyle = 'rgba(0,0,0,.25)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(lx-6, ly-6, lw+12, lh+12);
+      ctx.setLineDash([]);
+
+      ctx.drawImage(logo, lx, ly, lw, lh);
+    }
+  },[imgObj, scale, logo]);
+
+  function download(){
+    const c = canvasRef.current;
+    if (!c) return;
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = 'keiro-visual.png';
+    a.click();
+  }
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-6">
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Colonne gauche : éditeur image */}
+        <section className="rounded-2xl border border-neutral-200 p-4 bg-white">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Édition visuelle</h3>
+            <div className="text-xs text-neutral-500">{image ? 'Image chargée' : 'Aucune image'}</div>
+          </div>
+
+          <div className="space-y-3">
+            <canvas ref={canvasRef} width={1024} height={1024} className="w-full rounded border bg-neutral-50" />
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-sm">Zoom</label>
+              <input type="range" min="0.5" max="1.5" step="0.05" value={scale} onChange={e=>setScale(Number(e.target.value))}/>
+              <label className="text-sm">Logo (URL)</label>
+              <input className="border rounded px-2 py-1 w-80" placeholder="https://…/logo.png" value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} />
+              <button onClick={download} className="px-3 py-2 rounded border bg-white hover:bg-neutral-50">Télécharger PNG</button>
+            </div>
+          </div>
+        </section>
+
+        {/* Colonne droite : assistant social */}
+        <section className="space-y-4">
+          <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+            <label className="text-sm text-neutral-700">Texte de contexte (reprise auto du prompt)</label>
+            <textarea
+              className="w-full border rounded px-3 py-2 h-20"
+              value={seedText}
+              onChange={e=>setSeedText(e.target.value)}
+              placeholder="Colle ici le titre/description d’actu…"
+            />
+          </div>
+          <SocialAssistant seedText={seedText} imageUrl={image} />
+        </section>
+      </div>
+    </main>
+  );
+}

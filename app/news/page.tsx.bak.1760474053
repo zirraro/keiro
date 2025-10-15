@@ -1,0 +1,33 @@
+'use client';
+import React from 'react';
+import NewsGrid from '../components/NewsGrid';
+import { CATEGORY_LABELS, CleanCategory } from '../components/categoryMap';
+
+const ORDER: CleanCategory[] = [
+  'actu','politique','economie','sport','people','sante','restauration',
+  'tech','business','monde','auto','climat','culture','gaming','lifestyle','immo'
+];
+
+export default function NewsPage() {
+  const [cat, setCat] = React.useState<CleanCategory>('actu');
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-6">
+      <h1 className="text-xl font-semibold mb-4">Actus par catégorie</h1>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        {ORDER.map(c => (
+          <button
+            key={c}
+            onClick={()=> setCat(c)}
+            className={`px-3 py-1.5 rounded-full border ${c===cat ? 'bg-black text-white border-black' : 'bg-white hover:bg-neutral-50 border-neutral-300'}`}
+          >
+            {CATEGORY_LABELS[c]}
+          </button>
+        ))}
+      </div>
+
+      <NewsGrid cat={cat} initialCount={9} step={3} />
+    </main>
+  );
+}

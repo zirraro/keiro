@@ -1,0 +1,482 @@
+'use client';
+import PromptAssistant from '../components/PromptAssistant';
+function pickImg(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import React, { useEffect, useMemo, useState } from 'react';
+import GeneratePreview from '../components/GeneratePreview';
+import LogoDropzone from '../components/LogoDropzone';
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+const CATEGORIES = [
+  { slug: 'technology', label: 'IA & Tech' },
+  { slug: 'business',   label: 'Business' },
+  { slug: 'finance',    label: 'Finance' },
+  { slug: 'sports',     label: 'Sports' },
+  { slug: 'gaming',     label: 'Gaming' },
+  { slug: 'culture',    label: 'Culture' },
+  { slug: 'food',       label: 'Food' },
+  { slug: 'lifestyle',  label: 'Lifestyle' },
+  { slug: 'sante',      label: 'Santé' },
+  { slug: 'auto',       label: 'Auto' },
+  { slug: 'climat',     label: 'Climat' },
+  { slug: 'immo',       label: 'Immo' },
+  { slug: 'world',      label: 'Monde' },
+];
+
+const WINDOWS = [
+  { label: '24h', value: '24h' as const },
+  { label: '7 jours', value: '7d' as const },
+];
+
+function cls(...a: Array<string | false | undefined>) {
+  return a.filter(Boolean).join(' ');
+}
+
+export default function GeneratePage() {
+  /** Filtres */
+  const [categorySlug, setCategorySlug] = useState<string>('technology');
+const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [period, setPeriod] = useState<'24h' | '7d'>('24h');
+  const [limit] = useState<number>(12);
+
+  /** Données */
+  const [items, setItems] = useState<Item[]>([]);
+  const [selected, setSelected] = useState<Item | null>(null);
+
+  /** Logo (dropzone séparée) */
+  const [logoUrl, setLogoUrl] = useState<string>('');
+  const onPickLogo = (f: File) => {
+    const url = URL.createObjectURL(f);
+    setLogoUrl(url);
+  };
+
+  /** Assistant de prompt (séparé) */
+  const [brand, setBrand] = useState('');
+  const [goal, setGoal] = useState('');
+  const [tone, setTone] = useState('');
+  const [constraints, setConstraints] = useState('');
+  const [cta, setCta] = useState('');
+  const [hashtags, setHashtags] = useState('');
+
+  /** Génération (aperçu image sous le bouton) */
+  const [genLoading, setGenLoading] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  /** Chargement des news */
+  useEffect(() => {
+    const url = `/api/news/search?cat=${encodeURIComponent(categorySlug)}&timeframe=${encodeURIComponent(period)}&limit=${limit}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((j) => {
+        const arr = Array.isArray(j?.items) ? (j.items as Item[]) : [];
+        setItems(arr);
+        // garde la sélection si encore présente, sinon reset
+        if (arr.length && selected?.url) {
+          const still = arr.find((x) => x.url === selected.url) || null;
+          setSelected(still);
+        } else {
+          setSelected(null);
+        }
+      })
+      .catch(() => setItems([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categorySlug, period, limit]);
+
+  /** Action: générer image */
+  async function handleGenerate() {
+    setGenLoading(true);
+    setGenError(null);
+    setGeneratedUrl(null);
+    try {
+      let resp: Response;
+      if (selected) {
+        // génération "from-news"
+        const payload = {
+          kind: 'image',
+          brand: brand || undefined,
+          goal: goal || undefined,
+          tone: tone || undefined,
+          constraints: constraints || undefined,
+          hashtags: hashtags || undefined,
+          // on envoie les infos de la news
+          news: {
+            title: selected.title || '',
+            source: selected.source || '',
+            url: selected.url || '',
+            image: selected.image || '',
+          },
+          // on peut aussi envoyer un logo si tu veux le traiter côté backend plus tard
+          logo: logoUrl || undefined,
+        };
+        resp = await fetch('/api/generate/from-news', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // génération "image" simple
+        const payload = {
+          brand: brand || undefined,
+          newsTitle: '(sans article sélectionné)',
+          tone: tone || undefined,
+          cta: cta || undefined,
+          logo: logoUrl || undefined,
+        };
+        resp = await fetch('/api/generate/image', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data?.kind === 'error') {
+        throw new Error(data?.message || `Erreur ${resp.status}`);
+      }
+      const url = data?.url;
+      if (typeof url !== 'string') throw new Error('Réponse invalide (pas de url)');
+      setGeneratedUrl(url);
+    } catch (e: any) {
+      setGenError(e?.message || 'Erreur inconnue');
+    } finally {
+      setGenLoading(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-6">
+      {/* 2 colonnes : liste (gauche) + panneau (droite) */}
+        <GeneratePreview selected={(typeof selected !== 'undefined' ? (selected as any) : undefined)} />
+</aside>
+      </div>
+    </main>
+  );
+}
+function pickImg_dup2(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup3(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup4(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup5(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup6(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup7(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup8(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup9(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup10(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup11(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup12(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup13(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup14(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup15(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+
+function pickImg_dup16(it:any){
+  try{
+    return it?.image || it?.imageUrl || it?.urlToImage || it?.thumbnail || it?.picture_url || it?.enclosure?.url || "";
+  }catch(_){ return "" }
+}
+
+import { buildPrompt } from "@/app/lib/marketingPrompt";
+
+type Item = {
+  id?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+
+
+

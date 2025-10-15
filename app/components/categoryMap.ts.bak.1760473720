@@ -1,0 +1,81 @@
+export type CleanCategory =
+  | 'actu'         // flux général
+  | 'politique'
+  | 'economie'
+  | 'sport'
+  | 'people'
+  | 'sante'
+  | 'restauration'
+  | 'tech'
+  | 'business'
+  | 'monde'
+  | 'auto'
+  | 'climat'
+  | 'culture'
+  | 'gaming'
+  | 'lifestyle'
+  | 'immo';
+
+export const CATEGORY_LABELS: Record<CleanCategory,string> = {
+  actu: 'Actu',
+  politique: 'Politique',
+  economie: 'Économie',
+  sport: 'Sport',
+  people: 'People',
+  sante: 'Santé',
+  restauration: 'Restauration',
+  tech: 'Tech',
+  business: 'Business',
+  monde: 'Monde',
+  auto: 'Auto',
+  climat: 'Climat',
+  culture: 'Culture',
+  gaming: 'Gaming',
+  lifestyle: 'Lifestyle',
+  immo: 'Immobilier',
+};
+
+// mapping propre -> catégorie backend déjà supportée par /api/news/search
+export const BACKEND_CAT: Record<CleanCategory,string|undefined> = {
+  actu: undefined,          // pas de filtre => flux général
+  politique: 'politique',   // si ta route supporte "politique", sinon "world" + filtre texte
+  economie: 'business',
+  sport: 'sports',
+  people: 'people',         // si non supporté côté backend, on retombe sur "culture" et on filtre texte
+  sante: 'sante',
+  restauration: 'food',
+  tech: 'technology',
+  business: 'business',
+  monde: 'world',
+  auto: 'auto',
+  climat: 'climat',
+  culture: 'culture',
+  gaming: 'gaming',
+  lifestyle: 'lifestyle',
+  immo: 'immo',
+};
+
+// heuristique simple si le backend ne supporte pas exactement la cat demandée
+export function textLooksLike(cat: CleanCategory, t: string) {
+  const s = (t||'').toLowerCase();
+  const tests: Record<CleanCategory,RegExp[]> = {
+    actu: [/.*/],
+    politique: [/politique|élysée|assemblée|ministre|gouvernement|élection|parti/],
+    economie: [/économie|bourse|entreprise|inflation|croissance|marché|investissement|budget|chômage/],
+    sport: [/sport|foot|football|rugby|tennis|basket|match|ligue|tournoi|olymp/],
+    people: [/people|célébrit|people|star|acteur|actrice|chanteur|chanteuse|influenceur/],
+    sante: [/santé|hôpital|maladie|vaccin|médecin|épidém/],
+    restauration: [/restaurant|restauration|cuisine|chef|menu|brasserie|bistrot|fast[- ]?food/],
+    tech: [/tech|technologie|ia|ai |startup|logiciel|matériel|smartphone|cloud|data|cyber/],
+    business: [/business|entreprise|fusion|acquisition|levée de fonds|marché/],
+    monde: [/monde|international|diplomatie|onu|guerre|conflit|pays|frontière/],
+    auto: [/auto|voiture|véhicule|électriq|moteur|constructeur/],
+    climat: [/climat|météo|inondation|sécheresse|canicule|empreinte|carbone|environn/],
+    culture: [/culture|cinéma|film|série|livre|expo|théâtre|festival/],
+    gaming: [/jeu vidéo|gaming|console|steam|playstation|xbox|nintendo|e-sport/],
+    lifestyle: [/lifestyle|mode|tendance|bien[- ]?être|beauté|voyage|déco/],
+    immo: [/immobilier|logement|loyer|achat|vente|maison|appartement/],
+  };
+  const regs = tests[cat] || [/.*/];
+  return regs.some(r => r.test(s));
+}

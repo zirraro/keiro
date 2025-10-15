@@ -1,0 +1,555 @@
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+
+type NewsItem = {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  hot?: boolean;
+  score?: number;
+  topic?: string;
+};
+
+const TOPICS: { key: string; label: string }[] = [
+  { key: "business", label: "business" },
+  { key: "technology", label: "technology" },
+  { key: "science", label: "science" },
+  { key: "world", label: "world" },
+  { key: "health", label: "health" },
+  { key: "sports", label: "sports" },
+];
+
+const TF_OPTS = [
+  { key: "24h", label: "24H" },
+  { key: "48h", label: "48H" },
+  { key: "72h", label: "72H" },
+  { key: "7d", label: "7J" },
+];
+
+function clsx(...arr: Array<string | false | undefined>) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function extractPreviewUrl(json: any): { url?: string; kind?: "image" | "video" } {
+  const cand =
+    json?.url ||
+    json?.image_url ||
+    json?.video_url ||
+    json?.image ||
+    json?.video ||
+    (Array.isArray(json?.output) ? json.output[0] : undefined);
+
+  let kind: "image" | "video" | undefined;
+  if (typeof cand === "string") {
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(cand)) kind = "video";
+    else kind = "image";
+    return { url: cand, kind };
+  }
+  return {};
+}
+
+/** Barre de chargement inline pendant la génération */
+const InlineProgress = ({ label = "Préparation de l’aperçu…" }: { label?: string }) => {
+  return (
+    <div className="mt-2">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
+        {/* segment qui glisse en boucle */}
+        <div className="h-full w-2/5 bg-black animate-[slide_1.2s_ease-in-out_infinite]" />
+      </div>
+      <div className="mt-1 text-[11px] text-neutral-500">{label}</div>
+      <style jsx>{`
+        @keyframes slide {
+          0%   { transform: translateX(-150%); }
+          100% { transform: translateX(250%); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default function GeneratePage() {
+  // Filtres / recherche
+  const [activeTopic, setActiveTopic] = useState(TOPICS[0].key);
+  const [timeframe, setTimeframe] = useState("24h");
+  const [q, setQ] = useState("");
+
+  // Données
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [limit, setLimit] = useState(9); // affichage par défaut
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Assistant de prompt (panneau droit)
+  const [brand, setBrand] = useState("");
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("#AI #Marketing #Keiro");
+
+  // Génération & aperçu
+  const [busyImg, setBusyImg] = useState(false);
+  const [busyVid, setBusyVid] = useState(false);
+  const [status, setStatus] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewKind, setPreviewKind] = useState<"image" | "video" | "">("");
+
+  const selectedArticle = useMemo(
+    () => items.find((x) => x.id === selectedId) || null,
+    [items, selectedId]
+  );
+
+  // Construire la query de /api/news
+  const queryString = useMemo(() => {
+    const u = new URLSearchParams();
+    if (activeTopic) u.set("topic", activeTopic);
+    if (timeframe) u.set("timeframe", timeframe);
+    if (q) u.set("q", q);
+    // On demande plus que le visible pour faire le "+3" ensuite
+    u.set("limit", "30");
+    return u.toString();
+  }, [activeTopic, timeframe, q]);
+
+  // Charger les actus
+  useEffect(() => {
+    let abort = false;
+    async function run() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/news?${queryString}`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!abort && json && Array.isArray(json.items)) {
+          setItems(json.items as NewsItem[]);
+          setLimit(9);          // reset l'affichage quand on change de filtre
+          setSelectedId(null);  // reset la sélection
+        }
+      } catch {
+        if (!abort) {
+          setItems([]);
+          setLimit(9);
+          setSelectedId(null);
+        }
+      } finally {
+        if (!abort) setLoading(false);
+      }
+    }
+    run();
+    return () => {
+      abort = true;
+    };
+  }, [queryString]);
+
+  // Aperçu du prompt final
+  const promptPreview = useMemo(() => {
+    const first = selectedArticle || items[0];
+    const title = first?.title ? `Sujet: ${first.title}` : "Sujet: (sélection à venir)";
+    const sourceLine = first?.source
+      ? `Source: ${first.source} — ${first.url}`
+      : first?.url
+      ? `Source: ${first.url}`
+      : "Source: —";
+    return [
+      `Marque: ${brand || "—"}`,
+      `Objectif: ${goal || "—"}`,
+      `Tonalité: ${tone || "—"}`,
+      `Contraintes: ${constraints || "—"}`,
+      `CTA: ${cta || "—"}`,
+      `Hashtags: ${hashtags || "—"}`,
+      title,
+      sourceLine,
+      `Plateforme: Instagram | Format: Portrait (1080x1350)`,
+      `Sortie attendue: visuel social percutant (ou story vidéo), prêt à poster.`,
+    ].join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, items, selectedArticle]);
+
+  // Lancer la génération
+  async function handleGenerate(kind: "image" | "video") {
+    const url = kind === "image" ? "/api/generate" : "/api/generate-video";
+    const setter = kind === "image" ? setBusyImg : setBusyVid;
+    setter(true);
+    setStatus("");
+    setPreviewUrl("");
+    setPreviewKind(kind);
+
+    try {
+      const payload: any = {
+        kind,
+        prompt: promptPreview,
+        brand,
+        goal,
+        tone,
+        constraints,
+        cta,
+        hashtags,
+      };
+      if (selectedArticle) {
+        payload.article = {
+          title: selectedArticle.title,
+          url: selectedArticle.url,
+          source: selectedArticle.source,
+        };
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus(json?.error || "Erreur lors de la génération.");
+        return;
+      }
+
+      const out = extractPreviewUrl(json);
+      if (out.url) {
+        setPreviewUrl(out.url);
+        if (out.kind) setPreviewKind(out.kind);
+        setStatus("Génération terminée.");
+      } else if (json?.jobId) {
+        setStatus(`Tâche en cours #${json.jobId}…`);
+      } else {
+        setStatus("Génération demandée.");
+      }
+    } catch (e: any) {
+      setStatus(String(e?.message || e) || "Erreur inconnue.");
+    } finally {
+      setter(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-[1600px] px-4">
+      {/* Barre filtres */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <select
+          value={activeTopic}
+          onChange={(e) => setActiveTopic(e.target.value)}
+          className="h-9 rounded-md border bg-white px-3 text-sm"
+        >
+          {TOPICS.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={timeframe}
+          onChange={(e) => setTimeframe(e.target.value)}
+          className="h-9 rounded-md border bg-white px-3 text-sm"
+        >
+          {TF_OPTS.map((tf) => (
+            <option key={tf.key} value={tf.key}>
+              {tf.label}
+            </option>
+          ))}
+        </select>
+
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Rechercher une actu…"
+          className="h-9 w-64 rounded-md border px-3 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setLimit(9)}
+          className="h-9 rounded-md border bg-white px-3 text-sm hover:bg-neutral-100"
+        >
+          Filtrer
+        </button>
+      </div>
+
+      {/* Grille + panneau droit */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Cartes d'actus */}
+        <div className="lg:col-span-7 xl:col-span-7">
+          {loading ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">Chargement…</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">
+              Aucune actualité trouvée.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {items.slice(0, limit).map((it) => {
+                  const selected = selectedId === it.id;
+                  return (
+                    <article
+                      key={it.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedId(it.id)}
+                      onKeyDown={(e) => (e.key === "Enter" ? setSelectedId(it.id) : null)}
+                      className={clsx(
+                        "cursor-pointer rounded-lg border bg-white shadow-sm transition hover:shadow-md",
+                        selected && "ring-2 ring-black"
+                      )}
+                    >
+                      <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-neutral-100">
+                        <CardImage item={it} />
+                      </div>
+
+                      <div className="p-4">
+                        <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
+                          <span className="truncate">{it.source || "—"}</span>
+                          <span className="inline-flex items-center gap-1">
+                            {typeof it.score === "number" && (
+                              <span className="rounded bg-neutral-100 px-2 py-0.5 text-[11px]">
+                                {it.score}
+                              </span>
+                            )}
+                            {it.hot && (
+                              <span className="rounded bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">
+                                hot
+                              </span>
+                            )}
+                          </span>
+                        </div>
+
+                        <h3 className="mb-2 line-clamp-3 text-sm font-medium">
+                          {it.title || "Sans titre"}
+                        </h3>
+
+                        {it.snippet && (
+                          <p className="mb-3 line-clamp-3 text-xs text-neutral-600">{it.snippet}</p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <a
+                            href={it.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs text-neutral-600 underline hover:text-black"
+                          >
+                            Voir la source
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedId(it.id);
+                            }}
+                            className={clsx(
+                              "rounded-md px-3 py-1 text-xs",
+                              selected
+                                ? "bg-black text-white"
+                                : "bg-neutral-900 text-white hover:bg-neutral-800"
+                            )}
+                          >
+                            {selected ? "Sélectionnée" : "Utiliser cette actu"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {limit < items.length && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setLimit((l) => Math.min(l + 3, items.length))}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50"
+                  >
+                    + 3 actus
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panneau de droite */}
+        <aside className="lg:col-span-5 xl:col-span-5">
+          <div className="sticky top-4 space-y-4">
+            {/* Sélection logo (pointillés) */}
+            <div className="rounded-lg border-2 border-dashed bg-white p-4">
+              <h4 className="mb-3 font-medium">Sélectionner un logo</h4>
+              <input type="file" className="text-sm" />
+            </div>
+
+            {/* Assistant prompt */}
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Assistant de prompt</h4>
+
+              {selectedArticle ? (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  <div className="mb-1 font-medium text-neutral-800">Actualité sélectionnée</div>
+                  <div className="line-clamp-2">{selectedArticle.title}</div>
+                  <div className="mt-1 truncate opacity-70">
+                    {selectedArticle.source || "—"} — {selectedArticle.url}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  Aucune actualité sélectionnée — vous pouvez générer sans, mais la sortie sera plus générique.
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <input
+                  placeholder="Marque / Produit"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                />
+                <textarea
+                  placeholder="Objectif (ex: trafic, conversion…) "
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  rows={3}
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                />
+                <input
+                  placeholder="Tonalité / Style"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                />
+                <input
+                  placeholder="Couleurs / Contraintes"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={constraints}
+                  onChange={(e) => setConstraints(e.target.value)}
+                />
+                <input
+                  placeholder="Call to Action"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={cta}
+                  onChange={(e) => setCta(e.target.value)}
+                />
+                <input
+                  placeholder="Hashtags"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={hashtags}
+                  onChange={(e) => setHashtags(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleGenerate("image")}
+                  disabled={busyImg}
+                  className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-50"
+                >
+                  {busyImg ? "Génération…" : "Générer une image"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGenerate("video")}
+                  disabled={busyVid}
+                  className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50"
+                >
+                  {busyVid ? "Génération…" : "Générer une vidéo"}
+                </button>
+              </div>
+
+{(busyImg || busyVid) && !previewUrl ? (<InlineProgress label="Préparation de l’aperçu…" />) : null}
+
+
+              {/* Barre de progression simple pendant la génération */}
+              {(busyImg || busyVid) && !previewUrl && (
+                <div className="mt-3 h-2 w-full overflow-hidden rounded bg-neutral-200">
+                  <div className="h-2 w-1/3 animate-pulse rounded bg-neutral-500"></div>
+                </div>
+              )}
+
+              {(!busyImg && !busyVid) && status && (
+                <div className="mt-3 rounded-md border bg-neutral-50 p-2 text-xs text-neutral-700 break-all">
+                  {status}
+                </div>
+              )}
+            </div>
+
+            {/* APERÇU */}
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Aperçu du rendu</h4>
+              {!previewUrl ? (
+                <div className="h-64 rounded-lg border border-dashed bg-white"><div className="grid h-full w-full grid-cols-2 gap-3 p-3"><div className="flex items-center justify-center rounded-md border bg-neutral-50"><div className="h-24 w-20 rounded-md bg-neutral-200 animate-pulse"></div></div><div className="flex flex-col justify-center space-y-2"><div className="h-3 w-3/4 rounded bg-neutral-200 animate-pulse"></div><div className="h-3 w-2/3 rounded bg-neutral-200 animate-pulse"></div><div className="h-3 w-1/2 rounded bg-neutral-200 animate-pulse"></div><div className="mt-3 inline-flex items-center gap-2 text-xs text-neutral-500"><div className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500"></div><span>L’aperçu s’affichera ici dès que la génération sera prête.</span></div></div></div></div>
+              ) : previewKind === "video" ? (
+                <video
+                  className="h-64 w-full rounded-md border bg-black"
+                  src={previewUrl}
+                  controls
+                  playsInline
+                />
+              ) : (
+                <img
+                  className="h-64 w-full rounded-md border object-cover"
+                  src={previewUrl}
+                  alt="aperçu génération"
+                  loading="lazy"
+                />
+              )}
+              {previewUrl && (
+                <div className="mt-2 text-right">
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm underline"
+                  >
+                    Ouvrir l’asset
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Prompt final (lecture seule) */}
+            {/* Prompt final masqué pour le client */}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/** Image de carte robuste (sans next/image pour éviter les whitelists) */
+function CardImage({ item }: { item: NewsItem }) {
+  const [err, setErr] = useState(false);
+
+  const isBadThumb = useMemo(() => {
+    const h = (item.thumbnailUrl || "").toLowerCase();
+    if (!h) return true;
+    if (h.includes("news.google") || h.includes("encrypted-tbn")) return true;
+    return false;
+  }, [item.thumbnailUrl]);
+
+  const src =
+    !err && !isBadThumb && item.thumbnailUrl
+      ? item.thumbnailUrl!
+      : !err && item.url
+      ? `/api/og?url=${encodeURIComponent(item.url)}`
+      : "";
+
+  if (!src || err) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-[11px] text-neutral-500">
+        Aperçu indisponible
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={item.title || "aperçu"}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      onError={() => setErr(true)}
+    />
+  );
+}

@@ -1,0 +1,41 @@
+import { seedreamGenerate } from '@/app/lib/seedream';
+export const runtime = 'nodejs';
+
+export async function POST(req: Request){
+  try{
+    const body = await req.json();
+    // On attend au moins prompt et sizing
+    const prompt = body?.prompt || '';
+    const size = body?.size || '1024x1024';
+    const extras = body?.extras || {};
+    if (!prompt) return new Response(JSON.stringify({ error: 'missing prompt' }), { status: 400 });
+
+    // Payload type Seedream — adapte les champs si besoin
+    const payload = {
+      prompt,
+      size,
+      ...extras
+    };
+
+    const out = await seedreamGenerate(payload, 45000);
+    // Normaliser la réponse :
+    // on tente d’extraire une URL d’image (ou dataURL) dans différents formats courants
+    const url =
+      out?.data?.[0]?.url ||
+      out?.image_url ||
+      out?.url ||
+      out?.result?.url ||
+      out?.images?.[0]?.url ||
+      out?.data_url;
+
+    if (!url) {
+      return new Response(JSON.stringify({ error: 'no_image_url', raw: out }), { status: 502 });
+    }
+
+    return new Response(JSON.stringify({ url }), {
+      headers: { 'content-type': 'application/json' }
+    });
+  }catch(e:any){
+    return new Response(JSON.stringify({ error: 'network_error', message: e?.message || String(e) }), { status: 502 });
+  }
+}

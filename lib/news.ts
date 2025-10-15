@@ -1,120 +1,199 @@
-import Parser from "rss-parser";
-import ogs from "open-graph-scraper";
+import { XMLParser } from "fast-xml-parser";
 
 export type NewsItem = {
   id: string;
-  source: string;
+  source?: string;
   title: string;
-  url: string;
-  summary: string;
-  publishedAt?: string;
-  image?: string;
-  angles: string[];
+  snippet?: string;
+  url?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  hot?: boolean;
+  score?: number;
 };
 
-const FEEDS = [
-  "https://www.reuters.com/world/europe/rss",      // Europe
-  "https://apnews.com/hub/apf-topnews?output=rss", // World
-  "https://www.theverge.com/rss/index.xml",       // Tech
-  "https://www.lesechos.fr/rss/rss_tech_medias.xml" // FR Tech/Business
-];
+type FetchArgs = {
+  q?: string;
+  topic?: string;
+  timeframe?: "24h"|"48h"|"72h"|"7d";
+  limit?: number;
+  locale?: string;
+  gl?: string;
+  ceid?: string;
+};
 
-const parser = new Parser();
+const TOPIC_CODES: Record<string, string> = {
+  world: "WORLD",
+  business: "BUSINESS",
+  technology: "TECHNOLOGY",
+  science: "SCIENCE",
+  health: "HEALTH",
+  sports: "SPORTS",
+  nation: "NATION",
+  entertainment: "ENTERTAINMENT",
+};
 
-async function getOgImage(url: string) {
-  try {
-    const { result } = await ogs({ url, timeout: 5000 });
-    const ogImage = (result as any).ogImage;
-    if (Array.isArray(ogImage)) return ogImage[0]?.url as string | undefined;
-    return ogImage?.url as string | undefined;
-  } catch {
-    return undefined;
-  }
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "", // => les attributs sont accessibles comme .url (pas @_url)
+});
+
+/** map timeframe -> cutoff Date */
+function timeframeToCutoff(tf: string | undefined): Date | null {
+  const now = Date.now();
+  const hours =
+    tf === "24h" ? 24 :
+    tf === "48h" ? 48 :
+    tf === "72h" ? 72 :
+    tf === "7d"  ? 24*7 : null;
+  return hours ? new Date(now - hours*3600*1000) : null;
 }
 
-function proposeAngles(title: string, summary: string): string[] {
-  const t = `${title} ${summary}`.toLowerCase();
-  const angles = new Set<string>();
-  angles.add("Educational: 3 key takeaways");
-  angles.add("Consumer benefits: why it matters daily");
-  angles.add("Product link: concrete use case");
-
-  if (t.includes("ai") || t.includes("intelligence") || t.includes("ia")) {
-    angles.add("AI: visual demo + practical tips");
-  }
-  if (t.includes("sante") || t.includes("santé") || t.includes("health") || t.includes("bein-etre") || t.includes("bein-eètre")) {
-    angles.add("Wellbeing: routine + measurable benefits");
-  }
-  if (t.includes("startup") || t.includes("funding") || t.includes("invest")) {
-    angles.add("Business: key numbers + call to action");
-  }
-  return Array.from(angles).slice(0, 4);
+/** parse RFC date */
+function parseRfcDate(s?: string): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
 }
 
-export async function fetchNews(): Promise<NewsItem[]> {
+/** score simple selon récence (0..100) */
+function hotScore(pub?: Date | null): number {
+  if (!pub) return 0;
+  const ageMs = Date.now() - pub.getTime();
+  const oneDay = 24*3600*1000;
+  return Math.max(0, 100 - Math.round((ageMs/oneDay)*100));
+}
+
+function rssUrlBase(locale = "fr", gl = "FR", ceid = "FR:fr") {
+  return `https://news.google.com/rss?hl=${locale}&gl=${gl}&ceid=${ceid}`;
+}
+
+function rssSearchUrl(q: string, tf?: "24h"|"48h"|"72h"|"7d", locale = "fr", gl = "FR", ceid = "FR:fr") {
+  const when = tf ? `+when:${tf}` : "";
+  const encoded = encodeURIComponent(`${q}${when}`);
+  return `https://news.google.com/rss/search?q=${encoded}&hl=${locale}&gl=${gl}&ceid=${ceid}`;
+}
+
+function rssTopicUrl(topicCode: string, locale = "fr", gl = "FR", ceid = "FR:fr") {
+  return `https://news.google.com/rss/headlines/section/topic/${topicCode}?hl=${locale}&gl=${gl}&ceid=${ceid}`;
+}
+
+async function fetchRss(url: string): Promise<any> {
+  const res = await fetch(url, { next: { revalidate: 0 }});
+  if (!res.ok) throw new Error(`RSS fetch failed ${res.status}: ${url}`);
+  const xml = await res.text();
+  return parser.parse(xml);
+}
+
+function firstImgFromHtml(html?: string): string | null {
+  if (!html) return null;
+  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return m ? m[1] : null;
+}
+
+function pickThumb(it: any): string | null {
+  // media:content (peut être objet ou tableau)
+  const mc = it?.["media:content"];
+  if (mc) {
+    if (Array.isArray(mc)) {
+      const u = mc[0]?.url || mc[0]?.["@_url"];
+      if (u) return u;
+    } else if (typeof mc === "object") {
+      const u = mc.url || mc["@_url"];
+      if (u) return u;
+    }
+  }
+  // enclosure url
+  const enc = it?.enclosure;
+  if (enc) {
+    const u = enc.url || enc["@_url"];
+    if (u) return u;
+  }
+  // media:group.media:content
+  const mg = it?.["media:group"]?.["media:content"];
+  if (mg) {
+    if (Array.isArray(mg)) {
+      const u = mg[0]?.url || mg[0]?.["@_url"];
+      if (u) return u;
+    } else if (typeof mg === "object") {
+      const u = mg.url || mg["@_url"];
+      if (u) return u;
+    }
+  }
+  // fallback : première <img> dans la description HTML
+  const html = typeof it?.description === "string" ? it.description : "";
+  const fromHtml = firstImgFromHtml(html);
+  if (fromHtml) return fromHtml;
+
+  return null;
+}
+
+function normalizeItems(feed: any, cutoff: Date | null, limit: number): NewsItem[] {
+  const items = (feed?.rss?.channel?.item ?? []) as any[];
+  const out: NewsItem[] = [];
+
+  for (const it of items) {
+    const title = (it?.title ?? "").toString();
+    const url = (it?.link ?? it?.guid ?? "").toString();
+    const pub = parseRfcDate(it?.pubDate);
+    const source =
+      typeof it?.source === "string"
+        ? it.source
+        : (it?.source?.["#text"] || it?.source?._) || undefined;
+    const descRaw = (it?.description ?? "") as string;
+    const desc = descRaw.replace(/<[^>]*>/g, "").trim() || undefined;
+
+    if (cutoff && pub && pub < cutoff) continue;
+
+    const thumbnailUrl = pickThumb(it);
+
+    const item: NewsItem = {
+      id: url || title,
+      source,
+      title,
+      snippet: desc,
+      url,
+      published: pub?.toISOString(),
+      thumbnailUrl: thumbnailUrl || null,
+      score: hotScore(pub),
+      hot: (hotScore(pub) >= 60),
+    };
+    out.push(item);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** API principale */
+export async function fetchNews(args: FetchArgs) {
+  const {
+    q,
+    topic,
+    timeframe = "24h",
+    limit = 12,
+    locale = "fr",
+    gl = "FR",
+    ceid = "FR:fr",
+  } = args;
+
+  const cutoff = timeframeToCutoff(timeframe);
+
   try {
-    const feeds = await Promise.allSettled(FEEDS.map((f) => parser.parseURL(f)));
-    const items: NewsItem[] = [];
-    for (const r of feeds) {
-      if (r.status !== "fulfilled") continue;
-      const feed = r.value;
-      for (const it of feed.items.slice(0, 10)) {
-        const url = it.link || "";
-        if (!url) continue;
-        const title = it.title || "";
-        const summary = (it.contentSnippet || it.content || "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 280);
-        const source = (feed.title || "").split(" - ")[0];
-        items.push({
-          id: Buffer.from(url).toString("base64"),
-          source, title, url, summary,
-          publishedAt: (it as any).isoDate || it.pubDate,
-          image: (it as any)?.enclosure?.url,
-          angles: proposeAngles(title, summary),
-        });
-      }
+    let url: string;
+    if (q && q.trim()) {
+      url = rssSearchUrl(q.trim(), timeframe, locale, gl, ceid);
+    } else if (topic && TOPIC_CODES[topic]) {
+      url = rssTopicUrl(TOPIC_CODES[topic], locale, gl, ceid);
+    } else {
+      url = rssUrlBase(locale, gl, ceid);
     }
-    const needOg = items.filter((i) => !i.image).slice(0, 10);
-    await Promise.all(needOg.map(async (i) => {
-      i.image = await getOgImage(i.url);
-    }));
-    const seen = new Set<string>();
-    const result: NewsItem[] = [];
-    for (const i of items) {
-      if (seen.has(i.url)) continue;
-      seen.add(i.url);
-      result.push(i);
-    }
-    result.sort((a, b) => new Date(b.publishedAt || 0).getTime() - new Date(a.publishedAt || 0).getTime());
-    if (result.length > 0) return result.slice(0, 30);
-    throw new Error("Empty news aggregation");
-  } catch (e) {
-    console.warn("fetchNews failed, falling back to mock:", (e as any)?.message);
-    const now = new Date().toISOString();
-    const mock: NewsItem[] = [
-      {
-        id: "mock-1",
-        source: "KeiroAI Mock",
-        title: "AI marketing trend: short-form creative wins",
-        url: "https://example.com/ai-marketing",
-        summary: "Brands double down on AI-assisted visuals and captions for reactive campaigns.",
-        publishedAt: now,
-        image: "https://picsum.photos/seed/ai/600/400",
-        angles: ["Educational: 3 key takeaways", "Business: key numbers + call to action", "AI: visual demo + practical tips"],
-      },
-      {
-        id: "mock-2",
-        source: "KeiroAI Mock",
-        title: "Wellbeing products surge with adaptogens",
-        url: "https://example.com/adaptogens",
-        summary: "Consumers adopt functional coffees (Lion's Mane) for focus and clarity.",
-        publishedAt: now,
-        image: "https://picsum.photos/seed/mushu/600/400",
-        angles: ["Consumer benefits: why it matters daily", "Product link: concrete use case"],
-      },
-    ];
-    return mock;
+
+    const feed = await fetchRss(url);
+    const items = normalizeItems(feed, cutoff, limit);
+
+    return { items, meta: { q: q ?? "", topic: topic ?? "", timeframe, limit, locale, gl, ceid } };
+  } catch (e: any) {
+    console.error("fetchNews error:", e?.message || e);
+    return { items: [], meta: { q: q ?? "", topic: topic ?? "", timeframe, limit, locale, gl, ceid, error: String(e?.message || e) } };
   }
 }

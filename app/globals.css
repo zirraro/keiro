@@ -1,45 +1,34 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* bordures/traits */
+:root { --border: 214.3 31.8% 91.4%; }
+* { border-color: hsl(var(--border)); }
+html,body{height:100%}
+body{
+  background:#fff;color:#0a0a0a;font-size:13px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* conteneur aide */
+.dashed{ border:1px dashed hsl(var(--border)); border-radius:10px; }
+
+/* badges */
+.badge-hot{
+  background:#dc2626;color:#fff;border-radius:6px;height:20px;
+  padding:0 6px;font-size:10px;line-height:20px;display:inline-flex;align-items:center;
+}
+.badge-score{
+  background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;
+  height:20px;padding:0 6px;font-size:10px;line-height:20px;display:inline-flex;align-items:center;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* chips style screen #2 */
+.chip{
+  display:inline-flex;align-items:center;height:20px;line-height:20px;
+  border-radius:6px;border:1px solid #E5E7EB;background:#F9FAFB;color:#374151;
+  padding:0 6px;font-size:10px;white-space:nowrap;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* --- TEMP FIX: assure le clic --- */
-main, .fix-pointer {
-  pointer-events: auto !important;
-}
-
-/* ---- Anti overlay click-shield (soft) ---- */
-/* Tout décor plein écran identifié comme "decor" ou "bg" ne capte pas les clics */
-#global-decor, .decor, .bg-decor {
-  pointer-events: none !important;
-  z-index: -10 !important;
-}
-
-/* La couche applicative doit capter les interactions */
-#app, .interactive-layer {
-  position: relative;
-  z-index: 50;
-  pointer-events: auto;
-}
+/* clamps */
+.clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }

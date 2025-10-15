@@ -1,0 +1,52 @@
+import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+
+const baseFromEnv = (process.env.ARK_BASE || 'https://ark.ap-southeast.bytepluses.com').trim();
+const ARK_BASE = baseFromEnv.replace(/\/+$/,'');
+const ARK_API_KEY = (process.env.ARK_API_KEY || '').trim();
+const ARK_EDIT_MODEL = (process.env.ARK_EDIT_MODEL || 'seededit-3-0-i2i-250628').trim();
+
+export async function POST(req: Request) {
+  try{
+    const b = await req.json().catch(()=> ({}));
+    const prompt = String(b.prompt || '').trim();
+    const image = String(b.image || '').trim();
+    const size = String(b.size || 'adaptive');
+    // On mappe ta "fidelity" sur guidance_scale (plus grand = plus fidèle)
+    const guidance_scale = typeof b.guidance_scale === 'number' ? b.guidance_scale : 5.5;
+    const seed = typeof b.seed === 'number' ? b.seed : undefined;
+    const watermark = b.watermark === true ? true : false; // par défaut: false
+
+    if (!prompt) return NextResponse.json({ error: 'missing_prompt' }, { status: 400 });
+    if (!image) return NextResponse.json({ error: 'missing_image', message: 'image URL required' }, { status: 400 });
+    if (!ARK_API_KEY) return NextResponse.json({ error: 'missing_key' }, { status: 500 });
+
+    const payload:any = {
+      model: ARK_EDIT_MODEL,
+      prompt,
+      image,
+      response_format: 'url',
+      size,
+      guidance_scale,
+      watermark
+    };
+    if (typeof seed === 'number') payload.seed = seed;
+
+    const res = await fetch(`${ARK_BASE}/api/v3/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ARK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    const raw = await res.json().catch(()=> ({}));
+    if (!res.ok) {
+      return NextResponse.json({ error: 'ark_error', status: res.status, body: raw, _ctx: { base: ARK_BASE } }, { status: 500 });
+    }
+    const url = raw?.data?.[0]?.url || null;
+    return NextResponse.json({ url, raw, sent: { hasMask: Boolean(b.mask) } });
+  }catch(e:any){
+    return NextResponse.json({ error: 'network_error', message: String(e?.message || e), _ctx: { base: ARK_BASE } }, { status: 500 });
+  }
+}

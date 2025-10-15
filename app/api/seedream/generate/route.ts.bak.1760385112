@@ -1,0 +1,89 @@
+import { NextResponse } from "next/server";
+
+// Next.js Node runtime
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  const rawKey = (process.env.SEEDREAM_API_KEY || "");
+  const key = rawKey.trim();
+  if (!key) return NextResponse.json({ error: "missing_key" }, { status: 500 });
+
+  const base = (process.env.SEEDREAM_BASE_URL || "https://api.seedream.ai").replace(/\/+$/, "");
+  let body: any = {};
+  try { body = await req.json(); } catch {}
+  const { prompt, size = "1024x1024", seed, style } = body || {};
+  if (!prompt || typeof prompt !== "string") {
+    return NextResponse.json({ error: "missing_prompt" }, { status: 400 });
+  }
+
+  // 1) Tentative via fetch (undici)
+  try {
+    const res = await fetch(`${base}/v1/images/generate`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt, size, seed, style }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return NextResponse.json(
+        { error: "upstream_error", status: res.status, body: text.slice(0, 600) },
+        { status: 502 },
+      );
+    }
+    const data = await res.json();
+    return NextResponse.json(data, { status: 200 });
+  } catch (e: any) {
+    // 2) Fallback natif HTTPS avec SNI explicite
+    try {
+      const https = await import("node:https");
+      const url = new URL(`${base}/v1/images/generate`);
+      const payload = JSON.stringify({ prompt, size, seed, style });
+
+      const options: any = {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname,
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+        },
+        // SNI explicite
+        servername: url.hostname,
+      };
+
+      const data = await new Promise<string>((resolve, reject) => {
+        const reqH = https.request(options, (res) => {
+          let buf = "";
+          res.setEncoding("utf8");
+          res.on("data", (chunk) => (buf += chunk));
+          res.on("end", () => {
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(buf);
+            } else {
+              reject(new Error(`seedream_https_${res.statusCode}: ${buf.slice(0, 600)}`));
+            }
+          });
+        });
+        reqH.on("error", reject);
+        reqH.write(payload);
+        reqH.end();
+      });
+
+      const json = JSON.parse(data);
+      return NextResponse.json(json, { status: 200 });
+    } catch (ee: any) {
+      return NextResponse.json(
+        { error: "network_error", message: ee?.message || String(ee) },
+        { status: 500 },
+      );
+    }
+  }
+}

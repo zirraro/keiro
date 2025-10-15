@@ -1,0 +1,118 @@
+'use client';
+import React from 'react';
+
+export default function EditorPage({ searchParams }: { searchParams: Record<string,string|undefined> }) {
+  const initial = decodeURIComponent(searchParams.image ?? '');
+  const [imageUrl, setImageUrl] = React.useState<string>(initial);
+  const [prompt, setPrompt] = React.useState<string>('Améliore les couleurs, style magazine, contraste.');
+  const [size, setSize] = React.useState<string>('1024x1024');
+  const [guidance, setGuidance] = React.useState<number>(3);
+  const [watermark, setWatermark] = React.useState<boolean>(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string>();
+  const [resultUrl, setResultUrl] = React.useState<string>();
+
+  const applyEdit = async () => {
+    setError(undefined); setLoading(true); setResultUrl(undefined);
+    try {
+      const res = await fetch('/api/ark/generate', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          prompt,
+          size,
+          guidance_scale: guidance,
+          watermark,
+          response_format: 'url'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        setError((data?.error || 'ark_error') + ': ' + (data?.message || data?.status || ''));
+      } else {
+        setResultUrl(data.url);
+      }
+    } catch (e:any) {
+      setError(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto max-w-5xl p-6">
+      <h1 className="text-xl font-semibold mb-4">Édition Seedream (Ark)</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-sm text-neutral-600">Image source (URL)</span>
+            <input
+              className="w-full border rounded px-3 py-2"
+              value={imageUrl}
+              onChange={e=>setImageUrl(e.target.value)}
+              placeholder="https://.../image.png"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm text-neutral-600">Prompt d’édition</span>
+            <textarea
+              className="w-full border rounded px-3 py-2 h-28"
+              value={prompt}
+              onChange={e=>setPrompt(e.target.value)}
+            />
+          </label>
+
+          <div className="flex gap-3">
+            <label className="block">
+              <span className="text-sm text-neutral-600">Taille</span>
+              <select className="border rounded px-2 py-2" value={size} onChange={e=>setSize(e.target.value)}>
+                <option>1024x1024</option>
+                <option>768x768</option>
+                <option>512x512</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm text-neutral-600">Guidance scale</span>
+              <input type="number" step="0.5" min="0" max="20"
+                     className="border rounded px-2 py-2 w-28"
+                     value={guidance} onChange={e=>setGuidance(Number(e.target.value))}/>
+            </label>
+
+            <label className="flex items-center gap-2 mt-6">
+              <input type="checkbox" checked={watermark} onChange={e=>setWatermark(e.target.checked)} />
+              Watermark
+            </label>
+          </div>
+
+          <button
+            onClick={applyEdit}
+            disabled={!imageUrl || loading}
+            className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+          >
+            {loading ? 'Edition en cours…' : 'Appliquer'}
+          </button>
+
+          {error && <div className="text-sm text-red-600">Erreur édition : {error}</div>}
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm text-neutral-600 mb-1">Aperçu source</div>
+            {imageUrl ? (<img src={imageUrl} alt="source" className="rounded border max-h-[420px]" />)
+                      : (<div className="border rounded p-6 text-neutral-500">Aucune image source.</div>)}
+          </div>
+
+          <div>
+            <div className="text-sm text-neutral-600 mb-1">Résultat</div>
+            {resultUrl ? (<img src={resultUrl} alt="résultat" className="rounded border max-h-[420px]" />)
+                       : (<div className="border rounded p-6 text-neutral-500">Lance une édition pour voir le résultat.</div>)}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

@@ -1,0 +1,108 @@
+import { NextResponse } from 'next/server';
+import https from 'https';
+import dns from 'dns';
+import { Agent as UndiciAgent, type RequestInit } from 'undici';
+
+export const runtime = 'nodejs';
+
+async function fetchIPv4(host: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    dns.lookup(host, { family: 4, all: false }, (err, address) => {
+      if (err) return resolve(null);
+      resolve(address || null);
+    });
+  });
+}
+
+export async function POST(req: Request) {
+  let payload: any = {};
+  try { payload = await req.json(); } catch {
+    return NextResponse.json({ error: 'bad_request', message: 'JSON invalide' }, { status: 400 });
+  }
+
+  const prompt = String(payload?.prompt ?? '').trim();
+  const size   = String(payload?.size ?? '512x512');
+  if (!prompt) return NextResponse.json({ error: 'missing_prompt' }, { status: 400 });
+
+  const key = (process.env.SEEDREAM_API_KEY || '').trim();
+  if (!key) return NextResponse.json({ error: 'missing_key' }, { status: 500 });
+
+  const base = (process.env.SEEDREAM_BASE_URL || 'https://api.seedream.ai').replace(/\/+$/,'');
+  const url  = `${base}/v1/images/generate`;
+  const parsed = new URL(base);
+
+  // SNI explicit — override possible avec SEEDREAM_SNI
+  const sniHost = (process.env.SEEDREAM_SNI || parsed.hostname).trim();
+
+  // 1) undici fetch avec SNI + IPv4
+  try {
+    const dispatcher = new UndiciAgent({
+      connect: { servername: sniHost, timeout: 30_000 },
+      keepAliveTimeout: 10_000,
+    });
+    const init: RequestInit = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Keiro/seedream-proxy',
+        // Le header Host n’influence pas le SNI, mais on le cale par cohérence
+        'Host': parsed.hostname,
+      } as any,
+      body: JSON.stringify({ prompt, size }),
+      dispatcher,
+    };
+
+    const r = await fetch(url, init as any);
+    const text = await r.text();
+    let data: any; try { data = JSON.parse(text); } catch { data = text; }
+    if (!r.ok) return NextResponse.json({ error: 'upstream_error', status: r.status, data }, { status: r.status });
+    return NextResponse.json(data);
+  } catch (e: any) {
+    // 2) Fallback https.request avec SNI + IPv4
+    try {
+      const ipv4 = await fetchIPv4(parsed.hostname);
+      const out = await new Promise<{ status: number; body: string }>((resolve, reject) => {
+        const req2 = https.request({
+          protocol: parsed.protocol,
+          // Si on a une IPv4, on la force, sinon hostname classique
+          hostname: ipv4 || parsed.hostname,
+          port: parsed.port || 443,
+          path: '/v1/images/generate',
+          method: 'POST',
+          // SNI explicite ici :
+          servername: sniHost,
+          rejectUnauthorized: true,
+          timeout: 30_000,
+          headers: {
+            // Host doit rester le hostname « logique »
+            'Host': parsed.hostname,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'Keiro/seedream-proxy',
+          }
+        }, (resp) => {
+          const chunks: Buffer[] = [];
+          resp.on('data', (d) => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
+          resp.on('end', () => resolve({
+            status: resp.statusCode || 502,
+            body: Buffer.concat(chunks).toString('utf8')
+          }));
+        });
+        req2.on('error', reject);
+        req2.write(JSON.stringify({ prompt, size }));
+        req2.end();
+      });
+
+      let data: any; try { data = JSON.parse(out.body); } catch { data = out.body; }
+      if (out.status < 200 || out.status >= 300) {
+        return NextResponse.json({ error: 'upstream_error', status: out.status, data }, { status: out.status });
+      }
+      return NextResponse.json(data);
+    } catch (e2: any) {
+      return NextResponse.json({ error: 'network_error', message: String(e2?.message || e2) }, { status: 500 });
+    }
+  }
+}

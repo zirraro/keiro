@@ -1,0 +1,514 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { buildNewsQuery } from "@/lib/newsQuery";
+import InlineProgress from "@/components/InlineProgress";
+
+type NewsItem = {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  hot?: boolean;
+  score?: number;
+  topic?: string;
+};
+
+type Topic = { key: string; label: string; q?: string };
+
+const TOPICS: { key: string; label: string; q?: string }[] = [
+  { key: "technology",   label: "Technologie" },
+  { key: "science",      label: "Science" },
+  { key: "restauration", label: "Restauration", q: "(restauration OR restaurant OR restaurants OR food OR cuisine OR fast-food OR agroalimentaire)" },
+  { key: "health",       label: "Santé",        q: "(santé OR medical OR médicale OR hôpital OR hopital OR médecine OR maladie OR vaccin OR \"système de santé\")" },
+  { key: "environment",  label: "Environnement",q: "(environnement OR climat OR \"changement climatique\" OR écologie OR biodiversité OR énergie verte OR recyclage)" },
+  { key: "gaming",       label: "Gaming",       q: "(gaming OR \"jeu vidéo\" OR \"jeux vidéo\" OR Xbox OR PlayStation OR Nintendo OR e-sport OR esports OR Steam)" },
+  { key: "world",        label: "Monde" },
+  { key: "sports",       label: "Sport",        q: "(sport OR football OR rugby OR tennis OR basket OR \"Ligue 1\" OR NBA OR JO OR olympique)" },
+  { key: "business",     label: "Économie" }
+];
+
+
+const TF_OPTS = [
+  { key: "24h", label: "24 h" },
+  { key: "48h", label: "48 h" },
+  { key: "72h", label: "72 h" },
+  { key: "7d",  label: "7 j" },
+];
+
+function clsx(...arr: Array<string | false | undefined>) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function extractPreviewUrl(json: any): { url?: string; kind?: "image" | "video" } {
+  const cand =
+    json?.url || json?.image_url || json?.video_url || json?.image || json?.video || json?.output?.[0];
+  let kind: "image" | "video" | undefined;
+  if (typeof cand === "string") {
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(cand)) kind = "video";
+    else kind = "image";
+    return { url: cand, kind };
+  }
+  return {};
+}
+
+export default function GeneratePage() {
+  // Filtres
+  const [activeTopic, setActiveTopic] = useState<string>(TOPICS[0].key);
+  const [timeframe, setTimeframe] = useState<string>("24h");
+  const [q, setQ] = useState<string>("");
+
+  // État actu
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [limit, setLimit] = useState(9);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Panneau prompt (simplifié)
+  const [brand, setBrand] = useState("");
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("#AI #Marketing #Keiro");
+
+  // Génération
+  const [busyImg, setBusyImg] = useState(false);
+  const [busyVid, setBusyVid] = useState(false);
+  const [status, setStatus] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewKind, setPreviewKind] = useState<"" | "image" | "video">("");
+
+  // Progression
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const progressRef = useRef<NodeJS.Timeout | null>(null);
+
+  const selectedArticle = useMemo(
+    () => items.find((x) => x.id === selectedId) || null,
+    [items, selectedId]
+  );
+
+  // Construire la query pour /api/news
+  const queryString = useMemo(() => buildNewsQuery(activeTopic, timeframe, q, limit), [activeTopic, timeframe, q, limit]);
+const UI = TOPICS.find(t => t.key === activeTopic);
+  const extraQ = UI?.q || "";
+  if (typeof ALLOWED_TOPICS !== "undefined" && ALLOWED_TOPICS.has(activeTopic)) {
+    u.set("topic", activeTopic);
+  }
+  u.set("timeframe", timeframe);
+  const userQ = q.trim();
+  const combinedQ = [userQ, extraQ].filter(Boolean).join(" ");
+  if (combinedQ) u.set("q", combinedQ);
+  u.set("limit", "30");
+  return u.toString();
+}, [activeTopic, timeframe, q]);
+// Charger les actus
+  useEffect(() => {
+    let abort = false;
+    async function run() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/news/search?${queryString}`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!abort && json && Array.isArray(json.items)) {
+          setItems(json.items as NewsItem[]);
+          setLimit(9);
+          setSelectedId(null);
+        }
+      } catch {
+        if (!abort) {
+          setItems([]);
+          setLimit(9);
+          setSelectedId(null);
+        }
+      } finally {
+        if (!abort) setLoading(false);
+      }
+    }
+    run();
+    return () => { abort = true; };
+  }, [queryString]);
+
+  // Aperçu prompt (pour le modèle)
+  const promptPreview = useMemo(() => {
+    const first = selectedArticle || items[0];
+    const title = first?.title ? `Sujet: ${first.title}` : "Sujet: (sélection à venir)";
+    const sourceLine = first?.source ? `Source: ${first.source} — ${first.url}` : first?.url ? `Source: ${first.url}` : "Source: —";
+    return [
+      `Marque: ${brand || "—"}`,
+      `Objectif: ${goal || "—"}`,
+      `Tonalité: ${tone || "—"}`,
+      `Contraintes: ${constraints || "—"}`,
+      `CTA: ${cta || "—"}`,
+      `Hashtags: ${hashtags || "—"}`,
+      title,
+      sourceLine,
+      `Plateforme: Instagram | Format: Portrait (1080x1350)`,
+      `Sortie attendue: visuel social percutant (ou story vidéo), prêt à poster.`,
+    ].join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, items, selectedArticle]);
+
+  // Démarrer une génération (image / video)
+  async function handleGenerate(kind: "image" | "video") {
+    const url = kind === "image" ? "/api/generate" : "/api/generate-video";
+    const setBusy = kind === "image" ? setBusyImg : setBusyVid;
+
+    setBusy(true);
+    setPreviewKind(kind);
+    setPreviewUrl("");
+    setStatus("");
+    setProgress(0);
+    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+
+    try {
+      const payload: any = {
+        kind,
+        prompt: promptPreview,
+        brand, goal, tone, constraints, cta, hashtags,
+      };
+      if (selectedArticle?.title) {
+        payload.news = {
+          title: selectedArticle.title,
+          url: selectedArticle.url,
+          source: selectedArticle.source,
+          topic: selectedArticle.topic || activeTopic,
+        };
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setStatus(json?.error || "Erreur lors de la génération.");
+        return;
+      }
+
+      // Si l'API retourne déjà une URL directe
+      const out = extractPreviewUrl(json);
+      if (out.url) {
+        setPreviewUrl(out.url);
+        if (out.kind) setPreviewKind(out.kind);
+        setProgress(100);
+        setStatus("Génération terminée.");
+        return;
+      }
+
+      // Sinon: job asynchrone
+      if (json?.jobId) {
+        const id: string = json.jobId;
+        setJobId(id);
+        setStatus(`Génération en cours… (#${id})`);
+        setProgress(5);
+
+        const tick = setInterval(async () => {
+          try {
+            const r = await fetch(`/api/generate/status?jobId=${encodeURIComponent(id)}`, { cache: "no-store" });
+            const s = await r.json().catch(() => ({}));
+            if (s?.status === "running" || s?.status === "queued") {
+              setProgress((p) => (p < 92 ? p + 6 : 92));
+            } else if (s?.status === "done") {
+              setProgress(100);
+              clearInterval(tick);
+              progressRef.current = null;
+              const prevUrl = `/api/preview?jobId=${encodeURIComponent(id)}&t=${Date.now()}`;
+              setPreviewUrl(prevUrl);
+              setStatus("Génération terminée.");
+            } else if (s?.status === "error") {
+              clearInterval(tick);
+              progressRef.current = null;
+              setStatus(s?.error || "Erreur pendant la génération.");
+            }
+          } catch {
+            // en cas de micro-coupure réseau: on laisse tourner
+          }
+        }, 1200);
+        progressRef.current = tick;
+      } else {
+        setStatus("Génération demandée (pas de lien direct renvoyé).");
+      }
+    } catch (e: any) {
+      setStatus(String(e?.message || e) || "Erreur inconnue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Nettoyage intervalle à l’unmount
+  useEffect(() => {
+    return () => { if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; } };
+  }, []);
+
+  return (
+    <div className="mx-auto max-w-[1400px]">
+      {/* Filtres / recherche */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {/* Catégories (pills + select pour accessibilité) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {TOPICS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => { setActiveTopic(t.key); setLimit(9); setSelectedId(null); }}
+              className={clsx(
+                "rounded-full px-3 py-1 text-sm border",
+                activeTopic === t.key ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sélecteurs déroulants */}
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            className="h-9 rounded-md border px-3 text-sm"
+            value={activeTopic}
+            onChange={(e) => { setActiveTopic(e.target.value); setLimit(9); setSelectedId(null); }}
+          >
+            {TOPICS.map((t) => (
+              <option key={t.key} value={t.key}>{t.label}</option>
+            ))}
+          </select>
+
+          <select
+            className="h-9 rounded-md border px-3 text-sm"
+            value={timeframe}
+            onChange={(e) => { setTimeframe(e.target.value); setLimit(9); setSelectedId(null); }}
+          >
+            {TF_OPTS.map(tf => (
+              <option key={tf.key} value={tf.key}>{tf.label}</option>
+            ))}
+          </select>
+
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Rechercher…"
+            className="h-9 w-64 rounded-md border px-3 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* grille + panneau de droite */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Cartes actualités */}
+        <div className="lg:col-span-8 xl:col-span-9">
+          {loading ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">Chargement…</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">Aucune actualité trouvée.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {items.slice(0, limit).map((it) => {
+                  const selected = selectedId === it.id;
+                  return (
+                    <article
+                      key={it.id}
+                      onClick={() => setSelectedId(it.id)}
+                      className={clsx(
+                        "cursor-pointer rounded-lg border bg-white shadow-sm transition hover:shadow-md",
+                        selected && "ring-2 ring-black"
+                      )}
+                    >
+                      <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-neutral-100">
+                        <CardImage item={it} />
+                      </div>
+
+                      <div className="p-4">
+                        <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
+                          <span className="truncate">{it.source || "—"}</span>
+                          <span className="inline-flex items-center gap-1">
+                            {typeof it.score === "number" && (
+                              <span className="rounded bg-neutral-100 px-2 py-0.5 text-[11px]">{it.score}</span>
+                            )}
+                            {it.hot && (
+                              <span className="rounded bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">hot</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <h3 className="mb-2 line-clamp-3 text-sm font-medium">{it.title || "Sans titre"}</h3>
+
+                        {it.snippet && (
+                          <p className="mb-3 line-clamp-3 text-xs text-neutral-600">{it.snippet}</p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <a
+                            href={it.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-neutral-600 underline hover:text-black"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Voir la source
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedId(it.id); }}
+                            className={clsx(
+                              "rounded-md px-3 py-1 text-xs",
+                              selected ? "bg-black text-white" : "bg-neutral-900 text-white hover:bg-neutral-800"
+                            )}
+                          >
+                            {selected ? "Sélectionnée" : "Utiliser cette actu"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {limit < items.length && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setLimit((l) => Math.min(l + 3, items.length))}
+                    className="inline-flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100"
+                  >
+                    + 3 actus
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panneau de droite */}
+        <aside className="lg:col-span-4 xl:col-span-3">
+          <div className="sticky top-4 space-y-4">
+            <div className="rounded-lg border-2 border-dashed p-4">
+              <h4 className="mb-3 font-medium">Sélectionner un logo</h4>
+              <input type="file" className="text-sm" />
+            </div>
+
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Assistant de prompt</h4>
+              {selectedArticle ? (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  <div className="mb-1 font-medium text-neutral-800">Actualité sélectionnée</div>
+                  <div className="line-clamp-2">{selectedArticle.title}</div>
+                  <div className="mt-1 truncate opacity-70">{selectedArticle.source || "—"} — {selectedArticle.url}</div>
+                </div>
+              ) : (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  Aucune actualité sélectionnée — vous pouvez générer sans, mais la sortie sera moins précise.
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <input placeholder="Marque / Produit" className="w-full rounded-md border px-3 py-2 text-sm" value={brand} onChange={(e) => setBrand(e.target.value)} />
+                <textarea placeholder="Objectif (trafic, conversion…)" className="w-full rounded-md border px-3 py-2 text-sm" rows={3} value={goal} onChange={(e) => setGoal(e.target.value)} />
+                <input placeholder="Tonalité / Style" className="w-full rounded-md border px-3 py-2 text-sm" value={tone} onChange={(e) => setTone(e.target.value)} />
+                <input placeholder="Couleurs / Contraintes" className="w-full rounded-md border px-3 py-2 text-sm" value={constraints} onChange={(e) => setConstraints(e.target.value)} />
+                <input placeholder="Call to Action" className="w-full rounded-md border px-3 py-2 text-sm" value={cta} onChange={(e) => setCta(e.target.value)} />
+                <input placeholder="Hashtags" className="w-full rounded-md border px-3 py-2 text-sm" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={() => handleGenerate("image")}
+                  disabled={busyImg}
+                  className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-50"
+                >
+                  {busyImg ? "Génération…" : "Générer une image"}
+                </button>
+                <button
+                  onClick={() => handleGenerate("video")}
+                  disabled={busyVid}
+                  className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50"
+                >
+                  {busyVid ? "Génération…" : "Générer une vidéo"}
+                </button>
+              </div>
+
+              {/* Barre de progression avec pourcentage */}
+              {( (busyImg || busyVid) || (!!jobId && !previewUrl) ) && (
+                <div className="mt-3">
+                  <InlineProgress value={progress} label={`Génération ${progress}%`} />
+                </div>
+              )}
+
+              {/* Statut brut (utile si erreur API) */}
+              {status && (
+                <div className="mt-3 rounded-md border bg-neutral-50 p-2 text-xs text-neutral-700 break-all">
+                  {status}
+                </div>
+              )}
+            </div>
+
+            {/* APERÇU : non rogné */}
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Aperçu du rendu</h4>
+              {!previewUrl ? (
+                <div className="flex h-64 items-center justify-center rounded-md bg-neutral-50 text-xs text-neutral-500">
+                  L’aperçu apparaîtra ici.
+                </div>
+              ) : previewKind === "video" ? (
+                <video className="h-64 w-full rounded-md border bg-black" src={previewUrl} controls playsInline />
+              ) : (
+                <img className="h-64 w-full rounded-md border object-contain bg-white" src={previewUrl} alt="aperçu génération" />
+              )}
+              {previewUrl && (
+                <div className="mt-2 text-right">
+                  <a href={previewUrl} target="_blank" rel="noreferrer" className="text-sm underline">
+                    Ouvrir l’asset
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/** Image de carte robuste (pas de next/image pour éviter le whitelist host) */
+function CardImage({ item }: { item: NewsItem }) {
+  const [err, setErr] = useState(false);
+
+  const isBadThumb = useMemo(() => {
+    const h = (item.thumbnailUrl || "").toLowerCase();
+    if (!h) return true;
+    if (h.includes("news.google") || h.includes("encrypted-tbn")) return true;
+    return false;
+  }, [item.thumbnailUrl]);
+
+  const src =
+    !err && !isBadThumb && item.thumbnailUrl
+      ? item.thumbnailUrl!
+      : !err && item.url
+      ? `/api/og?url=${encodeURIComponent(item.url)}`
+      : "";
+
+  if (!src || err) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-[11px] text-neutral-500">
+        Aperçu indisponible
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={item.title || "aperçu"}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      onError={() => setErr(true)}
+    />
+  );
+}

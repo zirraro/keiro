@@ -1,0 +1,32 @@
+import { seedreamEdit } from '@/app/lib/seedream';
+export const runtime = 'nodejs';
+
+export async function POST(req: Request){
+  try{
+    const body = await req.json();
+    const source = body?.source;   // URL ou dataURL de l’image à éditer
+    const edits  = body?.edits;    // structure d’édition (texte, inpainting, resize, etc.)
+    if (!source) return new Response(JSON.stringify({ error: 'missing source' }), { status: 400 });
+
+    const payload = { source, edits };
+    const out = await seedreamEdit(payload, 45000);
+
+    const url =
+      out?.data?.[0]?.url ||
+      out?.image_url ||
+      out?.url ||
+      out?.result?.url ||
+      out?.images?.[0]?.url ||
+      out?.data_url;
+
+    if (!url) {
+      return new Response(JSON.stringify({ error: 'no_image_url', raw: out }), { status: 502 });
+    }
+
+    return new Response(JSON.stringify({ url }), {
+      headers: { 'content-type': 'application/json' }
+    });
+  }catch(e:any){
+    return new Response(JSON.stringify({ error: 'network_error', message: e?.message || String(e) }), { status: 502 });
+  }
+}

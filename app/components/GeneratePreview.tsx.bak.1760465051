@@ -1,0 +1,103 @@
+'use client';
+import React from 'react';
+
+export default function GeneratePreview({ selected }: { selected?: any }) {
+  // Pré-remplir avec l’actu (titre -> fallback description)
+  const baseFromNews = selected?.title || selected?.description || '';
+  const [prompt, setPrompt] = React.useState<string>(
+    baseFromNews ? `Illustration éditoriale pour: ${baseFromNews}` : 'Créer une image'
+  );
+  React.useEffect(() => {
+    if (baseFromNews) setPrompt(`Illustration éditoriale pour: ${baseFromNews}`);
+  }, [baseFromNews]);
+
+  const [size, setSize] = React.useState<string>('1024x1024');
+  const [guidance, setGuidance] = React.useState<number>(3);
+  const [watermark, setWatermark] = React.useState<boolean>(false);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string>();
+  const [url, setUrl] = React.useState<string>();
+
+  const doGenerate = async () => {
+    setError(undefined); setLoading(true); setUrl(undefined);
+    try{
+      const res = await fetch('/api/ark/generate', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          prompt, size,
+          guidance_scale: guidance,
+          watermark,
+          response_format: 'url'
+        })
+      });
+      const data = await res.json();
+      if(!res.ok || !data?.url){
+        setError((data?.error || 'ark_error') + (data?.status ? ` (${data.status})` : '') + (data?.message ? `: ${data.message}` : ''));
+      } else {
+        setUrl(data.url);
+      }
+    }catch(e:any){
+      setError(String(e?.message || e));
+    }finally{
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-medium">Génération & édition Seedream</h4>
+      </div>
+
+      <div className="space-y-3">
+        <textarea
+          className="w-full border rounded px-3 py-2 h-24"
+          value={prompt}
+          onChange={e=>setPrompt(e.target.value)}
+          placeholder="Décris l'image à générer…"
+        />
+        <div className="flex gap-3 flex-wrap">
+          <select className="border rounded px-2 py-2" value={size} onChange={e=>setSize(e.target.value)}>
+            <option>1024x1024</option>
+            <option>768x768</option>
+            <option>512x512</option>
+          </select>
+          <label className="flex items-center gap-2">
+            <span>Guidance</span>
+            <input type="number" step="0.5" min="0" max="20"
+                   className="border rounded px-2 py-1 w-24"
+                   value={guidance} onChange={e=>setGuidance(Number(e.target.value))}/>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={watermark} onChange={e=>setWatermark(e.target.checked)}/>
+            Watermark
+          </label>
+        </div>
+
+        <button
+          onClick={doGenerate}
+          disabled={loading}
+          className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
+        >
+          {loading ? 'Génération…' : 'Générer l’image'}
+        </button>
+
+        {error && <div className="text-sm text-red-600">Erreur : {error}</div>}
+
+        {url && (
+          <div className="mt-3">
+            <img src={url} alt="Aperçu généré"
+                 className="w-full h-[220px] object-cover rounded-md border border-neutral-200 bg-neutral-100" />
+            <a
+              href={`/editor?image=${encodeURIComponent(url)}`}
+              className="mt-2 inline-flex items-center px-3 py-2 rounded border bg-white hover:bg-neutral-50"
+            >
+              Éditer
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,127 @@
+"use client";
+import React from "react";
+import * as ButtonMod from "@/components/ui/button";
+import * as CardMod from "@/components/ui/card";
+import * as InputMod from "@/components/ui/input";
+import * as TextareaMod from "@/components/ui/textarea";
+import * as LabelMod from "@/components/ui/label";
+import * as SelectMod from "@/components/ui/select";
+
+const Button   = (ButtonMod as any).Button   || (ButtonMod as any).default;
+const Card     = (CardMod as any).Card       || (CardMod as any).default;
+const CardHeader  = (CardMod as any).CardHeader  || (CardMod as any).default?.Header  || ((p:any)=> <div {...p} />);
+const CardTitle   = (CardMod as any).CardTitle   || (CardMod as any).default?.Title   || ((p:any)=> <div {...p} />);
+const CardContent = (CardMod as any).CardContent || (CardMod as any).default?.Content || ((p:any)=> <div {...p} />);
+const CardFooter  = (CardMod as any).CardFooter  || (CardMod as any).default?.Footer  || ((p:any)=> <div {...p} />);
+const Input    = (InputMod as any).Input     || (InputMod as any).default;
+const Textarea = (TextareaMod as any).Textarea|| (TextareaMod as any).default;
+const Label    = (LabelMod as any).Label     || (LabelMod as any).default;
+// shadcn Select a souvent des sous-composants ; fallback simple si absent
+const Select        = (SelectMod as any).Select        || (SelectMod as any).default || ((p:any)=> <select {...p} />);
+const SelectTrigger = (SelectMod as any).SelectTrigger || ((p:any)=> <div {...p} />);
+const SelectContent = (SelectMod as any).SelectContent || ((p:any)=> <div {...p} />);
+const SelectItem    = (SelectMod as any).SelectItem    || ((p:any)=> <option {...p} />);
+
+export default function GenerateRight() {
+  const [brand, setBrand] = React.useState("");
+  const [goal, setGoal] = React.useState("");
+  const [tone, setTone] = React.useState("premium");
+  const [colors, setColors] = React.useState("");
+  const [cta, setCta] = React.useState("");
+  const [hashtags, setHashtags] = React.useState("");
+  const [logoName, setLogoName] = React.useState<string>("");
+
+  const prompt = React.useMemo(() => {
+    const parts = [
+      goal && `Objectif: ${goal}`,
+      brand && `Marque/Produit: ${brand}`,
+      tone && `Style/Tonalité: ${tone}`,
+      colors && `Couleurs: ${colors}`,
+      cta && `CTA: ${cta}`,
+      hashtags && `Hashtags: ${hashtags}`,
+      logoName && `Logo: ${logoName} (fournir une zone pour l'intégration)`,
+      "Sortie attendue: visuel social percutant, prêt à poster.",
+    ].filter(Boolean);
+    return parts.join("\n");
+  }, [brand, goal, tone, colors, cta, hashtags, logoName]);
+
+  const copyPrompt = async () => {
+    try { await navigator.clipboard.writeText(prompt); alert("✅ Prompt copié"); }
+    catch { console.log(prompt); }
+  };
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setLogoName(f ? f.name : "");
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="p-4">
+          <CardTitle className="text-sm font-semibold">Sélectionner un logo</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={onFile}
+            className="block w-full text-xs file:mr-3 file:rounded-md file:border file:bg-white file:px-3 file:py-2 file:text-xs file:hover:bg-gray-50"
+          />
+          {logoName && <div className="mt-2 text-[11px] text-gray-600">Choisi: {logoName}</div>}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="p-4">
+          <CardTitle className="text-sm font-semibold">Assistant de prompt</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 pt-0">
+          <div className="space-y-1.5">
+            <Label htmlFor="brand">Marque / Produit</Label>
+            <Input id="brand" value={brand} onChange={(e:any)=>setBrand(e.target.value)} placeholder="ex: Keiro / Keiro AI Studio" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="goal">Objectif</Label>
+            <Textarea id="goal" value={goal} onChange={(e:any)=>setGoal(e.target.value)} placeholder="ex: Annoncer une nouvelle fonctionnalité, attirer des leads…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Tonalité / Style</Label>
+            <Select value={tone} onChange={(e:any)=>setTone(e.target?.value ?? e)}>
+              <SelectTrigger />
+              <SelectContent>
+                <SelectItem value="premium">Premium / Luxe</SelectItem>
+                <SelectItem value="tech">Tech / Futuriste</SelectItem>
+                <SelectItem value="friendly">Amical / Léger</SelectItem>
+                <SelectItem value="corporate">Corporate</SelectItem>
+                <SelectItem value="sport">Sport / Énergique</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="colors">Couleurs / Contraintes</Label>
+            <Input id="colors" value={colors} onChange={(e:any)=>setColors(e.target.value)} placeholder="ex: Noir, or, #111, pas de fond blanc…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cta">Call to Action</Label>
+            <Input id="cta" value={cta} onChange={(e:any)=>setCta(e.target.value)} placeholder="ex: Découvrir, S'inscrire, Essayer maintenant…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="hashtags">Hashtags</Label>
+            <Input id="hashtags" value={hashtags} onChange={(e:any)=>setHashtags(e.target.value)} placeholder="ex: #AI #Marketing #Keiro" />
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Button onClick={copyPrompt}>Générer une image</Button>
+            <Button variant="outline" onClick={copyPrompt}>Générer une vidéo</Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Prompt final</Label>
+            <Textarea readOnly value={prompt} className="min-h-[120px]" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

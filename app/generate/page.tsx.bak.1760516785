@@ -1,0 +1,251 @@
+'use client';
+import React, { useEffect, useMemo, useState } from 'react';
+import LoadMoreGrid from '../components/LoadMoreGrid';
+import NewsGridWithLoadMore from '../components/NewsGridWithLoadMore';
+import CategorySelect from '../components/CategorySelect';
+import { CATEGORIES, type CleanCategory } from '../lib/newsCategories';
+import type { CleanCategory } from '../lib/newsCategories';
+import type { CleanCategory } from '../lib/newsCategories';
+import type { CleanCategory } from '../lib/newsCategories';
+import PromptAssistant from '../components/PromptAssistant';
+import GeneratePreview from '../components/GeneratePreview';
+
+type NewsItem = {
+  id?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  url?: string;
+  image?: string;
+  imageUrl?: string;
+  urlToImage?: string;
+  thumbnail?: string;
+  publishedAt?: string | number;
+};
+
+const WINDOWS = [
+  { label: '24h', value: '24h' as const },
+  { label: '7 jours', value: '7d' as const },
+];
+
+function cls(...a: (string | false | null | undefined)[]) {
+  return a.filter(Boolean).join(' ');
+}
+function pickImg(it: any): string | undefined {
+  const cands = [
+    it?.image, it?.imageUrl, it?.urlToImage, it?.thumbnail, it?.picture_url,
+    it?.enclosure?.url, it?.media?.[0]?.url,
+  ].filter(Boolean);
+  const ok = (s: string) => /^https?:\/\//i.test(s) || /^data:image\//i.test(s);
+  return (cands as string[]).find(ok);
+}
+
+export default function GeneratePage() {
+  const [categoryCat, setCategoryCat] = useState<string>('technology');
+const [period, setPeriod] = useState<'24h' | '7d'>('24h');
+const [limit, setLimit] = useState<number>(12);
+const [q, setQ] = useState<string>('');
+const [items, setItems] = useState<NewsItem[]>([]);
+const [loading, setLoading] = useState(false);
+  const [visible, setVisible] = React.useState(9);
+  
+const [selected, setSelected] = useState<NewsItem | undefined>();
+// Logo drag&drop
+  const [logoUrl, setLogoUrl] = useState<string | undefined>();
+function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (f) setLogoUrl(URL.createObjectURL(f));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const url = new URL('/api/news/search', window.location.origin);
+        url.searchParams.set('cat', categoryCat);
+        url.searchParams.set('timeframe', period);
+        url.searchParams.set('limit', String(limit));
+        if (q.trim()) url.searchParams.set('q', q.trim());
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const json = await res.json();
+        if (cancelled) return;
+        setItems(Array.isArray(json?.items) ? json.items : []);
+      } catch {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [categoryCat, period, limit, q]);
+
+  const listToShow = useMemo(() => items ?? [], [items]);
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-3">
+      const shown = Array.isArray(items) ? items.slice(0, visible) : [];
+
+<div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4">
+
+        {/* ============== COLONNE GAUCHE ============== */}
+        <section>
+          {/* Filtres */}
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <label className="text-sm">
+              <span className="mr-2 text-neutral-600">Catégorie</span>
+              <select
+                value={categoryCat}
+                onChange={e => setCategoryCat(e.target.value)}
+                className="rounded-md border border-neutral-300 bg-white px-2 py-1"
+              >
+                {CATEGORIES.slice(0,9).map(c => (
+                  <option key={c.label} value={c.cat}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="inline-flex rounded-md border border-neutral-300 overflow-hidden">
+              {WINDOWS.slice(0,9).map(w => (
+                <button
+                  key={w.value}
+                  onClick={() => setPeriod(w.value)}
+                  className={cls(
+                    "px-3 py-1 text-sm",
+                    period === w.value ? "bg-black text-white" : "bg-white hover:bg-neutral-100"
+                  )}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="text"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Rechercher une actu…"
+              className="w-[220px] rounded-md border border-neutral-300 px-3 py-1 text-sm"
+            />
+
+            <label className="text-sm ml-auto"></label>
+          </div>
+
+          {/* Grille 3 colonnes */}
+          {loading ? (
+            <div className="text-sm text-neutral-500">Chargement…</div>
+          ) : listToShow.length === 0 ? (
+            <div className="text-sm text-neutral-500">Aucune actu pour ces filtres.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {listToShow.slice(0,9).map((it, i) => {
+                const img = pickImg(it);
+                const imgSrc = img ? `/api/img?u=${encodeURIComponent(img)}` : undefined;
+                const isSel = selected?.url && it.url && selected.url === it.url;
+                return (
+                  <article
+                    key={(it.id || it.url || i) as any}
+                    onClick={() => setSelected(it)}
+                    className={cls(
+                      "cursor-pointer rounded-xl border border-neutral-200 bg-white overflow-hidden transition",
+                      isSel ? "ring-2 ring-black" : "hover:shadow-md"
+                    )}
+                  >
+                    <div className="w-full h-[180px] bg-neutral-100">
+                      {imgSrc ? (
+                        <img
+                          src={imgSrc}
+                          alt={it.title || "aperçu"}
+                          className="w-full h-[180px] object-cover"
+                          loading="lazy"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <div className="w-full h-[180px] flex items-center justify-center text-neutral-400 text-sm">
+                          Aperçu indisponible
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3">
+                      <div className="text-[12px] text-neutral-500 flex items-center justify-between mb-1">
+                        <span>{it.source || ''}</span>
+                        <span>
+                          {it.publishedAt ? new Date(String(it.publishedAt)).toLocaleString() : ''}
+                        </span>
+                      </div>
+                      <h3 className="font-medium leading-snug line-clamp-2 mb-2">{it.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={it.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e)=>e.stopPropagation()}
+                          className="px-2.5 py-1.5 rounded-md border border-neutral-300 text-[13px] hover:bg-neutral-50"
+                        >Voir la source</a>
+                        <button
+                          onClick={(e)=>{ e.stopPropagation(); setSelected(it); }}
+                          className={cls(
+                            "px-2.5 py-1.5 rounded-md text-[13px]",
+                            isSel ? "bg-black text-white" : "bg-neutral-900 text-white hover:opacity-90"
+                          )}
+                        >Utiliser cette actu</button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* ============== COLONNE DROITE (logo + assistants) ============== */}
+        <aside className="lg:sticky lg:top-20 h-fit">
+          {/* Logo drag&drop (séparé, pointillés) */}
+          <div
+            className="rounded-2xl border border-dashed border-neutral-300 p-4 bg-white mb-4"
+            onDragOver={(e)=>{e.preventDefault();}}
+            onDrop={onDrop}
+          >
+            <h4 className="font-medium mb-2">Insérer un logo</h4>
+            <div
+              className="rounded-md border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500"
+            >
+              {logoUrl ? (
+                <div className="flex flex-col items-center gap-2">
+                  <img src={logoUrl} alt="logo" className="max-h-20 object-contain" />
+                  <button className="text-xs underline" onClick={()=>setLogoUrl(undefined)}>Retirer</button>
+                </div>
+              ) : (
+                <>
+                  Glisser-déposer un fichier ou cliquer pour choisir
+                  <input
+                    type="file" accept="image/*" className="hidden"
+                    onChange={(e)=>{ const f=e.target.files?.[0]; if(f) setLogoUrl(URL.createObjectURL(f)); }}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          <PromptAssistant selected={selected} />
+
+          
+  <GeneratePreview selected={(typeof selected!=='undefined'? (selected as any): undefined)} />
+    </aside>
+      </div>
+    {Array.isArray(items) && items.length > visible ? (
+  <div className="mt-3 mb-3 flex justify-center">
+    <button
+      onClick={() => setVisible(v => Math.min(v + 3, items.length))}
+      className="px-3 py-1.5 rounded border border-neutral-300 bg-white hover:bg-neutral-50 text-sm"
+      aria-label="Afficher 3 actus de plus"
+    >
+      +3 actus
+    </button>
+  </div>
+) : null}
+</main>
+  );
+}

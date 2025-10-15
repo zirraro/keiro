@@ -1,0 +1,71 @@
+import { NextResponse } from 'next/server';
+export const runtime = 'nodejs';
+
+function env(n: string, d = '') { return (process.env as any)[n] ?? d; }
+
+export async function POST(req: Request) {
+  const ARK_BASE       = env('ARK_BASE', 'https://ark.ap-southeast-1.bytepluses.com');
+  const ARK_API_KEY    = env('ARK_API_KEY', '');
+  const ARK_EDIT_MODEL = env('ARK_EDIT_MODEL', 'seededit-3-0-i2i-250628');
+
+  if (!ARK_API_KEY) return NextResponse.json({ error: 'missing_key' }, { status: 400 });
+
+  let body: any = {};
+  try { body = await req.json(); } catch {}
+
+  const {
+    prompt,
+    image,                 // URL publique de la source
+    response_format = 'url',
+    size = 'adaptive',
+    seed,
+    guidance_scale,
+    watermark = false,
+    image_strength,        // fidélité
+    negative_prompt,
+    maskDataUrl            // 👈 base64 "data:image/png;base64,..."
+  } = body || {};
+
+  if (!image)  return NextResponse.json({ error: 'missing_image',  message: 'image URL required' }, { status: 400 });
+  if (!prompt) return NextResponse.json({ error: 'missing_prompt', message: 'prompt required' }, { status: 400 });
+
+  const payload: any = {
+    model: ARK_EDIT_MODEL,
+    prompt,
+    image,
+    response_format,
+    size,
+    seed: typeof seed === 'number' ? seed : undefined,
+    guidance_scale: typeof guidance_scale === 'number' ? guidance_scale : undefined,
+    watermark: !!watermark,
+    image_strength: typeof image_strength === 'number' ? image_strength : undefined,
+    negative_prompt: typeof negative_prompt === 'string'
+      ? negative_prompt
+      : 'do not change composition, subject, camera, pose, background; no new objects; no reframing'
+  };
+
+  if (typeof maskDataUrl === 'string' && maskDataUrl.startsWith('data:image/')) {
+    // Ark accepte un mask en image base64 (fond noir, zones blanches à modifier)
+    payload.mask = maskDataUrl;
+  }
+
+  try {
+    const res = await fetch(`${ARK_BASE}/api/v3/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ARK_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return NextResponse.json({ error: 'ark_error', status: res.status, body: data }, { status: res.status });
+    }
+    const url = data?.data?.[0]?.url || null;
+    return NextResponse.json({ url, raw: data, sent: { hasMask: !!payload.mask } });
+  } catch (e: any) {
+    return NextResponse.json({ error: 'network_error', message: String(e?.message || e), _ctx: { base: ARK_BASE } }, { status: 500 });
+  }
+}

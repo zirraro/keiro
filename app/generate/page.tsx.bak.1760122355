@@ -1,0 +1,342 @@
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+import cls from "clsx";
+
+type NewsItem = {
+  id?: string;
+  title?: string;
+  description?: string;
+  url?: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+const UI_CATEGORIES: { label: string; value: string; slug: string }[] = [
+  { label: "Hooks viraux", value: "hooks", slug: "technology" }, // provisoire: route vers technology
+  { label: "IA & Tech grand public", value: "technology", slug: "technology" },
+  { label: "Business", value: "business", slug: "business" },
+  { label: "Finance", value: "finance", slug: "finance" },
+  { label: "Sports", value: "sports", slug: "sports" },
+  { label: "Gaming", value: "gaming", slug: "gaming" },
+  { label: "Culture", value: "culture", slug: "culture" },
+  { label: "Food", value: "food", slug: "food" },
+  { label: "Lifestyle", value: "lifestyle", slug: "lifestyle" },
+  { label: "Santé", value: "sante", slug: "sante" },
+  { label: "Auto", value: "auto", slug: "auto" },
+  { label: "Climat", value: "climat", slug: "climat" },
+  { label: "Immo", value: "immo", slug: "immo" },
+  { label: "Monde", value: "world", slug: "world" },
+];
+
+// requêtes de pertinence demandées (documentées ici; côté API on utilise les slugs)
+export const CATEGORY_QUERY_HINTS: Record<string, string> = {
+  technology:
+    '("intelligence artificielle" OR IA OR AI OR "Nvidia" OR "OpenAI" OR Google OR Meta OR xAI)',
+  business:
+    '(entreprise OR startup OR dirigeants OR "résultats trimestriels" OR partenariat OR acquisition OR levée OR investissement)',
+  finance:
+    '(bourse OR marchés OR obligations OR "banque centrale" OR inflation OR "taux" OR CAC OR Nasdaq OR S&P)',
+  sports:
+    '(match OR victoire OR transfert OR finale OR championnat OR entraîneur OR sélection)',
+  gaming:
+    '(jeu vidéo OR "mise à jour" OR patch OR studio OR éditeur OR PlayStation OR Xbox OR Nintendo OR Steam)',
+  culture:
+    '(cinéma OR série OR musique OR festival OR "bande-annonce" OR Netflix OR Disney+ OR "Prime Video")',
+  food:
+    '(restaurant OR livraison OR recette OR nutrition OR franchise OR menu OR chef)',
+  lifestyle:
+    '(voyage OR tourisme OR mode OR "bien-vivre" OR hôtel OR design)',
+  sante:
+    '(santé OR étude OR OMS OR traitement OR prévention OR hôpital OR clinique)',
+  auto:
+    '(voiture électrique OR Tesla OR batterie OR "bornes de recharge" OR constructeur)',
+  climat:
+    '(climat OR "énergies renouvelables" OR neutralité carbone OR COP OR solaire OR éolien)',
+  immo:
+    '(immobilier OR logement OR chantier OR promoteur OR bureau OR "prix au m²")',
+  world: "(géopolitique OR diplomatie OR élection OR conflit OR ONU OR UE)",
+};
+
+function keyOf(it: NewsItem, i: number) {
+  return (it.id || it.url || it.title || String(i)) as React.Key;
+}
+
+export default function GeneratePage() {
+  // État UI
+  const [category, setCategory] = useState<string>("technology"); // valeur = slug interne
+  const [period, setPeriod] = useState<"24h" | "7d">("24h");
+  const [limit, setLimit] = useState<number>(12);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selected, setSelected] = useState<NewsItem | null>(null);
+
+  // Formulaire de génération (à droite)
+  const [brand, setBrand] = useState<string>("");
+  const [goal, setGoal] = useState<string>("notoriété");
+  const [tone, setTone] = useState<string>("moderne");
+  const [constraints, setConstraints] = useState<string>("couleurs brand");
+  const [cta, setCta] = useState<string>("Découvrir");
+  const [hashtags, setHashtags] = useState<string>("#AI #Keiro");
+
+  // Charge les news quand catégorie/période changent
+  useEffect(() => {
+    const abort = new AbortController();
+    const run = async () => {
+      setLoading(true);
+      setSelected(null);
+      try {
+        const url = `/api/news/search?cat=${encodeURIComponent(
+          category
+        )}&timeframe=${encodeURIComponent(period)}&limit=${limit}`;
+        const r = await fetch(url, { signal: abort.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        const list = Array.isArray(j?.items) ? (j.items as NewsItem[]) : [];
+        setItems(list);
+      } catch (e) {
+        console.error("news fetch error:", e);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+    return () => abort.abort();
+  }, [category, period, limit]);
+
+  // Aperçu du prompt
+  const preview = useMemo(() => {
+    const catLabel =
+      UI_CATEGORIES.find((c) => c.slug === category)?.label || "Catégorie";
+    const lines = [
+      `Marque: ${brand || "Ma marque"}`,
+      `Objectif: ${goal}`,
+      `Tonalité: ${tone}`,
+      `Contraintes: ${constraints}`,
+      `CTA: ${cta}`,
+      `Hashtags: ${hashtags}`,
+      selected
+        ? `Actu: ${selected.title} — ${selected.source || ""} (${selected.url || ""})`
+        : `Actu: (non sélectionnée)`,
+      `Catégorie: ${catLabel} (slug: ${category})`,
+      `Période: ${period}`,
+    ];
+    return lines.join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, selected, category, period]);
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <h1 className="text-xl font-semibold mb-2">KeiroAI — Actu → Cartes → Génération</h1>
+
+      {/* Barre de filtres haut */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-neutral-600">Catégorie</span>
+          <select
+            className="border rounded-md px-2 py-1 text-sm"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            {UI_CATEGORIES.map((opt) => (
+              <option key={opt.value} value={opt.slug}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-neutral-600">Période</span>
+          <div className="flex gap-2">
+            <button
+              className={cls(
+                "px-3 py-1 rounded-md text-sm",
+                period === "24h" ? "bg-black text-white" : "bg-neutral-100 hover:bg-neutral-200"
+              )}
+              onClick={() => setPeriod("24h")}
+            >
+              24h
+            </button>
+            <button
+              className={cls(
+                "px-3 py-1 rounded-md text-sm",
+                period === "7d" ? "bg-black text-white" : "bg-neutral-100 hover:bg-neutral-200"
+              )}
+              onClick={() => setPeriod("7d")}
+            >
+              7 jours
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-neutral-600">Nombre</span>
+          <select
+            className="border rounded-md px-2 py-1 text-sm"
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+          >
+            {[6, 8, 10, 12, 15].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Colonne gauche : cartes d'actualités */}
+        <div>
+          {loading && (
+            <div className="text-sm text-neutral-500 mb-2">Chargement…</div>
+          )}
+          {!loading && items.length === 0 && (
+            <div className="text-sm text-neutral-500 border rounded-md p-3">
+              Aucune actualité pertinente pour cette catégorie / période.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {items.map((it, i) => (
+              <article
+                key={keyOf(it, i)}
+                className={cls(
+                  "rounded-xl border border-neutral-200 bg-white overflow-hidden transition",
+                  selected?.url === it.url ? "ring-2 ring-black" : "hover:shadow-md"
+                )}
+              >
+                {it.image && (
+                  <a href={it.url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={it.image}
+                      alt={it.title || ""}
+                      className="w-full h-40 object-cover"
+                    />
+                  </a>
+                )}
+                <div className="p-3">
+                  <div className="text-xs text-neutral-500 mb-1">
+                    {it.source || "Source inconnue"}{" "}
+                    {it.publishedAt ? "• " + new Date(it.publishedAt).toLocaleString() : ""}
+                  </div>
+                  <a
+                    href={it.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium leading-snug hover:underline"
+                  >
+                    {it.title}
+                  </a>
+                  {it.description && (
+                    <p className="text-sm text-neutral-600 mt-1 line-clamp-3">
+                      {it.description}
+                    </p>
+                  )}
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <a
+                      href={it.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-md border border-neutral-300 text-sm hover:bg-neutral-50"
+                    >
+                      Voir la source
+                    </a>
+                    <button
+                      onClick={() => setSelected(it)}
+                      className={cls(
+                        "px-3 py-1.5 rounded-md text-sm",
+                        selected?.url === it.url
+                          ? "bg-black text-white"
+                          : "bg-neutral-900 text-white hover:opacity-90"
+                      )}
+                    >
+                      Utiliser cette actu
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        {/* Colonne droite : options + aperçu */}
+        <div>
+          <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+            <h3 className="font-semibold mb-3">Options de génération</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-sm text-neutral-600">Marque</label>
+                <input
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="Ma marque"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-neutral-600">Objectif</label>
+                  <input
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    placeholder="notoriété"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-neutral-600">Tonalité</label>
+                  <input
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    placeholder="moderne"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-neutral-600">Contraintes</label>
+                <input
+                  className="w-full border rounded-md px-3 py-2 text-sm"
+                  value={constraints}
+                  onChange={(e) => setConstraints(e.target.value)}
+                  placeholder="couleurs brand"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-neutral-600">CTA</label>
+                  <input
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={cta}
+                    onChange={(e) => setCta(e.target.value)}
+                    placeholder="Découvrir"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-neutral-600">Hashtags</label>
+                  <input
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                    value={hashtags}
+                    onChange={(e) => setHashtags(e.target.value)}
+                    placeholder="#AI #Keiro"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <h3 className="font-semibold mt-4 mb-2">Aperçu du prompt</h3>
+            <textarea
+              className="w-full border rounded-md p-3 text-sm font-mono h-40"
+              readOnly
+              value={preview}
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

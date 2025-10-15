@@ -1,0 +1,129 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { NewsCard, type NewsItem } from "@/components/news-card";
+import { PromptSidebar } from "@/components/prompt-sidebar";
+
+const TOPICS = [
+  { key: "business", label: "business" },
+  { key: "technology", label: "technology" },
+  { key: "science", label: "science" },
+  { key: "world", label: "world" },
+  { key: "health", label: "health" },
+  { key: "sports", label: "sports" },
+];
+
+export default function GeneratePage() {
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
+
+  // 👉 9 visibles au départ
+  const [visible, setVisible] = useState(9);
+
+  async function load(params: { topic?: string; q?: string } = {}) {
+    setLoading(true);
+    try {
+      const sp = new URLSearchParams();
+      if (params.topic) sp.set("topic", params.topic);
+      if (params.q) sp.set("q", params.q);
+      const r = await fetch(`/api/news${sp.toString() ? `?${sp}` : ""}`, { cache: "no-store" });
+      const json = await r.json();
+      const list = Array.isArray(json.items) ? json.items : [];
+      setItems(list);
+      // reset à 9 à chaque nouveau filtre
+      setVisible(9);
+    } catch {
+      setItems([]);
+      setVisible(9);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const onUse = (id: string) => {
+    const it = items.find(x=>x.id===id);
+    if (it) setSelectedTitle(it.title);
+  };
+
+  // reçoit maintenant aussi le type (image|video)
+  const onGenerate = (prompt: string, type: "image" | "video") => {
+    console.log("TYPE:", type);
+    console.log("PROMPT →\n", prompt);
+  };
+
+  const canLoadMore = items.length > visible;
+  const showMore = () => setVisible(v => Math.min(v + 3, items.length)); // 👉 +3
+
+  return (
+    <div className="mx-auto max-w-[1400px]">
+      <div className="flex">
+        {/* Colonne principale */}
+        <div className="flex-1 px-4 py-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {TOPICS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => { setActive(t.key); load({ topic: t.key }); }}
+                className={`h-8 rounded-md border px-3 text-[12px] ${
+                  active === t.key ? "bg-black text-white border-black" : "bg-white hover:bg-gray-50"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+
+            <form
+              className="ml-auto flex items-center gap-2"
+              onSubmit={(e) => { e.preventDefault(); setActive(null); load({ q }); }}
+            >
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Rechercher une actu…"
+                className="h-8 w-[220px] rounded-md border px-3 text-[12px] outline-none focus:ring-2 focus:ring-gray-200"
+              />
+              <button className="h-8 rounded-md border px-3 text-[12px] bg-gray-900 text-white hover:bg-gray-800">
+                Filtrer
+              </button>
+            </form>
+          </div>
+
+          <div className="mt-4">
+            {loading ? (
+              <div className="text-[12px] text-gray-600">Chargement des actualités…</div>
+            ) : items.length === 0 ? (
+              <div className="text-[12px] text-gray-600">Aucune actualité trouvée.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {items.slice(0, visible).map((it) => (
+                    <NewsCard key={it.id} item={it} onUse={onUse} />
+                  ))}
+                </div>
+
+                {canLoadMore && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={showMore}
+                      className="inline-flex items-center gap-2 rounded-md border px-3 h-9 text-[12px] bg-white hover:bg-gray-50"
+                    >
+                      <span className="text-lg leading-none">+</span> Afficher 3 actus de plus
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <PromptSidebar selectedNewsTitle={selectedTitle} onGenerate={onGenerate} />
+      </div>
+    </div>
+  );
+}

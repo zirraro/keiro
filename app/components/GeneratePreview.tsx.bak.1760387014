@@ -1,0 +1,186 @@
+'use client';
+import React, { useMemo, useState } from 'react';
+
+type NewsItem = {
+  title?: string;
+  description?: string;
+  source?: string;
+  url?: string;
+  image?: string;
+};
+
+export default function GeneratePreview({ selected }: { selected?: NewsItem }) {
+  const [size, setSize] = useState<'512x512'|'768x768'|'1024x1024'>('512x512');
+  const [emotion, setEmotion] = useState('enthousiaste');
+  const [cta, setCta] = useState('Découvrir notre offre');
+  const [brand, setBrand] = useState('');
+  const [target, setTarget] = useState('TPE/PME');
+  const [platform, setPlatform] = useState('Instagram');
+  const [tone, setTone] = useState('percutant et positif');
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string|undefined>();
+  const [debug, setDebug] = useState<any>();
+  const [imageUrl, setImageUrl] = useState<string|undefined>();
+
+  const basePrompt = useMemo(()=>{
+    const parts:string[] = [];
+    if (selected?.title) parts.push(`Actu: ${selected.title}`);
+    if (selected?.description) parts.push(`Détails: ${selected.description}`);
+    if (brand) parts.push(`Marque: ${brand}`);
+    parts.push(
+      `Cible: ${target}`,
+      `Plateforme: ${platform}`,
+      `Ton: ${tone}`,
+      `Émotion dominante: ${emotion}`,
+      `Inclure un call-to-action visuel: "${cta}"`,
+      `Style: marketing visuel, net, contrasté, lisible`
+    );
+    return parts.join('. ');
+  }, [selected, brand, target, platform, tone, emotion, cta]);
+
+  const doGenerate = async () => {
+    setError(undefined);
+    setDebug(undefined);
+    setLoading(true);
+    setImageUrl(undefined);
+    try {
+      const res = await fetch('/api/ark/generate', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ prompt: basePrompt, size })
+      });
+
+      const text = await res.text();
+      let data: any;
+      try { data = JSON.parse(text); } catch { data = text; }
+      setDebug(data);
+
+      if (!res.ok) {
+        const msg = typeof data === 'string' ? data : (data?.message || JSON.stringify(data));
+        throw new Error(msg || `HTTP ${res.status}`);
+      }
+
+      // Tolérant à plusieurs formats de réponse
+      const url =
+        data?.image_url ||
+        data?.url ||
+        data?.images?.[0]?.url ||
+        data?.data?.[0]?.url ||
+        (Array.isArray(data?.output) ? data.output[0] : undefined);
+
+      if (!url) {
+        throw new Error('Aucune URL image dans la réponse Seedream.');
+      }
+      setImageUrl(url);
+    } catch (e:any) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-medium">Génération basée sur l’actualité</h4>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-sm">
+            <div className="mb-1 text-neutral-600">Émotion</div>
+            <select className="w-full border rounded-md px-2 py-1.5" value={emotion} onChange={e=>setEmotion(e.target.value)}>
+              <option>enthousiaste</option>
+              <option>inspirant</option>
+              <option>urgent</option>
+              <option>confiant</option>
+              <option>étonnant</option>
+            </select>
+          </label>
+          <label className="text-sm">
+            <div className="mb-1 text-neutral-600">Taille</div>
+            <select className="w-full border rounded-md px-2 py-1.5" value={size} onChange={e=>setSize(e.target.value as any)}>
+              <option value="512x512">512×512</option>
+              <option value="768x768">768×768</option>
+              <option value="1024x1024">1024×1024</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="text-sm">
+          <div className="mb-1 text-neutral-600">Marque / Contexte</div>
+          <input className="w-full border rounded-md px-3 py-2" placeholder="Nom, valeurs, positionnement…" value={brand} onChange={e=>setBrand(e.target.value)} />
+        </label>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-sm">
+            <div className="mb-1 text-neutral-600">Cible</div>
+            <input className="w-full border rounded-md px-3 py-2" value={target} onChange={e=>setTarget(e.target.value)} />
+          </label>
+          <label className="text-sm">
+            <div className="mb-1 text-neutral-600">Plateforme</div>
+            <select className="w-full border rounded-md px-2 py-1.5" value={platform} onChange={e=>setPlatform(e.target.value)}>
+              <option>Instagram</option>
+              <option>Facebook</option>
+              <option>LinkedIn</option>
+              <option>X (Twitter)</option>
+              <option>TikTok</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="text-sm">
+          <div className="mb-1 text-neutral-600">Ton</div>
+          <input className="w-full border rounded-md px-3 py-2" value={tone} onChange={e=>setTone(e.target.value)} />
+        </label>
+
+        <label className="text-sm">
+          <div className="mb-1 text-neutral-600">Call to action</div>
+          <input className="w-full border rounded-md px-3 py-2" value={cta} onChange={e=>setCta(e.target.value)} />
+        </label>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={doGenerate}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-md text-sm bg-black text-white disabled:opacity-60"
+          >
+            {loading ? 'Génération…' : 'Générer l’image'}
+          </button>
+
+          {/* Afficher “Éditer” seulement si une image a été générée */}
+          {imageUrl && (
+            <a
+              href={`/editor?img=${encodeURIComponent(imageUrl)}`}
+              className="px-3 py-1.5 rounded-md text-sm border border-neutral-300 hover:bg-neutral-50"
+            >
+              Éditer
+            </a>
+          )}
+        </div>
+
+        {imageUrl && (
+          <div className="mt-3">
+            <img
+              src={imageUrl}
+              alt="Aperçu généré"
+              className="w-full h-[240px] object-cover rounded-md border border-neutral-200 bg-neutral-100"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        {error && (
+          <div className="text-sm text-red-600 whitespace-pre-wrap">Erreur : {error}</div>
+        )}
+        {debug && (
+          <details className="text-xs text-neutral-500">
+            <summary>Debug Seedream</summary>
+            <pre className="whitespace-pre-wrap break-words">{JSON.stringify(debug, null, 2)}</pre>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}

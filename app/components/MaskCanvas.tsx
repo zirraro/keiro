@@ -1,0 +1,93 @@
+'use client';
+import React from 'react';
+
+type Props = {
+  width: number;
+  height: number;
+  onChange?: (dataUrl: string) => void;
+  brush?: number;
+};
+
+export default function MaskCanvas({ width, height, onChange, brush = 24 }: Props) {
+  const ref = React.useRef<HTMLCanvasElement|null>(null);
+  const [brushSize, setBrushSize] = React.useState<number>(brush);
+  const [drawing, setDrawing] = React.useState(false);
+
+  // fond noir = conserver
+  React.useEffect(()=>{
+    const c = ref.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,c.width,c.height);
+  },[]);
+
+  const getPos = (e: React.MouseEvent<HTMLCanvasElement, MouseEvent>)=>{
+    const c = ref.current!;
+    const rect = c.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (c.width / rect.width);
+    const y = (e.clientY - rect.top)  * (c.height / rect.height);
+    return { x, y };
+  };
+
+  const start = (e: React.MouseEvent<HTMLCanvasElement>)=>{
+    setDrawing(true);
+    draw(e, true);
+  };
+  const end = ()=>{
+    setDrawing(false);
+    emit();
+  };
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>, force=false)=>{
+    if (!drawing && !force) return;
+    const c = ref.current!;
+    const ctx = c.getContext('2d')!;
+    const { x, y } = getPos(e);
+    ctx.fillStyle = '#fff'; // blanc = modifier
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize/2, 0, Math.PI*2);
+    ctx.fill();
+  };
+
+  const emit = ()=>{
+    const c = ref.current!;
+    onChange?.(c.toDataURL('image/png'));
+  };
+
+  const reset = ()=>{
+    const c = ref.current!;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,c.width,c.height);
+    emit();
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <label className="text-sm">Taille du pinceau</label>
+        <input
+          type="range"
+          min={6} max={96}
+          value={brushSize}
+          onChange={e=>setBrushSize(Number(e.target.value))}
+        />
+        <button type="button" onClick={reset} className="px-2 py-1 rounded border bg-white hover:bg-neutral-50 text-sm">
+          Réinitialiser le masque
+        </button>
+      </div>
+      <canvas
+        ref={ref}
+        width={width}
+        height={height}
+        className="w-full border rounded bg-neutral-900"
+        onMouseDown={start}
+        onMouseUp={end}
+        onMouseLeave={end}
+        onMouseMove={draw}
+      />
+      <p className="text-xs text-neutral-600">Peins en <b>blanc</b> les zones à modifier (fond noir = à conserver).</p>
+    </div>
+  );
+}

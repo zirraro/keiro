@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --border: 214.3 31.8% 91.4%; }
+* { border-color: hsl(var(--border)); }
+html,body{height:100%}
+@layer base{ body{@apply bg-white text-neutral-900 text-[13px] antialiased} input,select,button,textarea{@apply text-[12px]} }
+@layer components{ .dashed{@apply border border-dashed rounded-[10px]} .badge-chip{@apply bg-blue-50 text-blue-700 border border-blue-200 rounded-md px-1.5 h-5 text-[10px] leading-5} }
+/* keiro-generate-ui start */
+:root { --border: 214.3 31.8% 91.4%; }
+* { border-color: hsl(var(--border)); }
+html,body{height:100%}
+@layer base{
+  body{@apply bg-white text-neutral-900 text-[13px] antialiased}
+  input,select,button,textarea{@apply text-[12px]}
+}
+@layer components{
+  .badge-hot{ @apply bg-red-600 text-white rounded-[6px] h-5 px-1.5 text-[10px] leading-5; }
+  .badge-score{ @apply bg-gray-100 text-gray-700 border border-gray-300 rounded-[6px] h-5 px-1.5 text-[10px] leading-5; }
+  .dashed{ @apply border border-dashed rounded-[10px]; }
+}
+/* clamps utilitaires */
+.clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+/* keiro-generate-ui end */

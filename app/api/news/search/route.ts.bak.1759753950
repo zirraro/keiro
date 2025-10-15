@@ -1,0 +1,217 @@
+import { NextResponse, NextRequest } from "next/server";
+
+/** ---------- Types ---------- */
+type Item = {
+  id: string;
+  title: string;
+  source?: string;
+  url?: string;
+  link?: string;
+  thumbnailUrl?: string;
+  published?: string;
+  topic?: string;
+  _score?: number;
+};
+
+/** ---------- NewsData (externe) ---------- */
+const NEWSDATA_KEY =
+  process.env.NEWSDATA_API_KEY ||
+  process.env.NEWSDATA_KEY ||
+  process.env.NEWSDATA_TOKEN ||
+  "";
+
+/** ---------- Mots-clés pour scoring des news ---------- */
+const TOPIC_KEYWORDS: Record<string, string[]> = {
+  ai: ["intelligence artificielle","IA","LLM","GPT","OpenAI","Anthropic","DeepMind","copilote"],
+  technology: ["technologie","tech","app","smartphone","Apple","Google","Microsoft","cloud","cyber"],
+  business: ["économie","entreprise","startup","levée de fonds","acquisition","marché","e-commerce","SaaS"],
+  finance: ["bourse","CAC 40","actions","trading","banque","taux d'intérêt","épargne"],
+  crypto: ["bitcoin","ethereum","crypto","blockchain","web3","token","NFT"],
+  sports: ["sport","football","foot","rugby","tennis","basket","JO","olympique","PSG","Ligue 1"],
+  gaming: ["jeu vidéo","jeux vidéo","gaming","console","esport","PlayStation","Xbox","Nintendo","Steam"],
+  pop: ["people","célébrité","influenceur","cinéma","film","séries","musique","festival","TikTok","YouTube"],
+  food: ["restaurant","gastronomie","cuisine","chef","menu","brasserie","bistrot","fast-food","franchise"],
+  lifestyle: ["voyage","tourisme","hôtel","compagnie aérienne","mode","beauté","luxe"],
+  health: ["santé","bien-être","fitness","hôpital","maladie","vaccin","santé publique"],
+  auto: ["automobile","voiture","électrique","Tesla","véhicule","mobilité","SNCF","RATP"],
+  environment: ["environnement","écologie","climat","biodiversité","COP","pollution","canicule","inondation"],
+  realestate: ["immobilier","logement","loyer","construction","architecture","urbanisme"],
+  world: ["monde","international","France","gouvernement","élections","UE","USA","guerre"],
+};
+
+/** ---------- Bibliothèque de hooks viraux (locale) ---------- */
+const HOOK_PACK: Record<string, string[]> = {
+  curiosite: [
+    "Tu crois connaître {SUJET} ? Attends de voir ça…",
+    "La plupart se trompent sur {SUJET}. Voilà pourquoi.",
+    "Le détail que personne ne remarque en {SUJET}."
+  ],
+  autorite: [
+    "{SUJET} : 3 choses que je répète à tous mes clients.",
+    "Ce que les meilleurs font différemment en {SUJET}.",
+    "{SUJET}: le framework en 4 étapes que j’utilise."
+  ],
+  fomo: [
+    "Si tu n’agis pas sur {SUJET} cette semaine, tu vas le regretter.",
+    "{SUJET} : la fenêtre d’opportunité se referme.",
+    "Tout le monde saute dessus : {SUJET} expliqué simplement."
+  ],
+  erreur: [
+    "Stop de faire cette erreur en {SUJET} (tu perds des résultats).",
+    "J’ai testé {SUJET} 10 fois : voici la vraie erreur cachée.",
+    "La pire pratique ‘conseillée’ en {SUJET}."
+  ],
+  mythe: [
+    "3 mythes toxiques en {SUJET} (et ce qu’il faut faire à la place).",
+    "On t’a menti : {SUJET} ne marche pas comme ça.",
+    "FAUX : ‘{SUJET} c’est seulement pour…’"
+  ],
+  tuto: [
+    "Tutoriel express : {SUJET} en 60 secondes.",
+    "La méthode pas-à-pas pour {SUJET} (sans budget).",
+    "Check-list: tout ce qu’il faut pour réussir {SUJET}."
+  ],
+  avantapres: [
+    "Avant / Après : comment {SUJET} a changé le résultat.",
+    "Le switch qui transforme {SUJET} (preuve à l’appui).",
+    "De 0 à 1 : {SUJET} expliqué sur un cas réel."
+  ],
+  challenge: [
+    "Fais ça pendant 7 jours : {SUJET} (et dis-moi ce que ça change).",
+    "Le défi 30 minutes / jour pour {SUJET}.",
+    "Oses-tu essayer ça en {SUJET} ?"
+  ],
+  stats: [
+    "La stat qui m’a fait revoir {SUJET}.",
+    "Personne n’utilise ce ratio en {SUJET}, et pourtant…",
+    "{SUJET} : le chiffre qui explique tout."
+  ],
+  unpopular: [
+    "Opinion impopulaire : {SUJET}.",
+    "Je ne suis pas d’accord avec {SUJET} (voici pourquoi).",
+    "{SUJET} : on surévalue complètement ça."
+  ],
+};
+
+function fillSubject(s: string, subject: string) {
+  const sub = subject || "ton marché";
+  return s.replaceAll("{SUJET}", sub);
+}
+
+/** ---------- Utils ---------- */
+function parseTimeframe(tf: string | null): number {
+  const s = (tf || "24h").trim();
+  if (/^\d+\s*h$/.test(s)) return parseInt(s) * 60 * 60 * 1000;
+  if (/^\d+\s*d$/.test(s)) return parseInt(s) * 24 * 60 * 60 * 1000;
+  if (s === "48h") return 48 * 60 * 60 * 1000;
+  if (s === "72h") return 72 * 60 * 60 * 1000;
+  if (s === "7d")  return 7 * 24 * 60 * 60 * 1000;
+  return 24 * 60 * 60 * 1000;
+}
+
+async function http(url: string, ms = 12000): Promise<Response | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { signal: ctrl.signal, cache: "no-store" }); }
+  catch { return null; }
+  finally { clearTimeout(t); }
+}
+
+function mapNewsData(js: any): Item[] {
+  const arr = Array.isArray(js?.results) ? js.results : [];
+  return arr.map((a: any, i: number) => ({
+    id: a.link || String(i),
+    title: a.title,
+    source: a.source_id || a.source || (Array.isArray(a.creator) ? a.creator[0] : undefined),
+    url: a.link,
+    link: a.link,
+    thumbnailUrl: a.image_url,
+    published: a.pubDate,
+  }));
+}
+
+async function newsdataSearch(query: string, limit: number, country?: string) {
+  if (!NEWSDATA_KEY) return [] as Item[];
+  const u = new URL("https://newsdata.io/api/1/news");
+  u.searchParams.set("apikey", NEWSDATA_KEY);
+  u.searchParams.set("q", query);
+  u.searchParams.set("language", "fr");
+  if (country) u.searchParams.set("country", country);
+  const r = await http(u.toString());
+  if (!r || !r.ok) return [];
+  const js = await r.json().catch(() => ({}));
+  return mapNewsData(js).slice(0, limit);
+}
+
+function scoreItems(items: Item[], cat: string): Item[] {
+  const kws = TOPIC_KEYWORDS[cat] || [];
+  return items
+    .map(it => {
+      const txt = `${it.title || ""} ${it.source || ""}`.toLowerCase();
+      const s = kws.reduce((acc, k) => acc + (txt.includes(k.toLowerCase()) ? 1 : 0), 0);
+      return { ...it, _score: s };
+    })
+    .sort((a, b) => (b._score || 0) - (a._score || 0));
+}
+
+/** ---------- Handler ---------- */
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const cat   = (searchParams.get("cat") || searchParams.get("topic") || "technology").toLowerCase();
+  const q     = (searchParams.get("q") || "").trim();
+  const limit = Math.min(parseInt(searchParams.get("limit") || "30", 10) || 30, 50);
+  const timeframe = searchParams.get("timeframe") || "24h";
+  const maxAgeMs = parseTimeframe(timeframe);
+
+  // 2.a Hooks viraux : renvoie un pack local (pas d'appel externe)
+  if (cat === "hooks") {
+    const subject = q || "";
+    const groups = Object.keys(HOOK_PACK);
+    const all: Item[] = [];
+    let id = 0;
+    for (const g of groups) {
+      for (const t of HOOK_PACK[g]) {
+        all.push({
+          id: `hook-${g}-${id++}`,
+          title: fillSubject(t, subject),
+          source: `Hook ${g}`,
+          url: "#",
+          link: "#",
+          published: new Date().toISOString(),
+          topic: "hooks",
+        });
+      }
+    }
+    return NextResponse.json({ items: all.slice(0, limit) }, { status: 200 });
+  }
+
+  // 2.b Flux d'actus externes (NewsData)
+  // build query
+  const kws = TOPIC_KEYWORDS[cat]?.slice(0, 8).join(" OR ") || cat;
+  const seedQ = q || kws;
+
+  let src = "";
+  let items: Item[] = await newsdataSearch(seedQ, limit, "fr");
+  if (items.length) src = "newsdata:fr";
+  if (!items.length) { items = await newsdataSearch(seedQ, limit); if (items.length) src = "newsdata"; }
+
+  // Filtre période
+  const cutoff = Date.now() - maxAgeMs;
+  items = items.filter(it => {
+    if (!it.published) return true;
+    const t = Date.parse(it.published);
+    return isFinite(t) ? t >= cutoff : true;
+  });
+
+  // Tri date + scoring pertinence
+  items.sort((a, b) => (Date.parse(b.published || "") || 0) - (Date.parse(a.published || "") || 0));
+  const scored = scoreItems(items, cat);
+  const final = (scored.length ? scored : items)
+    .slice(0, limit)
+    .map(({ _score, ...rest }) => ({ ...rest, topic: cat }));
+
+  return new NextResponse(JSON.stringify({ items: final }), {
+    status: 200,
+    headers: { "content-type":"application/json", "x-source": src || "none", "x-total": String(final.length) }
+  });
+}

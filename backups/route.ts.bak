@@ -1,0 +1,212 @@
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
+
+type Item = {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+  topic?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+};
+
+// Mapping des catégories avec termes de recherche optimisés
+const categoryMap: Record<string, { q: string; topic?: string }> = {
+  // Catégories de base
+  technology:   { topic: "technology", q: "technologie tech numérique innovation" },
+  science:      { topic: "science",    q: "science recherche découverte" },
+  world:        { topic: "world",      q: "monde international actualité" },
+  business:     { topic: "business",   q: "économie finance entreprise" },
+  sports:       { topic: "sports",     q: "sport football tennis compétition" },
+  health:       { topic: "health",     q: "santé médecine bien-être" },
+
+  // IA / Startups (Tech)
+  ai:           { topic: "technology", q: "intelligence artificielle IA" },
+  startups:     { topic: "business",   q: "startup innovation financement" },
+
+  // Crypto / Blockchain
+  crypto:       { topic: "business",   q: "crypto blockchain bitcoin ethereum" },
+  blockchain:   { topic: "technology", q: "blockchain crypto web3 token" },
+
+  // Sport (clubs, ligues, JO, transferts)
+  football:     { topic: "sports",     q: "football ligue champions équipe" },
+  tennis:       { topic: "sports",     q: "tennis tournoi grand chelem" },
+  jo:           { topic: "sports",     q: "jeux olympiques JO Paris 2024" },
+
+  // Gaming / Esports
+  gaming:       { topic: "technology", q: "jeux vidéo gaming console" },
+  esports:      { topic: "technology", q: "esport compétition gaming tournoi" },
+
+  // Mode / Beauté
+  mode:         { topic: "business",   q: "mode fashion luxe collection" },
+  beaute:       { topic: "business",   q: "beauté cosmétique soins" },
+
+  // Food / Restauration
+  food:         { topic: "business",   q: "gastronomie restaurant cuisine" },
+  restauration: { topic: "business",   q: "restaurant gastronomie ouverture" },
+
+  // Immobilier / Architecture
+  immobilier:   { topic: "business",   q: "immobilier logement construction prix" },
+  architecture: { topic: "world",      q: "architecture bâtiment design urbanisme" },
+
+  // Art & Culture
+  art:          { topic: "world",      q: "art exposition galerie musée" },
+  culture:      { topic: "world",      q: "culture cinéma musique livre" },
+
+  // Mobilité / Auto
+  mobilite:     { topic: "business",   q: "mobilité transport véhicule électrique" },
+  auto:         { topic: "business",   q: "automobile voiture électrique Tesla" },
+
+  // Environnement / Climat
+  environnement:{ topic: "science",    q: "environnement écologie développement durable" },
+  climat:       { topic: "science",    q: "climat réchauffement COP" },
+
+  // Économie / Bourse
+  economie:     { topic: "business",   q: "économie marché finance croissance" },
+  bourse:       { topic: "business",   q: "bourse CAC40 actions trading" },
+};
+
+const uniqByUrl = (arr: Item[]) => {
+  const seen = new Set<string>();
+  const out: Item[] = [];
+  for (const it of arr) {
+    const key = (it.url || it.id || "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(it);
+  }
+  return out;
+};
+
+function fromTimeframe(tf: string): string {
+  const now = new Date();
+  const d = new Date(now);
+  if (tf === "24h") d.setDate(now.getDate() - 1);
+  else if (tf === "48h") d.setDate(now.getDate() - 2);
+  else if (tf === "72h") d.setDate(now.getDate() - 3);
+  else if (tf === "7d")  d.setDate(now.getDate() - 7);
+  else d.setDate(now.getDate() - 1);
+  return d.toISOString();
+}
+
+// 1) Notre source interne (ton routeur existant /api/news)
+async function callInternal(origin: string, topic?: string, q?: string, timeframe="24h", limit=12): Promise<Item[]> {
+  const p = new URLSearchParams();
+  p.set("timeframe", timeframe);
+  p.set("limit", String(limit));
+  if (topic) p.set("topic", topic);
+  if (q) p.set("q", q);
+  const r = await fetch(`${origin}/api/news?${p.toString()}`, { cache: "no-store" });
+  const j: any = await r.json().catch(()=> ({}));
+  const items = Array.isArray(j?.items) ? j.items : (Array.isArray(j) ? j : []);
+  return (items || []) as Item[];
+}
+
+// 2) Fallbacks externes (utilisent .env.local pour les clés)
+async function callGNews(q: string, tf="24h", limit=12): Promise<Item[]> {
+  const key = process.env.GNEWS_API_KEY;
+  if (!key) return [];
+  const from = fromTimeframe(tf);
+  const url = new URL("https://gnews.io/api/v4/search");
+  url.searchParams.set("q", q || "France");
+  url.searchParams.set("lang", "fr");
+  url.searchParams.set("max", String(limit));
+  url.searchParams.set("token", key);
+  url.searchParams.set("from", from);
+  const r = await fetch(url.toString());
+  const j: any = await r.json().catch(()=> ({}));
+  const arts: any[] = Array.isArray(j?.articles) ? j.articles : [];
+  return arts.map(a => ({
+    id: a.url,
+    title: a.title,
+    url: a.url,
+    source: a.source?.name || a.source || a.domain || "GNews",
+    snippet: a.description || "",
+    published: a.publishedAt || "",
+    thumbnailUrl: a.image || null,
+  }));
+}
+
+async function callNewsData(q: string, _tf="24h", limit=12): Promise<Item[]> {
+  const key = process.env.NEWSDATA_API_KEY;
+  if (!key) return [];
+  const url = new URL("https://newsdata.io/api/1/news");
+  url.searchParams.set("apikey", key);
+  url.searchParams.set("q", q || "France");
+  url.searchParams.set("language", "fr");
+  url.searchParams.set("country", "fr");
+  url.searchParams.set("page", "1");
+  url.searchParams.set("size", String(limit));
+  const r = await fetch(url.toString());
+  const j: any = await r.json().catch(()=> ({}));
+  const res: any[] = Array.isArray(j?.results) ? j.results : [];
+  return res.map(a => ({
+    id: a.link || a.url,
+    title: a.title,
+    url: a.link || a.url,
+    source: a.source_id || a.source || "Newsdata",
+    snippet: a.description || "",
+    published: a.pubDate || a.published_at || "",
+    thumbnailUrl: a.image_url || null,
+  })).filter(x => x.url && x.title);
+}
+
+async function callNewsAPI(q: string, tf="24h", limit=12): Promise<Item[]> {
+  const key = process.env.NEWSAPI_API_KEY;
+  if (!key) return [];
+  const from = fromTimeframe(tf).slice(0,10);
+  const url = new URL("https://newsapi.org/v2/everything");
+  url.searchParams.set("q", q || "France");
+  url.searchParams.set("language", "fr");
+  url.searchParams.set("from", from);
+  url.searchParams.set("sortBy", "publishedAt");
+  url.searchParams.set("pageSize", String(limit));
+  url.searchParams.set("apiKey", key);
+  const r = await fetch(url.toString());
+  const j: any = await r.json().catch(()=> ({}));
+  const arts: any[] = Array.isArray(j?.articles) ? j.articles : [];
+  return arts.map(a => ({
+    id: a.url,
+    title: a.title,
+    url: a.url,
+    source: a.source?.name || "NewsAPI",
+    snippet: a.description || "",
+    published: a.publishedAt || "",
+    thumbnailUrl: a.urlToImage || null,
+  })).filter(x => x.url && x.title);
+}
+
+export async function GET(req: NextRequest) {
+  const { origin, searchParams } = req.nextUrl;
+  const cat = (searchParams.get("cat") || "business").toLowerCase();
+  const tf  = (searchParams.get("timeframe") || "24h").toLowerCase();
+  const lim = Math.max(1, Math.min(50, parseInt(searchParams.get("limit") || "12", 10)));
+  const userQ = (searchParams.get("q") || "").trim();
+
+  const map = categoryMap[cat] || categoryMap.business;
+  const qCombined = [map.q, userQ].filter(Boolean).join(" ");
+
+  try {
+    const internal = await callInternal(origin, map.topic, qCombined, tf, lim);
+    if (internal.length) return NextResponse.json({ items: uniqByUrl(internal).slice(0, lim) });
+  } catch {}
+
+  try {
+    const g = await callGNews(qCombined || map.topic || "France", tf, lim);
+    if (g.length) return NextResponse.json({ items: uniqByUrl(g).slice(0, lim) });
+  } catch {}
+
+  try {
+    const nd = await callNewsData(qCombined || map.topic || "France", tf, lim);
+    if (nd.length) return NextResponse.json({ items: uniqByUrl(nd).slice(0, lim) });
+  } catch {}
+
+  try {
+    const na = await callNewsAPI(qCombined || map.topic || "France", tf, lim);
+    if (na.length) return NextResponse.json({ items: uniqByUrl(na).slice(0, lim) });
+  } catch {}
+
+  return NextResponse.json({ items: [] });
+}

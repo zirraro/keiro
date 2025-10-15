@@ -1,0 +1,477 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+type NewsItem = {
+  id: string;
+  title: string;
+  url: string;
+  source?: string;
+  snippet?: string;
+  published?: string;
+  thumbnailUrl?: string | null;
+  hot?: boolean;
+  score?: number;
+  topic?: string;
+};
+
+const TOPICS: { key: string; label: string }[] = [
+  { key: "business", label: "business" },
+  { key: "technology", label: "technology" },
+  { key: "science", label: "science" },
+  { key: "world", label: "world" },
+  { key: "health", label: "health" },
+  { key: "sports", label: "sports" },
+];
+
+const TF_OPTS = [
+  { key: "24h", label: "24H" },
+  { key: "48h", label: "48H" },
+  { key: "72h", label: "72H" },
+  { key: "7d", label: "7J" },
+];
+
+function clsx(...arr: Array<string | false | undefined>) {
+  return arr.filter(Boolean).join(" ");
+}
+
+function extractPreviewUrl(json: any): { url?: string; kind?: "image"|"video" } {
+  // Essaye plusieurs conventions de réponse
+  const cand = json?.url || json?.image_url || json?.video_url || json?.image || json?.video || json?.output?.[0];
+  let kind: "image"|"video"|undefined;
+  if (typeof cand === "string") {
+    if (/\.(mp4|webm|mov)(\?|$)/i.test(cand)) kind = "video"; else kind = "image";
+    return { url: cand, kind };
+  }
+  return {};
+}
+
+export default function GeneratePage() {
+  const [activeTopic, setActiveTopic] = useState(TOPICS[0].key);
+  const [timeframe, setTimeframe] = useState("24h");
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [limit, setLimit] = useState(9);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Panneau de droite (assistant de prompt)
+  const [brand, setBrand] = useState("");
+  const [goal, setGoal] = useState("");
+  const [tone, setTone] = useState("");
+  const [constraints, setConstraints] = useState("");
+  const [cta, setCta] = useState("");
+  const [hashtags, setHashtags] = useState("#AI #Marketing #Keiro");
+
+  // Génération & aperçu
+  const [busyImg, setBusyImg] = useState(false);
+  const [busyVid, setBusyVid] = useState(false);
+  const [status, setStatus] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewKind, setPreviewKind] = useState<"image"|"video"|"">("");
+
+  const selectedArticle = useMemo(
+    () => items.find((x) => x.id === selectedId) || null,
+    [items, selectedId]
+  );
+
+  const queryString = useMemo(() => {
+    const u = new URLSearchParams();
+    if (activeTopic) u.set("topic", activeTopic);
+    if (timeframe) u.set("timeframe", timeframe);
+    if (q) u.set("q", q);
+    u.set("limit", String(Math.max(limit, 9)));
+    return u.toString();
+  }, [activeTopic, timeframe, q, limit]);
+
+  useEffect(() => {
+    let abort = false;
+    async function run() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/news?${queryString}`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!abort && json && Array.isArray(json.items)) {
+          setItems(json.items as NewsItem[]);
+        }
+      } catch {
+        if (!abort) setItems([]);
+      } finally {
+        if (!abort) setLoading(false);
+      }
+    }
+    run();
+    return () => { abort = true; };
+  }, [queryString]);
+
+  const promptPreview = useMemo(() => {
+    const first = selectedArticle || items[0];
+    const title = first?.title ? `Sujet: ${first.title}` : "Sujet: (sélection à venir)";
+    const sourceLine = first?.source ? `Source: ${first.source} — ${first.url}` : first?.url ? `Source: ${first.url}` : "Source: —";
+    return [
+      `Marque: ${brand || "—"}`,
+      `Objectif: ${goal || "—"}`,
+      `Tonalité: ${tone || "—"}`,
+      `Contraintes: ${constraints || "—"}`,
+      `CTA: ${cta || "—"}`,
+      `Hashtags: ${hashtags || "—"}`,
+      title,
+      sourceLine,
+      `Plateforme: Instagram | Format: Portrait (1080x1350)`,
+      `Sortie attendue: visuel social percutant (ou story vidéo), prêt à poster.`
+    ].join("\n");
+  }, [brand, goal, tone, constraints, cta, hashtags, items, selectedArticle]);
+
+  async function handleGenerate(kind: "image" | "video") {
+    const url = kind === "image" ? "/api/generate" : "/api/generate-video";
+    const setter = kind === "image" ? setBusyImg : setBusyVid;
+    setter(true);
+    setStatus("");
+    if (kind === "image") setPreviewKind("image"); else setPreviewKind("video");
+    setPreviewUrl("");
+
+    try {
+      const payload = {
+        kind,
+        prompt: promptPreview,
+        brand, goal, tone, constraints, cta, hashtags,
+        article: selectedArticle
+          ? { title: selectedArticle.title, url: selectedArticle.url, source: selectedArticle.source }
+          : undefined,
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus(json?.error || "Erreur lors de la génération.");
+        return;
+      }
+
+      const out = extractPreviewUrl(json);
+      if (out.url) {
+        setPreviewUrl(out.url);
+        if (out.kind) setPreviewKind(out.kind);
+        setStatus("Génération terminée.");
+      } else if (json?.jobId) {
+        setStatus(`Tâche en cours #${json.jobId}. (Aperçu dès qu’un lien est prêt)`);
+      } else {
+        setStatus("Génération demandée. (Pas de lien direct renvoyé)");
+      }
+    } catch (e: any) {
+      setStatus(String(e?.message || e) || "Erreur inconnue.");
+    } finally {
+      setter(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-[1400px]">
+      {/* barre sujets + filtres */}
+      <div className="flex flex-wrap items-center gap-2">
+        {TOPICS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => { setActiveTopic(t.key); setLimit(9); setSelectedId(null); }}
+            className={clsx(
+              "rounded-full px-3 py-1 text-sm border",
+              activeTopic === t.key ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+        <div className="ml-2 flex items-center gap-2">
+          {TF_OPTS.map(tf => (
+            <button
+              key={tf.key}
+              onClick={() => { setTimeframe(tf.key); setLimit(9); setSelectedId(null); }}
+              className={clsx(
+                "rounded-full px-3 py-1 text-sm border",
+                timeframe === tf.key ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100"
+              )}
+            >
+              {tf.label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-2 flex items-center gap-2">
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Rechercher une actu…"
+            className="h-9 w-64 rounded-md border px-3 text-sm"
+          />
+          <button
+            onClick={() => { setLimit(9); setSelectedId(null); }}
+            className="h-9 rounded-md border px-3 text-sm bg-white hover:bg-neutral-100"
+          >
+            Filtrer
+          </button>
+        </div>
+      </div>
+
+      {/* grille + panneau de droite */}
+      <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Cartes actu */}
+        <div className="lg:col-span-8 xl:col-span-9">
+          {loading ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">Chargement…</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-md border p-8 text-sm text-neutral-500">
+              Aucune actualité trouvée.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {items.slice(0, limit).map((it) => {
+                  const selected = selectedId === it.id;
+                  return (
+                    <article
+                      key={it.id}
+                      className={clsx(
+                        "rounded-lg border bg-white shadow-sm transition hover:shadow-md",
+                        selected && "ring-2 ring-black"
+                      )}
+                    >
+                      {/* image */}
+                      <div className="relative h-40 w-full overflow-hidden rounded-t-lg bg-neutral-100">
+                        <CardImage item={it} />
+                      </div>
+
+                      <div className="p-4">
+                        <div className="mb-2 flex items-center justify-between text-xs text-neutral-500">
+                          <span className="truncate">{it.source || "—"}</span>
+                          <span className="inline-flex items-center gap-1">
+                            {typeof it.score === "number" && (
+                              <span className="rounded bg-neutral-100 px-2 py-0.5 text-[11px]">{it.score}</span>
+                            )}
+                            {it.hot && (
+                              <span className="rounded bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">hot</span>
+                            )}
+                          </span>
+                        </div>
+
+                        <h3 className="mb-2 line-clamp-3 text-sm font-medium">
+                          {it.title || "Sans titre"}
+                        </h3>
+
+                        {it.snippet && (
+                          <p className="mb-3 line-clamp-3 text-xs text-neutral-600">
+                            {it.snippet}
+                          </p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <a
+                            href={it.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-neutral-600 underline hover:text-black"
+                          >
+                            Voir la source
+                          </a>
+
+                          <button
+                            onClick={() => setSelectedId(it.id)}
+                            className={clsx(
+                              "rounded-md px-3 py-1 text-xs",
+                              selected ? "bg-black text-white" : "bg-neutral-900 text-white hover:bg-neutral-800"
+                            )}
+                          >
+                            {selected ? "Sélectionnée" : "Utiliser cette actu"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {limit < items.length && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => setLimit(l => Math.min(l + 3, items.length))}
+                    className="inline-flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100"
+                  >
+                    + Afficher 3 actus de plus
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Panneau de droite */}
+        <aside className="lg:col-span-4 xl:col-span-3">
+          <div className="sticky top-4 space-y-4">
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Sélectionner un logo</h4>
+              <input type="file" className="text-sm" />
+            </div>
+
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Assistant de prompt</h4>
+
+              {selectedArticle ? (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  <div className="mb-1 font-medium text-neutral-800">Actualité sélectionnée</div>
+                  <div className="line-clamp-2">{selectedArticle.title}</div>
+                  <div className="mt-1 truncate opacity-70">{selectedArticle.source || "—"} — {selectedArticle.url}</div>
+                </div>
+              ) : (
+                <div className="mb-3 rounded-md border bg-neutral-50 p-3 text-xs text-neutral-600">
+                  Aucune actualité sélectionnée — vous pouvez générer sans, mais la sortie sera plus générique.
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <input
+                  placeholder="Marque / Produit"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={brand}
+                  onChange={e => setBrand(e.target.value)}
+                />
+                <textarea
+                  placeholder="Objectif (ex: trafic, conversion…) "
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  rows={3}
+                  value={goal}
+                  onChange={e => setGoal(e.target.value)}
+                />
+                <input
+                  placeholder="Tonalité / Style"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={tone}
+                  onChange={e => setTone(e.target.value)}
+                />
+                <input
+                  placeholder="Couleurs / Contraintes"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={constraints}
+                  onChange={e => setConstraints(e.target.value)}
+                />
+                <input
+                  placeholder="Call to Action"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={cta}
+                  onChange={e => setCta(e.target.value)}
+                />
+                <input
+                  placeholder="Hashtags"
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  value={hashtags}
+                  onChange={e => setHashtags(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={() => handleGenerate("image")}
+                  disabled={busyImg}
+                  className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-neutral-800 disabled:opacity-50"
+                >
+                  {busyImg ? "Génération…" : "Générer une image"}
+                </button>
+                <button
+                  onClick={() => handleGenerate("video")}
+                  disabled={busyVid}
+                  className="rounded-md border bg-white px-3 py-2 text-sm hover:bg-neutral-100 disabled:opacity-50"
+                >
+                  {busyVid ? "Génération…" : "Générer une vidéo"}
+                </button>
+              </div>
+
+              {status && (
+                <div className="mt-3 rounded-md border bg-neutral-50 p-2 text-xs text-neutral-700 break-all">
+                  {status}
+                </div>
+              )}
+            </div>
+
+            {/* APERCU DU RENDU */}
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-3 font-medium">Aperçu du rendu</h4>
+              {!previewUrl ? (
+                <div className="flex h-64 items-center justify-center rounded-md bg-neutral-50 text-xs text-neutral-500">
+                  L’aperçu s’affiche ici après génération.
+                </div>
+              ) : previewKind === "video" ? (
+                <video
+                  className="h-64 w-full rounded-md border bg-black"
+                  src={previewUrl}
+                  controls
+                  playsInline
+                />
+              ) : (
+                <img
+                  className="h-64 w-full rounded-md border object-cover"
+                  src={previewUrl}
+                  alt="aperçu génération"
+                  loading="lazy"
+                />
+              )}
+              {previewUrl && (
+                <div className="mt-2 text-right">
+                  <a href={previewUrl} target="_blank" rel="noreferrer" className="text-sm underline">
+                    Ouvrir l’asset
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border bg-white p-4">
+              <h4 className="mb-2 font-medium">Prompt final</h4>
+              <textarea
+                className="h-64 w-full rounded-md border px-3 py-2 text-sm"
+                value={promptPreview}
+                readOnly
+              />
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/** Image de carte robuste (sans next/image pour éviter les whitelists) */
+function CardImage({ item }: { item: NewsItem }) {
+  const [err, setErr] = useState(false);
+
+  const isBadThumb = useMemo(() => {
+    const h = (item.thumbnailUrl || "").toLowerCase();
+    if (!h) return true;
+    if (h.includes("news.google") || h.includes("encrypted-tbn")) return true;
+    return false;
+  }, [item.thumbnailUrl]);
+
+  const src =
+    !err && !isBadThumb && item.thumbnailUrl
+      ? item.thumbnailUrl!
+      : !err && item.url
+      ? `/api/og?url=${encodeURIComponent(item.url)}`
+      : "";
+
+  if (!src || err) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-[11px] text-neutral-500">
+        Aperçu indisponible
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={item.title || "aperçu"}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      onError={() => setErr(true)}
+    />
+  );
+}

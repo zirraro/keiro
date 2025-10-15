@@ -1,0 +1,87 @@
+'use client';
+import React from 'react';
+
+export default function GeneratePreview({ selected }: { selected?: any }) {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string|undefined>();
+  const [debug, setDebug] = React.useState<any>();
+  const [imageUrl, setImageUrl] = React.useState<string|undefined>();
+
+  const basePrompt = React.useMemo(()=>{
+    const t = selected?.title ? `Actu: ${selected.title}. ` : '';
+    const s = selected?.source ? `Source: ${selected.source}. ` : '';
+    return `${t}${s}Créer une image marketing percutante, style moderne, forte lisibilité, adaptée réseaux sociaux.`;
+  }, [selected]);
+
+  async function doGenerate(){
+    setLoading(true); setError(undefined); setDebug(undefined);
+    try{
+      const res = await fetch('/api/ark/generate', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ prompt: basePrompt, size: '512x512' })
+      });
+      const data = await res.json().catch(()=> ({}));
+      setDebug(data);
+      if(!res.ok){
+        throw new Error(data?.message || data?.error || `HTTP ${res.status}`);
+      }
+      const url = data?.url || data?.data?.[0]?.url || data?.image_url || data?.result?.url;
+      if(!url) throw new Error('Réponse OK mais URL image introuvable');
+      setImageUrl(url);
+    }catch(e:any){
+      setError(String(e?.message || e));
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-4 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-medium">Génération basée sur l’actualité</h4>
+      </div>
+
+      <p className="text-sm text-neutral-600 mb-3">
+        {selected?.title ? `Sélection: ${selected.title}` : `Aucune actualité sélectionnée — la génération sera générique.`}
+      </p>
+
+      <button
+        className="px-3 py-1.5 rounded-md text-sm bg-neutral-900 text-white disabled:opacity-50"
+        onClick={doGenerate}
+        disabled={loading}
+      >
+        {loading ? 'Génération…' : 'Générer l’image'}
+      </button>
+
+      {error && (
+        <div className="mt-3 text-sm text-red-600">
+          <div>Erreur : {error}</div>
+          {debug && (
+            <pre className="mt-2 p-2 bg-neutral-100 rounded text-xs overflow-auto max-h-40">
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {imageUrl && (
+        <div className="mt-4">
+          <img
+            src={imageUrl}
+            alt="Aperçu généré"
+            className="w-full h-[220px] object-cover rounded-md border border-neutral-200 bg-neutral-100"
+          />
+          <div className="mt-3">
+            <a
+              href={`/editor?img=${encodeURIComponent(imageUrl)}`}
+              className="inline-block px-3 py-1.5 rounded-md text-sm border border-neutral-300 hover:bg-neutral-50"
+            >
+              Éditer dans Keiro
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

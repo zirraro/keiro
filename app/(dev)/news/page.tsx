@@ -1,0 +1,69 @@
+"use client";
+import React, { useEffect, useMemo, useState } from "react";
+import { CATEGORY_DISPLAY, buildQuery } from "@/app/lib/newsCategories";
+
+export default function NewsBrowser() {
+  const [cat, setCat] = useState("IA");
+  const [period, setPeriod] = useState("24h");
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Exemple: ton backend /api/news?query=...&period=...
+  async function fetchNews() {
+    setLoading(true);
+    try {
+      const query = buildQuery(cat, q ? q : undefined);
+      const query = buildQuery(cat, q ? q : undefined);
+      const r = await fetch(`/api/news?query=${encodeURIComponent(query)}&period=${encodeURIComponent(period)}`);
+      const j = await r.json();
+      setItems(Array.isArray(j.items) ? j.items : []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchNews(); /* on load */ }, []);
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="flex gap-3 items-center">
+        <label className="text-sm">Catégorie</label>
+        <select value={cat} onChange={e=>setCat(e.target.value)} className="border rounded-md px-3 py-2">
+          {CATEGORY_DISPLAY.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <label className="text-sm">Période</label>
+        <select value={period} onChange={e=>setPeriod(e.target.value)} className="border rounded-md px-3 py-2">
+          <option>24h</option><option>48h</option><option>7j</option>
+        </select>
+
+        <input
+          value={q}
+          onChange={e=>setQ(e.target.value)}
+          placeholder="Filtre (ex: source:lemonde.fr)"
+          className="flex-1 border rounded-md px-3 py-2"
+        />
+        <button onClick={fetchNews} className="px-4 py-2 bg-black text-white rounded-md">Rechercher</button>
+      </div>
+
+      {loading ? (
+        <div className="text-gray-500">Chargement…</div>
+      ) : items.length === 0 ? (
+        <div className="text-gray-500">Aucune actualité trouvée</div>
+      ) : (
+        <ul className="grid sm:grid-cols-2 gap-4">
+          {items.map((it, i) => (
+            <li key={i} className="border rounded-xl p-3">
+              <div className="text-sm uppercase opacity-50">{it.source || "Source"}</div>
+              <div className="font-medium mb-1">{it.title}</div>
+              <a className="text-blue-600 text-sm" href={it.url} target="_blank" rel="noreferrer">Voir la source</a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

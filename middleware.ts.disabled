@@ -1,0 +1,14 @@
+import { NextResponse } from 'next/server';
+
+export function middleware() {
+  // Bypass tout en dev ou si flag activé
+  if (process.env.NODE_ENV !== 'production' || process.env.DISABLE_AUTH === '1') {
+    return NextResponse.next();
+  }
+  return NextResponse.next();
+}
+
+// Ajuste si besoin les chemins protégés
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
