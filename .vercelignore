@@ -4,8 +4,4 @@ backup-*
 *.bak
 *.log
 cookies.txt
-cj.txt
-.vscode
-.vercel/output
-.next/cache
 node_modules
