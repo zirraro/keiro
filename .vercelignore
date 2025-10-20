@@ -1,0 +1,10 @@
+.backup*
+backups*
+backup-*
+*.bak
+*.log
+cookies.txt
+cj.txt
+.vercel
+.vscode
+node_modules

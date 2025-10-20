@@ -6,7 +6,7 @@ export default function Page(){
       <p style={{margin:'12px 0 24px',opacity:.8}}>
         Cette page d’aperçu n’est pas incluse dans la version de production actuelle.
       </p>
-      <a href="/generate" style="display:inline-block;padding:10px 16px;border-radius:10px;background:#111;color:#fff;text-decoration:none">
+      <a href="/generate" style={{display:'inline-block',padding:'10px 16px',borderRadius:10,background:'#111',color:'#fff',textDecoration:'none'}}>
         Générer des visuels →
       </a>
     </main>
