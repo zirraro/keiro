@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Petites touches UI */
+html, body { height: 100%; }
+body { @apply bg-gray-50 text-neutral-900; }
+.container-app { @apply mx-auto max-w-7xl px-4; }
+.card { @apply rounded-2xl border bg-white shadow-sm; }
+.btn { @apply rounded-lg px-3 py-2 border bg-white hover:bg-neutral-50; }
+.btn-primary { @apply rounded-lg px-4 py-2 bg-black text-white hover:opacity-90; }
+.dotted { @apply border-2 border-dashed rounded-xl; }

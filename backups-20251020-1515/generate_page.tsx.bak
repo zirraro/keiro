@@ -1,0 +1,308 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+
+type NewsCard = {
+  id: string;
+  title: string;
+  source: string;
+  date?: string;
+  url?: string;
+  image?: string;
+  summary?: string;
+  category?: string;
+};
+
+type ArkDataItem = { url?: string; b64_json?: string; size?: string };
+type ArkResp = { ok?: boolean; model?: string; data?: ArkDataItem[]; error?: any; detail?: any };
+
+const CATEGORIES = [
+  'À la une','Politique','Économie','Business','Sport','People','Santé','Restauration','Tech','Culture',
+  'Monde','Auto','Climat','Immo','Lifestyle','Gaming'
+] as const;
+
+const TONALITES = ['Premium','Informatif','Inspirant','Émotionnel','Humoristique'] as const;
+const OBJECTIFS = ['Créer un visuel','Annonce produit','Événement / webinar','Recrutement','Brand awareness','Promotion / offre'] as const;
+const POVS = [
+  'Contre-plongée héroïque','Plongée douce','Vue frontale','Macro / gros plan','Focale longue / bokeh','Flat lay / vue de dessus'
+] as const;
+const FORMATS_RESEAUX: Record<string,string> = {
+  'LinkedIn': '1200x627', 'Instagram carré': '1080x1080', 'Instagram story': '1080x1920',
+  'X (ex-Twitter)': '1600x900', 'Facebook': '1200x630', 'Pinterest': '1000x1500'
+};
+
+export default function GeneratePage() {
+  // --------- State (actus + sélection)
+  const [category, setCategory] = useState<typeof CATEGORIES[number]>('Tech');
+  const [items, setItems] = useState<NewsCard[]>([]);
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<NewsCard | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // --------- Assistant prompt
+  const [objectif, setObjectif] = useState<typeof OBJECTIFS[number]>('Créer un visuel');
+  const [tonalite, setTonalite] = useState<typeof TONALITES[number]>('Premium');
+  const [pov, setPov] = useState<typeof POVS[number]>('Contre-plongée héroïque');
+  const [reseau, setReseau] = useState<keyof typeof FORMATS_RESEAUX>('LinkedIn');
+  const [cta, setCta] = useState('');
+  const [audience, setAudience] = useState('Décideurs / acheteurs B2B');
+  const [marque, setMarque] = useState('');
+  const [contraintes, setContraintes] = useState('Propre, lisible, évite le texte trop long, pas de logo LinkedIn intégré.');
+  const [style, setStyle] = useState('Photo réaliste, lumière naturelle, contraste maîtrisé, palette sobres premium.');
+  const [besoin, setBesoin] = useState('Décris ton besoin, angle, bénéfice client, différenciation…');
+
+  // --------- Génération
+  const [baseImageFile, setBaseImageFile] = useState<File | null>(null);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genUrl, setGenUrl] = useState<string | null>(null);
+
+  // ---- Récupère des actus (mock interne ou route serveur existante)
+  async function fetchNews(cat: string, pg: number) {
+    setLoading(true);
+    try {
+      // NOTE : si tu as déjà une route /api/news?category=&page=, on l’utilise.
+      const r = await fetch(`/api/news?category=${encodeURIComponent(cat)}&page=${pg}`, { cache: 'no-store' });
+      if (r.ok) {
+        const j = await r.json();
+        setItems(j.items || []);
+        return;
+      }
+      // fallback tout simple (3 cartes vides si route pas prête)
+      setItems([
+        { id:'demo-1', title:'Exemple d’actualité 1', source:'Demo', date:new Date().toISOString(), image:'/placeholder.svg', summary:'Résumé factice.'},
+        { id:'demo-2', title:'Exemple d’actualité 2', source:'Demo', date:new Date().toISOString(), image:'/placeholder.svg', summary:'Résumé factice.'},
+        { id:'demo-3', title:'Exemple d’actualité 3', source:'Demo', date:new Date().toISOString(), image:'/placeholder.svg', summary:'Résumé factice.'},
+      ]);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(()=>{ fetchNews(category, page); }, [category, page]);
+
+  // ---- Data URL pour image de base
+  const baseDataUrl = useMemo(()=> {
+    if (!baseImageFile) return null;
+    return new Promise<string>((resolve) => {
+      const rd = new FileReader();
+      rd.onload = () => resolve(rd.result as string);
+      rd.readAsDataURL(baseImageFile);
+    });
+  }, [baseImageFile]);
+
+  // ---- Compose le prompt final (news + choices)
+  const finalPrompt = useMemo(()=>{
+    const newsPart = selected ? `Actualité: "${selected.title}". ${selected.summary ?? ''} Source: ${selected.source}.` : '';
+    const objectifPart = `Objectif: ${objectif}. Audience: ${audience}. Ton: ${tonalite}. Style: ${style}. Point de vue: ${pov}. Réseau: ${reseau} (${FORMATS_RESEAUX[reseau]}).`;
+    const brandPart = marque ? ` Marque: ${marque}.` : '';
+    const ctaPart = cta ? ` Call-to-action: ${cta}.` : '';
+    const constraintsPart = contraintes ? ` Contraintes: ${contraintes}.` : '';
+    const besoinPart = besoin && besoin !== 'Décris ton besoin, angle, bénéfice client, différenciation…' ? ` Détails: ${besoin}.` : '';
+    return `${newsPart}\n${objectifPart}${brandPart}${ctaPart}${constraintsPart}${besoinPart}`.trim();
+  }, [selected, objectif, audience, tonalite, style, pov, reseau, marque, cta, contraintes, besoin]);
+
+  // ---- Générer
+  async function onGenerate() {
+    try {
+      setGenBusy(true);
+      setGenUrl(null);
+
+      // image de base → i2i, sinon → t2i
+      const dataUrl = baseDataUrl instanceof Promise ? await baseDataUrl : baseDataUrl;
+
+      if (dataUrl) {
+        // i2i /api/ark-edit
+        const r = await fetch('/api/ark-edit', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({
+            prompt: finalPrompt,
+            image: dataUrl,
+            guidance_scale: 5.5,
+            size: 'adaptive',
+            watermark: false,
+            variation: 0.35
+          })
+        });
+        const j: ArkResp = await r.json();
+        const u = j?.data?.[0]?.url;
+        if (!r.ok || !u) throw new Error(JSON.stringify(j?.error || j?.detail || j));
+        setGenUrl(u);
+      } else {
+        // t2i /api/ark-generate
+        const r = await fetch('/api/ark-generate', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({
+            prompt: finalPrompt,
+            response_format: 'url',
+            size: FORMATS_RESEAUX[reseau] || '1024x1024',
+            guidance_scale: 3.0,
+            watermark: false
+          })
+        });
+        const j: ArkResp = await r.json();
+        const u = j?.data?.[0]?.url;
+        if (!r.ok || !u) throw new Error(JSON.stringify(j?.error || j?.detail || j));
+        setGenUrl(u);
+      }
+    } catch (e:any) {
+      alert('Échec de génération : ' + (e?.message || e));
+    } finally {
+      setGenBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-6">
+      {/* barre */}
+      <div className="flex items-center gap-3 mb-4">
+        <Link href="/" className="text-sm text-neutral-600 hover:underline">Accueil</Link>
+        <span className="text-neutral-300">/</span>
+        <span className="font-medium">Générer</span>
+        <span className="flex-1" />
+        <Link href="/editor" className="text-sm hover:underline">Studio éditeur</Link>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Colonne gauche : cartes actus */}
+        <div className="lg:col-span-2">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="text-sm text-neutral-600">Catégorie</div>
+            <select
+              value={category}
+              onChange={e=>{ setPage(1); setCategory(e.target.value as any); }}
+              className="rounded-xl border px-3 py-2"
+            >
+              {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+            <div className="ml-auto" />
+          </div>
+
+          {loading ? (
+            <div className="text-sm text-neutral-500">Chargement des actus…</div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {items.slice(0, 9).map(card=>(
+                <article key={`${card.id}-${card.title}`} className={`rounded-2xl border bg-white overflow-hidden shadow-sm flex flex-col ${selected?.id===card.id?'ring-2 ring-black':''}`}>
+                  {card.image ? <img src={card.image} alt="" className="w-full h-40 object-cover" /> : <div className="h-40 bg-neutral-100" />}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="text-xs text-neutral-500">{card.source} · {card.date?.slice(0,10)}</div>
+                    <h3 className="font-medium line-clamp-2 mt-1">{card.title}</h3>
+                    <div className="mt-auto flex items-center gap-3">
+                      {card.url && <a href={card.url} target="_blank" className="text-sm text-neutral-600 hover:underline">Voir la source</a>}
+                      <button
+                        onClick={() => setSelected(card)}
+                        className="ml-auto rounded-xl px-3 py-2 text-sm bg-black text-white"
+                      >
+                        {selected?.id===card.id ? 'Sélectionnée' : 'Sélectionner'}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Colonne droite : assistant prompt */}
+        <aside className="lg:col-span-1">
+          {/* Logo / image de base */}
+          <div className="rounded-2xl border bg-white p-4 mb-4">
+            <div className="font-medium mb-2">Insérer un logo (optionnel)</div>
+            <label className="block rounded-xl border border-dashed p-6 text-center text-neutral-500 cursor-pointer">
+              <input type="file" accept="image/*" className="hidden" onChange={e=>setBaseImageFile(e.target.files?.[0] || null)} />
+              Glisser-déposer ou cliquer
+              {baseImageFile && <div className="mt-2 text-xs text-neutral-600">{baseImageFile.name}</div>}
+            </label>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-4 space-y-3">
+            <div className="font-medium">Assistant de prompt</div>
+
+            <div className="text-xs text-neutral-500">L’actu sélectionnée sera intégrée automatiquement au prompt.</div>
+
+            <div>
+              <div className="text-sm mb-1">Objectif</div>
+              <select value={objectif} onChange={e=>setObjectif(e.target.value as any)} className="w-full rounded-xl border px-3 py-2">
+                {OBJECTIFS.map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Tonalité</div>
+              <select value={tonalite} onChange={e=>setTonalite(e.target.value as any)} className="w-full rounded-xl border px-3 py-2">
+                {TONALITES.map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Point de vue</div>
+              <select value={pov} onChange={e=>setPov(e.target.value as any)} className="w-full rounded-xl border px-3 py-2">
+                {POVS.map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Réseau</div>
+              <select value={reseau} onChange={e=>setReseau(e.target.value as any)} className="w-full rounded-xl border px-3 py-2">
+                {Object.keys(FORMATS_RESEAUX).map(x=><option key={x} value={x}>{x}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Audience</div>
+              <input value={audience} onChange={e=>setAudience(e.target.value)} className="w-full rounded-xl border px-3 py-2" />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Marque (optionnel)</div>
+              <input value={marque} onChange={e=>setMarque(e.target.value)} className="w-full rounded-xl border px-3 py-2" placeholder="Nom de marque, slogan, etc." />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Call-to-action</div>
+              <input value={cta} onChange={e=>setCta(e.target.value)} className="w-full rounded-xl border px-3 py-2" placeholder="Ex: Découvrir, S’inscrire, Demander un devis…" />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Style visuel</div>
+              <input value={style} onChange={e=>setStyle(e.target.value)} className="w-full rounded-xl border px-3 py-2" />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Contraintes</div>
+              <textarea value={contraintes} onChange={e=>setContraintes(e.target.value)} className="w-full rounded-xl border px-3 py-2 min-h-16" />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Brief (libre)</div>
+              <textarea value={besoin} onChange={e=>setBesoin(e.target.value)} className="w-full rounded-xl border px-3 py-2 min-h-24" />
+            </div>
+
+            <div>
+              <div className="text-sm mb-1">Prompt final (modifiable)</div>
+              <textarea readOnly value={finalPrompt} className="w-full rounded-xl border px-3 py-2 min-h-28 text-neutral-700" />
+            </div>
+
+            <button
+              onClick={onGenerate}
+              disabled={genBusy || !finalPrompt}
+              className="w-full rounded-xl px-4 py-3 bg-black text-white disabled:opacity-50"
+            >
+              {genBusy ? 'Génération…' : 'Créer un visuel'}
+            </button>
+
+            {genUrl && (
+              <div className="pt-3 space-y-2">
+                <img src={genUrl} alt="sortie" className="w-full rounded-xl border" />
+                <Link href={`/editor?src=${encodeURIComponent(genUrl)}`} className="block text-center rounded-xl px-4 py-3 border hover:bg-neutral-50">
+                  Éditer ce visuel
+                </Link>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

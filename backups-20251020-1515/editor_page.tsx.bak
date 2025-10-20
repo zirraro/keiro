@@ -1,0 +1,174 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+
+type Ver = { id: string; label: string; url: string };
+
+export default function EditorPage() {
+  const sp = useSearchParams();
+  const src = sp.get('src') || '';
+
+  const [versions, setVersions] = useState<Ver[]>([]);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+
+  // Contrôles d'édition
+  const [brief, setBrief] = useState<string>('');
+  const [variation, setVariation] = useState<number>(0.35); // fidélité à l'image (0 = identique, 1 = libre)
+  const [guidance, setGuidance] = useState<number>(5.5);    // suivi du brief (faible → créatif, fort → suit le brief)
+  const [busy, setBusy] = useState(false);
+
+  // Init V0
+  useEffect(() => {
+    if (!src) return;
+    const v0: Ver = { id: 'v0', label: 'V0 — originale', url: src };
+    setVersions([v0]);
+    setCurrentId(v0.id);
+  }, [src]);
+
+  const current = useMemo(() => versions.find(v => v.id === currentId) || versions[0], [versions, currentId]);
+
+  async function applyEdit() {
+    try {
+      if (!current) return;
+      if (!brief.trim()) {
+        alert('Écris ton brief d’édition.');
+        return;
+      }
+      setBusy(true);
+
+      // Envoie l’URL publique, pas de DataURL (évite "Failed to fetch")
+      const r = await fetch('/api/ark-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: brief.trim(),
+          imageUrl: current.url,
+          variation,
+          guidance_scale: guidance,
+          size: 'adaptive',
+          watermark: false,
+        }),
+      });
+
+      const j = await r.json();
+
+      if (!r.ok || j?.error) {
+        console.error('ark-edit error:', j);
+        const msg = j?.detail?.error?.message || j?.error || 'Edition échouée';
+        alert(`Failed to fetch / édition échouée : ${msg}`);
+        return;
+      }
+
+      // Réponse ARK : j.data[0].url
+      const nextUrl = j?.data?.[0]?.url;
+      if (!nextUrl) {
+        alert('Réponse invalide du service d’édition');
+        return;
+      }
+
+      const id = `v${versions.length}`;
+      const v: Ver = { id, label: `V${versions.length}`, url: nextUrl };
+      setVersions(prev => [...prev, v]);
+      setCurrentId(v.id); // devient la nouvelle base d’édition automatiquement
+    } catch (e) {
+      console.error(e);
+      alert('Failed to fetch / édition échouée');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Colonne gauche : historique */}
+      <aside className="lg:col-span-3">
+        <h2 className="text-lg font-semibold mb-2">Versions</h2>
+        <div className="grid gap-3">
+          {versions.map(v => (
+            <button
+              key={v.id}
+              className={`text-left rounded-xl border overflow-hidden bg-white hover:shadow ${current?.id === v.id ? 'ring-2 ring-black' : ''}`}
+              onClick={() => setCurrentId(v.id)}
+              title={`Utiliser ${v.label} comme base`}
+            >
+              <div className="px-3 py-2 text-sm font-medium">{v.label}</div>
+              <img src={v.url} alt={v.label} className="w-full aspect-video object-cover" />
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {/* Colonne centre : aperçu */}
+      <section className="lg:col-span-6">
+        <div className="rounded-xl border bg-white overflow-hidden">
+          {current?.url ? (
+            <img src={current.url} alt="Version en cours" className="w-full max-h-[75vh] object-contain bg-neutral-50" />
+          ) : (
+            <div className="p-8 text-center text-neutral-500">Aucune image</div>
+          )}
+        </div>
+      </section>
+
+      {/* Colonne droite : panneau d’édition */}
+      <aside className="lg:col-span-3">
+        <div className="rounded-xl border bg-white p-4 space-y-4">
+          <h2 className="text-lg font-semibold">Édition</h2>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Brief d’édition</label>
+            <textarea
+              className="w-full min-h-[140px] rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black/10"
+              placeholder="Ex : changer les chemises blanches en noir, éclaircir la scène, retirer les logos réseaux…"
+              value={brief}
+              onChange={e => setBrief(e.target.value)}
+            />
+            <p className="text-xs text-neutral-500">
+              Astuce : si un logo de réseau social apparaît, précise dans le brief « pas de logo ni d’icône de réseau social ».
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Variation (fidélité à l’image)</label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={variation}
+              onChange={e => setVariation(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-neutral-500">
+              <span>Conserver l’original</span><span>Plus de liberté</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Guidance (fidélité au brief)</label>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={0.5}
+              value={guidance}
+              onChange={e => setGuidance(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-neutral-500">
+              <span>Créatif</span><span>Suivre le brief</span>
+            </div>
+          </div>
+
+          <button
+            onClick={applyEdit}
+            disabled={busy || !current}
+            className="w-full rounded-lg bg-black text-white py-2 disabled:opacity-50"
+          >
+            {busy ? 'Application…' : 'Appliquer l’édition'}
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}

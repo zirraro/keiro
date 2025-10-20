@@ -1,0 +1,111 @@
+import { NextResponse } from 'next/server';
+import { CATEGORIES, CAT_TO_QUERY, CleanCat } from '@/app/lib/categories';
+
+export const runtime = 'nodejs';
+
+const BAD_DOMAINS = new Set([
+  'example.com','picsum.photos','placeholder.com'
+]);
+
+function norm(s:string){return (s||'').trim();}
+function hash(s:string){ let h=0; for(const c of s) h=(h*31 + c.charCodeAt(0))|0; return String(h); }
+function dedupe(items:any[]){
+  const seen = new Set<string>();
+  const out:any[] = [];
+  for(const it of items){
+    const key = hash((it.url||'') + '|' + (it.title||''));
+    if(!seen.has(key)) { seen.add(key); out.push(it); }
+  }
+  return out;
+}
+function relevantScore(it:any,q:string){
+  const t = (it.title||'').toLowerCase();
+  const d = (it.description||'').toLowerCase();
+  let s = 0;
+  for(const w of (q||'').toLowerCase().split(/\W+/).filter(Boolean)){
+    if(t.includes(w)) s+=2;
+    if(d.includes(w)) s+=1;
+  }
+  if(/fr|france|paris/.test(d+t)) s+=0.3; // petit bonus FR
+  return s;
+}
+function isFresh(publishedAt?:string, timeframe:'24h'|'7j'='24h'){
+  if(!publishedAt) return true;
+  const now = Date.now();
+  const delta = timeframe==='24h' ? 24*3600e3 : 7*24*3600e3;
+  return now - new Date(publishedAt).getTime() <= delta;
+}
+
+export async function GET(req: Request){
+  const u = new URL(req.url);
+  const cat = (u.searchParams.get('cat') as CleanCat) || 'a-la-une';
+  const q   = u.searchParams.get('q') || CAT_TO_QUERY[cat] || '';
+  const timeframe = (u.searchParams.get('timeframe')==='7j'?'7j':'24h') as '24h'|'7j';
+  const limit = Math.min(parseInt(u.searchParams.get('limit')||'12',10)||12, 30);
+  const lang = u.searchParams.get('lang') || 'fr';
+
+  const gKey  = process.env.GNEWS_API_KEY;
+  const ndKey = process.env.NEWSDATA_API_KEY;
+  const naKey = process.env.NEWSAPI_API_KEY;
+
+  const since = new Date(Date.now() - (timeframe==='24h' ? 24*3600e3 : 7*24*3600e3)).toISOString();
+
+  const tasks: Promise<any>[] = [];
+
+  if(gKey){
+    const url = new URL('https://gnews.io/api/v4/search');
+    url.searchParams.set('q', q);
+    url.searchParams.set('lang', lang);
+    url.searchParams.set('from', since);
+    url.searchParams.set('max', String(limit));
+    url.searchParams.set('token', gKey);
+    tasks.push(fetch(url, { next: { revalidate: 86400 }}).then(r=>r.ok?r.json():{articles:[]})
+      .then(j => (j.articles||[]).map((a:any)=>({
+        title:a.title, description:a.description, url:a.url, source:a.source?.name,
+        image:a.image, publishedAt:a.publishedAt
+      }))));
+  }
+
+  if(ndKey){
+    const url = new URL('https://newsdata.io/api/1/news');
+    url.searchParams.set('q', q);
+    url.searchParams.set('language', lang);
+    url.searchParams.set('from_date', since.split('T')[0]);
+    url.searchParams.set('apikey', ndKey);
+    url.searchParams.set('size', String(limit));
+    tasks.push(fetch(url,{ next:{ revalidate: 86400 }}).then(r=>r.ok?r.json():{results:[]})
+      .then(j => (j.results||[]).map((a:any)=>({
+        title:a.title, description:a.description, url:a.link, source:a.source_id,
+        image:a.image_url, publishedAt:a.pubDate
+      }))));
+  }
+
+  if(naKey){
+    const url = new URL('https://newsapi.org/v2/everything');
+    url.searchParams.set('q', q);
+    url.searchParams.set('language', lang);
+    url.searchParams.set('from', since);
+    url.searchParams.set('pageSize', String(limit));
+    tasks.push(fetch(url, { headers:{'X-Api-Key':naKey}, next:{ revalidate:86400 }}).then(r=>r.ok?r.json():{articles:[]})
+      .then(j => (j.articles||[]).map((a:any)=>({
+        title:a.title, description:a.description, url:a.url, source:a.source?.name,
+        image:a.urlToImage, publishedAt:a.publishedAt
+      }))));
+  }
+
+  const results = (await Promise.allSettled(tasks))
+    .flatMap(r => r.status==='fulfilled' ? r.value : []);
+
+  // Nettoyage + filtres
+  const clean = results
+    .filter(it => it.url && !BAD_DOMAINS.has(new URL(it.url).hostname.replace(/^www\./,'')))
+    .filter(it => isFresh(it.publishedAt, timeframe));
+
+  // Dédoublon + tri pertinence
+  const ded = dedupe(clean);
+  const scored = ded.map(it => ({...it, _score: relevantScore(it, q)}))
+    .sort((a,b)=> (b._score||0) - (a._score||0))
+    .slice(0, limit);
+
+  return NextResponse.json({ items: scored, cat, q, timeframe });
+}

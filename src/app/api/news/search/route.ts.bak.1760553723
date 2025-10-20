@@ -1,0 +1,118 @@
+import { NextResponse } from 'next/server';
+import { XMLParser } from 'fast-xml-parser';
+import { RSS_FEEDS, CleanCat } from '../../../lib/rssFeeds';
+
+const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+
+type Item = {
+  title: string;
+  description?: string;
+  url: string;
+  image?: string;
+  source?: string;
+  publishedAt?: string;
+};
+
+function nowMinus(ms:number){ return Date.now() - ms; }
+function isFresh(pub?: string, tf: '24h' | '7j'){
+  if(!pub) return true;
+  const t = new Date(pub).getTime();
+  if(Number.isNaN(t)) return true;
+  return tf === '24h' ? t >= nowMinus(24*3600*1000) : t >= nowMinus(7*24*3600*1000);
+}
+
+function simpleScore(it: Item, q: string){
+  const hay = ((it.title||'') + ' ' + (it.description||'')).toLowerCase();
+  const words = Array.from(new Set(q.toLowerCase().split(/\s+/).filter(Boolean))));
+  let s = 0;
+  for(const w of words){ if(hay.includes(w)) s += 1; }
+  s += (it.image ? 0.5 : 0);
+  return s;
+}
+
+async function fetchRSS(url: string){
+  const res = await fetch(url, { cache: 'no-store' });
+  const txt = await res.text();
+  return parser.parse(txt);
+}
+
+function rssToItems(feed: any): Item[] {
+  // support RSS 2.0 / Atom variantes
+  const chan = feed?.rss?.channel || feed?.feed || feed;
+  const list = chan?.item || chan?.entry || [];
+  const items = Array.isArray(list) ? list : [list];
+
+  return items.map((n:any) => {
+    const title = n.title?.['#text'] || n.title || '';
+    const link  = n.link?.href || n.link || n.guid?.['#text'] || n.guid || '';
+    const desc  = n.description || n.summary || '';
+    const pub   = n.pubDate || n.published || n.updated;
+    const media = n['media:content']?.url || n.enclosure?.url;
+    return {
+      title: String(title).trim(),
+      url: String(link).trim(),
+      description: (typeof desc === 'string' ? desc : '').replace(/<[^>]+>/g,'').trim(),
+      image: media ? String(media) : undefined,
+      publishedAt: pub ? String(pub) : undefined,
+      source: (chan?.title || '').toString().slice(0,60),
+    };
+  }).filter(it => it.title && it.url);
+}
+
+function dedupe(items: Item[]){
+  const seen = new Set<string>();
+  const out: Item[] = [];
+  for(const it of items){
+    const key = (it.title + '|' + it.url).toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key); out.push(it);
+  }
+  return out;
+}
+
+export async function GET(req: Request){
+  try{
+    const u = new URL(req.url);
+    const cat = (u.searchParams.get('cat') || 'a-la-une') as CleanCat;
+    const tf  = (u.searchParams.get('timeframe') || '24h') as '24h'|'7j';
+    const limit = Math.max(1, Math.min(50, Number(u.searchParams.get('limit')||'12')));
+    const q    = (u.searchParams.get('q') || '').trim();
+
+    let items: Item[] = [];
+
+    // 1) (facultatif) tes fournisseurs si clés dispos (on n'écrase pas ton existant)
+    //    -> garde le comportement actuel si déjà implémenté
+    //    ici on saute (exemple minimal), à réintégrer si besoin.
+
+    // 2) Fallback RSS si rien (ou en complément)
+    const feeds = RSS_FEEDS[cat] || RSS_FEEDS['a-la-une'];
+    const raws = await Promise.allSettled(feeds.map(f => fetchRSS(f)));
+    for(const r of raws){
+      if(r.status === 'fulfilled'){
+        items.push(...rssToItems(r.value));
+      }
+    }
+
+    // 3) Filtre recence
+    items = items.filter(it => isFresh(it.publishedAt, tf));
+
+    // 4) Dédup + scoring simple (si q)
+    items = dedupe(items);
+    if(q){
+      items = items
+        .map(it => ({...it, _s: simpleScore(it,q)} as any))
+        .sort((a:any,b:any)=> (b._s??0) - (a._s??0))
+        .map(({_s, ...rest}:any)=>rest);
+    }
+
+    // 5) Coupe à limit
+    const top = items.slice(0, limit);
+
+    const res = NextResponse.json({ items: top });
+    // cache 1h pour le CDN (tu peux monter à 24h si tu veux)
+    res.headers.set('Cache-Control','public, s-maxage=3600, stale-while-revalidate=300');
+    return res;
+  }catch(e:any){
+    return NextResponse.json({ error:'news_error', message:String(e?.message||e) }, { status: 500 });
+  }
+}

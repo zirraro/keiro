@@ -1,0 +1,120 @@
+import { NextResponse } from 'next/server';
+import { XMLParser } from 'fast-xml-parser';
+import { RSS_FEEDS, CleanCat } from '../../../lib/rssFeeds';
+import { fetchGNews, fetchNewsData, fetchNewsApiAI, Item } from '../../../lib/newsProviders';
+
+const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+
+function nowMinus(ms:number){ return Date.now() - ms; }
+function isFresh(pub?: string, tf: '24h' | '7j'){
+  if(!pub) return true;
+  const t = new Date(pub).getTime();
+  if(Number.isNaN(t)) return true;
+  return tf === '24h' ? t >= nowMinus(24*3600*1000) : t >= nowMinus(7*24*3600*1000);
+}
+function simpleScore(it: Item, q: string){
+  const hay = ((it.title||'') + ' ' + (it.description||'')).toLowerCase();
+  const words = Array.from(new Set(q.toLowerCase().split(/\s+/).filter(Boolean))));
+  let s = 0;
+  for(const w of words){ if(hay.includes(w)) s += 1; }
+  s += (it.image ? 0.3 : 0);
+  return s;
+}
+function dedupe(items: Item[]){
+  const seen = new Set<string>();
+  const out: Item[] = [];
+  for(const it of items){
+    const key = (it.title + '|' + it.url).toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key); out.push(it);
+  }
+  return out;
+}
+
+async function fetchRSS(url: string){
+  const res = await fetch(url, { cache: 'no-store' });
+  const txt = await res.text();
+  return parser.parse(txt);
+}
+function rssToItems(feed: any): Item[] {
+  const chan = feed?.rss?.channel || feed?.feed || feed;
+  const list = chan?.item || chan?.entry || [];
+  const items = Array.isArray(list) ? list : [list];
+
+  return items.map((n:any) => {
+    const title = n.title?.['#text'] || n.title || '';
+    const link  = n.link?.href || n.link || n.guid?.['#text'] || n.guid || '';
+    const desc  = n.description || n.summary || '';
+    const pub   = n.pubDate || n.published || n.updated;
+    const media = n['media:content']?.url || n.enclosure?.url;
+    return {
+      title: String(title).trim(),
+      url: String(link).trim(),
+      description: (typeof desc === 'string' ? desc : '').replace(/<[^>]+>/g,'').trim(),
+      image: media ? String(media) : undefined,
+      publishedAt: pub ? String(pub) : undefined,
+      source: (chan?.title || '').toString().slice(0,60),
+    };
+  }).filter(it => it.title && it.url);
+}
+
+export async function GET(req: Request){
+  try{
+    const u = new URL(req.url);
+    const cat = (u.searchParams.get('cat') || 'a-la-une') as CleanCat;
+    const tf  = (u.searchParams.get('timeframe') || '24h') as '24h'|'7j';
+    const limit = Math.max(1, Math.min(50, Number(u.searchParams.get('limit')||'12')));
+    const q    = (u.searchParams.get('q') || '').trim();
+    const lang = (u.searchParams.get('lang') || 'fr').trim();
+
+    const GNEWS = process.env.NEWS_GNEWS_KEY || '';
+    const NEWSD = process.env.NEWS_NEWSDATA_KEY || '';
+    const NAIA  = process.env.NEWS_NEWSAPI_AI_KEY || '';
+
+    let items: Item[] = [];
+
+    // 1) Providers avec clés (en //, on concatène ce qui revient)
+    const proms: Promise<Item[]>[] = [];
+    if(GNEWS) proms.push(fetchGNews({ cat, q, tf, limit, lang, key:GNEWS }));
+    if(NEWSD) proms.push(fetchNewsData({ cat, q, tf, limit, lang, key:NEWSD }));
+    if(NAIA)  proms.push(fetchNewsApiAI({ cat, q, tf, limit, lang, key:NAIA }));
+
+    if(proms.length){
+      const results = await Promise.allSettled(proms);
+      for(const r of results){
+        if(r.status==='fulfilled') items.push(...r.value);
+      }
+    }
+
+    // 2) Fallback RSS si rien
+    if(items.length === 0){
+      const feeds = (await import('../../../lib/rssFeeds')).RSS_FEEDS[cat] || RSS_FEEDS['a-la-une'];
+      const raws = await Promise.allSettled(feeds.map(f => fetchRSS(f)));
+      for(const r of raws){
+        if(r.status === 'fulfilled'){
+          items.push(...rssToItems(r.value));
+        }
+      }
+    }
+
+    // 3) Filtre fraicheur (certaines sources n’offrent pas le filtre côté serveur)
+    items = items.filter(it => isFresh(it.publishedAt, tf));
+
+    // 4) Dédup + tri
+    items = dedupe(items);
+    if(q){
+      items = items
+        .map(it => ({...it, _s: simpleScore(it,q)} as any))
+        .sort((a:any,b:any)=> (b._s??0) - (a._s??0))
+        .map(({_s, ...rest}:any)=>rest);
+    }
+
+    // 5) Coupe + réponse (cache CDN 1h)
+    const top = items.slice(0, limit);
+    const res = NextResponse.json({ items: top });
+    res.headers.set('Cache-Control','public, s-maxage=3600, stale-while-revalidate=300');
+    return res;
+  }catch(e:any){
+    return NextResponse.json({ error:'news_error', message:String(e?.message||e) }, { status: 500 });
+  }
+}
