@@ -1,21 +1,9 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
 import { promises as fs } from 'fs';
-
 const CACHE_PATH = '/tmp/news-cache.json';
-
-type Item = {
-  id: string;
-  title: string;
-  url: string;
-  image?: string;
-  source?: string;
-  publishedAt?: string;
-};
-
-function demoItems(): Item[] {
+function demoItems() {
   const now = new Date().toISOString();
   return Array.from({ length: 8 }).map((_, i) => ({
     id: String(i + 1),
@@ -26,33 +14,21 @@ function demoItems(): Item[] {
     publishedAt: now,
   }));
 }
-
-// Remplace cette fonction par ta vraie collecte (RSS/API) si besoin
-async function collectItems(): Promise<Item[]> {
-  return demoItems();
+async function collectItems() { return demoItems(); }
+async function writeSafe(payload) {
+  try { await fs.writeFile(CACHE_PATH, JSON.stringify(payload)); return { wrote: true }; }
+  catch (e) { console.error('write error', e); return { wrote: false }; }
 }
-
-async function writeSafe(payload: unknown) {
-  try {
-    await fs.writeFile(CACHE_PATH, JSON.stringify(payload));
-    return { wrote: true, error: null as string | null };
-  } catch (e: any) {
-    console.error('[news/fetch] write error', e?.message || e);
-    return { wrote: false, error: String(e?.message || e) };
-  }
-}
-
 async function handle() {
   try {
     const items = await collectItems();
     const payload = { items, at: Date.now() };
-    const res = await writeSafe(payload);
-    return Response.json({ ok: res.wrote, items, at: payload.at, error: res.error });
-  } catch (err: any) {
-    console.error('[news/fetch] handler error', err?.message || err);
-    return Response.json({ ok: false, items: demoItems(), at: Date.now(), error: 'handler-failed' });
+    await writeSafe(payload);
+    return Response.json({ ok: true, items, cached: false });
+  } catch (e) {
+    console.error('handler error', e);
+    return Response.json({ ok: false, items: demoItems(), cached: false });
   }
 }
-
 export async function POST() { return handle(); }
 export async function GET() { return handle(); }
