@@ -1,3 +1,9 @@
+/** Patch: forcer Node.js + éviter l’Edge par défaut sur Vercel */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+export const preferredRegion = ['fra1','cdg1'];
+
 import { supabaseServer } from '@/lib/supabase/server'
 import { fetchGoogleNews } from '@/lib/news/sources'
 

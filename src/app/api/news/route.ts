@@ -1,3 +1,9 @@
+/** Patch: forcer Node.js + éviter l’Edge par défaut sur Vercel */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+export const preferredRegion = ['fra1','cdg1'];
+
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
