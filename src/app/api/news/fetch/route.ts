@@ -1,8 +1,10 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
 import { promises as fs } from 'fs';
 const CACHE_PATH = '/tmp/news-cache.json';
+
 function demoItems() {
   const now = new Date().toISOString();
   return Array.from({ length: 8 }).map((_, i) => ({
@@ -14,11 +16,22 @@ function demoItems() {
     publishedAt: now,
   }));
 }
-async function collectItems() { return demoItems(); }
-async function writeSafe(payload) {
-  try { await fs.writeFile(CACHE_PATH, JSON.stringify(payload)); return { wrote: true }; }
-  catch (e) { console.error('write error', e); return { wrote: false }; }
+
+// TODO: branche "vraie" collecte ici plus tard
+async function collectItems() {
+  return demoItems();
 }
+
+async function writeSafe(payload: unknown) {
+  try {
+    await fs.writeFile(CACHE_PATH, JSON.stringify(payload));
+    return { wrote: true };
+  } catch (e) {
+    console.error('write error', e);
+    return { wrote: false };
+  }
+}
+
 async function handle() {
   try {
     const items = await collectItems();
@@ -30,5 +43,6 @@ async function handle() {
     return Response.json({ ok: false, items: demoItems(), cached: false });
   }
 }
+
 export async function POST() { return handle(); }
-export async function GET() { return handle(); }
+export async function GET()  { return handle(); }

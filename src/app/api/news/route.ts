@@ -1,7 +1,9 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
 import { promises as fs } from 'fs';
 const CACHE_PATH = '/tmp/news-cache.json';
+
 function demoItems() {
   const now = new Date().toISOString();
   return Array.from({ length: 8 }).map((_, i) => ({
@@ -13,19 +15,21 @@ function demoItems() {
     publishedAt: now,
   }));
 }
-async function readCache() {
+
+export async function GET() {
   try {
-    const raw = await fs.readFile(CACHE_PATH, 'utf8');
-    return JSON.parse(raw);
-  } catch { return { items: [], at: 0 }; }
-}
-export async function GET(req) {
-  try {
-    const cache = await readCache();
-    const useDemo = !cache.items?.length;
-    return Response.json({ ok: true, items: useDemo ? demoItems() : cache.items, cached: !useDemo });
+    const raw = await fs.readFile(CACHE_PATH, 'utf8').catch(() => '');
+    if (!raw) {
+      return Response.json({ ok: true, items: demoItems(), cached: false });
+    }
+    const data = JSON.parse(raw);
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (items.length === 0) {
+      return Response.json({ ok: true, items: demoItems(), cached: false });
+    }
+    return Response.json({ ok: true, items, cached: true });
   } catch (e) {
-    console.error('news error', e);
+    console.error('GET /api/news error', e);
     return Response.json({ ok: false, items: demoItems(), cached: false });
   }
 }
