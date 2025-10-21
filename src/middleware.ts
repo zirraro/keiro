@@ -1,8 +1,12 @@
-import type { NextRequest } from 'next/server'
-export function middleware(req: NextRequest) { return; } // no-op
-export const config = {
-  matcher: [
-    // tout sauf ces chemins :
-    "/((?!api/news|api/ping|_next|favicon.ico|.*\\.(png|jpg|svg|ico)).*)",
-  ],
-};
+import type { NextRequest, NextResponse } from 'next/server';
+
+export function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname || '';
+  // Bypass News & Ping
+  if (pathname.startsWith('/api/news') || pathname.startsWith('/api/ping')) {
+    return NextResponse.next();
+  }
+  return _origMiddleware(req);
+}
+export function _origMiddleware(req: NextRequest) { return; } // no-op
+export const config = { matcher: ['/:path*'] };
