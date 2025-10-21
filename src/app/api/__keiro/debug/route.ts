@@ -5,7 +5,7 @@ export const revalidate = 0;
 export async function GET() {
   const body = {
     ok: true,
-    signature: 'keiro-debug-v1',
+    signature: 'keiro-debug-v2',
     vercelUrl: process.env.VERCEL_URL || 'local',
     gitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
     now: new Date().toISOString(),
@@ -15,7 +15,7 @@ export async function GET() {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'x-debug-signature': 'keiro-debug-v1',
+      'x-debug-signature': 'keiro-debug-v2',
     },
   });
 }
