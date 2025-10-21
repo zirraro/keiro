@@ -28,14 +28,13 @@ function json(data: unknown, extraHeaders: Record<string, string> = {}) {
 export async function GET() {
   const items = makeItems();
   return json(
-    { ok: true, signature: 'news-force-v6', items, cached: false },
+    { ok: true, signature: 'news-force-v7', items, cached: false },
     {
-      'x-handler': 'news-force-v6',
+      'x-handler': 'news-force-v7',
       'x-items-count': String(items.length),
       'x-vercel-url': process.env.VERCEL_URL || 'local',
       'x-git-sha': process.env.VERCEL_GIT_COMMIT_SHA || 'local',
     },
   );
 }
-
 export const POST = GET;

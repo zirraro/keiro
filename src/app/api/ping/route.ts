@@ -3,20 +3,17 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      signature: 'whoami-v2',
-      vercelUrl: process.env.VERCEL_URL || 'local',
-      gitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
-      now: new Date().toISOString(),
-    }),
-    {
-      status: 200,
-      headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-      },
+  return new Response(JSON.stringify({
+    ok: true,
+    signature: 'whoami-v3',
+    vercelUrl: process.env.VERCEL_URL || 'local',
+    gitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
+    now: new Date().toISOString(),
+  }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
     },
-  );
+  });
 }
