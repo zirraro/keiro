@@ -15,16 +15,14 @@ function demoItems() {
 }
 
 export async function GET() {
-  return new Response(
-    JSON.stringify({ ok: true, signature: 'demo-v4', items: demoItems(), cached: false }),
-    {
-      status: 200,
-      headers: {
-        'content-type': 'application/json; charset=utf-8',
-        'cache-control': 'no-store',
-        'x-demo-items': '8',
-        'x-demo-signature': 'demo-v4',
-      },
-    }
-  );
+  const body = JSON.stringify({ ok: true, signature: 'demo-v4', items: demoItems(), cached: false });
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'x-demo-items': '8',
+      'x-demo-signature': 'demo-v4',
+    },
+  });
 }
