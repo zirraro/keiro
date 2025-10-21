@@ -23,6 +23,5 @@ function demoItems(): NewsItem[] {
 }
 
 export async function GET() {
-  // Pas de 500, toujours des items pour débloquer l’UI
   return Response.json({ ok: true, items: demoItems(), cached: false });
 }
