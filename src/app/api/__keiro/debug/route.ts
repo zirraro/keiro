@@ -1,31 +1,21 @@
-import { readFileSync } from 'fs';
-import { createHash } from 'crypto';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function fileHash(p: string) {
-  try { return createHash('sha256').update(readFileSync(p)).digest('hex').slice(0,16); }
-  catch { return null; }
-}
+export const revalidate = 0;
 
 export async function GET() {
-  const newsFile = 'src/app/api/news/route.ts';
-  const newsHash = fileHash(newsFile);
-  const body = JSON.stringify({
+  const body = {
     ok: true,
-    signature: 'keiro-debug',
-    newsFile,
-    newsHash,
-    sha: process.env.VERCEL_GIT_COMMIT_SHA || 'local-dev',
-    url: process.env.VERCEL_URL || 'unknown',
-    now: new Date().toISOString()
-  });
-  return new Response(body, {
+    signature: 'keiro-debug-v1',
+    vercelUrl: process.env.VERCEL_URL || 'local',
+    gitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
+    now: new Date().toISOString(),
+  };
+  return new Response(JSON.stringify(body), {
     status: 200,
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'x-keiro-news-hash': newsHash ?? ''
-    }
+      'x-debug-signature': 'keiro-debug-v1',
+    },
   });
 }
