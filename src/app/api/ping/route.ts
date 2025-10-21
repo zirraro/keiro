@@ -1,6 +1,22 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-import { NextResponse } from 'next/server';
+export const revalidate = 0;
+
 export async function GET() {
-  return NextResponse.json({ ok: true, who: 'next-api', ts: Date.now() });
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      signature: 'whoami-v2',
+      vercelUrl: process.env.VERCEL_URL || 'local',
+      gitSha: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
+      now: new Date().toISOString(),
+    }),
+    {
+      status: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      },
+    },
+  );
 }
