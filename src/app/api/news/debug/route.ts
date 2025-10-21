@@ -1,16 +1,1 @@
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-
-export async function GET() {
-  const sha = process.env.VERCEL_GIT_COMMIT_SHA || 'local-dev'
-  const url = process.env.VERCEL_URL || 'unknown'
-  const body = JSON.stringify({ ok: true, signature: 'debug-v1', sha, url, now: new Date().toISOString() })
-  return new Response(body, {
-    status: 200,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-      'x-debug-signature': 'debug-v1',
-    },
-  })
-}
+export const runtime="nodejs";export const dynamic="force-dynamic";export async function GET(){const sha=process.env.VERCEL_GIT_COMMIT_SHA||"local-dev";const url=process.env.VERCEL_URL||"unknown";const body=JSON.stringify({ok:true,signature:"debug-v1",sha,url,now:new Date().toISOString()});return new Response(body,{status:200,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-debug-signature":"debug-v1"}})}
