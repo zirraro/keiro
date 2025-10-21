@@ -27,15 +27,29 @@ function demoItems(): Item[] {
   }));
 }
 
-export async function POST(_req: Request) {
+async function writeSafe(payload: unknown) {
   try {
-    // TODO: remplacer par ta vraie collecte (RSS, API, etc.)
-    const items = demoItems();
-    const payload = { items, at: Date.now() };
     await fs.writeFile(CACHE_PATH, JSON.stringify(payload));
-    return Response.json({ ok: true, written: items.length });
-  } catch (err) {
-    console.error('[news/fetch] POST error', err);
-    return new Response(null, { status: 500 });
+    return { wrote: true, error: null as string | null };
+  } catch (e: any) {
+    console.error('[news/fetch] write error', e?.message || e);
+    return { wrote: false, error: String(e?.message || e) };
   }
 }
+
+async function handle() {
+  try {
+    // TODO: remplacer ce demoItems() par ta vraie collecte (RSS/API), garder writeSafe.
+    const items = demoItems();
+    const payload = { items, at: Date.now() };
+    const res = await writeSafe(payload);
+    return Response.json({ ok: res.wrote, items, at: payload.at, error: res.error });
+  } catch (err: any) {
+    console.error('[news/fetch] handler error', err?.message || err);
+    // Même en cas d’erreur, renvoyer 200 + fallback pour éviter un 500 côté UI
+    return Response.json({ ok: false, items: demoItems(), at: Date.now(), error: 'handler-failed' });
+  }
+}
+
+export async function POST() { return handle(); }
+export async function GET() { return handle(); }
