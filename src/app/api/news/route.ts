@@ -15,17 +15,18 @@ function demoItems() {
 }
 
 export async function GET() {
-  return new Response(JSON.stringify({
-    ok: true,
-    signature: 'news-demo-fixed',
-    items: demoItems(),
-    cached: false
-  }), {
-    status: 200,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store'
-    }
-  });
+  const items = demoItems();
+  return new Response(
+    JSON.stringify({ ok: true, signature: 'news-index-v1', items, cached: false }),
+    {
+      status: 200,
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-handler': 'news-index-v1',
+        'x-items-count': String(items.length),
+      },
+    },
+  );
 }
 export const POST = GET;
