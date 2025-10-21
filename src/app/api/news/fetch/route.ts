@@ -5,7 +5,16 @@ export const maxDuration = 60;
 import { promises as fs } from 'fs';
 const CACHE_PATH = '/tmp/news-cache.json';
 
-function demoItems() {
+type NewsItem = {
+  id: string;
+  title: string;
+  url: string;
+  image: string;
+  source: string;
+  publishedAt: string;
+};
+
+function demoItems(): NewsItem[] {
   const now = new Date().toISOString();
   return Array.from({ length: 8 }).map((_, i) => ({
     id: String(i + 1),
@@ -17,8 +26,8 @@ function demoItems() {
   }));
 }
 
-// TODO: branche "vraie" collecte ici plus tard
-async function collectItems() {
+// TODO: remplace par la vraie collecte (RSS/API) quand prête
+async function collectItems(): Promise<NewsItem[]> {
   return demoItems();
 }
 

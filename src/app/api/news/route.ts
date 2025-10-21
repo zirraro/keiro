@@ -4,7 +4,16 @@ export const dynamic = 'force-dynamic';
 import { promises as fs } from 'fs';
 const CACHE_PATH = '/tmp/news-cache.json';
 
-function demoItems() {
+type NewsItem = {
+  id: string;
+  title: string;
+  url: string;
+  image: string;
+  source: string;
+  publishedAt: string;
+};
+
+function demoItems(): NewsItem[] {
   const now = new Date().toISOString();
   return Array.from({ length: 8 }).map((_, i) => ({
     id: String(i + 1),
@@ -22,9 +31,14 @@ export async function GET() {
     if (!raw) {
       return Response.json({ ok: true, items: demoItems(), cached: false });
     }
-    const data = JSON.parse(raw);
-    const items = Array.isArray(data?.items) ? data.items : [];
-    if (items.length === 0) {
+    let data: any;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return Response.json({ ok: true, items: demoItems(), cached: false });
+    }
+    const items: NewsItem[] = Array.isArray(data?.items) ? data.items : [];
+    if (!items.length) {
       return Response.json({ ok: true, items: demoItems(), cached: false });
     }
     return Response.json({ ok: true, items, cached: true });
