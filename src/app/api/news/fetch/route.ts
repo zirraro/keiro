@@ -27,6 +27,11 @@ function demoItems(): Item[] {
   }));
 }
 
+// Remplace cette fonction par ta vraie collecte (RSS/API) si besoin
+async function collectItems(): Promise<Item[]> {
+  return demoItems();
+}
+
 async function writeSafe(payload: unknown) {
   try {
     await fs.writeFile(CACHE_PATH, JSON.stringify(payload));
@@ -39,14 +44,12 @@ async function writeSafe(payload: unknown) {
 
 async function handle() {
   try {
-    // TODO: remplacer ce demoItems() par ta vraie collecte (RSS/API), garder writeSafe.
-    const items = demoItems();
+    const items = await collectItems();
     const payload = { items, at: Date.now() };
     const res = await writeSafe(payload);
     return Response.json({ ok: res.wrote, items, at: payload.at, error: res.error });
   } catch (err: any) {
     console.error('[news/fetch] handler error', err?.message || err);
-    // Même en cas d’erreur, renvoyer 200 + fallback pour éviter un 500 côté UI
     return Response.json({ ok: false, items: demoItems(), at: Date.now(), error: 'handler-failed' });
   }
 }
