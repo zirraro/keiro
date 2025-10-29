@@ -16,20 +16,37 @@ const GNEWS_API_KEY = '14cef0dcc6437084dab9a432df281e98';
 const NEWSDATA_API_KEY = 'pub_f0d6177c8ef44e26ab72a1723d21b088';
 const NEWSAPI_AI_KEY = '22c2c608-833e-4050-8925-9e9f7e7e1cf9';
 
-// Catégories mapping (mots-clés élargis pour meilleure distribution) - EN FRANÇAIS
+// Catégories mapping (mots-clés très élargis) - EN FRANÇAIS ET ANGLAIS
 const CATEGORY_KEYWORDS = {
-  'Tech': ['tech', 'technologie', 'ai', 'ia', 'intelligence', 'artificielle', 'logiciel', 'software', 'numérique', 'digital', 'data', 'données', 'cyber', 'app', 'application', 'internet', 'innovation', 'ordinateur', 'computer', 'smartphone', 'cloud', 'algorithme'],
-  'Business': ['business', 'entreprise', 'économie', 'economy', 'finance', 'financier', 'marché', 'market', 'bourse', 'stock', 'commerce', 'trade', 'société', 'company', 'corporate', 'investisseur', 'investor', 'startup', 'entrepreneur'],
-  'Santé': ['santé', 'health', 'médical', 'medical', 'bien-être', 'wellness', 'hôpital', 'hospital', 'médecin', 'doctor', 'patient', 'maladie', 'disease', 'traitement', 'treatment', 'médicament', 'medicine', 'vaccin', 'vaccine', 'covid', 'mental', 'fitness'],
-  'Sport': ['sport', 'football', 'soccer', 'basket', 'basketball', 'tennis', 'olympique', 'olympic', 'athlète', 'athlete', 'jeu', 'game', 'joueur', 'player', 'équipe', 'team', 'championnat', 'championship', 'match'],
-  'Culture': ['culture', 'divertissement', 'entertainment', 'art', 'musique', 'music', 'film', 'cinéma', 'movie', 'cinema', 'artiste', 'artist', 'spectacle', 'show', 'concert', 'festival', 'livre', 'book', 'théâtre', 'theater'],
-  'Politique': ['politique', 'politic', 'gouvernement', 'government', 'élection', 'election', 'président', 'president', 'ministre', 'minister', 'parlement', 'parliament', 'sénat', 'senate', 'vote', 'loi', 'law', 'policy'],
-  'Climat': ['climat', 'environment', 'environnement', 'climate', 'vert', 'green', 'énergie', 'energy', 'renouvelable', 'renewable', 'carbone', 'carbon', 'émission', 'emission', 'pollution', 'durable', 'sustainable', 'eco', 'écologie'],
-  'Automobile': ['auto', 'automobile', 'automotive', 'voiture', 'car', 'véhicule', 'vehicle', 'électrique', 'electric', 'tesla', 'conduite', 'driving', 'autonome', 'autonomous', 'moteur', 'motor', 'transport'],
-  'Lifestyle': ['lifestyle', 'mode', 'fashion', 'voyage', 'travel', 'cuisine', 'food', 'recette', 'recipe', 'style', 'beauté', 'beauty', 'maison', 'home', 'design', 'tourisme', 'tourism', 'vie'],
-  'People': ['people', 'célébrité', 'celebrity', 'star', 'acteur', 'actor', 'actrice', 'actress', 'influenceur', 'influencer', 'célèbre', 'famous', 'personnalité'],
-  'Gaming': ['gaming', 'jeu vidéo', 'game', 'esport', 'playstation', 'xbox', 'nintendo', 'videogame', 'gamer', 'jeux', 'console'],
-  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'gastronomy', 'culinaire', 'culinary', 'plat', 'dish', 'resto', 'bar', 'café'],
+  'Tech': ['tech', 'technologie', 'technology', 'ai', 'ia', 'intelligence', 'artificielle', 'artificial', 'logiciel', 'software', 'numérique', 'digital', 'data', 'données', 'cyber', 'cybersécurité', 'security', 'app', 'application', 'internet', 'web', 'innovation', 'innovant', 'ordinateur', 'computer', 'smartphone', 'mobile', 'cloud', 'algorithme', 'algorithm', 'robot', 'robotique', 'automation', 'automatisation', 'startup', 'électronique', 'electronic', 'informatique', 'computing', 'réseau', 'network', '5g', '6g', 'blockchain', 'crypto', 'metaverse', 'métavers', 'réalité virtuelle', 'vr', 'ar', 'iot', 'objet connecté'],
+
+  'Business': ['business', 'entreprise', 'économie', 'economy', 'finance', 'financier', 'financial', 'marché', 'market', 'bourse', 'stock', 'commerce', 'trade', 'trading', 'société', 'company', 'corporate', 'investisseur', 'investor', 'investment', 'investissement', 'startup', 'entrepreneur', 'entrepreneuriat', 'pme', 'industrie', 'industry', 'usine', 'factory', 'production', 'fabrication', 'croissance', 'growth', 'chiffre', 'revenue', 'profit', 'bénéfice', 'acquisition', 'fusion', 'merger', 'cotation', 'ceo', 'pdg', 'patron', 'emploi', 'employment', 'recrutement', 'hiring', 'salaire', 'salary'],
+
+  'Santé': ['santé', 'health', 'médical', 'medical', 'bien-être', 'wellness', 'hôpital', 'hospital', 'clinique', 'clinic', 'médecin', 'doctor', 'docteur', 'patient', 'maladie', 'disease', 'traitement', 'treatment', 'thérapie', 'therapy', 'médicament', 'medicine', 'drug', 'vaccin', 'vaccine', 'vaccination', 'covid', 'pandémie', 'pandemic', 'virus', 'mental', 'psychologie', 'psychiatrie', 'fitness', 'gym', 'sport santé', 'nutrition', 'alimentation', 'diet', 'régime', 'soin', 'care', 'urgence', 'emergency', 'chirurgie', 'surgery', 'opération', 'pharma', 'pharmaceutique', 'recherche médicale', 'essai clinique'],
+
+  'Sport': ['sport', 'sportif', 'football', 'soccer', 'foot', 'basket', 'basketball', 'tennis', 'rugby', 'handball', 'volley', 'natation', 'swimming', 'cyclisme', 'vélo', 'bike', 'course', 'running', 'marathon', 'olympique', 'olympic', 'jeux olympiques', 'athlète', 'athlete', 'joueur', 'player', 'équipe', 'team', 'championnat', 'championship', 'match', 'compétition', 'competition', 'tournoi', 'tournament', 'victoire', 'victory', 'défaite', 'coupe', 'cup', 'ligue', 'league', 'entraîneur', 'coach', 'stade', 'stadium', 'podium', 'médaille', 'medal', 'record', 'performance'],
+
+  'Culture': ['culture', 'culturel', 'divertissement', 'entertainment', 'art', 'artiste', 'artist', 'musique', 'music', 'musical', 'musicien', 'musician', 'chanson', 'song', 'album', 'concert', 'film', 'cinéma', 'movie', 'cinema', 'série', 'series', 'netflix', 'streaming', 'spectacle', 'show', 'festival', 'expo', 'exposition', 'exhibition', 'musée', 'museum', 'galerie', 'gallery', 'peinture', 'painting', 'sculpture', 'photo', 'photographie', 'livre', 'book', 'roman', 'novel', 'auteur', 'author', 'écrivain', 'writer', 'littérature', 'literature', 'poésie', 'poetry', 'théâtre', 'theater', 'danse', 'dance', 'opéra', 'opera', 'ballet'],
+
+  'Politique': ['politique', 'politic', 'political', 'gouvernement', 'government', 'état', 'state', 'élection', 'election', 'vote', 'voter', 'président', 'president', 'ministre', 'minister', 'ministère', 'ministry', 'parlement', 'parliament', 'assemblée', 'assembly', 'sénat', 'senate', 'sénateur', 'senator', 'député', 'loi', 'law', 'législation', 'legislation', 'réforme', 'reform', 'policy', 'politique publique', 'démocratie', 'democracy', 'république', 'republic', 'parti', 'party', 'coalition', 'opposition', 'débat', 'debate', 'conseil', 'council', 'maire', 'mayor', 'municipalité'],
+
+  'Climat': ['climat', 'climate', 'climatique', 'environnement', 'environment', 'environmental', 'écologie', 'ecology', 'écologique', 'vert', 'green', 'énergie', 'energy', 'renouvelable', 'renewable', 'solaire', 'solar', 'éolien', 'wind', 'carbone', 'carbon', 'co2', 'émission', 'emission', 'pollution', 'pollué', 'pollutant', 'durable', 'sustainable', 'durabilité', 'sustainability', 'eco', 'écolo', 'bio', 'biologique', 'organic', 'recyclage', 'recycling', 'déchet', 'waste', 'planète', 'planet', 'terre', 'earth', 'océan', 'ocean', 'mer', 'sea', 'forêt', 'forest', 'biodiversité', 'biodiversity', 'extinction', 'réchauffement', 'warming', 'température', 'météo', 'weather'],
+
+  'Automobile': ['auto', 'automobile', 'automotive', 'voiture', 'car', 'véhicule', 'vehicle', 'électrique', 'electric', 'hybride', 'hybrid', 'tesla', 'bmw', 'mercedes', 'renault', 'peugeot', 'citroën', 'volkswagen', 'audi', 'conduite', 'driving', 'drive', 'autonome', 'autonomous', 'moteur', 'motor', 'engine', 'transport', 'mobilité', 'mobility', 'circulation', 'traffic', 'route', 'road', 'autoroute', 'highway', 'parking', 'garage', 'moto', 'motorcycle', 'scooter', 'vélo électrique', 'e-bike', 'trottinette', 'carburant', 'fuel', 'essence', 'diesel', 'batterie', 'battery', 'borne', 'charging'],
+
+  'Lifestyle': ['lifestyle', 'vie', 'life', 'quotidien', 'daily', 'mode', 'fashion', 'tendance', 'trend', 'style', 'élégance', 'elegant', 'luxe', 'luxury', 'voyage', 'travel', 'vacances', 'holiday', 'destination', 'tourisme', 'tourism', 'hôtel', 'hotel', 'restaurant', 'cuisine', 'food', 'gastronomie', 'gastronomy', 'recette', 'recipe', 'beauté', 'beauty', 'cosmétique', 'cosmetic', 'parfum', 'perfume', 'maquillage', 'makeup', 'coiffure', 'hair', 'maison', 'home', 'décoration', 'decoration', 'design', 'intérieur', 'interior', 'jardin', 'garden', 'immobilier', 'real estate', 'propriété', 'property'],
+
+  'People': ['people', 'célébrité', 'celebrity', 'star', 'vedette', 'acteur', 'actor', 'actrice', 'actress', 'chanteur', 'singer', 'influenceur', 'influencer', 'blogueur', 'blogger', 'youtubeur', 'youtuber', 'tiktoker', 'célèbre', 'famous', 'connu', 'known', 'personnalité', 'personality', 'people', 'glamour', 'red carpet', 'tapis rouge', 'paparazzi', 'interview', 'biographie', 'biography', 'vie privée', 'couple', 'mariage', 'marriage', 'divorce', 'enfant', 'bébé', 'baby', 'famille', 'family'],
+
+  'Gaming': ['gaming', 'gamer', 'jeu vidéo', 'video game', 'game', 'jeux', 'esport', 'e-sport', 'compétition gaming', 'playstation', 'ps5', 'xbox', 'nintendo', 'switch', 'pc gaming', 'steam', 'epic games', 'console', 'manette', 'controller', 'fortnite', 'minecraft', 'fifa', 'call of duty', 'valorant', 'league of legends', 'lol', 'twitch', 'streamer', 'streaming gaming', 'sortie jeu', 'game release', 'gameplay', 'multijoueur', 'multiplayer', 'online', 'rpg', 'fps', 'mmo', 'battle royale'],
+
+  'Restauration': ['restaurant', 'resto', 'cuisine', 'chef', 'cuisinier', 'cook', 'gastronomie', 'gastronomy', 'gastronomique', 'culinaire', 'culinary', 'plat', 'dish', 'menu', 'carte', 'dégustation', 'tasting', 'étoile', 'michelin', 'guide', 'bar', 'café', 'coffee', 'bistrot', 'brasserie', 'pizzeria', 'boulangerie', 'bakery', 'pâtisserie', 'pastry', 'traiteur', 'caterer', 'food truck', 'livraison', 'delivery', 'uber eats', 'deliveroo', 'table', 'réservation', 'booking', 'service', 'sommelier', 'vin', 'wine', 'déjeuner', 'lunch', 'dîner', 'dinner', 'brunch'],
+
+  'Science': ['science', 'scientifique', 'scientist', 'recherche', 'research', 'étude', 'study', 'découverte', 'discovery', 'invention', 'laboratoire', 'laboratory', 'lab', 'expérience', 'experiment', 'physique', 'physics', 'chimie', 'chemistry', 'biologie', 'biology', 'mathématiques', 'mathematics', 'astronomie', 'astronomy', 'espace', 'space', 'nasa', 'esa', 'planète', 'planet', 'étoile', 'star', 'galaxie', 'galaxy', 'univers', 'universe', 'particule', 'particle', 'atome', 'atom', 'molécule', 'molecule', 'génétique', 'genetic', 'adn', 'dna', 'cellule', 'cell'],
+
+  'International': ['international', 'monde', 'world', 'global', 'pays', 'country', 'nation', 'étranger', 'foreign', 'frontière', 'border', 'guerre', 'war', 'conflit', 'conflict', 'paix', 'peace', 'diplomatie', 'diplomacy', 'ambassade', 'embassy', 'onu', 'un', 'union européenne', 'eu', 'europe', 'asie', 'asia', 'afrique', 'africa', 'amérique', 'america', 'chine', 'china', 'usa', 'états-unis', 'russie', 'russia', 'japon', 'japan', 'inde', 'india', 'accord', 'agreement', 'traité', 'treaty', 'sanction', 'crise', 'crisis'],
+
+  'Finance': ['finance', 'financier', 'financial', 'banque', 'bank', 'banking', 'crédit', 'credit', 'prêt', 'loan', 'taux', 'rate', 'intérêt', 'interest', 'bourse', 'stock', 'action', 'share', 'obligation', 'bond', 'trading', 'trader', 'investissement', 'investment', 'patrimoine', 'wealth', 'assurance', 'insurance', 'épargne', 'savings', 'compte', 'account', 'monnaie', 'currency', 'euro', 'dollar', 'devise', 'forex', 'crypto', 'bitcoin', 'ethereum', 'portefeuille', 'portfolio', 'rendement', 'return', 'risque', 'risk'],
 };
 
 function categorizeArticle(title: string, description: string, source: string = ''): string {
@@ -198,8 +215,9 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
 // Distribuer par catégories de façon équilibrée - UNIQUEMENT DES VRAIES NEWS
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
   const REQUIRED_CATEGORIES = [
-    'À la une', 'Tech', 'Business', 'Santé', 'Sport', 'Culture',
-    'Politique', 'Climat', 'Automobile', 'Lifestyle', 'People', 'Gaming', 'Restauration'
+    'À la une', 'Tendances', 'Tech', 'Business', 'Finance', 'Santé', 'Sport',
+    'Culture', 'Politique', 'Climat', 'Automobile', 'Lifestyle', 'People',
+    'Gaming', 'Restauration', 'Science', 'International'
   ];
 
   const TARGET_PER_CATEGORY = 12;
@@ -222,11 +240,34 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
 
   console.log(`[Distribution] Total unique articles: ${uniqueArticles.length}`);
 
+  // Trier par date pour identifier les tendances (plus récent = plus tendance)
+  const sortedByDate = [...uniqueArticles].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date).getTime() : 0;
+    const dateB = b.date ? new Date(b.date).getTime() : 0;
+    return dateB - dateA; // Plus récent d'abord
+  });
+
+  // Remplir "Tendances" avec les 12 articles les plus récents
+  const tendances = sortedByDate.slice(0, TARGET_PER_CATEGORY);
+  categoryArticles.set('Tendances', tendances);
+  console.log(`[Distribution] Tendances filled with ${tendances.length} most recent articles`);
+
   // Premier passage : distribuer selon la catégorisation initiale (max 12 par catégorie)
   for (const article of uniqueArticles) {
     const cat = article.category || 'À la une';
-    const catList = categoryArticles.get(cat) || [];
 
+    // Ne pas ajouter à REQUIRED_CATEGORIES si ce n'est pas une catégorie reconnue
+    if (!REQUIRED_CATEGORIES.includes(cat) && cat !== 'À la une') {
+      // Mettre dans "À la une" si catégorie non reconnue
+      const alaune = categoryArticles.get('À la une') || [];
+      if (alaune.length < TARGET_PER_CATEGORY) {
+        alaune.push(article);
+        categoryArticles.set('À la une', alaune);
+      }
+      continue;
+    }
+
+    const catList = categoryArticles.get(cat) || [];
     if (catList.length < TARGET_PER_CATEGORY) {
       catList.push(article);
       categoryArticles.set(cat, catList);
