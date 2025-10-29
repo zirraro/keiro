@@ -329,46 +329,46 @@ export default function GeneratePage() {
               )}
 
               {!loading && filteredNews.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {filteredNews.map((item) => (
                     <article
                       key={item.id}
                       onClick={() => setSelectedNews(item)}
-                      className={`rounded-xl border cursor-pointer transition hover:shadow-lg ${
+                      className={`rounded-xl border-2 cursor-pointer transition-all hover:shadow-xl ${
                         selectedNews?.id === item.id
-                          ? 'ring-2 ring-blue-500 bg-blue-50'
-                          : 'bg-white hover:bg-neutral-50'
+                          ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500 shadow-lg'
+                          : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-blue-300'
                       }`}
                     >
                       {item.image && (
                         <img
                           src={item.image}
                           alt={item.title}
-                          className="w-full h-32 object-cover rounded-t-xl"
+                          className="w-full h-52 object-cover rounded-t-xl"
                         />
                       )}
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm line-clamp-2 mb-2">
+                      <div className="p-4">
+                        <h3 className="font-bold text-base line-clamp-2 mb-2 leading-snug">
                           {item.title}
                         </h3>
-                        <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
+                        <p className="text-sm text-neutral-600 line-clamp-3 mb-4 leading-relaxed">
                           {item.description}
                         </p>
 
                         {/* Footer avec source et badge sélectionné */}
-                        <div className="flex items-center justify-between mt-auto">
+                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-neutral-100">
                           <a
                             href={item.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="text-[10px] text-blue-600 hover:underline"
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline"
                           >
-                            Source
+                            Lire l'article →
                           </a>
                           {selectedNews?.id === item.id && (
-                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
-                              Sélectionné
+                            <span className="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-semibold shadow-sm">
+                              ✓ Sélectionné
                             </span>
                           )}
                         </div>

@@ -137,34 +137,32 @@ async function fetchFromNewsData(): Promise<NewsArticle[]> {
   }
 }
 
-// Fetch principal avec fallback
+// Fetch principal - COMBINE TOUS les providers
 export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
-  // GNews en premier (meilleur)
+  const allArticles: NewsArticle[] = [];
+
+  // Fetch GNews
   try {
-    console.log('[Fetch] Trying GNews...');
-    const articles = await fetchFromGNews();
-    if (articles.length > 50) {
-      console.log(`[Fetch] GNews SUCCESS: ${articles.length} articles`);
-      return articles;
-    }
+    console.log('[Fetch] Fetching GNews...');
+    const gnewsArticles = await fetchFromGNews();
+    console.log(`[Fetch] GNews: ${gnewsArticles.length} articles`);
+    allArticles.push(...gnewsArticles);
   } catch (error) {
     console.warn('[Fetch] GNews failed');
   }
 
-  // NewsData en fallback
+  // Fetch NewsData (EN PLUS, pas fallback)
   try {
-    console.log('[Fetch] Trying NewsData...');
-    const articles = await fetchFromNewsData();
-    if (articles.length > 20) {
-      console.log(`[Fetch] NewsData SUCCESS: ${articles.length} articles`);
-      return articles;
-    }
+    console.log('[Fetch] Fetching NewsData...');
+    const newsdataArticles = await fetchFromNewsData();
+    console.log(`[Fetch] NewsData: ${newsdataArticles.length} articles`);
+    allArticles.push(...newsdataArticles);
   } catch (error) {
     console.warn('[Fetch] NewsData failed');
   }
 
-  console.error('[Fetch] All providers failed!');
-  return [];
+  console.log(`[Fetch] TOTAL: ${allArticles.length} articles from all providers`);
+  return allArticles;
 }
 
 // Distribution GARANTIE de 12 articles par catégorie
@@ -229,45 +227,54 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     console.log(`  ${cat}: ${count} articles`);
   });
 
-  // Redistribution pour remplir les catégories vides
-  const full: string[] = [];
-  const empty: string[] = [];
+  // REDISTRIBUTION ULTRA AGRESSIVE pour GARANTIR 12 partout
+  console.log('[Distribution] Starting aggressive redistribution...');
 
+  // Créer un pool GLOBAL de TOUS les articles
+  const globalPool: NewsArticle[] = [...uniqueArticles];
+
+  // Pour chaque catégorie, s'assurer qu'elle a exactement 12 articles
   ALL_CATEGORIES.forEach(cat => {
-    const count = categoryMap.get(cat)?.length || 0;
-    if (count >= TARGET) full.push(cat);
-    else if (count < TARGET) empty.push(cat);
-  });
-
-  // Créer un pool depuis "À la une" et catégories pleines
-  const pool: NewsArticle[] = [];
-  const alaune = categoryMap.get('À la une') || [];
-  if (alaune.length > TARGET) {
-    pool.push(...alaune.slice(TARGET));
-  }
-
-  // Redistribuer vers les catégories vides
-  let poolIdx = 0;
-  for (const cat of empty) {
     const list = categoryMap.get(cat) || [];
-    const needed = TARGET - list.length;
 
-    for (let i = 0; i < needed && poolIdx < pool.length; i++) {
-      const article = { ...pool[poolIdx] };
-      article.category = cat;
-      list.push(article);
-      poolIdx++;
+    if (list.length < TARGET) {
+      const needed = TARGET - list.length;
+      console.log(`  ${cat}: has ${list.length}, needs ${needed} more`);
+
+      // Remplir depuis le pool global
+      let poolIdx = 0;
+      while (list.length < TARGET && poolIdx < globalPool.length) {
+        const article = { ...globalPool[poolIdx] };
+        article.category = cat;
+        article.id = `${article.id}-fill-${cat}-${list.length}`;
+        list.push(article);
+        poolIdx++;
+      }
+
+      // Si ENCORE pas assez, dupliquer en boucle
+      if (list.length < TARGET && list.length > 0) {
+        const baseList = [...list];
+        while (list.length < TARGET) {
+          const idx = list.length % baseList.length;
+          const article = { ...baseList[idx] };
+          article.id = `${article.id}-dup-${list.length}`;
+          list.push(article);
+        }
+      }
+
+      // Si TOUJOURS pas d'articles (catégorie complètement vide), prendre n'importe quoi
+      if (list.length === 0 && globalPool.length > 0) {
+        for (let i = 0; i < TARGET && i < globalPool.length; i++) {
+          const article = { ...globalPool[i % globalPool.length] };
+          article.category = cat;
+          article.id = `${article.id}-emergency-${cat}-${i}`;
+          list.push(article);
+        }
+      }
+
+      categoryMap.set(cat, list);
     }
-
-    // Si toujours pas assez, dupliquer ce qu'on a
-    while (list.length < TARGET && list.length > 0) {
-      const article = { ...list[list.length % list.length] };
-      article.id = `${article.id}-dup-${list.length}`;
-      list.push(article);
-    }
-
-    categoryMap.set(cat, list);
-  }
+  });
 
   console.log('[Distribution] Final:');
   ALL_CATEGORIES.forEach(cat => {
