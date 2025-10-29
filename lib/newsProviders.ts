@@ -25,11 +25,11 @@ const CATEGORY_KEYWORDS = {
   'Culture': ['culture', 'divertissement', 'entertainment', 'art', 'musique', 'music', 'film', 'cinéma', 'movie', 'cinema', 'artiste', 'artist', 'spectacle', 'show', 'concert', 'festival', 'livre', 'book', 'théâtre', 'theater'],
   'Politique': ['politique', 'politic', 'gouvernement', 'government', 'élection', 'election', 'président', 'president', 'ministre', 'minister', 'parlement', 'parliament', 'sénat', 'senate', 'vote', 'loi', 'law', 'policy'],
   'Climat': ['climat', 'environment', 'environnement', 'climate', 'vert', 'green', 'énergie', 'energy', 'renouvelable', 'renewable', 'carbone', 'carbon', 'émission', 'emission', 'pollution', 'durable', 'sustainable', 'eco', 'écologie'],
-  'Auto': ['auto', 'automobile', 'automotive', 'voiture', 'car', 'véhicule', 'vehicle', 'électrique', 'electric', 'tesla', 'conduite', 'driving', 'autonome', 'autonomous', 'moteur', 'motor'],
-  'Lifestyle': ['lifestyle', 'mode', 'fashion', 'voyage', 'travel', 'cuisine', 'food', 'recette', 'recipe', 'restaurant', 'style', 'beauté', 'beauty', 'maison', 'home', 'design', 'tourisme', 'tourism'],
-  'People': ['people', 'célébrité', 'celebrity', 'star', 'acteur', 'actor', 'actrice', 'actress', 'influenceur', 'influencer', 'célèbre', 'famous'],
-  'Gaming': ['gaming', 'jeu vidéo', 'game', 'esport', 'playstation', 'xbox', 'nintendo', 'videogame', 'gamer', 'jeux'],
-  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'gastronomy', 'culinaire', 'culinary', 'food', 'recette', 'recipe', 'plat', 'dish'],
+  'Automobile': ['auto', 'automobile', 'automotive', 'voiture', 'car', 'véhicule', 'vehicle', 'électrique', 'electric', 'tesla', 'conduite', 'driving', 'autonome', 'autonomous', 'moteur', 'motor', 'transport'],
+  'Lifestyle': ['lifestyle', 'mode', 'fashion', 'voyage', 'travel', 'cuisine', 'food', 'recette', 'recipe', 'style', 'beauté', 'beauty', 'maison', 'home', 'design', 'tourisme', 'tourism', 'vie'],
+  'People': ['people', 'célébrité', 'celebrity', 'star', 'acteur', 'actor', 'actrice', 'actress', 'influenceur', 'influencer', 'célèbre', 'famous', 'personnalité'],
+  'Gaming': ['gaming', 'jeu vidéo', 'game', 'esport', 'playstation', 'xbox', 'nintendo', 'videogame', 'gamer', 'jeux', 'console'],
+  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'gastronomy', 'culinaire', 'culinary', 'plat', 'dish', 'resto', 'bar', 'café'],
 };
 
 function categorizeArticle(title: string, description: string, source: string = ''): string {
@@ -195,18 +195,24 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   return getMockNews();
 }
 
-// Distribuer par catégories de façon équilibrée
+// Distribuer par catégories de façon équilibrée avec fallback garantissant du contenu partout
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
   const REQUIRED_CATEGORIES = [
     'À la une', 'Tech', 'Business', 'Santé', 'Sport', 'Culture',
-    'Politique', 'Climat', 'Auto', 'Lifestyle', 'People', 'Gaming', 'Restauration'
+    'Politique', 'Climat', 'Automobile', 'Lifestyle', 'People', 'Gaming', 'Restauration'
   ];
 
   const categoryCounts = new Map<string, number>();
+  const categoryArticles = new Map<string, NewsArticle[]>();
   const result: NewsArticle[] = [];
-  const alaune: NewsArticle[] = [];
 
-  // Premier passage : distribuer selon la catégorisation
+  // Initialiser toutes les catégories
+  REQUIRED_CATEGORIES.forEach(cat => {
+    categoryArticles.set(cat, []);
+    categoryCounts.set(cat, 0);
+  });
+
+  // Premier passage : distribuer selon la catégorisation initiale
   for (const article of articles) {
     const cat = article.category || 'À la une';
     const count = categoryCounts.get(cat) || 0;
@@ -214,33 +220,57 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     if (count < 12) {
       result.push(article);
       categoryCounts.set(cat, count + 1);
-      if (cat === 'À la une') {
-        alaune.push(article);
-      }
+      const catList = categoryArticles.get(cat) || [];
+      catList.push(article);
+      categoryArticles.set(cat, catList);
     }
   }
 
   console.log('[Distribution] Initial counts:', Object.fromEntries(categoryCounts));
 
-  // Deuxième passage : remplir les catégories vides avec des articles de "À la une"
-  let alaUneIndex = 0;
+  // Deuxième passage : REMPLIR TOUTES les catégories vides avec redistribution cyclique
+  const allAvailableArticles = categoryArticles.get('À la une') || [];
+  let cycleIndex = 0;
+
   for (const cat of REQUIRED_CATEGORIES) {
     if (cat === 'À la une') continue;
 
     const count = categoryCounts.get(cat) || 0;
-    if (count < 6 && alaUneIndex < alaune.length) {
-      // Redistribuer jusqu'à 6 articles de "À la une" vers cette catégorie
-      const needed = Math.min(6 - count, alaune.length - alaUneIndex);
-      for (let i = 0; i < needed; i++) {
-        if (alaUneIndex < alaune.length) {
-          const article = { ...alaune[alaUneIndex] };
-          article.category = cat;
-          result.push(article);
+    const target = 8; // On vise 8 articles par catégorie minimum
+
+    if (count < target) {
+      const needed = target - count;
+      console.log(`[Distribution] ${cat} needs ${needed} more articles (has ${count})`);
+
+      // Prendre depuis "À la une" en cycle
+      for (let i = 0; i < needed && cycleIndex < allAvailableArticles.length; i++) {
+        const article = { ...allAvailableArticles[cycleIndex] };
+        article.category = cat;
+        result.push(article);
+        categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
+        cycleIndex++;
+      }
+
+      // Si encore pas assez et qu'on a épuisé "À la une", générer du contenu générique
+      const finalCount = categoryCounts.get(cat) || 0;
+      if (finalCount < 6) {
+        console.log(`[Distribution] ${cat} still has only ${finalCount}, generating fallback content`);
+        const mockNeeded = 6 - finalCount;
+
+        for (let i = 0; i < mockNeeded; i++) {
+          result.push({
+            id: `fallback-${cat}-${i}`,
+            title: `Actualité ${cat} : Découvrez les dernières nouvelles`,
+            description: `Suivez l'actualité ${cat.toLowerCase()} avec nos dernières informations et analyses.`,
+            url: `https://example.com/${cat.toLowerCase()}-${i}`,
+            image: `https://picsum.photos/seed/${cat}-fallback-${i}/600/400`,
+            source: 'Keiro News',
+            date: new Date().toISOString(),
+            category: cat,
+          });
           categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
-          alaUneIndex++;
         }
       }
-      console.log(`[Distribution] Filled ${cat} with ${needed} articles from À la une`);
     }
   }
 
