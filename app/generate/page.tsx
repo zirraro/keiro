@@ -202,7 +202,7 @@ export default function GeneratePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
-          <div className="lg:col-span-9">
+          <div className="lg:col-span-8">
             {/* Filtres : Catégories + Recherche */}
             <div className="mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -294,17 +294,15 @@ export default function GeneratePage() {
 
                         {/* Footer avec source et badge sélectionné */}
                         <div className="flex items-center justify-between mt-auto">
-                          {item.source && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] text-blue-600 hover:underline"
-                            >
-                              {item.source}
-                            </a>
-                          )}
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-blue-600 hover:underline"
+                          >
+                            Source
+                          </a>
                           {selectedNews?.id === item.id && (
                             <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
                               Sélectionné
@@ -320,7 +318,7 @@ export default function GeneratePage() {
           </div>
 
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-4 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
             <div>
               <h3 className="text-sm font-semibold mb-2">Logo (optionnel)</h3>
