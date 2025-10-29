@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ---------------- Types ---------------- */
-type Card = {
+type NewsCard = {
   id: string;
   title: string;
   description: string;
@@ -15,642 +15,501 @@ type Card = {
 };
 
 const CATEGORIES = [
-  'À la une','Politique','Économie','Business','Sport','People','Santé',
-  'Restauration','Tech','Culture','Monde','Auto','Climat','Immo','Lifestyle','Gaming'
+  'Toutes',
+  'À la une',
+  'Politique',
+  'Économie',
+  'Business',
+  'Sport',
+  'People',
+  'Santé',
+  'Restauration',
+  'Tech',
+  'Culture',
+  'Monde',
+  'Auto',
+  'Climat',
+  'Immo',
+  'Lifestyle',
+  'Gaming'
 ];
 
-/* --------- Utilitaire de “polissage” du texte --------- */
-function polish(raw: string) {
-  if (!raw) return '';
-  let t = raw
-    .replace(/\s+/g, ' ')
-    .replace(/"([^"]*)"/g, '« $1 »')
-    .replace(/'/g, '’')
-    .replace(/\s*([?!;:»])/g, ' $1')
-    .replace(/«\s*/g, '« ')
-    .replace(/\s*»/g, ' »')
-    .trim();
-
-  t = t.replace(/(^|[.!?]\s+)([a-zàâçéèêëîïôûùüÿœ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
-  if (!/[.!?…]$/.test(t)) t += '.';
-  return t;
-}
-
-/* --------- Petit composant Multi-select en déroulé --------- */
-function DropdownMulti({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string[];
-  onChange: (next: string[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  function toggle(opt: string) {
-    onChange(value.includes(opt) ? value.filter(v => v !== opt) : [...value, opt]);
-  }
-  return (
-    <div className="w-full">
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="w-full rounded-xl border px-3 py-2 text-left bg-white hover:bg-neutral-50"
-        aria-expanded={open}
-      >
-        <div className="text-sm text-neutral-600">{label}</div>
-        <div className="text-sm mt-1 line-clamp-1">
-          {value.length ? value.join(' · ') : 'Choisir… (multi)'}
-        </div>
-      </button>
-      {open && (
-        <div className="mt-2 rounded-xl border p-3 bg-white max-h-56 overflow-auto">
-          {options.map(opt => (
-            <label key={opt} className="flex items-center gap-2 py-1">
-              <input
-                type="checkbox"
-                checked={value.includes(opt)}
-                onChange={() => toggle(opt)}
-              />
-              <span className="text-sm">{opt}</span>
-            </label>
-          ))}
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => onChange([])}
-              className="px-2 py-1 rounded-lg border text-sm"
-            >
-              Effacer
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="px-2 py-1 rounded-lg border text-sm"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------- Page principale ---------------- */
-export default function GeneratePage(){
-  /* --- Actus --- */
-  const [category, setCategory] = useState<string>('Tech');
-  const [q, setQ] = useState('');
-  const [items, setItems] = useState<Card[]>([]);
+export default function GeneratePage() {
+  /* --- États pour les actualités --- */
+  const [category, setCategory] = useState<string>('Toutes');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newsItems, setNewsItems] = useState<NewsCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visible, setVisible] = useState(9);
-  const canLoadMore = useMemo(()=> items.length > visible, [items, visible]);
-  const visibleItems = useMemo(()=> items.slice(0, visible), [items, visible]);
-  const [selected, setSelected] = useState<Card | null>(null);
+  const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
 
-  /* --- Upload optionnel (bloc pointillé séparé) --- */
+  /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  /* --- Assistant --- */
-  const [platform, setPlatform] = useState('LinkedIn');
-  const [goal, setGoal] = useState('Annoncer une actualité');
-  const [tone, setTone] = useState('Premium et clair');
-  const [pov, setPov] = useState('Plan large cinématographique');
-  const [audience, setAudience] = useState('');
-  const [cta, setCta] = useState('');
-  const [brand, setBrand] = useState('');
-
-  const [palette, setPalette] = useState('Couleurs sobres (bleu, anthracite, blanc)');
-  const [lighting, setLighting] = useState('Lumière douce et naturelle');
-  const [styleKind, setStyleKind] = useState('Photographique réaliste');
-
-  const [storyHook, setStoryHook] = useState('Mettre en avant le bénéfice concret pour le client');
-
-  // ⚠️ NOUVEAU — Business à promouvoir (obligatoire)
+  /* --- États pour l'assistant prompt --- */
   const [businessType, setBusinessType] = useState('');
+  const [businessDescription, setBusinessDescription] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [marketingAngle, setMarketingAngle] = useState('');
+  const [platform, setPlatform] = useState('LinkedIn');
+  const [tone, setTone] = useState('Professionnel');
+  const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
 
-  // Multi (en déroulé)
-  const [inspirations, setInspirations] = useState<string[]>([
-    'Ambiance éditoriale sobre',
-    'Reflets dorés très discrets',
-  ]);
-  const [donots, setDonots] = useState<string[]>([
-    'Pas de logo de réseau social',
-    'Pas de watermark',
-    'Pas de texte illisible',
-  ]);
+  /* --- États pour la génération --- */
+  const [generating, setGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
-  const [freeText, setFreeText] = useState('');
-  const [typoUse, setTypoUse] = useState('Sans texte (visuel seul)');
-  const [layoutGuide, setLayoutGuide] = useState('Composition claire, sujet principal bien détaché du fond');
-
-  /* --- Génération --- */
-  const [genLoading, setGenLoading] = useState(false);
-  const [genError, setGenError] = useState<string | null>(null);
-  const [genUrl, setGenUrl] = useState<string | null>(null);
-
-  /* --- Fetch actus via API interne (cache 24h côté route) --- */
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  useEffect(()=>{
-    setVisible(9);
-    fetchNews(category, q);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  /* --- Fetch actualités --- */
+  useEffect(() => {
+    fetchNews();
   }, [category]);
 
-  async function fetchNews(cat: string, query: string){
-    try{
+  async function fetchNews() {
+    try {
       setLoading(true);
       setError(null);
-      setSelected(null);
-      const url = `/api/news?cat=${encodeURIComponent(cat)}&q=${encodeURIComponent(query || '')}`;
+      const cat = category === 'Toutes' ? '' : category;
+      const url = `/api/news?cat=${encodeURIComponent(cat)}&q=${encodeURIComponent(searchQuery || '')}`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json();
-      if (!j?.ok) throw new Error(j?.error || 'NEWS_ERROR');
-      setItems(j.items || []);
-    }catch(e:any){
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || 'Erreur de chargement');
+      setNewsItems(data.items || []);
+    } catch (e: any) {
       console.error('fetchNews error', e);
-      setError('Impossible de récupérer les actualités pour le moment.');
-      setItems([]);
-    }finally{
+      setError('Impossible de récupérer les actualités.');
+      setNewsItems([]);
+    } finally {
       setLoading(false);
     }
   }
 
-  function onSearchChange(v: string){
-    setQ(v);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(()=> fetchNews(category, v), 350);
+  /* --- Gestion recherche avec debounce --- */
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchNews();
+    }, 400);
   }
 
-  /* --- Upload helpers --- */
-  async function dataUrlFromFile(file: File): Promise<string> {
-    return new Promise((resolve, reject)=>{
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
-      fr.onerror = reject;
-      fr.readAsDataURL(file);
-    });
-  }
-  async function handleFiles(files: FileList | null){
-    if (!files || !files[0]) return;
-    try{
-      setUploading(true);
-      const dataUrl = await dataUrlFromFile(files[0]);
-      const r = await fetch('/api/tmp/upload', {
+  /* --- Upload logo/photo --- */
+  async function handleFileUpload(file: File) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataUrl })
+        body: formData,
       });
-      const j = await r.json();
-      if (!r.ok || !j?.ok) throw new Error(j?.error || 'UPLOAD_FAIL');
-      setLogoUrl(j.url);
-    }catch(e){
-      alert('Échec de l’upload du logo/photo.');
-      console.error(e);
-    }finally{
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || 'Upload échoué');
+      setLogoUrl(data.url);
+    } catch (e: any) {
+      alert(`Erreur upload: ${e.message}`);
+    } finally {
       setUploading(false);
     }
   }
-  function onDrop(e: React.DragEvent<HTMLDivElement>){
+
+  function handleDrop(e: React.DragEvent) {
     e.preventDefault();
-    handleFiles(e.dataTransfer.files);
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
   }
-  function onBrowse(){
-    fileInputRef.current?.click();
-  }
 
-  /* --- Brief lisible --- */
-  const humanBrief = useMemo(()=>{
-    const parts: string[] = [];
-    if (selected){
-      parts.push(
-        `Contexte de l’actualité: ${polish(`${selected.title} (${selected.source || 'source inconnue'}, ${selected.date?.slice(0,10) || 'date inconnue'})`)}`,
-        selected.description ? `Résumé: ${polish(selected.description)}` : ''
-      );
+  /* --- Génération de l'image IA --- */
+  async function handleGenerate() {
+    if (!selectedNews) {
+      alert('Veuillez sélectionner une actualité');
+      return;
     }
-    parts.push(
-      `Type d’activité à promouvoir: ${polish(businessType || 'non spécifié')}`,
-      `Objectif: ${polish(goal)}`,
-      `Plateforme: ${platform}`,
-      `Tonalité: ${tone}`,
-      `Point de vue: ${pov}`,
-      `Palette: ${palette}`,
-      `Lumière: ${lighting}`,
-      `Style: ${styleKind}`,
-      layoutGuide ? `Mise en page: ${layoutGuide}` : ''
-    );
-    if (audience) parts.push(`Audience: ${polish(audience)}`);
-    if (brand) parts.push(`Marque: ${polish(brand)}`);
-    if (cta) parts.push(`CTA: ${polish(cta)}`);
-    if (typoUse) parts.push(`Texte: ${typoUse}`);
-    if (inspirations.length) parts.push(`Inspirations: ${inspirations.map(polish).join(' · ')}`);
-    if (logoUrl) parts.push(`Élément à intégrer avec discrétion: logo/photo (${logoUrl})`);
-    if (donots.length) parts.push(`À éviter: ${donots.join(' · ')}`);
-    if (freeText) parts.push(`Détails complémentaires: ${polish(freeText)}`);
-
-    parts.push(`Clarté: phrases courtes, pas de jargon inutile.`);
-    return parts.filter(Boolean).join('\n');
-  }, [
-    selected, businessType, goal, platform, tone, pov, palette, lighting, styleKind,
-    layoutGuide, audience, brand, cta, typoUse, inspirations, logoUrl, donots, freeText
-  ]);
-
-  /* --- Prompt Seedream (impose le lien actu ↔ business) --- */
-  const finalPrompt = useMemo(()=>{
-    const mustAvoid = [
-      'logo LinkedIn', 'logo Instagram', 'logo Facebook', 'logo X',
-      'watermark', 'texte minuscule illisible', 'mèmes', 'copyright'
-    ];
-    const linkBlock = selected
-      ? `Relier explicitement le visuel à l’actualité sélectionnée (« ${polish(selected.title)} ») ET au type d’activité indiqué (« ${polish(businessType || 'non spécifié')} »). Illustrer ce lien de manière claire et compréhensible pour le public visé.`
-      : `Même sans actualité sélectionnée, adapter le visuel au type d’activité indiqué (« ${polish(businessType || 'non spécifié')} ») et à l’objectif.`;
-
-    const base = [
-      'Génère un visuel propre, crédible et professionnel pour réseaux sociaux.',
-      linkBlock,
-      'Soin des détails: éclairage cohérent, couleurs harmonisées, pas d’artefacts IA.',
-      'Hiérarchie claire, sujet principal mis en valeur.',
-      `Évite absolument: ${[...new Set([...donots, ...mustAvoid])].join(', ')}.`,
-    ];
-    if (logoUrl) base.push('Si possible, intégrer le logo/photo fourni de manière subtile (coin inférieur droit), sans dégrader la lisibilité.');
-    if (typoUse === 'Titre court lisible') {
-      base.push('Autoriser un titre court, gros et lisible, en surimpression seulement si ça sert l’idée.');
-    } else {
-      base.push('Privilégier une image sans texte intégré.');
+    if (!businessType.trim()) {
+      alert('Veuillez renseigner votre type de business');
+      return;
     }
-    return [
-      humanBrief,
-      '',
-      base.map(polish).join('\n')
-    ].join('\n\n');
-  }, [humanBrief, donots, logoUrl, typoUse, selected, businessType]);
 
-  async function onGenerate(){
-    try{
-      if (!businessType.trim()) {
-        alert('Indique d’abord le type d’activité / business à promouvoir.');
-        return;
-      }
-      if (!selected) {
-        alert('Sélectionne une actualité à gauche pour contextualiser le visuel.');
-        return;
-      }
-      setGenLoading(true);
-      setGenError(null);
-      setGenUrl(null);
+    setGenerating(true);
+    setGenerationError(null);
+    setGeneratedImageUrl(null);
 
-      const r = await fetch('/api/ark-generate', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          prompt: finalPrompt,
-          platform
-        })
+    try {
+      const payload = {
+        news: {
+          title: selectedNews.title,
+          description: selectedNews.description,
+          url: selectedNews.url,
+          source: selectedNews.source,
+        },
+        business: {
+          type: businessType,
+          description: businessDescription,
+          targetAudience,
+          marketingAngle,
+        },
+        settings: {
+          platform,
+          tone,
+          visualStyle,
+          logoUrl: logoUrl || undefined,
+        },
+      };
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      const j = await r.json();
-      if (!r.ok || !j?.ok) {
-        throw new Error(j?.error || 'GEN_FAIL');
-      }
-      setGenUrl(j.url || null);
-    }catch(e:any){
-      console.error('generate error', e);
-      setGenError('La génération a échoué. Réessaie en ajustant le brief.');
-    }finally{
-      setGenLoading(false);
+
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
+      setGeneratedImageUrl(data.imageUrl);
+    } catch (e: any) {
+      console.error('Generation error:', e);
+      setGenerationError(e.message || 'Erreur lors de la génération');
+    } finally {
+      setGenerating(false);
     }
   }
 
-  /* ------------------------ UI ------------------------ */
   return (
-    <div className="mx-auto max-w-7xl p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr,420px] gap-6">
-        {/* --------- COLONNE GAUCHE: Catégorie + Recherche + Cartes --------- */}
-        <section>
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-neutral-600">Catégorie</label>
-              <select
-                value={category}
-                onChange={e=>setCategory(e.target.value)}
-                className="rounded-xl border px-3 py-2"
-              >
-                {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="min-w-[260px] max-w-[540px] flex-1">
-              <input
-                value={q}
-                onChange={e=>onSearchChange(e.target.value)}
-                placeholder="Rechercher une actu précise…"
-                className="w-full rounded-xl border px-4 py-2"
-              />
-            </div>
-          </div>
+    <div className="min-h-screen bg-neutral-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold mb-2">Générateur de contenu visuel</h1>
+        <p className="text-neutral-600 mb-6">
+          Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité
+        </p>
 
-          {error && (
-            <div className="rounded-xl border p-4 text-red-600 bg-red-50 mb-4">
-              {error}
-            </div>
-          )}
-
-          {loading && (
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({length:9}).map((_,i)=>(
-                <div key={i} className="rounded-2xl border bg-white h-64 animate-pulse" />
-              ))}
-            </div>
-          )}
-
-          {!loading && !error && (
-            <>
-              {visibleItems.length === 0 ? (
-                <div className="rounded-xl border p-8 text-neutral-500">
-                  Aucune actualité trouvée pour “{category}”.
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* ===== COLONNE GAUCHE : Actualités ===== */}
+          <div className="lg:col-span-7">
+            {/* Filtres : Catégories + Recherche */}
+            <div className="bg-white rounded-xl border p-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Dropdown Catégories */}
+                <div className="sm:w-1/3">
+                  <label className="block text-sm font-medium mb-1">Catégorie</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {visibleItems.map(card=>(
+
+                {/* Barre de recherche */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">Rechercher</label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder="Rechercher dans les actualités..."
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Cartes d'actualités (3 colonnes) */}
+            <div className="bg-white rounded-xl border p-4">
+              {loading && (
+                <div className="text-center py-8 text-neutral-500">
+                  Chargement des actualités...
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {!loading && !error && newsItems.length === 0 && (
+                <div className="text-center py-8 text-neutral-500">
+                  Aucune actualité trouvée
+                </div>
+              )}
+
+              {!loading && newsItems.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {newsItems.map((item) => (
                     <article
-                      key={card.id}
-                      className={`rounded-2xl border bg-white overflow-hidden shadow-sm flex flex-col ${selected?.id===card.id ? 'ring-2 ring-black' : ''}`}
+                      key={item.id}
+                      onClick={() => setSelectedNews(item)}
+                      className={`rounded-xl border cursor-pointer transition hover:shadow-lg ${
+                        selectedNews?.id === item.id
+                          ? 'ring-2 ring-blue-500 bg-blue-50'
+                          : 'bg-white hover:bg-neutral-50'
+                      }`}
                     >
-                      {card.image ? (
-                        <img src={card.image} alt="" className="w-full h-40 object-cover" />
-                      ) : (
-                        <div className="h-40 bg-neutral-100" />
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-32 object-cover rounded-t-xl"
+                        />
                       )}
-                      <div className="p-4 flex-1 flex flex-col">
-                        <div className="text-xs text-neutral-500">{card.source} · {card.date?.slice(0,10)}</div>
-                        <h3 className="mt-1 font-medium line-clamp-2">{card.title}</h3>
-                        <p className="text-sm text-neutral-600 line-clamp-3 mt-1">{card.description}</p>
-                        <div className="mt-auto flex items-center justify-between pt-3">
-                          <a href={card.url} target="_blank" className="text-sm text-neutral-500 hover:underline">Voir la source</a>
-                          <button
-                            className="px-3 py-2 rounded-lg bg-black text-white"
-                            onClick={()=> setSelected(card)}
-                          >
-                            Sélectionner
-                          </button>
+                      <div className="p-3">
+                        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
+                          {item.source && <span>{item.source}</span>}
+                          {item.category && (
+                            <span className="bg-neutral-100 px-2 py-0.5 rounded">
+                              {item.category}
+                            </span>
+                          )}
                         </div>
+                        <h3 className="font-semibold text-sm line-clamp-2 mb-2">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs text-neutral-600 line-clamp-2">
+                          {item.description}
+                        </p>
                       </div>
                     </article>
                   ))}
                 </div>
               )}
+            </div>
+          </div>
 
-              {canLoadMore && (
-                <div className="flex justify-center mt-6">
-                  <button
-                    onClick={()=>setVisible(v => v + 3)}
-                    className="px-4 py-2 rounded-xl border bg-white hover:bg-neutral-50"
+          {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Zone Upload Logo/Photo (optionnel) */}
+            <div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold mb-3">Logo / Photo (optionnel)</h3>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
+                  dragActive
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-neutral-300 hover:border-neutral-400'
+                }`}
+              >
+                {logoUrl ? (
+                  <div className="space-y-3">
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="w-24 h-24 object-cover rounded-lg mx-auto border"
+                    />
+                    <button
+                      onClick={() => setLogoUrl(null)}
+                      className="text-sm text-red-600 hover:underline"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-2">📸</div>
+                    <p className="text-sm text-neutral-600 mb-3">
+                      Glissez-déposez votre logo ou photo ici
+                    </p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-50"
+                    >
+                      {uploading ? 'Upload...' : 'Choisir un fichier'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Panel Assistant Prompt */}
+            <div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold mb-3">Assistant Marketing</h3>
+              <p className="text-sm text-neutral-600 mb-4">
+                Renseignez votre business pour générer un visuel adapté à votre activité et l'actualité sélectionnée
+              </p>
+
+              <div className="space-y-3">
+                {/* Type de business */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Type de business <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    placeholder="Ex: Restaurant, SaaS B2B, E-commerce..."
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Description business */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Description de votre activité
+                  </label>
+                  <textarea
+                    value={businessDescription}
+                    onChange={(e) => setBusinessDescription(e.target.value)}
+                    placeholder="Décrivez votre activité en quelques mots..."
+                    rows={3}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Audience cible */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Audience cible
+                  </label>
+                  <input
+                    type="text"
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    placeholder="Ex: Entrepreneurs, Familles, Jeunes actifs..."
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Angle marketing */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Angle / Approche marketing
+                  </label>
+                  <textarea
+                    value={marketingAngle}
+                    onChange={(e) => setMarketingAngle(e.target.value)}
+                    placeholder="Comment voulez-vous positionner votre message par rapport à l'actualité ?"
+                    rows={2}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Plateforme */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Plateforme</label>
+                  <select
+                    value={platform}
+                    onChange={(e) => setPlatform(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    + 3 actus
+                    <option>LinkedIn</option>
+                    <option>Instagram</option>
+                    <option>Facebook</option>
+                    <option>Twitter/X</option>
+                    <option>TikTok</option>
+                  </select>
+                </div>
+
+                {/* Tonalité */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tonalité</label>
+                  <select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>Professionnel</option>
+                    <option>Amical</option>
+                    <option>Inspirant</option>
+                    <option>Humoristique</option>
+                    <option>Éducatif</option>
+                  </select>
+                </div>
+
+                {/* Style visuel */}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Style visuel</label>
+                  <select
+                    value={visualStyle}
+                    onChange={(e) => setVisualStyle(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option>Moderne et épuré</option>
+                    <option>Photographique réaliste</option>
+                    <option>Illustration</option>
+                    <option>Minimaliste</option>
+                    <option>Coloré et dynamique</option>
+                  </select>
+                </div>
+
+                {/* Bouton Générer */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating || !selectedNews || !businessType.trim()}
+                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {generating ? 'Génération en cours...' : 'Générer le visuel'}
+                </button>
+
+                {!selectedNews && (
+                  <p className="text-xs text-amber-600 text-center">
+                    ⚠️ Sélectionnez une actualité à gauche
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Résultat de la génération */}
+            {generatedImageUrl && (
+              <div className="bg-white rounded-xl border p-4">
+                <h3 className="font-semibold mb-3">Visuel généré</h3>
+                <img
+                  src={generatedImageUrl}
+                  alt="Visuel généré"
+                  className="w-full rounded-lg border"
+                />
+                <div className="mt-3 flex gap-2">
+                  <a
+                    href={generatedImageUrl}
+                    download
+                    className="flex-1 py-2 bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800"
+                  >
+                    Télécharger
+                  </a>
+                  <button
+                    onClick={() => setGeneratedImageUrl(null)}
+                    className="px-4 py-2 border rounded-lg hover:bg-neutral-50"
+                  >
+                    Nouvelle génération
                   </button>
                 </div>
-              )}
-            </>
-          )}
-        </section>
+              </div>
+            )}
 
-        {/* --------- COLONNE DROITE: Upload détaché + Assistant --------- */}
-        <aside className="space-y-4">
-          {/* Zone pointillée d’upload — séparée, au-dessus de l’assistant */}
-          <div
-            onDragOver={e=>e.preventDefault()}
-            onDrop={onDrop}
-            className="rounded-2xl border-2 border-dashed p-4 text-center bg-white"
-          >
-            <div className="font-medium">Ajouter un logo / une photo (optionnel)</div>
-            <div className="text-sm text-neutral-500 mt-1">Glisser-déposer un fichier, ou</div>
-            <div className="mt-2">
-              <button
-                onClick={onBrowse}
-                disabled={uploading}
-                className="px-3 py-2 rounded-lg border bg-white hover:bg-neutral-50 disabled:opacity-50"
-              >
-                Parcourir…
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={e=>handleFiles(e.target.files)}
-              />
-            </div>
-            {uploading && <div className="text-sm text-neutral-500 mt-2">Upload…</div>}
-            {logoUrl && (
-              <div className="mt-3 flex items-center justify-center">
-                <img src={logoUrl} alt="upload" className="max-h-28 rounded-lg border" />
+            {generationError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+                {generationError}
               </div>
             )}
           </div>
-
-          {/* Assistant marketing + copywriting */}
-          <div className="rounded-2xl border bg-white p-4">
-            <h2 className="text-lg font-semibold">Assistant de prompt</h2>
-
-            {/* Contexte sélection */}
-            <div className="mt-3 rounded-xl border p-3 bg-neutral-50">
-              <div className="text-sm text-neutral-600">Actualité sélectionnée</div>
-              {selected ? (
-                <>
-                  <div className="mt-1 font-medium line-clamp-2">{selected.title}</div>
-                  <div className="text-xs text-neutral-500">{selected.source} · {selected.date?.slice(0,10)}</div>
-                </>
-              ) : (
-                <div className="text-sm text-neutral-500">Sélectionne une carte à gauche pour l’inclure automatiquement.</div>
-              )}
-            </div>
-
-            {/* Business — obligatoire */}
-            <div className="mt-3">
-              <label className="text-sm text-neutral-600">Type d’activité / business à promouvoir (obligatoire)</label>
-              <input
-                className="w-full rounded-xl border px-3 py-2 mt-1"
-                value={businessType}
-                onChange={e=>setBusinessType(e.target.value)}
-                placeholder="Ex: restaurant italien premium, cabinet de conseil B2B, boutique e-commerce mode…"
-              />
-            </div>
-
-            {/* Sélecteurs simples */}
-            <div className="grid grid-cols-1 gap-3 mt-3">
-              <div>
-                <label className="text-sm text-neutral-600">Plateforme</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={platform} onChange={e=>setPlatform(e.target.value)}>
-                  <option>LinkedIn</option>
-                  <option>Instagram</option>
-                  <option>Facebook</option>
-                  <option>X</option>
-                  <option>Story</option>
-                  <option>TikTok</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Objectif</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={goal} onChange={e=>setGoal(e.target.value)}>
-                  <option>Annoncer une actualité</option>
-                  <option>Créer une image publicitaire</option>
-                  <option>Illustrer un fait / un chiffre</option>
-                  <option>Teaser un produit / une offre</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Tonalité</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={tone} onChange={e=>setTone(e.target.value)}>
-                  <option>Premium et clair</option>
-                  <option>Énergique et moderne</option>
-                  <option>Éditorial et sérieux</option>
-                  <option>Minimaliste</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Point de vue</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={pov} onChange={e=>setPov(e.target.value)}>
-                  <option>Plan large cinématographique</option>
-                  <option>Contre-plongée héroïque</option>
-                  <option>Plongée</option>
-                  <option>Macro détaillée</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Palette de couleurs</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={palette} onChange={e=>setPalette(e.target.value)}>
-                  <option>Couleurs sobres (bleu, anthracite, blanc)</option>
-                  <option>Contrastes forts (noir & blanc marqué)</option>
-                  <option>Tons chauds (or, ambre, crème)</option>
-                  <option>Palette pop (vives et saturées)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Lumière / ambiance</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={lighting} onChange={e=>setLighting(e.target.value)}>
-                  <option>Lumière douce et naturelle</option>
-                  <option>Éclairage studio net</option>
-                  <option>Golden hour (chaleureuse)</option>
-                  <option>Ambiance nocturne néons</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Style</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={styleKind} onChange={e=>setStyleKind(e.target.value)}>
-                  <option>Photographique réaliste</option>
-                  <option>Illustration vectorielle</option>
-                  <option>Collage graphique</option>
-                  <option>3D / rendu propre</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Angle (story)</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={storyHook} onChange={e=>setStoryHook(e.target.value)}>
-                  <option>Mettre en avant le bénéfice concret pour le client</option>
-                  <option>Insister sur l’impact (avant/après)</option>
-                  <option>Valoriser l’innovation / expertise</option>
-                  <option>Créer de la curiosité (teaser)</option>
-                </select>
-              </div>
-
-              {/* Multi en déroulé */}
-              <DropdownMulti
-                label="Inspirations (multi)"
-                options={[
-                  'Ambiance éditoriale sobre',
-                  'Reflets dorés très discrets',
-                  'Texture papier / grain fin',
-                  'Transitions douces (bokeh)',
-                  'Traitements monochromes élégants',
-                  'Lignes géométriques nettes',
-                  'Touches organiques (plantes, matières)'
-                ]}
-                value={inspirations}
-                onChange={setInspirations}
-              />
-
-              <DropdownMulti
-                label="À éviter (multi)"
-                options={[
-                  'Pas de logo de réseau social',
-                  'Pas de watermark',
-                  'Pas de texte illisible',
-                  'Éviter les montages trop kitsch',
-                  'Pas de clichés stéréotypés',
-                  'Éviter les images trop sombres',
-                ]}
-                value={donots}
-                onChange={setDonots}
-              />
-
-              <div>
-                <label className="text-sm text-neutral-600">Texte dans l’image</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={typoUse} onChange={e=>setTypoUse(e.target.value)}>
-                  <option>Sans texte (visuel seul)</option>
-                  <option>Titre court lisible</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Mise en page</label>
-                <select className="w-full rounded-xl border px-3 py-2" value={layoutGuide} onChange={e=>setLayoutGuide(e.target.value)}>
-                  <option>Composition claire, sujet principal bien détaché du fond</option>
-                  <option>Zone de respiration autour du sujet</option>
-                  <option>Grille soignée, alignements précis</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm text-neutral-600">Détails complémentaires (optionnel)</label>
-                <textarea className="w-full h-24 rounded-xl border p-3" value={freeText} onChange={e=>setFreeText(e.target.value)} placeholder="Contraintes précises, éléments à inclure / exclure…" />
-              </div>
-
-              {/* Brief & prompt */}
-              <div>
-                <label className="text-sm text-neutral-600">Brief (lisible)</label>
-                <textarea className="w-full h-28 rounded-xl border p-3" value={humanBrief} readOnly />
-              </div>
-              <div>
-                <label className="text-sm text-neutral-600">Prompt final (optimisé Seedream)</label>
-                <textarea className="w-full h-36 rounded-xl border p-3" value={finalPrompt} readOnly />
-              </div>
-
-              <button
-                onClick={onGenerate}
-                disabled={genLoading || !selected || !businessType.trim()}
-                className="w-full rounded-xl bg-black text-white px-4 py-3 disabled:opacity-50"
-              >
-                {genLoading ? 'Génération…' : 'Créer un visuel'}
-              </button>
-
-              {genError && <div className="text-red-600 text-sm">{genError}</div>}
-              {genUrl && (
-                <div className="space-y-2">
-                  <div className="text-sm text-neutral-600">Résultat</div>
-                  <img src={genUrl} alt="Résultat" className="w-full rounded-xl border" />
-                  <a
-                    href={`/editor?src=${encodeURIComponent(genUrl)}`}
-                    className="inline-block px-4 py-2 rounded-xl border bg-white hover:bg-neutral-50"
-                  >
-                    Éditer ce visuel
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
   );
