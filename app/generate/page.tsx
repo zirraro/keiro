@@ -20,14 +20,14 @@ const CATEGORIES = [
   'Business',
   'Santé',
   'Sport',
-  'People',
-  'Restauration',
   'Culture',
   'Politique',
   'Climat',
-  'Auto',
+  'Automobile',
   'Lifestyle',
-  'Gaming'
+  'People',
+  'Gaming',
+  'Restauration'
 ];
 
 /* ---------------- Page principale ---------------- */
@@ -71,11 +71,20 @@ export default function GeneratePage() {
   const [platform, setPlatform] = useState('LinkedIn');
   const [tone, setTone] = useState('Professionnel');
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
+  const [specialist, setSpecialist] = useState<string>('');
 
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  /* --- États pour le studio d'édition --- */
+  const [showEditStudio, setShowEditStudio] = useState(false);
+  const [editVersions, setEditVersions] = useState<string[]>([]);
+  const [selectedEditVersion, setSelectedEditVersion] = useState<string | null>(null);
+  const [editPrompt, setEditPrompt] = useState('');
+  const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
+  const [editingImage, setEditingImage] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -376,7 +385,10 @@ export default function GeneratePage() {
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
               <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
-              <p className="text-[10px] text-neutral-500 mb-2">Génération : Replicate SDXL</p>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+                <p className="text-[10px] text-neutral-600">IA : <span className="font-medium">Replicate SDXL</span></p>
+              </div>
 
               {/* Afficher la carte sélectionnée */}
               {selectedNews && (
@@ -387,6 +399,97 @@ export default function GeneratePage() {
                   </p>
                 </div>
               )}
+
+              {/* Accompagnement spécialisé */}
+              <div className="mb-3 p-2 bg-amber-50 rounded border border-amber-200">
+                <p className="text-[10px] font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    onClick={() => setSpecialist('seo')}
+                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                      specialist === 'seo'
+                        ? 'bg-amber-600 text-white font-medium'
+                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
+                    }`}
+                  >
+                    📊 SEO
+                  </button>
+                  <button
+                    onClick={() => setSpecialist('marketing')}
+                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                      specialist === 'marketing'
+                        ? 'bg-amber-600 text-white font-medium'
+                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
+                    }`}
+                  >
+                    📈 Marketing
+                  </button>
+                  <button
+                    onClick={() => setSpecialist('content')}
+                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                      specialist === 'content'
+                        ? 'bg-amber-600 text-white font-medium'
+                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
+                    }`}
+                  >
+                    ✍️ Contenu
+                  </button>
+                  <button
+                    onClick={() => setSpecialist('copywriter')}
+                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                      specialist === 'copywriter'
+                        ? 'bg-amber-600 text-white font-medium'
+                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
+                    }`}
+                  >
+                    ✨ Copywriting
+                  </button>
+                </div>
+                {specialist && (
+                  <div className="mt-2 p-2 bg-white rounded text-[9px] text-amber-900 border border-amber-200">
+                    {specialist === 'seo' && (
+                      <>
+                        <p className="font-medium mb-1">Conseils SEO :</p>
+                        <ul className="list-disc pl-3 space-y-0.5">
+                          <li>Utilisez des mots-clés pertinents liés à l'actualité</li>
+                          <li>Décrivez précisément votre secteur d'activité</li>
+                          <li>Mentionnez votre zone géographique si pertinent</li>
+                        </ul>
+                      </>
+                    )}
+                    {specialist === 'marketing' && (
+                      <>
+                        <p className="font-medium mb-1">Stratégie Marketing :</p>
+                        <ul className="list-disc pl-3 space-y-0.5">
+                          <li>Identifiez clairement votre audience cible</li>
+                          <li>Soulignez votre proposition de valeur unique</li>
+                          <li>Définissez un objectif clair (notoriété, conversion...)</li>
+                        </ul>
+                      </>
+                    )}
+                    {specialist === 'content' && (
+                      <>
+                        <p className="font-medium mb-1">Création de Contenu :</p>
+                        <ul className="list-disc pl-3 space-y-0.5">
+                          <li>Racontez une histoire authentique de votre marque</li>
+                          <li>Adaptez le ton à votre communauté</li>
+                          <li>Apportez de la valeur ajoutée, pas seulement de la promo</li>
+                        </ul>
+                      </>
+                    )}
+                    {specialist === 'copywriter' && (
+                      <>
+                        <p className="font-medium mb-1">Copywriting Efficace :</p>
+                        <ul className="list-disc pl-3 space-y-0.5">
+                          <li>Créez un lien émotionnel avec l'actualité</li>
+                          <li>Utilisez des verbes d'action et appels à l'action clairs</li>
+                          <li>Gardez des phrases courtes et impactantes</li>
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-2">
                 {/* Type de business */}
@@ -493,13 +596,13 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Bouton Générer */}
+                {/* Bouton Créer un visuel */}
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !selectedNews || !businessType.trim()}
                   className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {generating ? 'Génération...' : 'Générer'}
+                  {generating ? 'Création en cours...' : 'Créer un visuel'}
                 </button>
 
                 {!selectedNews && (
@@ -511,7 +614,7 @@ export default function GeneratePage() {
             </div>
 
             {/* Résultat de la génération */}
-            {generatedImageUrl && (
+            {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
                 <h3 className="text-sm font-semibold mb-2">Résultat</h3>
                 <img
@@ -520,6 +623,16 @@ export default function GeneratePage() {
                   className="w-full rounded border"
                 />
                 <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowEditStudio(true);
+                      setEditVersions([generatedImageUrl]);
+                      setSelectedEditVersion(generatedImageUrl);
+                    }}
+                    className="flex-1 py-1 text-xs bg-purple-600 text-white text-center rounded hover:bg-purple-700"
+                  >
+                    ✏️ Éditer
+                  </button>
                   <a
                     href={generatedImageUrl}
                     download
@@ -544,6 +657,299 @@ export default function GeneratePage() {
             )}
           </div>
         </div>
+
+        {/* ===== STUDIO D'ÉDITION (Seedream 3.0 i2i) ===== */}
+        {showEditStudio && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl max-w-7xl w-full h-[90vh] flex flex-col">
+              {/* Header du studio */}
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Studio d'Édition</h2>
+                  <p className="text-xs text-neutral-500">Seedream 3.0 - Image to Image</p>
+                </div>
+                <button
+                  onClick={() => setShowEditStudio(false)}
+                  className="text-2xl text-neutral-500 hover:text-neutral-900"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Contenu du studio */}
+              <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
+                {/* GAUCHE : Versions éditées */}
+                <div className="col-span-2 overflow-y-auto space-y-2">
+                  <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
+                  {editVersions.map((version, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedEditVersion(version)}
+                      className={`cursor-pointer rounded border-2 overflow-hidden transition ${
+                        selectedEditVersion === version
+                          ? 'border-purple-500 ring-2 ring-purple-200'
+                          : 'border-neutral-200 hover:border-purple-300'
+                      }`}
+                    >
+                      <img
+                        src={version}
+                        alt={`Version ${idx + 1}`}
+                        className="w-full aspect-square object-cover"
+                      />
+                      <div className="p-1 bg-neutral-50 text-[9px] text-center">
+                        V{idx + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* MILIEU : Image sélectionnée */}
+                <div className="col-span-7 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden">
+                  {selectedEditVersion ? (
+                    <img
+                      src={selectedEditVersion}
+                      alt="Image sélectionnée"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <p className="text-neutral-400">Sélectionnez une version</p>
+                  )}
+                </div>
+
+                {/* DROITE : Panel Assistant d'édition */}
+                <div className="col-span-3 flex flex-col space-y-3 overflow-y-auto">
+                  <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
+                    <h3 className="text-sm font-semibold mb-2">Assistant d'Édition</h3>
+
+                    {/* Mode d'édition */}
+                    <div className="mb-3">
+                      <p className="text-[10px] font-medium mb-1.5">Mode de modification :</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditMode('precise')}
+                          className={`flex-1 text-[9px] px-2 py-1.5 rounded transition ${
+                            editMode === 'precise'
+                              ? 'bg-purple-600 text-white font-medium'
+                              : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
+                          }`}
+                        >
+                          🎯 Précise
+                        </button>
+                        <button
+                          onClick={() => setEditMode('creative')}
+                          className={`flex-1 text-[9px] px-2 py-1.5 rounded transition ${
+                            editMode === 'creative'
+                              ? 'bg-purple-600 text-white font-medium'
+                              : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
+                          }`}
+                        >
+                          ✨ Créative
+                        </button>
+                      </div>
+                      <p className="text-[8px] text-purple-700 mt-1">
+                        {editMode === 'precise'
+                          ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
+                          : '✨ Permet des transformations plus importantes et créatives'}
+                      </p>
+                    </div>
+
+                    {/* Accompagnement spécialisé dans l'édition */}
+                    <div className="mb-3">
+                      <p className="text-[10px] font-medium mb-1.5">💡 Aide spécialisée :</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => setSpecialist('seo')}
+                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                            specialist === 'seo'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
+                          }`}
+                        >
+                          📊 SEO
+                        </button>
+                        <button
+                          onClick={() => setSpecialist('marketing')}
+                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                            specialist === 'marketing'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
+                          }`}
+                        >
+                          📈 Marketing
+                        </button>
+                        <button
+                          onClick={() => setSpecialist('content')}
+                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                            specialist === 'content'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
+                          }`}
+                        >
+                          ✍️ Contenu
+                        </button>
+                        <button
+                          onClick={() => setSpecialist('copywriter')}
+                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                            specialist === 'copywriter'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
+                          }`}
+                        >
+                          ✨ Copy
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Conseils contextuels */}
+                    {specialist && (
+                      <div className="mb-3 p-2 bg-white rounded text-[8px] text-purple-900 border border-purple-200">
+                        {specialist === 'seo' && (
+                          <>
+                            <p className="font-medium mb-1">💡 Suggestions SEO :</p>
+                            <ul className="list-disc pl-3 space-y-0.5">
+                              <li>Ajoutez des éléments visuels liés aux mots-clés</li>
+                              <li>Améliorez la lisibilité du texte sur l'image</li>
+                              <li>Intégrez des symboles reconnaissables de votre secteur</li>
+                            </ul>
+                          </>
+                        )}
+                        {specialist === 'marketing' && (
+                          <>
+                            <p className="font-medium mb-1">💡 Optimisation Marketing :</p>
+                            <ul className="list-disc pl-3 space-y-0.5">
+                              <li>Renforcez votre identité visuelle (couleurs, logo)</li>
+                              <li>Ajoutez des éléments qui attirent l'œil</li>
+                              <li>Créez de l'urgence ou de l'exclusivité visuellement</li>
+                            </ul>
+                          </>
+                        )}
+                        {specialist === 'content' && (
+                          <>
+                            <p className="font-medium mb-1">💡 Amélioration Contenu :</p>
+                            <ul className="list-disc pl-3 space-y-0.5">
+                              <li>Ajustez l'ambiance pour refléter votre message</li>
+                              <li>Équilibrez texte et visuel pour la clarté</li>
+                              <li>Renforcez l'émotion de votre histoire</li>
+                            </ul>
+                          </>
+                        )}
+                        {specialist === 'copywriter' && (
+                          <>
+                            <p className="font-medium mb-1">💡 Impact Copywriting :</p>
+                            <ul className="list-disc pl-3 space-y-0.5">
+                              <li>Mettez en valeur votre appel à l'action</li>
+                              <li>Utilisez des contrastes pour le texte clé</li>
+                              <li>Créez une hiérarchie visuelle claire</li>
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Prompt de modification */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1">
+                        Décrivez vos modifications :
+                      </label>
+                      <textarea
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        placeholder={
+                          editMode === 'precise'
+                            ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite...'
+                            : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
+                        }
+                        rows={4}
+                        className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    {/* Bouton d'édition */}
+                    <button
+                      onClick={async () => {
+                        if (!editPrompt.trim() || !selectedEditVersion) {
+                          alert('Veuillez décrire vos modifications');
+                          return;
+                        }
+                        setEditingImage(true);
+                        try {
+                          // TODO: Appeler l'API Seedream 3.0 i2i
+                          // Pour l'instant, simuler une édition
+                          await new Promise(resolve => setTimeout(resolve, 2000));
+                          const newVersion = selectedEditVersion + '?edit=' + Date.now();
+                          setEditVersions([...editVersions, newVersion]);
+                          setSelectedEditVersion(newVersion);
+                          setEditPrompt('');
+                          alert('Image éditée avec succès! (Simulation)');
+                        } catch (e: any) {
+                          alert('Erreur: ' + e.message);
+                        } finally {
+                          setEditingImage(false);
+                        }
+                      }}
+                      disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
+                      className="w-full py-2 text-xs bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      {editingImage ? 'Édition en cours...' : '🎨 Appliquer les modifications'}
+                    </button>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => {
+                          if (selectedEditVersion) {
+                            setGeneratedImageUrl(selectedEditVersion);
+                          }
+                          setShowEditStudio(false);
+                        }}
+                        className="flex-1 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                      >
+                        ✓ Valider
+                      </button>
+                      <button
+                        onClick={() => setShowEditStudio(false)}
+                        className="flex-1 py-1.5 text-xs border rounded hover:bg-neutral-50"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Exemples de modifications */}
+                  <div className="bg-neutral-50 rounded-lg border p-2">
+                    <p className="text-[10px] font-medium mb-1.5">💡 Exemples de modifications :</p>
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => setEditPrompt('Ajouter un filtre chaleureux et lumineux')}
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                      >
+                        • Filtre chaleureux
+                      </button>
+                      <button
+                        onClick={() => setEditPrompt('Rendre l\'arrière-plan flou pour mettre en valeur le sujet')}
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                      >
+                        • Flou d'arrière-plan
+                      </button>
+                      <button
+                        onClick={() => setEditPrompt('Améliorer les contrastes et la saturation des couleurs')}
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                      >
+                        • Contraste et saturation
+                      </button>
+                      <button
+                        onClick={() => setEditPrompt('Ajouter mon logo de marque discrètement en bas à droite')}
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                      >
+                        • Ajouter logo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
