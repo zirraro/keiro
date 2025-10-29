@@ -276,20 +276,41 @@ export default function GeneratePage() {
                         />
                       )}
                       <div className="p-3">
-                        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
-                          {item.source && <span>{item.source}</span>}
-                          {item.category && (
-                            <span className="bg-neutral-100 px-2 py-0.5 rounded">
-                              {item.category}
-                            </span>
-                          )}
+                        <div className="flex items-center justify-between gap-2 text-xs mb-2">
+                          <div className="flex items-center gap-2">
+                            {item.category && (
+                              <span className="bg-neutral-100 px-2 py-0.5 rounded text-neutral-600">
+                                {item.category}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <h3 className="font-semibold text-sm line-clamp-2 mb-2">
                           {item.title}
                         </h3>
-                        <p className="text-xs text-neutral-600 line-clamp-2">
+                        <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
                           {item.description}
                         </p>
+
+                        {/* Footer avec source et badge sélectionné */}
+                        <div className="flex items-center justify-between mt-auto">
+                          {item.source && (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] text-blue-600 hover:underline"
+                            >
+                              {item.source}
+                            </a>
+                          )}
+                          {selectedNews?.id === item.id && (
+                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                              Sélectionné
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -301,7 +322,7 @@ export default function GeneratePage() {
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
           <div className="lg:col-span-3 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
-            <div className="bg-white rounded-xl border p-3">
+            <div>
               <h3 className="text-sm font-semibold mb-2">Logo (optionnel)</h3>
               <div
                 onDragOver={(e) => {
