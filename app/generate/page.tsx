@@ -68,7 +68,11 @@ export default function GeneratePage() {
   const [businessDescription, setBusinessDescription] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [marketingAngle, setMarketingAngle] = useState('');
-  const [platform, setPlatform] = useState('LinkedIn');
+  const [imageAngle, setImageAngle] = useState(''); // Nouvel état : angle de l'image
+  const [storyToTell, setStoryToTell] = useState(''); // Nouvel état : histoire à raconter
+  const [publicationGoal, setPublicationGoal] = useState(''); // Nouvel état : but de la publication
+  const [emotionToConvey, setEmotionToConvey] = useState(''); // Nouvel état : émotion à transmettre
+  const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('Professionnel');
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
   const [specialist, setSpecialist] = useState<string>('');
@@ -143,7 +147,32 @@ export default function GeneratePage() {
     if (file) handleFileUpload(file);
   }
 
-  /* --- Génération de l'image IA --- */
+  /* --- Remplissage automatique selon spécialité --- */
+  function applySpecialistSuggestion(specialistType: string) {
+    if (specialistType === 'seo') {
+      setPublicationGoal('Augmenter la visibilité et le référencement naturel');
+      setImageAngle('Visuel clair avec mots-clés visuels du secteur');
+      setStoryToTell('Expertise et autorité dans le domaine');
+      setEmotionToConvey('Confiance et professionnalisme');
+    } else if (specialistType === 'marketing') {
+      setPublicationGoal('Générer de l\'engagement et des conversions');
+      setImageAngle('Visuel accrocheur avec call-to-action visuel');
+      setStoryToTell('Bénéfices concrets pour le client');
+      setEmotionToConvey('Désir et urgence');
+    } else if (specialistType === 'content') {
+      setPublicationGoal('Éduquer et créer du lien avec l\'audience');
+      setImageAngle('Storytelling visuel authentique');
+      setStoryToTell('Valeurs de la marque et authenticité');
+      setEmotionToConvey('Inspiration et connexion');
+    } else if (specialistType === 'copywriter') {
+      setPublicationGoal('Convaincre et pousser à l\'action');
+      setImageAngle('Impact visuel maximal avec hiérarchie claire');
+      setStoryToTell('Transformation et résultats');
+      setEmotionToConvey('Excitation et motivation');
+    }
+  }
+
+  /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
     if (!selectedNews) {
       alert('Veuillez sélectionner une actualité');
@@ -159,31 +188,66 @@ export default function GeneratePage() {
     setGeneratedImageUrl(null);
 
     try {
-      const payload = {
-        news: {
-          title: selectedNews.title,
-          description: selectedNews.description,
-          url: selectedNews.url,
-          source: selectedNews.source,
-        },
-        business: {
-          type: businessType,
-          description: businessDescription,
-          targetAudience,
-          marketingAngle,
-        },
-        settings: {
-          platform,
-          tone,
-          visualStyle,
-          logoUrl: logoUrl || undefined,
-        },
-      };
+      // Construire un prompt détaillé incluant TOUS les éléments
+      let promptParts: string[] = [];
 
-      const res = await fetch('/api/generate', {
+      // Contexte de l'actualité
+      promptParts.push(`Context: News article about "${selectedNews.title}".`);
+      if (selectedNews.description) {
+        promptParts.push(`News summary: ${selectedNews.description.substring(0, 200)}.`);
+      }
+
+      // Business et audience
+      promptParts.push(`Business type: ${businessType}.`);
+      if (businessDescription) {
+        promptParts.push(`Business description: ${businessDescription}.`);
+      }
+      if (targetAudience) {
+        promptParts.push(`Target audience: ${targetAudience}.`);
+      }
+
+      // Angle et storytelling
+      if (imageAngle) {
+        promptParts.push(`Visual angle: ${imageAngle}.`);
+      }
+      if (storyToTell) {
+        promptParts.push(`Story to convey: ${storyToTell}.`);
+      }
+      if (publicationGoal) {
+        promptParts.push(`Publication goal: ${publicationGoal}.`);
+      }
+      if (emotionToConvey) {
+        promptParts.push(`Emotion to convey: ${emotionToConvey}.`);
+      }
+      if (marketingAngle) {
+        promptParts.push(`Marketing angle: ${marketingAngle}.`);
+      }
+
+      // Style et paramètres visuels
+      promptParts.push(`Visual style: ${visualStyle}.`);
+      promptParts.push(`Tone: ${tone}.`);
+      promptParts.push(`Platform: ${platform}.`);
+
+      // Instructions finales
+      promptParts.push(
+        'Create a high-quality, professional marketing visual that connects the news with the business. ' +
+        'The image should be visually striking, with clear composition, professional lighting, ' +
+        'and colors that match the brand identity. Ensure text is readable if included. ' +
+        'The visual should be optimized for social media engagement.'
+      );
+
+      const fullPrompt = promptParts.join(' ');
+
+      console.log('[Generate] Full prompt:', fullPrompt);
+
+      // Appeler Seedream 4.0 t2i
+      const res = await fetch('/api/seedream/t2i', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          prompt: fullPrompt,
+          size: '2K'
+        }),
       });
 
       const data = await res.json();
@@ -450,41 +514,65 @@ export default function GeneratePage() {
                     {specialist === 'seo' && (
                       <>
                         <p className="font-medium mb-1">Conseils SEO :</p>
-                        <ul className="list-disc pl-3 space-y-0.5">
+                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
                           <li>Utilisez des mots-clés pertinents liés à l'actualité</li>
                           <li>Décrivez précisément votre secteur d'activité</li>
                           <li>Mentionnez votre zone géographique si pertinent</li>
                         </ul>
+                        <button
+                          onClick={() => applySpecialistSuggestion('seo')}
+                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                        >
+                          🚀 Remplir automatiquement
+                        </button>
                       </>
                     )}
                     {specialist === 'marketing' && (
                       <>
                         <p className="font-medium mb-1">Stratégie Marketing :</p>
-                        <ul className="list-disc pl-3 space-y-0.5">
+                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
                           <li>Identifiez clairement votre audience cible</li>
                           <li>Soulignez votre proposition de valeur unique</li>
                           <li>Définissez un objectif clair (notoriété, conversion...)</li>
                         </ul>
+                        <button
+                          onClick={() => applySpecialistSuggestion('marketing')}
+                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                        >
+                          🚀 Remplir automatiquement
+                        </button>
                       </>
                     )}
                     {specialist === 'content' && (
                       <>
                         <p className="font-medium mb-1">Création de Contenu :</p>
-                        <ul className="list-disc pl-3 space-y-0.5">
+                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
                           <li>Racontez une histoire authentique de votre marque</li>
                           <li>Adaptez le ton à votre communauté</li>
                           <li>Apportez de la valeur ajoutée, pas seulement de la promo</li>
                         </ul>
+                        <button
+                          onClick={() => applySpecialistSuggestion('content')}
+                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                        >
+                          🚀 Remplir automatiquement
+                        </button>
                       </>
                     )}
                     {specialist === 'copywriter' && (
                       <>
                         <p className="font-medium mb-1">Copywriting Efficace :</p>
-                        <ul className="list-disc pl-3 space-y-0.5">
+                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
                           <li>Créez un lien émotionnel avec l'actualité</li>
                           <li>Utilisez des verbes d'action et appels à l'action clairs</li>
                           <li>Gardez des phrases courtes et impactantes</li>
                         </ul>
+                        <button
+                          onClick={() => applySpecialistSuggestion('copywriter')}
+                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                        >
+                          🚀 Remplir automatiquement
+                        </button>
                       </>
                     )}
                   </div>
@@ -546,6 +634,67 @@ export default function GeneratePage() {
                     rows={2}
                     className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
+                </div>
+
+                {/* Nouveaux champs pour guidance détaillée */}
+                <div className="border-t pt-2 mt-2">
+                  <p className="text-[10px] font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
+
+                  {/* Angle de l'image */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium mb-1">
+                      Angle de l'image
+                    </label>
+                    <input
+                      type="text"
+                      value={imageAngle}
+                      onChange={(e) => setImageAngle(e.target.value)}
+                      placeholder="Ex: Visuel moderne avec focus produit..."
+                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Histoire à raconter */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium mb-1">
+                      Histoire à raconter
+                    </label>
+                    <textarea
+                      value={storyToTell}
+                      onChange={(e) => setStoryToTell(e.target.value)}
+                      placeholder="Ex: Innovation et qualité au service du client..."
+                      rows={2}
+                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* But de la publication */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium mb-1">
+                      But de la publication
+                    </label>
+                    <input
+                      type="text"
+                      value={publicationGoal}
+                      onChange={(e) => setPublicationGoal(e.target.value)}
+                      placeholder="Ex: Augmenter l'engagement, générer des leads..."
+                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Émotion à transmettre */}
+                  <div>
+                    <label className="block text-xs font-medium mb-1">
+                      Émotion à transmettre
+                    </label>
+                    <input
+                      type="text"
+                      value={emotionToConvey}
+                      onChange={(e) => setEmotionToConvey(e.target.value)}
+                      placeholder="Ex: Confiance, excitation, inspiration..."
+                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 {/* Plateforme */}
@@ -684,20 +833,47 @@ export default function GeneratePage() {
                   {editVersions.map((version, idx) => (
                     <div
                       key={idx}
-                      onClick={() => setSelectedEditVersion(version)}
-                      className={`cursor-pointer rounded border-2 overflow-hidden transition ${
+                      className={`rounded border-2 overflow-hidden transition ${
                         selectedEditVersion === version
                           ? 'border-purple-500 ring-2 ring-purple-200'
-                          : 'border-neutral-200 hover:border-purple-300'
+                          : 'border-neutral-200'
                       }`}
                     >
                       <img
                         src={version}
                         alt={`Version ${idx + 1}`}
-                        className="w-full aspect-square object-cover"
+                        onClick={() => setSelectedEditVersion(version)}
+                        className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
                       />
-                      <div className="p-1 bg-neutral-50 text-[9px] text-center">
-                        V{idx + 1}
+                      <div className="p-1 bg-neutral-50">
+                        <div className="text-[9px] text-center mb-1 font-medium">V{idx + 1}</div>
+                        <div className="flex gap-1">
+                          <a
+                            href={version}
+                            download={`keiro-edit-v${idx + 1}.png`}
+                            className="flex-1 py-0.5 text-[8px] bg-emerald-600 text-white text-center rounded hover:bg-emerald-700"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            💾
+                          </a>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Supprimer cette version ?')) {
+                                const newVersions = editVersions.filter((_, i) => i !== idx);
+                                setEditVersions(newVersions);
+                                if (selectedEditVersion === version && newVersions.length > 0) {
+                                  setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                                } else if (newVersions.length === 0) {
+                                  setSelectedEditVersion(null);
+                                }
+                              }
+                            }}
+                            className="flex-1 py-0.5 text-[8px] bg-red-600 text-white text-center rounded hover:bg-red-700"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -873,15 +1049,30 @@ export default function GeneratePage() {
                         }
                         setEditingImage(true);
                         try {
-                          // TODO: Appeler l'API Seedream 3.0 i2i
-                          // Pour l'instant, simuler une édition
-                          await new Promise(resolve => setTimeout(resolve, 2000));
-                          const newVersion = selectedEditVersion + '?edit=' + Date.now();
+                          console.log('[Edit Studio] Editing image with Seedream 3.0 i2i');
+
+                          // Appeler l'API Seedream 3.0 i2i
+                          const res = await fetch('/api/seedream/i2i', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              prompt: editPrompt,
+                              image: selectedEditVersion,
+                              size: 'adaptive',
+                              guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
+                            }),
+                          });
+
+                          const data = await res.json();
+                          if (!data?.ok) throw new Error(data?.error || 'Édition échouée');
+
+                          const newVersion = data.imageUrl;
                           setEditVersions([...editVersions, newVersion]);
                           setSelectedEditVersion(newVersion);
                           setEditPrompt('');
-                          alert('Image éditée avec succès! (Simulation)');
+                          alert('Image éditée avec succès!');
                         } catch (e: any) {
+                          console.error('[Edit Studio] Error:', e);
                           alert('Erreur: ' + e.message);
                         } finally {
                           setEditingImage(false);

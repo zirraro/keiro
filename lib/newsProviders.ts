@@ -195,85 +195,111 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   return getMockNews();
 }
 
-// Distribuer par catégories de façon équilibrée avec fallback garantissant du contenu partout
+// Distribuer par catégories de façon équilibrée - UNIQUEMENT DES VRAIES NEWS
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
   const REQUIRED_CATEGORIES = [
     'À la une', 'Tech', 'Business', 'Santé', 'Sport', 'Culture',
     'Politique', 'Climat', 'Automobile', 'Lifestyle', 'People', 'Gaming', 'Restauration'
   ];
 
-  const categoryCounts = new Map<string, number>();
+  const TARGET_PER_CATEGORY = 12;
   const categoryArticles = new Map<string, NewsArticle[]>();
-  const result: NewsArticle[] = [];
+  const usedArticleIds = new Set<string>();
 
   // Initialiser toutes les catégories
   REQUIRED_CATEGORIES.forEach(cat => {
     categoryArticles.set(cat, []);
-    categoryCounts.set(cat, 0);
   });
 
-  // Premier passage : distribuer selon la catégorisation initiale
-  for (const article of articles) {
-    const cat = article.category || 'À la une';
-    const count = categoryCounts.get(cat) || 0;
+  // Éliminer les doublons d'abord
+  const uniqueArticles: NewsArticle[] = [];
+  articles.forEach(article => {
+    if (!usedArticleIds.has(article.id)) {
+      usedArticleIds.add(article.id);
+      uniqueArticles.push(article);
+    }
+  });
 
-    if (count < 12) {
-      result.push(article);
-      categoryCounts.set(cat, count + 1);
-      const catList = categoryArticles.get(cat) || [];
+  console.log(`[Distribution] Total unique articles: ${uniqueArticles.length}`);
+
+  // Premier passage : distribuer selon la catégorisation initiale (max 12 par catégorie)
+  for (const article of uniqueArticles) {
+    const cat = article.category || 'À la une';
+    const catList = categoryArticles.get(cat) || [];
+
+    if (catList.length < TARGET_PER_CATEGORY) {
       catList.push(article);
       categoryArticles.set(cat, catList);
     }
   }
 
-  console.log('[Distribution] Initial counts:', Object.fromEntries(categoryCounts));
+  console.log('[Distribution] After initial distribution:',
+    Object.fromEntries(Array.from(categoryArticles.entries()).map(([k, v]) => [k, v.length])));
 
-  // Deuxième passage : REMPLIR TOUTES les catégories vides avec redistribution cyclique
-  const allAvailableArticles = categoryArticles.get('À la une') || [];
-  let cycleIndex = 0;
+  // Deuxième passage : Redistribuer intelligemment les articles des catégories pleines vers les vides
+  const fullCategories: string[] = [];
+  const emptyCategories: string[] = [];
 
   for (const cat of REQUIRED_CATEGORIES) {
-    if (cat === 'À la une') continue;
-
-    const count = categoryCounts.get(cat) || 0;
-    const target = 8; // On vise 8 articles par catégorie minimum
-
-    if (count < target) {
-      const needed = target - count;
-      console.log(`[Distribution] ${cat} needs ${needed} more articles (has ${count})`);
-
-      // Prendre depuis "À la une" en cycle
-      for (let i = 0; i < needed && cycleIndex < allAvailableArticles.length; i++) {
-        const article = { ...allAvailableArticles[cycleIndex] };
-        article.category = cat;
-        result.push(article);
-        categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
-        cycleIndex++;
-      }
-
-      // Si encore pas assez et qu'on a épuisé "À la une", générer du contenu générique
-      const finalCount = categoryCounts.get(cat) || 0;
-      if (finalCount < 6) {
-        console.log(`[Distribution] ${cat} still has only ${finalCount}, generating fallback content`);
-        const mockNeeded = 6 - finalCount;
-
-        for (let i = 0; i < mockNeeded; i++) {
-          result.push({
-            id: `fallback-${cat}-${i}`,
-            title: `Actualité ${cat} : Découvrez les dernières nouvelles`,
-            description: `Suivez l'actualité ${cat.toLowerCase()} avec nos dernières informations et analyses.`,
-            url: `https://example.com/${cat.toLowerCase()}-${i}`,
-            image: `https://picsum.photos/seed/${cat}-fallback-${i}/600/400`,
-            source: 'Keiro News',
-            date: new Date().toISOString(),
-            category: cat,
-          });
-          categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
-        }
-      }
+    const count = categoryArticles.get(cat)?.length || 0;
+    if (count >= TARGET_PER_CATEGORY) {
+      fullCategories.push(cat);
+    } else if (count < TARGET_PER_CATEGORY) {
+      emptyCategories.push(cat);
     }
   }
 
-  console.log('[Distribution] Final counts:', Object.fromEntries(categoryCounts));
+  // Pool de tous les articles disponibles pour redistribution
+  const redistributionPool: NewsArticle[] = [];
+
+  // Ajouter les articles en surplus des catégories pleines
+  for (const cat of fullCategories) {
+    const articles = categoryArticles.get(cat) || [];
+    if (articles.length > TARGET_PER_CATEGORY) {
+      const surplus = articles.splice(TARGET_PER_CATEGORY);
+      redistributionPool.push(...surplus);
+    }
+  }
+
+  // Ajouter les articles de "À la une" si elle a assez d'articles
+  const alaUne = categoryArticles.get('À la une') || [];
+  if (alaUne.length >= TARGET_PER_CATEGORY) {
+    // Garder TARGET_PER_CATEGORY pour "À la une", le reste est disponible pour redistribution
+    const forRedistribution = alaUne.slice(TARGET_PER_CATEGORY);
+    redistributionPool.push(...forRedistribution);
+  }
+
+  console.log(`[Distribution] Redistribution pool size: ${redistributionPool.length}`);
+
+  // Redistribuer équitablement vers les catégories qui ont besoin
+  let poolIndex = 0;
+  for (const cat of emptyCategories) {
+    const catList = categoryArticles.get(cat) || [];
+    const needed = TARGET_PER_CATEGORY - catList.length;
+
+    for (let i = 0; i < needed && poolIndex < redistributionPool.length; i++) {
+      const article = { ...redistributionPool[poolIndex] };
+      article.category = cat; // Re-catégoriser
+      catList.push(article);
+      poolIndex++;
+    }
+
+    categoryArticles.set(cat, catList);
+  }
+
+  console.log('[Distribution] After redistribution:',
+    Object.fromEntries(Array.from(categoryArticles.entries()).map(([k, v]) => [k, v.length])));
+
+  // Construire le résultat final
+  const result: NewsArticle[] = [];
+  for (const cat of REQUIRED_CATEGORIES) {
+    const articles = categoryArticles.get(cat) || [];
+    result.push(...articles);
+  }
+
+  console.log(`[Distribution] Total final articles: ${result.length}`);
+  console.log('[Distribution] Final counts by category:',
+    Object.fromEntries(Array.from(categoryArticles.entries()).map(([k, v]) => [k, v.length])));
+
   return result;
 }
