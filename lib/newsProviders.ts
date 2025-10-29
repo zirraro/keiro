@@ -63,7 +63,7 @@ async function fetchFromNewsData(): Promise<NewsArticle[]> {
     ];
 
     for (const cat of categories) {
-      const url = `https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&language=fr&category=${cat}&size=10`;
+      const url = `https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&language=fr&category=${cat}&size=20`;
       const res = await fetch(url, { next: { revalidate: 3600 } });
 
       if (!res.ok) {
@@ -105,7 +105,7 @@ async function fetchFromGNews(): Promise<NewsArticle[]> {
     const allArticles: NewsArticle[] = [];
 
     for (const topic of topics) {
-      const url = `https://gnews.io/api/v4/top-headlines?category=${topic}&lang=fr&country=fr&max=15&apikey=${GNEWS_API_KEY}`;
+      const url = `https://gnews.io/api/v4/top-headlines?category=${topic}&lang=fr&country=fr&max=20&apikey=${GNEWS_API_KEY}`;
       const res = await fetch(url, { next: { revalidate: 3600 } }); // Cache 1h
 
       if (!res.ok) {

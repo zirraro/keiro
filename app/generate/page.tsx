@@ -276,12 +276,12 @@ export default function GeneratePage() {
             <div className="mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Dropdown Catégories */}
-                <div className="sm:w-1/3">
+                <div className="sm:w-auto">
                   <label className="block text-sm font-medium mb-1">Catégorie</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -345,15 +345,6 @@ export default function GeneratePage() {
                         />
                       )}
                       <div className="p-3">
-                        <div className="flex items-center justify-between gap-2 text-xs mb-2">
-                          <div className="flex items-center gap-2">
-                            {item.category && (
-                              <span className="bg-neutral-100 px-2 py-0.5 rounded text-neutral-600">
-                                {item.category}
-                              </span>
-                            )}
-                          </div>
-                        </div>
                         <h3 className="font-semibold text-sm line-clamp-2 mb-2">
                           {item.title}
                         </h3>
@@ -450,8 +441,8 @@ export default function GeneratePage() {
             <div className="bg-white rounded-xl border p-3">
               <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                <p className="text-[10px] text-neutral-600">IA : <span className="font-medium">Replicate SDXL</span></p>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <p className="text-[10px] text-neutral-600">IA : <span className="font-medium bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Seedream 4.0 T2i</span></p>
               </div>
 
               {/* Afficher la carte sélectionnée */}
@@ -582,7 +573,7 @@ export default function GeneratePage() {
               <div className="space-y-2">
                 {/* Type de business */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Business <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -590,13 +581,13 @@ export default function GeneratePage() {
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     placeholder="Restaurant, SaaS..."
-                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Description business */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Description
                   </label>
                   <textarea
@@ -604,13 +595,13 @@ export default function GeneratePage() {
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder="Décrivez votre activité..."
                     rows={2}
-                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
                 {/* Audience cible */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Audience
                   </label>
                   <input
@@ -618,13 +609,13 @@ export default function GeneratePage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder="Entrepreneurs, Familles..."
-                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Angle marketing */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Angle marketing
                   </label>
                   <textarea
@@ -632,7 +623,7 @@ export default function GeneratePage() {
                     onChange={(e) => setMarketingAngle(e.target.value)}
                     placeholder="Votre approche..."
                     rows={2}
-                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
@@ -642,7 +633,7 @@ export default function GeneratePage() {
 
                   {/* Angle de l'image */}
                   <div className="mb-2">
-                    <label className="block text-xs font-medium mb-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Angle de l'image
                     </label>
                     <input
@@ -650,13 +641,13 @@ export default function GeneratePage() {
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
                       placeholder="Ex: Visuel moderne avec focus produit..."
-                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Histoire à raconter */}
                   <div className="mb-2">
-                    <label className="block text-xs font-medium mb-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Histoire à raconter
                     </label>
                     <textarea
@@ -664,13 +655,13 @@ export default function GeneratePage() {
                       onChange={(e) => setStoryToTell(e.target.value)}
                       placeholder="Ex: Innovation et qualité au service du client..."
                       rows={2}
-                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
                   </div>
 
                   {/* But de la publication */}
                   <div className="mb-2">
-                    <label className="block text-xs font-medium mb-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       But de la publication
                     </label>
                     <input
@@ -678,13 +669,13 @@ export default function GeneratePage() {
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
                       placeholder="Ex: Augmenter l'engagement, générer des leads..."
-                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Émotion à transmettre */}
                   <div>
-                    <label className="block text-xs font-medium mb-1">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Émotion à transmettre
                     </label>
                     <input
@@ -692,21 +683,21 @@ export default function GeneratePage() {
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
                       placeholder="Ex: Confiance, excitation, inspiration..."
-                      className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Plateforme */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">Plateforme</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
-                    <option>LinkedIn</option>
                     <option>Instagram</option>
+                    <option>LinkedIn</option>
                     <option>Facebook</option>
                     <option>Twitter/X</option>
                     <option>TikTok</option>
@@ -715,11 +706,11 @@ export default function GeneratePage() {
 
                 {/* Tonalité */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">Tonalité</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Tonalité</label>
                   <select
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Professionnel</option>
                     <option>Amical</option>
@@ -731,13 +722,13 @@ export default function GeneratePage() {
 
                 {/* Style visuel */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">Style</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Style</label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
-                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
-                    <option>Moderne</option>
+                    <option>Moderne et épuré</option>
                     <option>Réaliste</option>
                     <option>Illustration</option>
                     <option>Minimaliste</option>
@@ -845,35 +836,33 @@ export default function GeneratePage() {
                         onClick={() => setSelectedEditVersion(version)}
                         className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
                       />
-                      <div className="p-1 bg-neutral-50">
+                      <div className="p-1.5 bg-neutral-50 space-y-1">
                         <div className="text-[9px] text-center mb-1 font-medium">V{idx + 1}</div>
-                        <div className="flex gap-1">
-                          <a
-                            href={version}
-                            download={`keiro-edit-v${idx + 1}.png`}
-                            className="flex-1 py-0.5 text-[8px] bg-emerald-600 text-white text-center rounded hover:bg-emerald-700"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            💾
-                          </a>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm('Supprimer cette version ?')) {
-                                const newVersions = editVersions.filter((_, i) => i !== idx);
-                                setEditVersions(newVersions);
-                                if (selectedEditVersion === version && newVersions.length > 0) {
-                                  setSelectedEditVersion(newVersions[newVersions.length - 1]);
-                                } else if (newVersions.length === 0) {
-                                  setSelectedEditVersion(null);
-                                }
+                        <a
+                          href={version}
+                          download={`keiro-edit-v${idx + 1}.png`}
+                          className="block w-full py-1 text-[9px] bg-emerald-600 text-white text-center rounded hover:bg-emerald-700 font-medium"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Télécharger
+                        </a>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Supprimer cette version ?')) {
+                              const newVersions = editVersions.filter((_, i) => i !== idx);
+                              setEditVersions(newVersions);
+                              if (selectedEditVersion === version && newVersions.length > 0) {
+                                setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                              } else if (newVersions.length === 0) {
+                                setSelectedEditVersion(null);
                               }
-                            }}
-                            className="flex-1 py-0.5 text-[8px] bg-red-600 text-white text-center rounded hover:bg-red-700"
-                          >
-                            🗑️
-                          </button>
-                        </div>
+                            }
+                          }}
+                          className="block w-full py-1 text-[9px] bg-red-600 text-white text-center rounded hover:bg-red-700 font-medium"
+                        >
+                          Supprimer
+                        </button>
                       </div>
                     </div>
                   ))}
