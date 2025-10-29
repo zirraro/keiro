@@ -50,13 +50,17 @@ function categorizeArticle(title: string, description: string, source: string = 
   return bestCategory ? bestCategory[0] : 'À la une';
 }
 
-// Provider 1: NewsData.io (meilleur pour le français - priorité)
+// Provider 1: NewsData.io (source unique pour éviter doublons)
 async function fetchFromNewsData(): Promise<NewsArticle[]> {
   try {
     const allArticles: NewsArticle[] = [];
 
-    // Récupérer plusieurs pages de news françaises
-    const categories = ['top', 'technology', 'business', 'health', 'sports', 'entertainment', 'science', 'environment', 'food', 'tourism', 'politics', 'world'];
+    // Récupérer beaucoup plus de news françaises pour mieux remplir toutes les catégories
+    const categories = [
+      'top', 'technology', 'business', 'health', 'sports', 'entertainment',
+      'science', 'environment', 'food', 'tourism', 'politics', 'world',
+      'lifestyle', 'domestic'
+    ];
 
     for (const cat of categories) {
       const url = `https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&language=fr&category=${cat}&size=10`;
@@ -69,23 +73,24 @@ async function fetchFromNewsData(): Promise<NewsArticle[]> {
 
       const data = await res.json();
 
-      if (data.results) {
+      if (data.results && data.results.length > 0) {
         const articles = data.results.map((article: any) => ({
           id: article.article_id || Buffer.from(article.link).toString('base64').substring(0, 16),
           title: article.title || 'Sans titre',
           description: article.description || article.content?.substring(0, 200) || '',
           url: article.link,
-          image: article.image_url,
+          image: article.image_url || `https://picsum.photos/seed/${article.article_id}/600/400`,
           source: article.source_id || 'NewsData',
           date: article.pubDate,
-          category: categorizeArticle(article.title, article.description || '', article.source_id || ''),
+          category: categorizeArticle(article.title, article.description || '', article.category?.[0] || ''),
         }));
 
         allArticles.push(...articles);
+        console.log(`[NewsData] Category ${cat}: ${articles.length} articles`);
       }
     }
 
-    console.log(`[NewsData] Fetched ${allArticles.length} articles in French`);
+    console.log(`[NewsData] Total fetched: ${allArticles.length} articles in French`);
     return allArticles;
   } catch (error: any) {
     console.error('[NewsData] Error:', error.message);
@@ -190,11 +195,18 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   return getMockNews();
 }
 
-// Distribuer par catégories (max 12 par catégorie)
+// Distribuer par catégories de façon équilibrée
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
+  const REQUIRED_CATEGORIES = [
+    'À la une', 'Tech', 'Business', 'Santé', 'Sport', 'Culture',
+    'Politique', 'Climat', 'Auto', 'Lifestyle', 'People', 'Gaming', 'Restauration'
+  ];
+
   const categoryCounts = new Map<string, number>();
   const result: NewsArticle[] = [];
+  const alaune: NewsArticle[] = [];
 
+  // Premier passage : distribuer selon la catégorisation
   for (const article of articles) {
     const cat = article.category || 'À la une';
     const count = categoryCounts.get(cat) || 0;
@@ -202,8 +214,36 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     if (count < 12) {
       result.push(article);
       categoryCounts.set(cat, count + 1);
+      if (cat === 'À la une') {
+        alaune.push(article);
+      }
     }
   }
 
+  console.log('[Distribution] Initial counts:', Object.fromEntries(categoryCounts));
+
+  // Deuxième passage : remplir les catégories vides avec des articles de "À la une"
+  let alaUneIndex = 0;
+  for (const cat of REQUIRED_CATEGORIES) {
+    if (cat === 'À la une') continue;
+
+    const count = categoryCounts.get(cat) || 0;
+    if (count < 6 && alaUneIndex < alaune.length) {
+      // Redistribuer jusqu'à 6 articles de "À la une" vers cette catégorie
+      const needed = Math.min(6 - count, alaune.length - alaUneIndex);
+      for (let i = 0; i < needed; i++) {
+        if (alaUneIndex < alaune.length) {
+          const article = { ...alaune[alaUneIndex] };
+          article.category = cat;
+          result.push(article);
+          categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
+          alaUneIndex++;
+        }
+      }
+      console.log(`[Distribution] Filled ${cat} with ${needed} articles from À la une`);
+    }
+  }
+
+  console.log('[Distribution] Final counts:', Object.fromEntries(categoryCounts));
   return result;
 }

@@ -15,21 +15,17 @@ type NewsCard = {
 };
 
 const CATEGORIES = [
-  'Toutes',
   'À la une',
-  'Politique',
-  'Économie',
+  'Tech',
   'Business',
+  'Santé',
   'Sport',
   'People',
-  'Santé',
   'Restauration',
-  'Tech',
   'Culture',
-  'Monde',
-  'Auto',
+  'Politique',
   'Climat',
-  'Immo',
+  'Auto',
   'Lifestyle',
   'Gaming'
 ];
@@ -37,7 +33,7 @@ const CATEGORIES = [
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
   /* --- États pour les actualités --- */
-  const [category, setCategory] = useState<string>('Toutes');
+  const [category, setCategory] = useState<string>('À la une');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
   const [loading, setLoading] = useState(false);
@@ -48,7 +44,7 @@ export default function GeneratePage() {
   const filteredNews = allNewsItems
     .filter((item) => {
       // Filtre par catégorie
-      if (category !== 'Toutes' && item.category !== category) return false;
+      if (item.category !== category) return false;
       // Filtre par recherche
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -379,7 +375,18 @@ export default function GeneratePage() {
 
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
-              <h3 className="text-sm font-semibold mb-2">Assistant</h3>
+              <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
+              <p className="text-[10px] text-neutral-500 mb-2">Génération : Replicate SDXL</p>
+
+              {/* Afficher la carte sélectionnée */}
+              {selectedNews && (
+                <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                  <p className="text-[10px] font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
+                  <p className="text-xs font-semibold line-clamp-2 text-blue-800">
+                    {selectedNews.title}
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 {/* Type de business */}
