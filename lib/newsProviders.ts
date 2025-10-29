@@ -48,32 +48,45 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'International': ['international', 'monde', 'world', 'global', 'pays', 'country', 'guerre', 'war', 'conflit', 'paix', 'peace', 'diplomatie', 'onu', 'europe', 'asie', 'afrique', 'amérique', 'chine', 'usa', 'russie'],
 };
 
-// Catégorisation intelligente
+// Catégorisation intelligente avec scoring pondéré
 function categorizeArticle(title: string, description: string): string {
-  const text = `${title} ${description}`.toLowerCase();
+  const titleLower = title.toLowerCase();
+  const descLower = description.toLowerCase();
+  const text = `${titleLower} ${descLower}`;
+
   let bestCategory = 'À la une';
   let bestScore = 0;
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    const score = keywords.filter(kw => text.includes(kw)).length;
+    let score = 0;
+
+    // Pondération : titre compte 3x plus que description
+    keywords.forEach(kw => {
+      if (titleLower.includes(kw)) score += 3;
+      else if (descLower.includes(kw)) score += 1;
+    });
+
     if (score > bestScore) {
       bestScore = score;
       bestCategory = category;
     }
   }
 
-  return bestCategory;
+  // Si aucun match significatif (score < 2), laisser dans "À la une"
+  return bestScore >= 2 ? bestCategory : 'À la une';
 }
 
 // GNews - Meilleur provider (100 articles max par requête)
 async function fetchFromGNews(): Promise<NewsArticle[]> {
   try {
     const allArticles: NewsArticle[] = [];
-    const topics = ['general', 'business', 'technology', 'sports', 'health', 'entertainment', 'science', 'world'];
+    // Plus de topics pour plus de variété
+    const topics = ['general', 'business', 'technology', 'sports', 'health', 'entertainment', 'science', 'world', 'nation'];
 
     for (const topic of topics) {
-      const url = `https://gnews.io/api/v4/top-headlines?category=${topic}&lang=fr&country=fr&max=20&apikey=${GNEWS_API_KEY}`;
-      const res = await fetch(url, { next: { revalidate: 3600 } });
+      // Augmenter à 25 articles par topic
+      const url = `https://gnews.io/api/v4/top-headlines?category=${topic}&lang=fr&country=fr&max=25&apikey=${GNEWS_API_KEY}`;
+      const res = await fetch(url, { cache: 'no-store' }); // Pas de cache pour news fresh
 
       if (res.ok) {
         const data = await res.json();
@@ -105,11 +118,13 @@ async function fetchFromGNews(): Promise<NewsArticle[]> {
 async function fetchFromNewsData(): Promise<NewsArticle[]> {
   try {
     const allArticles: NewsArticle[] = [];
-    const categories = ['top', 'technology', 'business', 'health', 'sports', 'entertainment', 'science', 'environment', 'food', 'politics'];
+    // Plus de catégories pour plus de variété
+    const categories = ['top', 'technology', 'business', 'health', 'sports', 'entertainment', 'science', 'environment', 'food', 'politics', 'world', 'lifestyle', 'tourism'];
 
     for (const cat of categories) {
+      // Garder à 20 car c'est la limite de NewsData
       const url = `https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&language=fr&category=${cat}&size=20`;
-      const res = await fetch(url, { next: { revalidate: 3600 } });
+      const res = await fetch(url, { cache: 'no-store' }); // Pas de cache pour news fresh
 
       if (res.ok) {
         const data = await res.json();
@@ -227,54 +242,38 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     console.log(`  ${cat}: ${count} articles`);
   });
 
-  // REDISTRIBUTION ULTRA AGRESSIVE pour GARANTIR 12 partout
-  console.log('[Distribution] Starting aggressive redistribution...');
+  // REDISTRIBUTION INTELLIGENTE - Seulement depuis "À la une"
+  console.log('[Distribution] Smart redistribution from "À la une"...');
 
-  // Créer un pool GLOBAL de TOUS les articles
-  const globalPool: NewsArticle[] = [...uniqueArticles];
+  const alaune = categoryMap.get('À la une') || [];
 
-  // Pour chaque catégorie, s'assurer qu'elle a exactement 12 articles
-  ALL_CATEGORIES.forEach(cat => {
-    const list = categoryMap.get(cat) || [];
+  // Si "À la une" a plus de 12, redistribuer le surplus
+  if (alaune.length > TARGET) {
+    const surplus = alaune.splice(TARGET);
+    console.log(`  À la une: ${surplus.length} articles en surplus à redistribuer`);
 
-    if (list.length < TARGET) {
-      const needed = TARGET - list.length;
-      console.log(`  ${cat}: has ${list.length}, needs ${needed} more`);
+    // Distribuer le surplus aux catégories qui ont moins de 12
+    ALL_CATEGORIES.forEach(cat => {
+      if (cat === 'À la une' || cat === 'Tendances') return;
 
-      // Remplir depuis le pool global
-      let poolIdx = 0;
-      while (list.length < TARGET && poolIdx < globalPool.length) {
-        const article = { ...globalPool[poolIdx] };
-        article.category = cat;
-        article.id = `${article.id}-fill-${cat}-${list.length}`;
-        list.push(article);
-        poolIdx++;
-      }
-
-      // Si ENCORE pas assez, dupliquer en boucle
-      if (list.length < TARGET && list.length > 0) {
-        const baseList = [...list];
-        while (list.length < TARGET) {
-          const idx = list.length % baseList.length;
-          const article = { ...baseList[idx] };
-          article.id = `${article.id}-dup-${list.length}`;
-          list.push(article);
+      const list = categoryMap.get(cat) || [];
+      if (list.length < TARGET && surplus.length > 0) {
+        const needed = Math.min(TARGET - list.length, surplus.length);
+        for (let i = 0; i < needed; i++) {
+          const article = surplus.shift();
+          if (article) {
+            article.category = cat;
+            list.push(article);
+          }
         }
+        categoryMap.set(cat, list);
+        console.log(`  ${cat}: added ${needed} articles from surplus (now has ${list.length})`);
       }
+    });
+  }
 
-      // Si TOUJOURS pas d'articles (catégorie complètement vide), prendre n'importe quoi
-      if (list.length === 0 && globalPool.length > 0) {
-        for (let i = 0; i < TARGET && i < globalPool.length; i++) {
-          const article = { ...globalPool[i % globalPool.length] };
-          article.category = cat;
-          article.id = `${article.id}-emergency-${cat}-${i}`;
-          list.push(article);
-        }
-      }
-
-      categoryMap.set(cat, list);
-    }
-  });
+  // Accepter que certaines catégories aient moins de 12 articles
+  // C'est mieux d'avoir des vraies news pertinentes que des doublons partout
 
   console.log('[Distribution] Final:');
   ALL_CATEGORIES.forEach(cat => {
