@@ -202,7 +202,7 @@ export default function GeneratePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-9">
             {/* Filtres : Catégories + Recherche */}
             <div className="mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -299,10 +299,10 @@ export default function GeneratePage() {
           </div>
 
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className="lg:col-span-3 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
-            <div>
-              <h3 className="font-semibold mb-3">Logo / Photo (optionnel)</h3>
+            <div className="bg-white rounded-xl border p-3">
+              <h3 className="text-sm font-semibold mb-2">Logo (optionnel)</h3>
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -310,31 +310,31 @@ export default function GeneratePage() {
                 }}
                 onDragLeave={() => setDragActive(false)}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
+                className={`border border-dashed rounded-lg p-3 text-center transition ${
                   dragActive
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-neutral-300 hover:border-neutral-400'
                 }`}
               >
                 {logoUrl ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <img
                       src={logoUrl}
                       alt="Logo"
-                      className="w-24 h-24 object-cover rounded-lg mx-auto border"
+                      className="w-16 h-16 object-cover rounded mx-auto border"
                     />
                     <button
                       onClick={() => setLogoUrl(null)}
-                      className="text-sm text-red-600 hover:underline"
+                      className="text-xs text-red-600 hover:underline"
                     >
                       Supprimer
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className="text-4xl mb-2">📸</div>
-                    <p className="text-sm text-neutral-600 mb-3">
-                      Glissez-déposez votre logo ou photo ici
+                    <div className="text-2xl mb-1">📸</div>
+                    <p className="text-xs text-neutral-600 mb-2">
+                      Glissez ou cliquez
                     </p>
                     <input
                       ref={fileInputRef}
@@ -349,9 +349,9 @@ export default function GeneratePage() {
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      className="px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-50"
+                      className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50"
                     >
-                      {uploading ? 'Upload...' : 'Choisir un fichier'}
+                      {uploading ? 'Upload...' : 'Choisir'}
                     </button>
                   </>
                 )}
@@ -359,76 +359,73 @@ export default function GeneratePage() {
             </div>
 
             {/* Panel Assistant Prompt */}
-            <div className="bg-white rounded-xl border p-4">
-              <h3 className="font-semibold mb-3">Assistant Marketing</h3>
-              <p className="text-sm text-neutral-600 mb-4">
-                Renseignez votre business pour générer un visuel adapté à votre activité et l'actualité sélectionnée
-              </p>
+            <div className="bg-white rounded-xl border p-3">
+              <h3 className="text-sm font-semibold mb-2">Assistant</h3>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {/* Type de business */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Type de business <span className="text-red-500">*</span>
+                  <label className="block text-xs font-medium mb-1">
+                    Business <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder="Ex: Restaurant, SaaS B2B, E-commerce..."
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Restaurant, SaaS..."
+                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Description business */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Description de votre activité
+                  <label className="block text-xs font-medium mb-1">
+                    Description
                   </label>
                   <textarea
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
-                    placeholder="Décrivez votre activité en quelques mots..."
-                    rows={3}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Décrivez votre activité..."
+                    rows={2}
+                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Audience cible */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Audience cible
+                  <label className="block text-xs font-medium mb-1">
+                    Audience
                   </label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="Ex: Entrepreneurs, Familles, Jeunes actifs..."
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Entrepreneurs, Familles..."
+                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Angle marketing */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Angle / Approche marketing
+                  <label className="block text-xs font-medium mb-1">
+                    Angle marketing
                   </label>
                   <textarea
                     value={marketingAngle}
                     onChange={(e) => setMarketingAngle(e.target.value)}
-                    placeholder="Comment voulez-vous positionner votre message par rapport à l'actualité ?"
+                    placeholder="Votre approche..."
                     rows={2}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-xs rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 {/* Plateforme */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Plateforme</label>
+                  <label className="block text-xs font-medium mb-1">Plateforme</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option>LinkedIn</option>
                     <option>Instagram</option>
@@ -440,11 +437,11 @@ export default function GeneratePage() {
 
                 {/* Tonalité */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Tonalité</label>
+                  <label className="block text-xs font-medium mb-1">Tonalité</label>
                   <select
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option>Professionnel</option>
                     <option>Amical</option>
@@ -456,17 +453,17 @@ export default function GeneratePage() {
 
                 {/* Style visuel */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">Style visuel</label>
+                  <label className="block text-xs font-medium mb-1">Style</label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-xs rounded border px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option>Moderne et épuré</option>
-                    <option>Photographique réaliste</option>
+                    <option>Moderne</option>
+                    <option>Réaliste</option>
                     <option>Illustration</option>
                     <option>Minimaliste</option>
-                    <option>Coloré et dynamique</option>
+                    <option>Coloré</option>
                   </select>
                 </div>
 
@@ -474,14 +471,14 @@ export default function GeneratePage() {
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !selectedNews || !businessType.trim()}
-                  className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {generating ? 'Génération en cours...' : 'Générer le visuel'}
+                  {generating ? 'Génération...' : 'Générer'}
                 </button>
 
                 {!selectedNews && (
-                  <p className="text-xs text-amber-600 text-center">
-                    ⚠️ Sélectionnez une actualité à gauche
+                  <p className="text-[10px] text-amber-600 text-center">
+                    ⚠️ Sélectionnez une actualité
                   </p>
                 )}
               </div>
@@ -489,33 +486,33 @@ export default function GeneratePage() {
 
             {/* Résultat de la génération */}
             {generatedImageUrl && (
-              <div className="bg-white rounded-xl border p-4">
-                <h3 className="font-semibold mb-3">Visuel généré</h3>
+              <div className="bg-white rounded-xl border p-3">
+                <h3 className="text-sm font-semibold mb-2">Résultat</h3>
                 <img
                   src={generatedImageUrl}
                   alt="Visuel généré"
-                  className="w-full rounded-lg border"
+                  className="w-full rounded border"
                 />
-                <div className="mt-3 flex gap-2">
+                <div className="mt-2 flex gap-2">
                   <a
                     href={generatedImageUrl}
                     download
-                    className="flex-1 py-2 bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800"
+                    className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
                   >
                     Télécharger
                   </a>
                   <button
                     onClick={() => setGeneratedImageUrl(null)}
-                    className="px-4 py-2 border rounded-lg hover:bg-neutral-50"
+                    className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
                   >
-                    Nouvelle génération
+                    Nouveau
                   </button>
                 </div>
               </div>
             )}
 
             {generationError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
+              <div className="bg-red-50 border border-red-200 rounded p-2 text-red-700 text-xs">
                 {generationError}
               </div>
             )}
