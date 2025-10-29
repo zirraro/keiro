@@ -39,10 +39,27 @@ export default function GeneratePage() {
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('Toutes');
   const [searchQuery, setSearchQuery] = useState('');
-  const [newsItems, setNewsItems] = useState<NewsCard[]>([]);
+  const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
+
+  /* --- Filtrer les news selon catégorie et recherche --- */
+  const filteredNews = allNewsItems
+    .filter((item) => {
+      // Filtre par catégorie
+      if (category !== 'Toutes' && item.category !== category) return false;
+      // Filtre par recherche
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    })
+    .slice(0, 12); // Limiter à 12 résultats
 
   /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
@@ -64,39 +81,33 @@ export default function GeneratePage() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  /* --- Fetch actualités --- */
+  /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
-    fetchNews();
-  }, [category]);
+    fetchAllNews();
+  }, []);
 
-  async function fetchNews() {
+  async function fetchAllNews() {
     try {
       setLoading(true);
       setError(null);
-      const cat = category === 'Toutes' ? '' : category;
-      const url = `/api/news?cat=${encodeURIComponent(cat)}&q=${encodeURIComponent(searchQuery || '')}`;
-      const res = await fetch(url, { cache: 'no-store' });
+      // Récupérer TOUTES les news en 1 appel (l'API doit gérer le cache 24h)
+      const res = await fetch('/api/news?all=true', { cache: 'force-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Erreur de chargement');
-      setNewsItems(data.items || []);
+      setAllNewsItems(data.items || []);
     } catch (e: any) {
-      console.error('fetchNews error', e);
+      console.error('fetchAllNews error', e);
       setError('Impossible de récupérer les actualités.');
-      setNewsItems([]);
+      setAllNewsItems([]);
     } finally {
       setLoading(false);
     }
   }
 
-  /* --- Gestion recherche avec debounce --- */
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  /* --- Gestion recherche instantanée (filtrage côté client) --- */
   function handleSearchChange(value: string) {
     setSearchQuery(value);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchNews();
-    }, 400);
   }
 
   /* --- Upload logo/photo --- */
@@ -193,7 +204,7 @@ export default function GeneratePage() {
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-7">
             {/* Filtres : Catégories + Recherche */}
-            <div className="bg-white rounded-xl border p-4 mb-4">
+            <div className="mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Dropdown Catégories */}
                 <div className="sm:w-1/3">
@@ -226,7 +237,7 @@ export default function GeneratePage() {
             </div>
 
             {/* Cartes d'actualités (3 colonnes) */}
-            <div className="bg-white rounded-xl border p-4">
+            <div>
               {loading && (
                 <div className="text-center py-8 text-neutral-500">
                   Chargement des actualités...
@@ -239,15 +250,15 @@ export default function GeneratePage() {
                 </div>
               )}
 
-              {!loading && !error && newsItems.length === 0 && (
+              {!loading && !error && filteredNews.length === 0 && (
                 <div className="text-center py-8 text-neutral-500">
                   Aucune actualité trouvée
                 </div>
               )}
 
-              {!loading && newsItems.length > 0 && (
+              {!loading && filteredNews.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {newsItems.map((item) => (
+                  {filteredNews.map((item) => (
                     <article
                       key={item.id}
                       onClick={() => setSelectedNews(item)}
@@ -290,7 +301,7 @@ export default function GeneratePage() {
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
           <div className="lg:col-span-5 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
-            <div className="bg-white rounded-xl border p-4">
+            <div>
               <h3 className="font-semibold mb-3">Logo / Photo (optionnel)</h3>
               <div
                 onDragOver={(e) => {
