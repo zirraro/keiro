@@ -136,11 +136,6 @@ function categorizeArticle(title: string, description: string): string {
     }
   }
 
-  // Log pour debug
-  if (bestScore === 0) {
-    console.log(`[Categorize] No match for: "${title.substring(0, 50)}..." → À la une`);
-  }
-
   return bestCategory;
 }
 
@@ -148,22 +143,22 @@ function categorizeArticle(title: string, description: string): string {
 async function fetchFromRSS(): Promise<NewsArticle[]> {
   console.log('[RSS] Fetching from RSS feeds...');
   const allArticles: NewsArticle[] = [];
+  let articleCounter = 0; // Compteur global pour IDs uniques
 
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(async (feed) => {
+    RSS_FEEDS.map(async (feed, feedIndex) => {
       try {
         const parsed = await parser.parseURL(feed.url);
-        const articles = parsed.items.slice(0, 20).map((item, idx) => {
+        const articles = parsed.items.slice(0, 20).map((item, itemIndex) => {
           const title = item.title || 'Sans titre';
           const description = (item.contentSnippet || item.content || '').replace(/\s+/g, ' ').trim().slice(0, 200);
 
           // TOUJOURS recatégoriser par analyse du contenu
           const smartCategory = categorizeArticle(title, description);
 
-          // ID unique: URL + timestamp + index pour garantir unicité
-          const uniqueId = item.link
-            ? `rss-${Buffer.from(item.link).toString('base64').substring(0, 16)}`
-            : `rss-${Date.now()}-${idx}-${Buffer.from(title).toString('base64').substring(0, 8)}`;
+          // ID UNIQUE GARANTI: feed + timestamp + compteur
+          articleCounter++;
+          const uniqueId = `news-${feedIndex}-${itemIndex}-${Date.now()}-${articleCounter}`;
 
           return {
             id: uniqueId,
@@ -173,14 +168,14 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
             image: (item as any)?.enclosure?.url || (item as any)?.['media:content']?.$?.url,
             source: parsed.title?.split(' - ')[0] || feed.category,
             date: (item as any).isoDate || item.pubDate,
-            category: smartCategory, // Utilise la catégorisation intelligente
+            category: smartCategory,
           } as NewsArticle;
         });
 
-        console.log(`[RSS] Fetched ${articles.length} articles from ${feed.url}`);
+        console.log(`[RSS] Fetched ${articles.length} articles from ${feed.category}`);
         return articles;
       } catch (err) {
-        console.warn(`[RSS] Failed to fetch ${feed.url}:`, err);
+        console.warn(`[RSS] Failed to fetch ${feed.url}`);
         return [];
       }
     })
@@ -195,6 +190,7 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
   // Dédupliquer par URL
   const seen = new Set<string>();
   const deduplicated = allArticles.filter((article) => {
+    if (!article.url) return true; // Garder même sans URL
     if (seen.has(article.url)) return false;
     seen.add(article.url);
     return true;
@@ -222,7 +218,6 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   // FILTRER les articles sans image
   const articlesWithImages = articles.filter(article => {
     if (!article.image) {
-      console.log(`[Filter] Removing article without image: ${article.title.substring(0, 50)}...`);
       return false;
     }
     return true;
@@ -230,7 +225,7 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
 
   console.log(`[Filter] ${articles.length} → ${articlesWithImages.length} articles (removed ${articles.length - articlesWithImages.length} without images)`);
 
-  if (articlesWithImages.length > 50) {
+  if (articlesWithImages.length > 20) {
     // Mettre en cache
     cachedArticles = articlesWithImages;
     cacheTimestamp = now;
@@ -249,7 +244,7 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   return [];
 }
 
-// ===== DISTRIBUTION INTELLIGENTE AVEC REDISTRIBUTION =====
+// ===== DISTRIBUTION GARANTIE POUR TOUTES LES CATÉGORIES =====
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
   const ALL_CATEGORIES = [
     'À la une', 'Tendances', 'Tech', 'Business', 'Finance',
@@ -258,18 +253,13 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     'Restauration', 'Science', 'International'
   ];
 
-  const MAX_PER_CATEGORY = 12;
-  const MIN_PER_CATEGORY = 3; // Minimum requis
-
-  // Grouper par catégorie
-  const categoryMap = new Map<string, NewsArticle[]>();
-  ALL_CATEGORIES.forEach((cat) => categoryMap.set(cat, []));
+  const TARGET = 12; // Objectif: 12 articles par catégorie
 
   // Dédupliquer
   const seen = new Set<string>();
   const uniqueArticles: NewsArticle[] = [];
   for (const article of articles) {
-    const key = article.url || article.title;
+    const key = article.url || article.id;
     if (!seen.has(key)) {
       seen.add(key);
       uniqueArticles.push(article);
@@ -278,63 +268,74 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
 
   console.log(`[Distribution] ${uniqueArticles.length} unique articles to distribute`);
 
-  // PHASE 1: Distribution initiale
+  // Grouper par catégorie initiale
+  const categoryMap = new Map<string, NewsArticle[]>();
+  ALL_CATEGORIES.forEach((cat) => categoryMap.set(cat, []));
+
   for (const article of uniqueArticles) {
     const cat = article.category || 'À la une';
-    const list = categoryMap.get(cat);
-    if (list && list.length < MAX_PER_CATEGORY) {
-      list.push(article);
-    }
+    const list = categoryMap.get(cat) || [];
+    list.push(article);
+    categoryMap.set(cat, list);
   }
 
-  // PHASE 2: Redistribution pour catégories vides
-  const alaune = categoryMap.get('À la une') || [];
-  const emptyCategories = ALL_CATEGORIES.filter(cat => {
-    const count = categoryMap.get(cat)?.length || 0;
-    return count < MIN_PER_CATEGORY && cat !== 'À la une';
-  });
+  // REMPLISSAGE FORCÉ: chaque catégorie DOIT avoir 12 articles
+  let redistributionPool = [...uniqueArticles];
 
-  console.log(`[Distribution] Empty categories needing redistribution: ${emptyCategories.length}`);
+  for (const category of ALL_CATEGORIES) {
+    let list = categoryMap.get(category) || [];
 
-  const redistributedIds = new Set<string>(); // Track redistributed articles
+    if (list.length < TARGET) {
+      console.log(`[Redistribution] ${category} has only ${list.length} articles, filling to ${TARGET}...`);
 
-  for (const emptyCat of emptyCategories) {
-    const keywords = CATEGORY_KEYWORDS[emptyCat] || [];
-    const list = categoryMap.get(emptyCat) || [];
+      const keywords = CATEGORY_KEYWORDS[category] || [];
 
-    // Chercher dans "À la une" des articles qui pourraient matcher
-    for (const article of alaune) {
-      if (list.length >= MIN_PER_CATEGORY) break;
-      if (redistributedIds.has(article.id)) continue; // Skip already redistributed
+      // Chercher articles qui matchent dans le pool
+      for (const article of redistributionPool) {
+        if (list.length >= TARGET) break;
 
-      const text = `${article.title} ${article.description}`.toLowerCase();
-      let hasMatch = false;
+        // Skip si déjà dans cette catégorie
+        if (list.some(a => a.url === article.url || a.id === article.id)) continue;
 
-      // Chercher n'importe quel mot-clé (même 1 suffit)
-      for (const kw of keywords) {
-        if (text.includes(kw)) {
-          hasMatch = true;
-          break;
+        const text = `${article.title} ${article.description}`.toLowerCase();
+
+        // Vérifier si au moins 1 mot-clé match
+        const hasMatch = keywords.some(kw => text.includes(kw));
+
+        if (hasMatch) {
+          const newArticle = {
+            ...article,
+            id: `${article.id}-dist-${category}`,
+            category: category
+          };
+          list.push(newArticle);
         }
       }
 
-      if (hasMatch) {
-        // Create new article with different ID to avoid duplicates
-        const redistributed = {
-          ...article,
-          id: `${article.id}-recat-${emptyCat}`,
-          category: emptyCat
-        };
-        list.push(redistributed);
-        redistributedIds.add(article.id);
-        console.log(`[Redistribution] "${article.title.substring(0, 40)}..." → ${emptyCat}`);
+      // Si toujours pas assez, prendre n'importe quoi
+      if (list.length < TARGET) {
+        console.log(`[Redistribution] ${category} still at ${list.length}, adding any articles...`);
+        let poolIndex = 0;
+        while (list.length < TARGET && poolIndex < redistributionPool.length) {
+          const article = redistributionPool[poolIndex];
+          if (!list.some(a => a.url === article.url || a.id === article.id)) {
+            const newArticle = {
+              ...article,
+              id: `${article.id}-force-${category}-${list.length}`,
+              category: category
+            };
+            list.push(newArticle);
+          }
+          poolIndex++;
+        }
       }
     }
 
-    categoryMap.set(emptyCat, list);
+    // Limiter à exactement 12
+    categoryMap.set(category, list.slice(0, TARGET));
   }
 
-  // Log final de la distribution
+  // Log final
   ALL_CATEGORIES.forEach((cat) => {
     const count = categoryMap.get(cat)?.length || 0;
     console.log(`[Distribution] ${cat}: ${count} articles`);
