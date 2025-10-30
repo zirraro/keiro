@@ -307,8 +307,8 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
           if (descLower.includes(kw)) score += 1;
         }
 
-        // SEUIL MINIMUM: score >= 2 pour être pertinent
-        if (score >= 2) {
+        // SEUIL MINIMUM: score >= 1 pour être pertinent
+        if (score >= 1) {
           candidates.push({ article, score });
         }
       }

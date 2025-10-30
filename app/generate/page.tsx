@@ -192,52 +192,64 @@ export default function GeneratePage() {
     setGeneratedImageUrl(null);
 
     try {
-      // Construire un prompt détaillé incluant TOUS les éléments
+      // Construire un prompt détaillé avec lien profond actualité/business
       let promptParts: string[] = [];
 
-      // Contexte de l'actualité
-      promptParts.push(`Context: News article about "${selectedNews.title}".`);
-      if (selectedNews.description) {
-        promptParts.push(`News summary: ${selectedNews.description.substring(0, 200)}.`);
-      }
-
-      // Business et audience
-      promptParts.push(`Business type: ${businessType}.`);
-      if (businessDescription) {
-        promptParts.push(`Business description: ${businessDescription}.`);
-      }
-      if (targetAudience) {
-        promptParts.push(`Target audience: ${targetAudience}.`);
-      }
-
-      // Angle et storytelling
-      if (imageAngle) {
-        promptParts.push(`Visual angle: ${imageAngle}.`);
-      }
-      if (storyToTell) {
-        promptParts.push(`Story to convey: ${storyToTell}.`);
-      }
-      if (publicationGoal) {
-        promptParts.push(`Publication goal: ${publicationGoal}.`);
-      }
-      if (emotionToConvey) {
-        promptParts.push(`Emotion to convey: ${emotionToConvey}.`);
-      }
-      if (marketingAngle) {
-        promptParts.push(`Marketing angle: ${marketingAngle}.`);
-      }
-
-      // Style et paramètres visuels
-      promptParts.push(`Visual style: ${visualStyle}.`);
-      promptParts.push(`Tone: ${tone}.`);
-      promptParts.push(`Platform: ${platform}.`);
-
-      // Instructions finales
+      // CONTEXTE PRINCIPAL : Lien actualité + business
       promptParts.push(
-        'Create a high-quality, professional marketing visual that connects the news with the business. ' +
-        'The image should be visually striking, with clear composition, professional lighting, ' +
-        'and colors that match the brand identity. Ensure text is readable if included. ' +
-        'The visual should be optimized for social media engagement.'
+        `Create a professional social media visual that establishes a meaningful connection between ` +
+        `the following news event and this specific business.`
+      );
+
+      // Actualité détaillée
+      promptParts.push(`\n\nNEWS CONTEXT: "${selectedNews.title}"`);
+      if (selectedNews.description) {
+        promptParts.push(`News details: ${selectedNews.description.substring(0, 200)}.`);
+      }
+
+      // Business détaillé
+      promptParts.push(`\n\nBUSINESS: ${businessType}`);
+      if (businessDescription) {
+        promptParts.push(`Business details: ${businessDescription}.`);
+      }
+
+      // LIEN EXPLICITE entre l'actualité et le business
+      promptParts.push(
+        `\n\nCONNECTION REQUIREMENT: The visual MUST clearly show how this news relates to and benefits ` +
+        `the business. Show a specific, tangible connection - not just generic imagery. ` +
+        `The viewer should immediately understand WHY this business is talking about this news.`
+      );
+
+      // Audience ciblée
+      if (targetAudience) {
+        promptParts.push(`\nTarget audience: ${targetAudience}. Speak directly to their interests and needs.`);
+      }
+
+      // Direction créative complète
+      if (imageAngle || storyToTell || publicationGoal || emotionToConvey) {
+        promptParts.push(`\n\nCREATIVE DIRECTION:`);
+        if (imageAngle) promptParts.push(`Visual angle: ${imageAngle}.`);
+        if (storyToTell) promptParts.push(`Story narrative: ${storyToTell}.`);
+        if (publicationGoal) promptParts.push(`Goal: ${publicationGoal}.`);
+        if (emotionToConvey) promptParts.push(`Emotion: ${emotionToConvey}.`);
+        if (marketingAngle) promptParts.push(`Marketing approach: ${marketingAngle}.`);
+      }
+
+      // Style visuel et tonalité (SANS mentionner le nom de la plateforme)
+      promptParts.push(
+        `\n\nVISUAL SPECIFICATIONS: ${visualStyle} style with ${tone.toLowerCase()} tone. ` +
+        `Professional quality, optimized for social media format. ` +
+        `High contrast, clear composition, eye-catching design. ` +
+        `DO NOT include any social media platform names, logos, or interface elements in the image.`
+      );
+
+      // Instructions de qualité finale
+      promptParts.push(
+        `\n\nQUALITY REQUIREMENTS: ` +
+        `The final image must be publication-ready with professional photography/illustration standards. ` +
+        `Colors should be vibrant but harmonious. If text is included, it must be clearly readable. ` +
+        `The composition should guide the viewer's eye naturally through the visual story. ` +
+        `Most importantly: make the news-to-business connection obvious and compelling.`
       );
 
       const fullPrompt = promptParts.join(' ');
@@ -560,6 +572,31 @@ export default function GeneratePage() {
                 )}
               </div>
 
+              {/* Section d'aide pour créer le lien actualité/business */}
+              {selectedNews && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
+                    💡 Comment relier cette actu à votre business ?
+                  </h4>
+                  <div className="text-[10px] text-blue-800 space-y-1.5">
+                    <p className="font-medium">Questions à vous poser :</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>Impact direct :</strong> Comment cette actualité affecte-t-elle vos clients ?</li>
+                      <li><strong>Opportunité :</strong> Quel problème de vos clients cette actu révèle-t-elle ?</li>
+                      <li><strong>Solution :</strong> Comment votre produit/service répond-il à ce contexte ?</li>
+                      <li><strong>Valeur ajoutée :</strong> Quelle expertise unique apportez-vous sur ce sujet ?</li>
+                    </ul>
+                    <div className="mt-2 pt-2 border-t border-blue-300">
+                      <p className="font-medium mb-1">Exemple concret :</p>
+                      <p className="italic text-blue-700">
+                        Actu : "Hausse du prix de l'essence" → Restaurant local :
+                        "Alors que se déplacer coûte cher, découvrez notre nouveau service de livraison gratuite dans votre quartier"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {/* Type de business */}
                 <div>
@@ -570,7 +607,7 @@ export default function GeneratePage() {
                     type="text"
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder="Restaurant, SaaS..."
+                    placeholder="Ex: Restaurant bio, Agence marketing digital, Coach sportif..."
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
@@ -583,7 +620,7 @@ export default function GeneratePage() {
                   <textarea
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
-                    placeholder="Décrivez votre activité..."
+                    placeholder="Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
                     rows={2}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
@@ -598,7 +635,7 @@ export default function GeneratePage() {
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="Entrepreneurs, Familles..."
+                    placeholder="Qui sera intéressé ? Ex: Familles soucieuses de bien manger, professionnels pressés..."
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
@@ -611,7 +648,7 @@ export default function GeneratePage() {
                   <textarea
                     value={marketingAngle}
                     onChange={(e) => setMarketingAngle(e.target.value)}
-                    placeholder="Votre approche..."
+                    placeholder="Comment relier l'actu à votre offre ? Ex: Face à l'inflation alimentaire, nos prix restent accessibles grâce aux circuits courts"
                     rows={2}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
@@ -630,7 +667,7 @@ export default function GeneratePage() {
                       type="text"
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
-                      placeholder="Ex: Visuel moderne avec focus produit..."
+                      placeholder="Ex: Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -643,7 +680,7 @@ export default function GeneratePage() {
                     <textarea
                       value={storyToTell}
                       onChange={(e) => setStoryToTell(e.target.value)}
-                      placeholder="Ex: Innovation et qualité au service du client..."
+                      placeholder="Ex: Dans un contexte où X (actu), nous proposons Y (solution) pour Z (bénéfice client)"
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
@@ -658,7 +695,7 @@ export default function GeneratePage() {
                       type="text"
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
-                      placeholder="Ex: Augmenter l'engagement, générer des leads..."
+                      placeholder="Ex: Montrer notre expertise sur cette actu, attirer clients concernés par ce sujet..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -672,7 +709,7 @@ export default function GeneratePage() {
                       type="text"
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
-                      placeholder="Ex: Confiance, excitation, inspiration..."
+                      placeholder="Ex: Rassurance face à l'actu, optimisme, sentiment d'opportunité, empathie..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -806,7 +843,7 @@ export default function GeneratePage() {
               {/* Contenu du studio - RESPONSIVE */}
               <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 overflow-hidden">
                 {/* GAUCHE : Versions éditées - Mobile: hidden, Desktop: sidebar */}
-                <div className="hidden lg:block lg:col-span-2 overflow-y-auto space-y-2">
+                <div className="hidden lg:block lg:col-span-3 overflow-y-auto space-y-2">
                   <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
                   {editVersions.map((version, idx) => (
                     <div
@@ -857,8 +894,8 @@ export default function GeneratePage() {
                   ))}
                 </div>
 
-                {/* MILIEU : Image sélectionnée - Mobile: fixed height, Desktop: col-span-7 */}
-                <div className="flex-shrink-0 h-64 sm:h-80 lg:h-auto lg:col-span-7 lg:flex lg:items-center lg:justify-center bg-neutral-50 rounded-lg border overflow-hidden">
+                {/* MILIEU : Image sélectionnée - Mobile: fixed height, Desktop: col-span-5 */}
+                <div className="flex-shrink-0 h-64 sm:h-80 lg:h-auto lg:col-span-5 lg:flex lg:items-center lg:justify-center bg-neutral-50 rounded-lg border overflow-hidden">
                   {selectedEditVersion ? (
                     <img
                       src={selectedEditVersion}
@@ -876,8 +913,8 @@ export default function GeneratePage() {
                   )}
                 </div>
 
-                {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-3 */}
-                <div className="flex-1 lg:col-span-3 flex flex-col space-y-3 overflow-y-auto">
+                {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-4 */}
+                <div className="flex-1 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
                     <h3 className="text-sm font-semibold mb-2">Assistant d'Édition</h3>
 
