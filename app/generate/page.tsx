@@ -275,6 +275,31 @@ export default function GeneratePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-8">
+            {/* Filtres : Catégories + Recherche (sans labels) */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              {/* Dropdown Catégories */}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+
+              {/* Barre de recherche */}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Rechercher dans les actualités..."
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             {/* Cartes d'actualités (3 colonnes) */}
             <div>
               {loading && (
@@ -838,9 +863,9 @@ export default function GeneratePage() {
                       alt="Image sélectionnée"
                       className="w-full h-full object-contain"
                     />
-                  ) : generatedImage ? (
+                  ) : generatedImageUrl ? (
                     <img
-                      src={generatedImage}
+                      src={generatedImageUrl}
                       alt="Image générée"
                       className="w-full h-full object-contain"
                     />
