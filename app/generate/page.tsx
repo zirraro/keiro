@@ -743,10 +743,10 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            {/* Résultat de la génération */}
+            {/* Visuel généré */}
             {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
-                <h3 className="text-sm font-semibold mb-2">Résultat</h3>
+                <h3 className="text-sm font-semibold mb-2">Visuel</h3>
                 <img
                   src={generatedImageUrl}
                   alt="Visuel généré"
@@ -759,7 +759,7 @@ export default function GeneratePage() {
                       setEditVersions([generatedImageUrl]);
                       setSelectedEditVersion(generatedImageUrl);
                     }}
-                    className="flex-1 py-1 text-xs bg-purple-600 text-white text-center rounded hover:bg-purple-700"
+                    className="flex-1 py-1 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700"
                   >
                     ✏️ Éditer
                   </button>
@@ -823,33 +823,35 @@ export default function GeneratePage() {
                         onClick={() => setSelectedEditVersion(version)}
                         className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
                       />
-                      <div className="p-1.5 bg-neutral-50 space-y-1">
-                        <div className="text-[9px] text-center mb-1 font-medium">V{idx + 1}</div>
-                        <a
-                          href={version}
-                          download={`keiro-edit-v${idx + 1}.png`}
-                          className="block w-full py-1 text-[9px] bg-emerald-600 text-white text-center rounded hover:bg-emerald-700 font-medium"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Télécharger
-                        </a>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Supprimer cette version ?')) {
-                              const newVersions = editVersions.filter((_, i) => i !== idx);
-                              setEditVersions(newVersions);
-                              if (selectedEditVersion === version && newVersions.length > 0) {
-                                setSelectedEditVersion(newVersions[newVersions.length - 1]);
-                              } else if (newVersions.length === 0) {
-                                setSelectedEditVersion(null);
+                      <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 border-t">
+                        <div className="text-[10px] text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Supprimer cette version ?')) {
+                                const newVersions = editVersions.filter((_, i) => i !== idx);
+                                setEditVersions(newVersions);
+                                if (selectedEditVersion === version && newVersions.length > 0) {
+                                  setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                                } else if (newVersions.length === 0) {
+                                  setSelectedEditVersion(null);
+                                }
                               }
-                            }
-                          }}
-                          className="block w-full py-1 text-[9px] bg-red-600 text-white text-center rounded hover:bg-red-700 font-medium"
-                        >
-                          Supprimer
-                        </button>
+                            }}
+                            className="flex-1 py-1 text-[9px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                          >
+                            Supprimer
+                          </button>
+                          <a
+                            href={version}
+                            download={`keiro-edit-v${idx + 1}.png`}
+                            className="flex-1 py-1 text-[9px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Télécharger
+                          </a>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1061,29 +1063,18 @@ export default function GeneratePage() {
                         }
                       }}
                       disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
-                      className="w-full py-2 text-xs bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
-                      {editingImage ? 'Édition en cours...' : '🎨 Appliquer les modifications'}
+                      {editingImage ? 'Édition en cours...' : '✏️ Éditer'}
                     </button>
 
                     {/* Actions */}
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => {
-                          if (selectedEditVersion) {
-                            setGeneratedImageUrl(selectedEditVersion);
-                          }
-                          setShowEditStudio(false);
-                        }}
-                        className="flex-1 py-1.5 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
-                      >
-                        ✓ Valider
-                      </button>
-                      <button
                         onClick={() => setShowEditStudio(false)}
-                        className="flex-1 py-1.5 text-xs border rounded hover:bg-neutral-50"
+                        className="w-full py-1.5 text-xs border rounded hover:bg-neutral-50"
                       >
-                        Annuler
+                        Fermer
                       </button>
                     </div>
                   </div>

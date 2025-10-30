@@ -184,12 +184,23 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
   // Fetch depuis RSS
   const articles = await fetchFromRSS();
 
-  if (articles.length > 50) {
+  // FILTRER les articles sans image
+  const articlesWithImages = articles.filter(article => {
+    if (!article.image) {
+      console.log(`[Filter] Removing article without image: ${article.title.substring(0, 50)}...`);
+      return false;
+    }
+    return true;
+  });
+
+  console.log(`[Filter] ${articles.length} → ${articlesWithImages.length} articles (removed ${articles.length - articlesWithImages.length} without images)`);
+
+  if (articlesWithImages.length > 50) {
     // Mettre en cache
-    cachedArticles = articles;
+    cachedArticles = articlesWithImages;
     cacheTimestamp = now;
-    console.log(`[Cache] Cached ${articles.length} articles for 1 hour`);
-    return articles;
+    console.log(`[Cache] Cached ${articlesWithImages.length} articles with images for 1 hour`);
+    return articlesWithImages;
   }
 
   // Si échec RSS, utiliser cache expiré si disponible
@@ -198,12 +209,12 @@ export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
     return cachedArticles;
   }
 
-  // Dernier recours: quelques exemples pour test
+  // Dernier recours
   console.error('[Fetch] All sources failed, returning empty array');
   return [];
 }
 
-// ===== DISTRIBUTION GARANTIE =====
+// ===== DISTRIBUTION INTELLIGENTE (SANS DUPLICATION) =====
 export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
   const ALL_CATEGORIES = [
     'À la une', 'Tendances', 'Tech', 'Business', 'Finance',
@@ -212,7 +223,7 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     'Restauration', 'Science', 'International'
   ];
 
-  const TARGET = 12;
+  const MAX_PER_CATEGORY = 12;
 
   // Grouper par catégorie
   const categoryMap = new Map<string, NewsArticle[]>();
@@ -231,38 +242,29 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
 
   console.log(`[Distribution] ${uniqueArticles.length} unique articles to distribute`);
 
-  // Distribuer selon catégorie assignée
+  // Distribuer selon catégorie assignée par RSS ou mots-clés
   for (const article of uniqueArticles) {
     const cat = article.category || 'À la une';
     const list = categoryMap.get(cat);
-    if (list && list.length < TARGET) {
+    if (list && list.length < MAX_PER_CATEGORY) {
       list.push(article);
     }
   }
 
-  // REMPLISSAGE FORCÉ: si catégorie < 12, dupliquer depuis toutes les actus
+  // Log de la distribution
   ALL_CATEGORIES.forEach((cat) => {
-    const list = categoryMap.get(cat) || [];
-    if (list.length < TARGET && uniqueArticles.length > 0) {
-      let idx = 0;
-      while (list.length < TARGET) {
-        const article = { ...uniqueArticles[idx % uniqueArticles.length] };
-        article.category = cat;
-        article.id = `${article.id}-fill-${cat}-${list.length}`;
-        list.push(article);
-        idx++;
-      }
-      console.log(`[Distribution] ${cat}: filled to ${list.length} articles`);
+    const count = categoryMap.get(cat)?.length || 0;
+    if (count > 0) {
+      console.log(`[Distribution] ${cat}: ${count} articles`);
     }
-    categoryMap.set(cat, list.slice(0, TARGET));
   });
 
-  // Combiner tout
+  // Combiner tout SANS duplication forcée
   const result: NewsArticle[] = [];
   for (const list of categoryMap.values()) {
     result.push(...list);
   }
 
-  console.log(`[Distribution] Final: ${result.length} articles distributed`);
+  console.log(`[Distribution] Final: ${result.length} articles distributed across ${ALL_CATEGORIES.length} categories`);
   return result;
 }
