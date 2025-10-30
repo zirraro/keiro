@@ -11,9 +11,10 @@ export type NewsArticle = {
   category?: string;
 };
 
-// Clés API
-const GNEWS_API_KEY = '14cef0dcc6437084dab9a432df281e98';
-const NEWSDATA_API_KEY = 'pub_f0d6177c8ef44e26ab72a1723d21b088';
+// Clés API - NewsAPI.ai prioritaire (1934/2000 tokens disponibles)
+const NEWSAPI_AI_KEY = '22c2c608-833e-4050-8925-9e9f7e7e1cf9';
+const NEWSDATA_API_KEY = 'pub_f0d6177c8ef44e26ab72a1723d21b088'; // 200 crédits disponibles
+const GNEWS_API_KEY = '14cef0dcc6437084dab9a432df281e98'; // 100/jour - limite atteinte
 
 // Mots-clés ULTRA LARGES - version simplifiée et efficace
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
@@ -70,7 +71,82 @@ function categorizeArticle(title: string, description: string): string {
   return bestCategory;
 }
 
-// GNews - Provider principal
+// NewsAPI.ai - Provider PRINCIPAL (1934/2000 tokens disponibles)
+async function fetchFromNewsAPIai(): Promise<NewsArticle[]> {
+  try {
+    const allArticles: NewsArticle[] = [];
+
+    // Catégories avec mots-clés en français
+    const queries = [
+      { keyword: 'technologie OR intelligence artificielle OR numérique', category: 'Tech' },
+      { keyword: 'entreprise OR startup OR économie', category: 'Business' },
+      { keyword: 'finance OR bourse OR banque', category: 'Finance' },
+      { keyword: 'santé OR médecine OR hôpital', category: 'Santé' },
+      { keyword: 'sport OR football OR tennis', category: 'Sport' },
+      { keyword: 'culture OR cinéma OR musique', category: 'Culture' },
+      { keyword: 'politique OR élection OR gouvernement', category: 'Politique' },
+      { keyword: 'climat OR environnement OR écologie', category: 'Climat' },
+      { keyword: 'automobile OR voiture OR électrique', category: 'Automobile' },
+      { keyword: 'lifestyle OR mode OR voyage', category: 'Lifestyle' },
+      { keyword: 'célébrité OR people OR star', category: 'People' },
+      { keyword: 'jeu vidéo OR gaming OR esport', category: 'Gaming' },
+      { keyword: 'restaurant OR gastronomie OR cuisine', category: 'Restauration' },
+      { keyword: 'science OR recherche OR découverte', category: 'Science' },
+      { keyword: 'international OR monde OR géopolitique', category: 'International' },
+    ];
+
+    for (const q of queries) {
+      try {
+        const url = 'https://eventregistry.org/api/v1/article/getArticles';
+        const body = {
+          apiKey: NEWSAPI_AI_KEY,
+          keyword: q.keyword,
+          lang: 'fra',
+          articlesSortBy: 'date',
+          articlesCount: 20,
+          isDuplicateFilter: 'skipDuplicates',
+        };
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          cache: 'no-store',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.articles?.results) {
+            const articles = data.articles.results.map((article: any) => ({
+              id: `newsapiai-${article.uri || Buffer.from(article.url).toString('base64').substring(0, 16)}`,
+              title: article.title || 'Sans titre',
+              description: article.body?.substring(0, 200) || '',
+              url: article.url,
+              image: article.image,
+              source: article.source?.title || 'NewsAPI.ai',
+              date: article.dateTime,
+              category: q.category,
+            }));
+            allArticles.push(...articles);
+            console.log(`[NewsAPI.ai] ${q.category}: ${articles.length} articles`);
+          }
+        } else {
+          console.error(`[NewsAPI.ai] ${q.category} failed with status ${res.status}`);
+        }
+      } catch (err) {
+        console.warn(`[NewsAPI.ai] ${q.category} failed:`, err);
+      }
+    }
+
+    console.log(`[NewsAPI.ai] TOTAL: ${allArticles.length} articles`);
+    return allArticles;
+  } catch (error: any) {
+    console.error('[NewsAPI.ai] Error:', error.message);
+    return [];
+  }
+}
+
+// GNews - Provider de secours (limite 100/jour probablement atteinte)
 async function fetchFromGNews(): Promise<NewsArticle[]> {
   try {
     const allArticles: NewsArticle[] = [];
@@ -226,27 +302,35 @@ function generateMockNews(): NewsArticle[] {
   return mockArticles;
 }
 
-// Fetch TOUS les providers
+// Fetch avec priorité: NewsAPI.ai (1934 tokens) > NewsData (200 crédits) > Mock
 export async function fetchNewsWithFallback(): Promise<NewsArticle[]> {
-  const allArticles: NewsArticle[] = [];
+  console.log('[Fetch] Starting news fetch...');
 
-  console.log('[Fetch] Fetching from ALL providers...');
-
-  const gnews = await fetchFromGNews();
-  const newsdata = await fetchFromNewsData();
-
-  allArticles.push(...gnews);
-  allArticles.push(...newsdata);
-
-  console.log(`[Fetch] COMBINED TOTAL: ${allArticles.length} articles`);
-
-  // Si les APIs ne retournent rien, utiliser les données mock
-  if (allArticles.length === 0) {
-    console.warn('[Fetch] APIs returned no articles, using mock data');
-    return generateMockNews();
+  // Priorité 1: NewsAPI.ai (66/2000 tokens utilisés = beaucoup de marge)
+  const newsapiai = await fetchFromNewsAPIai();
+  if (newsapiai.length > 100) {
+    console.log(`[Fetch] SUCCESS with NewsAPI.ai: ${newsapiai.length} articles`);
+    return newsapiai;
   }
 
-  return allArticles;
+  // Priorité 2: NewsData (200 crédits disponibles)
+  console.log('[Fetch] NewsAPI.ai insufficient, trying NewsData...');
+  const newsdata = await fetchFromNewsData();
+  if (newsdata.length > 100) {
+    console.log(`[Fetch] SUCCESS with NewsData: ${newsdata.length} articles`);
+    return newsdata;
+  }
+
+  // Combiner ce qu'on a trouvé
+  const combined = [...newsapiai, ...newsdata];
+  if (combined.length > 50) {
+    console.log(`[Fetch] COMBINED: ${combined.length} articles`);
+    return combined;
+  }
+
+  // Dernier recours: Mock data
+  console.warn('[Fetch] All APIs failed or insufficient articles, using mock data');
+  return generateMockNews();
 }
 
 // Distribution GARANTIE avec REMPLISSAGE FORCÉ

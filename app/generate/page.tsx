@@ -384,7 +384,6 @@ export default function GeneratePage() {
           <div className="lg:col-span-4 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
             <div>
-              <h3 className="text-sm font-semibold mb-2">Logo (optionnel)</h3>
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -416,7 +415,7 @@ export default function GeneratePage() {
                   <>
                     <div className="text-2xl mb-1">📸</div>
                     <p className="text-xs text-neutral-600 mb-2">
-                      Glissez ou cliquez
+                      Glissez ou cliquez un logo/une photo (optionnel)
                     </p>
                     <input
                       ref={fileInputRef}
@@ -443,10 +442,6 @@ export default function GeneratePage() {
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
               <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <p className="text-[10px] text-neutral-600">IA : <span className="font-medium bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Seedream 4.0 T2i</span></p>
-              </div>
 
               {/* Afficher la carte sélectionnée */}
               {selectedNews && (
@@ -809,7 +804,6 @@ export default function GeneratePage() {
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <div>
                   <h2 className="text-lg font-semibold">Studio d'Édition</h2>
-                  <p className="text-xs text-neutral-500">Seedream 3.0 - Image to Image</p>
                 </div>
                 <button
                   onClick={() => setShowEditStudio(false)}
