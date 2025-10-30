@@ -275,39 +275,6 @@ export default function GeneratePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-8">
-            {/* Filtres : Catégories + Recherche */}
-            <div className="mb-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Dropdown Catégories */}
-                <div className="sm:w-auto">
-                  <label className="block text-sm font-medium mb-1">Catégorie</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
-                  >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Barre de recherche */}
-                <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1">Rechercher</label>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder="Rechercher dans les actualités..."
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Cartes d'actualités (3 colonnes) */}
             <div>
               {loading && (
@@ -796,15 +763,13 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        {/* ===== STUDIO D'ÉDITION (Seedream 3.0 i2i) ===== */}
+        {/* ===== STUDIO D'ÉDITION - OPTIMISÉ MOBILE ===== */}
         {showEditStudio && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl max-w-7xl w-full h-[90vh] flex flex-col">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-xl w-full h-full sm:h-[95vh] lg:h-[90vh] lg:max-w-7xl flex flex-col">
               {/* Header du studio */}
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <div>
-                  <h2 className="text-lg font-semibold">Studio d'Édition</h2>
-                </div>
+              <div className="flex items-center justify-between border-b px-3 py-2 sm:px-4 sm:py-3">
+                <h2 className="text-base sm:text-lg font-semibold">Studio d'Édition</h2>
                 <button
                   onClick={() => setShowEditStudio(false)}
                   className="text-2xl text-neutral-500 hover:text-neutral-900"
@@ -813,10 +778,10 @@ export default function GeneratePage() {
                 </button>
               </div>
 
-              {/* Contenu du studio */}
-              <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
-                {/* GAUCHE : Versions éditées */}
-                <div className="col-span-2 overflow-y-auto space-y-2">
+              {/* Contenu du studio - RESPONSIVE */}
+              <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 overflow-hidden">
+                {/* GAUCHE : Versions éditées - Mobile: hidden, Desktop: sidebar */}
+                <div className="hidden lg:block lg:col-span-2 overflow-y-auto space-y-2">
                   <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
                   {editVersions.map((version, idx) => (
                     <div
@@ -865,21 +830,27 @@ export default function GeneratePage() {
                   ))}
                 </div>
 
-                {/* MILIEU : Image sélectionnée */}
-                <div className="col-span-7 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden">
+                {/* MILIEU : Image sélectionnée - Mobile: fixed height, Desktop: col-span-7 */}
+                <div className="flex-shrink-0 h-64 sm:h-80 lg:h-auto lg:col-span-7 lg:flex lg:items-center lg:justify-center bg-neutral-50 rounded-lg border overflow-hidden">
                   {selectedEditVersion ? (
                     <img
                       src={selectedEditVersion}
                       alt="Image sélectionnée"
-                      className="max-w-full max-h-full object-contain"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : generatedImage ? (
+                    <img
+                      src={generatedImage}
+                      alt="Image générée"
+                      className="w-full h-full object-contain"
                     />
                   ) : (
-                    <p className="text-neutral-400">Sélectionnez une version</p>
+                    <p className="text-neutral-400 text-sm">Aucune image</p>
                   )}
                 </div>
 
-                {/* DROITE : Panel Assistant d'édition */}
-                <div className="col-span-3 flex flex-col space-y-3 overflow-y-auto">
+                {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-3 */}
+                <div className="flex-1 lg:col-span-3 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
                     <h3 className="text-sm font-semibold mb-2">Assistant d'Édition</h3>
 
@@ -1121,6 +1092,33 @@ export default function GeneratePage() {
                         • Ajouter logo
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Versions - MOBILE ONLY: horizontal scroll en bas */}
+                <div className="lg:hidden flex-shrink-0">
+                  <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {editVersions.map((version, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex-shrink-0 w-24 rounded border-2 overflow-hidden transition ${
+                          selectedEditVersion === version
+                            ? 'border-purple-500 ring-2 ring-purple-200'
+                            : 'border-neutral-200'
+                        }`}
+                      >
+                        <img
+                          src={version}
+                          alt={`Version ${idx + 1}`}
+                          onClick={() => setSelectedEditVersion(version)}
+                          className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
+                        />
+                        <div className="p-1 bg-neutral-50 text-center">
+                          <div className="text-[9px] font-medium">V{idx + 1}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
