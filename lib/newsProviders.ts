@@ -78,23 +78,39 @@ const RSS_FEEDS = [
   { url: 'https://www.geo.fr/rss.xml', category: 'Climat' },
 ];
 
-// Mots-clés pour catégorisation automatique
+// Mots-clés ENRICHIS pour catégorisation automatique
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
-  'Tech': ['tech', 'technolog', 'ai', 'ia', 'numér', 'digit', 'cyber', 'app', 'internet', 'ordin', 'comput', 'phone', 'mobile', 'google', 'apple', 'microsoft'],
-  'Business': ['business', 'entrepr', 'économ', 'econom', 'startup', 'sociét', 'compan'],
-  'Finance': ['financ', 'banqu', 'bank', 'bours', 'stock', 'crypto', 'bitcoin'],
-  'Santé': ['santé', 'health', 'médic', 'hôpit', 'vaccin', 'virus'],
-  'Sport': ['sport', 'foot', 'tennis', 'rugby', 'match', 'joueur', 'équip'],
-  'Culture': ['cultur', 'film', 'cinéma', 'série', 'musiqu', 'concert'],
-  'Politique': ['politiq', 'élection', 'président', 'gouvern', 'loi'],
-  'Climat': ['climat', 'environ', 'écolog', 'énerg', 'pollut'],
-  'Automobile': ['auto', 'voitur', 'électriq', 'tesla', 'conduit'],
-  'Lifestyle': ['lifestyle', 'mode', 'fashion', 'voyag', 'beauté'],
-  'People': ['céléb', 'star', 'acteur', 'influen'],
-  'Gaming': ['gam', 'jeu', 'esport', 'playstation', 'xbox'],
-  'Restauration': ['restaurant', 'cuisin', 'chef', 'gastro'],
-  'Science': ['scien', 'recherch', 'découvert', 'espace'],
-  'International': ['internation', 'monde', 'global', 'guerre'],
+  'Tech': ['tech', 'technolog', 'ai', 'ia', 'intel', 'artificial', 'numér', 'digit', 'cyber', 'app', 'application', 'logiciel', 'software', 'internet', 'web', 'ordin', 'comput', 'phone', 'smartphone', 'mobile', 'iphone', 'android', 'google', 'apple', 'microsoft', 'amazon', 'meta', 'facebook', 'twitter', 'tiktok', 'instagram', 'cloud', 'data', 'robot', 'drone', '5g', 'blockchain', 'nft', 'metaverse', 'chatgpt', 'openai', 'tesla', 'spacex', 'innovation', 'startup', 'silicon'],
+
+  'Business': ['business', 'entrepr', 'entrepreneur', 'économ', 'econom', 'startup', 'pme', 'sociét', 'compan', 'entreprise', 'pdg', 'ceo', 'dirigeant', 'patron', 'salarié', 'emploi', 'job', 'travail', 'work', 'recrutement', 'hiring', 'commerce', 'vente', 'marketing', 'stratégie', 'croissance', 'develop', 'invest', 'levée', 'acquisition', 'fusion', 'rachat'],
+
+  'Finance': ['financ', 'banqu', 'bank', 'bours', 'stock', 'action', 'obligation', 'fond', 'placement', 'épargne', 'saving', 'invest', 'portefeuille', 'trading', 'forex', 'crypto', 'bitcoin', 'ethereum', 'monnaie', 'euro', 'dollar', 'taux', 'interest', 'crédit', 'prêt', 'loan', 'dette', 'inflation', 'cac 40', 'dow jones', 'nasdaq', 'assurance', 'retraite', 'immobil'],
+
+  'Santé': ['santé', 'health', 'médic', 'medical', 'médecin', 'doctor', 'hôpit', 'hospital', 'clinique', 'patient', 'maladie', 'disease', 'cancer', 'diabète', 'covid', 'virus', 'vaccin', 'vaccine', 'traitement', 'treat', 'soin', 'care', 'pharmacie', 'médicament', 'drug', 'nutrition', 'alimentat', 'régime', 'diet', 'fitness', 'sport', 'bien-être', 'wellness', 'mental', 'psycho', 'thérapie'],
+
+  'Sport': ['sport', 'foot', 'football', 'soccer', 'ligue', 'league', 'champion', 'coupe', 'cup', 'match', 'finale', 'joueur', 'player', 'équip', 'team', 'entraîneur', 'coach', 'psg', 'om', 'real', 'barça', 'manchester', 'bayern', 'tennis', 'roland-garros', 'wimbledon', 'rugby', 'basket', 'nba', 'formule 1', 'f1', 'moto gp', 'olymp', 'jeux', 'athlé', 'natation', 'cyclisme', 'tour de france'],
+
+  'Culture': ['cultur', 'art', 'artiste', 'film', 'cinéma', 'cinema', 'movie', 'réalis', 'director', 'acteur', 'actor', 'actrice', 'actress', 'série', 'series', 'netflix', 'amazon prime', 'disney', 'stream', 'musiq', 'music', 'album', 'chanson', 'song', 'concert', 'festival', 'cannes', 'césar', 'oscar', 'théâtr', 'theater', 'pièce', 'spectacl', 'show', 'musée', 'museum', 'exposition', 'livre', 'book', 'roman', 'auteur', 'littérat'],
+
+  'Politique': ['politiq', 'politic', 'gouvern', 'govern', 'ministre', 'ministr', 'président', 'president', 'macron', 'élection', 'election', 'vote', 'scrutin', 'parlement', 'sénat', 'assemblée', 'député', 'sénateur', 'parti', 'party', 'gauche', 'droite', 'center', 'loi', 'law', 'réform', 'reform', 'décret', 'projet', 'débat', 'opposition', 'majorité'],
+
+  'Climat': ['climat', 'climate', 'réchauff', 'warming', 'environ', 'écolog', 'ecolog', 'vert', 'green', 'durable', 'sustain', 'énerg', 'energy', 'renouv', 'solaire', 'solar', 'éolien', 'wind', 'nucléaire', 'nuclear', 'carbon', 'co2', 'émission', 'emission', 'pollut', 'déchet', 'waste', 'recycl', 'bio', 'organic', 'planète', 'planet', 'terre', 'earth', 'nature', 'biodiversité', 'extinction'],
+
+  'Automobile': ['auto', 'automobile', 'voitur', 'car', 'vehicle', 'véhicul', 'électriq', 'electric', 'hybrid', 'essence', 'diesel', 'tesla', 'renault', 'peugeot', 'citroën', 'bmw', 'mercedes', 'audi', 'volkswagen', 'conduit', 'driv', 'permis', 'license', 'moteur', 'engine', 'borne', 'recharge', 'autonomie', 'battery', 'salon', 'prototype', 'concept'],
+
+  'Lifestyle': ['lifestyle', 'mode', 'fashion', 'tendance', 'trend', 'style', 'look', 'défilé', 'collection', 'créateur', 'designer', 'luxe', 'luxury', 'marque', 'brand', 'voyag', 'travel', 'tourism', 'vacance', 'holiday', 'destination', 'hôtel', 'hotel', 'beauté', 'beauty', 'cosmétique', 'makeup', 'parfum', 'coiffure', 'hair', 'maison', 'home', 'décor', 'design', 'immobil'],
+
+  'People': ['people', 'céléb', 'celebrity', 'star', 'vedette', 'acteur', 'actrice', 'actor', 'chanteur', 'singer', 'artiste', 'influenc', 'influen', 'youtub', 'tiktok', 'instagram', 'snapchat', 'blog', 'couple', 'mariag', 'wedding', 'divorce', 'bébé', 'baby', 'grossesse', 'pregnant', 'scandale', 'rumeur', 'paparazzi', 'red carpet', 'gala', 'cérémonie'],
+
+  'Gaming': ['gaming', 'gam', 'jeu', 'game', 'video', 'esport', 'e-sport', 'compétition', 'tournament', 'playstation', 'ps5', 'xbox', 'nintendo', 'switch', 'pc', 'console', 'fortnite', 'minecraft', 'call of duty', 'fifa', 'gta', 'steam', 'epic games', 'twitch', 'streamer', 'lol', 'league of legends', 'valorant', 'overwatch'],
+
+  'Restauration': ['restaurant', 'resto', 'cuisin', 'cuisine', 'cook', 'chef', 'gastronomie', 'gastro', 'culinaire', 'culinary', 'plat', 'dish', 'recette', 'recipe', 'menu', 'carte', 'étoile', 'michelin', 'guide', 'bistrot', 'brasserie', 'café', 'coffee', 'bar', 'food', 'bouffe', 'manger', 'eat', 'dégustation', 'tasting', 'vin', 'wine', 'sommelier', 'table'],
+
+  'Science': ['scien', 'science', 'recherch', 'research', 'étude', 'study', 'découvert', 'discover', 'invention', 'labor', 'labo', 'chercheur', 'scientifique', 'physiq', 'physic', 'chimie', 'chemi', 'biolog', 'mathématique', 'math', 'astronomie', 'astro', 'espace', 'space', 'nasa', 'esa', 'planète', 'planet', 'étoile', 'star', 'galaxie', 'mars', 'lune', 'moon', 'telescope', 'satellite'],
+
+  'International': ['international', 'internation', 'monde', 'world', 'global', 'planète', 'pays', 'country', 'nation', 'étranger', 'foreign', 'guerre', 'war', 'conflit', 'conflict', 'paix', 'peace', 'accord', 'treaty', 'diplomatie', 'diplomat', 'ambassade', 'onu', 'un', 'otan', 'nato', 'union européenne', 'europe', 'états-unis', 'usa', 'amérique', 'america', 'chine', 'china', 'russie', 'russia', 'asie', 'asia', 'afrique', 'africa', 'moyen-orient', 'middle east'],
+
+  'Tendances': ['tendance', 'trend', 'viral', 'buzz', 'phénomène', 'hype', 'nouveau', 'new', 'actualité', 'news', 'info', 'événement', 'event', 'annonce', 'lancement', 'sortie', 'release'],
 };
 
 // Catégoriser un article
@@ -130,6 +146,9 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
           const title = item.title || 'Sans titre';
           const description = (item.contentSnippet || item.content || '').replace(/\s+/g, ' ').trim().slice(0, 200);
 
+          // TOUJOURS recatégoriser par analyse du contenu
+          const smartCategory = categorizeArticle(title, description);
+
           return {
             id: `rss-${Buffer.from(item.link || '').toString('base64').substring(0, 16)}`,
             title,
@@ -138,11 +157,11 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
             image: (item as any)?.enclosure?.url || (item as any)?.['media:content']?.$?.url,
             source: parsed.title?.split(' - ')[0] || feed.category,
             date: (item as any).isoDate || item.pubDate,
-            category: feed.category || categorizeArticle(title, description),
+            category: smartCategory, // Utilise la catégorisation intelligente
           } as NewsArticle;
         });
 
-        console.log(`[RSS] ${feed.category}: ${articles.length} articles from ${feed.url}`);
+        console.log(`[RSS] Fetched ${articles.length} articles from ${feed.url}`);
         return articles;
       } catch (err) {
         console.warn(`[RSS] Failed to fetch ${feed.url}:`, err);
