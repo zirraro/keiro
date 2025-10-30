@@ -86,13 +86,13 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'Finance': ['financ', 'banqu', 'bank', 'bours', 'stock', 'action', 'obligation', 'fond', 'placement', 'épargne', 'saving', 'invest', 'portefeuille', 'trading', 'forex', 'crypto', 'bitcoin', 'ethereum', 'monnaie', 'euro', 'dollar', 'taux', 'interest', 'crédit', 'prêt', 'loan', 'dette', 'inflation', 'cac 40', 'dow jones', 'nasdaq', 'assurance', 'retraite', 'immobil'],
 
-  'Santé': ['santé', 'health', 'médic', 'medical', 'médecin', 'doctor', 'hôpit', 'hospital', 'clinique', 'patient', 'maladie', 'disease', 'cancer', 'diabète', 'covid', 'virus', 'vaccin', 'vaccine', 'traitement', 'treat', 'soin', 'care', 'pharmacie', 'médicament', 'drug', 'nutrition', 'alimentat', 'régime', 'diet', 'fitness', 'sport', 'bien-être', 'wellness', 'mental', 'psycho', 'thérapie'],
+  'Santé': ['santé', 'health', 'médic', 'medical', 'médecin', 'doctor', 'hôpit', 'hospital', 'clinique', 'patient', 'maladie', 'disease', 'cancer', 'diabète', 'covid', 'virus', 'vaccin', 'vaccine', 'traitement', 'treat', 'soin', 'care', 'pharmacie', 'médicament', 'drug', 'nutrition', 'alimentat', 'régime', 'diet', 'fitness', 'bien-être', 'wellness', 'mental', 'psycho', 'thérapie', 'chirurgie', 'opération'],
 
-  'Sport': ['sport', 'foot', 'football', 'soccer', 'ligue', 'league', 'champion', 'coupe', 'cup', 'match', 'finale', 'joueur', 'player', 'équip', 'team', 'entraîneur', 'coach', 'psg', 'om', 'real', 'barça', 'manchester', 'bayern', 'tennis', 'roland-garros', 'wimbledon', 'rugby', 'basket', 'nba', 'formule 1', 'f1', 'moto gp', 'olymp', 'jeux', 'athlé', 'natation', 'cyclisme', 'tour de france'],
+  'Sport': ['sport', 'sportif', 'foot', 'football', 'soccer', 'ligue 1', 'ligue des champions', 'champions league', 'coupe', 'cup', 'match', 'finale', 'joueur', 'player', 'équipe', 'team', 'entraîneur', 'coach', 'psg', 'om', 'olympique', 'real madrid', 'barça', 'manchester', 'bayern', 'tennis', 'roland-garros', 'wimbledon', 'rugby', 'basket', 'nba', 'formule 1', 'f1', 'moto gp', 'motogp', 'olympique', 'jeux olympiques', 'athlétisme', 'natation', 'cyclisme', 'tour de france', 'ballon', 'stade', 'terrain', 'champion du monde', 'victoire', 'défaite', 'but', 'goal', 'penalty', 'carton', 'arbitre', 'transfert', 'mercato', 'mbappé', 'messi', 'ronaldo', 'nadal', 'federer', 'djokovic'],
 
   'Culture': ['cultur', 'art', 'artiste', 'film', 'cinéma', 'cinema', 'movie', 'réalis', 'director', 'acteur', 'actor', 'actrice', 'actress', 'série', 'series', 'netflix', 'amazon prime', 'disney', 'stream', 'musiq', 'music', 'album', 'chanson', 'song', 'concert', 'festival', 'cannes', 'césar', 'oscar', 'théâtr', 'theater', 'pièce', 'spectacl', 'show', 'musée', 'museum', 'exposition', 'livre', 'book', 'roman', 'auteur', 'littérat'],
 
-  'Politique': ['politiq', 'politic', 'gouvern', 'govern', 'ministre', 'ministr', 'président', 'president', 'macron', 'élection', 'election', 'vote', 'scrutin', 'parlement', 'sénat', 'assemblée', 'député', 'sénateur', 'parti', 'party', 'gauche', 'droite', 'center', 'loi', 'law', 'réform', 'reform', 'décret', 'projet', 'débat', 'opposition', 'majorité'],
+  'Politique': ['politiq', 'politic', 'gouvernement', 'gouvern', 'ministre', 'ministère', 'premier ministre', 'président', 'president', 'macron', 'élection', 'election', 'vote', 'scrutin', 'parlement', 'sénat', 'assemblée nationale', 'député', 'sénateur', 'parti politique', 'gauche', 'droite', 'centre', 'loi', 'législation', 'réforme', 'décret', 'projet de loi', 'débat politique', 'opposition', 'majorité', 'conseil des ministres', 'matignon', 'élysée'],
 
   'Climat': ['climat', 'climate', 'réchauff', 'warming', 'environ', 'écolog', 'ecolog', 'vert', 'green', 'durable', 'sustain', 'énerg', 'energy', 'renouv', 'solaire', 'solar', 'éolien', 'wind', 'nucléaire', 'nuclear', 'carbon', 'co2', 'émission', 'emission', 'pollut', 'déchet', 'waste', 'recycl', 'bio', 'organic', 'planète', 'planet', 'terre', 'earth', 'nature', 'biodiversité', 'extinction'],
 
@@ -102,7 +102,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'People': ['people', 'céléb', 'celebrity', 'star', 'vedette', 'acteur', 'actrice', 'actor', 'chanteur', 'singer', 'artiste', 'influenc', 'influen', 'youtub', 'tiktok', 'instagram', 'snapchat', 'blog', 'couple', 'mariag', 'wedding', 'divorce', 'bébé', 'baby', 'grossesse', 'pregnant', 'scandale', 'rumeur', 'paparazzi', 'red carpet', 'gala', 'cérémonie'],
 
-  'Gaming': ['gaming', 'gam', 'jeu', 'game', 'video', 'esport', 'e-sport', 'compétition', 'tournament', 'playstation', 'ps5', 'xbox', 'nintendo', 'switch', 'pc', 'console', 'fortnite', 'minecraft', 'call of duty', 'fifa', 'gta', 'steam', 'epic games', 'twitch', 'streamer', 'lol', 'league of legends', 'valorant', 'overwatch'],
+  'Gaming': ['gaming', 'jeu vidéo', 'jeux vidéo', 'video game', 'gamer', 'esport', 'e-sport', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'console', 'fortnite', 'minecraft', 'call of duty', 'cod', 'fifa', 'gta', 'steam', 'epic games', 'twitch', 'streamer', 'lol', 'league of legends', 'valorant', 'overwatch', 'apex', 'warzone', 'elden ring', 'zelda', 'mario', 'sonic', 'dota', 'pubg', 'counter-strike', 'cs:go', 'battlefield'],
 
   'Restauration': ['restaurant', 'resto', 'cuisin', 'cuisine', 'cook', 'chef', 'gastronomie', 'gastro', 'culinaire', 'culinary', 'plat', 'dish', 'recette', 'recipe', 'menu', 'carte', 'étoile', 'michelin', 'guide', 'bistrot', 'brasserie', 'café', 'coffee', 'bar', 'food', 'bouffe', 'manger', 'eat', 'dégustation', 'tasting', 'vin', 'wine', 'sommelier', 'table'],
 
@@ -279,59 +279,59 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
     categoryMap.set(cat, list);
   }
 
-  // REMPLISSAGE FORCÉ: chaque catégorie DOIT avoir 12 articles
+  // REMPLISSAGE INTELLIGENT: priorité à la pertinence sur la quantité
   let redistributionPool = [...uniqueArticles];
 
   for (const category of ALL_CATEGORIES) {
     let list = categoryMap.get(category) || [];
 
     if (list.length < TARGET) {
-      console.log(`[Redistribution] ${category} has only ${list.length} articles, filling to ${TARGET}...`);
+      console.log(`[Redistribution] ${category} has only ${list.length} articles, searching for relevant matches...`);
 
       const keywords = CATEGORY_KEYWORDS[category] || [];
 
-      // Chercher articles qui matchent dans le pool
-      for (const article of redistributionPool) {
-        if (list.length >= TARGET) break;
+      // Chercher articles pertinents avec SCORE MINIMUM
+      const candidates: Array<{ article: NewsArticle; score: number }> = [];
 
+      for (const article of redistributionPool) {
         // Skip si déjà dans cette catégorie
         if (list.some(a => a.url === article.url || a.id === article.id)) continue;
 
-        const text = `${article.title} ${article.description}`.toLowerCase();
+        const titleLower = article.title.toLowerCase();
+        const descLower = article.description.toLowerCase();
+        let score = 0;
 
-        // Vérifier si au moins 1 mot-clé match
-        const hasMatch = keywords.some(kw => text.includes(kw));
+        // Calculer le score (titre 3x plus important)
+        for (const kw of keywords) {
+          if (titleLower.includes(kw)) score += 3;
+          if (descLower.includes(kw)) score += 1;
+        }
 
-        if (hasMatch) {
-          const newArticle = {
-            ...article,
-            id: `${article.id}-dist-${category}`,
-            category: category
-          };
-          list.push(newArticle);
+        // SEUIL MINIMUM: score >= 2 pour être pertinent
+        if (score >= 2) {
+          candidates.push({ article, score });
         }
       }
 
-      // Si toujours pas assez, prendre n'importe quoi
-      if (list.length < TARGET) {
-        console.log(`[Redistribution] ${category} still at ${list.length}, adding any articles...`);
-        let poolIndex = 0;
-        while (list.length < TARGET && poolIndex < redistributionPool.length) {
-          const article = redistributionPool[poolIndex];
-          if (!list.some(a => a.url === article.url || a.id === article.id)) {
-            const newArticle = {
-              ...article,
-              id: `${article.id}-force-${category}-${list.length}`,
-              category: category
-            };
-            list.push(newArticle);
-          }
-          poolIndex++;
-        }
+      // Trier par score décroissant
+      candidates.sort((a, b) => b.score - a.score);
+
+      // Ajouter les meilleurs candidats jusqu'à TARGET
+      for (const { article } of candidates) {
+        if (list.length >= TARGET) break;
+
+        const newArticle = {
+          ...article,
+          id: `${article.id}-dist-${category}`,
+          category: category
+        };
+        list.push(newArticle);
       }
+
+      console.log(`[Redistribution] ${category} now has ${list.length} articles (added ${list.length - (categoryMap.get(category)?.length || 0)} relevant articles)`);
     }
 
-    // Limiter à exactement 12
+    // Limiter à TARGET maximum (mais accepter moins si pas assez d'articles pertinents)
     categoryMap.set(category, list.slice(0, TARGET));
   }
 
