@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 type User = {
   id: string;
@@ -27,14 +27,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Vérifier la session au chargement
-    supabase.auth.getSession().then((response) => {
+    supabase.auth.getSession().then((response: { data: { session: Session | null } }) => {
       const session = response.data.session;
       setUser(session?.user ? { id: session.user.id, email: session.user.email || null } : null);
       setLoading(false);
     });
 
     // Écouter les changements d'authentification
-    const authListener = supabase.auth.onAuthStateChange((_event, session) => {
+    const authListener = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email || null } : null);
     });
     const subscription = authListener.data.subscription;
