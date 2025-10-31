@@ -65,43 +65,107 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* EXEMPLE CONCRET */}
+      {/* EXEMPLE CONCRET AVANT/APRÈS */}
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
-        <h2 className="text-2xl font-semibold">Exemple concret</h2>
-        <div className="mt-6 grid lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7">
-            <div className="rounded-2xl border overflow-hidden">
-              <div className="grid md:grid-cols-2">
-                <img
-                  src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1200&auto=format&fit=crop"
-                  alt="Avant"
-                  className="h-64 w-full object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1520975922284-9d62c9b0eece?q=80&w=1200&auto=format&fit=crop"
-                  alt="Après"
-                  className="h-64 w-full object-cover"
-                />
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold">Transformez une actualité en client</h2>
+          <p className="mt-2 text-neutral-600">Voici comment Keiro vous aide à catcher la trend et convertir</p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* AVANT */}
+          <div className="relative">
+            <div className="absolute -top-3 -left-3 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+              ❌ AVANT
+            </div>
+            <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 p-6">
+              <div className="bg-white rounded-xl border p-4 mb-4">
+                <p className="text-xs text-neutral-500 mb-2">📰 Actualité brute</p>
+                <p className="font-semibold text-sm mb-2">
+                  "Le gouvernement annonce une hausse de 15% du prix de l'essence d'ici la fin du mois"
+                </p>
+                <p className="text-xs text-neutral-600">Source : Le Monde - il y a 2h</p>
               </div>
-              <div className="p-4 text-sm text-neutral-600">
-                <b>Actu :</b> ouverture d’une nouvelle ligne TGV vers la côte cet été. <b>Activité :</b> hôtel & resto de bord de mer.  
-                Keiro suggère une offre “Week-end mer express”, propose un texte clair et un visuel lumineux.
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 text-xl">•</span>
+                  <p className="text-sm text-neutral-700">Vous postez l'actu telle quelle sur vos réseaux</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 text-xl">•</span>
+                  <p className="text-sm text-neutral-700">Aucun lien avec votre activité</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 text-xl">•</span>
+                  <p className="text-sm text-neutral-700">Pas d'appel à l'action</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 text-xl">•</span>
+                  <p className="text-sm text-neutral-700">Visuel générique qui ne se démarque pas</p>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-neutral-100 rounded-lg p-3 text-center">
+                <p className="text-xs font-medium text-neutral-600">Résultat :</p>
+                <p className="text-lg font-bold text-red-600">😴 Faible engagement, 0 conversion</p>
               </div>
             </div>
           </div>
-          <div className="lg:col-span-5">
-            <div className="rounded-2xl border p-5">
-              <h3 className="font-semibold">Sortie Keiro</h3>
-              <ul className="mt-3 list-disc pl-5 text-sm text-neutral-700 space-y-2">
-                <li><b>Visuel :</b> “Week-end mer express 🌊 — offre 48h”.</li>
-                <li><b>Texte :</b> “Le TGV arrive chez nous ➜ -20% ce week-end. Réservez avant dimanche minuit.”</li>
-                <li><b>Formats :</b> prêts pour Instagram, LinkedIn, Facebook, Stories.</li>
-              </ul>
-              <a href="/generate" className="mt-4 inline-flex items-center justify-center rounded-xl bg-black text-white px-4 py-2">
-                Générer mon premier visuel →
-              </a>
+
+          {/* APRÈS */}
+          <div className="relative">
+            <div className="absolute -top-3 -left-3 bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+              ✨ APRÈS avec Keiro
+            </div>
+            <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/30 p-6">
+              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl p-6 mb-4 text-white shadow-lg">
+                <p className="text-xs opacity-90 mb-3">🚗 Restaurant bio "La Table Verte"</p>
+                <h3 className="font-bold text-lg mb-2">
+                  L'essence flambe ? 🌱<br/>
+                  Nos circuits courts font baisser l'addition !
+                </h3>
+                <p className="text-sm mb-4 opacity-95">
+                  Pendant que les prix s'envolent, nos légumes du coin arrivent à vélo.
+                  Résultat : -20% sur vos plats cette semaine.
+                </p>
+                <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
+                  <p className="text-xs font-medium">👉 Réservez maintenant</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-xl">✓</span>
+                  <p className="text-sm text-neutral-700"><strong>Lien direct</strong> entre l'actu et votre solution</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-xl">✓</span>
+                  <p className="text-sm text-neutral-700"><strong>Bénéfice clair</strong> pour vos clients</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-xl">✓</span>
+                  <p className="text-sm text-neutral-700"><strong>Appel à l'action</strong> immédiat</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-xl">✓</span>
+                  <p className="text-sm text-neutral-700"><strong>Visuel pro</strong> qui capte l'attention</p>
+                </div>
+              </div>
+
+              <div className="mt-4 bg-emerald-100 rounded-lg p-3 text-center">
+                <p className="text-xs font-medium text-emerald-800">Résultat :</p>
+                <p className="text-lg font-bold text-emerald-700">🚀 +300% d'engagement, conversions réelles</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* CTA */}
+        <div className="mt-10 text-center">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            Générer mon premier visuel →
+          </a>
         </div>
       </section>
 

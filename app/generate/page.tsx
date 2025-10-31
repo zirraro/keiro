@@ -459,11 +459,11 @@ export default function GeneratePage() {
 
               {/* Accompagnement spécialisé */}
               <div className="mb-3 p-2 bg-amber-50 rounded border border-amber-200">
-                <p className="text-[10px] font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
+                <p className="text-xs font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => setSpecialist('seo')}
-                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'seo'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -473,7 +473,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('marketing')}
-                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'marketing'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -483,7 +483,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('content')}
-                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'content'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -493,7 +493,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('copywriter')}
-                    className={`text-[9px] px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'copywriter'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -503,7 +503,7 @@ export default function GeneratePage() {
                   </button>
                 </div>
                 {specialist && (
-                  <div className="mt-2 p-2 bg-white rounded text-[9px] text-amber-900 border border-amber-200">
+                  <div className="mt-2 p-2 bg-white rounded text-[10px] text-amber-900 border border-amber-200">
                     {specialist === 'seo' && (
                       <>
                         <p className="font-medium mb-1">Conseils SEO :</p>
@@ -514,7 +514,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('seo')}
-                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -530,7 +530,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('marketing')}
-                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -546,7 +546,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('content')}
-                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -562,7 +562,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('copywriter')}
-                          className="w-full py-1 text-[9px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -844,7 +844,7 @@ export default function GeneratePage() {
               <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 overflow-hidden">
                 {/* GAUCHE : Versions éditées - Mobile: hidden, Desktop: sidebar */}
                 <div className="hidden lg:block lg:col-span-3 overflow-y-auto space-y-2">
-                  <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
+                  <h3 className="text-sm font-semibold mb-2">Versions ({editVersions.length})</h3>
                   {editVersions.map((version, idx) => (
                     <div
                       key={idx}
@@ -861,7 +861,7 @@ export default function GeneratePage() {
                         className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
                       />
                       <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 border-t">
-                        <div className="text-[10px] text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
+                        <div className="text-xs text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
                         <div className="flex gap-1.5">
                           <button
                             onClick={(e) => {
@@ -876,14 +876,14 @@ export default function GeneratePage() {
                                 }
                               }
                             }}
-                            className="flex-1 py-1 text-[9px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                            className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
                           >
                             Supprimer
                           </button>
                           <a
                             href={version}
                             download={`keiro-edit-v${idx + 1}.png`}
-                            className="flex-1 py-1 text-[9px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
+                            className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
                             onClick={(e) => e.stopPropagation()}
                           >
                             Télécharger
@@ -916,15 +916,15 @@ export default function GeneratePage() {
                 {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-4 */}
                 <div className="flex-1 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
-                    <h3 className="text-sm font-semibold mb-2">Assistant d'Édition</h3>
+                    <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
 
                     {/* Mode d'édition */}
                     <div className="mb-3">
-                      <p className="text-[10px] font-medium mb-1.5">Mode de modification :</p>
+                      <p className="text-xs font-medium mb-1.5">Mode de modification :</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditMode('precise')}
-                          className={`flex-1 text-[9px] px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
                             editMode === 'precise'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -934,7 +934,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setEditMode('creative')}
-                          className={`flex-1 text-[9px] px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
                             editMode === 'creative'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -943,7 +943,7 @@ export default function GeneratePage() {
                           ✨ Créative
                         </button>
                       </div>
-                      <p className="text-[8px] text-purple-700 mt-1">
+                      <p className="text-[9px] text-purple-700 mt-1">
                         {editMode === 'precise'
                           ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
                           : '✨ Permet des transformations plus importantes et créatives'}
@@ -952,11 +952,11 @@ export default function GeneratePage() {
 
                     {/* Accompagnement spécialisé dans l'édition */}
                     <div className="mb-3">
-                      <p className="text-[10px] font-medium mb-1.5">💡 Aide spécialisée :</p>
+                      <p className="text-xs font-medium mb-1.5">💡 Aide spécialisée :</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           onClick={() => setSpecialist('seo')}
-                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'seo'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -966,7 +966,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('marketing')}
-                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'marketing'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -976,7 +976,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('content')}
-                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'content'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -986,7 +986,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('copywriter')}
-                          className={`text-[8px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'copywriter'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
