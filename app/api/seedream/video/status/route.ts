@@ -37,13 +37,16 @@ export async function GET(req: NextRequest) {
     console.log('[Video Status] Task:', taskId, 'Status:', data.status, 'Data:', JSON.stringify(data, null, 2));
 
     // Format de la réponse Seedream:
-    // status: "pending" | "processing" | "completed" | "failed"
-    // video_url: présent quand status === "completed"
+    // status: "running" | "succeeded" | "failed"
+    // video_url: présent dans data.content.video_url quand status === "succeeded"
+
+    // Extraire l'URL de la vidéo depuis content.video_url
+    const videoUrl = data.content?.video_url || data.video_url || data.videoUrl || null;
 
     return NextResponse.json({
       ok: true,
       status: data.status || 'unknown',
-      videoUrl: data.video_url || data.videoUrl || null,
+      videoUrl: videoUrl,
       error: data.error || null,
     });
   } catch (error: any) {

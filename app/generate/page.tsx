@@ -456,7 +456,8 @@ export default function GeneratePage() {
         console.log('[Video Poll] Status response:', data);
 
         if (data.ok) {
-          if (data.status === 'completed' && data.videoUrl) {
+          // Vérifier si la vidéo est complétée (succeeded ou completed)
+          if ((data.status === 'succeeded' || data.status === 'completed') && data.videoUrl) {
             console.log('[Video Poll] Video completed! URL:', data.videoUrl);
             setGeneratedVideoUrl(data.videoUrl);
             setVideoPolling(false);
