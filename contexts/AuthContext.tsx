@@ -27,17 +27,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Vérifier la session au chargement
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data.session;
+    supabase.auth.getSession().then((response) => {
+      const session = response.data.session;
       setUser(session?.user ? { id: session.user.id, email: session.user.email || null } : null);
       setLoading(false);
     });
 
     // Écouter les changements d'authentification
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const authListener = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email || null } : null);
     });
-    const subscription = data.subscription;
+    const subscription = authListener.data.subscription;
 
     return () => subscription.unsubscribe();
   }, []);
