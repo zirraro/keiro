@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -36,6 +37,9 @@ const CATEGORIES = [
 
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
+  /* --- Auth --- */
+  const { user } = useAuth();
+
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('À la une');
   const [searchQuery, setSearchQuery] = useState('');
@@ -274,6 +278,55 @@ export default function GeneratePage() {
       setGenerationError(e.message || 'Erreur lors de la génération');
     } finally {
       setGenerating(false);
+    }
+  }
+
+  /* --- Sauvegarder dans la librairie --- */
+  async function handleSaveToLibrary() {
+    if (!user) {
+      alert('Veuillez vous connecter pour sauvegarder dans votre librairie');
+      return;
+    }
+
+    if (!generatedImageUrl || !selectedNews) {
+      alert('Aucune génération à sauvegarder');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/library/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'generation',
+          title: selectedNews.title,
+          image_url: generatedImageUrl,
+          news_title: selectedNews.title,
+          news_url: selectedNews.url,
+          business_type: businessType,
+          metadata: {
+            platform,
+            tone,
+            visualStyle,
+            targetAudience,
+            marketingAngle,
+            imageAngle,
+            storyToTell,
+            publicationGoal,
+            emotionToConvey,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        alert('✅ Sauvegardé dans votre librairie!');
+      } else {
+        alert('Erreur: ' + data.error);
+      }
+    } catch (e: any) {
+      console.error('Save error:', e);
+      alert('Erreur de sauvegarde: ' + e.message);
     }
   }
 
@@ -789,30 +842,44 @@ export default function GeneratePage() {
                   alt="Visuel généré"
                   className="w-full rounded border"
                 />
-                <div className="mt-2 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setShowEditStudio(true);
-                      setEditVersions([generatedImageUrl]);
-                      setSelectedEditVersion(generatedImageUrl);
-                    }}
-                    className="flex-1 py-1 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700"
-                  >
-                    ✏️ Éditer
-                  </button>
-                  <a
-                    href={generatedImageUrl}
-                    download
-                    className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
-                  >
-                    Télécharger
-                  </a>
-                  <button
-                    onClick={() => setGeneratedImageUrl(null)}
-                    className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
-                  >
-                    Nouveau
-                  </button>
+                <div className="mt-2 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setShowEditStudio(true);
+                        setEditVersions([generatedImageUrl]);
+                        setSelectedEditVersion(generatedImageUrl);
+                      }}
+                      className="flex-1 py-1 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700"
+                    >
+                      ✏️ Éditer
+                    </button>
+                    <a
+                      href={generatedImageUrl}
+                      download
+                      className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
+                    >
+                      💾 Télécharger
+                    </a>
+                    <button
+                      onClick={() => setGeneratedImageUrl(null)}
+                      className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
+                    >
+                      ↻ Nouveau
+                    </button>
+                  </div>
+                  {user ? (
+                    <button
+                      onClick={handleSaveToLibrary}
+                      className="w-full py-1.5 text-xs bg-green-600 text-white font-medium rounded hover:bg-green-700"
+                    >
+                      📚 Sauvegarder dans ma librairie
+                    </button>
+                  ) : (
+                    <div className="text-xs text-center py-1.5 text-amber-700 bg-amber-50 rounded border border-amber-200">
+                      💡 Connectez-vous pour sauvegarder dans votre librairie
+                    </div>
+                  )}
                 </div>
               </div>
             )}
