@@ -33,7 +33,7 @@ export default function StudioPage() {
       setEditVersions([data.url]);
       setSelectedVersion(data.url);
     } catch (e: any) {
-      alert(\`Erreur upload: \${e.message}\`);
+      alert(`Erreur upload: ${e.message}`);
     } finally {
       setUploading(false);
     }
@@ -95,7 +95,7 @@ export default function StudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'upload',
-          title: \`Image éditée - \${new Date().toLocaleDateString()}\`,
+          title: `Image éditée - ${new Date().toLocaleDateString()}`,
           image_url: selectedVersion,
           metadata: {
             original: uploadedImage,
@@ -122,7 +122,7 @@ export default function StudioPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Studio Édition</h1>
           <p className="text-neutral-600">
-            Uploadez une image et transformez-la avec l IA. Essayez gratuitement!
+            Uploadez une image et transformez-la avec l&apos;IA. Essayez gratuitement!
           </p>
         </div>
 
@@ -136,11 +136,11 @@ export default function StudioPage() {
                 }}
                 onDragLeave={() => setDragActive(false)}
                 onDrop={handleDrop}
-                className={\`border-2 border-dashed rounded-xl p-12 text-center transition \${
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition ${
                   dragActive
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-neutral-300 hover:border-neutral-400 bg-white'
-                }\`}
+                }`}
               >
                 <div className="text-6xl mb-4">🖼️</div>
                 <h3 className="text-xl font-semibold mb-2">Uploadez votre image</h3>
@@ -180,16 +180,16 @@ export default function StudioPage() {
                     {editVersions.map((version, idx) => (
                       <div
                         key={idx}
-                        className={\`rounded border-2 overflow-hidden transition cursor-pointer \${
+                        className={`rounded border-2 overflow-hidden transition cursor-pointer ${
                           selectedVersion === version
                             ? 'border-purple-500 ring-2 ring-purple-200'
                             : 'border-neutral-200 hover:border-purple-300'
-                        }\`}
+                        }`}
                         onClick={() => setSelectedVersion(version)}
                       >
                         <img
                           src={version}
-                          alt={\`Version \${idx + 1}\`}
+                          alt={`Version ${idx + 1}`}
                           className="w-full aspect-square object-cover"
                         />
                         <div className="p-2 bg-neutral-50 text-center">
@@ -245,27 +245,27 @@ export default function StudioPage() {
 
               <div className="lg:col-span-4">
                 <div className="bg-purple-50 rounded-xl border border-purple-200 p-4 sticky top-24">
-                  <h3 className="text-lg font-semibold mb-3">Assistant d Édition</h3>
+                  <h3 className="text-lg font-semibold mb-3">Assistant d&apos;Édition</h3>
                   <div className="mb-3">
                     <p className="text-sm font-medium mb-1.5">Mode :</p>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setEditMode('precise')}
-                        className={\`flex-1 text-xs px-2 py-1.5 rounded transition \${
+                        className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
                           editMode === 'precise'
                             ? 'bg-purple-600 text-white font-medium'
                             : 'bg-white text-purple-800 border border-purple-300'
-                        }\`}
+                        }`}
                       >
                         🎯 Précise
                       </button>
                       <button
                         onClick={() => setEditMode('creative')}
-                        className={\`flex-1 text-xs px-2 py-1.5 rounded transition \${
+                        className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
                           editMode === 'creative'
                             ? 'bg-purple-600 text-white font-medium'
                             : 'bg-white text-purple-800 border border-purple-300'
-                        }\`}
+                        }`}
                       >
                         ✨ Créative
                       </button>
@@ -292,7 +292,7 @@ export default function StudioPage() {
                     disabled={editing || !editPrompt.trim() || !selectedVersion}
                     className="w-full py-2.5 text-sm bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {editing ? 'Édition en cours...' : '✏️ Éditer l image'}
+                    {editing ? 'Édition en cours...' : '✏️ Éditer l\'image'}
                   </button>
                   <div className="mt-4 p-3 bg-white rounded-lg border">
                     <p className="text-xs font-medium mb-2">💡 Exemples :</p>
