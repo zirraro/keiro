@@ -57,12 +57,17 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
 
+    console.log('[Video API] Seedream response:', JSON.stringify(data, null, 2));
+
     if (!data.id) {
+      console.error('[Video API] Missing id in response:', data);
       return NextResponse.json(
         { ok: false, error: 'Réponse invalide de l\'API Seedream' },
         { status: 500 }
       );
     }
+
+    console.log('[Video API] Task created successfully:', data.id);
 
     // Retourner l'ID de la tâche
     // Note: La génération vidéo est asynchrone, il faudra interroger l'API pour récupérer le résultat

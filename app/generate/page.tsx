@@ -405,6 +405,8 @@ export default function GeneratePage() {
       // Construire un prompt vidéo
       const videoPrompt = `Multiple shots. ${selectedNews.title}. Create a professional marketing video for ${businessType}. ${businessDescription || ''}. Target audience: ${targetAudience || 'general'}. Style: ${visualStyle}. Tone: ${tone}.`;
 
+      console.log('[Video Gen] Starting video generation with prompt:', videoPrompt);
+
       const res = await fetch('/api/seedream/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -417,9 +419,12 @@ export default function GeneratePage() {
       });
 
       const data = await res.json();
+      console.log('[Video Gen] API response:', data);
+
       if (!data?.ok) throw new Error(data?.error || 'Génération vidéo échouée');
 
       // Stocker l'ID de la tâche et démarrer le polling
+      console.log('[Video Gen] Task ID received:', data.taskId);
       setVideoTaskId(data.taskId);
       setVideoPolling(true);
       generation.incrementGeneration('video');
@@ -427,7 +432,7 @@ export default function GeneratePage() {
       // Polling pour vérifier le statut
       pollVideoStatus(data.taskId);
     } catch (e: any) {
-      console.error('Video generation error:', e);
+      console.error('[Video Gen] Error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération vidéo');
       setGeneratingVideo(false);
     }
@@ -438,13 +443,21 @@ export default function GeneratePage() {
     const maxAttempts = 60; // 60 tentatives = 5 minutes max
     let attempts = 0;
 
+    console.log('[Video Poll] Starting polling for task:', taskId);
+
     const poll = async () => {
       try {
+        attempts++;
+        console.log(`[Video Poll] Attempt ${attempts}/${maxAttempts} for task:`, taskId);
+
         const res = await fetch(`/api/seedream/video/status?taskId=${taskId}`);
         const data = await res.json();
 
+        console.log('[Video Poll] Status response:', data);
+
         if (data.ok) {
           if (data.status === 'completed' && data.videoUrl) {
+            console.log('[Video Poll] Video completed! URL:', data.videoUrl);
             setGeneratedVideoUrl(data.videoUrl);
             setVideoPolling(false);
             setGeneratingVideo(false);
@@ -452,9 +465,10 @@ export default function GeneratePage() {
           } else if (data.status === 'failed') {
             throw new Error(data.error || 'La génération vidéo a échoué');
           }
+
+          console.log(`[Video Poll] Status is "${data.status}", continuing to poll...`);
         }
 
-        attempts++;
         if (attempts < maxAttempts) {
           // Attendre 5 secondes avant la prochaine tentative
           setTimeout(poll, 5000);
@@ -462,7 +476,7 @@ export default function GeneratePage() {
           throw new Error('Timeout: La génération vidéo prend trop de temps');
         }
       } catch (e: any) {
-        console.error('Video status error:', e);
+        console.error('[Video Poll] Error:', e);
         setGenerationError(e.message);
         setVideoPolling(false);
         setGeneratingVideo(false);
@@ -965,14 +979,14 @@ export default function GeneratePage() {
                     disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
                     className="py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {generating ? '⏳ Création...' : '🎨 Créer un visuel'}
+                    {generating ? 'Création...' : 'Créer un visuel'}
                   </button>
                   <button
                     onClick={handleGenerateVideo}
                     disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
                     className="py-2 text-sm bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {generatingVideo ? '⏳ Génération...' : '🎬 Créer une vidéo'}
+                    {generatingVideo ? 'Génération...' : 'Créer une vidéo'}
                   </button>
                 </div>
 
@@ -1051,6 +1065,27 @@ export default function GeneratePage() {
                       💡 Connectez-vous pour sauvegarder dans votre librairie
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Vidéo en cours de génération */}
+            {generatingVideo && (
+              <div className="bg-white rounded-xl border p-4">
+                <h3 className="text-sm font-semibold mb-3">Génération de la vidéo</h3>
+                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                  <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 border-4 border-purple-200 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <p className="text-sm text-neutral-700 font-medium">
+                      {videoPolling ? 'Traitement en cours...' : 'Lancement de la génération...'}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      La génération vidéo peut prendre jusqu&apos;à 5 minutes
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

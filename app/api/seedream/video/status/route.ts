@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
 
     const data = await response.json();
 
+    console.log('[Video Status] Task:', taskId, 'Status:', data.status, 'Data:', JSON.stringify(data, null, 2));
+
     // Format de la réponse Seedream:
     // status: "pending" | "processing" | "completed" | "failed"
     // video_url: présent quand status === "completed"
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       status: data.status || 'unknown',
-      videoUrl: data.video_url || null,
+      videoUrl: data.video_url || data.videoUrl || null,
       error: data.error || null,
     });
   } catch (error: any) {
