@@ -1,10 +1,10 @@
 export const runtime = "nodejs";
 import { fetchNewsWithFallback, distributeByCategory, NewsArticle } from "@/lib/newsProviders";
 
-// Cache en mémoire pour 24h
+// Cache en mémoire pour 1h (synchronisé avec newsProviders.ts)
 let cachedNews: NewsArticle[] | null = null;
 let cacheTimestamp: number = 0;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
+const CACHE_DURATION = 60 * 60 * 1000; // 1 heure
 
 export async function GET(request: Request) {
   try {
