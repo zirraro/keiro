@@ -136,6 +136,11 @@ function categorizeArticle(title: string, description: string): string {
     }
   }
 
+  // SEUIL MINIMUM: au moins 3 points (1 mot-clé dans le titre) pour éviter catégorisation faible
+  if (bestScore < 3) {
+    return 'À la une';
+  }
+
   return bestCategory;
 }
 
@@ -307,9 +312,26 @@ export function distributeByCategory(articles: NewsArticle[]): NewsArticle[] {
           if (descLower.includes(kw)) score += 1;
         }
 
-        // SEUIL MINIMUM: score >= 1 pour être pertinent
-        if (score >= 1) {
-          candidates.push({ article, score });
+        // SEUIL MINIMUM RENFORCÉ: score >= 3 (au moins 1 mot-clé dans le titre)
+        // Cela évite les faux positifs (ex: articles politiques avec métaphores sportives)
+        if (score >= 3) {
+          // ANTI-CONTAMINATION: vérifier que l'article n'a pas un meilleur score ailleurs
+          let maxScoreOtherCategory = 0;
+          for (const [otherCategory, otherKeywords] of Object.entries(CATEGORY_KEYWORDS)) {
+            if (otherCategory === category) continue;
+
+            let otherScore = 0;
+            for (const kw of otherKeywords) {
+              if (titleLower.includes(kw)) otherScore += 3;
+              if (descLower.includes(kw)) otherScore += 1;
+            }
+            maxScoreOtherCategory = Math.max(maxScoreOtherCategory, otherScore);
+          }
+
+          // N'ajouter que si le score pour cette catégorie est meilleur ou égal
+          if (score >= maxScoreOtherCategory) {
+            candidates.push({ article, score });
+          }
         }
       }
 

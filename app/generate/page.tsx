@@ -445,13 +445,13 @@ export default function GeneratePage() {
 
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
-              <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
+              <h3 className="text-base font-semibold mb-2">Assistant Marketing IA</h3>
 
               {/* Afficher la carte sélectionnée */}
               {selectedNews && (
                 <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
-                  <p className="text-[10px] font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
-                  <p className="text-xs font-semibold line-clamp-2 text-blue-800">
+                  <p className="text-xs font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
+                  <p className="text-sm font-semibold line-clamp-2 text-blue-800">
                     {selectedNews.title}
                   </p>
                 </div>
@@ -459,11 +459,11 @@ export default function GeneratePage() {
 
               {/* Accompagnement spécialisé */}
               <div className="mb-3 p-2 bg-amber-50 rounded border border-amber-200">
-                <p className="text-xs font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
+                <p className="text-sm font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => setSpecialist('seo')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
+                    className={`text-xs px-2 py-1.5 rounded transition ${
                       specialist === 'seo'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -473,7 +473,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('marketing')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
+                    className={`text-xs px-2 py-1.5 rounded transition ${
                       specialist === 'marketing'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -483,7 +483,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('content')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
+                    className={`text-xs px-2 py-1.5 rounded transition ${
                       specialist === 'content'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -493,7 +493,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('copywriter')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
+                    className={`text-xs px-2 py-1.5 rounded transition ${
                       specialist === 'copywriter'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -503,7 +503,7 @@ export default function GeneratePage() {
                   </button>
                 </div>
                 {specialist && (
-                  <div className="mt-2 p-2 bg-white rounded text-[10px] text-amber-900 border border-amber-200">
+                  <div className="mt-2 p-2 bg-white rounded text-xs text-amber-900 border border-amber-200">
                     {specialist === 'seo' && (
                       <>
                         <p className="font-medium mb-1">Conseils SEO :</p>
@@ -514,7 +514,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('seo')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -530,7 +530,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('marketing')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -546,7 +546,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('content')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -562,7 +562,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('copywriter')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -575,10 +575,10 @@ export default function GeneratePage() {
               {/* Section d'aide pour créer le lien actualité/business */}
               {selectedNews && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
-                  <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
+                  <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-1">
                     💡 Comment relier cette actu à votre business ?
                   </h4>
-                  <div className="text-[10px] text-blue-800 space-y-1.5">
+                  <div className="text-xs text-blue-800 space-y-1.5">
                     <p className="font-medium">Questions à vous poser :</p>
                     <ul className="list-disc pl-4 space-y-1">
                       <li><strong>Impact direct :</strong> Comment cette actualité affecte-t-elle vos clients ?</li>
@@ -600,7 +600,7 @@ export default function GeneratePage() {
               <div className="space-y-2">
                 {/* Type de business */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                     Business <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -608,13 +608,13 @@ export default function GeneratePage() {
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     placeholder="Ex: Restaurant bio, Agence marketing digital, Coach sportif..."
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Description business */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                     Description
                   </label>
                   <textarea
@@ -622,13 +622,13 @@ export default function GeneratePage() {
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder="Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
                     rows={2}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
                 {/* Audience cible */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                     Audience
                   </label>
                   <input
@@ -636,13 +636,13 @@ export default function GeneratePage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder="Qui sera intéressé ? Ex: Familles soucieuses de bien manger, professionnels pressés..."
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Angle marketing */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                     Angle marketing
                   </label>
                   <textarea
@@ -650,17 +650,17 @@ export default function GeneratePage() {
                     onChange={(e) => setMarketingAngle(e.target.value)}
                     placeholder="Comment relier l'actu à votre offre ? Ex: Face à l'inflation alimentaire, nos prix restent accessibles grâce aux circuits courts"
                     rows={2}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
                 {/* Nouveaux champs pour guidance détaillée */}
                 <div className="border-t pt-2 mt-2">
-                  <p className="text-[10px] font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
+                  <p className="text-xs font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
 
                   {/* Angle de l'image */}
                   <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                       Angle de l'image
                     </label>
                     <input
@@ -668,13 +668,13 @@ export default function GeneratePage() {
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
                       placeholder="Ex: Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après..."
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Histoire à raconter */}
                   <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                       Histoire à raconter
                     </label>
                     <textarea
@@ -682,13 +682,13 @@ export default function GeneratePage() {
                       onChange={(e) => setStoryToTell(e.target.value)}
                       placeholder="Ex: Dans un contexte où X (actu), nous proposons Y (solution) pour Z (bénéfice client)"
                       rows={2}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
                   </div>
 
                   {/* But de la publication */}
                   <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                       But de la publication
                     </label>
                     <input
@@ -696,13 +696,13 @@ export default function GeneratePage() {
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
                       placeholder="Ex: Montrer notre expertise sur cette actu, attirer clients concernés par ce sujet..."
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Émotion à transmettre */}
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
                       Émotion à transmettre
                     </label>
                     <input
@@ -710,18 +710,18 @@ export default function GeneratePage() {
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
                       placeholder="Ex: Rassurance face à l'actu, optimisme, sentiment d'opportunité, empathie..."
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Plateforme */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Plateforme</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Instagram</option>
                     <option>LinkedIn</option>
@@ -733,11 +733,11 @@ export default function GeneratePage() {
 
                 {/* Tonalité */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Tonalité</label>
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Tonalité</label>
                   <select
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Professionnel</option>
                     <option>Amical</option>
@@ -749,11 +749,11 @@ export default function GeneratePage() {
 
                 {/* Style visuel */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Style</label>
+                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Style</label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Moderne et épuré</option>
                     <option>Réaliste</option>
@@ -767,13 +767,13 @@ export default function GeneratePage() {
                 <button
                   onClick={handleGenerate}
                   disabled={generating || !selectedNews || !businessType.trim()}
-                  className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="w-full py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   {generating ? 'Création en cours...' : 'Créer un visuel'}
                 </button>
 
                 {!selectedNews && (
-                  <p className="text-[10px] text-amber-600 text-center">
+                  <p className="text-xs text-amber-600 text-center">
                     ⚠️ Sélectionnez une actualité
                   </p>
                 )}
@@ -916,15 +916,15 @@ export default function GeneratePage() {
                 {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-4 */}
                 <div className="flex-1 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
-                    <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
+                    <h3 className="text-lg font-semibold mb-2">Assistant d'Édition</h3>
 
                     {/* Mode d'édition */}
                     <div className="mb-3">
-                      <p className="text-xs font-medium mb-1.5">Mode de modification :</p>
+                      <p className="text-sm font-medium mb-1.5">Mode de modification :</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditMode('precise')}
-                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
                             editMode === 'precise'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -934,7 +934,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setEditMode('creative')}
-                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
                             editMode === 'creative'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -943,7 +943,7 @@ export default function GeneratePage() {
                           ✨ Créative
                         </button>
                       </div>
-                      <p className="text-[9px] text-purple-700 mt-1">
+                      <p className="text-[11px] text-purple-700 mt-1">
                         {editMode === 'precise'
                           ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
                           : '✨ Permet des transformations plus importantes et créatives'}
@@ -952,11 +952,11 @@ export default function GeneratePage() {
 
                     {/* Accompagnement spécialisé dans l'édition */}
                     <div className="mb-3">
-                      <p className="text-xs font-medium mb-1.5">💡 Aide spécialisée :</p>
+                      <p className="text-sm font-medium mb-1.5">💡 Aide spécialisée :</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           onClick={() => setSpecialist('seo')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
+                          className={`text-[11px] px-1.5 py-1 rounded transition ${
                             specialist === 'seo'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -966,7 +966,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('marketing')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
+                          className={`text-[11px] px-1.5 py-1 rounded transition ${
                             specialist === 'marketing'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -976,7 +976,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('content')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
+                          className={`text-[11px] px-1.5 py-1 rounded transition ${
                             specialist === 'content'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -986,7 +986,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('copywriter')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
+                          className={`text-[11px] px-1.5 py-1 rounded transition ${
                             specialist === 'copywriter'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -999,7 +999,7 @@ export default function GeneratePage() {
 
                     {/* Conseils contextuels */}
                     {specialist && (
-                      <div className="mb-3 p-2 bg-white rounded text-[8px] text-purple-900 border border-purple-200">
+                      <div className="mb-3 p-2 bg-white rounded text-[10px] text-purple-900 border border-purple-200">
                         {specialist === 'seo' && (
                           <>
                             <p className="font-medium mb-1">💡 Suggestions SEO :</p>
@@ -1045,7 +1045,7 @@ export default function GeneratePage() {
 
                     {/* Prompt de modification */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1">
+                      <label className="block text-sm font-medium mb-1">
                         Décrivez vos modifications :
                       </label>
                       <textarea
@@ -1057,7 +1057,7 @@ export default function GeneratePage() {
                             : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
                         }
                         rows={4}
-                        className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     </div>
 
@@ -1100,7 +1100,7 @@ export default function GeneratePage() {
                         }
                       }}
                       disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
-                      className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="w-full py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       {editingImage ? 'Édition en cours...' : '✏️ Éditer'}
                     </button>
@@ -1118,29 +1118,29 @@ export default function GeneratePage() {
 
                   {/* Exemples de modifications */}
                   <div className="bg-neutral-50 rounded-lg border p-2">
-                    <p className="text-[10px] font-medium mb-1.5">💡 Exemples de modifications :</p>
+                    <p className="text-xs font-medium mb-1.5">💡 Exemples de modifications :</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => setEditPrompt('Ajouter un filtre chaleureux et lumineux')}
-                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Filtre chaleureux
                       </button>
                       <button
                         onClick={() => setEditPrompt('Rendre l\'arrière-plan flou pour mettre en valeur le sujet')}
-                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Flou d'arrière-plan
                       </button>
                       <button
                         onClick={() => setEditPrompt('Améliorer les contrastes et la saturation des couleurs')}
-                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Contraste et saturation
                       </button>
                       <button
                         onClick={() => setEditPrompt('Ajouter mon logo de marque discrètement en bas à droite')}
-                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Ajouter logo
                       </button>
