@@ -14,6 +14,7 @@ export default function StudioPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image'); // Détecter le type de média
 
   const [editVersions, setEditVersions] = useState<string[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
@@ -26,6 +27,16 @@ export default function StudioPage() {
 
   async function handleFileUpload(file: File) {
     if (!file) return;
+
+    // Détecter le type de média
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+
+    if (!isVideo && !isImage) {
+      alert('Veuillez uploader une image ou une vidéo');
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -36,9 +47,11 @@ export default function StudioPage() {
       });
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Upload échoué');
+
       setUploadedImage(data.url);
       setEditVersions([data.url]);
       setSelectedVersion(data.url);
+      setMediaType(isVideo ? 'video' : 'image');
     } catch (e: any) {
       alert(`Erreur upload: ${e.message}`);
     } finally {
@@ -54,6 +67,12 @@ export default function StudioPage() {
   }
 
   async function handleEdit() {
+    // Vérifier si c'est une vidéo
+    if (mediaType === 'video') {
+      alert('L\'édition de vidéos n\'est pas encore disponible. Fonctionnalité à venir !');
+      return;
+    }
+
     // Vérifier les limitations
     if (generation.needsPaidPlan()) {
       setShowPricingModal(true);
@@ -154,7 +173,7 @@ export default function StudioPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Studio Édition</h1>
           <p className="text-neutral-600">
-            Uploadez une image et transformez-la avec l&apos;IA. Essayez gratuitement!
+            Uploadez une image ou vidéo et transformez-la avec l&apos;IA. Essayez gratuitement!
           </p>
         </div>
 
@@ -174,15 +193,15 @@ export default function StudioPage() {
                     : 'border-neutral-300 hover:border-neutral-400 bg-white'
                 }`}
               >
-                <div className="text-6xl mb-4">🖼️</div>
-                <h3 className="text-xl font-semibold mb-2">Uploadez votre image</h3>
+                <div className="text-6xl mb-4">🎬</div>
+                <h3 className="text-xl font-semibold mb-2">Uploadez votre média</h3>
                 <p className="text-neutral-600 mb-4">
-                  Glissez-déposez une image ou cliquez pour sélectionner
+                  Glissez-déposez une image ou vidéo ou cliquez pour sélectionner
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleFileUpload(file);
@@ -219,11 +238,18 @@ export default function StudioPage() {
                         }`}
                         onClick={() => setSelectedVersion(version)}
                       >
-                        <img
-                          src={version}
-                          alt={`Version ${idx + 1}`}
-                          className="w-full aspect-square object-cover"
-                        />
+                        {mediaType === 'video' ? (
+                          <video
+                            src={version}
+                            className="w-full aspect-square object-cover"
+                          />
+                        ) : (
+                          <img
+                            src={version}
+                            alt={`Version ${idx + 1}`}
+                            className="w-full aspect-square object-cover"
+                          />
+                        )}
                         <div className="p-2 bg-neutral-50 text-center">
                           <span className="text-xs font-medium">V{idx + 1}</span>
                         </div>
@@ -239,7 +265,7 @@ export default function StudioPage() {
                     }}
                     className="w-full mt-4 py-2 text-sm border rounded-lg hover:bg-neutral-50"
                   >
-                    📤 Nouvelle image
+                    📤 Nouveau média
                   </button>
                 </div>
               </div>
@@ -247,13 +273,21 @@ export default function StudioPage() {
               <div className="lg:col-span-5 bg-white rounded-xl border p-4">
                 <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden flex items-center justify-center">
                   {selectedVersion ? (
-                    <img
-                      src={selectedVersion}
-                      alt="Image sélectionnée"
-                      className="w-full h-full object-contain"
-                    />
+                    mediaType === 'video' ? (
+                      <video
+                        src={selectedVersion}
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={selectedVersion}
+                        alt="Image sélectionnée"
+                        className="w-full h-full object-contain"
+                      />
+                    )
                   ) : (
-                    <p className="text-neutral-400">Aucune image sélectionnée</p>
+                    <p className="text-neutral-400">Aucun média sélectionné</p>
                   )}
                 </div>
                 <div className="mt-4 flex gap-2">

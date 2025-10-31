@@ -440,7 +440,7 @@ export default function GeneratePage() {
 
   /* --- Polling du statut vidéo --- */
   async function pollVideoStatus(taskId: string) {
-    const maxAttempts = 60; // 60 tentatives = 5 minutes max
+    const maxAttempts = 120; // 120 tentatives * 5s = 10 minutes max
     let attempts = 0;
 
     console.log('[Video Poll] Starting polling for task:', taskId);
@@ -467,13 +467,15 @@ export default function GeneratePage() {
           }
 
           console.log(`[Video Poll] Status is "${data.status}", continuing to poll...`);
+        } else {
+          console.error('[Video Poll] API returned ok:false', data);
         }
 
         if (attempts < maxAttempts) {
           // Attendre 5 secondes avant la prochaine tentative
           setTimeout(poll, 5000);
         } else {
-          throw new Error('Timeout: La génération vidéo prend trop de temps');
+          throw new Error('Timeout: La génération vidéo prend trop de temps (10 min). Veuillez réessayer.');
         }
       } catch (e: any) {
         console.error('[Video Poll] Error:', e);
@@ -1083,7 +1085,7 @@ export default function GeneratePage() {
                       {videoPolling ? 'Traitement en cours...' : 'Lancement de la génération...'}
                     </p>
                     <p className="text-xs text-neutral-500">
-                      La génération vidéo peut prendre jusqu&apos;à 5 minutes
+                      La génération vidéo peut prendre jusqu&apos;à 10 minutes
                     </p>
                   </div>
                 </div>
