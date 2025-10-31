@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGeneration } from '@/contexts/GenerationContext';
+import EmailGateModal from '@/components/EmailGateModal';
+import PricingModal from '@/components/PricingModal';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -37,8 +40,9 @@ const CATEGORIES = [
 
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
-  /* --- Auth --- */
+  /* --- Auth & Generation Limits --- */
   const { user } = useAuth();
+  const generation = useGeneration();
 
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('À la une');
@@ -97,6 +101,17 @@ export default function GeneratePage() {
   const [editPrompt, setEditPrompt] = useState('');
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
+
+  /* --- États pour les modals de limitation --- */
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+
+  /* --- États pour la génération vidéo --- */
+  const [generationType, setGenerationType] = useState<'image' | 'video'>('image');
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
+  const [videoPolling, setVideoPolling] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -182,6 +197,22 @@ export default function GeneratePage() {
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
+    // Vérifier les limitations
+    if (generation.needsPaidPlan()) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (generation.needsEmail()) {
+      setShowEmailGate(true);
+      return;
+    }
+
+    if (!generation.canGenerate('image')) {
+      setShowPricingModal(true);
+      return;
+    }
+
     if (!selectedNews) {
       alert('Veuillez sélectionner une actualité');
       return;
@@ -273,6 +304,9 @@ export default function GeneratePage() {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
+
+      // Incrémenter le compteur de générations
+      generation.incrementGeneration('image');
     } catch (e: any) {
       console.error('Generation error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération');
@@ -283,6 +317,12 @@ export default function GeneratePage() {
 
   /* --- Sauvegarder dans la librairie --- */
   async function handleSaveToLibrary() {
+    // Vérifier le plan payant
+    if (!generation.limits.hasPaidPlan) {
+      setShowPricingModal(true);
+      return;
+    }
+
     if (!user) {
       alert('Veuillez vous connecter pour sauvegarder dans votre librairie');
       return;
@@ -328,6 +368,108 @@ export default function GeneratePage() {
       console.error('Save error:', e);
       alert('Erreur de sauvegarde: ' + e.message);
     }
+  }
+
+  /* --- Génération vidéo --- */
+  async function handleGenerateVideo() {
+    // Vérifier les limitations
+    if (generation.needsPaidPlan()) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (generation.needsEmail()) {
+      setShowEmailGate(true);
+      return;
+    }
+
+    if (!generation.canGenerate('video')) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (!selectedNews) {
+      alert('Veuillez sélectionner une actualité');
+      return;
+    }
+    if (!businessType.trim()) {
+      alert('Veuillez renseigner votre type de business');
+      return;
+    }
+
+    setGeneratingVideo(true);
+    setGenerationError(null);
+    setGeneratedVideoUrl(null);
+
+    try {
+      // Construire un prompt vidéo
+      const videoPrompt = `Multiple shots. ${selectedNews.title}. Create a professional marketing video for ${businessType}. ${businessDescription || ''}. Target audience: ${targetAudience || 'general'}. Style: ${visualStyle}. Tone: ${tone}.`;
+
+      const res = await fetch('/api/seedream/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: videoPrompt,
+          resolution: '1080p',
+          duration: 5,
+          cameraFixed: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || 'Génération vidéo échouée');
+
+      // Stocker l'ID de la tâche et démarrer le polling
+      setVideoTaskId(data.taskId);
+      setVideoPolling(true);
+      generation.incrementGeneration('video');
+
+      // Polling pour vérifier le statut
+      pollVideoStatus(data.taskId);
+    } catch (e: any) {
+      console.error('Video generation error:', e);
+      setGenerationError(e.message || 'Erreur lors de la génération vidéo');
+      setGeneratingVideo(false);
+    }
+  }
+
+  /* --- Polling du statut vidéo --- */
+  async function pollVideoStatus(taskId: string) {
+    const maxAttempts = 60; // 60 tentatives = 5 minutes max
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/seedream/video/status?taskId=${taskId}`);
+        const data = await res.json();
+
+        if (data.ok) {
+          if (data.status === 'completed' && data.videoUrl) {
+            setGeneratedVideoUrl(data.videoUrl);
+            setVideoPolling(false);
+            setGeneratingVideo(false);
+            return;
+          } else if (data.status === 'failed') {
+            throw new Error(data.error || 'La génération vidéo a échoué');
+          }
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Attendre 5 secondes avant la prochaine tentative
+          setTimeout(poll, 5000);
+        } else {
+          throw new Error('Timeout: La génération vidéo prend trop de temps');
+        }
+      } catch (e: any) {
+        console.error('Video status error:', e);
+        setGenerationError(e.message);
+        setVideoPolling(false);
+        setGeneratingVideo(false);
+      }
+    };
+
+    poll();
   }
 
   return (
@@ -816,14 +958,34 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Bouton Créer un visuel */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating || !selectedNews || !businessType.trim()}
-                  className="w-full py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {generating ? 'Création en cours...' : 'Créer un visuel'}
-                </button>
+                {/* Boutons Créer un visuel / Créer une vidéo */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                    className="py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {generating ? '⏳ Création...' : '🎨 Créer un visuel'}
+                  </button>
+                  <button
+                    onClick={handleGenerateVideo}
+                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                    className="py-2 text-sm bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {generatingVideo ? '⏳ Génération...' : '🎬 Créer une vidéo'}
+                  </button>
+                </div>
+
+                {/* Indicateur de générations restantes */}
+                {!generation.limits.hasPaidPlan && (
+                  <p className="text-xs text-center text-neutral-600">
+                    {generation.limits.hasProvidedEmail ? (
+                      <>✨ {generation.getRemainingGenerations()} génération{generation.getRemainingGenerations() > 1 ? 's' : ''} restante{generation.getRemainingGenerations() > 1 ? 's' : ''}</>
+                    ) : (
+                      <>🎁 Première génération gratuite</>
+                    )}
+                  </p>
+                )}
 
                 {!selectedNews && (
                   <p className="text-xs text-amber-600 text-center">
@@ -854,13 +1016,22 @@ export default function GeneratePage() {
                     >
                       ✏️ Éditer
                     </button>
-                    <a
-                      href={generatedImageUrl}
-                      download
-                      className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
-                    >
-                      💾 Télécharger
-                    </a>
+                    {generation.limits.hasPaidPlan ? (
+                      <a
+                        href={generatedImageUrl}
+                        download
+                        className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
+                      >
+                        💾 Télécharger
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => setShowPricingModal(true)}
+                        className="flex-1 py-1 text-xs bg-amber-600 text-white text-center rounded hover:bg-amber-700"
+                      >
+                        🔒 Télécharger (Pro)
+                      </button>
+                    )}
                     <button
                       onClick={() => setGeneratedImageUrl(null)}
                       className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
@@ -1245,6 +1416,62 @@ export default function GeneratePage() {
             </div>
           </div>
         )}
+
+        {/* Vidéo générée */}
+        {generatedVideoUrl && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-white rounded-xl p-6 max-w-2xl w-full">
+              <h3 className="text-lg font-bold mb-4">Vidéo générée</h3>
+              <video
+                src={generatedVideoUrl}
+                controls
+                className="w-full rounded border mb-4"
+              />
+              <div className="flex gap-2">
+                {generation.limits.hasPaidPlan ? (
+                  <a
+                    href={generatedVideoUrl}
+                    download
+                    className="flex-1 py-2 text-sm bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
+                  >
+                    💾 Télécharger
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setGeneratedVideoUrl(null);
+                      setShowPricingModal(true);
+                    }}
+                    className="flex-1 py-2 text-sm bg-amber-600 text-white rounded hover:bg-amber-700"
+                  >
+                    🔒 Télécharger (Pro)
+                  </button>
+                )}
+                <button
+                  onClick={() => setGeneratedVideoUrl(null)}
+                  className="flex-1 py-2 text-sm bg-neutral-200 text-neutral-900 rounded hover:bg-neutral-300"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modals de limitation */}
+        <EmailGateModal
+          isOpen={showEmailGate}
+          onClose={() => setShowEmailGate(false)}
+          onSuccess={() => {
+            // Après avoir fourni l'email, relancer la génération
+            setShowEmailGate(false);
+          }}
+        />
+
+        <PricingModal
+          isOpen={showPricingModal}
+          onClose={() => setShowPricingModal(false)}
+        />
       </div>
     </div>
   );
