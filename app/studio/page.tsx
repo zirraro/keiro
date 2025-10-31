@@ -2,9 +2,13 @@
 
 import { useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGeneration } from '@/contexts/GenerationContext';
+import EmailGateModal from '@/components/EmailGateModal';
+import PricingModal from '@/components/PricingModal';
 
 export default function StudioPage() {
   const { user } = useAuth();
+  const generation = useGeneration();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -16,6 +20,9 @@ export default function StudioPage() {
   const [editPrompt, setEditPrompt] = useState('');
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editing, setEditing] = useState(false);
+
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   async function handleFileUpload(file: File) {
     if (!file) return;
@@ -47,6 +54,22 @@ export default function StudioPage() {
   }
 
   async function handleEdit() {
+    // Vérifier les limitations
+    if (generation.needsPaidPlan()) {
+      setShowPricingModal(true);
+      return;
+    }
+
+    if (generation.needsEmail()) {
+      setShowEmailGate(true);
+      return;
+    }
+
+    if (!generation.canGenerate('edit')) {
+      setShowPricingModal(true);
+      return;
+    }
+
     if (!editPrompt.trim() || !selectedVersion) {
       alert('Veuillez décrire vos modifications');
       return;
@@ -73,6 +96,9 @@ export default function StudioPage() {
       setSelectedVersion(newVersion);
       setEditPrompt('');
       alert('Image éditée avec succès!');
+
+      // Incrémenter le compteur d'éditions
+      generation.incrementGeneration('edit');
     } catch (e: any) {
       console.error('Edit error:', e);
       alert('Erreur: ' + e.message);
@@ -82,6 +108,12 @@ export default function StudioPage() {
   }
 
   async function handleSave() {
+    // Vérifier le plan payant
+    if (!generation.limits.hasPaidPlan) {
+      setShowPricingModal(true);
+      return;
+    }
+
     if (!user) {
       alert('Veuillez vous connecter pour sauvegarder dans votre librairie');
       return;
@@ -326,6 +358,31 @@ export default function StudioPage() {
             </p>
           </div>
         )}
+
+        {/* Indicateur de limitations */}
+        {!generation.limits.hasPaidPlan && uploadedImage && (
+          <div className="mt-4 p-3 bg-neutral-50 border border-neutral-200 rounded-xl text-center">
+            <p className="text-xs text-neutral-700">
+              {generation.limits.hasProvidedEmail ? (
+                <>✨ {generation.getRemainingGenerations()} édition{generation.getRemainingGenerations() > 1 ? 's' : ''} restante{generation.getRemainingGenerations() > 1 ? 's' : ''}</>
+              ) : (
+                <>🎁 Première édition gratuite</>
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* Modals de limitation */}
+        <EmailGateModal
+          isOpen={showEmailGate}
+          onClose={() => setShowEmailGate(false)}
+          onSuccess={() => setShowEmailGate(false)}
+        />
+
+        <PricingModal
+          isOpen={showPricingModal}
+          onClose={() => setShowPricingModal(false)}
+        />
       </div>
     </div>
   );
