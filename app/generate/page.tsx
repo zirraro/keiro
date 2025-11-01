@@ -84,6 +84,7 @@ export default function GeneratePage() {
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   /* --- États pour le studio d'édition --- */
@@ -269,6 +270,7 @@ export default function GeneratePage() {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
+      setGeneratedPrompt(fullPrompt);
     } catch (e: any) {
       console.error('Generation error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération');
@@ -834,7 +836,10 @@ export default function GeneratePage() {
                     ⬇️ Télécharger
                   </a>
                   <button
-                    onClick={() => setGeneratedImageUrl(null)}
+                    onClick={() => {
+                      setGeneratedImageUrl(null);
+                      setGeneratedPrompt(null);
+                    }}
                     className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                   >
                     Nouveau
