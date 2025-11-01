@@ -5,7 +5,7 @@ import { supabaseServer } from '@/lib/supabase/server'
  * Récupère le profil de marque de l'utilisateur connecté
  */
 export async function GET() {
-  const supabase = supabaseServer()
+  const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
@@ -40,7 +40,7 @@ export async function GET() {
  * Body: { name?, tone?, primary_color?, secondary_color?, font_family?, logo_url? }
  */
 export async function PUT(req: Request) {
-  const supabase = supabaseServer()
+  const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
