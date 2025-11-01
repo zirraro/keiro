@@ -1,20 +1,60 @@
-import { NextResponse } from 'next/server';
+export const runtime = "nodejs";
 
-export const dynamic = 'force-dynamic';
+import { NextRequest } from "next/server";
+import { ensureInstagramImage } from "@/lib/ensureInstagramImage";
+import { uploadPublicBlob } from "@/lib/blob";
 
-export async function POST(req: Request) {
-  // On ne dépense rien ici : on renvoie des images de démo
-  const { prompt } = await req.json().catch(() => ({}));
-  const demoImages = [
-    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1024&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1517702145080-e4a4d91435d5?q=80&w=1024&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1485808191679-5f86510681a2?q=80&w=1024&auto=format&fit=crop',
-  ];
-  return NextResponse.json({
-    ok: true,
-    demo: true,
-    note: 'Images de démonstration (aucun crédit consommé).',
-    prompt: prompt || null,
-    images: demoImages,
-  });
+type Body = {
+  news?: { title: string; summary: string; url: string; angle: string; source?: string } | null;
+  brandId?: string;
+  campaignId?: string;
+};
+
+const BRAND_PRESETS: Record<string, { voice: string; hashtags: string[]; cta: string[] }> = {
+  keiroai: {
+    voice: "Clair, orienté impact, marketing temps réel",
+    hashtags: ["#KeiroAI", "#Marketing", "#AI", "#Growth", "#Design"],
+    cta: ["Lance ta campagne en 1 clic", "Teste KeiroAI", "Passe en Fast Marketing"],
+  },
+};
+
+function buildCaption(body: Body) {
+  const b = BRAND_PRESETS["keiroai"];
+  if (!body.news) return `Post généré automatiquement ✨ ${b.hashtags.join(" ")}`;
+  const { title, summary, url, angle, source } = body.news;
+  const hook = `Actu : ${title}${source ? ` — ${source}` : ""}`;
+  const value = `Angle : ${angle}. ${summary}`;
+  const action = b.cta[0];
+  const tags = b.hashtags.join(" ");
+  return `${hook}\n\n${value}\n\n${action}\n${url}\n\n${tags}`;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as Body;
+    const caption = buildCaption(body);
+
+    // 1) Pas de token → fallback image publique (utile en dev)
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return Response.json({ ok: true, imageUrl: "https://picsum.photos/1080/1350", caption });
+    }
+
+    // 2) Token présent → tente l'upload; si échec → fallback public
+    try {
+      const imgRes = await fetch("https://picsum.photos/1080/1080");
+      const arr = Buffer.from(await imgRes.arrayBuffer());
+      const finalImg = await ensureInstagramImage(arr, "4:5");
+      const imageUrl = await uploadPublicBlob({ filename: `ig-${Date.now()}.jpg`, content: finalImg, contentType: "image/jpeg" });
+      return Response.json({ ok: true, imageUrl, caption });
+    } catch (e) {
+      console.error("Upload Blob KO → fallback public:", e);
+      return Response.json({ ok: true, imageUrl: "https://picsum.photos/1080/1350", caption });
+    }
+  } catch (e: any) {
+    console.error("Erreur /api/generate:", e);
+    return new Response(JSON.stringify({ ok: false, error: e.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }
