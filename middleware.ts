@@ -22,8 +22,8 @@ export async function middleware(req: NextRequest) {
     },
   })
 
-  // Routes protégées
-  const protectedPaths = ['/studio', '/dashboard', '/generate']
+  // Routes protégées (generate est maintenant public)
+  const protectedPaths = ['/studio', '/dashboard']
   const isProtectedPath = protectedPaths.some(path =>
     req.nextUrl.pathname.startsWith(path)
   )
@@ -42,5 +42,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/studio/:path*', '/dashboard/:path*', '/generate/:path*']
+  matcher: ['/studio/:path*', '/dashboard/:path*']
 }
