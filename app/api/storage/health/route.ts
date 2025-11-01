@@ -20,7 +20,7 @@ export async function GET() {
     if (hasService) {
       const sb = supabaseAdmin();
       const { data: buckets } = await sb.storage.listBuckets();
-      const exists = (buckets || []).some((b) => b.name === "assets");
+      const exists = (buckets || []).some((b: any) => b.name === "assets");
       if (!exists) {
         await sb.storage.createBucket("assets", { public: true });
       }

@@ -13,7 +13,7 @@ export async function GET() {
     });
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
-    const files = (data || []).map((f) => {
+    const files = (data || []).map((f: any) => {
       const path = `assets/library/${f.name}`;
       return { name: f.name, path, url: publicUrlFromPath(path), created_at: (f as any).created_at };
     });
