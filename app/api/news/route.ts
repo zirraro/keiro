@@ -1,10 +1,5 @@
 export const runtime = "nodejs";
-import { fetchNewsWithFallback, distributeByCategory, NewsArticle } from "@/lib/newsProviders";
-
-// Cache en mémoire pour 1h (synchronisé avec newsProviders.ts)
-let cachedNews: NewsArticle[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 heure
+import { fetchNews, NewsArticle } from "@/lib/newsProviders";
 
 export async function GET(request: Request) {
   try {
@@ -13,20 +8,9 @@ export async function GET(request: Request) {
     const category = searchParams.get('cat') || '';
     const query = searchParams.get('q') || '';
 
-    // Vérifier le cache
-    const now = Date.now();
-    const cacheValid = cachedNews && (now - cacheTimestamp) < CACHE_DURATION;
-
-    if (!cacheValid) {
-      // Recharger les news avec fallback automatique
-      console.log('[API /news] Cache expired, fetching fresh news with fallback...');
-      const rawNews = await fetchNewsWithFallback();
-      cachedNews = distributeByCategory(rawNews);
-      cacheTimestamp = now;
-      console.log(`[API /news] Cached ${cachedNews.length} news items across categories`);
-    } else {
-      console.log('[API /news] Serving from cache');
-    }
+    // fetchNews() gère déjà son propre cache 24h et la catégorisation
+    console.log('[API /news] Fetching news (with internal 24h cache)...');
+    const cachedNews = await fetchNews();
 
     let items = cachedNews || [];
 
@@ -47,8 +31,6 @@ export async function GET(request: Request) {
     return Response.json({
       ok: true,
       items,
-      cached: cacheValid,
-      cacheAge: Math.floor((now - cacheTimestamp) / 1000 / 60), // minutes
       count: items.length,
     });
   } catch (e: any) {
