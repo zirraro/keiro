@@ -1,24 +1,41 @@
-/** Minimal Supabase stub (build/runtime dev only) */
-type Session = { user?: { email?: string | null } | null } | null;
+import { createBrowserClient } from '@supabase/ssr';
 
-function baseStub() {
-  return {
-    auth: {
-      getUser: async () => ({ data: { user: null }, error: null }),
-      getSession: async () => ({ data: { session: null }, error: null }),
-      signInWithOAuth: async () => ({ data: null, error: null }),
-      signOut: async () => ({ error: null }),
-      onAuthStateChange: (cb: (_e: any, session: Session) => void) => {
-        // fire once with null and return unsubscribe handle
-        try { cb(null as any, null); } catch {}
-        return { data: { subscription: { unsubscribe() {} } } } as any;
+export function createClient() {
+  // En développement/démo, vérifier si les variables d'env sont configurées
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('[Supabase Client] Missing env vars, returning stub');
+    // Retourner un stub minimal si pas configuré
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null }),
+        getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: null, error: null }),
+        signInWithOAuth: async () => ({ data: null, error: null }),
+        signUp: async () => ({ data: null, error: null }),
+        signOut: async () => ({ error: null }),
+        onAuthStateChange: (cb: any) => {
+          try { cb(null, null); } catch {}
+          return { data: { subscription: { unsubscribe() {} } } };
+        },
       },
-    },
-    from: () => ({ select: async () => ({ data: [], error: null }) }),
-  } as any;
+      from: () => ({
+        select: async () => ({ data: [], error: null }),
+        insert: async () => ({ data: null, error: null }),
+        update: async () => ({ data: null, error: null }),
+        delete: async () => ({ data: null, error: null }),
+      }),
+    } as any;
+  }
+
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
-export function createClient() { return baseStub(); }
-/** some code imports supabaseBrowser() */
-export function supabaseBrowser() { return baseStub(); }
+/** Alias pour compatibilité */
+export function supabaseBrowser() {
+  return createClient();
+}
+
 export default createClient;

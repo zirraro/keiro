@@ -84,6 +84,7 @@ export default function GeneratePage() {
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   /* --- États pour le studio d'édition --- */
@@ -269,6 +270,7 @@ export default function GeneratePage() {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
+      setGeneratedPrompt(fullPrompt);
     } catch (e: any) {
       console.error('Generation error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération');
@@ -789,27 +791,56 @@ export default function GeneratePage() {
                   alt="Visuel généré"
                   className="w-full rounded border"
                 />
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     onClick={() => {
                       setShowEditStudio(true);
                       setEditVersions([generatedImageUrl]);
                       setSelectedEditVersion(generatedImageUrl);
                     }}
-                    className="flex-1 py-1 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700"
+                    className="flex-1 min-w-[80px] py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                   >
                     ✏️ Éditer
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/storage/upload', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            url: generatedImageUrl,
+                            type: 'image',
+                            prompt: generatedPrompt || 'Image générée'
+                          })
+                        });
+                        const data = await response.json();
+                        if (data.ok) {
+                          alert('✅ Image sauvegardée dans votre librairie!');
+                        } else {
+                          alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                        }
+                      } catch (e: any) {
+                        alert('❌ Erreur: ' + e.message);
+                      }
+                    }}
+                    className="flex-1 min-w-[120px] py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                  >
+                    💾 Enregistrer dans ma librairie
                   </button>
                   <a
                     href={generatedImageUrl}
                     download
-                    className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
+                    className="flex-1 min-w-[80px] py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                   >
-                    Télécharger
+                    ⬇️ Télécharger
                   </a>
                   <button
-                    onClick={() => setGeneratedImageUrl(null)}
-                    className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
+                    onClick={() => {
+                      setGeneratedImageUrl(null);
+                      setGeneratedPrompt(null);
+                    }}
+                    className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                   >
                     Nouveau
                   </button>
@@ -862,32 +893,61 @@ export default function GeneratePage() {
                       />
                       <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 border-t">
                         <div className="text-xs text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
-                        <div className="flex gap-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm('Supprimer cette version ?')) {
-                                const newVersions = editVersions.filter((_, i) => i !== idx);
-                                setEditVersions(newVersions);
-                                if (selectedEditVersion === version && newVersions.length > 0) {
-                                  setSelectedEditVersion(newVersions[newVersions.length - 1]);
-                                } else if (newVersions.length === 0) {
-                                  setSelectedEditVersion(null);
+                              try {
+                                const response = await fetch('/api/storage/upload', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    url: version,
+                                    type: 'image',
+                                    prompt: `Version ${idx + 1} - ${generatedPrompt || 'Image éditée'}`
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.ok) {
+                                  alert('✅ Version sauvegardée!');
+                                } else {
+                                  alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
                                 }
+                              } catch (error: any) {
+                                alert('❌ Erreur: ' + error.message);
                               }
                             }}
-                            className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                            className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition"
                           >
-                            Supprimer
+                            💾 Librairie
                           </button>
-                          <a
-                            href={version}
-                            download={`keiro-edit-v${idx + 1}.png`}
-                            className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Télécharger
-                          </a>
+                          <div className="flex gap-1.5">
+                            <a
+                              href={version}
+                              download={`keiro-edit-v${idx + 1}.png`}
+                              className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ⬇️ Télécharger
+                            </a>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Supprimer cette version ?')) {
+                                  const newVersions = editVersions.filter((_, i) => i !== idx);
+                                  setEditVersions(newVersions);
+                                  if (selectedEditVersion === version && newVersions.length > 0) {
+                                    setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                                  } else if (newVersions.length === 0) {
+                                    setSelectedEditVersion(null);
+                                  }
+                                }
+                              }}
+                              className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
