@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabase/server'
 import { fetchGoogleNews } from '@/lib/news/sources'
 
 export async function POST(req: Request) {
-  const supabase = supabaseServer()
+  const supabase = await supabaseServer()
   let body: any = {}
   try { body = await req.json() } catch {}
 

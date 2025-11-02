@@ -1,10 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGeneration } from '@/contexts/GenerationContext';
-import EmailGateModal from '@/components/EmailGateModal';
-import PricingModal from '@/components/PricingModal';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -40,10 +36,6 @@ const CATEGORIES = [
 
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
-  /* --- Auth & Generation Limits --- */
-  const { user } = useAuth();
-  const generation = useGeneration();
-
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('À la une');
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,6 +84,7 @@ export default function GeneratePage() {
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   /* --- États pour le studio d'édition --- */
@@ -101,17 +94,6 @@ export default function GeneratePage() {
   const [editPrompt, setEditPrompt] = useState('');
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
-
-  /* --- États pour les modals de limitation --- */
-  const [showEmailGate, setShowEmailGate] = useState(false);
-  const [showPricingModal, setShowPricingModal] = useState(false);
-
-  /* --- États pour la génération vidéo --- */
-  const [generationType, setGenerationType] = useState<'image' | 'video'>('image');
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
-  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
-  const [videoPolling, setVideoPolling] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -197,22 +179,6 @@ export default function GeneratePage() {
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
-    // Vérifier les limitations
-    if (generation.needsPaidPlan()) {
-      setShowPricingModal(true);
-      return;
-    }
-
-    if (generation.needsEmail()) {
-      setShowEmailGate(true);
-      return;
-    }
-
-    if (!generation.canGenerate('image')) {
-      setShowPricingModal(true);
-      return;
-    }
-
     if (!selectedNews) {
       alert('Veuillez sélectionner une actualité');
       return;
@@ -304,189 +270,13 @@ export default function GeneratePage() {
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
-
-      // Incrémenter le compteur de générations
-      generation.incrementGeneration('image');
+      setGeneratedPrompt(fullPrompt);
     } catch (e: any) {
       console.error('Generation error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération');
     } finally {
       setGenerating(false);
     }
-  }
-
-  /* --- Sauvegarder dans la librairie --- */
-  async function handleSaveToLibrary() {
-    // Vérifier le plan payant
-    if (!generation.limits.hasPaidPlan) {
-      setShowPricingModal(true);
-      return;
-    }
-
-    if (!user) {
-      alert('Veuillez vous connecter pour sauvegarder dans votre librairie');
-      return;
-    }
-
-    if (!generatedImageUrl || !selectedNews) {
-      alert('Aucune génération à sauvegarder');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/library/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'generation',
-          title: selectedNews.title,
-          image_url: generatedImageUrl,
-          news_title: selectedNews.title,
-          news_url: selectedNews.url,
-          business_type: businessType,
-          metadata: {
-            platform,
-            tone,
-            visualStyle,
-            targetAudience,
-            marketingAngle,
-            imageAngle,
-            storyToTell,
-            publicationGoal,
-            emotionToConvey,
-          },
-        }),
-      });
-
-      const data = await res.json();
-      if (data.ok) {
-        alert('✅ Sauvegardé dans votre librairie!');
-      } else {
-        alert('Erreur: ' + data.error);
-      }
-    } catch (e: any) {
-      console.error('Save error:', e);
-      alert('Erreur de sauvegarde: ' + e.message);
-    }
-  }
-
-  /* --- Génération vidéo --- */
-  async function handleGenerateVideo() {
-    // Vérifier les limitations
-    if (generation.needsPaidPlan()) {
-      setShowPricingModal(true);
-      return;
-    }
-
-    if (generation.needsEmail()) {
-      setShowEmailGate(true);
-      return;
-    }
-
-    if (!generation.canGenerate('video')) {
-      setShowPricingModal(true);
-      return;
-    }
-
-    if (!selectedNews) {
-      alert('Veuillez sélectionner une actualité');
-      return;
-    }
-    if (!businessType.trim()) {
-      alert('Veuillez renseigner votre type de business');
-      return;
-    }
-
-    setGeneratingVideo(true);
-    setGenerationError(null);
-    setGeneratedVideoUrl(null);
-
-    try {
-      // Construire un prompt vidéo
-      const videoPrompt = `Multiple shots. ${selectedNews.title}. Create a professional marketing video for ${businessType}. ${businessDescription || ''}. Target audience: ${targetAudience || 'general'}. Style: ${visualStyle}. Tone: ${tone}.`;
-
-      console.log('[Video Gen] Starting video generation with prompt:', videoPrompt);
-
-      const res = await fetch('/api/seedream/video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: videoPrompt,
-          resolution: '1080p',
-          duration: 5,
-          cameraFixed: false,
-        }),
-      });
-
-      const data = await res.json();
-      console.log('[Video Gen] API response:', data);
-
-      if (!data?.ok) throw new Error(data?.error || 'Génération vidéo échouée');
-
-      // Stocker l'ID de la tâche et démarrer le polling
-      console.log('[Video Gen] Task ID received:', data.taskId);
-      setVideoTaskId(data.taskId);
-      setVideoPolling(true);
-      generation.incrementGeneration('video');
-
-      // Polling pour vérifier le statut
-      pollVideoStatus(data.taskId);
-    } catch (e: any) {
-      console.error('[Video Gen] Error:', e);
-      setGenerationError(e.message || 'Erreur lors de la génération vidéo');
-      setGeneratingVideo(false);
-    }
-  }
-
-  /* --- Polling du statut vidéo --- */
-  async function pollVideoStatus(taskId: string) {
-    const maxAttempts = 120; // 120 tentatives * 5s = 10 minutes max
-    let attempts = 0;
-
-    console.log('[Video Poll] Starting polling for task:', taskId);
-
-    const poll = async () => {
-      try {
-        attempts++;
-        console.log(`[Video Poll] Attempt ${attempts}/${maxAttempts} for task:`, taskId);
-
-        const res = await fetch(`/api/seedream/video/status?taskId=${taskId}`);
-        const data = await res.json();
-
-        console.log('[Video Poll] Status response:', data);
-
-        if (data.ok) {
-          // Vérifier si la vidéo est complétée (succeeded ou completed)
-          if ((data.status === 'succeeded' || data.status === 'completed') && data.videoUrl) {
-            console.log('[Video Poll] Video completed! URL:', data.videoUrl);
-            setGeneratedVideoUrl(data.videoUrl);
-            setVideoPolling(false);
-            setGeneratingVideo(false);
-            return;
-          } else if (data.status === 'failed') {
-            throw new Error(data.error || 'La génération vidéo a échoué');
-          }
-
-          console.log(`[Video Poll] Status is "${data.status}", continuing to poll...`);
-        } else {
-          console.error('[Video Poll] API returned ok:false', data);
-        }
-
-        if (attempts < maxAttempts) {
-          // Attendre 5 secondes avant la prochaine tentative
-          setTimeout(poll, 5000);
-        } else {
-          throw new Error('Timeout: La génération vidéo prend trop de temps (10 min). Veuillez réessayer.');
-        }
-      } catch (e: any) {
-        console.error('[Video Poll] Error:', e);
-        setGenerationError(e.message);
-        setVideoPolling(false);
-        setGeneratingVideo(false);
-      }
-    };
-
-    poll();
   }
 
   return (
@@ -657,13 +447,13 @@ export default function GeneratePage() {
 
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
-              <h3 className="text-base font-semibold mb-2">Assistant Marketing IA</h3>
+              <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
 
               {/* Afficher la carte sélectionnée */}
               {selectedNews && (
                 <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
-                  <p className="text-xs font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
-                  <p className="text-sm font-semibold line-clamp-2 text-blue-800">
+                  <p className="text-[10px] font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
+                  <p className="text-xs font-semibold line-clamp-2 text-blue-800">
                     {selectedNews.title}
                   </p>
                 </div>
@@ -671,11 +461,11 @@ export default function GeneratePage() {
 
               {/* Accompagnement spécialisé */}
               <div className="mb-3 p-2 bg-amber-50 rounded border border-amber-200">
-                <p className="text-sm font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
+                <p className="text-xs font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <button
                     onClick={() => setSpecialist('seo')}
-                    className={`text-xs px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'seo'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -685,7 +475,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('marketing')}
-                    className={`text-xs px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'marketing'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -695,7 +485,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('content')}
-                    className={`text-xs px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'content'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -705,7 +495,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setSpecialist('copywriter')}
-                    className={`text-xs px-2 py-1.5 rounded transition ${
+                    className={`text-[10px] px-2 py-1.5 rounded transition ${
                       specialist === 'copywriter'
                         ? 'bg-amber-600 text-white font-medium'
                         : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
@@ -715,7 +505,7 @@ export default function GeneratePage() {
                   </button>
                 </div>
                 {specialist && (
-                  <div className="mt-2 p-2 bg-white rounded text-xs text-amber-900 border border-amber-200">
+                  <div className="mt-2 p-2 bg-white rounded text-[10px] text-amber-900 border border-amber-200">
                     {specialist === 'seo' && (
                       <>
                         <p className="font-medium mb-1">Conseils SEO :</p>
@@ -726,7 +516,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('seo')}
-                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -742,7 +532,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('marketing')}
-                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -758,7 +548,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('content')}
-                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -774,7 +564,7 @@ export default function GeneratePage() {
                         </ul>
                         <button
                           onClick={() => applySpecialistSuggestion('copywriter')}
-                          className="w-full py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700"
+                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
                         >
                           🚀 Remplir automatiquement
                         </button>
@@ -787,10 +577,10 @@ export default function GeneratePage() {
               {/* Section d'aide pour créer le lien actualité/business */}
               {selectedNews && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
-                  <h4 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-1">
+                  <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
                     💡 Comment relier cette actu à votre business ?
                   </h4>
-                  <div className="text-xs text-blue-800 space-y-1.5">
+                  <div className="text-[10px] text-blue-800 space-y-1.5">
                     <p className="font-medium">Questions à vous poser :</p>
                     <ul className="list-disc pl-4 space-y-1">
                       <li><strong>Impact direct :</strong> Comment cette actualité affecte-t-elle vos clients ?</li>
@@ -812,7 +602,7 @@ export default function GeneratePage() {
               <div className="space-y-2">
                 {/* Type de business */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Business <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -820,13 +610,13 @@ export default function GeneratePage() {
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     placeholder="Ex: Restaurant bio, Agence marketing digital, Coach sportif..."
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Description business */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Description
                   </label>
                   <textarea
@@ -834,13 +624,13 @@ export default function GeneratePage() {
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder="Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
                     rows={2}
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
                 {/* Audience cible */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Audience
                   </label>
                   <input
@@ -848,13 +638,13 @@ export default function GeneratePage() {
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
                     placeholder="Qui sera intéressé ? Ex: Familles soucieuses de bien manger, professionnels pressés..."
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
 
                 {/* Angle marketing */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Angle marketing
                   </label>
                   <textarea
@@ -862,17 +652,17 @@ export default function GeneratePage() {
                     onChange={(e) => setMarketingAngle(e.target.value)}
                     placeholder="Comment relier l'actu à votre offre ? Ex: Face à l'inflation alimentaire, nos prix restent accessibles grâce aux circuits courts"
                     rows={2}
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
                 </div>
 
                 {/* Nouveaux champs pour guidance détaillée */}
                 <div className="border-t pt-2 mt-2">
-                  <p className="text-xs font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
+                  <p className="text-[10px] font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
 
                   {/* Angle de l'image */}
                   <div className="mb-2">
-                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Angle de l'image
                     </label>
                     <input
@@ -880,13 +670,13 @@ export default function GeneratePage() {
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
                       placeholder="Ex: Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après..."
-                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Histoire à raconter */}
                   <div className="mb-2">
-                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Histoire à raconter
                     </label>
                     <textarea
@@ -894,13 +684,13 @@ export default function GeneratePage() {
                       onChange={(e) => setStoryToTell(e.target.value)}
                       placeholder="Ex: Dans un contexte où X (actu), nous proposons Y (solution) pour Z (bénéfice client)"
                       rows={2}
-                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
                   </div>
 
                   {/* But de la publication */}
                   <div className="mb-2">
-                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       But de la publication
                     </label>
                     <input
@@ -908,13 +698,13 @@ export default function GeneratePage() {
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
                       placeholder="Ex: Montrer notre expertise sur cette actu, attirer clients concernés par ce sujet..."
-                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
                   {/* Émotion à transmettre */}
                   <div>
-                    <label className="block text-sm font-semibold mb-1.5 text-neutral-700">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Émotion à transmettre
                     </label>
                     <input
@@ -922,18 +712,18 @@ export default function GeneratePage() {
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
                       placeholder="Ex: Rassurance face à l'actu, optimisme, sentiment d'opportunité, empathie..."
-                      className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Plateforme */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Plateforme</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Instagram</option>
                     <option>LinkedIn</option>
@@ -945,11 +735,11 @@ export default function GeneratePage() {
 
                 {/* Tonalité */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Tonalité</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Tonalité</label>
                   <select
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Professionnel</option>
                     <option>Amical</option>
@@ -961,11 +751,11 @@ export default function GeneratePage() {
 
                 {/* Style visuel */}
                 <div>
-                  <label className="block text-sm font-semibold mb-1.5 text-neutral-700">Style</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Style</label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
-                    className="w-full text-sm rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
                     <option>Moderne et épuré</option>
                     <option>Réaliste</option>
@@ -975,37 +765,17 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Boutons Créer un visuel / Créer une vidéo */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={handleGenerate}
-                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
-                    className="py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {generating ? 'Création...' : 'Créer un visuel'}
-                  </button>
-                  <button
-                    onClick={handleGenerateVideo}
-                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
-                    className="py-2 text-sm bg-purple-600 text-white font-semibold rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {generatingVideo ? 'Génération...' : 'Créer une vidéo'}
-                  </button>
-                </div>
-
-                {/* Indicateur de générations restantes */}
-                {!generation.limits.hasPaidPlan && (
-                  <p className="text-xs text-center text-neutral-600">
-                    {generation.limits.hasProvidedEmail ? (
-                      <>✨ {generation.getRemainingGenerations()} génération{generation.getRemainingGenerations() > 1 ? 's' : ''} restante{generation.getRemainingGenerations() > 1 ? 's' : ''}</>
-                    ) : (
-                      <>🎁 Première génération gratuite</>
-                    )}
-                  </p>
-                )}
+                {/* Bouton Créer un visuel */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating || !selectedNews || !businessType.trim()}
+                  className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {generating ? 'Création en cours...' : 'Créer un visuel'}
+                </button>
 
                 {!selectedNews && (
-                  <p className="text-xs text-amber-600 text-center">
+                  <p className="text-[10px] text-amber-600 text-center">
                     ⚠️ Sélectionnez une actualité
                   </p>
                 )}
@@ -1021,74 +791,59 @@ export default function GeneratePage() {
                   alt="Visuel généré"
                   className="w-full rounded border"
                 />
-                <div className="mt-2 flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setShowEditStudio(true);
-                        setEditVersions([generatedImageUrl]);
-                        setSelectedEditVersion(generatedImageUrl);
-                      }}
-                      className="flex-1 py-1 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700"
-                    >
-                      ✏️ Éditer
-                    </button>
-                    {generation.limits.hasPaidPlan ? (
-                      <a
-                        href={generatedImageUrl}
-                        download
-                        className="flex-1 py-1 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
-                      >
-                        💾 Télécharger
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => setShowPricingModal(true)}
-                        className="flex-1 py-1 text-xs bg-amber-600 text-white text-center rounded hover:bg-amber-700"
-                      >
-                        🔒 Télécharger (Pro)
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setGeneratedImageUrl(null)}
-                      className="px-2 py-1 text-xs border rounded hover:bg-neutral-50"
-                    >
-                      ↻ Nouveau
-                    </button>
-                  </div>
-                  {user ? (
-                    <button
-                      onClick={handleSaveToLibrary}
-                      className="w-full py-1.5 text-xs bg-green-600 text-white font-medium rounded hover:bg-green-700"
-                    >
-                      📚 Sauvegarder dans ma librairie
-                    </button>
-                  ) : (
-                    <div className="text-xs text-center py-1.5 text-amber-700 bg-amber-50 rounded border border-amber-200">
-                      💡 Connectez-vous pour sauvegarder dans votre librairie
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Vidéo en cours de génération */}
-            {generatingVideo && (
-              <div className="bg-white rounded-xl border p-4">
-                <h3 className="text-sm font-semibold mb-3">Génération de la vidéo</h3>
-                <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 border-4 border-purple-200 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-purple-600 rounded-full border-t-transparent animate-spin"></div>
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-sm text-neutral-700 font-medium">
-                      {videoPolling ? 'Traitement en cours...' : 'Lancement de la génération...'}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      La génération vidéo peut prendre jusqu&apos;à 10 minutes
-                    </p>
-                  </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setShowEditStudio(true);
+                      setEditVersions([generatedImageUrl]);
+                      setSelectedEditVersion(generatedImageUrl);
+                    }}
+                    className="flex-1 min-w-[80px] py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
+                  >
+                    ✏️ Éditer
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/storage/upload', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            url: generatedImageUrl,
+                            type: 'image',
+                            prompt: generatedPrompt || 'Image générée'
+                          })
+                        });
+                        const data = await response.json();
+                        if (data.ok) {
+                          alert('✅ Image sauvegardée dans votre librairie!');
+                        } else {
+                          alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                        }
+                      } catch (e: any) {
+                        alert('❌ Erreur: ' + e.message);
+                      }
+                    }}
+                    className="flex-1 min-w-[120px] py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                  >
+                    💾 Enregistrer dans ma librairie
+                  </button>
+                  <a
+                    href={generatedImageUrl}
+                    download
+                    className="flex-1 min-w-[80px] py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
+                  >
+                    ⬇️ Télécharger
+                  </a>
+                  <button
+                    onClick={() => {
+                      setGeneratedImageUrl(null);
+                      setGeneratedPrompt(null);
+                    }}
+                    className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
+                  >
+                    Nouveau
+                  </button>
                 </div>
               </div>
             )}
@@ -1138,32 +893,61 @@ export default function GeneratePage() {
                       />
                       <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 border-t">
                         <div className="text-xs text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
-                        <div className="flex gap-1.5">
+                        <div className="flex flex-col gap-1.5">
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
-                              if (confirm('Supprimer cette version ?')) {
-                                const newVersions = editVersions.filter((_, i) => i !== idx);
-                                setEditVersions(newVersions);
-                                if (selectedEditVersion === version && newVersions.length > 0) {
-                                  setSelectedEditVersion(newVersions[newVersions.length - 1]);
-                                } else if (newVersions.length === 0) {
-                                  setSelectedEditVersion(null);
+                              try {
+                                const response = await fetch('/api/storage/upload', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    url: version,
+                                    type: 'image',
+                                    prompt: `Version ${idx + 1} - ${generatedPrompt || 'Image éditée'}`
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.ok) {
+                                  alert('✅ Version sauvegardée!');
+                                } else {
+                                  alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
                                 }
+                              } catch (error: any) {
+                                alert('❌ Erreur: ' + error.message);
                               }
                             }}
-                            className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                            className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition"
                           >
-                            Supprimer
+                            💾 Librairie
                           </button>
-                          <a
-                            href={version}
-                            download={`keiro-edit-v${idx + 1}.png`}
-                            className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Télécharger
-                          </a>
+                          <div className="flex gap-1.5">
+                            <a
+                              href={version}
+                              download={`keiro-edit-v${idx + 1}.png`}
+                              className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ⬇️ Télécharger
+                            </a>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Supprimer cette version ?')) {
+                                  const newVersions = editVersions.filter((_, i) => i !== idx);
+                                  setEditVersions(newVersions);
+                                  if (selectedEditVersion === version && newVersions.length > 0) {
+                                    setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                                  } else if (newVersions.length === 0) {
+                                    setSelectedEditVersion(null);
+                                  }
+                                }
+                              }}
+                              className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1192,15 +976,15 @@ export default function GeneratePage() {
                 {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-4 */}
                 <div className="flex-1 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
-                    <h3 className="text-lg font-semibold mb-2">Assistant d'Édition</h3>
+                    <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
 
                     {/* Mode d'édition */}
                     <div className="mb-3">
-                      <p className="text-sm font-medium mb-1.5">Mode de modification :</p>
+                      <p className="text-xs font-medium mb-1.5">Mode de modification :</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setEditMode('precise')}
-                          className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
                             editMode === 'precise'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -1210,7 +994,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setEditMode('creative')}
-                          className={`flex-1 text-xs px-2 py-1.5 rounded transition ${
+                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
                             editMode === 'creative'
                               ? 'bg-purple-600 text-white font-medium'
                               : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
@@ -1219,7 +1003,7 @@ export default function GeneratePage() {
                           ✨ Créative
                         </button>
                       </div>
-                      <p className="text-[11px] text-purple-700 mt-1">
+                      <p className="text-[9px] text-purple-700 mt-1">
                         {editMode === 'precise'
                           ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
                           : '✨ Permet des transformations plus importantes et créatives'}
@@ -1228,11 +1012,11 @@ export default function GeneratePage() {
 
                     {/* Accompagnement spécialisé dans l'édition */}
                     <div className="mb-3">
-                      <p className="text-sm font-medium mb-1.5">💡 Aide spécialisée :</p>
+                      <p className="text-xs font-medium mb-1.5">💡 Aide spécialisée :</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           onClick={() => setSpecialist('seo')}
-                          className={`text-[11px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'seo'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -1242,7 +1026,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('marketing')}
-                          className={`text-[11px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'marketing'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -1252,7 +1036,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('content')}
-                          className={`text-[11px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'content'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -1262,7 +1046,7 @@ export default function GeneratePage() {
                         </button>
                         <button
                           onClick={() => setSpecialist('copywriter')}
-                          className={`text-[11px] px-1.5 py-1 rounded transition ${
+                          className={`text-[9px] px-1.5 py-1 rounded transition ${
                             specialist === 'copywriter'
                               ? 'bg-purple-600 text-white'
                               : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
@@ -1275,7 +1059,7 @@ export default function GeneratePage() {
 
                     {/* Conseils contextuels */}
                     {specialist && (
-                      <div className="mb-3 p-2 bg-white rounded text-[10px] text-purple-900 border border-purple-200">
+                      <div className="mb-3 p-2 bg-white rounded text-[8px] text-purple-900 border border-purple-200">
                         {specialist === 'seo' && (
                           <>
                             <p className="font-medium mb-1">💡 Suggestions SEO :</p>
@@ -1321,7 +1105,7 @@ export default function GeneratePage() {
 
                     {/* Prompt de modification */}
                     <div className="mb-3">
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-xs font-medium mb-1">
                         Décrivez vos modifications :
                       </label>
                       <textarea
@@ -1333,7 +1117,7 @@ export default function GeneratePage() {
                             : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
                         }
                         rows={4}
-                        className="w-full text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     </div>
 
@@ -1376,7 +1160,7 @@ export default function GeneratePage() {
                         }
                       }}
                       disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
-                      className="w-full py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       {editingImage ? 'Édition en cours...' : '✏️ Éditer'}
                     </button>
@@ -1394,29 +1178,29 @@ export default function GeneratePage() {
 
                   {/* Exemples de modifications */}
                   <div className="bg-neutral-50 rounded-lg border p-2">
-                    <p className="text-xs font-medium mb-1.5">💡 Exemples de modifications :</p>
+                    <p className="text-[10px] font-medium mb-1.5">💡 Exemples de modifications :</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => setEditPrompt('Ajouter un filtre chaleureux et lumineux')}
-                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Filtre chaleureux
                       </button>
                       <button
                         onClick={() => setEditPrompt('Rendre l\'arrière-plan flou pour mettre en valeur le sujet')}
-                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Flou d'arrière-plan
                       </button>
                       <button
                         onClick={() => setEditPrompt('Améliorer les contrastes et la saturation des couleurs')}
-                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Contraste et saturation
                       </button>
                       <button
                         onClick={() => setEditPrompt('Ajouter mon logo de marque discrètement en bas à droite')}
-                        className="w-full text-left text-[11px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
                         • Ajouter logo
                       </button>
@@ -1454,62 +1238,6 @@ export default function GeneratePage() {
             </div>
           </div>
         )}
-
-        {/* Vidéo générée */}
-        {generatedVideoUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-white rounded-xl p-6 max-w-2xl w-full">
-              <h3 className="text-lg font-bold mb-4">Vidéo générée</h3>
-              <video
-                src={generatedVideoUrl}
-                controls
-                className="w-full rounded border mb-4"
-              />
-              <div className="flex gap-2">
-                {generation.limits.hasPaidPlan ? (
-                  <a
-                    href={generatedVideoUrl}
-                    download
-                    className="flex-1 py-2 text-sm bg-neutral-900 text-white text-center rounded hover:bg-neutral-800"
-                  >
-                    💾 Télécharger
-                  </a>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setGeneratedVideoUrl(null);
-                      setShowPricingModal(true);
-                    }}
-                    className="flex-1 py-2 text-sm bg-amber-600 text-white rounded hover:bg-amber-700"
-                  >
-                    🔒 Télécharger (Pro)
-                  </button>
-                )}
-                <button
-                  onClick={() => setGeneratedVideoUrl(null)}
-                  className="flex-1 py-2 text-sm bg-neutral-200 text-neutral-900 rounded hover:bg-neutral-300"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modals de limitation */}
-        <EmailGateModal
-          isOpen={showEmailGate}
-          onClose={() => setShowEmailGate(false)}
-          onSuccess={() => {
-            // Après avoir fourni l'email, relancer la génération
-            setShowEmailGate(false);
-          }}
-        />
-
-        <PricingModal
-          isOpen={showPricingModal}
-          onClose={() => setShowPricingModal(false)}
-        />
       </div>
     </div>
   );

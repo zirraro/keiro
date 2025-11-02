@@ -7,29 +7,35 @@ export default function HomeKeiro() {
       <section className="mx-auto max-w-6xl px-6 pt-16 pb-12">
         <div className="grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-neutral-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-              Nouveau : visuels liés à l’actualité en 5–10 minutes
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700">
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+              Nouveau : visuels liés à l'actualité en 5–10 minutes
             </div>
             <h1 className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold">
-              Des visuels qui surfent sur l’actualité — <span className="bg-amber-200 px-2 -mx-2 rounded">en quelques minutes</span>.
+              Des visuels qui surfent sur l'actualité — <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">en quelques minutes</span>.
             </h1>
             <p className="mt-4 text-lg text-neutral-600">
               Choisis une actu, décris ton activité en 2–3 infos, Keiro te propose un angle,
               rédige un texte propre et génère un visuel cohérent prêt à publier.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/generate" className="px-5 py-3 rounded-xl bg-black text-white hover:opacity-90">
+              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all">
                 Essayer gratuitement
               </a>
-              <a href="#exemple" className="px-5 py-3 rounded-xl border hover:bg-neutral-50">
+              <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
                 Voir un exemple
               </a>
             </div>
-            <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm text-neutral-700">
-              <li className="rounded-xl border p-3">Orthographe & accroches soignées</li>
-              <li className="rounded-xl border p-3">Exports adaptés aux réseaux</li>
-              <li className="rounded-xl border p-3">Ajustements instantanés</li>
+            <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
+              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+                <span className="text-blue-500 mr-1">✓</span> Orthographe & accroches soignées
+              </li>
+              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+                <span className="text-blue-500 mr-1">✓</span> Exports adaptés aux réseaux
+              </li>
+              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+                <span className="text-blue-500 mr-1">✓</span> Ajustements instantanés
+              </li>
             </ul>
           </div>
           <div className="lg:col-span-5">
@@ -75,10 +81,10 @@ export default function HomeKeiro() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* AVANT */}
           <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+            <div className="absolute -top-3 -left-3 bg-neutral-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               ❌ AVANT
             </div>
-            <div className="rounded-2xl border-2 border-red-200 bg-red-50/30 p-6">
+            <div className="rounded-2xl border-2 border-neutral-200 bg-neutral-50/30 p-6">
               <div className="bg-white rounded-xl border p-4 mb-4">
                 <p className="text-xs text-neutral-500 mb-2">📰 Actualité brute</p>
                 <p className="font-semibold text-sm mb-2">
@@ -89,37 +95,37 @@ export default function HomeKeiro() {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-xl">•</span>
+                  <span className="text-neutral-400 text-xl">✗</span>
                   <p className="text-sm text-neutral-700">Vous postez l'actu telle quelle sur vos réseaux</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-xl">•</span>
+                  <span className="text-neutral-400 text-xl">✗</span>
                   <p className="text-sm text-neutral-700">Aucun lien avec votre activité</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-xl">•</span>
+                  <span className="text-neutral-400 text-xl">✗</span>
                   <p className="text-sm text-neutral-700">Pas d'appel à l'action</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-red-500 text-xl">•</span>
+                  <span className="text-neutral-400 text-xl">✗</span>
                   <p className="text-sm text-neutral-700">Visuel générique qui ne se démarque pas</p>
                 </div>
               </div>
 
               <div className="mt-4 bg-neutral-100 rounded-lg p-3 text-center">
                 <p className="text-xs font-medium text-neutral-600">Résultat :</p>
-                <p className="text-lg font-bold text-red-600">😴 Faible engagement, 0 conversion</p>
+                <p className="text-lg font-bold text-neutral-700">😴 Faible engagement, 0 conversion</p>
               </div>
             </div>
           </div>
 
           {/* APRÈS */}
           <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               ✨ APRÈS avec Keiro
             </div>
-            <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50/30 p-6">
-              <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl p-6 mb-4 text-white shadow-lg">
+            <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/30 p-6">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 mb-4 text-white shadow-lg">
                 <p className="text-xs opacity-90 mb-3">🚗 Restaurant bio "La Table Verte"</p>
                 <h3 className="font-bold text-lg mb-2">
                   L'essence flambe ? 🌱<br/>
@@ -136,26 +142,26 @@ export default function HomeKeiro() {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <span className="text-emerald-500 text-xl">✓</span>
+                  <span className="text-blue-500 text-xl">✓</span>
                   <p className="text-sm text-neutral-700"><strong>Lien direct</strong> entre l'actu et votre solution</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-emerald-500 text-xl">✓</span>
+                  <span className="text-blue-500 text-xl">✓</span>
                   <p className="text-sm text-neutral-700"><strong>Bénéfice clair</strong> pour vos clients</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-emerald-500 text-xl">✓</span>
+                  <span className="text-blue-500 text-xl">✓</span>
                   <p className="text-sm text-neutral-700"><strong>Appel à l'action</strong> immédiat</p>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-emerald-500 text-xl">✓</span>
+                  <span className="text-blue-500 text-xl">✓</span>
                   <p className="text-sm text-neutral-700"><strong>Visuel pro</strong> qui capte l'attention</p>
                 </div>
               </div>
 
-              <div className="mt-4 bg-emerald-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-medium text-emerald-800">Résultat :</p>
-                <p className="text-lg font-bold text-emerald-700">🚀 +300% d'engagement, conversions réelles</p>
+              <div className="mt-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-3 text-center">
+                <p className="text-xs font-medium text-blue-800">Résultat :</p>
+                <p className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">🚀 +300% d'engagement, conversions réelles</p>
               </div>
             </div>
           </div>
@@ -163,7 +169,7 @@ export default function HomeKeiro() {
 
         {/* CTA */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
             Générer mon premier visuel →
           </a>
         </div>
@@ -309,7 +315,7 @@ export default function HomeKeiro() {
           </div>
         </div>
         <div className="mt-10 text-center">
-          <a href="/generate" className="px-6 py-3 rounded-xl bg-black text-white hover:opacity-90">
+          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all">
             Essayer maintenant
           </a>
         </div>
@@ -321,9 +327,9 @@ export default function HomeKeiro() {
 /* --- mini composants UI --- */
 function Step({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border p-5 bg-white">
+    <div className="rounded-2xl border border-blue-100 p-5 bg-white hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-black text-white grid place-items-center text-sm">{num}</div>
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white grid place-items-center text-sm font-semibold">{num}</div>
         <h3 className="font-medium">{title}</h3>
       </div>
       <p className="mt-3 text-sm text-neutral-700">{children}</p>
@@ -345,15 +351,15 @@ function Plan({
   highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-6 bg-white shadow-sm ${highlight ? 'ring-2 ring-black' : ''}`}>
+    <div className={`rounded-2xl border p-6 bg-white shadow-sm ${highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}>
       <div className="flex items-baseline justify-between">
         <h3 className="text-lg font-semibold">{title}</h3>
         <div className="text-lg font-medium">{price}</div>
       </div>
       <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-        {bullets.map((b, i) => <li key={i} className="flex gap-2"><span>•</span><span>{b}</span></li>)}
+        {bullets.map((b, i) => <li key={i} className="flex gap-2"><span className="text-blue-500">✓</span><span>{b}</span></li>)}
       </ul>
-      <a href="/generate" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-black text-white px-4 py-2">
+      <a href="/generate" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium px-4 py-2 hover:shadow-lg transition-all">
         {ctaLabel}
       </a>
     </div>
