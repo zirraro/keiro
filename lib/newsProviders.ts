@@ -92,6 +92,11 @@ const RSS_FEEDS = [
 
   // Climat
   { url: 'https://www.geo.fr/rss.xml', category: 'Climat' },
+
+  // People
+  { url: 'https://www.purepeople.com/rss.xml', category: 'People' },
+  { url: 'https://www.voici.fr/rss.xml', category: 'People' },
+  { url: 'https://www.closermag.fr/rss.xml', category: 'People' },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -116,7 +121,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'Lifestyle': ['mode', 'fashion', 'beauté', 'voyage', 'maison', 'déco', 'mariage', 'luxe'],
 
-  'People': ['célébrité', 'star', 'acteur', 'chanteur', 'influenceur', 'couple', 'mariage', 'scandale'],
+  'People': ['célébrité', 'star', 'acteur', 'actrice', 'chanteur', 'chanteuse', 'influenceur', 'influenceuse', 'couple', 'mariage', 'scandale', 'divorce', 'séparation', 'romance', 'relation', 'people', 'pipole', 'nabilla', 'cyril hanouna', 'kylian mbappé', 'beyoncé', 'rihanna', 'johnny depp', 'angelina jolie', 'brad pitt', 'kim kardashian', 'kanye west', 'beyonce', 'shakira', 'gims', 'jul', 'ninho', 'booba', 'kaaris', 'shy\'m', 'jenifer', 'florent pagny', 'daft punk', 'david guetta', 'dj snake', 'stromae', 'angèle', 'aya nakamura', 'soprano', 'maître gims', 'bigflo', 'oli', 'orelsan', 'black m', 'kendji girac', 'louane', 'slimane', 'vianney', 'clara luciani', 'juliette armanet', 'pomme', 'yseult', 'lomepal', 'nekfeu', 'pnl', 'damso', 'laylow', 'freeze corleone', 'gazo', 'tiakola', 'real madrid', 'neymar', 'messi', 'ronaldo', 'benzema', 'griezmann', 'pogba', 'kante', 'giroud', 'deschamps', 'zidane', 'omar sy', 'gad elmaleh', 'jamel debbouze', 'kev adams', 'florence foresti', 'patrick bruel', 'julien doré', 'vanessa paradis', 'johnny hallyday', 'laeticia hallyday', 'laura smet', 'david hallyday', 'carla bruni', 'nicolas sarkozy', 'julie gayet', 'françois hollande', 'valérie trierweiler', 'brigitte macron', 'emmanuel macron', 'lady gaga', 'ariana grande', 'justin bieber', 'selena gomez', 'taylor swift', 'billie eilish', 'dua lipa', 'the weeknd', 'drake', 'bad bunny', 'rosalía', 'harry styles', 'ed sheeran', 'adele', 'sam smith', 'lizzo', 'cardi b', 'megan thee stallion', 'nicki minaj', 'eminem', 'kanye', 'jay-z', 'snoop dogg', 'dr dre', 'kendrick lamar', 'j cole', 'post malone', 'travis scott', 'lil nas x', 'doja cat', 'saweetie', 'ice spice', 'leonardo dicaprio', 'tom cruise', 'will smith', 'denzel washington', 'morgan freeman', 'samuel l jackson', 'robert downey jr', 'chris hemsworth', 'chris evans', 'scarlett johansson', 'jennifer lawrence', 'emma watson', 'emma stone', 'margot robbie', 'zendaya', 'timothée chalamet', 'tom holland', 'andrew garfield', 'ryan gosling', 'ryan reynolds', 'blake lively', 'gigi hadid', 'bella hadid', 'kendall jenner', 'kylie jenner', 'khloe kardashian', 'kourtney kardashian', 'kris jenner', 'travis barker', 'machine gun kelly', 'megan fox', 'amber heard', 'elon musk', 'jeff bezos', 'mark zuckerberg', 'bill gates'],
 
   'Gaming': ['gaming', 'jeu vidéo', 'gamer', 'playstation', 'xbox', 'nintendo', 'fortnite', 'esport'],
 
