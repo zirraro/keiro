@@ -796,64 +796,72 @@ export default function GeneratePage() {
             {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
                 <h3 className="text-sm font-semibold mb-2">Visuel</h3>
-                <img
-                  src={generatedImageUrl}
-                  alt="Visuel généré"
-                  className="w-full rounded border"
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => {
-                      setShowEditStudio(true);
-                      setEditVersions([generatedImageUrl]);
-                      setSelectedEditVersion(generatedImageUrl);
-                    }}
-                    className="flex-1 min-w-[80px] py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
-                  >
-                    ✏️ Éditer
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/storage/upload', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            url: generatedImageUrl,
-                            type: 'image',
-                            prompt: generatedPrompt || 'Image générée'
-                          })
-                        });
-                        const data = await response.json();
-                        if (data.ok) {
-                          alert('✅ Image sauvegardée dans votre librairie!');
-                        } else {
-                          alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
+                  <img
+                    src={generatedImageUrl}
+                    alt="Visuel généré"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="mt-3 space-y-2">
+                  {/* Première ligne de boutons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setShowEditStudio(true);
+                        setEditVersions([generatedImageUrl]);
+                        setSelectedEditVersion(generatedImageUrl);
+                      }}
+                      className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Éditer
+                    </button>
+                    <a
+                      href={generatedImageUrl}
+                      download
+                      className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
+                    >
+                      Télécharger
+                    </a>
+                  </div>
+                  {/* Deuxième ligne de boutons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/storage/upload', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              url: generatedImageUrl,
+                              type: 'image',
+                              prompt: generatedPrompt || 'Image générée'
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.ok) {
+                            alert('✅ Image sauvegardée dans votre librairie!');
+                          } else {
+                            alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                          }
+                        } catch (e: any) {
+                          alert('❌ Erreur: ' + e.message);
                         }
-                      } catch (e: any) {
-                        alert('❌ Erreur: ' + e.message);
-                      }
-                    }}
-                    className="flex-1 min-w-[120px] py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
-                  >
-                    💾 Enregistrer dans ma librairie
-                  </button>
-                  <a
-                    href={generatedImageUrl}
-                    download
-                    className="flex-1 min-w-[80px] py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
-                  >
-                    ⬇️ Télécharger
-                  </a>
-                  <button
-                    onClick={() => {
-                      setGeneratedImageUrl(null);
-                      setGeneratedPrompt(null);
-                    }}
-                    className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
-                  >
-                    Nouveau
-                  </button>
+                      }}
+                      className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                    >
+                      Enregistrer dans ma librairie (pro)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGeneratedImageUrl(null);
+                        setGeneratedPrompt(null);
+                      }}
+                      className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
+                    >
+                      Nouveau
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -929,7 +937,7 @@ export default function GeneratePage() {
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition"
                           >
-                            💾 Librairie
+                            Librairie
                           </button>
                           <div className="flex gap-1.5">
                             <a
@@ -938,7 +946,7 @@ export default function GeneratePage() {
                               className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              ⬇️ Télécharger
+                              Télécharger
                             </a>
                             <button
                               onClick={(e) => {
@@ -955,7 +963,7 @@ export default function GeneratePage() {
                               }}
                               className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
                             >
-                              🗑️
+                              Supprimer
                             </button>
                           </div>
                         </div>
