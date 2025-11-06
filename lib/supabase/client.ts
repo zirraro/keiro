@@ -1,18 +1,20 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
-// Client Supabase pour utilisation côté client (browser)
 export function createClient() {
+  // En développement/démo, vérifier si les variables d'env sont configurées
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('[Supabase] Missing environment variables. Using stub client.');
-    // Retourner un stub si les variables ne sont pas configurées
+    console.warn('[Supabase Client] Missing env vars, returning stub');
+    // Retourner un stub minimal si pas configuré
     return {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
+        signInWithPassword: async () => ({ data: null, error: null }),
         signInWithOAuth: async () => ({ data: null, error: null }),
+        signUp: async () => ({ data: null, error: null }),
         signOut: async () => ({ error: null }),
         onAuthStateChange: (cb: any) => {
           try { cb(null, null); } catch {}
@@ -28,14 +30,10 @@ export function createClient() {
     } as any;
   }
 
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false, // Ne pas persister la session pour l'instant
-    },
-  });
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
-// Alias pour compatibilité
+/** Alias pour compatibilité */
 export function supabaseBrowser() {
   return createClient();
 }
