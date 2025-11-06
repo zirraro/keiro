@@ -267,13 +267,23 @@ export default function GeneratePage() {
         }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(errorData.error || `Erreur serveur: ${res.status}`);
+      }
+
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
       setGeneratedPrompt(fullPrompt);
     } catch (e: any) {
       console.error('Generation error:', e);
-      setGenerationError(e.message || 'Erreur lors de la génération');
+      const errorMessage = e.message || 'Erreur lors de la génération';
+      setGenerationError(
+        errorMessage.includes('fetch')
+          ? 'Impossible de contacter le serveur. Vérifiez votre connexion internet.'
+          : errorMessage
+      );
     } finally {
       setGenerating(false);
     }
@@ -771,7 +781,7 @@ export default function GeneratePage() {
                   disabled={generating || !selectedNews || !businessType.trim()}
                   className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {generating ? 'Création en cours...' : 'Créer un visuel'}
+                  {generating ? 'Génération en cours...' : 'Générer mon visuel'}
                 </button>
 
                 {!selectedNews && (

@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Header from '@/components/Header';
 
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-      <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
@@ -30,10 +28,10 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        {/* Freemium Plans */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
           {/* Plan Gratuit */}
-          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-8 relative hover:shadow-lg transition-all">
+          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 relative hover:shadow-lg transition-all">
             <div className="mb-6">
               <h3 className="text-2xl font-bold mb-2">Essai Gratuit</h3>
               <div className="flex items-baseline gap-2 mb-4">
@@ -85,7 +83,7 @@ export default function PricingPage() {
           </div>
 
           {/* Plan Email */}
-          <div className="bg-white rounded-2xl border-2 border-blue-300 p-8 relative hover:shadow-xl transition-all transform hover:scale-105">
+          <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
                 Populaire
@@ -141,9 +139,35 @@ export default function PricingPage() {
               Débloquer avec mon email
             </Link>
           </div>
+        </div>
 
-          {/* Plan Premium */}
-          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-8 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
+        {/* Premium Plans */}
+        <h3 className="text-2xl font-bold text-center mb-6">Plans Premium</h3>
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {/* Essentiel 79€ */}
+          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold mb-2">Essentiel</h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">79€</span>
+                <span className="text-neutral-500">/mois</span>
+              </div>
+            </div>
+            <ul className="space-y-3 mb-6 text-sm">
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Visuels illimités (usage raisonnable)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Suggestions d'actu par catégories</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Guidage texte (accroches + CTA)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Exports réseaux (posts + stories)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Corrections d'orthographe</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Support email</li>
+            </ul>
+            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-blue-500 text-blue-600 font-medium hover:bg-blue-50 transition-all">
+              Choisir Essentiel
+            </Link>
+          </div>
+
+          {/* Croissance 198€ - Highlight */}
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -152,62 +176,48 @@ export default function PricingPage() {
                 Meilleure offre
               </span>
             </div>
-
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold mb-2">Premium</h3>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold">79€</span>
+            <div className="mb-4">
+              <h3 className="text-xl font-bold mb-2">Croissance</h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">198€</span>
                 <span className="text-blue-100">/mois</span>
               </div>
-              <p className="text-blue-100 text-sm">Pour les créateurs de contenu</p>
             </div>
-
-            <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm"><strong className="text-white">Visuels illimités</strong></span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-blue-50">Studio d'édition complet</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-blue-50">Librairie illimitée</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-blue-50">Exports HD sans watermark</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-blue-50">Support prioritaire</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-yellow-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-blue-50">API access (bientôt)</span>
-              </li>
+            <ul className="space-y-3 mb-6 text-sm">
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Tout Essentiel</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier de contenus (idées & rappels)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Bibliothèque médias (logos, photos)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Historique & versions</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Kit de style simple (couleurs, ton)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Exports multi-plateformes</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Support chat prioritaire</li>
             </ul>
-
-            <Link
-              href="/generate"
-              className="block w-full py-3 px-6 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all"
-            >
-              Passer Premium →
+            <Link href="/generate" className="block w-full py-2 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all">
+              Choisir Croissance →
             </Link>
-            <p className="text-center text-blue-100 text-xs mt-3">Sans engagement • Annulation en 1 clic</p>
+            <p className="text-center text-blue-100 text-xs mt-2">Sans engagement • Annulation en 1 clic</p>
+          </div>
+
+          {/* Studio 499€ */}
+          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold mb-2">Studio</h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">499€</span>
+                <span className="text-neutral-500">/mois</span>
+              </div>
+            </div>
+            <ul className="space-y-3 mb-6 text-sm">
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Tout Croissance</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Espace équipe (droits, validations)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Modèles internes (mentions, disclaimers)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Rapports mensuels (idées qui performent)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Formats pro (HD, fond transparent)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Onboarding + SLA</li>
+            </ul>
+            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+              Choisir Studio
+            </Link>
           </div>
         </div>
 

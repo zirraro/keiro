@@ -177,7 +177,11 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
 
           if (!title || !url) continue;
 
-          const detectedCategory = categorizeArticle(title, description);
+          // Forcer "À la une" pour les flux généraux, sinon catégoriser
+          let detectedCategory = feed.category;
+          if (feed.category !== 'À la une') {
+            detectedCategory = categorizeArticle(title, description);
+          }
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,
