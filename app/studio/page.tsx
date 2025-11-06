@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function StudioPage() {
+function StudioContent() {
   const searchParams = useSearchParams();
   const [imageUrl, setImageUrl] = useState(searchParams.get("image") || "");
   const [loadedImage, setLoadedImage] = useState(searchParams.get("image") || "");
@@ -220,5 +220,20 @@ export default function StudioPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StudioPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <StudioContent />
+    </Suspense>
   );
 }
