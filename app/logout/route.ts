@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import { supabaseServer } from '@/lib/supabase/server'
 
-/**
- * Minimal logout stub: just redirect to home.
- * (No Supabase/NextAuth dependency)
- */
 export async function GET(req: Request) {
-  const url = new URL("/", req.url);
-  return NextResponse.redirect(url);
+  const supabase = await supabaseServer()
+  await supabase.auth.signOut()
+  const url = new URL(req.url)
+  return NextResponse.redirect(new URL('/login', url))
 }
