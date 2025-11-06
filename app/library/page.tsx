@@ -31,16 +31,18 @@ export default function LibraryPage() {
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Header Section */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-4 py-2 text-sm text-blue-700 mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2 text-sm text-white mb-6 shadow-lg">
             <PhotoIcon className="w-4 h-4" />
-            Fonctionnalité à venir
+            Mode Visiteur
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Votre Librairie de Visuels
           </h1>
-          <p className="text-lg text-neutral-600">
+          <p className="text-lg text-neutral-600 mb-4">
             Un espace personnel pour sauvegarder, organiser et retrouver tous vos visuels générés.
-            Bientôt disponible après connexion.
+          </p>
+          <p className="text-sm text-blue-600 font-medium">
+            🔒 Cette page est actuellement en mode visiteur - Souscrivez à un plan pour débloquer votre librairie personnelle
           </p>
         </div>
 
@@ -138,15 +140,27 @@ export default function LibraryPage() {
           </div>
 
           {/* Info Box */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h3 className="font-semibold text-blue-900 mb-2">
-              Fonctionnalité en développement
-            </h3>
-            <p className="text-blue-700">
-              La librairie sera disponible après connexion. Vous pourrez sauvegarder automatiquement
-              tous vos visuels générés et y accéder à tout moment. Cette fonctionnalité sera déployée
-              prochainement avec le système d'authentification.
-            </p>
+          <div className="mt-8 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                <span className="text-white font-bold">🔒</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900 mb-2">
+                  Mode Visiteur - Librairie verrouillée
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  La librairie personnelle est disponible avec les plans Premium. Vous pourrez sauvegarder automatiquement
+                  tous vos visuels générés et y accéder à tout moment depuis n'importe quel appareil.
+                </p>
+                <a
+                  href="/pricing"
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                >
+                  Voir les plans Premium
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 

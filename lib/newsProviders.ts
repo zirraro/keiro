@@ -97,6 +97,14 @@ const RSS_FEEDS = [
   { url: 'https://www.purepeople.com/rss.xml', category: 'People' },
   { url: 'https://www.voici.fr/rss.xml', category: 'People' },
   { url: 'https://www.closermag.fr/rss.xml', category: 'People' },
+
+  // Restauration
+  { url: 'https://www.lafourchette.com/rss', category: 'Restauration' },
+  { url: 'https://www.thuriesdegastronomie.fr/feed/', category: 'Restauration' },
+
+  // Tendances
+  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances' },
+  { url: 'https://www.melty.fr/feed', category: 'Tendances' },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -169,7 +177,7 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
         const parsed = await parser.parseURL(feed.url);
         const articles: NewsArticle[] = [];
 
-        for (const item of parsed.items.slice(0, 5)) {
+        for (const item of parsed.items.slice(0, 10)) {
           const title = item.title?.trim() || '';
           const description = item.contentSnippet?.trim() || item.content?.trim() || '';
           const url = item.link || '';
@@ -177,11 +185,8 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
 
           if (!title || !url) continue;
 
-          // Forcer "À la une" pour les flux généraux, sinon catégoriser
+          // Garder la catégorie du flux RSS (plus fiable que la catégorisation auto)
           let detectedCategory = feed.category;
-          if (feed.category !== 'À la une') {
-            detectedCategory = categorizeArticle(title, description);
-          }
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,

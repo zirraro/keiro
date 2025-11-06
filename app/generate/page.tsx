@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import SubscriptionModal from '@/components/SubscriptionModal';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -94,6 +95,7 @@ export default function GeneratePage() {
   const [editPrompt, setEditPrompt] = useState('');
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -827,27 +829,7 @@ export default function GeneratePage() {
                   {/* Deuxième ligne de boutons */}
                   <div className="flex gap-2">
                     <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch('/api/storage/upload', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              url: generatedImageUrl,
-                              type: 'image',
-                              prompt: generatedPrompt || 'Image générée'
-                            })
-                          });
-                          const data = await response.json();
-                          if (data.ok) {
-                            alert('✅ Image sauvegardée dans votre librairie!');
-                          } else {
-                            alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
-                          }
-                        } catch (e: any) {
-                          alert('❌ Erreur: ' + e.message);
-                        }
-                      }}
+                      onClick={() => setShowSubscriptionModal(true)}
                       className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
                     >
                       Enregistrer dans ma librairie (pro)
@@ -1256,6 +1238,12 @@ export default function GeneratePage() {
             </div>
           </div>
         )}
+
+        {/* Modal de souscription */}
+        <SubscriptionModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+        />
       </div>
     </div>
   );
