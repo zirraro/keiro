@@ -147,8 +147,15 @@ async function checkTaskStatus(taskId: string) {
       // Chercher l'URL de la vidéo dans différents champs possibles
       let videoUrl = null;
 
-      // Chercher dans content[]
-      if (data.content && Array.isArray(data.content)) {
+      // CAS 1: content est un objet avec video_url directement (format Seedream actuel)
+      if (data.content && typeof data.content === 'object' && !Array.isArray(data.content)) {
+        if (data.content.video_url) {
+          videoUrl = data.content.video_url;
+        }
+      }
+
+      // CAS 2: content est un tableau (ancien format ou autres APIs)
+      if (!videoUrl && data.content && Array.isArray(data.content)) {
         for (const item of data.content) {
           if (item.type === 'video_url' && item.video_url?.url) {
             videoUrl = item.video_url.url;
