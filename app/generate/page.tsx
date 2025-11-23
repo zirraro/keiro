@@ -88,6 +88,12 @@ export default function GeneratePage() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  /* --- États pour la génération vidéo --- */
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
+  const [videoProgress, setVideoProgress] = useState<string>('');
+
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
   const [editVersions, setEditVersions] = useState<string[]>([]);
@@ -288,6 +294,85 @@ export default function GeneratePage() {
       );
     } finally {
       setGenerating(false);
+    }
+  }
+
+  // Génération de vidéo avec Seedream/SeedDance
+  async function handleGenerateVideo() {
+    if (!selectedNews || !businessType.trim()) return;
+
+    setGeneratingVideo(true);
+    setGeneratedVideoUrl(null);
+    setVideoTaskId(null);
+    setVideoProgress('Création de la vidéo...');
+    setGenerationError(null);
+
+    try {
+      // Construire le prompt vidéo
+      const videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+
+      console.log('[Video] Starting generation with prompt:', videoPrompt);
+
+      // Créer la tâche de génération
+      const res = await fetch('/api/seedream/t2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: videoPrompt,
+          duration: 5,
+          resolution: '1080p'
+        }),
+      });
+
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.error || 'Échec de création de la tâche vidéo');
+
+      setVideoTaskId(data.taskId);
+      setVideoProgress('Génération en cours...');
+
+      // Polling pour vérifier le statut
+      const maxAttempts = 60; // 5 minutes max (5s * 60)
+      let attempts = 0;
+
+      const pollStatus = async () => {
+        attempts++;
+        setVideoProgress(`Génération en cours... (${attempts * 5}s)`);
+
+        const statusRes = await fetch('/api/seedream/t2v', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: data.taskId }),
+        });
+
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'completed' && statusData.videoUrl) {
+          setGeneratedVideoUrl(statusData.videoUrl);
+          setVideoProgress('');
+          setGeneratingVideo(false);
+          return;
+        }
+
+        if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'La génération vidéo a échoué');
+        }
+
+        if (attempts >= maxAttempts) {
+          throw new Error('Timeout: La génération prend trop de temps');
+        }
+
+        // Continuer le polling
+        setTimeout(pollStatus, 5000);
+      };
+
+      // Attendre 5s avant le premier check
+      setTimeout(pollStatus, 5000);
+
+    } catch (e: any) {
+      console.error('Video generation error:', e);
+      setGenerationError(e.message || 'Erreur lors de la génération vidéo');
+      setGeneratingVideo(false);
+      setVideoProgress('');
     }
   }
 
@@ -777,14 +862,23 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Bouton Créer un visuel */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={generating || !selectedNews || !businessType.trim()}
-                  className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {generating ? 'Génération en cours...' : 'Générer mon visuel'}
-                </button>
+                {/* Boutons de génération */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                    className="flex-1 py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {generating ? 'Génération...' : 'Générer un visuel'}
+                  </button>
+                  <button
+                    onClick={handleGenerateVideo}
+                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                    className="flex-1 py-2 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {generatingVideo ? videoProgress || 'Génération...' : 'Créer une vidéo'}
+                  </button>
+                </div>
 
                 {!selectedNews && (
                   <p className="text-[10px] text-amber-600 text-center">
@@ -843,6 +937,59 @@ export default function GeneratePage() {
                     >
                       Nouveau
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Vidéo générée */}
+            {generatedVideoUrl && !showEditStudio && (
+              <div className="bg-white rounded-xl border p-3">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                  Vidéo générée
+                </h3>
+                <div className="relative w-full aspect-video bg-neutral-900 rounded border overflow-hidden">
+                  <video
+                    src={generatedVideoUrl}
+                    controls
+                    autoPlay
+                    loop
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <a
+                    href={generatedVideoUrl}
+                    download="keiro-video.mp4"
+                    className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
+                  >
+                    Télécharger
+                  </a>
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                  >
+                    Enregistrer dans ma librairie (pro)
+                  </button>
+                  <button
+                    onClick={() => setGeneratedVideoUrl(null)}
+                    className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
+                  >
+                    Nouveau
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Indicateur de génération vidéo en cours */}
+            {generatingVideo && !generatedVideoUrl && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <div>
+                    <p className="text-sm font-semibold text-purple-900">Génération vidéo en cours</p>
+                    <p className="text-xs text-purple-600">{videoProgress}</p>
                   </div>
                 </div>
               </div>
