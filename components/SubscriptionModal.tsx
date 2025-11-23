@@ -13,58 +13,59 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
   const plans = [
     {
       name: "Gratuit",
+      emoji: "🎁",
       price: "0€",
-      features: ["1 génération par jour", "Formats basiques", "Sans filigrane"],
+      subtitle: "/toujours",
+      description: "Pour découvrir",
+      features: ["3 visuels avec watermark", "Accès aux actualités", "Export réseaux sociaux"],
       highlight: false,
     },
     {
-      name: "Découverte",
-      price: "0€",
-      subtitle: "avec email",
-      features: ["3 générations par jour", "Tous les formats", "Sans filigrane", "Accès aux news premium"],
+      name: "Essai 7 jours",
+      emoji: "💡",
+      price: "29€",
+      subtitle: "/7 jours",
+      description: "Déduit du 1er mois",
+      features: ["Fonctionnalités Starter", "Visuels illimités", "Génération vidéo", "Bascule auto Starter"],
       highlight: false,
     },
     {
-      name: "Essentiel",
-      price: "79€",
+      name: "Fondateurs",
+      emoji: "⭐",
+      price: "149€",
       subtitle: "/mois",
-      features: [
-        "Générations illimitées",
-        "Tous les formats",
-        "Studio d'édition avancé",
-        "Sauvegarde dans librairie",
-        "Export haute résolution",
-        "Support prioritaire",
-      ],
+      description: "50 places - Prix verrouillé à vie",
+      features: ["Visuels illimités", "Vidéo illimitée", "Démo personnalisée", "Support prioritaire"],
+      highlight: true,
+      badge: "50 places",
+      special: true,
+    },
+    {
+      name: "Starter",
+      emoji: "🚀",
+      price: "199€",
+      subtitle: "/mois",
+      description: "Garantie satisfait 30j",
+      features: ["Visuels illimités", "10 vidéos/mois", "Démo personnalisée", "Studio édition"],
       highlight: true,
       badge: "Populaire",
     },
     {
-      name: "Croissance",
-      price: "198€",
+      name: "Pro",
+      emoji: "💼",
+      price: "349€",
       subtitle: "/mois",
-      features: [
-        "Tout Essentiel +",
-        "Multi-utilisateurs (5)",
-        "API access",
-        "Templates personnalisés",
-        "Analytics avancés",
-        "White label",
-      ],
+      description: "Onboarding premium",
+      features: ["Tout Starter", "30 vidéos/mois", "Calendrier contenus", "Kit de style"],
       highlight: false,
     },
     {
-      name: "Studio",
-      price: "499€",
+      name: "Business",
+      emoji: "🏆",
+      price: "599€",
       subtitle: "/mois",
-      features: [
-        "Tout Croissance +",
-        "Utilisateurs illimités",
-        "Account manager dédié",
-        "Intégrations custom",
-        "Formation équipe",
-        "SLA garanti",
-      ],
+      description: "Stratégie mensuelle incluse",
+      features: ["Tout Pro", "Vidéo illimitée", "Équipe 5 users", "Analytics"],
       highlight: false,
     },
   ];
@@ -93,36 +94,47 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         </div>
 
         {/* Plans */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`rounded-xl border p-4 hover:shadow-lg transition-all transform hover:scale-105 relative ${
-                plan.highlight
+                plan.special
+                  ? "border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50"
+                  : plan.highlight
                   ? "border-2 border-blue-300 bg-blue-50/30"
                   : "border-neutral-200 bg-white"
               }`}
             >
               {plan.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    plan.special
+                      ? "bg-amber-500 text-white"
+                      : "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                  }`}>
                     {plan.badge}
                   </span>
                 </div>
               )}
 
-              <div className="mb-3">
-                <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
+              <div className="mb-3 pt-1">
+                <h3 className="text-sm font-bold mb-1 flex items-center gap-1">
+                  <span>{plan.emoji}</span> {plan.name}
+                </h3>
                 <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  {plan.subtitle && <span className="text-sm text-neutral-500">{plan.subtitle}</span>}
+                  <span className="text-2xl font-bold">{plan.price}</span>
+                  {plan.subtitle && <span className="text-xs text-neutral-500">{plan.subtitle}</span>}
                 </div>
+                {plan.description && (
+                  <p className="text-xs text-neutral-500">{plan.description}</p>
+                )}
               </div>
 
-              <ul className="space-y-2 mb-4">
+              <ul className="space-y-1.5 mb-4">
                 {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs">
-                    <span className="text-blue-500 mt-0.5">✓</span>
+                  <li key={idx} className="flex items-start gap-1.5 text-xs">
+                    <span className={plan.special ? "text-amber-500" : "text-blue-500"}>✓</span>
                     <span className="text-neutral-700">{feature}</span>
                   </li>
                 ))}
@@ -130,13 +142,15 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
 
               <Link
                 href="/pricing"
-                className={`block w-full py-2 text-center text-sm font-semibold rounded-lg transition ${
-                  plan.highlight
+                className={`block w-full py-2 text-center text-xs font-semibold rounded-lg transition ${
+                  plan.special
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
+                    : plan.highlight
                     ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-lg"
                     : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
-                {plan.price === "0€" ? "Commencer" : "Souscrire"}
+                {plan.price === "0€" ? "Commencer" : "Choisir"}
               </Link>
             </div>
           ))}

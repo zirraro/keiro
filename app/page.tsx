@@ -236,52 +236,75 @@ export default function HomeKeiro() {
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <h2 className="text-2xl font-semibold">Offres & tarifs</h2>
-          <div className="mt-6 grid md:grid-cols-3 gap-6">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+              Offre de lancement - 50 places Fondateurs
+            </div>
+            <h2 className="text-2xl font-semibold">Offres & tarifs</h2>
+          </div>
+
+          {/* Plans principaux */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Plan
-              title="Essentiel"
-              price="79€ / mois"
+              title="🎁 Gratuit"
+              price="0€"
+              subtitle="Pour découvrir"
               bullets={[
-                'Visuels illimités (usage raisonnable)',
-                'Suggestions d’actu par catégories',
-                'Guidage texte (accroches + CTA)',
-                'Exports réseaux (posts + stories)',
-                'Corrections d’orthographe',
-                'Support email'
+                '3 visuels avec watermark',
+                'Actualités par catégories',
+                'Export réseaux sociaux'
               ]}
-              ctaLabel="Choisir Essentiel"
+              ctaLabel="Essayer"
             />
             <Plan
-              title="Croissance"
-              price="198€ / mois"
+              title="⭐ Fondateurs"
+              price="149€ / mois"
+              subtitle="50 places - Prix verrouillé à vie"
+              special
+              bullets={[
+                'Visuels illimités',
+                'Génération vidéo illimitée',
+                'Démo personnalisée offerte',
+                'Support prioritaire'
+              ]}
+              ctaLabel="Rejoindre"
+            />
+            <Plan
+              title="🚀 Starter"
+              price="199€ / mois"
+              subtitle="Garantie satisfait 30j"
               highlight
               bullets={[
-                'Tout Essentiel',
-                'Calendrier de contenus (idées & rappels)',
-                'Bibliothèque médias (logos, photos)',
-                'Historique & versions',
-                'Kit de style simple (couleurs, ton)',
-                'Exports multi-plateformes',
-                'Support chat prioritaire'
+                'Visuels illimités',
+                '10 vidéos/mois',
+                'Démo personnalisée offerte',
+                'Studio édition complet'
               ]}
-              ctaLabel="Choisir Croissance"
+              ctaLabel="Choisir Starter"
             />
             <Plan
-              title="Studio"
-              price="499€ / mois"
+              title="💼 Pro"
+              price="349€ / mois"
+              subtitle="Onboarding premium inclus"
               bullets={[
-                'Tout Croissance',
-                'Espace équipe (droits, validations)',
-                'Modèles internes (mentions, disclaimers)',
-                'Rapports mensuels (idées qui performent)',
-                'Formats pro (HD, fond transparent)',
-                'Onboarding + SLA'
+                'Tout Starter',
+                '30 vidéos/mois',
+                'Calendrier de contenus',
+                'Kit de style (couleurs, ton)'
               ]}
-              ctaLabel="Choisir Studio"
+              ctaLabel="Choisir Pro"
             />
           </div>
-          <div className="mt-6 text-center text-sm text-neutral-600">
-            Commencer gratuitement — <b>sans carte</b>, annulation en 1 clic.
+
+          <div className="mt-8 text-center">
+            <a href="/pricing" className="text-blue-600 hover:underline text-sm font-medium">
+              Voir tous les plans dont Business (599€/mois) →
+            </a>
+          </div>
+
+          <div className="mt-4 text-center text-sm text-neutral-600">
+            💡 <b>Essai 7 jours à 29€</b> (déduit du 1er mois) • Sans engagement • Annulation en 1 clic
           </div>
         </div>
       </section>
@@ -342,24 +365,36 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, bullets, ctaLabel, highlight
+  title, price, subtitle, bullets, ctaLabel, highlight, special
 }: {
   title: string;
   price: string;
+  subtitle?: string;
   bullets: string[];
   ctaLabel: string;
   highlight?: boolean;
+  special?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-6 bg-white shadow-sm ${highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''}`}>
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <div className="text-lg font-medium">{price}</div>
-      </div>
+    <div className={`rounded-2xl border p-5 bg-white shadow-sm transition-all hover:shadow-lg ${
+      special ? 'ring-2 ring-amber-400 bg-gradient-to-br from-amber-50 to-orange-50' :
+      highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''
+    }`}>
+      <h3 className="text-base font-semibold">{title}</h3>
+      <div className="text-xl font-bold mt-1">{price}</div>
+      {subtitle && <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>}
       <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-        {bullets.map((b, i) => <li key={i} className="flex gap-2"><span className="text-blue-500">✓</span><span>{b}</span></li>)}
+        {bullets.map((b, i) => (
+          <li key={i} className="flex gap-2">
+            <span className={special ? "text-amber-500" : "text-blue-500"}>✓</span>
+            <span>{b}</span>
+          </li>
+        ))}
       </ul>
-      <a href="/generate" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium px-4 py-2 hover:shadow-lg transition-all">
+      <a href="/generate" className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-2 hover:shadow-lg transition-all text-sm ${
+        special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
+        'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+      }`}>
         {ctaLabel}
       </a>
     </div>
