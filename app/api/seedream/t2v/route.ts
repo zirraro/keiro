@@ -4,7 +4,7 @@ export const maxDuration = 300; // 5 minutes max pour le polling
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
 
-// POST: Créer une tâche de génération vidéo
+// POST: Créer une tâche de génération vidéo ou vérifier le statut
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -25,8 +25,20 @@ export async function POST(request: Request) {
 
     console.log('[Seedream T2V] Creating video task with prompt:', prompt.substring(0, 100) + '...');
 
-    // Formater le prompt avec les paramètres
+    // Construire le prompt avec les paramètres intégrés
     const formattedPrompt = `${prompt} --resolution ${resolution} --duration ${duration} --camerafixed false`;
+
+    const requestBody = {
+      model: 'seedance-1-0-pro-250528',
+      content: [
+        {
+          type: 'text',
+          text: formattedPrompt
+        }
+      ]
+    };
+
+    console.log('[Seedream T2V] Request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(SEEDREAM_VIDEO_API_URL, {
       method: 'POST',
@@ -34,41 +46,50 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SEEDREAM_API_KEY}`
       },
-      body: JSON.stringify({
-        model: 'seedance-1-0-pro-250528',
-        content: [
-          {
-            type: 'text',
-            text: formattedPrompt
-          }
-        ]
-      })
+      body: JSON.stringify(requestBody)
     });
 
+    const responseText = await response.text();
+    console.log('[Seedream T2V] Raw response:', responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Seedream T2V] API Error:', response.status, errorText);
+      console.error('[Seedream T2V] API Error:', response.status, responseText);
       return Response.json({
         ok: false,
-        error: `Seedream Video API error: ${response.status} - ${errorText}`
+        error: `Seedream Video API error: ${response.status} - ${responseText}`
       }, { status: response.status });
     }
 
-    const data = await response.json();
-
-    if (!data.id) {
-      console.error('[Seedream T2V] Invalid response:', data);
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[Seedream T2V] Failed to parse response:', responseText);
       return Response.json({
         ok: false,
-        error: 'Invalid response from Seedream Video API - no task ID'
+        error: 'Invalid JSON response from Seedream Video API'
       }, { status: 500 });
     }
 
-    console.log('[Seedream T2V] Task created successfully:', data.id);
+    console.log('[Seedream T2V] Parsed response:', JSON.stringify(data, null, 2));
+
+    // Chercher l'ID de la tâche dans différents champs possibles
+    const taskIdFromResponse = data.id || data.task_id || data.taskId || data.data?.id || data.data?.task_id;
+
+    if (!taskIdFromResponse) {
+      console.error('[Seedream T2V] No task ID in response:', data);
+      return Response.json({
+        ok: false,
+        error: 'Invalid response from Seedream Video API - no task ID found',
+        debug: data
+      }, { status: 500 });
+    }
+
+    console.log('[Seedream T2V] Task created successfully:', taskIdFromResponse);
 
     return Response.json({
       ok: true,
-      taskId: data.id,
+      taskId: taskIdFromResponse,
       status: 'pending'
     });
 
@@ -93,39 +114,66 @@ async function checkTaskStatus(taskId: string) {
       }
     });
 
+    const responseText = await response.text();
+    console.log('[Seedream T2V] Status response:', responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Seedream T2V] Status check error:', response.status, errorText);
+      console.error('[Seedream T2V] Status check error:', response.status, responseText);
       return Response.json({
         ok: false,
-        error: `Failed to check task status: ${response.status}`
+        error: `Failed to check task status: ${response.status} - ${responseText}`
       }, { status: response.status });
     }
 
-    const data = await response.json();
-    console.log('[Seedream T2V] Task status:', data.status);
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[Seedream T2V] Failed to parse status response:', responseText);
+      return Response.json({
+        ok: false,
+        error: 'Invalid JSON response when checking status'
+      }, { status: 500 });
+    }
+
+    console.log('[Seedream T2V] Parsed status:', JSON.stringify(data, null, 2));
+
+    // Normaliser le statut (différentes APIs peuvent utiliser différentes conventions)
+    const status = data.status || data.state || data.task_status || data.data?.status;
+    console.log('[Seedream T2V] Task status:', status);
 
     // Vérifier si la vidéo est prête
-    if (data.status === 'succeeded' || data.status === 'completed') {
-      // Chercher l'URL de la vidéo dans la réponse
+    if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
+      // Chercher l'URL de la vidéo dans différents champs possibles
       let videoUrl = null;
 
+      // Chercher dans content[]
       if (data.content && Array.isArray(data.content)) {
         for (const item of data.content) {
           if (item.type === 'video_url' && item.video_url?.url) {
             videoUrl = item.video_url.url;
             break;
           }
+          if (item.type === 'video' && item.url) {
+            videoUrl = item.url;
+            break;
+          }
+          if (item.video_url) {
+            videoUrl = typeof item.video_url === 'string' ? item.video_url : item.video_url.url;
+            break;
+          }
         }
       }
 
-      if (data.output?.video_url) {
-        videoUrl = data.output.video_url;
-      }
-
-      if (data.result?.video_url) {
-        videoUrl = data.result.video_url;
-      }
+      // Chercher dans d'autres champs courants
+      if (!videoUrl) videoUrl = data.output?.video_url;
+      if (!videoUrl) videoUrl = data.output?.url;
+      if (!videoUrl) videoUrl = data.result?.video_url;
+      if (!videoUrl) videoUrl = data.result?.url;
+      if (!videoUrl) videoUrl = data.video_url;
+      if (!videoUrl) videoUrl = data.url;
+      if (!videoUrl) videoUrl = data.data?.video_url;
+      if (!videoUrl) videoUrl = data.data?.output?.video_url;
 
       if (videoUrl) {
         console.log('[Seedream T2V] Video ready:', videoUrl);
@@ -134,22 +182,35 @@ async function checkTaskStatus(taskId: string) {
           status: 'completed',
           videoUrl: videoUrl
         });
+      } else {
+        console.log('[Seedream T2V] Status completed but no video URL found in:', JSON.stringify(data, null, 2));
+        return Response.json({
+          ok: true,
+          status: 'completed',
+          error: 'Video completed but URL not found',
+          debug: data
+        });
       }
     }
 
-    if (data.status === 'failed' || data.status === 'error') {
+    if (status === 'failed' || status === 'error' || status === 'cancelled') {
+      const errorMsg = data.error || data.message || data.error_message || data.data?.error || 'Video generation failed';
+      console.error('[Seedream T2V] Task failed:', errorMsg);
       return Response.json({
         ok: false,
         status: 'failed',
-        error: data.error || data.message || 'Video generation failed'
+        error: errorMsg
       });
     }
 
     // Encore en cours
+    const progress = data.progress || data.percent || data.data?.progress;
+    console.log('[Seedream T2V] Still processing, progress:', progress);
+
     return Response.json({
       ok: true,
-      status: data.status || 'processing',
-      progress: data.progress || null
+      status: status || 'processing',
+      progress: progress
     });
 
   } catch (error: any) {

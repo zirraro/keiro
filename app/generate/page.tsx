@@ -304,7 +304,7 @@ export default function GeneratePage() {
     setGeneratingVideo(true);
     setGeneratedVideoUrl(null);
     setVideoTaskId(null);
-    setVideoProgress('Création de la vidéo...');
+    setVideoProgress('Création de la tâche vidéo...');
     setGenerationError(null);
 
     try {
@@ -325,51 +325,73 @@ export default function GeneratePage() {
       });
 
       const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || 'Échec de création de la tâche vidéo');
+      console.log('[Video] Task creation response:', data);
+
+      if (!data?.ok) {
+        const errorMsg = data?.error || 'Échec de création de la tâche vidéo';
+        console.error('[Video] Task creation failed:', errorMsg);
+        if (data?.debug) console.log('[Video] Debug info:', data.debug);
+        throw new Error(errorMsg);
+      }
 
       setVideoTaskId(data.taskId);
-      setVideoProgress('Génération en cours...');
+      console.log('[Video] Task created:', data.taskId);
 
-      // Polling pour vérifier le statut
+      // Polling pour vérifier le statut avec gestion d'erreur améliorée
       const maxAttempts = 60; // 5 minutes max (5s * 60)
-      let attempts = 0;
 
-      const pollStatus = async () => {
-        attempts++;
-        setVideoProgress(`Génération en cours... (${attempts * 5}s)`);
-
-        const statusRes = await fetch('/api/seedream/t2v', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId: data.taskId }),
-        });
-
-        const statusData = await statusRes.json();
-
-        if (statusData.status === 'completed' && statusData.videoUrl) {
-          setGeneratedVideoUrl(statusData.videoUrl);
-          setVideoProgress('');
-          setGeneratingVideo(false);
-          return;
+      const pollWithRetry = async (attempt: number): Promise<void> => {
+        if (attempt >= maxAttempts) {
+          throw new Error('Timeout: La génération prend trop de temps (5 min max)');
         }
 
-        if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'La génération vidéo a échoué');
-        }
+        setVideoProgress(`Génération en cours... (${attempt * 5}s / 300s max)`);
 
-        if (attempts >= maxAttempts) {
-          throw new Error('Timeout: La génération prend trop de temps');
-        }
+        try {
+          const statusRes = await fetch('/api/seedream/t2v', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId: data.taskId }),
+          });
 
-        // Continuer le polling
-        setTimeout(pollStatus, 5000);
+          const statusData = await statusRes.json();
+          console.log('[Video] Status check response:', statusData);
+
+          if (statusData.status === 'completed') {
+            if (statusData.videoUrl) {
+              console.log('[Video] Video ready:', statusData.videoUrl);
+              setGeneratedVideoUrl(statusData.videoUrl);
+              setVideoProgress('');
+              setGeneratingVideo(false);
+              return;
+            } else {
+              // Statut completed mais pas d'URL - afficher debug
+              console.error('[Video] Completed but no URL:', statusData);
+              throw new Error('Vidéo générée mais URL non trouvée. Vérifiez les logs serveur.');
+            }
+          }
+
+          if (statusData.status === 'failed' || !statusData.ok) {
+            throw new Error(statusData.error || 'La génération vidéo a échoué');
+          }
+
+          // Encore en cours - continuer le polling
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          return pollWithRetry(attempt + 1);
+
+        } catch (fetchError: any) {
+          console.error('[Video] Polling error:', fetchError);
+          throw fetchError;
+        }
       };
 
-      // Attendre 5s avant le premier check
-      setTimeout(pollStatus, 5000);
+      // Attendre 5s puis commencer le polling
+      setVideoProgress('Démarrage de la génération...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      await pollWithRetry(1);
 
     } catch (e: any) {
-      console.error('Video generation error:', e);
+      console.error('[Video] Generation error:', e);
       setGenerationError(e.message || 'Erreur lors de la génération vidéo');
       setGeneratingVideo(false);
       setVideoProgress('');
