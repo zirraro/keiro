@@ -366,8 +366,10 @@ export default function GeneratePage() {
               return;
             } else {
               // Statut completed mais pas d'URL - afficher debug
-              console.error('[Video] Completed but no URL:', statusData);
-              throw new Error('Vidéo générée mais URL non trouvée. Vérifiez les logs serveur.');
+              console.error('[Video] Completed but no URL. Full response:', JSON.stringify(statusData, null, 2));
+              // Afficher les données debug dans l'erreur
+              const debugInfo = statusData.debug ? JSON.stringify(statusData.debug, null, 2) : 'No debug data';
+              throw new Error(`Vidéo générée mais URL non trouvée. Debug: ${debugInfo.substring(0, 500)}`);
             }
           }
 

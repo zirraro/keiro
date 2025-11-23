@@ -183,12 +183,26 @@ async function checkTaskStatus(taskId: string) {
           videoUrl: videoUrl
         });
       } else {
-        console.log('[Seedream T2V] Status completed but no video URL found in:', JSON.stringify(data, null, 2));
+        // Log complet pour debug
+        console.log('[Seedream T2V] ====== DEBUG: Status completed but no video URL ======');
+        console.log('[Seedream T2V] Full response keys:', Object.keys(data));
+        console.log('[Seedream T2V] data.content:', JSON.stringify(data.content, null, 2));
+        console.log('[Seedream T2V] data.output:', JSON.stringify(data.output, null, 2));
+        console.log('[Seedream T2V] data.result:', JSON.stringify(data.result, null, 2));
+        console.log('[Seedream T2V] data.data:', JSON.stringify(data.data, null, 2));
+        console.log('[Seedream T2V] Full data:', JSON.stringify(data, null, 2));
+
         return Response.json({
           ok: true,
           status: 'completed',
           error: 'Video completed but URL not found',
-          debug: data
+          debug: {
+            keys: Object.keys(data),
+            content: data.content,
+            output: data.output,
+            result: data.result,
+            fullData: data
+          }
         });
       }
     }
