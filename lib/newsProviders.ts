@@ -38,73 +38,77 @@ const API_PROVIDERS = {
 
 // ===== FLUX RSS FRANÇAIS - Source principale (pas de quota) =====
 const RSS_FEEDS = [
-  // Actualité générale française
-  { url: 'https://www.lemonde.fr/rss/une.xml', category: 'À la une' },
-  { url: 'https://www.lefigaro.fr/rss/figaro_actualites.xml', category: 'À la une' },
-  { url: 'https://www.francetvinfo.fr/titres.rss', category: 'À la une' },
-  { url: 'https://www.lexpress.fr/rss/alaune.xml', category: 'Tendances' },
+  // À la une - flux généraux fiables
+  { url: 'https://www.lemonde.fr/rss/une.xml', category: 'À la une', timeout: 8000 },
+  { url: 'https://www.francetvinfo.fr/titres.rss', category: 'À la une', timeout: 8000 },
+  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', category: 'À la une', timeout: 8000 },
 
-  // Tech
-  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech' },
-  { url: 'https://www.numerama.com/feed/', category: 'Tech' },
-  { url: 'https://www.usine-digitale.fr/rss/news.xml', category: 'Tech' },
-  { url: 'https://www.lesechos.fr/rss/rss_tech_medias.xml', category: 'Tech' },
+  // Tech - flux tech fiables
+  { url: 'https://www.numerama.com/feed/', category: 'Tech', timeout: 8000 },
+  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech', timeout: 8000 },
+  { url: 'https://www.clubic.com/feed/', category: 'Tech', timeout: 8000 },
+  { url: 'https://www.journaldunet.com/rss/', category: 'Tech', timeout: 8000 },
 
-  // Business & Finance
-  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business' },
-  { url: 'https://www.capital.fr/rss', category: 'Business' },
-  { url: 'https://bfmbusiness.bfmtv.com/rss/info/flux-rss/flux-toutes-les-actualites/', category: 'Business' },
-  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Finance' },
-  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Finance' },
+  // Business
+  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business', timeout: 8000 },
+  { url: 'https://www.capital.fr/rss', category: 'Business', timeout: 8000 },
+  { url: 'https://www.lesechos.fr/rss.xml', category: 'Business', timeout: 8000 },
+
+  // Finance
+  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Finance', timeout: 8000 },
+  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Finance', timeout: 8000 },
 
   // Santé
-  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé' },
-  { url: 'https://www.topsante.com/rss.xml', category: 'Santé' },
+  { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé', timeout: 8000 },
+  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé', timeout: 8000 },
 
   // Sport
-  { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport' },
-  { url: 'https://www.eurosport.fr/rss.xml', category: 'Sport' },
+  { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport', timeout: 8000 },
+  { url: 'https://www.sports.fr/feed/', category: 'Sport', timeout: 8000 },
 
   // Culture
-  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture' },
-  { url: 'https://www.telerama.fr/rss.xml', category: 'Culture' },
+  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture', timeout: 8000 },
+  { url: 'https://www.premiere.fr/rss', category: 'Culture', timeout: 8000 },
 
   // Politique
-  { url: 'https://www.nouvelobs.com/rss.xml', category: 'Politique' },
+  { url: 'https://www.lemonde.fr/politique/rss_full.xml', category: 'Politique', timeout: 8000 },
+  { url: 'https://www.francetvinfo.fr/politique.rss', category: 'Politique', timeout: 8000 },
 
   // International
-  { url: 'https://www.france24.com/fr/rss', category: 'International' },
+  { url: 'https://www.france24.com/fr/rss', category: 'International', timeout: 8000 },
+  { url: 'https://www.lemonde.fr/international/rss_full.xml', category: 'International', timeout: 8000 },
 
   // Automobile
-  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Automobile' },
-  { url: 'https://www.caradisiac.com/rss.xml', category: 'Automobile' },
+  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Automobile', timeout: 8000 },
+  { url: 'https://www.largus.fr/rss.xml', category: 'Automobile', timeout: 8000 },
 
   // Lifestyle
-  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle' },
-  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle' },
+  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle', timeout: 8000 },
+  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle', timeout: 8000 },
 
   // Gaming
-  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Gaming' },
-  { url: 'https://www.gamekult.com/feed.xml', category: 'Gaming' },
+  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Gaming', timeout: 8000 },
+  { url: 'https://www.journaldugeek.com/feed/', category: 'Gaming', timeout: 8000 },
 
   // Science
-  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science' },
+  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science', timeout: 8000 },
+  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science', timeout: 8000 },
 
   // Climat
-  { url: 'https://www.geo.fr/rss.xml', category: 'Climat' },
+  { url: 'https://www.geo.fr/rss.xml', category: 'Climat', timeout: 8000 },
+  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Climat', timeout: 8000 },
 
   // People
-  { url: 'https://www.purepeople.com/rss.xml', category: 'People' },
-  { url: 'https://www.voici.fr/rss.xml', category: 'People' },
-  { url: 'https://www.closermag.fr/rss.xml', category: 'People' },
+  { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 8000 },
+  { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 8000 },
 
   // Restauration
-  { url: 'https://www.lafourchette.com/rss', category: 'Restauration' },
-  { url: 'https://www.thuriesdegastronomie.fr/feed/', category: 'Restauration' },
+  { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 8000 },
+  { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 8000 },
 
   // Tendances
-  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances' },
-  { url: 'https://www.melty.fr/feed', category: 'Tendances' },
+  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 8000 },
+  { url: 'https://www.aufeminin.com/rss.xml', category: 'Tendances', timeout: 8000 },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -165,7 +169,7 @@ function categorizeArticle(title: string, description: string): string {
   return bestCategory;
 }
 
-// ===== FETCH RSS (source principale) =====
+// ===== FETCH RSS (source principale) avec timeout et retry =====
 async function fetchFromRSS(): Promise<NewsArticle[]> {
   console.log('[RSS] Fetching from RSS feeds...');
   const allArticles: NewsArticle[] = [];
@@ -174,19 +178,44 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed, feedIndex) => {
       try {
+        // Timeout pour éviter les blocages
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), feed.timeout || 8000);
+
         const parsed = await parser.parseURL(feed.url);
+        clearTimeout(timeoutId);
+
         const articles: NewsArticle[] = [];
 
-        for (const item of parsed.items.slice(0, 10)) {
+        for (const item of parsed.items.slice(0, 12)) {
           const title = item.title?.trim() || '';
-          const description = item.contentSnippet?.trim() || item.content?.trim() || '';
+          const description = item.contentSnippet?.trim() || item.content?.trim() || item.summary?.trim() || '';
           const url = item.link || '';
-          const image = item.enclosure?.url || item.media?.thumbnail?.url || undefined;
+
+          // Essayer plusieurs façons de récupérer l'image
+          let image = item.enclosure?.url ||
+                     item['media:thumbnail']?.$ ?.url ||
+                     item['media:content']?.$ ?.url ||
+                     undefined;
+
+          // Certains flux mettent l'image dans le contenu HTML
+          if (!image && item.content) {
+            const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
+            if (imgMatch) image = imgMatch[1];
+          }
 
           if (!title || !url) continue;
 
-          // Garder la catégorie du flux RSS (plus fiable que la catégorisation auto)
+          // CATÉGORISATION : priorité au flux RSS, recatégorisation uniquement pour flux génériques
           let detectedCategory = feed.category;
+
+          // Pour les flux génériques (À la une, Tendances), utiliser la catégorisation auto
+          if (feed.category === 'À la une' || feed.category === 'Tendances') {
+            const autoCategory = categorizeArticle(title, description);
+            detectedCategory = autoCategory;
+          }
+          // Pour les flux spécialisés, TOUJOURS garder leur catégorie
+          // (ex: un flux Tech reste Tech, un flux Sport reste Sport)
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,
@@ -194,15 +223,19 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
             description,
             url,
             image,
-            source: parsed.title || feed.url,
-            date: item.pubDate || new Date().toISOString(),
+            source: parsed.title || new URL(feed.url).hostname,
+            date: item.pubDate || item.isoDate || new Date().toISOString(),
             category: detectedCategory,
           });
         }
 
+        if (articles.length > 0) {
+          console.log(`[RSS] ✅ ${feed.category}: ${articles.length} articles from ${new URL(feed.url).hostname}`);
+        }
+
         return articles;
       } catch (error: any) {
-        console.error(`[RSS] Error fetching ${feed.url}:`, error.message);
+        console.error(`[RSS] ❌ ${feed.category} (${new URL(feed.url).hostname}): ${error.message}`);
         return [];
       }
     })
@@ -214,7 +247,15 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
     }
   }
 
-  console.log(`[RSS] Fetched ${allArticles.length} articles from RSS`);
+  console.log(`[RSS] Total: ${allArticles.length} articles fetched`);
+
+  // Log du nombre d'articles par catégorie
+  const byCategory: { [key: string]: number } = {};
+  allArticles.forEach(article => {
+    byCategory[article.category || 'Unknown'] = (byCategory[article.category || 'Unknown'] || 0) + 1;
+  });
+  console.log('[RSS] Articles par catégorie:', byCategory);
+
   return allArticles;
 }
 
@@ -304,11 +345,20 @@ function deduplicateArticles(articles: NewsArticle[]): NewsArticle[] {
   return unique;
 }
 
-// ===== FILTRAGE (articles sans image) =====
+// ===== FILTRAGE (articles sans image) - Plus permissif =====
 function filterArticles(articles: NewsArticle[]): NewsArticle[] {
-  const filtered = articles.filter(a => a.image && a.image.trim() !== '');
-  console.log(`[Filter] ${articles.length} → ${filtered.length} articles (removed ${articles.length - filtered.length} without images)`);
-  return filtered;
+  // Garder les articles avec image, mais aussi garder au moins quelques articles par catégorie même sans image
+  const withImages = articles.filter(a => a.image && a.image.trim() !== '');
+
+  // Si on a suffisamment d'articles avec images, on les retourne
+  if (withImages.length >= 50) {
+    console.log(`[Filter] ${articles.length} → ${withImages.length} articles (removed ${articles.length - withImages.length} without images)`);
+    return withImages;
+  }
+
+  // Sinon, on garde aussi des articles sans image pour garantir du contenu
+  console.log(`[Filter] Keeping all ${articles.length} articles (not enough with images: ${withImages.length})`);
+  return articles;
 }
 
 // ===== FONCTION PRINCIPALE =====
@@ -316,18 +366,27 @@ export async function fetchNews(): Promise<NewsArticle[]> {
   // Vérifier le cache
   const now = Date.now();
   if (cachedArticles && (now - cacheTimestamp) < CACHE_DURATION) {
-    console.log(`[Cache] Returning ${cachedArticles.length} cached articles (age: ${Math.round((now - cacheTimestamp) / 1000 / 60)}min)`);
+    const ageMinutes = Math.round((now - cacheTimestamp) / 1000 / 60);
+    console.log(`[Cache] ✅ Returning ${cachedArticles.length} cached articles (age: ${ageMinutes}min / ${Math.round(ageMinutes / 60)}h)`);
+
+    // Log du nombre d'articles par catégorie dans le cache
+    const byCategory: { [key: string]: number } = {};
+    cachedArticles.forEach(article => {
+      byCategory[article.category || 'Unknown'] = (byCategory[article.category || 'Unknown'] || 0) + 1;
+    });
+    console.log('[Cache] Articles par catégorie:', byCategory);
+
     return cachedArticles;
   }
 
-  console.log('[Fetch] Cache expired or empty, fetching fresh news...');
+  console.log('[Fetch] 🔄 Cache expired or empty, fetching fresh news...');
 
   try {
     // Essayer RSS d'abord
     let articles = await fetchFromRSS();
 
     // Si RSS échoue ou retourne peu de résultats, fallback vers APIs
-    if (articles.length < 20) {
+    if (articles.length < 30) {
       console.log(`[Fallback] RSS returned only ${articles.length} articles, trying APIs...`);
       const apiArticles = await fetchFromAPIs();
       articles = [...articles, ...apiArticles];
@@ -336,21 +395,33 @@ export async function fetchNews(): Promise<NewsArticle[]> {
     // Déduplication
     articles = deduplicateArticles(articles);
 
-    // Filtrage (garder uniquement avec images)
+    // Filtrage (garder uniquement avec images si suffisamment)
     articles = filterArticles(articles);
+
+    // Vérifier qu'on a des articles pour chaque catégorie
+    const byCategory: { [key: string]: number } = {};
+    articles.forEach(article => {
+      byCategory[article.category || 'Unknown'] = (byCategory[article.category || 'Unknown'] || 0) + 1;
+    });
+
+    const emptyCategories = Object.keys(CATEGORY_KEYWORDS).filter(cat => !byCategory[cat] || byCategory[cat] === 0);
+    if (emptyCategories.length > 0) {
+      console.warn(`[Warning] Catégories vides: ${emptyCategories.join(', ')}`);
+    }
 
     // Mettre en cache
     cachedArticles = articles;
     cacheTimestamp = now;
 
-    console.log(`[Success] Cached ${articles.length} articles for 24h`);
+    console.log(`[Success] ✅ Cached ${articles.length} articles for 24h`);
+    console.log('[Success] Articles par catégorie:', byCategory);
     return articles;
   } catch (error: any) {
-    console.error('[Error] Failed to fetch news:', error.message);
+    console.error('[Error] ❌ Failed to fetch news:', error.message);
 
     // En cas d'erreur, retourner cache même périmé si disponible
     if (cachedArticles) {
-      console.log('[Fallback] Returning stale cache');
+      console.log('[Fallback] ⚠️ Returning stale cache');
       return cachedArticles;
     }
 
