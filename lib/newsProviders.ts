@@ -113,37 +113,37 @@ const RSS_FEEDS = [
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
-  'Tech': ['tech', 'technolog', 'ai', 'ia', 'intelligence artificielle', 'numér', 'digit', 'cyber', 'app', 'logiciel', 'software', 'internet', 'web', 'smartphone', 'google', 'apple', 'microsoft', 'meta', 'facebook', 'twitter', 'instagram', 'cloud', 'data', 'algorithme', 'robot', 'drone', '5g', 'blockchain', 'nft', 'chatgpt', 'openai', 'tesla', 'innovation', 'startup', 'github', 'api', 'netflix', 'spotify'],
+  'People': ['brigitte bardot', 'bardot', 'beyoncé', 'beyonce', 'célébrité', 'star', 'acteur', 'actrice', 'chanteur', 'chanteuse', 'influenceur', 'influenceuse', 'couple', 'mariage célébrité', 'scandale', 'divorce', 'séparation', 'romance', 'relation amoureuse', 'people', 'pipole', 'mort de', 'décès de', 'hommage à', 'obsèques', 'enterrement', 'biographie', 'vie de', 'carrière de', 'personnalité', 'icône', 'légende', 'vedette', 'reine de la pop', 'roi de la pop', 'nabilla', 'cyril hanouna', 'kylian mbappé', 'rihanna', 'johnny depp', 'angelina jolie', 'brad pitt', 'kim kardashian', 'kanye west', 'shakira', 'gims', 'stromae', 'angèle', 'aya nakamura', 'soprano', 'orelsan', 'nekfeu', 'omar sy', 'gad elmaleh', 'jamel debbouze', 'florence foresti', 'johnny hallyday', 'laeticia hallyday', 'laura smet', 'vanessa paradis', 'carla bruni', 'lady gaga', 'ariana grande', 'justin bieber', 'taylor swift', 'billie eilish', 'leonardo dicaprio', 'tom cruise', 'will smith', 'robert downey jr', 'scarlett johansson', 'jennifer lawrence', 'emma watson', 'margot robbie', 'zendaya', 'timothée chalamet'],
 
-  'Business': ['business', 'entreprise', 'entrepreneur', 'économ', 'startup', 'pme', 'société', 'pdg', 'ceo', 'dirigeant', 'manager', 'employé', 'travail', 'télétravail', 'recrutement', 'commerce', 'marketing', 'vente', 'client', 'croissance', 'investissement', 'acquisition', 'partenariat', 'chiffre d\'affaires', 'profit', 'business model'],
+  'Finance': ['financ', 'banque', 'bourse', 'action', 'investissement', 'trading', 'crypto', 'bitcoin', 'ethereum', 'euro', 'dollar', 'taux', 'crédit', 'dette', 'inflation', 'cac 40', 'assurance', 'immobilier', 'patrimoine', 'prix', 'tarif', 'coût', 'essence', 'carburant', 'gazole', 'diesel', 'pompe', 'sp95', 'sp98', 'e10', 'station-service', 'budget', 'pouvoir d\'achat', 'économies', 'facture'],
 
-  'Finance': ['financ', 'banque', 'bourse', 'action', 'investissement', 'trading', 'crypto', 'bitcoin', 'ethereum', 'euro', 'dollar', 'taux', 'crédit', 'dette', 'inflation', 'cac 40', 'assurance', 'immobilier', 'patrimoine'],
+  'Tech': ['tech', 'technolog', 'ai', 'ia', 'intelligence artificielle', 'numér', 'digit', 'cyber', 'app', 'application', 'logiciel', 'software', 'internet', 'web', 'smartphone', 'google', 'apple', 'microsoft', 'meta', 'cloud', 'data', 'données', 'algorithme', 'robot', 'drone', '5g', 'blockchain', 'nft', 'chatgpt', 'openai', 'innovation', 'github', 'api'],
 
-  'Santé': ['santé', 'médic', 'médecin', 'hôpital', 'patient', 'maladie', 'cancer', 'covid', 'vaccin', 'traitement', 'pharmacie', 'nutrition', 'fitness', 'bien-être', 'mental', 'psycho', 'chirurgie'],
+  'Business': ['business', 'entreprise', 'entrepreneur', 'économ', 'startup', 'pme', 'société commerciale', 'pdg', 'ceo', 'dirigeant', 'manager', 'employé', 'travail', 'télétravail', 'recrutement', 'commerce', 'marketing', 'vente', 'client', 'croissance', 'acquisition', 'partenariat', 'chiffre d\'affaires', 'profit'],
 
-  'Sport': ['sport', 'foot', 'football', 'ligue 1', 'match', 'joueur', 'équipe', 'psg', 'om', 'tennis', 'rugby', 'basket', 'formule 1', 'olympique', 'champion', 'victoire', 'transfert'],
+  'Santé': ['santé', 'médic', 'médecin', 'hôpital', 'patient', 'maladie', 'cancer', 'covid', 'vaccin', 'traitement', 'pharmacie', 'nutrition', 'fitness', 'bien-être', 'mental', 'psycho', 'chirurgie', 'soin', 'clinique', 'épidémie', 'pandémie', 'virus', 'bactérie'],
 
-  'Culture': ['culture', 'film', 'cinéma', 'série', 'netflix', 'musique', 'concert', 'festival', 'cannes', 'oscar', 'théâtre', 'livre', 'musée', 'exposition'],
+  'Sport': ['sport', 'foot', 'football', 'ligue 1', 'match', 'joueur de foot', 'équipe de', 'psg', 'om', 'tennis', 'rugby', 'basket', 'formule 1', 'f1', 'olympique', 'champion', 'victoire', 'transfert', 'entraîneur', 'stade', 'terrain', 'compétition', 'tournoi', 'coupe', 'ballon'],
 
-  'Politique': ['politique', 'gouvernement', 'ministre', 'président', 'macron', 'élection', 'vote', 'parlement', 'député', 'parti', 'loi', 'réforme', 'manifestation'],
+  'Culture': ['culture', 'film', 'cinéma', 'série', 'musique', 'concert', 'festival', 'cannes', 'oscar', 'césar', 'théâtre', 'livre', 'musée', 'exposition', 'art', 'peinture', 'sculpture', 'artiste', 'réalisateur', 'metteur en scène', 'album', 'single', 'clip', 'tournage'],
 
-  'Climat': ['climat', 'écologie', 'environnement', 'énergie', 'solaire', 'éolien', 'pollution', 'co2', 'réchauffement', 'biodiversité', 'transition'],
+  'Politique': ['politique', 'gouvernement', 'ministre', 'président', 'macron', 'élection', 'vote', 'parlement', 'assemblée nationale', 'sénat', 'député', 'sénateur', 'parti politique', 'loi', 'réforme', 'manifestation', 'syndicat', 'grève', 'décret', 'conseil des ministres'],
 
-  'Automobile': ['auto', 'voiture', 'électrique', 'tesla', 'renault', 'peugeot', 'bmw', 'mercedes', 'salon', 'permis'],
+  'Climat': ['climat', 'écologie', 'environnement', 'énergie renouvelable', 'solaire', 'éolien', 'pollution', 'co2', 'carbone', 'réchauffement', 'biodiversité', 'transition écologique', 'cop', 'giec', 'déforestation', 'océan', 'mer'],
 
-  'Lifestyle': ['mode', 'fashion', 'beauté', 'voyage', 'maison', 'déco', 'mariage', 'luxe'],
+  'Automobile': ['auto', 'voiture', 'véhicule', 'électrique', 'hybride', 'tesla', 'renault', 'peugeot', 'citroën', 'bmw', 'mercedes', 'audi', 'volkswagen', 'salon auto', 'permis de conduire', 'code de la route', 'sécurité routière', 'accident de la route'],
 
-  'People': ['célébrité', 'star', 'acteur', 'actrice', 'chanteur', 'chanteuse', 'influenceur', 'influenceuse', 'couple', 'mariage', 'scandale', 'divorce', 'séparation', 'romance', 'relation', 'people', 'pipole', 'nabilla', 'cyril hanouna', 'kylian mbappé', 'beyoncé', 'rihanna', 'johnny depp', 'angelina jolie', 'brad pitt', 'kim kardashian', 'kanye west', 'beyonce', 'shakira', 'gims', 'jul', 'ninho', 'booba', 'kaaris', 'shy\'m', 'jenifer', 'florent pagny', 'daft punk', 'david guetta', 'dj snake', 'stromae', 'angèle', 'aya nakamura', 'soprano', 'maître gims', 'bigflo', 'oli', 'orelsan', 'black m', 'kendji girac', 'louane', 'slimane', 'vianney', 'clara luciani', 'juliette armanet', 'pomme', 'yseult', 'lomepal', 'nekfeu', 'pnl', 'damso', 'laylow', 'freeze corleone', 'gazo', 'tiakola', 'real madrid', 'neymar', 'messi', 'ronaldo', 'benzema', 'griezmann', 'pogba', 'kante', 'giroud', 'deschamps', 'zidane', 'omar sy', 'gad elmaleh', 'jamel debbouze', 'kev adams', 'florence foresti', 'patrick bruel', 'julien doré', 'vanessa paradis', 'johnny hallyday', 'laeticia hallyday', 'laura smet', 'david hallyday', 'carla bruni', 'nicolas sarkozy', 'julie gayet', 'françois hollande', 'valérie trierweiler', 'brigitte macron', 'emmanuel macron', 'lady gaga', 'ariana grande', 'justin bieber', 'selena gomez', 'taylor swift', 'billie eilish', 'dua lipa', 'the weeknd', 'drake', 'bad bunny', 'rosalía', 'harry styles', 'ed sheeran', 'adele', 'sam smith', 'lizzo', 'cardi b', 'megan thee stallion', 'nicki minaj', 'eminem', 'kanye', 'jay-z', 'snoop dogg', 'dr dre', 'kendrick lamar', 'j cole', 'post malone', 'travis scott', 'lil nas x', 'doja cat', 'saweetie', 'ice spice', 'leonardo dicaprio', 'tom cruise', 'will smith', 'denzel washington', 'morgan freeman', 'samuel l jackson', 'robert downey jr', 'chris hemsworth', 'chris evans', 'scarlett johansson', 'jennifer lawrence', 'emma watson', 'emma stone', 'margot robbie', 'zendaya', 'timothée chalamet', 'tom holland', 'andrew garfield', 'ryan gosling', 'ryan reynolds', 'blake lively', 'gigi hadid', 'bella hadid', 'kendall jenner', 'kylie jenner', 'khloe kardashian', 'kourtney kardashian', 'kris jenner', 'travis barker', 'machine gun kelly', 'megan fox', 'amber heard', 'elon musk', 'jeff bezos', 'mark zuckerberg', 'bill gates'],
+  'Lifestyle': ['mode', 'fashion', 'beauté', 'maquillage', 'cosmétique', 'voyage', 'vacances', 'destination', 'maison', 'déco', 'décoration', 'intérieur', 'mariage', 'luxe', 'tendance mode', 'défilé', 'collection'],
 
-  'Gaming': ['gaming', 'jeu vidéo', 'gamer', 'playstation', 'xbox', 'nintendo', 'fortnite', 'esport'],
+  'Gaming': ['gaming', 'jeu vidéo', 'gamer', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'pc gaming', 'fortnite', 'esport', 'e-sport', 'twitch', 'stream', 'streamer', 'console', 'manette', 'dlc'],
 
-  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'michelin', 'vin'],
+  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'michelin', 'étoile', 'vin', 'recette', 'plat', 'menu', 'dégustation', 'sommelier', 'cuisinier', 'pâtisserie', 'boulangerie'],
 
-  'Science': ['science', 'recherche', 'découverte', 'espace', 'nasa', 'physique', 'chimie'],
+  'Science': ['science', 'scientifique', 'recherche', 'chercheur', 'découverte', 'étude', 'espace', 'nasa', 'astronomie', 'physique', 'chimie', 'biologie', 'laboratoire', 'expérience', 'planète', 'galaxie', 'univers', 'cnrs'],
 
-  'International': ['international', 'monde', 'guerre', 'conflit', 'onu', 'états-unis', 'chine', 'russie', 'ukraine'],
+  'International': ['international', 'monde', 'guerre', 'conflit', 'onu', 'états-unis', 'usa', 'chine', 'russie', 'ukraine', 'israël', 'gaza', 'palestine', 'trump', 'biden', 'poutine', 'zelensky', 'netanyahu', 'diplomatie', 'géopolitique', 'ambassade'],
 
-  'Tendances': ['tendance', 'viral', 'buzz', 'nouveau', 'must'],
+  'Tendances': ['tendance', 'viral', 'buzz', 'trending', 'tiktok', 'réseaux sociaux', 'instagram', 'twitter', 'x', 'phénomène', 'engouement'],
 };
 
 // Catégoriser avec scoring pondéré (titre = 3x description)
