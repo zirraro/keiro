@@ -62,13 +62,13 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Bouton auth placeholder */}
+        {/* Bouton connexion/inscription */}
         <div>
           <Link
-            href="#"
-            className="text-sm text-neutral-500 hover:text-neutral-800"
+            href="/login"
+            className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all"
           >
-            Se connecter
+            Se connecter / S'inscrire
           </Link>
         </div>
       </div>

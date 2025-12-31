@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import SubscriptionModal from '@/components/SubscriptionModal';
+import EmailGateModal from '@/components/EmailGateModal';
+import SignupGateModal from '@/components/SignupGateModal';
+import { useGenerationLimit } from '@/hooks/useGenerationLimit';
+import { supabase } from '@/lib/supabase';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -77,6 +81,7 @@ export default function GeneratePage() {
   const [storyToTell, setStoryToTell] = useState(''); // Nouvel état : histoire à raconter
   const [publicationGoal, setPublicationGoal] = useState(''); // Nouvel état : but de la publication
   const [emotionToConvey, setEmotionToConvey] = useState(''); // Nouvel état : émotion à transmettre
+  const [optionalText, setOptionalText] = useState(''); // Nouvel état : texte à ajouter (optionnel)
   const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('Professionnel');
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
@@ -102,6 +107,11 @@ export default function GeneratePage() {
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  /* --- États pour le système freemium --- */
+  const generationLimit = useGenerationLimit();
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showSignupGate, setShowSignupGate] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -196,6 +206,16 @@ export default function GeneratePage() {
       return;
     }
 
+    // Vérifier les limites de génération (freemium)
+    if (generationLimit.requiredAction === 'email') {
+      setShowEmailGate(true);
+      return;
+    }
+    if (generationLimit.requiredAction === 'signup') {
+      setShowSignupGate(true);
+      return;
+    }
+
     setGenerating(true);
     setGenerationError(null);
     setGeneratedImageUrl(null);
@@ -252,11 +272,22 @@ export default function GeneratePage() {
         `DO NOT include any social media platform names, logos, or interface elements in the image.`
       );
 
+      // Texte optionnel (seulement si fourni par l'utilisateur)
+      if (optionalText && optionalText.trim()) {
+        promptParts.push(
+          `\n\nTEXT OVERLAY: Include the following text in the image in a clear, readable font: "${optionalText.trim()}". ` +
+          `The text should be well-integrated into the design and easily readable.`
+        );
+      }
+
       // Instructions de qualité finale
       promptParts.push(
         `\n\nQUALITY REQUIREMENTS: ` +
         `The final image must be publication-ready with professional photography/illustration standards. ` +
-        `Colors should be vibrant but harmonious. If text is included, it must be clearly readable. ` +
+        `Colors should be vibrant but harmonious. ` +
+        (optionalText && optionalText.trim() ?
+          `Text must be clearly readable and well-integrated into the design. ` :
+          `DO NOT include any text overlay or captions in the image unless specified. `) +
         `The composition should guide the viewer's eye naturally through the visual story. ` +
         `Most importantly: make the news-to-business connection obvious and compelling.`
       );
@@ -265,14 +296,18 @@ export default function GeneratePage() {
 
       console.log('[Generate] Full prompt:', fullPrompt);
 
-      // Appeler Seedream 4.0 t2i
-      const res = await fetch('/api/seedream/t2i', {
+      // Choisir entre i2i (si logo présent) ou t2i
+      const endpoint = logoUrl ? '/api/seedream/i2i' : '/api/seedream/t2i';
+      const requestBody = logoUrl
+        ? { prompt: fullPrompt, image: logoUrl, size: '2K' }
+        : { prompt: fullPrompt, size: '2K' };
+
+      console.log(`[Generate] Using ${logoUrl ? 'i2i' : 't2i'} endpoint`);
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: fullPrompt,
-          size: '2K'
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!res.ok) {
@@ -284,6 +319,33 @@ export default function GeneratePage() {
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
       setGeneratedPrompt(fullPrompt);
+
+      // Incrémenter le compteur de génération pour le freemium
+      generationLimit.incrementCount();
+
+      // Auto-save vers la librairie si l'utilisateur est connecté
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('[Generate] User logged in, auto-saving to library...');
+          const saveResponse = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              url: data.imageUrl,
+              type: 'image',
+              prompt: fullPrompt
+            })
+          });
+          const saveData = await saveResponse.json();
+          if (saveData.ok) {
+            console.log('[Generate] Auto-saved to library successfully');
+          }
+        }
+      } catch (saveError) {
+        // Silently fail auto-save, don't interrupt user flow
+        console.error('[Generate] Auto-save error:', saveError);
+      }
     } catch (e: any) {
       console.error('Generation error:', e);
       const errorMessage = e.message || 'Erreur lors de la génération';
@@ -824,7 +886,7 @@ export default function GeneratePage() {
                   </div>
 
                   {/* Émotion à transmettre */}
-                  <div>
+                  <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Émotion à transmettre
                     </label>
@@ -833,6 +895,20 @@ export default function GeneratePage() {
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
                       placeholder="Ex: Rassurance face à l'actu, optimisme, sentiment d'opportunité, empathie..."
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+
+                  {/* Texte à ajouter (optionnel) */}
+                  <div>
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700 flex items-center gap-1">
+                      Texte à ajouter <span className="text-neutral-400 font-normal">(optionnel)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={optionalText}
+                      onChange={(e) => setOptionalText(e.target.value)}
+                      placeholder="Ex: Offre limitée, -20% ce week-end, Nouvelle collection..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -1414,6 +1490,22 @@ export default function GeneratePage() {
         <SubscriptionModal
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
+        />
+
+        {/* Modal Email Gate (2ème génération) */}
+        <EmailGateModal
+          isOpen={showEmailGate}
+          onClose={() => setShowEmailGate(false)}
+          onSubmit={(email) => {
+            generationLimit.setEmail(email);
+            setShowEmailGate(false);
+          }}
+        />
+
+        {/* Modal Signup Gate (3ème+ génération) */}
+        <SignupGateModal
+          isOpen={showSignupGate}
+          onClose={() => setShowSignupGate(false)}
         />
       </div>
     </div>

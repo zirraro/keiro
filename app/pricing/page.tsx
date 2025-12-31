@@ -14,7 +14,7 @@ export default function PricingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </span>
-            Offre de lancement - 50 places Fondateurs
+            Offre de lancement - 20 places Fondateurs
           </div>
           <h1 className="text-5xl font-bold mb-6">
             Choisissez votre plan et{' '}
@@ -158,7 +158,7 @@ export default function PricingPage() {
           <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                50 places seulement
+                20 places seulement
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -359,7 +359,7 @@ export default function PricingPage() {
                 Qu'est-ce que l'offre Fondateurs ?
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Les 50 premiers clients bénéficient du tarif Fondateur à 149€/mois (au lieu de 199€) verrouillé à vie.
+                Les 20 premiers clients bénéficient du tarif Fondateur à 149€/mois (au lieu de 199€) verrouillé à vie.
                 Tant que vous restez abonné, votre prix ne changera jamais. Plus une démo personnalisée offerte pour vous accompagner.
               </p>
             </details>
