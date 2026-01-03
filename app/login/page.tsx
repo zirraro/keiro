@@ -56,6 +56,7 @@ export default function LoginPage() {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/generate`,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -65,6 +66,8 @@ export default function LoginPage() {
       });
 
       if (signUpError) throw signUpError;
+
+      console.log('[Signup] User created:', data.user?.id);
 
       // Créer le profil dans la table profiles
       if (data.user) {
@@ -81,16 +84,31 @@ export default function LoginPage() {
           ]);
 
         if (profileError) {
-          console.error('Profile creation error:', profileError);
+          console.error('[Signup] Profile creation error:', profileError);
+          // Ne pas bloquer l'inscription si la création du profil échoue
+        } else {
+          console.log('[Signup] Profile created successfully');
         }
       }
 
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/generate');
-        router.refresh();
-      }, 1000);
+      // Vérifier si l'utilisateur est directement connecté (si email confirmation désactivée)
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // Utilisateur connecté immédiatement
+        console.log('[Signup] User logged in immediately');
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/generate');
+          router.refresh();
+        }, 1000);
+      } else {
+        // Email de confirmation nécessaire
+        setSuccess(true);
+        setError('Vérifiez votre email pour confirmer votre inscription !');
+      }
     } catch (err: any) {
+      console.error('[Signup] Error:', err);
       setError(err.message || 'Erreur lors de l\'inscription');
     } finally {
       setLoading(false);
