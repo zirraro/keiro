@@ -36,7 +36,7 @@ export default function Header() {
           .eq('id', user.id)
           .single();
 
-        setProfile(profileData);
+        setProfile(profileData as any);
       }
     };
 
@@ -51,14 +51,14 @@ export default function Header() {
           .select('*')
           .eq('id', session.user.id)
           .single()
-          .then(({ data }) => setProfile(data));
+          .then(({ data }: any) => setProfile(data));
       } else {
         setProfile(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
