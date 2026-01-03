@@ -1,60 +1,293 @@
-'use client'
-import { useState } from 'react'
-import { supabaseBrowser } from '@/lib/supabase/client'
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 export default function LoginPage() {
-  const supabase = supabaseBrowser()
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
-  const [err, setErr] = useState<string|null>(null)
-  const url = typeof window !== 'undefined' ? window.location.origin : ''
+  const router = useRouter();
+  const supabase = supabaseBrowser();
+
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  // Form fields
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/generate');
+        router.refresh();
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Erreur de connexion');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Créer le compte
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            business_type: businessType,
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Créer le profil dans la table profiles
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              email: email,
+              first_name: firstName,
+              last_name: lastName,
+              business_type: businessType,
+            },
+          ]);
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/generate');
+        router.refresh();
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de l\'inscription');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12 space-y-4">
-      <h1 className="text-2xl font-semibold">Connexion</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+        {/* Logo / Titre */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            KeiroAI
+          </h1>
+          <p className="text-neutral-600 mt-2">
+            Créez des visuels qui surfent sur l'actu
+          </p>
+        </div>
 
-      <div className="space-y-2">
-        <label className="text-sm">Email (magic link)</label>
-        <div className="flex gap-2">
-          <input
-            className="border rounded-md px-3 py-2 w-full"
-            value={email}
-            onChange={e=>setEmail(e.target.value)}
-            placeholder="toi@exemple.com"
-          />
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-neutral-100 rounded-lg p-1">
           <button
-            className="px-3 py-2 rounded-md bg-black text-white"
-            onClick={async ()=>{
-              setErr(null)
-              const { error } = await supabase.auth.signInWithOtp({
-                email,
-                options: { emailRedirectTo: `${url}/auth/callback` }
-              })
-              if (error) setErr(error.message); else setSent(true)
-            }}
+            onClick={() => setMode('login')}
+            className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${
+              mode === 'login'
+                ? 'bg-white text-blue-600 shadow'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
           >
-            Envoyer
+            Connexion
+          </button>
+          <button
+            onClick={() => setMode('signup')}
+            className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${
+              mode === 'signup'
+                ? 'bg-white text-blue-600 shadow'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            Inscription
           </button>
         </div>
-        {sent && <p className="text-sm text-green-700">Vérifie ta boîte mail 👍</p>}
-        {err && <p className="text-sm text-red-600">{err}</p>}
-      </div>
 
-      <div className="space-y-2">
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 rounded-md border"
-            onClick={async ()=>{ await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${url}/auth/callback` } })}}
-          >Google</button>
-          <button
-            className="px-3 py-2 rounded-md border"
-            onClick={async ()=>{ await supabase.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${url}/auth/callback` } })}}
-          >GitHub</button>
-        </div>
-        <p className="text-xs text-neutral-500">
-          Ajoute http://localhost:3000 dans Supabase → Authentication → URL Configuration.
-        </p>
+        {/* Success Message */}
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm font-medium">
+              {mode === 'login' ? 'Connexion réussie !' : 'Compte créé avec succès !'}
+            </p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Login Form */}
+        {mode === 'login' && (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                placeholder="votre@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Connexion...' : 'Se connecter'}
+            </button>
+          </form>
+        )}
+
+        {/* Signup Form */}
+        {mode === 'signup' && (
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Prénom
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  placeholder="Jean"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Nom
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  placeholder="Dupont"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                placeholder="votre@email.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                placeholder="••••••••"
+              />
+              <p className="text-xs text-neutral-500 mt-1">Minimum 6 caractères</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Type d'activité
+              </label>
+              <select
+                required
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+              >
+                <option value="">Sélectionnez...</option>
+                <option value="restaurant">Restaurant / Café</option>
+                <option value="retail">Commerce / Retail</option>
+                <option value="services">Services / Conseil</option>
+                <option value="ecommerce">E-commerce</option>
+                <option value="agency">Agence / Marketing</option>
+                <option value="freelance">Freelance</option>
+                <option value="other">Autre</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Création du compte...' : 'Créer mon compte'}
+            </button>
+
+            <p className="text-xs text-neutral-500 text-center">
+              En créant un compte, vous acceptez nos conditions d'utilisation
+            </p>
+          </form>
+        )}
       </div>
     </div>
-  )
+  );
 }
