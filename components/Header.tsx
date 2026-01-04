@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 const navItems = [
@@ -16,34 +16,52 @@ const navItems = [
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = supabaseBrowser();
+  const supabase = useMemo(() => supabaseBrowser(), []);
 
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Charger l'utilisateur
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[Header] Loading user...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error('[Header] Error loading user:', userError);
+      }
+
+      console.log('[Header] User loaded:', user?.id || 'none');
       setUser(user);
 
       if (user) {
         // Charger le profil
-        const { data: profileData } = await supabase
+        console.log('[Header] Loading profile for user:', user.id);
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
+        if (profileError) {
+          console.error('[Header] Error loading profile:', profileError);
+        } else {
+          console.log('[Header] Profile loaded:', profileData);
+        }
+
         setProfile(profileData as any);
       }
+
+      setLoading(false);
     };
 
     loadUser();
 
     // S'abonner aux changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      console.log('[Header] Auth state changed:', session?.user?.id || 'logged out');
       setUser(session?.user ?? null);
       if (session?.user) {
         supabase
@@ -51,7 +69,14 @@ export default function Header() {
           .select('*')
           .eq('id', session.user.id)
           .single()
-          .then(({ data }: any) => setProfile(data));
+          .then(({ data, error }: any) => {
+            if (error) {
+              console.error('[Header] Error loading profile on auth change:', error);
+            } else {
+              console.log('[Header] Profile loaded on auth change:', data);
+              setProfile(data);
+            }
+          });
       } else {
         setProfile(null);
       }

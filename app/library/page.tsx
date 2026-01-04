@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
+import { supabaseBrowser } from '@/lib/supabase/client';
+
 // Simple SVG Icons
 const BookmarkIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -26,6 +29,40 @@ const PhotoIcon = ({ className }: { className?: string }) => (
 );
 
 export default function LibraryPage() {
+  const supabase = useMemo(() => supabaseBrowser(), []);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      console.log('[Library] Loading user...');
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error('[Library] Error loading user:', error);
+      }
+
+      console.log('[Library] User loaded:', user?.id || 'none');
+      setUser(user);
+
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        console.log('[Library] Profile loaded:', profileData);
+        setProfile(profileData);
+      }
+
+      setLoading(false);
+    };
+
+    loadUser();
+  }, [supabase]);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -33,7 +70,7 @@ export default function LibraryPage() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2 text-sm text-white mb-6 shadow-lg">
             <PhotoIcon className="w-4 h-4" />
-            Mode Visiteur
+            {loading ? 'Chargement...' : (user ? `Bienvenue ${profile?.first_name || user.email?.split('@')[0]}` : 'Mode Visiteur')}
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             Votre Librairie de Visuels
@@ -41,9 +78,16 @@ export default function LibraryPage() {
           <p className="text-lg text-neutral-600 mb-4">
             Un espace personnel pour sauvegarder, organiser et retrouver tous vos visuels générés.
           </p>
-          <p className="text-sm text-blue-600 font-medium">
-            🔒 Cette page est actuellement en mode visiteur - Souscrivez à un plan pour débloquer votre librairie personnelle
-          </p>
+          {!user && (
+            <p className="text-sm text-blue-600 font-medium">
+              🔒 Cette page est actuellement en mode visiteur - Connectez-vous ou souscrivez à un plan pour débloquer votre librairie personnelle
+            </p>
+          )}
+          {user && (
+            <p className="text-sm text-green-600 font-medium">
+              ✅ Vous êtes connecté ! Votre librairie sera bientôt disponible.
+            </p>
+          )}
         </div>
 
         {/* Features Grid */}

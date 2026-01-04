@@ -45,6 +45,31 @@ export default function LoginPage() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('Veuillez entrer votre email');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setSuccess(true);
+      setError('Email de réinitialisation envoyé ! Vérifiez votre boîte mail.');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de l\'envoi de l\'email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -65,7 +90,15 @@ export default function LoginPage() {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        // Vérifier si c'est une erreur de compte déjà existant
+        if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
+          setError('Un compte existe déjà avec cet email. Veuillez vous connecter ou réinitialiser votre mot de passe.');
+          setMode('login'); // Basculer vers le mode connexion
+          return;
+        }
+        throw signUpError;
+      }
 
       console.log('[Signup] User created:', data.user?.id);
 
@@ -205,6 +238,15 @@ export default function LoginPage() {
               className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Connexion...' : 'Se connecter'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={loading}
+              className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Mot de passe oublié ?
             </button>
           </form>
         )}

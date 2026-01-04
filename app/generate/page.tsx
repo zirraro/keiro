@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
@@ -48,6 +48,18 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
+
+  /* --- Calculer les catégories qui ont au moins une news --- */
+  const availableCategories = useMemo(() => {
+    const categoriesWithNews = new Set<string>();
+    allNewsItems.forEach((item) => {
+      if (item.category) {
+        categoriesWithNews.add(item.category);
+      }
+    });
+    // Filtrer CATEGORIES pour garder uniquement celles qui ont des news
+    return CATEGORIES.filter((cat) => categoriesWithNews.has(cat));
+  }, [allNewsItems]);
 
   /* --- Filtrer les news selon catégorie et recherche --- */
   const filteredNews = allNewsItems
@@ -480,7 +492,7 @@ export default function GeneratePage() {
                 onChange={(e) => setCategory(e.target.value)}
                 className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
               >
-                {CATEGORIES.map((cat) => (
+                {availableCategories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
