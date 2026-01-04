@@ -239,7 +239,7 @@ export default function HomeKeiro() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium mb-4">
               <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-              Offre de lancement - 50 places Fondateurs
+              Offre de lancement - 20 places Fondateurs
             </div>
             <h2 className="text-2xl font-semibold">Offres & tarifs</h2>
           </div>
@@ -260,7 +260,7 @@ export default function HomeKeiro() {
             <Plan
               title="⭐ Fondateurs"
               price="149€ / mois"
-              subtitle="50 places - Prix verrouillé à vie"
+              subtitle="20 places - Prix verrouillé à vie"
               special
               bullets={[
                 'Visuels illimités',

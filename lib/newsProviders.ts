@@ -106,9 +106,13 @@ const RSS_FEEDS = [
   { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 8000 },
   { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 8000 },
 
-  // Tendances
+  // Tendances - Flux variés couvrant lifestyle, pop culture, buzz, viral
   { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 8000 },
   { url: 'https://www.aufeminin.com/rss.xml', category: 'Tendances', timeout: 8000 },
+  { url: 'https://www.grazia.fr/rss.xml', category: 'Tendances', timeout: 8000 },
+  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Tendances', timeout: 8000 },
+  { url: 'https://hitek.fr/feed', category: 'Tendances', timeout: 8000 },
+  { url: 'https://www.demotivateur.fr/feed', category: 'Tendances', timeout: 8000 },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -143,7 +147,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'International': ['international', 'monde', 'guerre', 'conflit', 'onu', 'états-unis', 'usa', 'chine', 'russie', 'ukraine', 'israël', 'gaza', 'palestine', 'trump', 'biden', 'poutine', 'zelensky', 'netanyahu', 'diplomatie', 'géopolitique', 'ambassade'],
 
-  'Tendances': ['tendance', 'viral', 'buzz', 'trending', 'tiktok', 'réseaux sociaux', 'instagram', 'twitter', 'x', 'phénomène', 'engouement'],
+  'Tendances': ['tendance', 'viral', 'buzz', 'trending', 'tiktok', 'réseaux sociaux', 'instagram', 'twitter', 'x', 'phénomène', 'engouement', 'insolite', 'wtf', 'incroyable', 'fou', 'dingue', 'génial', 'meme', 'le saviez-vous', 'fail', 'meilleur', 'pire', 'top 10', 'classement', 'vidéo buzz', 'vidéo virale', 'photo virale', 'photo buzz', 'record', 'inédit', 'première fois', 'jamais vu', 'sensation', 'révélation', 'découverte étonnante', 'hallucinant', 'choc', 'polémique', 'débat', 'controverse', 'réaction', 'commentaire', 'partage', 'like', 'retweet', 'story', 'reel', 'clip viral', 'challenge', 'défi', 'mode passagère'],
 };
 
 // Catégoriser avec scoring pondéré (titre = 3x description)
@@ -209,13 +213,14 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
           // CATÉGORISATION : priorité au flux RSS, recatégorisation uniquement pour flux génériques
           let detectedCategory = feed.category;
 
-          // Pour les flux génériques (À la une, Tendances), utiliser la catégorisation auto
-          if (feed.category === 'À la une' || feed.category === 'Tendances') {
+          // Pour "À la une" uniquement, utiliser la catégorisation auto pour disperser dans les catégories
+          if (feed.category === 'À la une') {
             const autoCategory = categorizeArticle(title, description);
             detectedCategory = autoCategory;
           }
-          // Pour les flux spécialisés, TOUJOURS garder leur catégorie
-          // (ex: un flux Tech reste Tech, un flux Sport reste Sport)
+          // Pour "Tendances", on garde la catégorie du flux (pas de recatégorisation)
+          // Pour les autres flux spécialisés, TOUJOURS garder leur catégorie
+          // (ex: un flux Tech reste Tech, un flux Sport reste Sport, un flux Tendances reste Tendances)
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,

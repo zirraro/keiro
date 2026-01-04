@@ -85,7 +85,7 @@ export default function LibraryPage() {
           )}
           {user && (
             <p className="text-sm text-green-600 font-medium">
-              ✅ Vous êtes connecté ! Votre librairie sera bientôt disponible.
+              ✅ Générez votre visuel pour qu'il apparaisse ou ajoutez-y vos propres visuels pour personnaliser votre création.
             </p>
           )}
         </div>

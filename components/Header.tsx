@@ -24,9 +24,20 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Charger l'utilisateur
+    // Charger l'utilisateur ET la session
     const loadUser = async () => {
-      console.log('[Header] Loading user...');
+      console.log('[Header] Loading user and session...');
+
+      // Vérifier la session d'abord
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('[Header] Session error:', sessionError);
+      }
+
+      console.log('[Header] Session:', session ? 'active' : 'none');
+
+      // Puis charger l'utilisateur
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError) {
@@ -52,6 +63,8 @@ export default function Header() {
         }
 
         setProfile(profileData as any);
+      } else {
+        setProfile(null);
       }
 
       setLoading(false);
