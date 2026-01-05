@@ -21,6 +21,7 @@ type NewsCard = {
 };
 
 const CATEGORIES = [
+  'Dernières news',
   'À la une',
   'Tech',
   'Business',
@@ -42,7 +43,7 @@ const CATEGORIES = [
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
   /* --- États pour les actualités --- */
-  const [category, setCategory] = useState<string>('À la une');
+  const [category, setCategory] = useState<string>('Dernières news');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
   const [loading, setLoading] = useState(true); // TRUE au départ pour afficher "Chargement..."
@@ -57,26 +58,41 @@ export default function GeneratePage() {
         categoriesWithNews.add(item.category);
       }
     });
-    // Filtrer CATEGORIES pour garder uniquement celles qui ont des news
-    return CATEGORIES.filter((cat) => categoriesWithNews.has(cat));
+    // "Dernières news" est toujours disponible, puis filtrer les autres
+    const filtered = CATEGORIES.filter((cat) =>
+      cat === 'Dernières news' || categoriesWithNews.has(cat)
+    );
+    return filtered;
   }, [allNewsItems]);
 
   /* --- Filtrer les news selon catégorie et recherche --- */
-  const filteredNews = allNewsItems
-    .filter((item) => {
-      // Filtre par catégorie
-      if (item.category !== category) return false;
-      // Filtre par recherche
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        return (
-          item.title.toLowerCase().includes(query) ||
-          item.description.toLowerCase().includes(query)
-        );
-      }
-      return true;
-    })
-    .slice(0, 12); // Limiter à 12 résultats
+  const filteredNews = useMemo(() => {
+    let items = allNewsItems;
+
+    // Filtre spécial pour "Dernières news" : toutes les news triées par date
+    if (category === 'Dernières news') {
+      items = [...allNewsItems].sort((a, b) => {
+        // Trier par date décroissante (les plus récentes en premier)
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else {
+      // Filtre par catégorie normale
+      items = items.filter((item) => item.category === category);
+    }
+
+    // Filtre par recherche
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      items = items.filter((item) =>
+        item.title.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query)
+      );
+    }
+
+    return items.slice(0, 12); // Limiter à 12 résultats
+  }, [allNewsItems, category, searchQuery]);
 
   /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
@@ -1431,6 +1447,8 @@ export default function GeneratePage() {
                         setEditingImage(true);
                         try {
                           console.log('[Edit Studio] Editing image with Seedream 3.0 i2i');
+                          console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
+                          console.log('[Edit Studio] Prompt:', editPrompt);
 
                           // Appeler l'API Seedream 3.0 i2i
                           const res = await fetch('/api/seedream/i2i', {
@@ -1445,7 +1463,12 @@ export default function GeneratePage() {
                           });
 
                           const data = await res.json();
-                          if (!data?.ok) throw new Error(data?.error || 'Édition échouée');
+                          console.log('[Edit Studio] Response:', data);
+
+                          if (!data?.ok) {
+                            console.error('[Edit Studio] API Error:', data?.error);
+                            throw new Error(data?.error || 'Édition échouée');
+                          }
 
                           const newVersion = data.imageUrl;
                           setEditVersions([...editVersions, newVersion]);
