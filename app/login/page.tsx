@@ -35,8 +35,8 @@ export default function LoginPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/generate');
-        router.refresh();
+        // Force hard reload pour que le Header se rafraîchisse
+        window.location.href = '/generate';
       }, 1000);
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion');
@@ -132,8 +132,8 @@ export default function LoginPage() {
         console.log('[Signup] User logged in immediately');
         setSuccess(true);
         setTimeout(() => {
-          router.push('/generate');
-          router.refresh();
+          // Force hard reload pour que le Header se rafraîchisse
+          window.location.href = '/generate';
         }, 1000);
       } else {
         // Email de confirmation nécessaire

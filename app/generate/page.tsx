@@ -5,6 +5,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
+import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
 
 /* ---------------- Types ---------------- */
@@ -21,7 +22,6 @@ type NewsCard = {
 
 const CATEGORIES = [
   'À la une',
-  'Tendances',
   'Tech',
   'Business',
   'Finance',
@@ -45,7 +45,7 @@ export default function GeneratePage() {
   const [category, setCategory] = useState<string>('À la une');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // TRUE au départ pour afficher "Chargement..."
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
 
@@ -122,12 +122,27 @@ export default function GeneratePage() {
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
+  const editLimit = useEditLimit();
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
+  const [showEditEmailGate, setShowEditEmailGate] = useState(false);
+  const [showEditSignupGate, setShowEditSignupGate] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
     fetchAllNews();
+  }, []);
+
+  /* --- Vérifier si l'utilisateur est connecté pour débloquer les limites --- */
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        generationLimit.setHasAccount(true);
+        editLimit.setHasAccount(true);
+      }
+    };
+    checkAuth();
   }, []);
 
   async function fetchAllNews() {
@@ -1383,6 +1398,20 @@ export default function GeneratePage() {
                     {/* Bouton d'édition */}
                     <button
                       onClick={async () => {
+                        // Vérifier les limites d'édition freemium
+                        if (editLimit.requiredAction === 'email') {
+                          setShowEditEmailGate(true);
+                          return;
+                        }
+                        if (editLimit.requiredAction === 'signup') {
+                          setShowEditSignupGate(true);
+                          return;
+                        }
+                        if (editLimit.requiredAction === 'premium') {
+                          setShowSubscriptionModal(true);
+                          return;
+                        }
+
                         if (!editPrompt.trim() || !selectedEditVersion) {
                           alert('Veuillez décrire vos modifications');
                           return;
@@ -1410,6 +1439,10 @@ export default function GeneratePage() {
                           setEditVersions([...editVersions, newVersion]);
                           setSelectedEditVersion(newVersion);
                           setEditPrompt('');
+
+                          // Incrémenter le compteur d'éditions après succès
+                          editLimit.incrementCount();
+
                           alert('Image éditée avec succès!');
                         } catch (e: any) {
                           console.error('[Edit Studio] Error:', e);
@@ -1518,6 +1551,22 @@ export default function GeneratePage() {
         <SignupGateModal
           isOpen={showSignupGate}
           onClose={() => setShowSignupGate(false)}
+        />
+
+        {/* Modal Email Gate pour édition (2ème édition) */}
+        <EmailGateModal
+          isOpen={showEditEmailGate}
+          onClose={() => setShowEditEmailGate(false)}
+          onSubmit={(email) => {
+            editLimit.setEmail(email);
+            setShowEditEmailGate(false);
+          }}
+        />
+
+        {/* Modal Signup Gate pour édition (3ème édition) */}
+        <SignupGateModal
+          isOpen={showEditSignupGate}
+          onClose={() => setShowEditSignupGate(false)}
         />
       </div>
     </div>
