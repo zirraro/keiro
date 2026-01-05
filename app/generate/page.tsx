@@ -145,6 +145,18 @@ export default function GeneratePage() {
     checkAuth();
   }, []);
 
+  /* --- Auto-sélectionner la première catégorie avec des news si la catégorie actuelle est vide --- */
+  useEffect(() => {
+    if (!loading && allNewsItems.length > 0 && filteredNews.length === 0) {
+      // Si la catégorie actuelle n'a pas de news, passer à la première qui en a
+      const firstCategoryWithNews = availableCategories[0];
+      if (firstCategoryWithNews && firstCategoryWithNews !== category) {
+        console.log(`[Generate] Switching from empty category "${category}" to "${firstCategoryWithNews}"`);
+        setCategory(firstCategoryWithNews);
+      }
+    }
+  }, [loading, allNewsItems, filteredNews, availableCategories, category]);
+
   async function fetchAllNews() {
     try {
       setLoading(true);
