@@ -1,13 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Utiliser la service key pour bypasser RLS
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function POST(request: Request) {
   try {
+    // Initialiser le client Supabase à l'intérieur de la fonction pour éviter les erreurs au build
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[Freemium] Missing environment variables');
+      return Response.json({
+        ok: false,
+        error: 'Server configuration error'
+      }, { status: 500 });
+    }
+
+    // Utiliser la service key pour bypasser RLS
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const { email, type } = await request.json();
 
     if (!email || typeof email !== 'string') {
