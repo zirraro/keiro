@@ -1,6 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr';
 
+// Instance singleton pour éviter de créer plusieurs clients
+let supabaseInstance: any = null;
+
 export function createClient() {
+  // Si une instance existe déjà, la retourner
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
   // En développement/démo, vérifier si les variables d'env sont configurées
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -8,7 +16,7 @@ export function createClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('[Supabase Client] Missing env vars, returning stub');
     // Retourner un stub minimal si pas configuré
-    return {
+    supabaseInstance = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
         getSession: async () => ({ data: { session: null }, error: null }),
@@ -28,9 +36,12 @@ export function createClient() {
         delete: async () => ({ data: null, error: null }),
       }),
     } as any;
+    return supabaseInstance;
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  // Créer et stocker l'instance singleton
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return supabaseInstance;
 }
 
 /** Alias pour compatibilité */
