@@ -6,9 +6,10 @@ interface EmailGateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (email: string) => void;
+  type?: 'generation' | 'edit'; // Pour tracker generation vs edit
 }
 
-export default function EmailGateModal({ isOpen, onClose, onSubmit }: EmailGateModalProps) {
+export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'generation' }: EmailGateModalProps) {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -29,17 +30,26 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit }: EmailGateM
     setError('');
 
     try {
-      // Optionnel : Envoyer l'email à votre backend pour stockage
-      // await fetch('/api/capture-email', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email }),
-      // });
+      // Envoyer l'email à Supabase pour stockage
+      const response = await fetch('/api/freemium/capture-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type }),
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'enregistrement');
+      }
+
+      console.log('[EmailGateModal] Email captured successfully');
 
       onSubmit(email);
       setEmail('');
-    } catch (err) {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+    } catch (err: any) {
+      console.error('[EmailGateModal] Error:', err);
+      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
     }

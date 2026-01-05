@@ -1580,6 +1580,7 @@ export default function GeneratePage() {
             generationLimit.setEmail(email);
             setShowEmailGate(false);
           }}
+          type="generation"
         />
 
         {/* Modal Signup Gate (3ème+ génération) */}
@@ -1596,6 +1597,7 @@ export default function GeneratePage() {
             editLimit.setEmail(email);
             setShowEditEmailGate(false);
           }}
+          type="edit"
         />
 
         {/* Modal Signup Gate pour édition (3ème édition) */}
