@@ -31,10 +31,14 @@ export async function POST(request: Request) {
       prompt: prompt,
       image: image,
       response_format: 'url',
-      size: size,
       guidance_scale: guidance_scale,
       watermark: false // Pas de watermark
     };
+
+    // N'ajouter size que si ce n'est pas 'adaptive' (non supporté par l'API)
+    if (size && size !== 'adaptive') {
+      requestBody.size = size;
+    }
 
     // Ajouter seed si fourni
     if (seed !== undefined) {
