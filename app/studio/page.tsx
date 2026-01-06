@@ -7,6 +7,7 @@ import { useEditLimit } from "@/hooks/useEditLimit";
 import SubscriptionModal from "@/components/SubscriptionModal";
 import EmailGateModal from "@/components/EmailGateModal";
 import SignupGateModal from "@/components/SignupGateModal";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 function StudioContent() {
   const searchParams = useSearchParams();
@@ -37,7 +38,7 @@ function StudioContent() {
     checkAuth();
 
     // Écouter les changements d'état d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session?.user) {
         editLimit.setHasAccount(true);
         setShowSignupGate(false);
