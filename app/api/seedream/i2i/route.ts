@@ -6,7 +6,10 @@ const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, image, size = 'adaptive', seed, guidance_scale = 5.5 } = body;
+    const { prompt, image, imageUrl, size = 'adaptive', seed, guidance_scale = 5.5 } = body;
+
+    // Accepter soit 'image' soit 'imageUrl' pour compatibilité
+    const sourceImage = image || imageUrl;
 
     if (!prompt || typeof prompt !== 'string') {
       return Response.json({
@@ -15,7 +18,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    if (!image || typeof image !== 'string') {
+    if (!sourceImage || typeof sourceImage !== 'string') {
       return Response.json({
         ok: false,
         error: 'Image URL is required and must be a string'
@@ -23,13 +26,13 @@ export async function POST(request: Request) {
     }
 
     console.log('[Seedream I2I] Editing image with prompt:', prompt.substring(0, 100) + '...');
-    console.log('[Seedream I2I] Source image:', image.substring(0, 100) + '...');
+    console.log('[Seedream I2I] Source image:', sourceImage.substring(0, 100) + '...');
 
     // Appeler l'API Seedream 3.0 i2i
     const requestBody: any = {
       model: 'seededit-3-0-i2i-250628',
       prompt: prompt,
-      image: image,
+      image: sourceImage,
       response_format: 'url',
       guidance_scale: guidance_scale,
       watermark: false // Pas de watermark
