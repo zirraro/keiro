@@ -354,8 +354,8 @@ export default function GeneratePage() {
       // Choisir entre i2i (si logo présent) ou t2i
       const endpoint = logoUrl ? '/api/seedream/i2i' : '/api/seedream/t2i';
       const requestBody = logoUrl
-        ? { prompt: fullPrompt, image: logoUrl, size: '2K' }
-        : { prompt: fullPrompt, size: '2K' };
+        ? { prompt: fullPrompt, image: logoUrl }
+        : { prompt: fullPrompt };
 
       console.log(`[Generate] Using ${logoUrl ? 'i2i' : 't2i'} endpoint`);
 
