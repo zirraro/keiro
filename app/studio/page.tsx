@@ -25,15 +25,30 @@ function StudioContent() {
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
 
-  // Vérifier si l'utilisateur est connecté au chargement
+  // Vérifier si l'utilisateur est connecté au chargement et écouter les changements d'auth
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         editLimit.setHasAccount(true);
+        setShowSignupGate(false);
       }
     }
     checkAuth();
+
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        editLimit.setHasAccount(true);
+        setShowSignupGate(false);
+      } else if (event === 'SIGNED_OUT') {
+        editLimit.reset();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLoadImage = () => {

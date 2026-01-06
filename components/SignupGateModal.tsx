@@ -5,9 +5,10 @@ import Link from 'next/link';
 interface SignupGateModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function SignupGateModal({ isOpen, onClose }: SignupGateModalProps) {
+export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGateModalProps) {
   if (!isOpen) return null;
 
   return (
