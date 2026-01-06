@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "KeiroAI Studio",
@@ -16,7 +17,10 @@ export default function RootLayout({
     <html lang="fr">
       <body className="bg-white text-neutral-900">
         <Header />
-        {children}
+        <main className="pb-20 lg:pb-0">
+          {children}
+        </main>
+        <BottomNav />
       </body>
     </html>
   );

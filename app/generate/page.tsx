@@ -135,6 +135,7 @@ export default function GeneratePage() {
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'versions'>('image');
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
@@ -1162,43 +1163,422 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        {/* ===== STUDIO D'ÉDITION - OPTIMISÉ MOBILE ===== */}
+        {/* ===== STUDIO D'ÉDITION - RESPONSIVE MOBILE-FIRST ===== */}
         {showEditStudio && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div className="bg-white rounded-xl w-full h-full sm:h-[95vh] lg:h-[90vh] lg:max-w-7xl flex flex-col">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-0">
+            <div className="bg-white w-full h-full lg:rounded-xl lg:max-w-7xl lg:h-[90vh] lg:m-4 flex flex-col">
               {/* Header du studio */}
-              <div className="flex items-center justify-between border-b px-3 py-2 sm:px-4 sm:py-3">
-                <h2 className="text-base sm:text-lg font-semibold">Studio d'Édition</h2>
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <h2 className="text-lg font-semibold">Studio d'Édition</h2>
                 <button
-                  onClick={() => setShowEditStudio(false)}
+                  onClick={() => {
+                    setShowEditStudio(false);
+                    setActiveTab('image');
+                  }}
                   className="text-2xl text-neutral-500 hover:text-neutral-900"
                 >
                   ×
                 </button>
               </div>
 
-              {/* Contenu du studio - RESPONSIVE */}
-              <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-2 sm:gap-4 p-2 sm:p-4 overflow-hidden">
-                {/* GAUCHE : Versions éditées - Mobile: hidden, Desktop: sidebar */}
-                <div className="hidden lg:block lg:col-span-3 overflow-y-auto space-y-2">
-                  <h3 className="text-sm font-semibold mb-2">Versions ({editVersions.length})</h3>
+              {/* MOBILE : Onglets de navigation (< lg) */}
+              <div className="lg:hidden border-b bg-white sticky top-0 z-10">
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab('image')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'image'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-neutral-600'
+                    }`}
+                  >
+                    🖼️ Image
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('edit')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'edit'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-neutral-600'
+                    }`}
+                  >
+                    ✏️ Éditer
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('versions')}
+                    className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'versions'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-neutral-600'
+                    }`}
+                  >
+                    📋 Versions ({editVersions.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* MOBILE : Contenu des onglets (< lg) */}
+              <div className="flex-1 overflow-y-auto lg:hidden">
+                {/* Onglet Image */}
+                {activeTab === 'image' && (
+                  <div className="h-full bg-neutral-50 flex items-center justify-center p-4">
+                    {selectedEditVersion ? (
+                      <img
+                        src={selectedEditVersion}
+                        alt="Image sélectionnée"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                        crossOrigin="anonymous"
+                        loading="eager"
+                      />
+                    ) : generatedImageUrl ? (
+                      <img
+                        src={generatedImageUrl}
+                        alt="Image générée"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                        crossOrigin="anonymous"
+                        loading="eager"
+                      />
+                    ) : (
+                      <p className="text-neutral-400 text-sm">Aucune image</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Onglet Éditer */}
+                {activeTab === 'edit' && (
+                  <div className="p-4 space-y-4">
+                    <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
+                      <h3 className="text-base font-semibold mb-3">Assistant d'Édition</h3>
+
+                      {/* Mode sélection */}
+                      <div className="mb-4">
+                        <p className="text-sm font-medium mb-2">Mode de modification :</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditMode('precise')}
+                            className={`flex-1 text-sm px-4 py-3 rounded-lg font-medium min-h-[44px] transition-colors ${
+                              editMode === 'precise'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
+                            }`}
+                          >
+                            🎯 Précise
+                          </button>
+                          <button
+                            onClick={() => setEditMode('creative')}
+                            className={`flex-1 text-sm px-4 py-3 rounded-lg font-medium min-h-[44px] transition-colors ${
+                              editMode === 'creative'
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
+                            }`}
+                          >
+                            ✨ Créative
+                          </button>
+                        </div>
+                        <p className="text-xs text-purple-700 mt-2">
+                          {editMode === 'precise'
+                            ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
+                            : '✨ Permet des transformations plus importantes et créatives'}
+                        </p>
+                      </div>
+
+                      {/* Aide spécialisée */}
+                      <div className="mb-4">
+                        <p className="text-sm font-medium mb-2">💡 Aide spécialisée :</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['seo', 'marketing', 'content', 'copywriter'].map((spec) => (
+                            <button
+                              key={spec}
+                              onClick={() => setSpecialist(specialist === spec ? '' : spec)}
+                              className={`text-sm px-3 py-2 rounded-lg font-medium min-h-[44px] transition-colors ${
+                                specialist === spec
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
+                              }`}
+                            >
+                              {spec === 'seo' && '📊 SEO'}
+                              {spec === 'marketing' && '📈 Marketing'}
+                              {spec === 'content' && '✍️ Contenu'}
+                              {spec === 'copywriter' && '✨ Copy'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Conseils contextuels */}
+                      {specialist && (
+                        <div className="mb-4 p-3 bg-white rounded-lg text-xs text-purple-900 border border-purple-200">
+                          {specialist === 'seo' && (
+                            <>
+                              <p className="font-medium mb-1">💡 Suggestions SEO :</p>
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                <li>Ajoutez des éléments visuels liés aux mots-clés</li>
+                                <li>Améliorez la lisibilité du texte sur l'image</li>
+                                <li>Intégrez des symboles reconnaissables de votre secteur</li>
+                              </ul>
+                            </>
+                          )}
+                          {specialist === 'marketing' && (
+                            <>
+                              <p className="font-medium mb-1">💡 Optimisation Marketing :</p>
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                <li>Renforcez votre identité visuelle (couleurs, logo)</li>
+                                <li>Ajoutez des éléments qui attirent l'œil</li>
+                                <li>Créez de l'urgence ou de l'exclusivité visuellement</li>
+                              </ul>
+                            </>
+                          )}
+                          {specialist === 'content' && (
+                            <>
+                              <p className="font-medium mb-1">💡 Amélioration Contenu :</p>
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                <li>Ajustez l'ambiance pour refléter votre message</li>
+                                <li>Équilibrez texte et visuel pour la clarté</li>
+                                <li>Renforcez l'émotion de votre histoire</li>
+                              </ul>
+                            </>
+                          )}
+                          {specialist === 'copywriter' && (
+                            <>
+                              <p className="font-medium mb-1">💡 Impact Copywriting :</p>
+                              <ul className="list-disc pl-4 space-y-0.5">
+                                <li>Mettez en valeur votre appel à l'action</li>
+                                <li>Utilisez des contrastes pour le texte clé</li>
+                                <li>Créez une hiérarchie visuelle claire</li>
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Textarea pour prompt */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">
+                          Décrivez vos modifications :
+                        </label>
+                        <textarea
+                          value={editPrompt}
+                          onChange={(e) => setEditPrompt(e.target.value)}
+                          rows={5}
+                          className="w-full text-base rounded-lg border-2 border-purple-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                          placeholder={
+                            editMode === 'precise'
+                              ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite...'
+                              : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
+                          }
+                        />
+                      </div>
+
+                      {/* Bouton d'édition */}
+                      <button
+                        onClick={async () => {
+                          // Vérifier les limites d'édition freemium
+                          if (editLimit.requiredAction === 'email') {
+                            setShowEditEmailGate(true);
+                            return;
+                          }
+                          if (editLimit.requiredAction === 'signup') {
+                            setShowEditSignupGate(true);
+                            return;
+                          }
+                          if (editLimit.requiredAction === 'premium') {
+                            setShowSubscriptionModal(true);
+                            return;
+                          }
+
+                          if (!editPrompt.trim() || !selectedEditVersion) {
+                            alert('Veuillez décrire vos modifications');
+                            return;
+                          }
+                          setEditingImage(true);
+                          try {
+                            console.log('[Edit Studio] Editing image with Seedream 3.0 i2i');
+                            console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
+                            console.log('[Edit Studio] Prompt:', editPrompt);
+
+                            // Appeler l'API Seedream 3.0 i2i
+                            const res = await fetch('/api/seedream/i2i', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                prompt: editPrompt,
+                                image: selectedEditVersion,
+                                guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
+                              }),
+                            });
+
+                            const data = await res.json();
+                            console.log('[Edit Studio] Response:', data);
+
+                            if (!data?.ok) {
+                              console.error('[Edit Studio] API Error:', data?.error);
+                              throw new Error(data?.error || 'Édition échouée');
+                            }
+
+                            const newVersion = data.imageUrl;
+                            setEditVersions([...editVersions, newVersion]);
+                            setSelectedEditVersion(newVersion);
+                            setEditPrompt('');
+                            setActiveTab('image');
+
+                            // Incrémenter le compteur d'éditions après succès
+                            editLimit.incrementCount();
+
+                            alert('Image éditée avec succès!');
+                          } catch (e: any) {
+                            console.error('[Edit Studio] Error:', e);
+                            alert('Erreur: ' + e.message);
+                          } finally {
+                            setEditingImage(false);
+                          }
+                        }}
+                        disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
+                        className="w-full py-4 text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] transition-colors"
+                      >
+                        {editingImage ? 'Édition en cours...' : '✏️ Éditer l\'image'}
+                      </button>
+                    </div>
+
+                    {/* Exemples de modifications */}
+                    <div className="bg-neutral-50 rounded-lg border p-4">
+                      <p className="text-sm font-medium mb-3">💡 Exemples de modifications :</p>
+                      <div className="space-y-2">
+                        {[
+                          'Ajouter un filtre chaleureux et lumineux',
+                          'Rendre l\'arrière-plan flou pour mettre en valeur le sujet',
+                          'Améliorer les contrastes et la saturation des couleurs',
+                          'Ajouter mon logo de marque discrètement en bas à droite'
+                        ].map((example) => (
+                          <button
+                            key={example}
+                            onClick={() => setEditPrompt(example)}
+                            className="w-full text-left text-sm px-4 py-3 bg-white rounded-lg hover:bg-purple-50 border min-h-[44px] transition-colors"
+                          >
+                            • {example}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Onglet Versions */}
+                {activeTab === 'versions' && (
+                  <div className="p-4">
+                    <h3 className="text-base font-semibold mb-3">
+                      Versions ({editVersions.length})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {editVersions.map((version, idx) => (
+                        <div
+                          key={idx}
+                          className={`rounded-lg border-2 overflow-hidden ${
+                            selectedEditVersion === version
+                              ? 'border-purple-500 ring-2 ring-purple-200'
+                              : 'border-neutral-200'
+                          }`}
+                        >
+                          <img
+                            src={version}
+                            alt={`Version ${idx + 1}`}
+                            onClick={() => {
+                              setSelectedEditVersion(version);
+                              setActiveTab('image');
+                            }}
+                            className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
+                          />
+                          <div className="p-3 bg-gradient-to-br from-neutral-50 to-neutral-100">
+                            <div className="text-sm text-center mb-2 font-semibold text-neutral-700">
+                              Version {idx + 1}
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    const response = await fetch('/api/storage/upload', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        url: version,
+                                        type: 'image',
+                                        prompt: `Version ${idx + 1} - ${generatedPrompt || 'Image éditée'}`
+                                      })
+                                    });
+                                    const data = await response.json();
+                                    if (data.ok) {
+                                      alert('✅ Version sauvegardée!');
+                                    } else {
+                                      alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                                    }
+                                  } catch (error: any) {
+                                    alert('❌ Erreur: ' + error.message);
+                                  }
+                                }}
+                                className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
+                              >
+                                💾 Librairie
+                              </button>
+                              <div className="flex gap-2">
+                                <a
+                                  href={version}
+                                  download={`keiro-v${idx + 1}.png`}
+                                  className="flex-1 py-2 text-sm bg-blue-600 text-white text-center rounded-lg font-medium min-h-[44px] hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  ⬇️ Télécharger
+                                </a>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Supprimer cette version ?')) {
+                                      const newVersions = editVersions.filter((_, i) => i !== idx);
+                                      setEditVersions(newVersions);
+                                      if (selectedEditVersion === version && newVersions.length > 0) {
+                                        setSelectedEditVersion(newVersions[newVersions.length - 1]);
+                                      } else if (newVersions.length === 0) {
+                                        setSelectedEditVersion(null);
+                                      }
+                                    }
+                                  }}
+                                  className="flex-1 py-2 text-sm bg-neutral-200 text-neutral-700 rounded-lg font-medium min-h-[44px] hover:bg-neutral-300 transition-colors"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* DESKTOP : Layout 3 colonnes (≥ lg) */}
+              <div className="hidden lg:flex flex-1 overflow-hidden p-6 gap-6">
+                {/* Gauche : Sidebar Versions */}
+                <div className="w-64 flex-shrink-0 overflow-y-auto space-y-3">
+                  <h3 className="text-sm font-semibold mb-3">Versions ({editVersions.length})</h3>
                   {editVersions.map((version, idx) => (
                     <div
                       key={idx}
-                      className={`rounded border-2 overflow-hidden transition ${
+                      className={`rounded-lg border-2 overflow-hidden transition-all cursor-pointer ${
                         selectedEditVersion === version
                           ? 'border-purple-500 ring-2 ring-purple-200'
-                          : 'border-neutral-200'
+                          : 'border-neutral-200 hover:border-neutral-300'
                       }`}
+                      onClick={() => setSelectedEditVersion(version)}
                     >
                       <img
                         src={version}
                         alt={`Version ${idx + 1}`}
-                        onClick={() => setSelectedEditVersion(version)}
-                        className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
+                        className="w-full aspect-square object-cover"
                       />
-                      <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 border-t">
-                        <div className="text-xs text-center mb-2 font-semibold text-neutral-700">V{idx + 1}</div>
+                      <div className="p-2 bg-gradient-to-br from-neutral-50 to-neutral-100">
+                        <div className="text-xs text-center mb-2 font-semibold text-neutral-700">
+                          V{idx + 1}
+                        </div>
                         <div className="flex flex-col gap-1.5">
                           <button
                             onClick={async (e) => {
@@ -1223,18 +1603,18 @@ export default function GeneratePage() {
                                 alert('❌ Erreur: ' + error.message);
                               }
                             }}
-                            className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition"
+                            className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
                           >
-                            Librairie
+                            💾 Librairie
                           </button>
                           <div className="flex gap-1.5">
                             <a
                               href={version}
-                              download={`keiro-edit-v${idx + 1}.png`}
-                              className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition"
+                              download={`keiro-v${idx + 1}.png`}
+                              className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Télécharger
+                              ⬇️
                             </a>
                             <button
                               onClick={(e) => {
@@ -1249,9 +1629,9 @@ export default function GeneratePage() {
                                   }
                                 }
                               }}
-                              className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition"
+                              className="flex-1 py-1 text-[10px] bg-neutral-200 text-neutral-700 rounded hover:bg-neutral-300 font-medium transition-colors"
                             >
-                              Supprimer
+                              🗑️
                             </button>
                           </div>
                         </div>
@@ -1260,13 +1640,13 @@ export default function GeneratePage() {
                   ))}
                 </div>
 
-                {/* MILIEU : Image sélectionnée - Mobile: fixed height, Desktop: col-span-5 */}
-                <div className="flex-shrink-0 h-64 sm:h-80 lg:h-auto lg:col-span-5 lg:flex lg:items-center lg:justify-center bg-neutral-50 rounded-lg border overflow-hidden">
+                {/* Centre : Image display */}
+                <div className="flex-1 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden">
                   {selectedEditVersion ? (
                     <img
                       src={selectedEditVersion}
                       alt="Image sélectionnée"
-                      className="w-full h-full object-contain"
+                      className="max-w-full max-h-full object-contain"
                       crossOrigin="anonymous"
                       loading="eager"
                     />
@@ -1274,7 +1654,7 @@ export default function GeneratePage() {
                     <img
                       src={generatedImageUrl}
                       alt="Image générée"
-                      className="w-full h-full object-contain"
+                      className="max-w-full max-h-full object-contain"
                       crossOrigin="anonymous"
                       loading="eager"
                     />
@@ -1283,8 +1663,8 @@ export default function GeneratePage() {
                   )}
                 </div>
 
-                {/* DROITE : Panel Assistant d'édition - Mobile: scrollable, Desktop: col-span-4 */}
-                <div className="flex-1 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto">
+                {/* Droite : Edit Panel */}
+                <div className="w-96 flex-shrink-0 flex flex-col space-y-3 overflow-y-auto">
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
                     <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
 
@@ -1539,33 +1919,6 @@ export default function GeneratePage() {
                         • Ajouter logo
                       </button>
                     </div>
-                  </div>
-                </div>
-
-                {/* Versions - MOBILE ONLY: horizontal scroll en bas */}
-                <div className="lg:hidden flex-shrink-0">
-                  <h3 className="text-xs font-semibold mb-2">Versions ({editVersions.length})</h3>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {editVersions.map((version, idx) => (
-                      <div
-                        key={idx}
-                        className={`flex-shrink-0 w-24 rounded border-2 overflow-hidden transition ${
-                          selectedEditVersion === version
-                            ? 'border-purple-500 ring-2 ring-purple-200'
-                            : 'border-neutral-200'
-                        }`}
-                      >
-                        <img
-                          src={version}
-                          alt={`Version ${idx + 1}`}
-                          onClick={() => setSelectedEditVersion(version)}
-                          className="w-full aspect-square object-cover cursor-pointer hover:opacity-90"
-                        />
-                        <div className="p-1 bg-neutral-50 text-center">
-                          <div className="text-[9px] font-medium">V{idx + 1}</div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>

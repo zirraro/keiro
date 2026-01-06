@@ -193,8 +193,8 @@ export default function HomeKeiro() {
         <p className="mt-2 text-sm text-neutral-600">
           Hypothèse réaliste&nbsp;: <b>4 campagnes / mois</b> (hebdo) + 1–2 variantes chacune.
         </p>
-        <div className="mt-6 overflow-hidden rounded-2xl border">
-          <table className="w-full text-sm">
+        <div className="mt-6 overflow-x-auto rounded-2xl border">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
                 <th className="text-left p-3">Critère</th>

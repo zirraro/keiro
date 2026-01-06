@@ -114,7 +114,7 @@ export default function Header() {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-6">
+        <nav className="hidden lg:flex items-center gap-6">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const isHighlight = (item as any).highlight;
