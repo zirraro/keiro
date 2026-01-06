@@ -1457,7 +1457,6 @@ export default function GeneratePage() {
                             body: JSON.stringify({
                               prompt: editPrompt,
                               image: selectedEditVersion,
-                              size: 'adaptive',
                               guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
                             }),
                           });
