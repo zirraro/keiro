@@ -1,25 +1,49 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useEditLimit } from "@/hooks/useEditLimit";
 import SubscriptionModal from "@/components/SubscriptionModal";
+import EmailGateModal from "@/components/EmailGateModal";
+import SignupGateModal from "@/components/SignupGateModal";
 
 function StudioContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const supabase = supabaseBrowser();
+  const editLimit = useEditLimit();
+
   const [imageUrl, setImageUrl] = useState(searchParams.get("image") || "");
+  const [originalImage, setOriginalImage] = useState(searchParams.get("image") || "");
   const [loadedImage, setLoadedImage] = useState(searchParams.get("image") || "");
   const [editPrompt, setEditPrompt] = useState("");
   const [editingImage, setEditingImage] = useState(false);
   const [editedImages, setEditedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [showSignupGate, setShowSignupGate] = useState(false);
+
+  // Vérifier si l'utilisateur est connecté au chargement
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        editLimit.setHasAccount(true);
+      }
+    }
+    checkAuth();
+  }, []);
 
   const handleLoadImage = () => {
     if (!imageUrl.trim()) {
       alert("Veuillez entrer une URL d'image");
       return;
     }
+    setOriginalImage(imageUrl);
     setLoadedImage(imageUrl);
+    setEditedImages([]);
   };
 
   const handleFileUpload = (file: File) => {
@@ -31,7 +55,9 @@ function StudioContent() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
+      setOriginalImage(result);
       setLoadedImage(result);
+      setEditedImages([]);
     };
     reader.readAsDataURL(file);
   };
@@ -57,6 +83,20 @@ function StudioContent() {
   };
 
   const handleEdit = async () => {
+    // Vérifier les limites freemium
+    if (editLimit.requiredAction === 'email') {
+      setShowEmailGate(true);
+      return;
+    }
+    if (editLimit.requiredAction === 'signup') {
+      setShowSignupGate(true);
+      return;
+    }
+    if (editLimit.requiredAction === 'premium') {
+      setShowSubscriptionModal(true);
+      return;
+    }
+
     if (!editPrompt.trim()) {
       alert("Veuillez décrire vos modifications");
       return;
@@ -84,9 +124,12 @@ function StudioContent() {
 
       const data = await res.json();
       if (data.imageUrl) {
-        setEditedImages([data.imageUrl, ...editedImages]);
+        setEditedImages([...editedImages, data.imageUrl]);
         setLoadedImage(data.imageUrl);
         setEditPrompt("");
+
+        // Incrémenter le compteur après succès
+        editLimit.incrementCount();
       } else {
         throw new Error("Pas d'image retournée");
       }
@@ -96,6 +139,9 @@ function StudioContent() {
       setEditingImage(false);
     }
   };
+
+  // Construire le tableau de toutes les versions (Original + éditées)
+  const allVersions = originalImage ? [originalImage, ...editedImages] : [];
 
   return (
     <div className="min-h-screen bg-neutral-50 py-8">
@@ -198,6 +244,7 @@ function StudioContent() {
                 <button
                   onClick={() => {
                     setLoadedImage("");
+                    setOriginalImage("");
                     setEditedImages([]);
                   }}
                   className="w-full py-2 border rounded hover:bg-neutral-50 transition"
@@ -207,14 +254,14 @@ function StudioContent() {
               </div>
             )}
 
-            {/* Versions éditées */}
-            {editedImages.length > 0 && (
+            {/* Versions (Original + Éditées) */}
+            {allVersions.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-sm font-semibold mb-3">
-                  Versions ({editedImages.length})
+                  Versions ({allVersions.length})
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  {editedImages.map((img, idx) => (
+                  {allVersions.map((img, idx) => (
                     <div
                       key={idx}
                       className={`rounded border-2 overflow-hidden cursor-pointer transition ${
@@ -226,11 +273,13 @@ function StudioContent() {
                     >
                       <img
                         src={img}
-                        alt={`Version ${idx + 1}`}
+                        alt={idx === 0 ? "Original" : `Version ${idx}`}
                         className="w-full aspect-square object-cover"
                       />
                       <div className="p-1 bg-neutral-50 text-center">
-                        <div className="text-xs">V{idx + 1}</div>
+                        <div className="text-xs font-medium">
+                          {idx === 0 ? "Original" : `V${idx}`}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -288,7 +337,26 @@ function StudioContent() {
         </div>
       </div>
 
-      {/* Modal de souscription */}
+      {/* Modales */}
+      <EmailGateModal
+        isOpen={showEmailGate}
+        onClose={() => setShowEmailGate(false)}
+        onSubmit={(email) => {
+          editLimit.setEmail(email);
+          setShowEmailGate(false);
+        }}
+        type="edit"
+      />
+
+      <SignupGateModal
+        isOpen={showSignupGate}
+        onClose={() => setShowSignupGate(false)}
+        onSuccess={() => {
+          editLimit.setHasAccount(true);
+          setShowSignupGate(false);
+        }}
+      />
+
       <SubscriptionModal
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
