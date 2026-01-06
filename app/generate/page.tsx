@@ -646,7 +646,9 @@ export default function GeneratePage() {
                     <img
                       src={logoUrl}
                       alt="Logo"
-                      className="w-16 h-16 object-cover rounded mx-auto border"
+                      className="w-40 h-40 object-contain rounded mx-auto border bg-white p-2"
+                      crossOrigin="anonymous"
+                      loading="eager"
                     />
                     <button
                       onClick={() => setLogoUrl(null)}
@@ -1052,6 +1054,8 @@ export default function GeneratePage() {
                     src={generatedImageUrl}
                     alt="Visuel généré"
                     className="w-full h-full object-contain"
+                    crossOrigin="anonymous"
+                    loading="eager"
                   />
                 </div>
                 <div className="mt-3 space-y-2">
@@ -1263,12 +1267,16 @@ export default function GeneratePage() {
                       src={selectedEditVersion}
                       alt="Image sélectionnée"
                       className="w-full h-full object-contain"
+                      crossOrigin="anonymous"
+                      loading="eager"
                     />
                   ) : generatedImageUrl ? (
                     <img
                       src={generatedImageUrl}
                       alt="Image générée"
                       className="w-full h-full object-contain"
+                      crossOrigin="anonymous"
+                      loading="eager"
                     />
                   ) : (
                     <p className="text-neutral-400 text-sm">Aucune image</p>
