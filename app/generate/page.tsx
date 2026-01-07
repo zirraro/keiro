@@ -1055,9 +1055,18 @@ export default function GeneratePage() {
                     src={generatedImageUrl}
                     alt="Visuel généré"
                     className="w-full h-full object-contain"
-                    crossOrigin="anonymous"
-                    loading="eager"
+                    onLoad={(e) => {
+                      (e.target as HTMLImageElement).style.opacity = '1';
+                    }}
+                    style={{ opacity: 0, transition: 'opacity 0.3s' }}
                   />
+                  {/* Loader pendant le chargement */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-50">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                      <p className="text-xs text-neutral-500">Chargement...</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-3 space-y-2">
                   {/* Première ligne de boutons */}
@@ -1227,16 +1236,12 @@ export default function GeneratePage() {
                         src={selectedEditVersion}
                         alt="Image sélectionnée"
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                        crossOrigin="anonymous"
-                        loading="eager"
                       />
                     ) : generatedImageUrl ? (
                       <img
                         src={generatedImageUrl}
                         alt="Image générée"
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                        crossOrigin="anonymous"
-                        loading="eager"
                       />
                     ) : (
                       <p className="text-neutral-400 text-sm">Aucune image</p>
@@ -1647,16 +1652,12 @@ export default function GeneratePage() {
                       src={selectedEditVersion}
                       alt="Image sélectionnée"
                       className="max-w-full max-h-full object-contain"
-                      crossOrigin="anonymous"
-                      loading="eager"
                     />
                   ) : generatedImageUrl ? (
                     <img
                       src={generatedImageUrl}
                       alt="Image générée"
                       className="max-w-full max-h-full object-contain"
-                      crossOrigin="anonymous"
-                      loading="eager"
                     />
                   ) : (
                     <p className="text-neutral-400 text-sm">Aucune image</p>
