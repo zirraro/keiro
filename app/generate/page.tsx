@@ -115,11 +115,54 @@ export default function GeneratePage() {
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
   const [specialist, setSpecialist] = useState<string>('');
 
+  /* --- États pour le sélecteur de profil de communication --- */
+  const [communicationProfile, setCommunicationProfile] = useState<'inspirant' | 'expert' | 'urgent' | 'conversationnel'>('inspirant');
+
+  // Presets de tons par profil
+  const tonePresets = {
+    inspirant: {
+      tone: 'Inspirant et chaleureux',
+      emotion: 'Inspiration et espoir',
+      goal: 'Inspirer et créer une connexion émotionnelle',
+      story: 'Transformation et réussite humaine',
+      visualStyle: 'Lumineux et épuré',
+      icon: '✨'
+    },
+    expert: {
+      tone: 'Professionnel et pédagogique',
+      emotion: 'Confiance et crédibilité',
+      goal: 'Éduquer et établir une autorité',
+      story: 'Expertise et valeur apportée',
+      visualStyle: 'Moderne et structuré',
+      icon: '🎯'
+    },
+    urgent: {
+      tone: 'Dynamique et percutant',
+      emotion: 'Urgence et excitation',
+      goal: 'Pousser à l\'action immédiate',
+      story: 'Opportunité limitée et bénéfices concrets',
+      visualStyle: 'Énergique et contrasté',
+      icon: '⚡'
+    },
+    conversationnel: {
+      tone: 'Amical et accessible',
+      emotion: 'Proximité et authenticité',
+      goal: 'Créer du dialogue et de l\'engagement',
+      story: 'Expériences partagées et humanité',
+      visualStyle: 'Naturel et chaleureux',
+      icon: '💬'
+    }
+  };
+
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  /* --- États pour le loader avancé --- */
+  const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
+  const [loadingStep, setLoadingStep] = useState<'api' | 'download' | 'ready'>('api');
 
   /* --- États pour la génération vidéo --- */
   const [generatingVideo, setGeneratingVideo] = useState(false);
@@ -173,6 +216,16 @@ export default function GeneratePage() {
       }
     }
   }, [loading, allNewsItems, filteredNews, availableCategories, category]);
+
+  /* --- Appliquer automatiquement le preset au changement de profil de communication --- */
+  useEffect(() => {
+    const preset = tonePresets[communicationProfile];
+    setTone(preset.tone);
+    setEmotionToConvey(preset.emotion);
+    setPublicationGoal(preset.goal);
+    setStoryToTell(preset.story);
+    setVisualStyle(preset.visualStyle);
+  }, [communicationProfile]);
 
   async function fetchAllNews() {
     try {
@@ -275,77 +328,147 @@ export default function GeneratePage() {
     setGenerating(true);
     setGenerationError(null);
     setGeneratedImageUrl(null);
+    setImageLoadingProgress(0);
+    setLoadingStep('api');
+
+    // Simuler progression pendant l'appel API
+    const progressInterval = setInterval(() => {
+      setImageLoadingProgress(prev => {
+        if (prev < 60) return prev + 10; // Progression rapide jusqu'à 60%
+        if (prev < 85) return prev + 5;  // Ralentissement
+        return prev; // Bloqué à 85% jusqu'à réponse API
+      });
+    }, 400);
 
     try {
-      // Construire un prompt détaillé avec lien profond actualité/business
+      // Construire un prompt optimisé Community Manager Expert
       let promptParts: string[] = [];
 
-      // CONTEXTE PRINCIPAL : Lien actualité + business
+      // 1. CONTEXTE & LANGUE (NOUVEAU)
       promptParts.push(
-        `Create a professional social media visual that establishes a meaningful connection between ` +
-        `the following news event and this specific business.`
+        `You are an expert social media content creator and community manager. ` +
+        `Create a professional visual for a French-speaking audience that connects current news with a specific business.`
       );
 
-      // Actualité détaillée
-      promptParts.push(`\n\nNEWS CONTEXT: "${selectedNews.title}"`);
-      if (selectedNews.description) {
-        promptParts.push(`News details: ${selectedNews.description.substring(0, 200)}.`);
-      }
-
-      // Business détaillé
-      promptParts.push(`\n\nBUSINESS: ${businessType}`);
-      if (businessDescription) {
-        promptParts.push(`Business details: ${businessDescription}.`);
-      }
-
-      // LIEN EXPLICITE entre l'actualité et le business
+      // 2. ACTUALITÉ (Amélioré)
       promptParts.push(
-        `\n\nCONNECTION REQUIREMENT: The visual MUST clearly show how this news relates to and benefits ` +
-        `the business. Show a specific, tangible connection - not just generic imagery. ` +
-        `The viewer should immediately understand WHY this business is talking about this news.`
+        `\n\nNEWS STORY:\n` +
+        `Headline: "${selectedNews.title}"\n` +
+        (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 200)}\n` : '') +
+        `Source: ${selectedNews.source || 'Web'}\n\n` +
+        `Make this news story visually engaging and relevant to the target business.`
       );
 
-      // Audience ciblée
+      // 3. BUSINESS & BRAND (Amélioré)
+      promptParts.push(
+        `BUSINESS PROFILE:\n` +
+        `Type: ${businessType}\n` +
+        (businessDescription ? `Details: ${businessDescription}\n` : '') +
+        `\nThe visual must clearly show how this business BENEFITS from or RELATES to this news. ` +
+        `Show a specific, tangible connection that makes immediate sense to viewers.`
+      );
+
+      // 4. AUDIENCE CIBLÉE (Amélioré)
       if (targetAudience) {
-        promptParts.push(`\nTarget audience: ${targetAudience}. Speak directly to their interests and needs.`);
-      }
-
-      // Direction créative complète
-      if (imageAngle || storyToTell || publicationGoal || emotionToConvey) {
-        promptParts.push(`\n\nCREATIVE DIRECTION:`);
-        if (imageAngle) promptParts.push(`Visual angle: ${imageAngle}.`);
-        if (storyToTell) promptParts.push(`Story narrative: ${storyToTell}.`);
-        if (publicationGoal) promptParts.push(`Goal: ${publicationGoal}.`);
-        if (emotionToConvey) promptParts.push(`Emotion: ${emotionToConvey}.`);
-        if (marketingAngle) promptParts.push(`Marketing approach: ${marketingAngle}.`);
-      }
-
-      // Style visuel et tonalité (SANS mentionner le nom de la plateforme)
-      promptParts.push(
-        `\n\nVISUAL SPECIFICATIONS: ${visualStyle} style with ${tone.toLowerCase()} tone. ` +
-        `Professional quality, optimized for social media format. ` +
-        `High contrast, clear composition, eye-catching design. ` +
-        `DO NOT include any social media platform names, logos, or interface elements in the image.`
-      );
-
-      // Texte optionnel (seulement si fourni par l'utilisateur)
-      if (optionalText && optionalText.trim()) {
         promptParts.push(
-          `\n\nTEXT OVERLAY: Include the following text in the image in a clear, readable font: "${optionalText.trim()}". ` +
-          `The text should be well-integrated into the design and easily readable.`
+          `\n\nTARGET AUDIENCE: ${targetAudience}\n` +
+          `Speak directly to their interests, pain points, and aspirations. ` +
+          `The visual should resonate emotionally with this specific demographic.`
         );
       }
 
-      // Instructions de qualité finale
+      // 5. DIRECTION CRÉATIVE COMMUNITY MANAGER (NOUVEAU)
       promptParts.push(
-        `\n\nQUALITY REQUIREMENTS: ` +
-        `The final image must be publication-ready with professional photography/illustration standards. ` +
-        `Colors should be vibrant but harmonious. ` +
-        (optionalText && optionalText.trim() ?
-          `Text must be clearly readable and well-integrated into the design. ` :
-          `DO NOT include any text overlay or captions in the image unless specified. `) +
-        `The composition should guide the viewer's eye naturally through the visual story. ` +
-        `Most importantly: make the news-to-business connection obvious and compelling.`
+        `\n\nCOMMUNITY MANAGER APPROACH:\n` +
+        `Tone: ${tone} with an ${emotionToConvey || 'inspiring and emotional'} vibe\n` +
+        `Visual Style: ${visualStyle}\n` +
+        `Engagement Hook: The image should make people STOP scrolling and feel compelled to comment or share\n` +
+        `Storytelling: ${storyToTell || 'Connect the news to real human impact and business transformation'}\n` +
+        (publicationGoal ? `Goal: ${publicationGoal}\n` : '') +
+        (marketingAngle ? `Marketing Strategy: ${marketingAngle}\n` : '')
+      );
+
+      // 6. TEXTE OVERLAY - RÈGLES STRICTES (Fortement amélioré)
+      if (optionalText && optionalText.trim()) {
+        const textLength = optionalText.trim().length;
+        const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
+
+        promptParts.push(
+          `\n\n🎯 TEXT OVERLAY - CRITICAL REQUIREMENTS:\n` +
+          `Main Text: "${optionalText.trim()}"\n\n` +
+          `Typography Rules:\n` +
+          `- Font: Bold, modern, highly readable sans-serif (Montserrat, Inter, or Roboto style)\n` +
+          `- Size: ${textLength < 20 ? 'LARGE (hero text)' : textLength < 40 ? 'MEDIUM-LARGE' : 'MEDIUM with good spacing'}\n` +
+          `- Color: High contrast against background (white text on dark overlay, or dark text on light background)\n` +
+          `- ${isCTA ? 'Style as prominent CALL-TO-ACTION button or badge with background color' : 'Integrate naturally as headline or tagline'}\n\n` +
+          `Layout & Integration:\n` +
+          `- Position: ${isCTA ? 'Bottom third or center with button-style background' : 'Top third as impactful headline or center as hero text'}\n` +
+          `- Background: ${isCTA ? 'Solid colored rectangle or rounded badge (matching brand) behind text' : 'Subtle gradient overlay or semi-transparent backdrop for readability'}\n` +
+          `- Spacing: Generous padding around text, clear visual breathing room\n` +
+          `- Hierarchy: Text must be THE MOST PROMINENT element in the composition\n\n` +
+          `Quality Check:\n` +
+          `- Text must be perfectly readable on mobile devices (375px width)\n` +
+          `- NO text distortion, stretching, or awkward wrapping\n` +
+          `- Text should feel professional and polished, not amateurish\n` +
+          `- If text is French, ensure it's grammatically correct and naturally phrased`
+        );
+      } else {
+        promptParts.push(
+          `\n\nNO TEXT OVERLAY: Do not include any text, captions, or words in the image. ` +
+          `Focus on pure visual storytelling without textual elements.`
+        );
+      }
+
+      // 7. STANDARDS VISUELS PROFESSIONNELS (Amélioré)
+      promptParts.push(
+        `\n\n📸 PROFESSIONAL VISUAL STANDARDS:\n` +
+        `Quality Level: Publication-ready for professional social media (Instagram, LinkedIn, Facebook)\n` +
+        `Composition:\n` +
+        `- Rule of thirds with clear focal point\n` +
+        `- Leading lines that guide viewer's eye naturally\n` +
+        `- Balanced negative space for visual breathing room\n` +
+        `Color Palette:\n` +
+        `- Vibrant but harmonious colors\n` +
+        `- High contrast for attention-grabbing impact\n` +
+        `- Cohesive color story that matches the emotion and tone\n` +
+        `Lighting & Atmosphere:\n` +
+        `- Professional lighting setup\n` +
+        `- ${emotionToConvey === 'Inspiration' || tone === 'Inspirant' ? 'Warm, uplifting lighting with golden hour feel' :
+             emotionToConvey === 'Urgence' ? 'Dynamic, energetic lighting with bold shadows' :
+             'Balanced lighting that enhances the emotional tone'}\n` +
+        `Forbidden Elements:\n` +
+        `- No social media platform names or logos (no "Instagram", "TikTok", etc.)\n` +
+        `- No UI elements (likes, comments, share buttons)\n` +
+        `- No watermarks or "AI Generated" text\n` +
+        `- No stock photo clichés (generic handshakes, forced smiles)`
+      );
+
+      // 8. LIEN ACTUALITÉ-BUSINESS (NOUVEAU - Section renforcée)
+      promptParts.push(
+        `\n\n🔗 NEWS-TO-BUSINESS CONNECTION (CRITICAL):\n` +
+        `The viewer should IMMEDIATELY understand:\n` +
+        `1. What the news is about (visual representation of the event)\n` +
+        `2. What the business does (clear brand/service indication)\n` +
+        `3. WHY they're connected (obvious benefit, opportunity, or relevance)\n\n` +
+        `Show this connection through:\n` +
+        `- Split composition (news on one side, business solution on other)\n` +
+        `- Before/after visual narrative\n` +
+        `- Cause and effect imagery\n` +
+        `- Symbolic visual metaphor that links both concepts\n\n` +
+        `The connection must be SPECIFIC and TANGIBLE, not generic or abstract. ` +
+        `Think like a storyteller: "This news creates THIS opportunity/problem for THIS business/audience."`
+      );
+
+      // 9. CALL TO ENGAGEMENT (NOUVEAU - Community Manager focus)
+      promptParts.push(
+        `\n\n💬 ENGAGEMENT DESIGN:\n` +
+        `Design the visual to spark conversation and interaction:\n` +
+        `- Include thought-provoking visual elements that invite questions\n` +
+        `- Create curiosity gaps that make people want to learn more\n` +
+        `- ${tone === 'Inspirant' || emotionToConvey === 'Inspiration' ?
+             'Show aspirational outcomes that inspire viewers to imagine themselves in that scenario' :
+             'Show relatable situations that prompt viewers to share their own experiences'}\n` +
+        `- Visual should work WITH the caption (not repeat it) to create a complete story`
       );
 
       const fullPrompt = promptParts.join(' ');
@@ -372,6 +495,10 @@ export default function GeneratePage() {
       }
 
       const data = await res.json();
+      clearInterval(progressInterval);
+      setImageLoadingProgress(90);
+      setLoadingStep('download');
+
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
       setGeneratedImageUrl(data.imageUrl);
       setGeneratedPrompt(fullPrompt);
@@ -403,6 +530,7 @@ export default function GeneratePage() {
         console.error('[Generate] Auto-save error:', saveError);
       }
     } catch (e: any) {
+      clearInterval(progressInterval);
       console.error('Generation error:', e);
       const errorMessage = e.message || 'Erreur lors de la génération';
       setGenerationError(
@@ -840,6 +968,32 @@ export default function GeneratePage() {
                 </div>
               )}
 
+              {/* Sélecteur de Profil de Communication */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                  🎭 Profil de communication
+                </label>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                  {Object.entries(tonePresets).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => setCommunicationProfile(key as any)}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        communicationProfile === key
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{preset.icon}</div>
+                      <div className="text-xs font-semibold capitalize">{key}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-neutral-500 mt-2">
+                  Sélectionnez un profil pour pré-remplir les champs selon votre stratégie de communication
+                </p>
+              </div>
+
               <div className="space-y-2">
                 {/* Type de business */}
                 <div>
@@ -1046,6 +1200,24 @@ export default function GeneratePage() {
               </div>
             </div>
 
+            {/* Skeleton pendant la génération */}
+            {generating && !generatedImageUrl && (
+              <div className="bg-white rounded-xl border p-3 animate-pulse">
+                <div className="h-4 bg-neutral-200 rounded w-20 mb-3"></div>
+                <div className="aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded border">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center space-y-3">
+                      <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-neutral-300 rounded w-32 mx-auto"></div>
+                        <div className="h-2 bg-neutral-200 rounded w-24 mx-auto"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Visuel généré */}
             {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
@@ -1057,16 +1229,100 @@ export default function GeneratePage() {
                     className="w-full h-full object-contain"
                     onLoad={(e) => {
                       (e.target as HTMLImageElement).style.opacity = '1';
+                      setImageLoadingProgress(100);
+                      setLoadingStep('ready');
+                      // Nettoyer après 500ms
+                      setTimeout(() => {
+                        setImageLoadingProgress(0);
+                        setLoadingStep('api');
+                      }, 500);
                     }}
-                    style={{ opacity: 0, transition: 'opacity 0.3s' }}
+                    style={{ opacity: 0, transition: 'opacity 0.5s ease-in-out' }}
                   />
-                  {/* Loader pendant le chargement */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-50">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                      <p className="text-xs text-neutral-500">Chargement...</p>
+
+                  {/* Loader avancé pendant le chargement */}
+                  {imageLoadingProgress < 100 && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100">
+
+                      {/* Animation de génération */}
+                      <div className="relative mb-6">
+                        {/* Cercle extérieur pulsant */}
+                        <div className="absolute inset-0 w-24 h-24 border-4 border-blue-200 rounded-full animate-ping opacity-20"></div>
+
+                        {/* Cercle principal avec progression */}
+                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                          {/* Background circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="45"
+                            fill="none"
+                            stroke="#e5e7eb"
+                            strokeWidth="8"
+                          />
+                          {/* Progress circle */}
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="45"
+                            fill="none"
+                            stroke="url(#gradient)"
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                            strokeDasharray={`${imageLoadingProgress * 2.827} 282.7`}
+                            style={{ transition: 'stroke-dasharray 0.3s ease' }}
+                          />
+                          <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#3b82f6" />
+                              <stop offset="100%" stopColor="#06b6d4" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+
+                        {/* Icône centrale */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-3xl">
+                            {loadingStep === 'api' && '🎨'}
+                            {loadingStep === 'download' && '📥'}
+                            {loadingStep === 'ready' && '✓'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Texte de statut */}
+                      <div className="text-center space-y-2 px-4">
+                        <p className="text-base font-semibold text-neutral-900">
+                          {loadingStep === 'api' && 'Génération en cours...'}
+                          {loadingStep === 'download' && 'Chargement de l\'image...'}
+                          {loadingStep === 'ready' && 'Prêt !'}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {loadingStep === 'api' && 'L\'IA crée votre visuel personnalisé'}
+                          {loadingStep === 'download' && 'Optimisation et téléchargement'}
+                          {loadingStep === 'ready' && 'Votre visuel est disponible'}
+                        </p>
+
+                        {/* Barre de progression */}
+                        <div className="w-full max-w-xs mx-auto">
+                          <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${imageLoadingProgress}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-neutral-400 mt-1">{imageLoadingProgress}%</p>
+                        </div>
+                      </div>
+
+                      {/* Animation de points */}
+                      <div className="flex gap-1.5 mt-4">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="mt-3 space-y-2">
                   {/* Première ligne de boutons */}
