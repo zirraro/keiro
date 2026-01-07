@@ -126,7 +126,8 @@ export default function GeneratePage() {
       goal: 'Inspirer et créer une connexion émotionnelle',
       story: 'Transformation et réussite humaine',
       visualStyle: 'Lumineux et épuré',
-      icon: '✨'
+      icon: '✨',
+      label: 'Inspirant'
     },
     expert: {
       tone: 'Professionnel et pédagogique',
@@ -134,7 +135,8 @@ export default function GeneratePage() {
       goal: 'Éduquer et établir une autorité',
       story: 'Expertise et valeur apportée',
       visualStyle: 'Moderne et structuré',
-      icon: '🎯'
+      icon: '🎯',
+      label: 'Expert'
     },
     urgent: {
       tone: 'Dynamique et percutant',
@@ -142,7 +144,8 @@ export default function GeneratePage() {
       goal: 'Pousser à l\'action immédiate',
       story: 'Opportunité limitée et bénéfices concrets',
       visualStyle: 'Énergique et contrasté',
-      icon: '⚡'
+      icon: '⚡',
+      label: 'Urgent'
     },
     conversationnel: {
       tone: 'Amical et accessible',
@@ -150,7 +153,8 @@ export default function GeneratePage() {
       goal: 'Créer du dialogue et de l\'engagement',
       story: 'Expériences partagées et humanité',
       visualStyle: 'Naturel et chaleureux',
-      icon: '💬'
+      icon: '💬',
+      label: 'Dialogue'
     }
   };
 
@@ -279,29 +283,80 @@ export default function GeneratePage() {
     if (file) handleFileUpload(file);
   }
 
-  /* --- Remplissage automatique selon spécialité --- */
+  /* --- Remplissage automatique selon spécialité + profil communication --- */
   function applySpecialistSuggestion(specialistType: string) {
+    // Récupérer les valeurs du profil actuel
+    const currentProfile = tonePresets[communicationProfile];
+
+    // Définir les objectifs et angles selon le specialist
+    const specialistGoals: Record<string, any> = {
+      seo: {
+        goal: 'Augmenter la visibilité et le référencement naturel',
+        imageAngle: 'Visuel clair avec mots-clés visuels du secteur',
+        story: 'Expertise et autorité dans le domaine',
+        marketingAngle: 'Se positionner en expert face à l\'actualité',
+      },
+      marketing: {
+        goal: 'Générer de l\'engagement et des conversions',
+        imageAngle: 'Visuel accrocheur avec call-to-action visuel',
+        story: 'Bénéfices concrets pour le client',
+        marketingAngle: 'Profiter de l\'opportunité créée par l\'actualité',
+      },
+      content: {
+        goal: 'Éduquer et créer du lien avec l\'audience',
+        imageAngle: 'Storytelling visuel authentique',
+        story: 'Valeurs de la marque et authenticité',
+        marketingAngle: 'Surfer sur la tendance de l\'actualité',
+      },
+      copywriter: {
+        goal: 'Convaincre et pousser à l\'action',
+        imageAngle: 'Impact visuel maximal avec hiérarchie claire',
+        story: 'Transformation et résultats',
+        marketingAngle: 'Résoudre le problème soulevé par l\'actualité',
+      },
+    };
+
+    const specialist = specialistGoals[specialistType];
+    if (!specialist) return;
+
+    // Adapter l'émotion selon le profil + specialist
+    let adaptedEmotion = currentProfile.emotion;
+
     if (specialistType === 'seo') {
-      setPublicationGoal('Augmenter la visibilité et le référencement naturel');
-      setImageAngle('Visuel clair avec mots-clés visuels du secteur');
-      setStoryToTell('Expertise et autorité dans le domaine');
-      setEmotionToConvey('Confiance et professionnalisme');
+      // SEO privilégie la confiance
+      if (communicationProfile === 'inspirant') adaptedEmotion = 'Confiance inspirante';
+      else if (communicationProfile === 'expert') adaptedEmotion = 'Autorité et crédibilité';
+      else if (communicationProfile === 'urgent') adaptedEmotion = 'Urgence professionnelle';
+      else adaptedEmotion = 'Confiance accessible';
     } else if (specialistType === 'marketing') {
-      setPublicationGoal('Générer de l\'engagement et des conversions');
-      setImageAngle('Visuel accrocheur avec call-to-action visuel');
-      setStoryToTell('Bénéfices concrets pour le client');
-      setEmotionToConvey('Désir et urgence');
+      // Marketing privilégie l'action
+      if (communicationProfile === 'inspirant') adaptedEmotion = 'Désir et aspiration';
+      else if (communicationProfile === 'expert') adaptedEmotion = 'Confiance et décision';
+      else if (communicationProfile === 'urgent') adaptedEmotion = 'Urgence et excitation';
+      else adaptedEmotion = 'Enthousiasme authentique';
     } else if (specialistType === 'content') {
-      setPublicationGoal('Éduquer et créer du lien avec l\'audience');
-      setImageAngle('Storytelling visuel authentique');
-      setStoryToTell('Valeurs de la marque et authenticité');
-      setEmotionToConvey('Inspiration et connexion');
+      // Content privilégie la connexion
+      if (communicationProfile === 'inspirant') adaptedEmotion = 'Inspiration et connexion';
+      else if (communicationProfile === 'expert') adaptedEmotion = 'Valeur éducative';
+      else if (communicationProfile === 'urgent') adaptedEmotion = 'Impact émotionnel fort';
+      else adaptedEmotion = 'Authenticité et proximité';
     } else if (specialistType === 'copywriter') {
-      setPublicationGoal('Convaincre et pousser à l\'action');
-      setImageAngle('Impact visuel maximal avec hiérarchie claire');
-      setStoryToTell('Transformation et résultats');
-      setEmotionToConvey('Excitation et motivation');
+      // Copywriting privilégie la persuasion
+      if (communicationProfile === 'inspirant') adaptedEmotion = 'Motivation et transformation';
+      else if (communicationProfile === 'expert') adaptedEmotion = 'Persuasion rationnelle';
+      else if (communicationProfile === 'urgent') adaptedEmotion = 'Urgence persuasive';
+      else adaptedEmotion = 'Persuasion conversationnelle';
     }
+
+    // Appliquer les valeurs combinées
+    setPublicationGoal(specialist.goal);
+    setImageAngle(specialist.imageAngle);
+    setStoryToTell(specialist.story);
+    setMarketingAngle(specialist.marketingAngle);
+    setEmotionToConvey(adaptedEmotion);
+
+    // Le ton et le style restent ceux du profil (déjà définis)
+    // Mais on pourrait les ajuster légèrement si nécessaire
   }
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
@@ -985,7 +1040,7 @@ export default function GeneratePage() {
                       }`}
                     >
                       <div className="text-2xl mb-1">{preset.icon}</div>
-                      <div className="text-xs font-semibold capitalize">{key}</div>
+                      <div className="text-xs font-semibold">{preset.label}</div>
                     </button>
                   ))}
                 </div>
@@ -1042,10 +1097,28 @@ export default function GeneratePage() {
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                     Angle marketing
                   </label>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value !== 'custom') {
+                        setMarketingAngle(e.target.value);
+                      } else {
+                        setMarketingAngle('');
+                      }
+                    }}
+                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                  >
+                    <option value="">-- Choisir une suggestion --</option>
+                    <option value="Profiter de l'opportunité créée par l'actualité">Opportunité créée par l'actu</option>
+                    <option value="Résoudre le problème soulevé par l'actualité">Résoudre le problème de l'actu</option>
+                    <option value="Se positionner en expert face à l'actualité">Expert face à l'actu</option>
+                    <option value="Surfer sur la tendance de l'actualité">Surfer sur la tendance</option>
+                    <option value="Anticiper les conséquences de l'actualité">Anticiper les conséquences</option>
+                    <option value="custom">✏️ Personnalisé</option>
+                  </select>
                   <textarea
                     value={marketingAngle}
                     onChange={(e) => setMarketingAngle(e.target.value)}
-                    placeholder="Comment relier l'actu à votre offre ? Ex: Face à l'inflation alimentaire, nos prix restent accessibles grâce aux circuits courts"
+                    placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
                     rows={2}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                   />
@@ -1060,11 +1133,29 @@ export default function GeneratePage() {
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
                       Angle de l'image
                     </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value !== 'custom') {
+                          setImageAngle(e.target.value);
+                        } else {
+                          setImageAngle('');
+                        }
+                      }}
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                    >
+                      <option value="">-- Choisir une suggestion --</option>
+                      <option value="Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après">Split-screen avant/après</option>
+                      <option value="Focus sur la solution que nous apportons face à l'actualité">Focus sur la solution</option>
+                      <option value="Métaphore visuelle symbolique reliant l'actu et le business">Métaphore visuelle symbolique</option>
+                      <option value="Composition dramatique contrastée montrant le problème et la solution">Composition dramatique</option>
+                      <option value="Narrative visuelle séquentielle de cause à effet">Narrative séquentielle</option>
+                      <option value="custom">✏️ Personnalisé</option>
+                    </select>
                     <input
                       type="text"
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
-                      placeholder="Ex: Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après..."
+                      placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -1142,35 +1233,49 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Tonalité */}
+                {/* Tonalité (auto-géré par profil) */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Tonalité</label>
-                  <select
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    Tonalité <span className="text-blue-600">(du profil)</span>
+                  </label>
+                  <input
+                    type="text"
                     value={tone}
-                    onChange={(e) => setTone(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
-                  >
-                    <option>Professionnel</option>
-                    <option>Amical</option>
-                    <option>Inspirant</option>
-                    <option>Humoristique</option>
-                    <option>Éducatif</option>
-                  </select>
+                    readOnly
+                    className="w-full text-xs rounded-lg border-2 border-blue-100 bg-blue-50 px-3 py-2 text-neutral-700 cursor-default"
+                  />
                 </div>
 
                 {/* Style visuel */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Style</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    Style <span className="text-blue-600">(suggéré par profil)</span>
+                  </label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
-                    <option>Moderne et épuré</option>
-                    <option>Réaliste</option>
-                    <option>Illustration</option>
-                    <option>Minimaliste</option>
-                    <option>Coloré</option>
+                    <optgroup label="Styles de profil">
+                      <option value="Lumineux et épuré">Lumineux et épuré</option>
+                      <option value="Moderne et structuré">Moderne et structuré</option>
+                      <option value="Énergique et contrasté">Énergique et contrasté</option>
+                      <option value="Naturel et chaleureux">Naturel et chaleureux</option>
+                    </optgroup>
+                    <optgroup label="Autres styles">
+                      <option value="Minimaliste et clean">Minimaliste et clean</option>
+                      <option value="Coloré et vibrant">Coloré et vibrant</option>
+                      <option value="Sombre et dramatique">Sombre et dramatique</option>
+                      <option value="Pastel et doux">Pastel et doux</option>
+                      <option value="Bold et audacieux">Bold et audacieux</option>
+                      <option value="Vintage et rétro">Vintage et rétro</option>
+                      <option value="Futuriste et tech">Futuriste et tech</option>
+                      <option value="Organique et naturel">Organique et naturel</option>
+                      <option value="Luxe et premium">Luxe et premium</option>
+                      <option value="Playful et fun">Playful et fun</option>
+                      <option value="Élégant et sophistiqué">Élégant et sophistiqué</option>
+                      <option value="Dynamique et sportif">Dynamique et sportif</option>
+                    </optgroup>
                   </select>
                 </div>
 
@@ -1226,7 +1331,7 @@ export default function GeneratePage() {
                   <img
                     src={generatedImageUrl}
                     alt="Visuel généré"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain relative z-10"
                     onLoad={(e) => {
                       (e.target as HTMLImageElement).style.opacity = '1';
                       setImageLoadingProgress(100);
@@ -1237,11 +1342,15 @@ export default function GeneratePage() {
                         setLoadingStep('api');
                       }, 500);
                     }}
+                    onError={() => {
+                      console.error('[Image] Failed to load');
+                      setImageLoadingProgress(100);
+                    }}
                     style={{ opacity: 0, transition: 'opacity 0.5s ease-in-out' }}
                   />
 
                   {/* Loader avancé pendant le chargement */}
-                  {imageLoadingProgress < 100 && (
+                  {imageLoadingProgress > 0 && imageLoadingProgress < 100 && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100">
 
                       {/* Animation de génération */}
