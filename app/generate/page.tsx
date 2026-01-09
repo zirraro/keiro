@@ -7,6 +7,8 @@ import SignupGateModal from '@/components/SignupGateModal';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
+import { generateTextSuggestions } from '@/lib/text-suggestion';
+import { addTextOverlay } from '@/lib/canvas-text-overlay';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -110,6 +112,8 @@ export default function GeneratePage() {
   const [publicationGoal, setPublicationGoal] = useState(''); // Nouvel état : but de la publication
   const [emotionToConvey, setEmotionToConvey] = useState(''); // Nouvel état : émotion à transmettre
   const [optionalText, setOptionalText] = useState(''); // Nouvel état : texte à ajouter (optionnel)
+  const [textSuggestions, setTextSuggestions] = useState<string[]>([]); // Suggestions de texte intelligentes
+  const [showTextSuggestions, setShowTextSuggestions] = useState(false); // Afficher les suggestions
   const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('Professionnel');
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
@@ -440,6 +444,34 @@ export default function GeneratePage() {
     // Mais on pourrait les ajuster légèrement si nécessaire
   }
 
+  /* --- Génération de suggestions de texte intelligentes --- */
+  function handleGenerateTextSuggestions() {
+    if (!selectedNews) {
+      alert('Veuillez d\'abord sélectionner une actualité');
+      return;
+    }
+
+    if (!businessType.trim()) {
+      alert('Veuillez d\'abord renseigner votre type de business');
+      return;
+    }
+
+    // Générer les suggestions
+    const suggestions = generateTextSuggestions({
+      newsTitle: selectedNews.title,
+      newsDescription: selectedNews.description,
+      businessType,
+      businessDescription,
+      targetAudience,
+      specialist: specialist as any,
+      communicationProfile,
+      marketingAngle,
+    });
+
+    setTextSuggestions(suggestions);
+    setShowTextSuggestions(true);
+  }
+
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
     if (!selectedNews) {
@@ -524,51 +556,30 @@ export default function GeneratePage() {
         (marketingAngle ? `Marketing Strategy: ${marketingAngle}\n` : '')
       );
 
-      // 6. TEXTE OVERLAY - RÈGLES STRICTES (Fortement amélioré)
+      // 6. COMPOSITION POUR TEXT OVERLAY (Canvas post-processing)
+      // On génère TOUJOURS sans texte, puis on l'ajoute avec Canvas pour qualité parfaite
       if (optionalText && optionalText.trim()) {
-        const textLength = optionalText.trim().length;
         const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
 
         promptParts.push(
-          `\n\n🎯 TEXT OVERLAY - ABSOLUTE CRITICAL REQUIREMENTS:\n` +
-          `EXACT TEXT TO DISPLAY: "${optionalText.trim()}"\n` +
-          `⚠️ YOU MUST INCLUDE THIS EXACT TEXT IN THE IMAGE - This is MANDATORY!\n\n` +
+          `\n\n📐 COMPOSITION READY FOR TEXT OVERLAY:\n` +
+          `⚠️ DO NOT INCLUDE ANY TEXT IN THE IMAGE - Text will be added in post-processing.\n\n` +
 
-          `TYPOGRAPHY - Professional Design Standards:\n` +
-          `- Font Family: Ultra-bold, modern sans-serif (Montserrat Black, Inter ExtraBold, or Bebas Neue)\n` +
-          `- Font Weight: 800-900 (extra bold to black)\n` +
-          `- Font Size: ${textLength < 20 ? 'VERY LARGE (80-120pt equivalent, hero display text)' : textLength < 40 ? 'LARGE (60-80pt equivalent)' : 'MEDIUM-LARGE (48-60pt equivalent) with generous line spacing'}\n` +
-          `- Letter Spacing: Slightly expanded for impact and readability\n` +
-          `- Color Contrast: MAXIMUM contrast - white text on dark areas OR dark text on light areas\n` +
-          `- Text Treatment: ${isCTA ? 'Design as eye-catching CALL-TO-ACTION with solid background' : 'Integrate as bold hero headline with subtle effects'}\n\n` +
+          `VISUAL COMPOSITION - Create Space for Text:\n` +
+          `- ${isCTA ? 'Lower third (bottom 1/3) OR center area' : 'Upper third (top 1/3) OR center area'} should have visual breathing room\n` +
+          `- Create subtle visual contrast areas where text can overlay beautifully:\n` +
+          `  * ${isCTA ? 'Darker or gradient area at bottom/center for bold CTA placement' : 'Clean visual area at top/center for headline placement'}\n` +
+          `  * Avoid busy patterns or high-detail zones in text placement areas\n` +
+          `  * Natural gradient or lighting variations to support text visibility\n\n` +
 
-          `VISUAL INTEGRATION - Make it Beautiful:\n` +
-          `- Positioning: ${isCTA ? 'Lower third (bottom 1/3) OR center, with clear breathing room' : 'Upper third (top 1/3) OR center as dominant focal point'}\n` +
-          `- Background Treatment:\n` +
-          `  ${isCTA ? '* Solid rectangle or rounded badge behind text (use brand colors: blue #3b82f6 or cyan #06b6d4)' : '* Semi-transparent dark overlay (rgba(0,0,0,0.4)) OR light backdrop for contrast'}\n` +
-          `  * Ensure text stands out clearly from image background\n` +
-          `  * Add subtle drop shadow for depth if needed\n` +
-          `- Padding & Spacing: Minimum 30-40px padding around text, generous whitespace\n` +
-          `- Visual Hierarchy: Text must be THE FIRST THING viewers see - most prominent element\n` +
-          `- Alignment: Centered or left-aligned, never awkwardly positioned\n\n` +
+          `COMPOSITION BALANCE:\n` +
+          `- Main visual elements should be positioned to leave room for prominent text\n` +
+          `- ${isCTA ? 'Create visual hierarchy leading eye toward bottom/center for CTA' : 'Keep top/center relatively clean for headline impact'}\n` +
+          `- Ensure background in text areas has good contrast potential (not too busy)\n` +
+          `- Professional, clean composition suitable for social media\n\n` +
 
-          `QUALITY STANDARDS - Non-Negotiable:\n` +
-          `✓ Text is PERFECTLY READABLE at small sizes (mobile 375px width)\n` +
-          `✓ Text appears CRISP, SHARP, and professionally rendered\n` +
-          `✓ NO distortion, warping, stretching, or perspective effects on text\n` +
-          `✓ NO awkward line breaks - text flows naturally\n` +
-          `✓ NO other random text, watermarks, or labels in the image\n` +
-          `✓ If French text: grammatically perfect and naturally phrased\n` +
-          `✓ Text integrates harmoniously with the overall composition\n` +
-          `✓ Professional, polished appearance worthy of social media publication\n\n` +
-
-          `INSPIRATION - Design Like:\n` +
-          `- High-end Instagram ads from major brands\n` +
-          `- Professional social media graphics by agencies\n` +
-          `- Bold, attention-grabbing magazine covers\n` +
-          `- Modern startup landing page heroes\n\n` +
-
-          `⚠️ CRITICAL REMINDER: The text "${optionalText.trim()}" MUST appear in the image. This is not optional.`
+          `🚫 CRITICAL: DO NOT INCLUDE ANY TEXT, WORDS, LETTERS, OR CAPTIONS IN THE IMAGE.\n` +
+          `The image should be complete and beautiful WITHOUT text. Text will be added separately.`
         );
       } else {
         promptParts.push(
@@ -663,7 +674,39 @@ export default function GeneratePage() {
       setLoadingStep('download');
 
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
-      setGeneratedImageUrl(data.imageUrl);
+
+      let finalImageUrl = data.imageUrl;
+
+      // Appliquer le text overlay avec Canvas si un texte est fourni
+      if (optionalText && optionalText.trim()) {
+        try {
+          console.log('[Generate] Applying text overlay with Canvas:', optionalText.trim());
+
+          // Déterminer le style selon le type de texte
+          const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
+          const position = isCTA ? 'bottom' : 'center';
+          const style = isCTA ? 'cta' : 'headline';
+
+          // Appliquer l'overlay
+          const imageWithText = await addTextOverlay(data.imageUrl, {
+            text: optionalText.trim(),
+            position,
+            style,
+          });
+
+          // L'image avec texte est en data URL, on la convertit en blob et on l'upload
+          // Pour l'instant, on utilise directement le data URL (ou on pourrait l'uploader)
+          finalImageUrl = imageWithText;
+
+          console.log('[Generate] Text overlay applied successfully');
+        } catch (overlayError) {
+          console.error('[Generate] Error applying text overlay:', overlayError);
+          // En cas d'erreur, on garde l'image sans texte
+          alert('Erreur lors de l\'ajout du texte. L\'image sera affichée sans texte.');
+        }
+      }
+
+      setGeneratedImageUrl(finalImageUrl);
       setGeneratedPrompt(fullPrompt);
 
       // Incrémenter le compteur de génération pour le freemium
@@ -678,7 +721,7 @@ export default function GeneratePage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              url: data.imageUrl,
+              url: finalImageUrl, // Utiliser l'URL finale (avec texte si appliqué)
               type: 'image',
               prompt: fullPrompt
             })
@@ -1312,9 +1355,19 @@ export default function GeneratePage() {
 
                   {/* Texte à ajouter (optionnel) */}
                   <div>
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700 flex items-center gap-1">
-                      Texte à ajouter <span className="text-neutral-400 font-normal">(optionnel)</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
+                        Texte à ajouter <span className="text-neutral-400 font-normal">(optionnel)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGenerateTextSuggestions}
+                        className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
+                      >
+                        💡 Suggérer un texte
+                      </button>
+                    </div>
+
                     <input
                       type="text"
                       value={optionalText}
@@ -1322,6 +1375,40 @@ export default function GeneratePage() {
                       placeholder="Ex: Offre limitée, -20% ce week-end, Nouvelle collection..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
+
+                    {/* Suggestions intelligentes */}
+                    {showTextSuggestions && textSuggestions.length > 0 && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs font-semibold text-blue-900 mb-2">✨ Suggestions basées sur votre actu + business :</p>
+                        <div className="space-y-1.5">
+                          {textSuggestions.map((suggestion, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => {
+                                setOptionalText(suggestion);
+                                setShowTextSuggestions(false);
+                              }}
+                              className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
+                            >
+                              <span className="text-neutral-700">{suggestion}</span>
+                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">✓ Utiliser</span>
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowTextSuggestions(false)}
+                          className="mt-2 text-[10px] text-neutral-500 hover:text-neutral-700 transition-colors"
+                        >
+                          Masquer les suggestions
+                        </button>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-neutral-500 mt-1">
+                      💡 Le texte sera ajouté de manière professionnelle sur votre visuel avec Canvas
+                    </p>
                   </div>
                 </div>
 
