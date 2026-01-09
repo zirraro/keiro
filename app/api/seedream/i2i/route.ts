@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       console.error('[Seedream I2I] API Error:', response.status, errorText);
       return Response.json({
         ok: false,
-        error: `Seedream API error: ${response.status} - ${errorText}`
+        error: 'Impossible d\'éditer l\'image. Vérifiez votre connexion et réessayez.'
       }, { status: response.status });
     }
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       console.error('[Seedream I2I] Invalid response:', data);
       return Response.json({
         ok: false,
-        error: 'Invalid response from Seedream API'
+        error: 'Erreur lors de l\'édition. Veuillez réessayer.'
       }, { status: 500 });
     }
 
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     console.error('[Seedream I2I] Error:', error);
     return Response.json({
       ok: false,
-      error: error.message || 'Internal server error'
+      error: 'Une erreur s\'est produite. Veuillez réessayer.'
     }, { status: 500 });
   }
 }

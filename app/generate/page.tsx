@@ -360,7 +360,7 @@ export default function GeneratePage() {
       if (!data?.ok) throw new Error(data?.error || 'Upload échoué');
       setLogoUrl(data.url);
     } catch (e: any) {
-      alert(`Erreur upload: ${e.message}`);
+      alert('Impossible d\'uploader le logo. Vérifiez le format (PNG, JPG).');
     } finally {
       setUploading(false);
     }
@@ -685,8 +685,6 @@ export default function GeneratePage() {
       // Appliquer le text overlay avec Canvas si un texte est fourni
       if (optionalText && optionalText.trim()) {
         try {
-          console.log('[Generate] Applying text overlay with Canvas:', optionalText.trim());
-
           // Déterminer le style selon le type de texte
           const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
           const position = isCTA ? 'bottom' : 'center';
@@ -699,15 +697,12 @@ export default function GeneratePage() {
             style,
           });
 
-          // L'image avec texte est en data URL, on la convertit en blob et on l'upload
-          // Pour l'instant, on utilise directement le data URL (ou on pourrait l'uploader)
+          // L'image avec texte est en data URL
           finalImageUrl = imageWithText;
-
-          console.log('[Generate] Text overlay applied successfully');
         } catch (overlayError) {
-          console.error('[Generate] Error applying text overlay:', overlayError);
-          // En cas d'erreur, on garde l'image sans texte
-          alert('Erreur lors de l\'ajout du texte. L\'image sera affichée sans texte.');
+          // En cas d'erreur, on garde l'image sans texte et on continue silencieusement
+          // L'utilisateur pourra toujours utiliser le bouton "Personnaliser le texte"
+          console.warn('Text overlay skipped:', overlayError);
         }
       }
 
@@ -1970,8 +1965,7 @@ export default function GeneratePage() {
                           }
 
                           if (!editPrompt.trim() || !selectedEditVersion) {
-                            alert('Veuillez décrire vos modifications');
-                            return;
+                            return; // Le bouton est déjà disabled, pas besoin d'alert
                           }
                           setEditingImage(true);
                           try {
@@ -2007,10 +2001,11 @@ export default function GeneratePage() {
                             // Incrémenter le compteur d'éditions après succès
                             editLimit.incrementCount();
 
-                            alert('Image éditée avec succès!');
+                            // Succès silencieux - l'utilisateur voit déjà la nouvelle image
                           } catch (e: any) {
                             console.error('[Edit Studio] Error:', e);
-                            alert('Erreur: ' + e.message);
+                            const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
+                            alert(userMessage);
                           } finally {
                             setEditingImage(false);
                           }
@@ -2090,12 +2085,12 @@ export default function GeneratePage() {
                                     });
                                     const data = await response.json();
                                     if (data.ok) {
-                                      alert('✅ Version sauvegardée!');
+                                      alert('✅ Sauvegardé dans votre librairie');
                                     } else {
-                                      alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                                      alert('❌ Impossible de sauvegarder. Veuillez réessayer.');
                                     }
                                   } catch (error: any) {
-                                    alert('❌ Erreur: ' + error.message);
+                                    alert('❌ Erreur de connexion. Vérifiez votre internet.');
                                   }
                                 }}
                                 className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
@@ -2178,12 +2173,12 @@ export default function GeneratePage() {
                                 });
                                 const data = await response.json();
                                 if (data.ok) {
-                                  alert('✅ Version sauvegardée!');
+                                  alert('✅ Sauvegardé dans votre librairie');
                                 } else {
-                                  alert('❌ Erreur: ' + (data.error || 'Impossible de sauvegarder'));
+                                  alert('❌ Impossible de sauvegarder. Veuillez réessayer.');
                                 }
                               } catch (error: any) {
-                                alert('❌ Erreur: ' + error.message);
+                                alert('❌ Erreur de connexion. Vérifiez votre internet.');
                               }
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
@@ -2408,8 +2403,7 @@ export default function GeneratePage() {
                         }
 
                         if (!editPrompt.trim() || !selectedEditVersion) {
-                          alert('Veuillez décrire vos modifications');
-                          return;
+                          return; // Le bouton est déjà disabled, pas besoin d'alert
                         }
                         setEditingImage(true);
                         try {
@@ -2444,10 +2438,11 @@ export default function GeneratePage() {
                           // Incrémenter le compteur d'éditions après succès
                           editLimit.incrementCount();
 
-                          alert('Image éditée avec succès!');
+                          // Succès silencieux - l'utilisateur voit déjà la nouvelle version
                         } catch (e: any) {
                           console.error('[Edit Studio] Error:', e);
-                          alert('Erreur: ' + e.message);
+                          const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
+                          alert(userMessage);
                         } finally {
                           setEditingImage(false);
                         }
