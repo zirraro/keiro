@@ -7,6 +7,7 @@ import { useEditLimit } from "@/hooks/useEditLimit";
 import SubscriptionModal from "@/components/SubscriptionModal";
 import EmailGateModal from "@/components/EmailGateModal";
 import SignupGateModal from "@/components/SignupGateModal";
+import TextOverlayEditor from "@/components/TextOverlayEditor";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 function StudioContent() {
@@ -25,6 +26,7 @@ function StudioContent() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
+  const [showTextEditor, setShowTextEditor] = useState(false);
 
   // Vérifier si l'utilisateur est connecté au chargement et écouter les changements d'auth
   useEffect(() => {
@@ -332,21 +334,31 @@ function StudioContent() {
               </button>
 
               {loadedImage && (
-                <div className="flex gap-2">
-                  <a
-                    href={loadedImage}
-                    download
-                    className="flex-1 py-2 bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition text-sm"
-                  >
-                    Télécharger
-                  </a>
+                <>
+                  {/* Bouton ajouter texte overlay */}
                   <button
-                    onClick={() => setShowSubscriptionModal(true)}
-                    className="flex-1 py-2 bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition text-sm"
+                    onClick={() => setShowTextEditor(true)}
+                    className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition font-semibold flex items-center justify-center gap-2"
                   >
-                    Enregistrer dans ma librairie (pro)
+                    ✨ Ajouter / Personnaliser du texte
                   </button>
-                </div>
+
+                  <div className="flex gap-2">
+                    <a
+                      href={loadedImage}
+                      download
+                      className="flex-1 py-2 bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition text-sm"
+                    >
+                      Télécharger
+                    </a>
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="flex-1 py-2 bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition text-sm"
+                    >
+                      Enregistrer dans ma librairie (pro)
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -377,6 +389,22 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
+
+      {/* Éditeur de texte overlay avancé */}
+      {showTextEditor && loadedImage && (
+        <TextOverlayEditor
+          baseImageUrl={loadedImage}
+          initialConfig={{
+            text: '',
+            position: 'center',
+          }}
+          onApply={(newImageUrl, config) => {
+            setLoadedImage(newImageUrl);
+            setShowTextEditor(false);
+          }}
+          onCancel={() => setShowTextEditor(false)}
+        />
+      )}
     </div>
   );
 }
