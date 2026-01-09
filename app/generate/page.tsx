@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
-import TextOverlayEditor from '@/components/TextOverlayEditor';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
@@ -169,9 +168,15 @@ export default function GeneratePage() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  /* --- États pour l'éditeur de texte overlay --- */
-  const [showTextEditor, setShowTextEditor] = useState(false);
-  const [baseImageForEditor, setBaseImageForEditor] = useState<string | null>(null);
+  /* --- États pour l'éditeur de texte overlay intégré --- */
+  const [overlayText, setOverlayText] = useState('');
+  const [textPosition, setTextPosition] = useState<'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'>('center');
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [textBackgroundColor, setTextBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
+  const [fontSize, setFontSize] = useState(60);
+  const [fontFamily, setFontFamily] = useState<'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair'>('inter');
+  const [backgroundStyle, setBackgroundStyle] = useState<'transparent' | 'solid' | 'gradient' | 'blur'>('transparent');
+  const [textTemplate, setTextTemplate] = useState<'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern'>('headline');
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -191,7 +196,7 @@ export default function GeneratePage() {
   const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
   const [editingImage, setEditingImage] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'versions'>('image');
+  const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'text' | 'versions'>('image');
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
@@ -701,7 +706,7 @@ export default function GeneratePage() {
           finalImageUrl = imageWithText;
         } catch (overlayError) {
           // En cas d'erreur, on garde l'image sans texte et on continue silencieusement
-          // L'utilisateur pourra toujours utiliser le bouton "Personnaliser le texte"
+          // L'utilisateur pourra toujours personnaliser le texte via l'onglet "Texte" du studio d'édition
           console.warn('Text overlay skipped:', overlayError);
         }
       }
@@ -1629,20 +1634,7 @@ export default function GeneratePage() {
                   )}
                 </div>
                 <div className="mt-3 space-y-2">
-                  {/* Bouton personnaliser texte (si texte ajouté) */}
-                  {optionalText && optionalText.trim() && (
-                    <button
-                      onClick={() => {
-                        setBaseImageForEditor(generatedImageUrl);
-                        setShowTextEditor(true);
-                      }}
-                      className="w-full py-2.5 text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      ✨ Personnaliser le texte
-                    </button>
-                  )}
-
-                  {/* Première ligne de boutons */}
+                  {/* Boutons d'action */}
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
@@ -1778,7 +1770,7 @@ export default function GeneratePage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('edit')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'edit'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-neutral-600'
@@ -1787,8 +1779,18 @@ export default function GeneratePage() {
                     ✏️ Éditer
                   </button>
                   <button
+                    onClick={() => setActiveTab('text')}
+                    className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+                      activeTab === 'text'
+                        ? 'border-purple-500 text-purple-600'
+                        : 'border-transparent text-neutral-600'
+                    }`}
+                  >
+                    ✨ Texte
+                  </button>
+                  <button
                     onClick={() => setActiveTab('versions')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'versions'
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-neutral-600'
@@ -2040,6 +2042,232 @@ export default function GeneratePage() {
                   </div>
                 )}
 
+                {/* Onglet Texte - Personnalisation du texte overlay */}
+                {activeTab === 'text' && (
+                  <div className="p-4 space-y-4">
+                    <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
+                      <h3 className="text-base font-semibold mb-3">✨ Personnalisation du Texte</h3>
+
+                      {/* Texte */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Texte</label>
+                        <textarea
+                          value={overlayText}
+                          onChange={(e) => setOverlayText(e.target.value)}
+                          placeholder="Écrivez votre texte accrocheur..."
+                          rows={3}
+                          className="w-full px-4 py-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 resize-none"
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">
+                          {overlayText.length} caractères • Max 100 recommandé
+                        </p>
+                      </div>
+
+                      {/* Templates */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Templates</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'headline', icon: '📰', name: 'Headline' },
+                            { id: 'cta', icon: '🎯', name: 'CTA' },
+                            { id: 'minimal', icon: '✨', name: 'Minimal' },
+                            { id: 'bold', icon: '💪', name: 'Bold' },
+                            { id: 'elegant', icon: '👔', name: 'Élégant' },
+                            { id: 'modern', icon: '🚀', name: 'Moderne' },
+                          ].map((template) => (
+                            <button
+                              key={template.id}
+                              onClick={() => {
+                                setTextTemplate(template.id as any);
+                                // Appliquer les couleurs du template
+                                if (template.id === 'headline') {
+                                  setTextColor('#ffffff');
+                                  setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
+                                  setBackgroundStyle('transparent');
+                                  setTextPosition('top-center');
+                                } else if (template.id === 'cta') {
+                                  setTextColor('#ffffff');
+                                  setTextBackgroundColor('#3b82f6');
+                                  setBackgroundStyle('solid');
+                                  setTextPosition('bottom-center');
+                                } else if (template.id === 'minimal') {
+                                  setTextColor('#000000');
+                                  setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
+                                  setBackgroundStyle('solid');
+                                  setTextPosition('center');
+                                } else if (template.id === 'bold') {
+                                  setTextColor('#ffffff');
+                                  setTextBackgroundColor('rgba(220, 38, 38, 0.9)');
+                                  setBackgroundStyle('solid');
+                                  setTextPosition('center');
+                                } else if (template.id === 'elegant') {
+                                  setTextColor('#1f2937');
+                                  setTextBackgroundColor('rgba(255, 255, 255, 0.95)');
+                                  setBackgroundStyle('blur');
+                                  setTextPosition('center');
+                                } else if (template.id === 'modern') {
+                                  setTextColor('#ffffff');
+                                  setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
+                                  setBackgroundStyle('gradient');
+                                  setTextPosition('bottom-center');
+                                }
+                              }}
+                              className={`p-3 rounded-lg border-2 text-left transition-all ${
+                                textTemplate === template.id
+                                  ? 'border-purple-500 bg-purple-50'
+                                  : 'border-neutral-200 hover:border-neutral-300'
+                              }`}
+                            >
+                              <div className="text-2xl mb-1">{template.icon}</div>
+                              <div className="text-xs font-semibold">{template.name}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Position */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Position</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { pos: 'top-left', label: '↖️' },
+                            { pos: 'top-center', label: '⬆️' },
+                            { pos: 'top-right', label: '↗️' },
+                            { pos: 'center-left', label: '⬅️' },
+                            { pos: 'center', label: '⏺️' },
+                            { pos: 'center-right', label: '➡️' },
+                            { pos: 'bottom-left', label: '↙️' },
+                            { pos: 'bottom-center', label: '⬇️' },
+                            { pos: 'bottom-right', label: '↘️' },
+                          ].map((item) => (
+                            <button
+                              key={item.pos}
+                              onClick={() => setTextPosition(item.pos as any)}
+                              className={`px-3 py-2 rounded-lg text-xl font-medium transition-all ${
+                                textPosition === item.pos
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Couleurs */}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Couleur texte</label>
+                          <input
+                            type="color"
+                            value={textColor}
+                            onChange={(e) => setTextColor(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-neutral-300 cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Couleur fond</label>
+                          <input
+                            type="color"
+                            value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
+                            onChange={(e) => setTextBackgroundColor(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-neutral-300 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Taille police */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">
+                          Taille police ({fontSize}pt)
+                        </label>
+                        <input
+                          type="range"
+                          min="24"
+                          max="120"
+                          value={fontSize}
+                          onChange={(e) => setFontSize(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Police */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Police</label>
+                        <select
+                          value={fontFamily}
+                          onChange={(e) => setFontFamily(e.target.value as any)}
+                          className="w-full px-3 py-2 rounded-lg border border-neutral-300 text-sm"
+                        >
+                          <option value="inter">Inter</option>
+                          <option value="montserrat">Montserrat</option>
+                          <option value="bebas">Bebas Neue</option>
+                          <option value="roboto">Roboto</option>
+                          <option value="playfair">Playfair</option>
+                        </select>
+                      </div>
+
+                      {/* Style de fond */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">Style de fond</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['transparent', 'solid', 'gradient', 'blur'].map((style) => (
+                            <button
+                              key={style}
+                              onClick={() => setBackgroundStyle(style as any)}
+                              className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${
+                                backgroundStyle === style
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                              }`}
+                            >
+                              {style}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Bouton Appliquer */}
+                      <button
+                        onClick={async () => {
+                          if (!overlayText.trim()) {
+                            return; // Pas de texte à ajouter
+                          }
+
+                          const imageToEdit = selectedEditVersion || generatedImageUrl;
+                          if (!imageToEdit) return;
+
+                          try {
+                            // Convertir position en format simple pour addTextOverlay
+                            let simplePosition: 'top' | 'center' | 'bottom' = 'center';
+                            if (textPosition.startsWith('top')) simplePosition = 'top';
+                            else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
+
+                            const result = await addTextOverlay(imageToEdit, {
+                              text: overlayText,
+                              position: simplePosition,
+                              textColor: textColor,
+                              backgroundColor: textBackgroundColor,
+                            });
+
+                            // Ajouter cette nouvelle version
+                            setEditVersions([...editVersions, result]);
+                            setSelectedEditVersion(result);
+                          } catch (error) {
+                            console.error('Error applying text overlay:', error);
+                            alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
+                          }
+                        }}
+                        disabled={!overlayText.trim()}
+                        className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ✓ Appliquer le texte
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Onglet Versions */}
                 {activeTab === 'versions' && (
                   <div className="p-4">
@@ -2239,6 +2467,33 @@ export default function GeneratePage() {
 
                 {/* Droite : Edit Panel */}
                 <div className="w-96 flex-shrink-0 flex flex-col space-y-3 overflow-y-auto">
+                  {/* Onglets desktop */}
+                  <div className="flex gap-2 bg-white rounded-lg p-1 border">
+                    <button
+                      onClick={() => setActiveTab('edit')}
+                      className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                        activeTab === 'edit'
+                          ? 'bg-blue-500 text-white'
+                          : 'text-neutral-600 hover:bg-neutral-100'
+                      }`}
+                    >
+                      ✏️ Éditer
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('text')}
+                      className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                        activeTab === 'text'
+                          ? 'bg-purple-500 text-white'
+                          : 'text-neutral-600 hover:bg-neutral-100'
+                      }`}
+                    >
+                      ✨ Texte
+                    </button>
+                  </div>
+
+                  {/* Contenu de l'onglet Éditer */}
+                  {activeTab === 'edit' && (
+                  <>
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
                     <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
 
@@ -2494,6 +2749,225 @@ export default function GeneratePage() {
                       </button>
                     </div>
                   </div>
+                  </>
+                  )}
+
+                  {/* Contenu de l'onglet Texte */}
+                  {activeTab === 'text' && (
+                  <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
+                    <h3 className="text-base font-semibold mb-2">✨ Personnalisation du Texte</h3>
+
+                    {/* Texte */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1.5">Texte</label>
+                      <textarea
+                        value={overlayText}
+                        onChange={(e) => setOverlayText(e.target.value)}
+                        placeholder="Écrivez votre texte accrocheur..."
+                        rows={2}
+                        className="w-full px-2 py-1.5 rounded border border-neutral-300 text-[10px] focus:outline-none focus:border-purple-500 resize-none"
+                      />
+                      <p className="text-[9px] text-neutral-500 mt-1">
+                        {overlayText.length} caractères
+                      </p>
+                    </div>
+
+                    {/* Templates */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1.5">Templates</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: 'headline', icon: '📰' },
+                          { id: 'cta', icon: '🎯' },
+                          { id: 'minimal', icon: '✨' },
+                          { id: 'bold', icon: '💪' },
+                          { id: 'elegant', icon: '👔' },
+                          { id: 'modern', icon: '🚀' },
+                        ].map((template) => (
+                          <button
+                            key={template.id}
+                            onClick={() => {
+                              setTextTemplate(template.id as any);
+                              if (template.id === 'headline') {
+                                setTextColor('#ffffff');
+                                setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
+                                setBackgroundStyle('transparent');
+                                setTextPosition('top-center');
+                              } else if (template.id === 'cta') {
+                                setTextColor('#ffffff');
+                                setTextBackgroundColor('#3b82f6');
+                                setBackgroundStyle('solid');
+                                setTextPosition('bottom-center');
+                              } else if (template.id === 'minimal') {
+                                setTextColor('#000000');
+                                setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
+                                setBackgroundStyle('solid');
+                                setTextPosition('center');
+                              } else if (template.id === 'bold') {
+                                setTextColor('#ffffff');
+                                setTextBackgroundColor('rgba(220, 38, 38, 0.9)');
+                                setBackgroundStyle('solid');
+                                setTextPosition('center');
+                              } else if (template.id === 'elegant') {
+                                setTextColor('#1f2937');
+                                setTextBackgroundColor('rgba(255, 255, 255, 0.95)');
+                                setBackgroundStyle('blur');
+                                setTextPosition('center');
+                              } else if (template.id === 'modern') {
+                                setTextColor('#ffffff');
+                                setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
+                                setBackgroundStyle('gradient');
+                                setTextPosition('bottom-center');
+                              }
+                            }}
+                            className={`p-1.5 rounded border transition-all ${
+                              textTemplate === template.id
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-neutral-200 hover:border-neutral-300'
+                            }`}
+                          >
+                            <div className="text-lg">{template.icon}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Position */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1.5">Position</label>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[
+                          { pos: 'top-left', label: '↖️' },
+                          { pos: 'top-center', label: '⬆️' },
+                          { pos: 'top-right', label: '↗️' },
+                          { pos: 'center-left', label: '⬅️' },
+                          { pos: 'center', label: '⏺️' },
+                          { pos: 'center-right', label: '➡️' },
+                          { pos: 'bottom-left', label: '↙️' },
+                          { pos: 'bottom-center', label: '⬇️' },
+                          { pos: 'bottom-right', label: '↘️' },
+                        ].map((item) => (
+                          <button
+                            key={item.pos}
+                            onClick={() => setTextPosition(item.pos as any)}
+                            className={`px-2 py-1 rounded text-sm transition-all ${
+                              textPosition === item.pos
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Couleurs */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Couleur texte</label>
+                        <input
+                          type="color"
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="w-full h-8 rounded border border-neutral-300 cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Couleur fond</label>
+                        <input
+                          type="color"
+                          value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
+                          onChange={(e) => setTextBackgroundColor(e.target.value)}
+                          className="w-full h-8 rounded border border-neutral-300 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Taille police */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1">
+                        Taille ({fontSize}pt)
+                      </label>
+                      <input
+                        type="range"
+                        min="24"
+                        max="120"
+                        value={fontSize}
+                        onChange={(e) => setFontSize(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Police */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1">Police</label>
+                      <select
+                        value={fontFamily}
+                        onChange={(e) => setFontFamily(e.target.value as any)}
+                        className="w-full px-2 py-1 rounded border border-neutral-300 text-[10px]"
+                      >
+                        <option value="inter">Inter</option>
+                        <option value="montserrat">Montserrat</option>
+                        <option value="bebas">Bebas Neue</option>
+                        <option value="roboto">Roboto</option>
+                        <option value="playfair">Playfair</option>
+                      </select>
+                    </div>
+
+                    {/* Style de fond */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium mb-1">Style de fond</label>
+                      <div className="grid grid-cols-2 gap-1">
+                        {['transparent', 'solid', 'gradient', 'blur'].map((style) => (
+                          <button
+                            key={style}
+                            onClick={() => setBackgroundStyle(style as any)}
+                            className={`px-2 py-1 rounded text-[9px] font-medium capitalize transition-all ${
+                              backgroundStyle === style
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                            }`}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Bouton Appliquer */}
+                    <button
+                      onClick={async () => {
+                        if (!overlayText.trim()) return;
+                        const imageToEdit = selectedEditVersion || generatedImageUrl;
+                        if (!imageToEdit) return;
+
+                        try {
+                          let simplePosition: 'top' | 'center' | 'bottom' = 'center';
+                          if (textPosition.startsWith('top')) simplePosition = 'top';
+                          else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
+
+                          const result = await addTextOverlay(imageToEdit, {
+                            text: overlayText,
+                            position: simplePosition,
+                            textColor: textColor,
+                            backgroundColor: textBackgroundColor,
+                          });
+
+                          setEditVersions([...editVersions, result]);
+                          setSelectedEditVersion(result);
+                        } catch (error) {
+                          console.error('Error applying text overlay:', error);
+                          alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
+                        }
+                      }}
+                      disabled={!overlayText.trim()}
+                      className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ✓ Appliquer le texte
+                    </button>
+                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2540,22 +3014,6 @@ export default function GeneratePage() {
           onClose={() => setShowEditSignupGate(false)}
         />
 
-        {/* Éditeur de texte overlay avancé */}
-        {showTextEditor && baseImageForEditor && (
-          <TextOverlayEditor
-            baseImageUrl={baseImageForEditor}
-            initialConfig={{
-              text: optionalText,
-              position: 'center',
-            }}
-            onApply={(newImageUrl, config) => {
-              setGeneratedImageUrl(newImageUrl);
-              setOptionalText(config.text);
-              setShowTextEditor(false);
-            }}
-            onCancel={() => setShowTextEditor(false)}
-          />
-        )}
       </div>
     </div>
   );
