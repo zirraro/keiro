@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
+import TextOverlayEditor from '@/components/TextOverlayEditor';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
@@ -167,6 +168,10 @@ export default function GeneratePage() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  /* --- États pour l'éditeur de texte overlay --- */
+  const [showTextEditor, setShowTextEditor] = useState(false);
+  const [baseImageForEditor, setBaseImageForEditor] = useState<string | null>(null);
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -1629,6 +1634,19 @@ export default function GeneratePage() {
                   )}
                 </div>
                 <div className="mt-3 space-y-2">
+                  {/* Bouton personnaliser texte (si texte ajouté) */}
+                  {optionalText && optionalText.trim() && (
+                    <button
+                      onClick={() => {
+                        setBaseImageForEditor(generatedImageUrl);
+                        setShowTextEditor(true);
+                      }}
+                      className="w-full py-2.5 text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      ✨ Personnaliser le texte
+                    </button>
+                  )}
+
                   {/* Première ligne de boutons */}
                   <div className="flex gap-2">
                     <button
@@ -2526,6 +2544,23 @@ export default function GeneratePage() {
           isOpen={showEditSignupGate}
           onClose={() => setShowEditSignupGate(false)}
         />
+
+        {/* Éditeur de texte overlay avancé */}
+        {showTextEditor && baseImageForEditor && (
+          <TextOverlayEditor
+            baseImageUrl={baseImageForEditor}
+            initialConfig={{
+              text: optionalText,
+              position: 'center',
+            }}
+            onApply={(newImageUrl, config) => {
+              setGeneratedImageUrl(newImageUrl);
+              setOptionalText(config.text);
+              setShowTextEditor(false);
+            }}
+            onCancel={() => setShowTextEditor(false)}
+          />
+        )}
       </div>
     </div>
   );
