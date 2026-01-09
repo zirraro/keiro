@@ -50,10 +50,10 @@ function generateCtaNumber(keywords: string[]): string {
     return ['-20%', '-30%', '-50%'][Math.floor(Math.random() * 3)];
   }
   if (keywords.includes('urgence')) {
-    return '24h', '48h', 'Aujourd\'hui';
+    return ['24h', '48h', 'Aujourd\'hui'][Math.floor(Math.random() * 3)];
   }
   if (keywords.includes('nouveauté')) {
-    return 'Nouveau', 'Inédit', 'Exclusif';
+    return ['Nouveau', 'Inédit', 'Exclusif'][Math.floor(Math.random() * 3)];
   }
   return '';
 }
