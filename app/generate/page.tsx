@@ -231,6 +231,87 @@ export default function GeneratePage() {
     setVisualStyle(preset.visualStyle);
   }, [communicationProfile]);
 
+  /* --- Sauvegarder et restaurer l'état du formulaire --- */
+  // Charger l'état sauvegardé au montage
+  useEffect(() => {
+    const savedState = localStorage.getItem('keiro_generate_form_state');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        console.log('[Generate] Restoring saved form state:', state);
+
+        // Restaurer tous les états
+        if (state.selectedNews) setSelectedNews(state.selectedNews);
+        if (state.category) setCategory(state.category);
+        if (state.communicationProfile) setCommunicationProfile(state.communicationProfile);
+        if (state.businessType) setBusinessType(state.businessType);
+        if (state.businessDescription) setBusinessDescription(state.businessDescription);
+        if (state.targetAudience) setTargetAudience(state.targetAudience);
+        if (state.tone) setTone(state.tone);
+        if (state.emotionToConvey) setEmotionToConvey(state.emotionToConvey);
+        if (state.visualStyle) setVisualStyle(state.visualStyle);
+        if (state.publicationGoal) setPublicationGoal(state.publicationGoal);
+        if (state.marketingAngle) setMarketingAngle(state.marketingAngle);
+        if (state.imageAngle) setImageAngle(state.imageAngle);
+        if (state.storyToTell) setStoryToTell(state.storyToTell);
+        if (state.optionalText) setOptionalText(state.optionalText);
+        if (state.platform) setPlatform(state.platform);
+        if (state.specialist) setSpecialist(state.specialist);
+
+        // Nettoyer après restauration
+        localStorage.removeItem('keiro_generate_form_state');
+      } catch (error) {
+        console.error('[Generate] Error loading saved state:', error);
+      }
+    }
+  }, []);
+
+  // Sauvegarder l'état à chaque changement (avec debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const state = {
+        selectedNews,
+        category,
+        communicationProfile,
+        businessType,
+        businessDescription,
+        targetAudience,
+        tone,
+        emotionToConvey,
+        visualStyle,
+        publicationGoal,
+        marketingAngle,
+        imageAngle,
+        storyToTell,
+        optionalText,
+        platform,
+        specialist,
+        savedAt: new Date().toISOString()
+      };
+
+      localStorage.setItem('keiro_generate_form_state', JSON.stringify(state));
+    }, 1000); // Debounce de 1 seconde
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    selectedNews,
+    category,
+    communicationProfile,
+    businessType,
+    businessDescription,
+    targetAudience,
+    tone,
+    emotionToConvey,
+    visualStyle,
+    publicationGoal,
+    marketingAngle,
+    imageAngle,
+    storyToTell,
+    optionalText,
+    platform,
+    specialist
+  ]);
+
   async function fetchAllNews() {
     try {
       setLoading(true);
@@ -449,28 +530,50 @@ export default function GeneratePage() {
         const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
 
         promptParts.push(
-          `\n\n🎯 TEXT OVERLAY - CRITICAL REQUIREMENTS:\n` +
-          `Main Text: "${optionalText.trim()}"\n\n` +
-          `Typography Rules:\n` +
-          `- Font: Bold, modern, highly readable sans-serif (Montserrat, Inter, or Roboto style)\n` +
-          `- Size: ${textLength < 20 ? 'LARGE (hero text)' : textLength < 40 ? 'MEDIUM-LARGE' : 'MEDIUM with good spacing'}\n` +
-          `- Color: High contrast against background (white text on dark overlay, or dark text on light background)\n` +
-          `- ${isCTA ? 'Style as prominent CALL-TO-ACTION button or badge with background color' : 'Integrate naturally as headline or tagline'}\n\n` +
-          `Layout & Integration:\n` +
-          `- Position: ${isCTA ? 'Bottom third or center with button-style background' : 'Top third as impactful headline or center as hero text'}\n` +
-          `- Background: ${isCTA ? 'Solid colored rectangle or rounded badge (matching brand) behind text' : 'Subtle gradient overlay or semi-transparent backdrop for readability'}\n` +
-          `- Spacing: Generous padding around text, clear visual breathing room\n` +
-          `- Hierarchy: Text must be THE MOST PROMINENT element in the composition\n\n` +
-          `Quality Check:\n` +
-          `- Text must be perfectly readable on mobile devices (375px width)\n` +
-          `- NO text distortion, stretching, or awkward wrapping\n` +
-          `- Text should feel professional and polished, not amateurish\n` +
-          `- If text is French, ensure it's grammatically correct and naturally phrased`
+          `\n\n🎯 TEXT OVERLAY - ABSOLUTE CRITICAL REQUIREMENTS:\n` +
+          `EXACT TEXT TO DISPLAY: "${optionalText.trim()}"\n` +
+          `⚠️ YOU MUST INCLUDE THIS EXACT TEXT IN THE IMAGE - This is MANDATORY!\n\n` +
+
+          `TYPOGRAPHY - Professional Design Standards:\n` +
+          `- Font Family: Ultra-bold, modern sans-serif (Montserrat Black, Inter ExtraBold, or Bebas Neue)\n` +
+          `- Font Weight: 800-900 (extra bold to black)\n` +
+          `- Font Size: ${textLength < 20 ? 'VERY LARGE (80-120pt equivalent, hero display text)' : textLength < 40 ? 'LARGE (60-80pt equivalent)' : 'MEDIUM-LARGE (48-60pt equivalent) with generous line spacing'}\n` +
+          `- Letter Spacing: Slightly expanded for impact and readability\n` +
+          `- Color Contrast: MAXIMUM contrast - white text on dark areas OR dark text on light areas\n` +
+          `- Text Treatment: ${isCTA ? 'Design as eye-catching CALL-TO-ACTION with solid background' : 'Integrate as bold hero headline with subtle effects'}\n\n` +
+
+          `VISUAL INTEGRATION - Make it Beautiful:\n` +
+          `- Positioning: ${isCTA ? 'Lower third (bottom 1/3) OR center, with clear breathing room' : 'Upper third (top 1/3) OR center as dominant focal point'}\n` +
+          `- Background Treatment:\n` +
+          `  ${isCTA ? '* Solid rectangle or rounded badge behind text (use brand colors: blue #3b82f6 or cyan #06b6d4)' : '* Semi-transparent dark overlay (rgba(0,0,0,0.4)) OR light backdrop for contrast'}\n` +
+          `  * Ensure text stands out clearly from image background\n` +
+          `  * Add subtle drop shadow for depth if needed\n` +
+          `- Padding & Spacing: Minimum 30-40px padding around text, generous whitespace\n` +
+          `- Visual Hierarchy: Text must be THE FIRST THING viewers see - most prominent element\n` +
+          `- Alignment: Centered or left-aligned, never awkwardly positioned\n\n` +
+
+          `QUALITY STANDARDS - Non-Negotiable:\n` +
+          `✓ Text is PERFECTLY READABLE at small sizes (mobile 375px width)\n` +
+          `✓ Text appears CRISP, SHARP, and professionally rendered\n` +
+          `✓ NO distortion, warping, stretching, or perspective effects on text\n` +
+          `✓ NO awkward line breaks - text flows naturally\n` +
+          `✓ NO other random text, watermarks, or labels in the image\n` +
+          `✓ If French text: grammatically perfect and naturally phrased\n` +
+          `✓ Text integrates harmoniously with the overall composition\n` +
+          `✓ Professional, polished appearance worthy of social media publication\n\n` +
+
+          `INSPIRATION - Design Like:\n` +
+          `- High-end Instagram ads from major brands\n` +
+          `- Professional social media graphics by agencies\n` +
+          `- Bold, attention-grabbing magazine covers\n` +
+          `- Modern startup landing page heroes\n\n` +
+
+          `⚠️ CRITICAL REMINDER: The text "${optionalText.trim()}" MUST appear in the image. This is not optional.`
         );
       } else {
         promptParts.push(
-          `\n\nNO TEXT OVERLAY: Do not include any text, captions, or words in the image. ` +
-          `Focus on pure visual storytelling without textual elements.`
+          `\n\n🚫 NO TEXT OVERLAY: Do not include ANY text, captions, words, or letters in the image. ` +
+          `Focus exclusively on pure visual storytelling without textual elements of any kind.`
         );
       }
 
@@ -505,12 +608,17 @@ export default function GeneratePage() {
         `1. What the news is about (visual representation of the event)\n` +
         `2. What the business does (clear brand/service indication)\n` +
         `3. WHY they're connected (obvious benefit, opportunity, or relevance)\n\n` +
-        `Show this connection through:\n` +
-        `- Split composition (news on one side, business solution on other)\n` +
-        `- Before/after visual narrative\n` +
-        `- Cause and effect imagery\n` +
-        `- Symbolic visual metaphor that links both concepts\n\n` +
+        `VISUAL INTEGRATION - Show this connection through UNIFIED, cohesive compositions:\n` +
+        `- Blended imagery: Seamlessly integrate news elements WITH business elements in ONE harmonious scene\n` +
+        `- Layered storytelling: Use depth and layers to show news context supporting/surrounding the business\n` +
+        `- Symbolic fusion: Create visual metaphors where news and business naturally coexist in the same visual space\n` +
+        `- Environmental context: Place the business/product within an environment that evokes the news story\n\n` +
+        `AVOID:\n` +
+        `- Split-screen or divided compositions (left/right, top/bottom splits)\n` +
+        `- Obvious before/after side-by-side layouts\n` +
+        `- Jarring visual cuts or harsh separations\n\n` +
         `The connection must be SPECIFIC and TANGIBLE, not generic or abstract. ` +
+        `Create ONE beautiful, unified image where news and business flow together naturally. ` +
         `Think like a storyteller: "This news creates THIS opportunity/problem for THIS business/audience."`
       );
 
@@ -1144,11 +1252,11 @@ export default function GeneratePage() {
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
                       <option value="">-- Choisir une suggestion --</option>
-                      <option value="Montrer l'actu à travers le prisme de notre solution, visuel split-screen avant/après">Split-screen avant/après</option>
-                      <option value="Focus sur la solution que nous apportons face à l'actualité">Focus sur la solution</option>
-                      <option value="Métaphore visuelle symbolique reliant l'actu et le business">Métaphore visuelle symbolique</option>
-                      <option value="Composition dramatique contrastée montrant le problème et la solution">Composition dramatique</option>
-                      <option value="Narrative visuelle séquentielle de cause à effet">Narrative séquentielle</option>
+                      <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">Intégration harmonieuse</option>
+                      <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">Focus sur la solution</option>
+                      <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">Métaphore visuelle</option>
+                      <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">Composition en profondeur</option>
+                      <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">Environnement narratif</option>
                       <option value="custom">✏️ Personnalisé</option>
                     </select>
                     <input

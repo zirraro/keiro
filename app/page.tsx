@@ -74,47 +74,45 @@ export default function HomeKeiro() {
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">Transformez une actualité en client</h2>
-          <p className="mt-2 text-neutral-600">Voici comment Keiro vous aide à catcher la trend et convertir</p>
+          <h2 className="text-3xl font-bold">Transformez une publication basique en visuel captivant</h2>
+          <p className="mt-2 text-neutral-600">Exemple concret : Restaurant bio "La Table Verte" pendant la hausse des prix de l'essence</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
           {/* AVANT */}
           <div className="relative">
             <div className="absolute -top-3 -left-3 bg-neutral-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               ❌ AVANT
             </div>
-            <div className="rounded-2xl border-2 border-neutral-200 bg-neutral-50/30 p-6">
-              <div className="bg-white rounded-xl border p-4 mb-4">
-                <p className="text-xs text-neutral-500 mb-2">📰 Actualité brute</p>
-                <p className="font-semibold text-sm mb-2">
-                  "Le gouvernement annonce une hausse de 15% du prix de l'essence d'ici la fin du mois"
+            <div className="rounded-2xl border-2 border-neutral-300 overflow-hidden bg-white">
+              {/* Image basique */}
+              <div className="relative">
+                <img
+                  src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop"
+                  alt="Plat de restaurant basique"
+                  className="w-full aspect-square object-cover"
+                />
+              </div>
+
+              {/* Caption Instagram classique */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600"></div>
+                  <span className="text-sm font-semibold">latableverte</span>
+                </div>
+                <p className="text-sm text-neutral-600">
+                  Salade fraîche du jour 🥗<br/>
+                  #restaurant #bio #local #salad
                 </p>
-                <p className="text-xs text-neutral-600">Source : Le Monde - il y a 2h</p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-neutral-400 text-xl">✗</span>
-                  <p className="text-sm text-neutral-700">Vous postez l'actu telle quelle sur vos réseaux</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-neutral-400 text-xl">✗</span>
-                  <p className="text-sm text-neutral-700">Aucun lien avec votre activité</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-neutral-400 text-xl">✗</span>
-                  <p className="text-sm text-neutral-700">Pas d'appel à l'action</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-neutral-400 text-xl">✗</span>
-                  <p className="text-sm text-neutral-700">Visuel générique qui ne se démarque pas</p>
+                <div className="pt-2 border-t border-neutral-200">
+                  <p className="text-xs text-neutral-500">👁️ 12 vues • 💬 0 commentaires • 📢 Portée faible</p>
                 </div>
               </div>
 
-              <div className="mt-4 bg-neutral-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-medium text-neutral-600">Résultat :</p>
-                <p className="text-lg font-bold text-neutral-700">😴 Faible engagement, 0 conversion</p>
+              {/* Résultat */}
+              <div className="bg-neutral-100 p-4 text-center border-t border-neutral-200">
+                <p className="text-sm font-semibold text-neutral-700">😴 Post basique, zéro lien avec l'actualité</p>
+                <p className="text-xs text-neutral-500 mt-1">Personne ne s'arrête, engagement minimal</p>
               </div>
             </div>
           </div>
@@ -124,44 +122,82 @@ export default function HomeKeiro() {
             <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               ✨ APRÈS avec Keiro
             </div>
-            <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/30 p-6">
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl p-6 mb-4 text-white shadow-lg">
-                <p className="text-xs opacity-90 mb-3">🚗 Restaurant bio "La Table Verte"</p>
-                <h3 className="font-bold text-lg mb-2">
-                  L'essence flambe ? 🌱<br/>
-                  Nos circuits courts font baisser l'addition !
-                </h3>
-                <p className="text-sm mb-4 opacity-95">
-                  Pendant que les prix s'envolent, nos légumes du coin arrivent à vélo.
-                  Résultat : -20% sur vos plats cette semaine.
+            <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
+              {/* Image retravaillée avec overlay */}
+              <div className="relative">
+                <img
+                  src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop"
+                  alt="Plat de restaurant avec overlay"
+                  className="w-full aspect-square object-cover brightness-75"
+                />
+                {/* Text overlay professionnel */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
+                  <div className="text-center space-y-3">
+                    <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                      <p className="text-xs font-medium text-white">🌱 CIRCUIT COURT</p>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-2xl">
+                      L'essence flambe ?<br/>
+                      Nos légumes arrivent<br/>
+                      à vélo ! 🚴‍♂️
+                    </h3>
+                    <div className="inline-block bg-gradient-to-r from-green-500 to-green-600 px-6 py-3 rounded-xl shadow-2xl">
+                      <p className="text-base font-bold text-white">-20% cette semaine</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Caption Instagram optimisée */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600"></div>
+                  <span className="text-sm font-semibold">latableverte</span>
+                </div>
+                <p className="text-sm text-neutral-700">
+                  💚 L'essence explose ? Nos circuits courts sont la solution !<br/><br/>
+                  Pendant que les prix s'envolent, nos légumes parcourent 5km au lieu de 500.<br/><br/>
+                  Cette semaine : -20% sur tous nos plats 🎉<br/><br/>
+                  👉 Réservez maintenant (lien en bio)
                 </p>
-                <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
-                  <p className="text-xs font-medium">👉 Réservez maintenant</p>
+                <p className="text-xs text-blue-600">#essence #circuitcourt #local #bio #economie</p>
+                <div className="pt-2 border-t border-neutral-200">
+                  <p className="text-xs text-blue-600 font-medium">🔥 482 vues • 💬 37 commentaires • 📢 Portée x8</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500 text-xl">✓</span>
-                  <p className="text-sm text-neutral-700"><strong>Lien direct</strong> entre l'actu et votre solution</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500 text-xl">✓</span>
-                  <p className="text-sm text-neutral-700"><strong>Bénéfice clair</strong> pour vos clients</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500 text-xl">✓</span>
-                  <p className="text-sm text-neutral-700"><strong>Appel à l'action</strong> immédiat</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500 text-xl">✓</span>
-                  <p className="text-sm text-neutral-700"><strong>Visuel pro</strong> qui capte l'attention</p>
-                </div>
+              {/* Résultat */}
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 text-center border-t border-blue-200">
+                <p className="text-sm font-semibold text-blue-900">🚀 Visuel qui capte l'attention + lien actuel</p>
+                <p className="text-xs text-blue-700 mt-1">Les gens s'arrêtent, commentent, réservent !</p>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="mt-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-3 text-center">
-                <p className="text-xs font-medium text-blue-800">Résultat :</p>
-                <p className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">🚀 +300% d'engagement, conversions réelles</p>
+        {/* Explication sous les images */}
+        <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6">
+          <h3 className="text-lg font-bold text-blue-900 mb-3">🎯 Ce qui change tout :</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 text-xl">✓</span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Texte overlay professionnel</p>
+                <p className="text-xs text-blue-700">Le message clé est visible immédiatement</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 text-xl">✓</span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Lien direct avec l'actualité</p>
+                <p className="text-xs text-blue-700">Circuits courts vs hausse de l'essence</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500 text-xl">✓</span>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Appel à l'action immédiat</p>
+                <p className="text-xs text-blue-700">-20% + réservation, message clair</p>
               </div>
             </div>
           </div>
