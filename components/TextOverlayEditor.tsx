@@ -11,7 +11,7 @@ export interface TextOverlayConfig {
   fontFamily: 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
   fontSize: number;
   backgroundStyle: 'transparent' | 'solid' | 'gradient' | 'blur';
-  template: 'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern';
+  template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'minimal' | 'bold' | 'elegant' | 'modern' | 'countdown' | 'avant-apres' | 'badge-premium';
 }
 
 interface TextOverlayEditorProps {
@@ -38,7 +38,7 @@ const TEMPLATES = [
     id: 'headline',
     name: 'Headline',
     icon: '📰',
-    description: 'Titre impactant',
+    description: 'Titre impactant (haut)',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -50,12 +50,48 @@ const TEMPLATES = [
     id: 'cta',
     name: 'Call-to-Action',
     icon: '🎯',
-    description: 'Bouton d\'action',
+    description: 'Bouton CTA (bas)',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#3b82f6',
       backgroundStyle: 'solid' as const,
       position: 'bottom-center' as const,
+    }
+  },
+  {
+    id: 'promo-flash',
+    name: 'Promo Flash',
+    icon: '⚡',
+    description: 'Offre limitée urgente',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'rgba(239, 68, 68, 0.95)',
+      backgroundStyle: 'solid' as const,
+      position: 'top-right' as const,
+    }
+  },
+  {
+    id: 'badge-nouveau',
+    name: 'Badge Nouveau',
+    icon: '🆕',
+    description: 'Nouveauté produit',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'rgba(34, 197, 94, 0.95)',
+      backgroundStyle: 'solid' as const,
+      position: 'top-left' as const,
+    }
+  },
+  {
+    id: 'citation',
+    name: 'Citation',
+    icon: '💬',
+    description: 'Témoignage client',
+    defaults: {
+      textColor: '#1f2937',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backgroundStyle: 'blur' as const,
+      position: 'center' as const,
     }
   },
   {
@@ -86,7 +122,7 @@ const TEMPLATES = [
     id: 'elegant',
     name: 'Élégant',
     icon: '👔',
-    description: 'Sophistiqué',
+    description: 'Sophistiqué pro',
     defaults: {
       textColor: '#1f2937',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -104,6 +140,42 @@ const TEMPLATES = [
       backgroundColor: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
       backgroundStyle: 'gradient' as const,
       position: 'bottom-center' as const,
+    }
+  },
+  {
+    id: 'countdown',
+    name: 'Countdown',
+    icon: '⏰',
+    description: 'Compte à rebours',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'rgba(220, 38, 38, 0.95)',
+      backgroundStyle: 'solid' as const,
+      position: 'top-center' as const,
+    }
+  },
+  {
+    id: 'avant-apres',
+    name: 'Avant/Après',
+    icon: '↔️',
+    description: 'Transformation',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'rgba(16, 185, 129, 0.9)',
+      backgroundStyle: 'solid' as const,
+      position: 'center-left' as const,
+    }
+  },
+  {
+    id: 'badge-premium',
+    name: 'Premium',
+    icon: '⭐',
+    description: 'Badge de qualité',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'rgba(245, 158, 11, 0.95)',
+      backgroundStyle: 'solid' as const,
+      position: 'top-right' as const,
     }
   },
 ];

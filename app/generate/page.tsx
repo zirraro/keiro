@@ -611,35 +611,30 @@ export default function GeneratePage() {
         (marketingAngle ? `Marketing Strategy: ${marketingAngle}\n` : '')
       );
 
-      // 6. COMPOSITION POUR TEXT OVERLAY (Canvas post-processing)
-      // On génère TOUJOURS sans texte, puis on l'ajoute avec Canvas pour qualité parfaite
+      // 6. INTERDICTION ABSOLUE DE TEXTE (Canvas post-processing)
+      // L'IA NE DOIT JAMAIS générer de texte - on l'ajoute avec Canvas pour qualité parfaite
+      promptParts.push(
+        `\n\n🚫🚫🚫 CRITICAL - ABSOLUTE TEXT PROHIBITION 🚫🚫🚫\n` +
+        `⛔ NEVER EVER include ANY text, words, letters, numbers, captions, labels, or written content in the image\n` +
+        `⛔ NO brand names, NO product names, NO slogans, NO prices, NO dates\n` +
+        `⛔ NO UI elements with text (buttons, badges, labels)\n` +
+        `⛔ NO newspaper headlines, NO signs, NO typography of ANY kind\n` +
+        `⛔ The image must be 100% TEXT-FREE - PURE VISUAL ONLY\n\n` +
+        `WHY: Text will be added separately in post-processing with professional typography.\n` +
+        `Your job is to create BEAUTIFUL VISUAL COMPOSITION ONLY.`
+      );
+
       if (optionalText && optionalText.trim()) {
         const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
 
         promptParts.push(
           `\n\n📐 COMPOSITION READY FOR TEXT OVERLAY:\n` +
-          `⚠️ DO NOT INCLUDE ANY TEXT IN THE IMAGE - Text will be added in post-processing.\n\n` +
-
-          `VISUAL COMPOSITION - Create Space for Text:\n` +
-          `- ${isCTA ? 'Lower third (bottom 1/3) OR center area' : 'Upper third (top 1/3) OR center area'} should have visual breathing room\n` +
-          `- Create subtle visual contrast areas where text can overlay beautifully:\n` +
-          `  * ${isCTA ? 'Darker or gradient area at bottom/center for bold CTA placement' : 'Clean visual area at top/center for headline placement'}\n` +
-          `  * Avoid busy patterns or high-detail zones in text placement areas\n` +
-          `  * Natural gradient or lighting variations to support text visibility\n\n` +
-
-          `COMPOSITION BALANCE:\n` +
-          `- Main visual elements should be positioned to leave room for prominent text\n` +
-          `- ${isCTA ? 'Create visual hierarchy leading eye toward bottom/center for CTA' : 'Keep top/center relatively clean for headline impact'}\n` +
-          `- Ensure background in text areas has good contrast potential (not too busy)\n` +
-          `- Professional, clean composition suitable for social media\n\n` +
-
-          `🚫 CRITICAL: DO NOT INCLUDE ANY TEXT, WORDS, LETTERS, OR CAPTIONS IN THE IMAGE.\n` +
-          `The image should be complete and beautiful WITHOUT text. Text will be added separately.`
-        );
-      } else {
-        promptParts.push(
-          `\n\n🚫 NO TEXT OVERLAY: Do not include ANY text, captions, words, or letters in the image. ` +
-          `Focus exclusively on pure visual storytelling without textual elements of any kind.`
+          `Create visual breathing room for text overlay:\n` +
+          `- ${isCTA ? 'Lower third (bottom 1/3) OR center area' : 'Upper third (top 1/3) OR center area'} should have clean space\n` +
+          `- ${isCTA ? 'Darker or gradient area at bottom/center' : 'Clean visual area at top/center'} for text placement\n` +
+          `- Avoid busy patterns in text zones\n` +
+          `- Good contrast potential (not too busy)\n\n` +
+          `🚫 REMEMBER: ZERO TEXT IN THE IMAGE. CREATE VISUAL-ONLY COMPOSITION.`
         );
       }
 
@@ -779,10 +774,12 @@ export default function GeneratePage() {
           console.log('[Generate] Applying watermark for freemium user');
           const imageWithWatermark = await addWatermark(finalImageUrl, {
             position: 'bottom-right',
-            opacity: 0.5,
-            fontSize: 14
+            opacity: 0.7, // Augmenté de 0.5 à 0.7 pour meilleure visibilité
+            fontSize: 18  // Augmenté de 14 à 18 pour meilleure visibilité
           });
           finalImageUrl = imageWithWatermark;
+        } else {
+          console.log('[Generate] No watermark - user is premium or not freemium');
         }
       } catch (watermarkError) {
         // En cas d'erreur watermark, continuer sans watermark (ne pas bloquer l'utilisateur)
@@ -1489,9 +1486,12 @@ export default function GeneratePage() {
                       </div>
                     )}
 
-                    <p className="text-[10px] text-neutral-500 mt-1">
-                      💡 Le texte sera ajouté de manière professionnelle sur votre visuel avec Canvas
-                    </p>
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+                      <p className="text-[10px] text-amber-800 font-medium">
+                        💡 <strong>Important :</strong> Sélectionnez votre texte AVANT de cliquer sur "Générer".
+                        L'IA créera un visuel SANS texte, puis nous ajouterons votre texte de manière professionnelle avec Canvas.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
