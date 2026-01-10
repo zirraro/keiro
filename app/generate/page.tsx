@@ -550,8 +550,11 @@ export default function GeneratePage() {
         const result = await addTextOverlay(imageToPreview, {
           text: overlayText,
           position: simplePosition,
+          fontSize: fontSize,
+          fontFamily: fontFamily,
           textColor: textColor,
           backgroundColor: textBackgroundColor,
+          backgroundStyle: backgroundStyle,
         });
 
         setTextPreviewUrl(result);
@@ -858,32 +861,45 @@ export default function GeneratePage() {
         // Continuer avec l'URL originale même si la conversion échoue
       }
 
-      // ÉTAPE 2 : Appliquer le text overlay avec Canvas si un texte est fourni
-      if (optionalText && optionalText.trim()) {
-        console.log('[Generate] Applying text overlay:', optionalText.trim());
-        try {
-          // Déterminer le style selon le type de texte
-          const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
-          const position = isCTA ? 'bottom' : 'center';
-          const style = isCTA ? 'cta' : 'headline';
+      // ÉTAPE 2 : Appliquer TOUJOURS le text overlay automatiquement
+      console.log('[Generate] Applying automatic text overlay...');
+      try {
+        // Utiliser le texte fourni OU un texte par défaut basé sur l'actualité
+        let textToApply = optionalText && optionalText.trim()
+          ? optionalText.trim()
+          : selectedNews.title.length > 60
+            ? selectedNews.title.substring(0, 60) + '...'
+            : selectedNews.title;
 
-          console.log('[Generate] Text overlay config:', { position, style, textLength: optionalText.trim().length });
+        // Déterminer le style selon le type de texte
+        const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(textToApply);
+        const position: 'top' | 'center' | 'bottom' = isCTA ? 'bottom' : 'center';
 
-          // Appliquer l'overlay sur l'image (déjà en data URL)
-          const imageWithText = await addTextOverlay(finalImageUrl, {
-            text: optionalText.trim(),
-            position,
-            style,
-          });
+        // Paramètres par défaut professionnels
+        const defaultConfig = {
+          text: textToApply,
+          position,
+          fontSize: 64, // Taille par défaut visible
+          fontFamily: 'montserrat' as const, // Police moderne et lisible
+          textColor: '#ffffff',
+          backgroundColor: isCTA ? '#3b82f6' : 'rgba(0, 0, 0, 0.4)', // CTA bleu / headline transparent
+          backgroundStyle: isCTA ? 'solid' as const : 'gradient' as const, // CTA solide / headline gradient
+        };
 
-          console.log('[Generate] ✅ Text overlay applied successfully');
-          // L'image avec texte est en data URL
-          finalImageUrl = imageWithText;
-        } catch (overlayError) {
-          // Log l'erreur silencieusement - l'utilisateur pourra ajouter le texte via l'éditeur
-          console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
-          console.warn('[Generate] Text will be editable in the editor instead');
-        }
+        console.log('[Generate] Text overlay config:', defaultConfig);
+
+        // Appliquer l'overlay sur l'image (déjà en data URL)
+        const imageWithText = await addTextOverlay(finalImageUrl, defaultConfig);
+
+        console.log('[Generate] ✅ Text overlay applied successfully');
+        // Sauvegarder le texte appliqué pour l'édition
+        setOverlayText(textToApply);
+        // L'image avec texte est en data URL
+        finalImageUrl = imageWithText;
+      } catch (overlayError) {
+        // Log l'erreur avec détails
+        console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
+        console.error('[Generate] Error details:', overlayError instanceof Error ? overlayError.message : 'Unknown error');
       }
 
       // ÉTAPE 3 : Appliquer le watermark KeiroAI pour les utilisateurs freemium
@@ -2551,8 +2567,11 @@ export default function GeneratePage() {
                             const result = await addTextOverlay(imageToEdit, {
                               text: overlayText,
                               position: simplePosition,
+                              fontSize: fontSize,
+                              fontFamily: fontFamily,
                               textColor: textColor,
                               backgroundColor: textBackgroundColor,
+                              backgroundStyle: backgroundStyle,
                             });
 
                             // Ajouter cette nouvelle version
@@ -3273,8 +3292,11 @@ export default function GeneratePage() {
                           const result = await addTextOverlay(imageToEdit, {
                             text: overlayText,
                             position: simplePosition,
+                            fontSize: fontSize,
+                            fontFamily: fontFamily,
                             textColor: textColor,
                             backgroundColor: textBackgroundColor,
+                            backgroundStyle: backgroundStyle,
                           });
 
                           setEditVersions([...editVersions, result]);
