@@ -120,6 +120,11 @@ export default function GeneratePage() {
   const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
   const [specialist, setSpecialist] = useState<string>('');
 
+  // NOUVELLES questions EXPERTES pour personnalisation ultra-précise
+  const [problemSolved, setProblemSolved] = useState(''); // Quel problème vous résolvez face à cette actu
+  const [uniqueAdvantage, setUniqueAdvantage] = useState(''); // Votre avantage unique vs concurrence
+  const [desiredVisualIdea, setDesiredVisualIdea] = useState(''); // Idée vague du visuel souhaité
+
   /* --- États pour le sélecteur de profil de communication --- */
   const [communicationProfile, setCommunicationProfile] = useState<'inspirant' | 'expert' | 'urgent' | 'conversationnel'>('inspirant');
 
@@ -274,6 +279,10 @@ export default function GeneratePage() {
         if (state.optionalText) setOptionalText(state.optionalText);
         if (state.platform) setPlatform(state.platform);
         if (state.specialist) setSpecialist(state.specialist);
+        // Questions EXPERTES
+        if (state.problemSolved) setProblemSolved(state.problemSolved);
+        if (state.uniqueAdvantage) setUniqueAdvantage(state.uniqueAdvantage);
+        if (state.desiredVisualIdea) setDesiredVisualIdea(state.desiredVisualIdea);
 
         // Nettoyer après restauration
         localStorage.removeItem('keiro_generate_form_state');
@@ -303,6 +312,10 @@ export default function GeneratePage() {
         optionalText,
         platform,
         specialist,
+        // Questions EXPERTES
+        problemSolved,
+        uniqueAdvantage,
+        desiredVisualIdea,
         savedAt: new Date().toISOString()
       };
 
@@ -326,7 +339,11 @@ export default function GeneratePage() {
     storyToTell,
     optionalText,
     platform,
-    specialist
+    specialist,
+    // Questions EXPERTES
+    problemSolved,
+    uniqueAdvantage,
+    desiredVisualIdea
   ]);
 
   async function fetchAllNews() {
@@ -590,6 +607,42 @@ export default function GeneratePage() {
         `\nThe visual must clearly show how this business BENEFITS from or RELATES to this news. ` +
         `Show a specific, tangible connection that makes immediate sense to viewers.`
       );
+
+      // 3.5 QUESTIONS EXPERTES - Lien ULTRA-FORT actualité/business (NOUVEAU)
+      if (problemSolved || uniqueAdvantage || desiredVisualIdea) {
+        promptParts.push(
+          `\n\n🎯 EXPERT INSIGHTS - NEWS-TO-BUSINESS SUPER CONNECTION:\n`
+        );
+
+        if (problemSolved) {
+          promptParts.push(
+            `Problem Solved: ${problemSolved}\n` +
+            `→ CRITICAL: Show visually HOW this business solves the problem created by the news. ` +
+            `Make this connection OBVIOUS and COMPELLING. The viewer must immediately see: "News Problem → Business Solution".\n`
+          );
+        }
+
+        if (uniqueAdvantage) {
+          promptParts.push(
+            `Unique Advantage: ${uniqueAdvantage}\n` +
+            `→ Highlight this unique selling point visually. Show what makes this business DIFFERENT and BETTER. ` +
+            `This should be a central visual element that stands out.\n`
+          );
+        }
+
+        if (desiredVisualIdea) {
+          promptParts.push(
+            `Visual Direction: ${desiredVisualIdea}\n` +
+            `→ Use this as creative inspiration for the composition. Interpret artistically while maintaining professional quality. ` +
+            `This is the client's vision - honor it while enhancing it with your artistic expertise.\n`
+          );
+        }
+
+        promptParts.push(
+          `\n💡 These expert insights are KEY to creating a viral-worthy visual. ` +
+          `Use them to create a POWERFUL, OBVIOUS connection that makes people think: "WOW, that makes perfect sense!"`
+        );
+      }
 
       // 4. AUDIENCE CIBLÉE (Amélioré)
       if (targetAudience) {
@@ -1486,12 +1539,58 @@ export default function GeneratePage() {
                       </div>
                     )}
 
-                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
-                      <p className="text-[10px] text-amber-800 font-medium">
-                        💡 <strong>Important :</strong> Sélectionnez votre texte AVANT de cliquer sur "Générer".
-                        L'IA créera un visuel SANS texte, puis nous ajouterons votre texte de manière professionnelle avec Canvas.
-                      </p>
-                    </div>
+                  </div>
+                </div>
+
+                {/* NOUVELLES QUESTIONS EXPERTES - Section premium */}
+                <div className="border-t pt-3 mt-3">
+                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <h3 className="text-xs font-bold text-blue-900 mb-1 flex items-center gap-1">
+                      🎯 Questions EXPERTES (optionnel mais recommandé)
+                    </h3>
+                    <p className="text-[10px] text-blue-700">Ces questions vont multiplier l'impact de votre visuel en créant un lien ultra-fort actualité/business</p>
+                  </div>
+
+                  {/* Question 1 : Problème résolu */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                      💡 Quel problème résolvez-vous face à cette actualité ?
+                    </label>
+                    <input
+                      type="text"
+                      value={problemSolved}
+                      onChange={(e) => setProblemSolved(e.target.value)}
+                      placeholder="Ex: L'essence coûte cher → Nos légumes viennent à vélo, pas de transport longue distance"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+
+                  {/* Question 2 : Avantage unique */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                      ⭐ Quel est votre avantage unique face à vos concurrents ?
+                    </label>
+                    <input
+                      type="text"
+                      value={uniqueAdvantage}
+                      onChange={(e) => setUniqueAdvantage(e.target.value)}
+                      placeholder="Ex: Seul restaurant 100% circuits courts dans la région, légumes récoltés le matin même"
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+
+                  {/* Question 3 : Idée visuelle */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                      🎨 Avez-vous une idée de visuel en tête ?
+                    </label>
+                    <textarea
+                      value={desiredVisualIdea}
+                      onChange={(e) => setDesiredVisualIdea(e.target.value)}
+                      placeholder="Ex: Un vélo livrant des légumes frais avec en fond subtil une station-service aux prix élevés"
+                      rows={2}
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    />
                   </div>
                 </div>
 
