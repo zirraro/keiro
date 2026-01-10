@@ -530,3 +530,76 @@ export function generateBestTextSuggestion(params: TextSuggestionParams): string
   // Par défaut, retourner la première suggestion (basée sur l'actu)
   return suggestions[0] || `${params.businessType} d'exception`;
 }
+
+/**
+ * NOUVEAU : Génère une proposition de "problème résolu" basée sur l'actualité
+ * Cette proposition est LIÉE à la suggestion de texte pour cohérence maximale
+ */
+export function generateProblemSolvedSuggestion(params: TextSuggestionParams): string {
+  const {
+    newsTitle,
+    newsDescription,
+    businessType,
+  } = params;
+
+  // Extraire les mots-clés et le contexte de l'actu
+  const keywords = extractKeywords(newsTitle, newsDescription);
+  const entities = extractNewsEntities(newsTitle, newsDescription);
+  const newsEntity = entities[0] || keywords.mainConcept;
+
+  // Générer une proposition de problème résolu selon le contexte
+  let problemSolved = '';
+
+  // Cas 1 : Hausse de prix / Économie
+  if (keywords.categories.includes('prix') || keywords.categories.includes('économie')) {
+    if (newsTitle.toLowerCase().includes('hausse') || newsTitle.toLowerCase().includes('augment')) {
+      problemSolved = `Face à la hausse ${keywords.mainConcept}, ${businessType} à prix stable`;
+    } else if (newsTitle.toLowerCase().includes('baisse')) {
+      problemSolved = `Profitez de la baisse ${keywords.mainConcept} avec nos offres`;
+    } else {
+      problemSolved = `${newsEntity} impacte les prix ? Notre solution économique`;
+    }
+  }
+
+  // Cas 2 : Problème / Crise
+  else if (keywords.categories.includes('problème') && keywords.emotion === 'inquiétude') {
+    problemSolved = `Problème ${newsEntity} ? ${businessType} apporte la solution`;
+  }
+
+  // Cas 3 : Nouveauté / Innovation
+  else if (keywords.categories.includes('nouveauté') || keywords.emotion === 'excitation') {
+    problemSolved = `${newsEntity} arrive : ${businessType} déjà équipé pour vous servir`;
+  }
+
+  // Cas 4 : Urgence
+  else if (keywords.categories.includes('urgence') || keywords.emotion === 'urgence') {
+    problemSolved = `Besoin urgent ${newsEntity} ? ${businessType} disponible immédiatement`;
+  }
+
+  // Cas 5 : Opportunité
+  else if (keywords.categories.includes('opportunité') || keywords.emotion === 'enthousiasme') {
+    problemSolved = `Opportunité ${newsEntity} : ${businessType} maximise vos chances`;
+  }
+
+  // Cas 6 : Écologie
+  else if (keywords.categories.includes('écologie')) {
+    problemSolved = `Face à ${newsEntity}, ${businessType} éco-responsable`;
+  }
+
+  // Cas 7 : Santé
+  else if (keywords.categories.includes('santé')) {
+    problemSolved = `Préoccupation ${newsEntity} ? ${businessType} prend soin de vous`;
+  }
+
+  // Cas 8 : Tech
+  else if (keywords.categories.includes('tech')) {
+    problemSolved = `${newsEntity} révolutionne le marché, ${businessType} vous accompagne`;
+  }
+
+  // Cas générique si aucun pattern détecté
+  if (!problemSolved) {
+    problemSolved = `Face à ${newsEntity}, ${businessType} a la solution adaptée`;
+  }
+
+  return problemSolved;
+}

@@ -486,7 +486,27 @@ export default function GeneratePage() {
       return;
     }
 
-    // Générer les suggestions
+    // NOUVEAU : Auto-remplir "problème résolu" si vide
+    // Cela crée une PROPOSITION cohérente avec les suggestions de texte
+    if (!problemSolved || !problemSolved.trim()) {
+      const { generateProblemSolvedSuggestion } = require('@/lib/text-suggestion');
+
+      const problemSuggestion = generateProblemSolvedSuggestion({
+        newsTitle: selectedNews.title,
+        newsDescription: selectedNews.description,
+        businessType,
+        businessDescription,
+        targetAudience,
+        specialist: specialist as any,
+        communicationProfile,
+        marketingAngle,
+      });
+
+      setProblemSolved(problemSuggestion);
+      console.log('[TextSuggestion] 🎯 Auto-filled problem solved:', problemSuggestion);
+    }
+
+    // Générer les suggestions de texte
     const suggestions = generateTextSuggestions({
       newsTitle: selectedNews.title,
       newsDescription: selectedNews.description,
@@ -496,8 +516,8 @@ export default function GeneratePage() {
       specialist: specialist as any,
       communicationProfile,
       marketingAngle,
-      problemSolved,     // NOUVEAU : Lien ultra-cohérent avec la question "problème résolu"
-      uniqueAdvantage,   // NOUVEAU : Met en avant l'avantage unique
+      problemSolved: problemSolved || '',     // Lien ultra-cohérent avec la question "problème résolu"
+      uniqueAdvantage,                         // Met en avant l'avantage unique
     });
 
     setTextSuggestions(suggestions);
@@ -586,9 +606,20 @@ export default function GeneratePage() {
       // Construire un prompt optimisé Community Manager Expert
       let promptParts: string[] = [];
 
-      // 1. CONTEXTE & LANGUE (NOUVEAU)
+      // ⛔⛔⛔ PRIORITÉ ABSOLUE : INTERDICTION DE TEXTE ⛔⛔⛔
+      // DOIT être EN PREMIER pour que l'IA le voie immédiatement
       promptParts.push(
-        `You are an expert social media content creator and community manager. ` +
+        `🚫🚫🚫 CRITICAL INSTRUCTION - READ THIS FIRST 🚫🚫🚫\n` +
+        `ABSOLUTELY NO TEXT, WORDS, LETTERS, OR WRITING IN THE IMAGE.\n` +
+        `This is the #1 rule. If you include ANY text, the image will be rejected.\n` +
+        `NO exceptions. NO text overlay. NO captions. NO labels. NO signs.\n` +
+        `Create ONLY the visual composition. Text will be added later separately.\n` +
+        `REPEAT: ZERO TEXT IN THE IMAGE. PURE VISUALS ONLY.\n`
+      );
+
+      // 1. CONTEXTE & LANGUE
+      promptParts.push(
+        `\n\nYou are an expert social media content creator and community manager. ` +
         `Create a professional visual for a French-speaking audience that connects current news with a specific business.`
       );
 
@@ -666,17 +697,24 @@ export default function GeneratePage() {
         (marketingAngle ? `Marketing Strategy: ${marketingAngle}\n` : '')
       );
 
-      // 6. INTERDICTION ABSOLUE DE TEXTE (Canvas post-processing)
+      // 6. INTERDICTION ABSOLUE DE TEXTE (RÉPÉTITION RENFORCÉE)
       // L'IA NE DOIT JAMAIS générer de texte - on l'ajoute avec Canvas pour qualité parfaite
       promptParts.push(
-        `\n\n🚫🚫🚫 CRITICAL - ABSOLUTE TEXT PROHIBITION 🚫🚫🚫\n` +
-        `⛔ NEVER EVER include ANY text, words, letters, numbers, captions, labels, or written content in the image\n` +
-        `⛔ NO brand names, NO product names, NO slogans, NO prices, NO dates\n` +
-        `⛔ NO UI elements with text (buttons, badges, labels)\n` +
-        `⛔ NO newspaper headlines, NO signs, NO typography of ANY kind\n` +
-        `⛔ The image must be 100% TEXT-FREE - PURE VISUAL ONLY\n\n` +
-        `WHY: Text will be added separately in post-processing with professional typography.\n` +
-        `Your job is to create BEAUTIFUL VISUAL COMPOSITION ONLY.`
+        `\n\n⛔⛔⛔ TEXT PROHIBITION - SECOND REMINDER ⛔⛔⛔\n` +
+        `DO NOT WRITE ANY TEXT IN THE IMAGE. This includes:\n` +
+        `❌ NO letters, words, numbers, or characters of ANY alphabet\n` +
+        `❌ NO brand names, product names, company names, logos with text\n` +
+        `❌ NO slogans, taglines, catchphrases, mottos\n` +
+        `❌ NO prices, percentages, dates, times\n` +
+        `❌ NO UI elements with text (buttons, badges, labels, ribbons)\n` +
+        `❌ NO newspaper headlines, article titles, book covers with text\n` +
+        `❌ NO signs, billboards, storefronts with text\n` +
+        `❌ NO social media posts, screenshots with text\n` +
+        `❌ NO handwritten text, calligraphy, graffiti with letters\n` +
+        `❌ NO typography, fonts, text overlays of ANY kind\n\n` +
+        `✅ WHAT TO DO: Create a beautiful VISUAL-ONLY composition with objects, people, scenes, colors, lighting.\n` +
+        `✅ Text will be added separately with professional tools after generation.\n` +
+        `✅ Focus on creating STUNNING VISUALS that tell the story WITHOUT words.`
       );
 
       if (optionalText && optionalText.trim()) {
@@ -809,9 +847,10 @@ export default function GeneratePage() {
           // L'image avec texte est en data URL
           finalImageUrl = imageWithText;
         } catch (overlayError) {
-          // Log l'erreur avec détails pour debugging
+          // Log l'erreur silencieusement - l'utilisateur pourra ajouter le texte via l'éditeur
           console.error('[Generate] Text overlay FAILED:', overlayError);
-          alert(`⚠️ Impossible d'ajouter le texte sur l'image. Vous pourrez l'ajouter via l'éditeur. Erreur: ${overlayError}`);
+          console.warn('[Generate] Text will be editable in the editor instead');
+          // PAS d'alert - c'est trop agressif et l'utilisateur peut éditer le texte après
         }
       }
 

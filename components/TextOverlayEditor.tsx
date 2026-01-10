@@ -36,9 +36,9 @@ const POSITION_LABELS: Record<TextOverlayConfig['position'], string> = {
 const TEMPLATES = [
   {
     id: 'headline',
-    name: 'Titre Impact',
+    name: '📰 Grand Titre',
     icon: '📰',
-    description: 'Grand titre en haut',
+    description: 'Titre impactant haut',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'rgba(0, 0, 0, 0.6)',
@@ -50,9 +50,9 @@ const TEMPLATES = [
   },
   {
     id: 'cta',
-    name: 'CTA Bouton',
+    name: '🎯 Bouton Action',
     icon: '🎯',
-    description: 'Bouton d\'action bas',
+    description: 'CTA appel à l\'action',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#2563eb',
@@ -64,9 +64,9 @@ const TEMPLATES = [
   },
   {
     id: 'promo-flash',
-    name: 'Flash',
+    name: '⚡ Promo Flash',
     icon: '⚡',
-    description: 'Promo urgente rouge',
+    description: '-50% offre limitée',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#dc2626',
@@ -78,9 +78,9 @@ const TEMPLATES = [
   },
   {
     id: 'badge-nouveau',
-    name: 'Nouveau',
+    name: '🆕 Nouveauté',
     icon: '🆕',
-    description: 'Badge vert frais',
+    description: 'Badge nouveau produit',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#16a34a',
@@ -92,9 +92,9 @@ const TEMPLATES = [
   },
   {
     id: 'citation',
-    name: 'Citation',
+    name: '💬 Citation Client',
     icon: '💬',
-    description: 'Témoignage central',
+    description: 'Témoignage avis',
     defaults: {
       textColor: '#1e293b',
       backgroundColor: 'rgba(255, 255, 255, 0.92)',
@@ -106,9 +106,9 @@ const TEMPLATES = [
   },
   {
     id: 'annonce',
-    name: 'Annonce',
+    name: '📢 Grande Annonce',
     icon: '📢',
-    description: 'Grand message central',
+    description: 'Message important',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #f59e0b, #ef4444)',
@@ -120,9 +120,9 @@ const TEMPLATES = [
   },
   {
     id: 'urgent',
-    name: 'Urgent',
+    name: '⏰ Alerte Urgente',
     icon: '⏰',
-    description: 'Alerte urgente haut',
+    description: 'Dernière chance 24h',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#b91c1c',
@@ -134,9 +134,9 @@ const TEMPLATES = [
   },
   {
     id: 'premium-gold',
-    name: 'Premium',
+    name: '⭐ Badge Premium',
     icon: '⭐',
-    description: 'Badge or premium',
+    description: 'Qualité supérieure',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -148,9 +148,9 @@ const TEMPLATES = [
   },
   {
     id: 'elegant',
-    name: 'Élégant',
+    name: '✨ Élégant Pro',
     icon: '✨',
-    description: 'Sobre et pro centre',
+    description: 'Sobre professionnel',
     defaults: {
       textColor: '#334155',
       backgroundColor: 'rgba(248, 250, 252, 0.95)',
@@ -162,9 +162,9 @@ const TEMPLATES = [
   },
   {
     id: 'story',
-    name: 'Story',
+    name: '🎬 Story Instagram',
     icon: '🎬',
-    description: 'Style Instagram story',
+    description: 'Format vertical story',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
@@ -176,9 +176,9 @@ const TEMPLATES = [
   },
   {
     id: 'temoignage',
-    name: 'Avis',
+    name: '💚 Avis 5 Étoiles',
     icon: '💚',
-    description: 'Avis client positif',
+    description: 'Témoignage positif',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: '#059669',
@@ -190,9 +190,9 @@ const TEMPLATES = [
   },
   {
     id: 'evenement',
-    name: 'Événement',
+    name: '🎉 Événement',
     icon: '🎉',
-    description: 'Annonce événement',
+    description: 'Soirée lancement',
     defaults: {
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
