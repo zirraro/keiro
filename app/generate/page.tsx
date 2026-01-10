@@ -9,6 +9,7 @@ import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
 import { generateTextSuggestions } from '@/lib/text-suggestion';
 import { addTextOverlay } from '@/lib/canvas-text-overlay';
+import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -177,6 +178,8 @@ export default function GeneratePage() {
   const [fontFamily, setFontFamily] = useState<'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair'>('inter');
   const [backgroundStyle, setBackgroundStyle] = useState<'transparent' | 'solid' | 'gradient' | 'blur'>('transparent');
   const [textTemplate, setTextTemplate] = useState<'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern'>('headline');
+  const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -482,6 +485,48 @@ export default function GeneratePage() {
     setShowTextSuggestions(true);
   }
 
+  /* --- Preview en temps réel du texte overlay --- */
+  useEffect(() => {
+    // Ne générer la preview que si on est dans l'onglet texte et qu'il y a du texte
+    if (activeTab !== 'text' || !overlayText.trim() || !showEditStudio) {
+      setTextPreviewUrl(null);
+      return;
+    }
+
+    const imageToPreview = selectedEditVersion || generatedImageUrl;
+    if (!imageToPreview) {
+      setTextPreviewUrl(null);
+      return;
+    }
+
+    // Debounce pour éviter trop de régénérations
+    const timeoutId = setTimeout(async () => {
+      setIsGeneratingPreview(true);
+      try {
+        // Convertir position en format simple
+        let simplePosition: 'top' | 'center' | 'bottom' = 'center';
+        if (textPosition.startsWith('top')) simplePosition = 'top';
+        else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
+
+        const result = await addTextOverlay(imageToPreview, {
+          text: overlayText,
+          position: simplePosition,
+          textColor: textColor,
+          backgroundColor: textBackgroundColor,
+        });
+
+        setTextPreviewUrl(result);
+      } catch (error) {
+        console.error('Preview error:', error);
+        setTextPreviewUrl(null);
+      } finally {
+        setIsGeneratingPreview(false);
+      }
+    }, 500); // Debounce 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio]);
+
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
     if (!selectedNews) {
@@ -709,6 +754,39 @@ export default function GeneratePage() {
           // L'utilisateur pourra toujours personnaliser le texte via l'onglet "Texte" du studio d'édition
           console.warn('Text overlay skipped:', overlayError);
         }
+      }
+
+      // Appliquer le watermark KeiroAI pour les utilisateurs freemium
+      try {
+        // Vérifier le statut premium
+        const { data: { user } } = await supabase.auth.getUser();
+        const hasPremiumPlan = user?.user_metadata?.subscription_status === 'active' || false;
+
+        // Déterminer si l'utilisateur est freemium
+        const hasProvidedEmail = !!generationLimit.email;
+        const hasCreatedAccount = generationLimit.hasAccount;
+        const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan);
+
+        console.log('[Generate] Freemium check:', {
+          hasProvidedEmail,
+          hasCreatedAccount,
+          hasPremiumPlan,
+          isUserFreemium
+        });
+
+        // Appliquer le watermark si freemium
+        if (isUserFreemium) {
+          console.log('[Generate] Applying watermark for freemium user');
+          const imageWithWatermark = await addWatermark(finalImageUrl, {
+            position: 'bottom-right',
+            opacity: 0.5,
+            fontSize: 14
+          });
+          finalImageUrl = imageWithWatermark;
+        }
+      } catch (watermarkError) {
+        // En cas d'erreur watermark, continuer sans watermark (ne pas bloquer l'utilisateur)
+        console.warn('[Generate] Watermark error:', watermarkError);
       }
 
       setGeneratedImageUrl(finalImageUrl);
@@ -2045,6 +2123,23 @@ export default function GeneratePage() {
                 {/* Onglet Texte - Personnalisation du texte overlay */}
                 {activeTab === 'text' && (
                   <div className="p-4 space-y-4">
+                    {/* Preview en temps réel */}
+                    <div className="bg-white rounded-lg border p-3">
+                      <h3 className="text-xs font-semibold mb-2 text-neutral-700">👁️ Aperçu en temps réel</h3>
+                      <div className="relative aspect-square bg-neutral-100 rounded overflow-hidden">
+                        {isGeneratingPreview && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                            <div className="text-xs text-neutral-600">Génération...</div>
+                          </div>
+                        )}
+                        <img
+                          src={textPreviewUrl || selectedEditVersion || generatedImageUrl || ''}
+                          alt="Preview"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+
                     <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
                       <h3 className="text-base font-semibold mb-3">✨ Personnalisation du Texte</h3>
 
@@ -2112,14 +2207,22 @@ export default function GeneratePage() {
                                   setTextPosition('bottom-center');
                                 }
                               }}
-                              className={`p-3 rounded-lg border-2 text-left transition-all ${
+                              className={`p-3 rounded-lg border-2 text-center transition-all ${
                                 textTemplate === template.id
                                   ? 'border-purple-500 bg-purple-50'
                                   : 'border-neutral-200 hover:border-neutral-300'
                               }`}
                             >
                               <div className="text-2xl mb-1">{template.icon}</div>
-                              <div className="text-xs font-semibold">{template.name}</div>
+                              <div className="text-xs font-semibold text-neutral-900">{template.name}</div>
+                              <div className="text-[10px] text-neutral-500 mt-0.5 leading-tight">
+                                {template.id === 'headline' && 'Titre impactant'}
+                                {template.id === 'cta' && 'Bouton d\'action'}
+                                {template.id === 'minimal' && 'Simple & élégant'}
+                                {template.id === 'bold' && 'Gras & audacieux'}
+                                {template.id === 'elegant' && 'Sophistiqué'}
+                                {template.id === 'modern' && 'Gradient dynamique'}
+                              </div>
                             </button>
                           ))}
                         </div>
@@ -2447,8 +2550,19 @@ export default function GeneratePage() {
                 </div>
 
                 {/* Centre : Image display */}
-                <div className="flex-1 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden">
-                  {selectedEditVersion ? (
+                <div className="flex-1 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden relative">
+                  {isGeneratingPreview && activeTab === 'text' && (
+                    <div className="absolute top-2 right-2 bg-white/90 px-3 py-1 rounded-lg text-xs font-medium text-neutral-700 shadow-md z-10">
+                      Génération preview...
+                    </div>
+                  )}
+                  {(textPreviewUrl && activeTab === 'text' && overlayText.trim()) ? (
+                    <img
+                      src={textPreviewUrl}
+                      alt="Preview avec texte"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : selectedEditVersion ? (
                     <img
                       src={selectedEditVersion}
                       alt="Image sélectionnée"
