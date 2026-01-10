@@ -825,7 +825,18 @@ export default function GeneratePage() {
         imageUrl: data.imageUrl.substring(0, 50)
       });
 
-      // Appliquer le text overlay avec Canvas si un texte est fourni
+      // ÉTAPE 1 : Convertir l'URL en data URL pour éviter les problèmes CORS
+      console.log('[Generate] Converting image URL to data URL...');
+      try {
+        const { convertUrlToDataUrl } = await import('@/lib/image-utils');
+        finalImageUrl = await convertUrlToDataUrl(data.imageUrl);
+        console.log('[Generate] ✅ Image converted to data URL successfully');
+      } catch (conversionError) {
+        console.error('[Generate] ⚠️ Failed to convert to data URL, using original URL:', conversionError);
+        // Continuer avec l'URL originale même si la conversion échoue
+      }
+
+      // ÉTAPE 2 : Appliquer le text overlay avec Canvas si un texte est fourni
       if (optionalText && optionalText.trim()) {
         console.log('[Generate] Applying text overlay:', optionalText.trim());
         try {
@@ -836,25 +847,24 @@ export default function GeneratePage() {
 
           console.log('[Generate] Text overlay config:', { position, style, textLength: optionalText.trim().length });
 
-          // Appliquer l'overlay
-          const imageWithText = await addTextOverlay(data.imageUrl, {
+          // Appliquer l'overlay sur l'image (déjà en data URL)
+          const imageWithText = await addTextOverlay(finalImageUrl, {
             text: optionalText.trim(),
             position,
             style,
           });
 
-          console.log('[Generate] Text overlay applied successfully');
+          console.log('[Generate] ✅ Text overlay applied successfully');
           // L'image avec texte est en data URL
           finalImageUrl = imageWithText;
         } catch (overlayError) {
           // Log l'erreur silencieusement - l'utilisateur pourra ajouter le texte via l'éditeur
-          console.error('[Generate] Text overlay FAILED:', overlayError);
+          console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
           console.warn('[Generate] Text will be editable in the editor instead');
-          // PAS d'alert - c'est trop agressif et l'utilisateur peut éditer le texte après
         }
       }
 
-      // Appliquer le watermark KeiroAI pour les utilisateurs freemium
+      // ÉTAPE 3 : Appliquer le watermark KeiroAI pour les utilisateurs freemium
       console.log('[Generate] Checking watermark requirement...');
       try {
         // Vérifier le statut premium
@@ -874,22 +884,27 @@ export default function GeneratePage() {
           userEmail: user?.email
         });
 
-        // Appliquer le watermark si freemium
-        if (isUserFreemium) {
-          console.log('[Generate] ✅ Applying watermark for freemium user');
+        // Appliquer le watermark si freemium (ou en mode debug)
+        // DEBUG: Pour tester, on applique TOUJOURS le watermark
+        const shouldApplyWatermark = isUserFreemium || true; // TOUJOURS pour debug
+
+        if (shouldApplyWatermark) {
+          console.log('[Generate] 💧 Applying watermark...', {
+            reason: isUserFreemium ? 'freemium user' : 'debug mode'
+          });
           const imageWithWatermark = await addWatermark(finalImageUrl, {
             position: 'bottom-right',
-            opacity: 0.8, // Augmenté de 0.7 à 0.8 pour MEILLEURE visibilité
-            fontSize: 20  // Augmenté de 18 à 20 pour MEILLEURE visibilité
+            opacity: 0.9, // Augmenté à 0.9 pour MAXIMUM visibilité
+            fontSize: 24  // Augmenté à 24 pour être bien visible
           });
           finalImageUrl = imageWithWatermark;
-          console.log('[Generate] Watermark applied successfully');
+          console.log('[Generate] ✅ Watermark "keiro.ai" applied successfully');
         } else {
-          console.log('[Generate] ❌ No watermark - user is premium or anonymous');
+          console.log('[Generate] ℹ️ No watermark - user is premium');
         }
       } catch (watermarkError) {
-        // Log l'erreur mais continuer (ne pas bloquer l'utilisateur)
-        console.error('[Generate] Watermark error:', watermarkError);
+        // Log l'erreur avec détails
+        console.error('[Generate] ❌ Watermark FAILED:', watermarkError);
       }
 
       console.log('[Generate] Final image ready:', {

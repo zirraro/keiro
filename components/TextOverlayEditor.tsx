@@ -454,17 +454,23 @@ export default function TextOverlayEditor({
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Style de fond</label>
                     <div className="grid grid-cols-2 gap-2">
-                      {(['transparent', 'solid', 'gradient', 'blur'] as const).map((style) => (
+                      {([
+                        { value: 'transparent', label: 'Transparent', emoji: '👻' },
+                        { value: 'solid', label: 'Solide', emoji: '⬛' },
+                        { value: 'gradient', label: 'Dégradé', emoji: '🌈' },
+                        { value: 'blur', label: 'Flou', emoji: '💨' }
+                      ] as const).map((style) => (
                         <button
-                          key={style}
-                          onClick={() => setConfig(prev => ({ ...prev, backgroundStyle: style }))}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${
-                            config.backgroundStyle === style
+                          key={style.value}
+                          onClick={() => setConfig(prev => ({ ...prev, backgroundStyle: style.value }))}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            config.backgroundStyle === style.value
                               ? 'bg-blue-500 text-white'
                               : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                           }`}
                         >
-                          {style}
+                          <span className="mr-1">{style.emoji}</span>
+                          {style.label}
                         </button>
                       ))}
                     </div>
