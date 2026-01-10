@@ -15,7 +15,12 @@ export async function convertUrlToDataUrl(imageUrl: string): Promise<string> {
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // IMPORTANT: Ne pas définir crossOrigin pour les data URLs
+    // Cela peut causer des erreurs de sécurité dans certains navigateurs
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
       try {
@@ -51,7 +56,11 @@ export async function convertUrlToDataUrl(imageUrl: string): Promise<string> {
 export async function preloadImage(imageUrl: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // IMPORTANT: Ne pas définir crossOrigin pour les data URLs
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to preload image: ${imageUrl.substring(0, 100)}`));

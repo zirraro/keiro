@@ -561,7 +561,7 @@ export default function GeneratePage() {
       } finally {
         setIsGeneratingPreview(false);
       }
-    }, 500); // Debounce 500ms
+    }, 50); // Debounce 50ms pour preview INSTANTANÉE
 
     return () => clearTimeout(timeoutId);
   }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio]);
@@ -786,6 +786,28 @@ export default function GeneratePage() {
              'Show aspirational outcomes that inspire viewers to imagine themselves in that scenario' :
              'Show relatable situations that prompt viewers to share their own experiences'}\n` +
         `- Visual should work WITH the caption (not repeat it) to create a complete story`
+      );
+
+      // 10. RENFORCER L'INTERDICTION DE TEXTE (CRITIQUE - répété à la fin)
+      promptParts.push(
+        `\n\n🚫🚫🚫 FINAL CRITICAL REMINDER - NO TEXT ALLOWED 🚫🚫🚫\n` +
+        `IMPORTANT: This image must contain ZERO text, words, letters, numbers, or written characters.\n` +
+        `❌ NO text at the top of the image\n` +
+        `❌ NO text at the bottom of the image\n` +
+        `❌ NO text in the center of the image\n` +
+        `❌ NO text anywhere in the image\n` +
+        `❌ NO signs, banners, labels, captions, or typography of any kind\n` +
+        `❌ NO newspapers with visible text\n` +
+        `❌ NO computer screens with text\n` +
+        `❌ NO billboards with text\n` +
+        `❌ NO books with visible text\n` +
+        `❌ NO handwritten notes or letters\n\n` +
+        `NEGATIVE PROMPT (what to AVOID): text, words, letters, writing, typography, captions, ` +
+        `labels, signs, banners, headlines, taglines, slogans, watermarks, logos with text, ` +
+        `newspapers with readable text, books with readable text, computer screens with text, ` +
+        `phone screens with text, billboards with text, street signs, shop signs, any written language, ` +
+        `any alphabetic characters, any numeric characters, any symbols that look like text.\n\n` +
+        `CREATE PURE VISUAL IMAGERY ONLY. The text will be added separately as a professional overlay.`
       );
 
       const fullPrompt = promptParts.join(' ');
@@ -2405,26 +2427,27 @@ export default function GeneratePage() {
                         <label className="block text-sm font-medium mb-2">Position</label>
                         <div className="grid grid-cols-3 gap-2">
                           {[
-                            { pos: 'top-left', label: '↖️' },
-                            { pos: 'top-center', label: '⬆️' },
-                            { pos: 'top-right', label: '↗️' },
-                            { pos: 'center-left', label: '⬅️' },
-                            { pos: 'center', label: '⏺️' },
-                            { pos: 'center-right', label: '➡️' },
-                            { pos: 'bottom-left', label: '↙️' },
-                            { pos: 'bottom-center', label: '⬇️' },
-                            { pos: 'bottom-right', label: '↘️' },
+                            { pos: 'top-left', emoji: '↖️', label: 'Haut gauche' },
+                            { pos: 'top-center', emoji: '⬆️', label: 'Haut centre' },
+                            { pos: 'top-right', emoji: '↗️', label: 'Haut droite' },
+                            { pos: 'center-left', emoji: '⬅️', label: 'Centre gauche' },
+                            { pos: 'center', emoji: '⏺️', label: 'Centre' },
+                            { pos: 'center-right', emoji: '➡️', label: 'Centre droite' },
+                            { pos: 'bottom-left', emoji: '↙️', label: 'Bas gauche' },
+                            { pos: 'bottom-center', emoji: '⬇️', label: 'Bas centre' },
+                            { pos: 'bottom-right', emoji: '↘️', label: 'Bas droite' },
                           ].map((item) => (
                             <button
                               key={item.pos}
                               onClick={() => setTextPosition(item.pos as any)}
-                              className={`px-3 py-2 rounded-lg text-xl font-medium transition-all ${
+                              className={`px-2 py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
                                 textPosition === item.pos
                                   ? 'bg-purple-500 text-white'
                                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                               }`}
                             >
-                              {item.label}
+                              <span className="text-lg">{item.emoji}</span>
+                              <span className="text-[10px] leading-tight">{item.label}</span>
                             </button>
                           ))}
                         </div>
@@ -2475,11 +2498,11 @@ export default function GeneratePage() {
                           onChange={(e) => setFontFamily(e.target.value as any)}
                           className="w-full px-3 py-2 rounded-lg border border-neutral-300 text-sm"
                         >
-                          <option value="inter">Inter</option>
-                          <option value="montserrat">Montserrat</option>
-                          <option value="bebas">Bebas Neue</option>
-                          <option value="roboto">Roboto</option>
-                          <option value="playfair">Playfair</option>
+                          <option value="inter">🔤 Inter - Moderne</option>
+                          <option value="montserrat">💪 Montserrat - Gras</option>
+                          <option value="bebas">📰 Bebas Neue - Impact</option>
+                          <option value="roboto">⚙️ Roboto - Classique</option>
+                          <option value="playfair">✨ Playfair - Élégant</option>
                         </select>
                       </div>
 
@@ -2487,17 +2510,23 @@ export default function GeneratePage() {
                       <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">Style de fond</label>
                         <div className="grid grid-cols-2 gap-2">
-                          {['transparent', 'solid', 'gradient', 'blur'].map((style) => (
+                          {[
+                            { value: 'transparent', emoji: '👻', label: 'Transparent' },
+                            { value: 'solid', emoji: '⬛', label: 'Solide' },
+                            { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
+                            { value: 'blur', emoji: '💨', label: 'Flou' }
+                          ].map((style) => (
                             <button
-                              key={style}
-                              onClick={() => setBackgroundStyle(style as any)}
-                              className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${
-                                backgroundStyle === style
+                              key={style.value}
+                              onClick={() => setBackgroundStyle(style.value as any)}
+                              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                                backgroundStyle === style.value
                                   ? 'bg-purple-500 text-white'
                                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                               }`}
                             >
-                              {style}
+                              <span className="mr-1">{style.emoji}</span>
+                              {style.label}
                             </button>
                           ))}
                         </div>
@@ -3063,12 +3092,12 @@ export default function GeneratePage() {
                       <label className="block text-xs font-medium mb-1.5">Templates</label>
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { id: 'headline', icon: '📰' },
-                          { id: 'cta', icon: '🎯' },
-                          { id: 'minimal', icon: '✨' },
-                          { id: 'bold', icon: '💪' },
-                          { id: 'elegant', icon: '👔' },
-                          { id: 'modern', icon: '🚀' },
+                          { id: 'headline', icon: '📰', label: 'Titre' },
+                          { id: 'cta', icon: '🎯', label: 'CTA' },
+                          { id: 'minimal', icon: '✨', label: 'Simple' },
+                          { id: 'bold', icon: '💪', label: 'Gras' },
+                          { id: 'elegant', icon: '👔', label: 'Élégant' },
+                          { id: 'modern', icon: '🚀', label: 'Moderne' },
                         ].map((template) => (
                           <button
                             key={template.id}
@@ -3106,13 +3135,14 @@ export default function GeneratePage() {
                                 setTextPosition('bottom-center');
                               }
                             }}
-                            className={`p-1.5 rounded border transition-all ${
+                            className={`p-1.5 rounded border transition-all flex flex-col items-center ${
                               textTemplate === template.id
                                 ? 'border-purple-500 bg-purple-50'
                                 : 'border-neutral-200 hover:border-neutral-300'
                             }`}
                           >
                             <div className="text-lg">{template.icon}</div>
+                            <div className="text-[8px] text-neutral-700">{template.label}</div>
                           </button>
                         ))}
                       </div>
@@ -3123,26 +3153,27 @@ export default function GeneratePage() {
                       <label className="block text-xs font-medium mb-1.5">Position</label>
                       <div className="grid grid-cols-3 gap-1">
                         {[
-                          { pos: 'top-left', label: '↖️' },
-                          { pos: 'top-center', label: '⬆️' },
-                          { pos: 'top-right', label: '↗️' },
-                          { pos: 'center-left', label: '⬅️' },
-                          { pos: 'center', label: '⏺️' },
-                          { pos: 'center-right', label: '➡️' },
-                          { pos: 'bottom-left', label: '↙️' },
-                          { pos: 'bottom-center', label: '⬇️' },
-                          { pos: 'bottom-right', label: '↘️' },
+                          { pos: 'top-left', emoji: '↖️', label: 'Haut G' },
+                          { pos: 'top-center', emoji: '⬆️', label: 'Haut C' },
+                          { pos: 'top-right', emoji: '↗️', label: 'Haut D' },
+                          { pos: 'center-left', emoji: '⬅️', label: 'Centre G' },
+                          { pos: 'center', emoji: '⏺️', label: 'Centre' },
+                          { pos: 'center-right', emoji: '➡️', label: 'Centre D' },
+                          { pos: 'bottom-left', emoji: '↙️', label: 'Bas G' },
+                          { pos: 'bottom-center', emoji: '⬇️', label: 'Bas C' },
+                          { pos: 'bottom-right', emoji: '↘️', label: 'Bas D' },
                         ].map((item) => (
                           <button
                             key={item.pos}
                             onClick={() => setTextPosition(item.pos as any)}
-                            className={`px-2 py-1 rounded text-sm transition-all ${
+                            className={`px-1 py-1 rounded text-[9px] transition-all flex flex-col items-center ${
                               textPosition === item.pos
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                             }`}
                           >
-                            {item.label}
+                            <span className="text-xs">{item.emoji}</span>
+                            <span className="leading-none">{item.label}</span>
                           </button>
                         ))}
                       </div>
@@ -3193,11 +3224,11 @@ export default function GeneratePage() {
                         onChange={(e) => setFontFamily(e.target.value as any)}
                         className="w-full px-2 py-1 rounded border border-neutral-300 text-[10px]"
                       >
-                        <option value="inter">Inter</option>
-                        <option value="montserrat">Montserrat</option>
-                        <option value="bebas">Bebas Neue</option>
-                        <option value="roboto">Roboto</option>
-                        <option value="playfair">Playfair</option>
+                        <option value="inter">🔤 Inter - Moderne</option>
+                        <option value="montserrat">💪 Montserrat - Gras</option>
+                        <option value="bebas">📰 Bebas Neue - Impact</option>
+                        <option value="roboto">⚙️ Roboto - Classique</option>
+                        <option value="playfair">✨ Playfair - Élégant</option>
                       </select>
                     </div>
 
@@ -3205,17 +3236,23 @@ export default function GeneratePage() {
                     <div className="mb-3">
                       <label className="block text-xs font-medium mb-1">Style de fond</label>
                       <div className="grid grid-cols-2 gap-1">
-                        {['transparent', 'solid', 'gradient', 'blur'].map((style) => (
+                        {[
+                          { value: 'transparent', emoji: '👻', label: 'Transparent' },
+                          { value: 'solid', emoji: '⬛', label: 'Solide' },
+                          { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
+                          { value: 'blur', emoji: '💨', label: 'Flou' }
+                        ].map((style) => (
                           <button
-                            key={style}
-                            onClick={() => setBackgroundStyle(style as any)}
-                            className={`px-2 py-1 rounded text-[9px] font-medium capitalize transition-all ${
-                              backgroundStyle === style
+                            key={style.value}
+                            onClick={() => setBackgroundStyle(style.value as any)}
+                            className={`px-2 py-1 rounded text-[9px] font-medium transition-all ${
+                              backgroundStyle === style.value
                                 ? 'bg-purple-500 text-white'
                                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                             }`}
                           >
-                            {style}
+                            <span className="mr-0.5">{style.emoji}</span>
+                            {style.label}
                           </button>
                         ))}
                       </div>

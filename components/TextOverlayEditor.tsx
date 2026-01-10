@@ -205,11 +205,11 @@ const TEMPLATES = [
 ];
 
 const FONT_FAMILIES = [
-  { id: 'inter', name: 'Inter', style: 'font-sans' },
-  { id: 'montserrat', name: 'Montserrat', style: 'font-sans font-bold' },
-  { id: 'bebas', name: 'Bebas Neue', style: 'font-display' },
-  { id: 'roboto', name: 'Roboto', style: 'font-sans' },
-  { id: 'playfair', name: 'Playfair', style: 'font-serif' },
+  { id: 'inter', name: '🔤 Inter', description: 'Moderne', style: 'font-sans' },
+  { id: 'montserrat', name: '💪 Montserrat', description: 'Gras', style: 'font-sans font-bold' },
+  { id: 'bebas', name: '📰 Bebas Neue', description: 'Impact', style: 'font-display' },
+  { id: 'roboto', name: '⚙️ Roboto', description: 'Classique', style: 'font-sans' },
+  { id: 'playfair', name: '✨ Playfair', description: 'Élégant', style: 'font-serif' },
 ];
 
 export default function TextOverlayEditor({
@@ -266,11 +266,11 @@ export default function TextOverlayEditor({
     }
   };
 
-  // Régénérer preview quand config change (debounce)
+  // Régénérer preview quand config change (debounce MINIMAL pour preview temps réel)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       generatePreview();
-    }, 500);
+    }, 50); // Réduit à 50ms pour preview INSTANTANÉE tout en évitant les re-renders excessifs
 
     return () => clearTimeout(timeoutId);
   }, [config, baseImageUrl]);
@@ -445,7 +445,7 @@ export default function TextOverlayEditor({
                       className="w-full px-3 py-2 rounded-lg border border-neutral-300 text-sm"
                     >
                       {FONT_FAMILIES.map((font) => (
-                        <option key={font.id} value={font.id}>{font.name}</option>
+                        <option key={font.id} value={font.id}>{font.name} - {font.description}</option>
                       ))}
                     </select>
                   </div>

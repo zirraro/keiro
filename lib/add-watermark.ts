@@ -19,11 +19,28 @@ export async function addWatermark(
     fontSize = 14,
   } = options;
 
+  console.log('[Watermark] Starting watermark with options:', {
+    position,
+    opacity,
+    fontSize,
+    imageUrlType: imageUrl.startsWith('data:') ? 'dataURL' : 'URL',
+    imageUrlLength: imageUrl.length
+  });
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // IMPORTANT: Ne pas définir crossOrigin pour les data URLs
+    // Cela peut causer des erreurs de sécurité dans certains navigateurs
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
+      console.log('[Watermark] Image loaded successfully:', {
+        width: img.width,
+        height: img.height
+      });
       try {
         // Créer canvas
         const canvas = document.createElement('canvas');

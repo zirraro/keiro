@@ -86,11 +86,30 @@ export async function addTextOverlay(
     backgroundStyle,
   } = options;
 
+  console.log('[TextOverlay] Starting overlay with options:', {
+    text: text.substring(0, 50),
+    position,
+    style,
+    fontSize: customFontSize,
+    fontFamily,
+    imageUrlType: imageUrl.startsWith('data:') ? 'dataURL' : 'URL',
+    imageUrlLength: imageUrl.length
+  });
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // IMPORTANT: Ne pas définir crossOrigin pour les data URLs
+    // Cela peut causer des erreurs de sécurité dans certains navigateurs
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
+      console.log('[TextOverlay] Image loaded successfully:', {
+        width: img.width,
+        height: img.height
+      });
       try {
         // Créer canvas avec les dimensions de l'image
         const canvas = document.createElement('canvas');
