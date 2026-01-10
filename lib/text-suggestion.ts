@@ -13,6 +13,8 @@ export interface TextSuggestionParams {
   specialist?: 'seo' | 'marketing' | 'content' | 'copywriter';
   communicationProfile?: 'inspirant' | 'expert' | 'urgent' | 'conversationnel';
   marketingAngle?: string;
+  problemSolved?: string; // NOUVEAU : Problème résolu face à cette actualité
+  uniqueAdvantage?: string; // NOUVEAU : Avantage unique vs concurrence
 }
 
 export type ToneType = 'humour' | 'sérieux' | 'décalé' | 'urgent' | 'inspirant' | 'direct';
@@ -346,6 +348,59 @@ function generateByTone(
 }
 
 /**
+ * Génère des suggestions basées sur le problème résolu et l'avantage unique (NOUVEAU)
+ * Cette fonction crée un lien ULTRA-COHÉRENT entre l'actualité et la solution business
+ */
+function generateFromProblemAndAdvantage(
+  problemSolved: string,
+  uniqueAdvantage: string,
+  newsEntity: string,
+  keywords: string[]
+): string[] {
+  const suggestions: string[] = [];
+
+  // Suggestions basées sur le PROBLÈME RÉSOLU
+  if (problemSolved) {
+    // Format court et percutant (max 50 caractères)
+    const problemShort = problemSolved.substring(0, 50);
+
+    suggestions.push(`${problemShort} ✓`);
+    suggestions.push(`Notre solution : ${problemShort}`);
+    suggestions.push(`Face à ${newsEntity} : ${problemShort.split(':')[1]?.trim() || problemShort}`);
+
+    // CTA direct basé sur la solution
+    if (problemShort.toLowerCase().includes('pas de') || problemShort.toLowerCase().includes('sans')) {
+      suggestions.push(`${problemShort} - Découvrez comment !`);
+    } else {
+      suggestions.push(`${problemShort} 🚀`);
+    }
+  }
+
+  // Suggestions basées sur l'AVANTAGE UNIQUE
+  if (uniqueAdvantage) {
+    const advantageShort = uniqueAdvantage.substring(0, 50);
+
+    suggestions.push(`${advantageShort} ${selectEmoji(keywords)}`);
+    suggestions.push(`Notre force : ${advantageShort}`);
+
+    // Formule "Seul" pour exclusivité
+    if (advantageShort.toLowerCase().includes('seul') || advantageShort.toLowerCase().includes('unique')) {
+      suggestions.push(`${advantageShort} !`);
+    }
+  }
+
+  // Combo problème + avantage si les deux sont fournis
+  if (problemSolved && uniqueAdvantage) {
+    const problemKey = problemSolved.split(' ').slice(0, 3).join(' '); // 3 premiers mots
+    const advantageKey = uniqueAdvantage.split(' ').slice(0, 3).join(' ');
+
+    suggestions.push(`${problemKey} → ${advantageKey}`);
+  }
+
+  return suggestions;
+}
+
+/**
  * Génère des suggestions de texte intelligentes avec VARIÉTÉ de tons
  * @returns Array de 3-5 suggestions optimisées pour réseaux sociaux
  */
@@ -357,6 +412,8 @@ export function generateTextSuggestions(params: TextSuggestionParams): string[] 
     specialist = 'marketing',
     communicationProfile = 'inspirant',
     marketingAngle,
+    problemSolved, // NOUVEAU
+    uniqueAdvantage, // NOUVEAU
   } = params;
 
   // Extraire les mots-clés et le contexte de l'actu
@@ -421,12 +478,27 @@ export function generateTextSuggestions(params: TextSuggestionParams): string[] 
     }
   }
 
+  // NOUVEAU : Générer selon le problème résolu et l'avantage unique
+  const problemAdvantageSuggestions: string[] = [];
+  if (problemSolved || uniqueAdvantage) {
+    problemAdvantageSuggestions.push(
+      ...generateFromProblemAndAdvantage(
+        problemSolved || '',
+        uniqueAdvantage || '',
+        newsEntity,
+        keywords.categories
+      )
+    );
+  }
+
   // Combiner TOUTES les sources et mélanger pour la variété
+  // PRIORITÉ aux suggestions basées sur problemSolved (lien le plus fort)
   const allSuggestions = [
-    ...newsSuggestions,        // Lien fort actualité/business
-    ...toneSuggestions,        // Tons variés (humour, sérieux, etc.)
-    ...specialistSuggestions,  // Approche specialist
-    ...angleSuggestions,       // Angle marketing
+    ...problemAdvantageSuggestions,  // PRIORITÉ 1 : Problème résolu (lien ultra-cohérent)
+    ...newsSuggestions,               // PRIORITÉ 2 : Lien fort actualité/business
+    ...toneSuggestions,               // PRIORITÉ 3 : Tons variés (humour, sérieux, etc.)
+    ...specialistSuggestions,         // PRIORITÉ 4 : Approche specialist
+    ...angleSuggestions,              // PRIORITÉ 5 : Angle marketing
   ];
 
   // Retourner les 5 meilleures (déduplication et filtrage)

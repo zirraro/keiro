@@ -11,7 +11,7 @@ export interface TextOverlayConfig {
   fontFamily: 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
   fontSize: number;
   backgroundStyle: 'transparent' | 'solid' | 'gradient' | 'blur';
-  template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'minimal' | 'bold' | 'elegant' | 'modern' | 'countdown' | 'avant-apres' | 'badge-premium';
+  template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'annonce' | 'urgent' | 'premium-gold' | 'elegant' | 'story' | 'temoignage' | 'evenement';
 }
 
 interface TextOverlayEditorProps {
@@ -36,146 +36,170 @@ const POSITION_LABELS: Record<TextOverlayConfig['position'], string> = {
 const TEMPLATES = [
   {
     id: 'headline',
-    name: 'Headline',
+    name: 'Titre Impact',
     icon: '📰',
-    description: 'Titre impactant (haut)',
+    description: 'Grand titre en haut',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
       backgroundStyle: 'transparent' as const,
       position: 'top-center' as const,
+      fontFamily: 'bebas' as const,
+      fontSize: 80,
     }
   },
   {
     id: 'cta',
-    name: 'Call-to-Action',
+    name: 'CTA Bouton',
     icon: '🎯',
-    description: 'Bouton CTA (bas)',
+    description: 'Bouton d\'action bas',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: '#3b82f6',
+      backgroundColor: '#2563eb',
       backgroundStyle: 'solid' as const,
       position: 'bottom-center' as const,
+      fontFamily: 'montserrat' as const,
+      fontSize: 50,
     }
   },
   {
     id: 'promo-flash',
-    name: 'Promo Flash',
+    name: 'Flash',
     icon: '⚡',
-    description: 'Offre limitée urgente',
+    description: 'Promo urgente rouge',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(239, 68, 68, 0.95)',
+      backgroundColor: '#dc2626',
       backgroundStyle: 'solid' as const,
       position: 'top-right' as const,
+      fontFamily: 'bebas' as const,
+      fontSize: 45,
     }
   },
   {
     id: 'badge-nouveau',
-    name: 'Badge Nouveau',
+    name: 'Nouveau',
     icon: '🆕',
-    description: 'Nouveauté produit',
+    description: 'Badge vert frais',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(34, 197, 94, 0.95)',
+      backgroundColor: '#16a34a',
       backgroundStyle: 'solid' as const,
       position: 'top-left' as const,
+      fontFamily: 'montserrat' as const,
+      fontSize: 40,
     }
   },
   {
     id: 'citation',
     name: 'Citation',
     icon: '💬',
-    description: 'Témoignage client',
+    description: 'Témoignage central',
     defaults: {
-      textColor: '#1f2937',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      textColor: '#1e293b',
+      backgroundColor: 'rgba(255, 255, 255, 0.92)',
       backgroundStyle: 'blur' as const,
       position: 'center' as const,
+      fontFamily: 'playfair' as const,
+      fontSize: 55,
     }
   },
   {
-    id: 'minimal',
-    name: 'Minimaliste',
-    icon: '✨',
-    description: 'Simple et élégant',
-    defaults: {
-      textColor: '#000000',
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      backgroundStyle: 'solid' as const,
-      position: 'center' as const,
-    }
-  },
-  {
-    id: 'bold',
-    name: 'Bold',
-    icon: '💪',
-    description: 'Gras et audacieux',
+    id: 'annonce',
+    name: 'Annonce',
+    icon: '📢',
+    description: 'Grand message central',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(220, 38, 38, 0.9)',
-      backgroundStyle: 'solid' as const,
+      backgroundColor: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+      backgroundStyle: 'gradient' as const,
       position: 'center' as const,
+      fontFamily: 'bebas' as const,
+      fontSize: 85,
+    }
+  },
+  {
+    id: 'urgent',
+    name: 'Urgent',
+    icon: '⏰',
+    description: 'Alerte urgente haut',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: '#b91c1c',
+      backgroundStyle: 'solid' as const,
+      position: 'top-center' as const,
+      fontFamily: 'montserrat' as const,
+      fontSize: 48,
+    }
+  },
+  {
+    id: 'premium-gold',
+    name: 'Premium',
+    icon: '⭐',
+    description: 'Badge or premium',
+    defaults: {
+      textColor: '#ffffff',
+      backgroundColor: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      backgroundStyle: 'gradient' as const,
+      position: 'top-right' as const,
+      fontFamily: 'playfair' as const,
+      fontSize: 42,
     }
   },
   {
     id: 'elegant',
     name: 'Élégant',
-    icon: '👔',
-    description: 'Sophistiqué pro',
+    icon: '✨',
+    description: 'Sobre et pro centre',
     defaults: {
-      textColor: '#1f2937',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#334155',
+      backgroundColor: 'rgba(248, 250, 252, 0.95)',
       backgroundStyle: 'blur' as const,
       position: 'center' as const,
+      fontFamily: 'inter' as const,
+      fontSize: 60,
     }
   },
   {
-    id: 'modern',
-    name: 'Moderne',
-    icon: '🚀',
-    description: 'Gradient dynamique',
+    id: 'story',
+    name: 'Story',
+    icon: '🎬',
+    description: 'Style Instagram story',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+      backgroundColor: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
       backgroundStyle: 'gradient' as const,
-      position: 'bottom-center' as const,
+      position: 'bottom-left' as const,
+      fontFamily: 'bebas' as const,
+      fontSize: 70,
     }
   },
   {
-    id: 'countdown',
-    name: 'Countdown',
-    icon: '⏰',
-    description: 'Compte à rebours',
+    id: 'temoignage',
+    name: 'Avis',
+    icon: '💚',
+    description: 'Avis client positif',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(220, 38, 38, 0.95)',
+      backgroundColor: '#059669',
       backgroundStyle: 'solid' as const,
-      position: 'top-center' as const,
+      position: 'bottom-right' as const,
+      fontFamily: 'roboto' as const,
+      fontSize: 38,
     }
   },
   {
-    id: 'avant-apres',
-    name: 'Avant/Après',
-    icon: '↔️',
-    description: 'Transformation',
+    id: 'evenement',
+    name: 'Événement',
+    icon: '🎉',
+    description: 'Annonce événement',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'rgba(16, 185, 129, 0.9)',
-      backgroundStyle: 'solid' as const,
-      position: 'center-left' as const,
-    }
-  },
-  {
-    id: 'badge-premium',
-    name: 'Premium',
-    icon: '⭐',
-    description: 'Badge de qualité',
-    defaults: {
-      textColor: '#ffffff',
-      backgroundColor: 'rgba(245, 158, 11, 0.95)',
-      backgroundStyle: 'solid' as const,
-      position: 'top-right' as const,
+      backgroundColor: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
+      backgroundStyle: 'gradient' as const,
+      position: 'center-right' as const,
+      fontFamily: 'montserrat' as const,
+      fontSize: 52,
     }
   },
 ];
@@ -226,8 +250,11 @@ export default function TextOverlayEditor({
       const result = await addTextOverlay(baseImageUrl, {
         text: config.text,
         position: simplePosition,
+        fontSize: config.fontSize,
+        fontFamily: config.fontFamily,
         textColor: config.textColor,
         backgroundColor: config.backgroundColor,
+        backgroundStyle: config.backgroundStyle,
       });
 
       setPreviewUrl(result);

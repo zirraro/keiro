@@ -496,6 +496,8 @@ export default function GeneratePage() {
       specialist: specialist as any,
       communicationProfile,
       marketingAngle,
+      problemSolved,     // NOUVEAU : Lien ultra-cohérent avec la question "problème résolu"
+      uniqueAdvantage,   // NOUVEAU : Met en avant l'avantage unique
     });
 
     setTextSuggestions(suggestions);
@@ -780,13 +782,21 @@ export default function GeneratePage() {
 
       let finalImageUrl = data.imageUrl;
 
+      console.log('[Generate] Image generated, applying overlays...', {
+        hasOptionalText: !!optionalText?.trim(),
+        imageUrl: data.imageUrl.substring(0, 50)
+      });
+
       // Appliquer le text overlay avec Canvas si un texte est fourni
       if (optionalText && optionalText.trim()) {
+        console.log('[Generate] Applying text overlay:', optionalText.trim());
         try {
           // Déterminer le style selon le type de texte
           const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
           const position = isCTA ? 'bottom' : 'center';
           const style = isCTA ? 'cta' : 'headline';
+
+          console.log('[Generate] Text overlay config:', { position, style, textLength: optionalText.trim().length });
 
           // Appliquer l'overlay
           const imageWithText = await addTextOverlay(data.imageUrl, {
@@ -795,16 +805,18 @@ export default function GeneratePage() {
             style,
           });
 
+          console.log('[Generate] Text overlay applied successfully');
           // L'image avec texte est en data URL
           finalImageUrl = imageWithText;
         } catch (overlayError) {
-          // En cas d'erreur, on garde l'image sans texte et on continue silencieusement
-          // L'utilisateur pourra toujours personnaliser le texte via l'onglet "Texte" du studio d'édition
-          console.warn('Text overlay skipped:', overlayError);
+          // Log l'erreur avec détails pour debugging
+          console.error('[Generate] Text overlay FAILED:', overlayError);
+          alert(`⚠️ Impossible d'ajouter le texte sur l'image. Vous pourrez l'ajouter via l'éditeur. Erreur: ${overlayError}`);
         }
       }
 
       // Appliquer le watermark KeiroAI pour les utilisateurs freemium
+      console.log('[Generate] Checking watermark requirement...');
       try {
         // Vérifier le statut premium
         const { data: { user } } = await supabase.auth.getUser();
@@ -819,25 +831,32 @@ export default function GeneratePage() {
           hasProvidedEmail,
           hasCreatedAccount,
           hasPremiumPlan,
-          isUserFreemium
+          isUserFreemium,
+          userEmail: user?.email
         });
 
         // Appliquer le watermark si freemium
         if (isUserFreemium) {
-          console.log('[Generate] Applying watermark for freemium user');
+          console.log('[Generate] ✅ Applying watermark for freemium user');
           const imageWithWatermark = await addWatermark(finalImageUrl, {
             position: 'bottom-right',
-            opacity: 0.7, // Augmenté de 0.5 à 0.7 pour meilleure visibilité
-            fontSize: 18  // Augmenté de 14 à 18 pour meilleure visibilité
+            opacity: 0.8, // Augmenté de 0.7 à 0.8 pour MEILLEURE visibilité
+            fontSize: 20  // Augmenté de 18 à 20 pour MEILLEURE visibilité
           });
           finalImageUrl = imageWithWatermark;
+          console.log('[Generate] Watermark applied successfully');
         } else {
-          console.log('[Generate] No watermark - user is premium or not freemium');
+          console.log('[Generate] ❌ No watermark - user is premium or anonymous');
         }
       } catch (watermarkError) {
-        // En cas d'erreur watermark, continuer sans watermark (ne pas bloquer l'utilisateur)
-        console.warn('[Generate] Watermark error:', watermarkError);
+        // Log l'erreur mais continuer (ne pas bloquer l'utilisateur)
+        console.error('[Generate] Watermark error:', watermarkError);
       }
+
+      console.log('[Generate] Final image ready:', {
+        isDataURL: finalImageUrl.startsWith('data:'),
+        length: finalImageUrl.length
+      });
 
       setGeneratedImageUrl(finalImageUrl);
       setGeneratedPrompt(fullPrompt);

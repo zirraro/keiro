@@ -8,8 +8,10 @@ export interface TextOverlayOptions {
   position?: 'top' | 'center' | 'bottom';
   style?: 'headline' | 'cta' | 'minimal';
   fontSize?: number;
+  fontFamily?: string;
   textColor?: string;
   backgroundColor?: string;
+  backgroundStyle?: 'transparent' | 'solid' | 'gradient' | 'blur';
   maxWidth?: number;
 }
 
@@ -77,8 +79,11 @@ export async function addTextOverlay(
     text,
     position = 'center',
     style = 'headline',
+    fontSize: customFontSize,
+    fontFamily = 'inter',
     textColor,
     backgroundColor,
+    backgroundStyle,
   } = options;
 
   return new Promise((resolve, reject) => {
@@ -103,11 +108,22 @@ export async function addTextOverlay(
         // Détecter si c'est un CTA
         const isCallToAction = isCTA(text);
 
-        // Calculer la taille de police
-        const fontSize = calculateFontSize(text, canvas.width);
+        // Calculer la taille de police (ou utiliser celle fournie)
+        const fontSize = customFontSize || calculateFontSize(text, canvas.width);
+
+        // Mapper les noms de police
+        const fontFamilyMap: Record<string, string> = {
+          'inter': 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          'montserrat': 'Montserrat, -apple-system, BlinkMacSystemFont, sans-serif',
+          'bebas': '"Bebas Neue", Impact, sans-serif',
+          'roboto': 'Roboto, -apple-system, BlinkMacSystemFont, sans-serif',
+          'playfair': '"Playfair Display", Georgia, serif',
+        };
+
+        const fontFamilyString = fontFamilyMap[fontFamily] || fontFamilyMap['inter'];
 
         // Configuration de la police
-        ctx.font = `900 ${fontSize}px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        ctx.font = `900 ${fontSize}px ${fontFamilyString}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
