@@ -563,7 +563,8 @@ export default function GeneratePage() {
       return;
     }
 
-    const imageToPreview = selectedEditVersion || generatedImageUrl;
+    // Utiliser l'image ORIGINALE (sans overlays) pour éviter la superposition
+    const imageToPreview = originalImageUrl || selectedEditVersion || generatedImageUrl;
     if (!imageToPreview) {
       setTextPreviewUrl(null);
       return;

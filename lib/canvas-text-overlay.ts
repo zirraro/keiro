@@ -11,7 +11,7 @@ export interface TextOverlayOptions {
   fontFamily?: string;
   textColor?: string;
   backgroundColor?: string;
-  backgroundStyle?: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
+  backgroundStyle?: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   maxWidth?: number;
 }
 
@@ -179,8 +179,8 @@ export async function addTextOverlay(
           }
         }
 
-        // Dessiner le background pour chaque ligne (sauf si style 'none' ou 'minimal')
-        if (backgroundStyle !== 'none' && backgroundStyle !== 'minimal') {
+        // Dessiner le background pour chaque ligne (sauf si style sans fond)
+        if (backgroundStyle !== 'clean' && backgroundStyle !== 'none' && backgroundStyle !== 'minimal') {
           lines.forEach((line, index) => {
             const y = startY + (index * lineHeight);
             const metrics = ctx.measureText(line);
@@ -235,14 +235,17 @@ export async function addTextOverlay(
           const y = startY + (index * lineHeight);
 
           // Styles adaptatifs selon backgroundStyle
-          if (backgroundStyle === 'minimal') {
+          if (backgroundStyle === 'clean') {
+            // Clean: VRAIMENT rien (juste le texte pur)
+            // Pas d'ombre, pas de contour
+          } else if (backgroundStyle === 'minimal') {
             // Minimal: ombre très légère, pas de contour
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
             ctx.shadowBlur = fontSize * 0.08;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = fontSize * 0.03;
           } else if (backgroundStyle === 'none') {
-            // None: contour + ombre forts
+            // None: contour + ombre forts pour fort contraste
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
             ctx.lineWidth = fontSize * 0.10;
             ctx.strokeText(line, canvas.width / 2, y);

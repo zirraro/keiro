@@ -27,34 +27,60 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
-    // Construire le prompt expert
-    const prompt = `Tu es un expert en community management et copywriting pour les réseaux sociaux, spécialisé dans Instagram.
+    // Construire le prompt expert ultra-ciblé
+    const prompt = `Tu es un expert stratège en communication digitale et copywriting Instagram, spécialisé dans la création de propositions de valeur percutantes.
 
-CONTEXTE:
-Actualité: "${newsTitle}"
+ANALYSE DU CONTEXTE:
+
+📰 ACTUALITÉ:
+Titre: "${newsTitle}"
 ${newsDescription ? `Détails: ${newsDescription}` : ''}
 
-Business client: ${businessType}
+🏢 BUSINESS CLIENT:
+Type: ${businessType}
 ${businessDescription ? `Description: ${businessDescription}` : ''}
+${targetAudience ? `Audience: ${targetAudience}` : ''}
+Ton: ${tone || 'Inspirant et engageant'}
 
-Ton souhaité: ${tone || 'Inspirant et engageant'}
-${targetAudience ? `Audience cible: ${targetAudience}` : ''}
+🎯 TA MISSION STRATÉGIQUE:
 
-MISSION:
-Génère 5 propositions de texte à superposer sur un visuel Instagram (1080x1080) qui lie intelligemment cette actualité au business du client.
+1. ANALYSER le lien entre cette actualité et ce business spécifique
+2. IDENTIFIER l'opportunité, le problème résolu, ou la valeur ajoutée CONCRÈTE
+3. CRÉER 5 propositions ultra-ciblées qui montrent CE business comme LA solution face à CETTE actualité
 
-CONTRAINTES:
-- Maximum 60 caractères par proposition (lisibilité mobile)
-- Ton ${tone || 'inspirant'}, percutant, moderne
-- Lien clair entre l'actualité et le business
-- Appel à l'action ou émotion forte
-- Vocabulaire adapté à Instagram
-- Pas de hashtags (juste le texte overlay)
-- Évite les clichés marketing
+RÈGLES STRICTES:
+
+✅ FAIRE:
+- Lien DIRECT et ÉVIDENT actualité → business (pas générique!)
+- Proposition de valeur CONCRÈTE (comment ça aide le client?)
+- Vocabulaire SPÉCIFIQUE au secteur du business
+- Angle unique qui positionne ce business comme expert
+- Call-to-action implicite ou question engageante
+- Maximum 50 caractères (ultra-lisible sur mobile)
+
+❌ NE PAS FAIRE:
+- Textes génériques qui marcheraient pour n'importe quel business
+- Clichés marketing ("saisissez l'opportunité", "découvrez", etc.)
+- Questions vagues sans lien précis
+- Formules bateau qui ne montrent pas la valeur
+
+EXEMPLES DE QUALITÉ:
+
+❌ MAUVAIS (générique): "Votre solution face à l'actu"
+✅ BON (spécifique): "IA = -50% temps comptable" [si actu IA + business comptabilité]
+
+❌ MAUVAIS: "Comment ça vous impacte?"
+✅ BON: "Inflation? On fixe vos prix 12 mois" [si actu inflation + business fournisseur]
+
+❌ MAUVAIS: "L'opportunité du moment"
+✅ BON: "Nouveau CPF = formation cybersécurité offerte" [si actu CPF + business formation]
+
+GÉNÈRE 5 propositions qui suivent ce niveau d'excellence.
+Chaque texte doit montrer un lien ULTRA-PRÉCIS entre l'actualité et la valeur unique de ce business.
 
 FORMAT DE RÉPONSE:
-Réponds UNIQUEMENT avec un JSON array de 5 strings, rien d'autre.
-Exemple: ["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5"]`;
+JSON array uniquement, rien d'autre.
+["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5"]`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
@@ -93,7 +119,7 @@ Exemple: ["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5"]`;
     // Filtrer et limiter la longueur
     suggestions = suggestions
       .filter(s => typeof s === 'string' && s.trim().length > 0)
-      .map(s => s.trim().substring(0, 60))
+      .map(s => s.trim().substring(0, 50))
       .slice(0, 5);
 
     console.log('[SuggestText] ✅ Generated', suggestions.length, 'suggestions');
