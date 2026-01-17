@@ -10,7 +10,7 @@ export interface TextOverlayConfig {
   backgroundColor: string;
   fontFamily: 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
   fontSize: number;
-  backgroundStyle: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline';
+  backgroundStyle: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'annonce' | 'urgent' | 'premium-gold' | 'elegant' | 'story' | 'temoignage' | 'evenement';
 }
 
@@ -455,12 +455,14 @@ export default function TextOverlayEditor({
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Style de fond</label>
                     <div className="grid grid-cols-2 gap-2">
                       {([
+                        { value: 'minimal', label: 'Neutre minimal', emoji: '🎯' },
                         { value: 'none', label: 'Aucun fond', emoji: '✨' },
                         { value: 'transparent', label: 'Semi-transparent', emoji: '👻' },
                         { value: 'solid', label: 'Solide', emoji: '⬛' },
                         { value: 'gradient', label: 'Dégradé', emoji: '🌈' },
                         { value: 'blur', label: 'Flou', emoji: '💨' },
-                        { value: 'outline', label: 'Contour', emoji: '⭕' }
+                        { value: 'outline', label: 'Contour', emoji: '⭕' },
+                        { value: 'glow', label: 'Effet Glow', emoji: '💫' }
                       ] as const).map((style) => (
                         <button
                           key={style.value}

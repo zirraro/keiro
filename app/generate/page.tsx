@@ -476,7 +476,7 @@ export default function GeneratePage() {
   }
 
   /* --- Génération de suggestions de texte intelligentes --- */
-  function handleGenerateTextSuggestions() {
+  async function handleGenerateTextSuggestions() {
     if (!selectedNews) {
       alert('Veuillez d\'abord sélectionner une actualité');
       return;
@@ -507,22 +507,52 @@ export default function GeneratePage() {
       console.log('[TextSuggestion] 🎯 Auto-filled problem solved:', problemSuggestion);
     }
 
-    // Générer les suggestions de texte
-    const suggestions = generateTextSuggestions({
-      newsTitle: selectedNews.title,
-      newsDescription: selectedNews.description,
-      businessType,
-      businessDescription,
-      targetAudience,
-      specialist: specialist as any,
-      communicationProfile,
-      marketingAngle,
-      problemSolved: problemSolved || '',     // Lien ultra-cohérent avec la question "problème résolu"
-      uniqueAdvantage,                         // Met en avant l'avantage unique
-    });
-
-    setTextSuggestions(suggestions);
+    // Générer les suggestions de texte avec IA
     setShowTextSuggestions(true);
+    setTextSuggestions(['⏳ Génération en cours...']);
+
+    try {
+      const response = await fetch('/api/suggest-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newsTitle: selectedNews.title,
+          newsDescription: selectedNews.description,
+          businessType,
+          businessDescription,
+          tone,
+          targetAudience
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok && data.suggestions) {
+        setTextSuggestions(data.suggestions);
+        if (data.warning) {
+          console.warn('[SuggestText]', data.warning);
+        }
+      } else {
+        throw new Error(data.error || 'Échec génération suggestions');
+      }
+    } catch (error) {
+      console.error('[SuggestText] Error:', error);
+      // Fallback vers suggestions basiques
+      const { generateTextSuggestions } = require('@/lib/text-suggestion');
+      const suggestions = generateTextSuggestions({
+        newsTitle: selectedNews.title,
+        newsDescription: selectedNews.description,
+        businessType,
+        businessDescription,
+        targetAudience,
+        specialist: specialist as any,
+        communicationProfile,
+        marketingAngle,
+        problemSolved: problemSolved || '',
+        uniqueAdvantage,
+      });
+      setTextSuggestions(suggestions);
+    }
   }
 
   /* --- Preview en temps réel du texte overlay --- */
@@ -1996,10 +2026,9 @@ export default function GeneratePage() {
                     <button
                       onClick={() => {
                         setShowEditStudio(true);
-                        // Utiliser l'image ORIGINALE (sans overlays) pour éviter le double texte
-                        const imageToEdit = originalImageUrl || generatedImageUrl;
-                        setEditVersions([imageToEdit]);
-                        setSelectedEditVersion(imageToEdit);
+                        // Utiliser l'image AVEC overlays pour les garder visibles dans le studio
+                        setEditVersions([generatedImageUrl]);
+                        setSelectedEditVersion(generatedImageUrl);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >

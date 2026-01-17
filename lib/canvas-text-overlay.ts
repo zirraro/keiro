@@ -11,7 +11,7 @@ export interface TextOverlayOptions {
   fontFamily?: string;
   textColor?: string;
   backgroundColor?: string;
-  backgroundStyle?: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline';
+  backgroundStyle?: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   maxWidth?: number;
 }
 
@@ -179,8 +179,8 @@ export async function addTextOverlay(
           }
         }
 
-        // Dessiner le background pour chaque ligne (sauf si style 'none')
-        if (backgroundStyle !== 'none') {
+        // Dessiner le background pour chaque ligne (sauf si style 'none' ou 'minimal')
+        if (backgroundStyle !== 'none' && backgroundStyle !== 'minimal') {
           lines.forEach((line, index) => {
             const y = startY + (index * lineHeight);
             const metrics = ctx.measureText(line);
@@ -213,6 +213,15 @@ export async function addTextOverlay(
               ctx.strokeStyle = finalBgColor;
               ctx.lineWidth = 4;
               ctx.stroke();
+            } else if (backgroundStyle === 'glow') {
+              // Effet glow avec ombre étendue
+              ctx.shadowColor = finalBgColor;
+              ctx.shadowBlur = 30;
+              ctx.fillStyle = finalBgColor;
+              ctx.fill();
+              // Reset shadow
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
             } else {
               // Fond solide/transparent/gradient/blur
               ctx.fillStyle = finalBgColor;
@@ -225,16 +234,32 @@ export async function addTextOverlay(
         lines.forEach((line, index) => {
           const y = startY + (index * lineHeight);
 
-          // Outline noir pour visibilité (plus fort si pas de fond)
-          ctx.strokeStyle = backgroundStyle === 'none' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.3)';
-          ctx.lineWidth = backgroundStyle === 'none' ? fontSize * 0.10 : fontSize * 0.05;
-          ctx.strokeText(line, canvas.width / 2, y);
-
-          // Shadow pour profondeur (plus forte si pas de fond)
-          ctx.shadowColor = backgroundStyle === 'none' ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = backgroundStyle === 'none' ? fontSize * 0.25 : fontSize * 0.15;
-          ctx.shadowOffsetX = backgroundStyle === 'none' ? 4 : 0;
-          ctx.shadowOffsetY = backgroundStyle === 'none' ? 4 : fontSize * 0.05;
+          // Styles adaptatifs selon backgroundStyle
+          if (backgroundStyle === 'minimal') {
+            // Minimal: ombre très légère, pas de contour
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = fontSize * 0.08;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = fontSize * 0.03;
+          } else if (backgroundStyle === 'none') {
+            // None: contour + ombre forts
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.lineWidth = fontSize * 0.10;
+            ctx.strokeText(line, canvas.width / 2, y);
+            ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+            ctx.shadowBlur = fontSize * 0.25;
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 4;
+          } else {
+            // Autres styles: contour + ombre normaux
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = fontSize * 0.05;
+            ctx.strokeText(line, canvas.width / 2, y);
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = fontSize * 0.15;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = fontSize * 0.05;
+          }
 
           // Texte principal
           ctx.fillStyle = finalTextColor;
