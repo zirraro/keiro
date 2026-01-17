@@ -843,13 +843,14 @@ export default function GeneratePage() {
 
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
 
-      console.log('[Generate] Image generated, applying overlays SERVER-SIDE...', {
+      console.log('[Generate] Image generated, applying overlays CLIENT-SIDE...', {
         hasOptionalText: !!optionalText?.trim(),
         imageUrl: data.imageUrl.substring(0, 50)
       });
 
-      // NOUVELLE APPROCHE : Appliquer TOUS les overlays CÔTÉ SERVEUR avec Jimp
-      // Résout définitivement les problèmes CORS !
+      // APPROCHE ROBUSTE : Conversion serveur + Canvas client
+      // 1. Serveur convertit en data URL (évite CORS)
+      // 2. Client applique overlays avec Canvas natif (garanti de fonctionner)
 
       let finalImageUrl = data.imageUrl;
 
@@ -871,45 +872,136 @@ export default function GeneratePage() {
         // Sauvegarder pour l'édition
         setOverlayText(textToApply);
 
-        console.log('[Generate] Applying overlays SERVER-SIDE with Jimp...', {
-          watermark: isUserFreemium || true,
-          textOverlay: textToApply
-        });
+        console.log('[Generate] Step 1: Converting image to data URL (server-side)...');
 
-        // APPEL UNIQUE à l'API serveur pour TOUS les overlays
+        // ÉTAPE 1 : Convertir l'image en data URL côté serveur (évite CORS)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-        const overlayResponse = await fetch('/api/apply-overlays', {
+        const convertResponse = await fetch('/api/convert-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageUrl: data.imageUrl,
-            watermark: {
-              apply: isUserFreemium || true, // Debug mode: toujours
-            },
-            textOverlay: {
-              text: textToApply,
-            }
-          }),
+          body: JSON.stringify({ imageUrl: data.imageUrl }),
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
 
-        if (!overlayResponse.ok) {
-          const errorText = await overlayResponse.text();
-          throw new Error(`HTTP ${overlayResponse.status}: ${errorText}`);
+        if (!convertResponse.ok) {
+          throw new Error(`Conversion failed: ${convertResponse.status}`);
         }
 
-        const overlayData = await overlayResponse.json();
-
-        if (!overlayData.ok) {
-          throw new Error(overlayData.error || 'Échec de l\'application des overlays');
+        const convertData = await convertResponse.json();
+        if (!convertData.ok) {
+          throw new Error(convertData.error || 'Image conversion failed');
         }
 
-        finalImageUrl = overlayData.dataUrl; // Mettre à jour la variable externe
-        console.log('[Generate] ✅ ALL overlays applied successfully via server, size:', overlayData.size);
+        const dataUrl = convertData.dataUrl;
+        console.log('[Generate] ✅ Image converted to data URL, size:', convertData.size);
+
+        // ÉTAPE 2 : Appliquer overlays côté CLIENT avec Canvas
+        console.log('[Generate] Step 2: Applying overlays with browser Canvas...');
+
+        finalImageUrl = await new Promise<string>((resolve, reject) => {
+          const img = new Image();
+
+          img.onload = () => {
+            try {
+              // Créer canvas aux dimensions de l'image
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+
+              if (!ctx) {
+                throw new Error('Cannot get canvas context');
+              }
+
+              // Dessiner l'image de base
+              ctx.drawImage(img, 0, 0);
+
+              // WATERMARK en bas à droite
+              if (isUserFreemium || true) {
+                const watermarkText = 'keiro.ai';
+                const fontSize = Math.max(48, Math.floor(img.width * 0.04));
+                const padding = Math.floor(img.width * 0.02);
+
+                ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+
+                const x = img.width - padding;
+                const y = img.height - padding;
+
+                // Ombre portée
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 4;
+                ctx.shadowOffsetY = 4;
+
+                // Contour noir
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.lineWidth = Math.max(3, Math.floor(fontSize * 0.08));
+                ctx.strokeText(watermarkText, x, y);
+
+                // Texte blanc
+                ctx.fillStyle = 'white';
+                ctx.fillText(watermarkText, x, y);
+
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+
+                console.log('[Generate] ✅ Watermark applied');
+              }
+
+              // TEXTE OVERLAY centré
+              if (textToApply) {
+                const fontSize = Math.max(80, Math.floor(img.width * 0.10));
+
+                ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const x = img.width / 2;
+                const y = img.height / 2;
+
+                // Ombre portée forte
+                ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetX = 6;
+                ctx.shadowOffsetY = 6;
+
+                // Contour noir épais
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.95)';
+                ctx.lineWidth = Math.max(6, Math.floor(fontSize * 0.10));
+                ctx.strokeText(textToApply, x, y);
+
+                // Texte blanc
+                ctx.fillStyle = 'white';
+                ctx.fillText(textToApply, x, y);
+
+                console.log('[Generate] ✅ Text overlay applied');
+              }
+
+              // Convertir en data URL
+              const finalDataUrl = canvas.toDataURL('image/png', 1.0);
+              console.log('[Generate] ✅ All overlays applied CLIENT-SIDE');
+              resolve(finalDataUrl);
+
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          img.onerror = () => {
+            reject(new Error('Failed to load converted image'));
+          };
+
+          img.src = dataUrl;
+        });
 
       } catch (overlayError: any) {
         console.error('[Generate] ❌ Overlays FAILED:', overlayError);
