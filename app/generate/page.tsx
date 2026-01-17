@@ -858,6 +858,7 @@ export default function GeneratePage() {
         console.log('[Generate] ✅ Image converted to data URL successfully');
       } catch (conversionError) {
         console.error('[Generate] ⚠️ Failed to convert to data URL, using original URL:', conversionError);
+        alert('⚠️ ERREUR CONVERSION IMAGE:\n' + (conversionError instanceof Error ? conversionError.message : JSON.stringify(conversionError)) + '\n\nLes overlays risquent de ne pas fonctionner !');
         // Continuer avec l'URL originale même si la conversion échoue
       }
 
@@ -902,6 +903,8 @@ export default function GeneratePage() {
       } catch (watermarkError) {
         // Log l'erreur avec détails
         console.error('[Generate] ❌ Watermark FAILED:', watermarkError);
+        // MONTRER l'erreur à l'utilisateur
+        alert('⚠️ ERREUR WATERMARK:\n' + (watermarkError instanceof Error ? watermarkError.message : JSON.stringify(watermarkError)));
       }
 
       // ÉTAPE 3 : Appliquer le texte overlay EN DERNIER (par-dessus le watermark)
@@ -943,6 +946,8 @@ export default function GeneratePage() {
         // Log l'erreur avec détails
         console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
         console.error('[Generate] Error details:', overlayError instanceof Error ? overlayError.message : 'Unknown error');
+        // MONTRER l'erreur à l'utilisateur
+        alert('⚠️ ERREUR TEXT OVERLAY:\n' + (overlayError instanceof Error ? overlayError.message : JSON.stringify(overlayError)));
       }
 
       console.log('[Generate] Final image ready:', {
