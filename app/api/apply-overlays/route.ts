@@ -41,22 +41,24 @@ export async function POST(req: NextRequest) {
       console.log('[ApplyOverlays] Applying watermark...');
 
       const watermarkText = 'keiro.ai';
-      const fontSize = 32;
-      const padding = 20;
-      const textWidth = watermarkText.length * fontSize * 0.6; // Approximation
+      // Taille proportionnelle à l'image (3% de la largeur minimum)
+      const fontSize = Math.max(48, Math.floor(width * 0.03));
+      const padding = Math.floor(width * 0.02);
+      const textWidth = watermarkText.length * fontSize * 0.6;
       const x = width - textWidth - padding;
-      const y = height - padding - 10;
+      const y = height - padding;
 
       svgOverlays.push(`
-        <!-- Watermark background -->
-        <rect x="${x - 6}" y="${y - 28}" width="${textWidth + 12}" height="${fontSize + 8}"
-              fill="rgba(0,0,0,0.5)" rx="4"/>
-        <!-- Watermark text -->
+        <!-- Watermark avec ombre portée forte -->
         <text x="${x}" y="${y}"
-              font-family="Arial, sans-serif"
+              font-family="Arial, Helvetica, sans-serif"
               font-size="${fontSize}"
-              font-weight="bold"
-              fill="white">${watermarkText}</text>
+              font-weight="900"
+              fill="white"
+              stroke="rgba(0,0,0,0.8)"
+              stroke-width="3"
+              paint-order="stroke"
+              style="text-shadow: 4px 4px 8px rgba(0,0,0,0.9);">${watermarkText}</text>
       `);
 
       console.log('[ApplyOverlays] ✅ Watermark SVG created');
@@ -66,26 +68,32 @@ export async function POST(req: NextRequest) {
     if (textOverlay && textOverlay.text) {
       console.log('[ApplyOverlays] Applying text overlay:', textOverlay.text);
 
-      const text = textOverlay.text;
-      const fontSize = 64;
-      const textWidth = text.length * fontSize * 0.6; // Approximation
-      const x = (width - textWidth) / 2;
-      const y = height / 2;
-      const padding = 40;
+      // Échapper les caractères spéciaux XML
+      const rawText = textOverlay.text;
+      const text = rawText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+      // Taille BEAUCOUP plus grande : 8-12% de la largeur de l'image
+      const fontSize = Math.max(80, Math.floor(width * 0.10));
+      const strokeWidth = Math.max(4, Math.floor(fontSize * 0.08));
 
       svgOverlays.push(`
-        <!-- Text overlay background -->
-        <rect x="${x - padding}" y="${y - fontSize - padding}"
-              width="${textWidth + padding * 2}" height="${fontSize + padding * 2}"
-              fill="rgba(0,0,0,0.6)" rx="8"/>
-        <!-- Text overlay -->
-        <text x="${width / 2}" y="${y}"
-              font-family="Arial, sans-serif"
+        <!-- Text overlay SANS fond, avec ombre portée très forte -->
+        <text x="${width / 2}" y="${height / 2}"
+              font-family="Arial, Helvetica, sans-serif"
               font-size="${fontSize}"
-              font-weight="bold"
+              font-weight="900"
               fill="white"
+              stroke="rgba(0,0,0,0.9)"
+              stroke-width="${strokeWidth}"
+              paint-order="stroke"
               text-anchor="middle"
-              dominant-baseline="middle">${text}</text>
+              dominant-baseline="middle"
+              style="text-shadow: 6px 6px 12px rgba(0,0,0,1);">${text}</text>
       `);
 
       console.log('[ApplyOverlays] ✅ Text overlay SVG created');
