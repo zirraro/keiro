@@ -11,7 +11,7 @@ export interface TextOverlayOptions {
   fontFamily?: string;
   textColor?: string;
   backgroundColor?: string;
-  backgroundStyle?: 'transparent' | 'solid' | 'gradient' | 'blur';
+  backgroundStyle?: 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline';
   maxWidth?: number;
 }
 
@@ -179,52 +179,62 @@ export async function addTextOverlay(
           }
         }
 
-        // Dessiner le background pour chaque ligne
-        lines.forEach((line, index) => {
-          const y = startY + (index * lineHeight);
-          const metrics = ctx.measureText(line);
-          const textWidth = metrics.width;
+        // Dessiner le background pour chaque ligne (sauf si style 'none')
+        if (backgroundStyle !== 'none') {
+          lines.forEach((line, index) => {
+            const y = startY + (index * lineHeight);
+            const metrics = ctx.measureText(line);
+            const textWidth = metrics.width;
 
-          // Padding autour du texte
-          const padding = isCallToAction || style === 'cta' ? 40 : 30;
-          const bgWidth = textWidth + (padding * 2);
-          const bgHeight = lineHeight + (padding * 0.8);
-          const bgX = (canvas.width - bgWidth) / 2;
-          const bgY = y - (bgHeight / 2);
+            // Padding autour du texte
+            const padding = isCallToAction || style === 'cta' ? 40 : 30;
+            const bgWidth = textWidth + (padding * 2);
+            const bgHeight = lineHeight + (padding * 0.8);
+            const bgX = (canvas.width - bgWidth) / 2;
+            const bgY = y - (bgHeight / 2);
 
-          // Dessiner le background avec coins arrondis (compatible tous navigateurs)
-          ctx.fillStyle = finalBgColor;
-          const radius = isCallToAction || style === 'cta' ? 16 : 12;
+            const radius = isCallToAction || style === 'cta' ? 16 : 12;
 
-          // Fonction helper pour dessiner rectangle arrondi (compatible avec tous les navigateurs)
-          ctx.beginPath();
-          ctx.moveTo(bgX + radius, bgY);
-          ctx.lineTo(bgX + bgWidth - radius, bgY);
-          ctx.arcTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + radius, radius);
-          ctx.lineTo(bgX + bgWidth, bgY + bgHeight - radius);
-          ctx.arcTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - radius, bgY + bgHeight, radius);
-          ctx.lineTo(bgX + radius, bgY + bgHeight);
-          ctx.arcTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - radius, radius);
-          ctx.lineTo(bgX, bgY + radius);
-          ctx.arcTo(bgX, bgY, bgX + radius, bgY, radius);
-          ctx.closePath();
-          ctx.fill();
-        });
+            // Fonction helper pour dessiner rectangle arrondi
+            ctx.beginPath();
+            ctx.moveTo(bgX + radius, bgY);
+            ctx.lineTo(bgX + bgWidth - radius, bgY);
+            ctx.arcTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + radius, radius);
+            ctx.lineTo(bgX + bgWidth, bgY + bgHeight - radius);
+            ctx.arcTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - radius, bgY + bgHeight, radius);
+            ctx.lineTo(bgX + radius, bgY + bgHeight);
+            ctx.arcTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - radius, radius);
+            ctx.lineTo(bgX, bgY + radius);
+            ctx.arcTo(bgX, bgY, bgX + radius, bgY, radius);
+            ctx.closePath();
+
+            if (backgroundStyle === 'outline') {
+              // Juste le contour
+              ctx.strokeStyle = finalBgColor;
+              ctx.lineWidth = 4;
+              ctx.stroke();
+            } else {
+              // Fond solide/transparent/gradient/blur
+              ctx.fillStyle = finalBgColor;
+              ctx.fill();
+            }
+          });
+        }
 
         // Dessiner le texte avec outline pour contraste maximum
         lines.forEach((line, index) => {
           const y = startY + (index * lineHeight);
 
-          // Outline noir pour visibilité
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-          ctx.lineWidth = fontSize * 0.05;
+          // Outline noir pour visibilité (plus fort si pas de fond)
+          ctx.strokeStyle = backgroundStyle === 'none' ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.3)';
+          ctx.lineWidth = backgroundStyle === 'none' ? fontSize * 0.10 : fontSize * 0.05;
           ctx.strokeText(line, canvas.width / 2, y);
 
-          // Shadow pour profondeur
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = fontSize * 0.15;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = fontSize * 0.05;
+          // Shadow pour profondeur (plus forte si pas de fond)
+          ctx.shadowColor = backgroundStyle === 'none' ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.5)';
+          ctx.shadowBlur = backgroundStyle === 'none' ? fontSize * 0.25 : fontSize * 0.15;
+          ctx.shadowOffsetX = backgroundStyle === 'none' ? 4 : 0;
+          ctx.shadowOffsetY = backgroundStyle === 'none' ? 4 : fontSize * 0.05;
 
           // Texte principal
           ctx.fillStyle = finalTextColor;

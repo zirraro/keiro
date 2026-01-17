@@ -171,6 +171,7 @@ export default function GeneratePage() {
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null); // Image SANS overlays pour édition studio
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
@@ -899,6 +900,9 @@ export default function GeneratePage() {
         const dataUrl = convertData.dataUrl;
         console.log('[Generate] ✅ Image converted to data URL, size:', convertData.size);
 
+        // SAUVEGARDER l'image originale SANS overlays pour l'édition studio
+        setOriginalImageUrl(dataUrl);
+
         // ÉTAPE 2 : Appliquer overlays côté CLIENT avec Canvas
         console.log('[Generate] Step 2: Applying overlays with browser Canvas...');
 
@@ -922,8 +926,8 @@ export default function GeneratePage() {
 
               // WATERMARK en bas à droite
               if (isUserFreemium || true) {
-                const watermarkText = 'keiro.ai';
-                const fontSize = Math.max(48, Math.floor(img.width * 0.04));
+                const watermarkText = 'KeiroAI';
+                const fontSize = Math.max(36, Math.floor(img.width * 0.03)); // Réduit à 3%
                 const padding = Math.floor(img.width * 0.02);
 
                 ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
@@ -957,9 +961,9 @@ export default function GeneratePage() {
                 console.log('[Generate] ✅ Watermark applied');
               }
 
-              // TEXTE OVERLAY centré
+              // TEXTE OVERLAY centré (taille réduite pour Instagram 1080x1080)
               if (textToApply) {
-                const fontSize = Math.max(80, Math.floor(img.width * 0.10));
+                const fontSize = Math.max(60, Math.floor(img.width * 0.06)); // Réduit à 6%
 
                 ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
                 ctx.textAlign = 'center';
@@ -1992,8 +1996,10 @@ export default function GeneratePage() {
                     <button
                       onClick={() => {
                         setShowEditStudio(true);
-                        setEditVersions([generatedImageUrl]);
-                        setSelectedEditVersion(generatedImageUrl);
+                        // Utiliser l'image ORIGINALE (sans overlays) pour éviter le double texte
+                        const imageToEdit = originalImageUrl || generatedImageUrl;
+                        setEditVersions([imageToEdit]);
+                        setSelectedEditVersion(imageToEdit);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >
@@ -2018,6 +2024,7 @@ export default function GeneratePage() {
                     <button
                       onClick={() => {
                         setGeneratedImageUrl(null);
+                        setOriginalImageUrl(null);
                         setGeneratedPrompt(null);
                       }}
                       className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
