@@ -850,14 +850,25 @@ export default function GeneratePage() {
         imageUrl: data.imageUrl.substring(0, 50)
       });
 
-      // ÉTAPE 1 : Convertir l'URL en data URL pour éviter les problèmes CORS
-      console.log('[Generate] Converting image URL to data URL...');
+      // ÉTAPE 1 : Convertir l'URL en data URL CÔTÉ SERVEUR (évite CORS)
+      console.log('[Generate] Converting image URL to data URL via server...');
       try {
-        const { convertUrlToDataUrl } = await import('@/lib/image-utils');
-        finalImageUrl = await convertUrlToDataUrl(data.imageUrl);
-        console.log('[Generate] ✅ Image converted to data URL successfully');
+        const convertResponse = await fetch('/api/convert-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: data.imageUrl })
+        });
+
+        const convertData = await convertResponse.json();
+
+        if (!convertData.ok) {
+          throw new Error(convertData.error || 'Échec de la conversion');
+        }
+
+        finalImageUrl = convertData.dataUrl;
+        console.log('[Generate] ✅ Image converted to data URL successfully via server');
       } catch (conversionError) {
-        console.error('[Generate] ⚠️ Failed to convert to data URL, using original URL:', conversionError);
+        console.error('[Generate] ⚠️ Failed to convert to data URL via server:', conversionError);
         alert('⚠️ ERREUR CONVERSION IMAGE:\n' + (conversionError instanceof Error ? conversionError.message : JSON.stringify(conversionError)) + '\n\nLes overlays risquent de ne pas fonctionner !');
         // Continuer avec l'URL originale même si la conversion échoue
       }
