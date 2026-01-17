@@ -861,48 +861,7 @@ export default function GeneratePage() {
         // Continuer avec l'URL originale même si la conversion échoue
       }
 
-      // ÉTAPE 2 : Appliquer TOUJOURS le text overlay automatiquement
-      console.log('[Generate] Applying automatic text overlay...');
-      try {
-        // Utiliser le texte fourni OU un texte par défaut basé sur l'actualité
-        let textToApply = optionalText && optionalText.trim()
-          ? optionalText.trim()
-          : selectedNews.title.length > 60
-            ? selectedNews.title.substring(0, 60) + '...'
-            : selectedNews.title;
-
-        // Déterminer le style selon le type de texte
-        const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(textToApply);
-        const position: 'top' | 'center' | 'bottom' = isCTA ? 'bottom' : 'center';
-
-        // Paramètres par défaut professionnels
-        const defaultConfig = {
-          text: textToApply,
-          position,
-          fontSize: 64, // Taille par défaut visible
-          fontFamily: 'montserrat' as const, // Police moderne et lisible
-          textColor: '#ffffff',
-          backgroundColor: isCTA ? '#3b82f6' : 'rgba(0, 0, 0, 0.4)', // CTA bleu / headline transparent
-          backgroundStyle: isCTA ? 'solid' as const : 'gradient' as const, // CTA solide / headline gradient
-        };
-
-        console.log('[Generate] Text overlay config:', defaultConfig);
-
-        // Appliquer l'overlay sur l'image (déjà en data URL)
-        const imageWithText = await addTextOverlay(finalImageUrl, defaultConfig);
-
-        console.log('[Generate] ✅ Text overlay applied successfully');
-        // Sauvegarder le texte appliqué pour l'édition
-        setOverlayText(textToApply);
-        // L'image avec texte est en data URL
-        finalImageUrl = imageWithText;
-      } catch (overlayError) {
-        // Log l'erreur avec détails
-        console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
-        console.error('[Generate] Error details:', overlayError instanceof Error ? overlayError.message : 'Unknown error');
-      }
-
-      // ÉTAPE 3 : Appliquer le watermark KeiroAI pour les utilisateurs freemium
+      // ÉTAPE 2 : Appliquer le watermark KeiroAI D'ABORD (en dessous)
       console.log('[Generate] Checking watermark requirement...');
       try {
         // Vérifier le statut premium
@@ -943,6 +902,47 @@ export default function GeneratePage() {
       } catch (watermarkError) {
         // Log l'erreur avec détails
         console.error('[Generate] ❌ Watermark FAILED:', watermarkError);
+      }
+
+      // ÉTAPE 3 : Appliquer le texte overlay EN DERNIER (par-dessus le watermark)
+      console.log('[Generate] Applying automatic text overlay...');
+      try {
+        // Utiliser le texte fourni OU un texte par défaut basé sur l'actualité
+        let textToApply = optionalText && optionalText.trim()
+          ? optionalText.trim()
+          : selectedNews.title.length > 60
+            ? selectedNews.title.substring(0, 60) + '...'
+            : selectedNews.title;
+
+        // Déterminer le style selon le type de texte
+        const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(textToApply);
+        const position: 'top' | 'center' | 'bottom' = isCTA ? 'bottom' : 'center';
+
+        // Paramètres par défaut professionnels
+        const defaultConfig = {
+          text: textToApply,
+          position,
+          fontSize: 64, // Taille par défaut visible
+          fontFamily: 'montserrat' as const, // Police moderne et lisible
+          textColor: '#ffffff',
+          backgroundColor: isCTA ? '#3b82f6' : 'rgba(0, 0, 0, 0.6)', // CTA bleu / headline plus visible
+          backgroundStyle: isCTA ? 'solid' as const : 'solid' as const, // Les deux en solide pour visibilité
+        };
+
+        console.log('[Generate] Text overlay config:', defaultConfig);
+
+        // Appliquer l'overlay sur l'image (qui a déjà le watermark)
+        const imageWithText = await addTextOverlay(finalImageUrl, defaultConfig);
+
+        console.log('[Generate] ✅ Text overlay applied successfully');
+        // Sauvegarder le texte appliqué pour l'édition
+        setOverlayText(textToApply);
+        // L'image finale avec watermark + texte
+        finalImageUrl = imageWithText;
+      } catch (overlayError) {
+        // Log l'erreur avec détails
+        console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
+        console.error('[Generate] Error details:', overlayError instanceof Error ? overlayError.message : 'Unknown error');
       }
 
       console.log('[Generate] Final image ready:', {
