@@ -843,122 +843,79 @@ export default function GeneratePage() {
 
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
 
-      let finalImageUrl = data.imageUrl;
-
-      console.log('[Generate] Image generated, applying overlays...', {
+      console.log('[Generate] Image generated, applying overlays SERVER-SIDE...', {
         hasOptionalText: !!optionalText?.trim(),
         imageUrl: data.imageUrl.substring(0, 50)
       });
 
-      // ÉTAPE 1 : Convertir l'URL en data URL CÔTÉ SERVEUR (évite CORS)
-      console.log('[Generate] Converting image URL to data URL via server...');
+      // NOUVELLE APPROCHE : Appliquer TOUS les overlays CÔTÉ SERVEUR avec Jimp
+      // Résout définitivement les problèmes CORS !
+
+      let finalImageUrl = data.imageUrl;
+
       try {
-        const convertResponse = await fetch('/api/convert-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: data.imageUrl })
-        });
-
-        const convertData = await convertResponse.json();
-
-        if (!convertData.ok) {
-          throw new Error(convertData.error || 'Échec de la conversion');
-        }
-
-        finalImageUrl = convertData.dataUrl;
-        console.log('[Generate] ✅ Image converted to data URL successfully via server');
-      } catch (conversionError) {
-        console.error('[Generate] ⚠️ Failed to convert to data URL via server:', conversionError);
-        alert('⚠️ ERREUR CONVERSION IMAGE:\n' + (conversionError instanceof Error ? conversionError.message : JSON.stringify(conversionError)) + '\n\nLes overlays risquent de ne pas fonctionner !');
-        // Continuer avec l'URL originale même si la conversion échoue
-      }
-
-      // ÉTAPE 2 : Appliquer le watermark KeiroAI D'ABORD (en dessous)
-      console.log('[Generate] Checking watermark requirement...');
-      try {
-        // Vérifier le statut premium
+        // Vérifier statut premium pour watermark
         const { data: { user } } = await supabase.auth.getUser();
         const hasPremiumPlan = user?.user_metadata?.subscription_status === 'active' || false;
-
-        // Déterminer si l'utilisateur est freemium
         const hasProvidedEmail = !!generationLimit.email;
         const hasCreatedAccount = generationLimit.hasAccount;
         const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan);
 
-        console.log('[Generate] Freemium check:', {
-          hasProvidedEmail,
-          hasCreatedAccount,
-          hasPremiumPlan,
-          isUserFreemium,
-          userEmail: user?.email
-        });
-
-        // Appliquer le watermark si freemium (ou en mode debug)
-        // DEBUG: Pour tester, on applique TOUJOURS le watermark
-        const shouldApplyWatermark = isUserFreemium || true; // TOUJOURS pour debug
-
-        if (shouldApplyWatermark) {
-          console.log('[Generate] 💧 Applying watermark...', {
-            reason: isUserFreemium ? 'freemium user' : 'debug mode'
-          });
-          const imageWithWatermark = await addWatermark(finalImageUrl, {
-            position: 'bottom-right',
-            opacity: 0.9, // Augmenté à 0.9 pour MAXIMUM visibilité
-            fontSize: 24  // Augmenté à 24 pour être bien visible
-          });
-          finalImageUrl = imageWithWatermark;
-          console.log('[Generate] ✅ Watermark "keiro.ai" applied successfully');
-        } else {
-          console.log('[Generate] ℹ️ No watermark - user is premium');
-        }
-      } catch (watermarkError) {
-        // Log l'erreur avec détails
-        console.error('[Generate] ❌ Watermark FAILED:', watermarkError);
-        // MONTRER l'erreur à l'utilisateur
-        alert('⚠️ ERREUR WATERMARK:\n' + (watermarkError instanceof Error ? watermarkError.message : JSON.stringify(watermarkError)));
-      }
-
-      // ÉTAPE 3 : Appliquer le texte overlay EN DERNIER (par-dessus le watermark)
-      console.log('[Generate] Applying automatic text overlay...');
-      try {
-        // Utiliser le texte fourni OU un texte par défaut basé sur l'actualité
+        // Préparer le texte overlay
         let textToApply = optionalText && optionalText.trim()
           ? optionalText.trim()
           : selectedNews.title.length > 60
             ? selectedNews.title.substring(0, 60) + '...'
             : selectedNews.title;
 
-        // Déterminer le style selon le type de texte
-        const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(textToApply);
-        const position: 'top' | 'center' | 'bottom' = isCTA ? 'bottom' : 'center';
-
-        // Paramètres par défaut professionnels
-        const defaultConfig = {
-          text: textToApply,
-          position,
-          fontSize: 64, // Taille par défaut visible
-          fontFamily: 'montserrat' as const, // Police moderne et lisible
-          textColor: '#ffffff',
-          backgroundColor: isCTA ? '#3b82f6' : 'rgba(0, 0, 0, 0.6)', // CTA bleu / headline plus visible
-          backgroundStyle: isCTA ? 'solid' as const : 'solid' as const, // Les deux en solide pour visibilité
-        };
-
-        console.log('[Generate] Text overlay config:', defaultConfig);
-
-        // Appliquer l'overlay sur l'image (qui a déjà le watermark)
-        const imageWithText = await addTextOverlay(finalImageUrl, defaultConfig);
-
-        console.log('[Generate] ✅ Text overlay applied successfully');
-        // Sauvegarder le texte appliqué pour l'édition
+        // Sauvegarder pour l'édition
         setOverlayText(textToApply);
-        // L'image finale avec watermark + texte
-        finalImageUrl = imageWithText;
-      } catch (overlayError) {
-        // Log l'erreur avec détails
-        console.error('[Generate] ❌ Text overlay FAILED:', overlayError);
-        console.error('[Generate] Error details:', overlayError instanceof Error ? overlayError.message : 'Unknown error');
-        // MONTRER l'erreur à l'utilisateur
-        alert('⚠️ ERREUR TEXT OVERLAY:\n' + (overlayError instanceof Error ? overlayError.message : JSON.stringify(overlayError)));
+
+        console.log('[Generate] Applying overlays SERVER-SIDE with Jimp...', {
+          watermark: isUserFreemium || true,
+          textOverlay: textToApply
+        });
+
+        // APPEL UNIQUE à l'API serveur pour TOUS les overlays
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const overlayResponse = await fetch('/api/apply-overlays', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageUrl: data.imageUrl,
+            watermark: {
+              apply: isUserFreemium || true, // Debug mode: toujours
+            },
+            textOverlay: {
+              text: textToApply,
+            }
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!overlayResponse.ok) {
+          const errorText = await overlayResponse.text();
+          throw new Error(`HTTP ${overlayResponse.status}: ${errorText}`);
+        }
+
+        const overlayData = await overlayResponse.json();
+
+        if (!overlayData.ok) {
+          throw new Error(overlayData.error || 'Échec de l\'application des overlays');
+        }
+
+        finalImageUrl = overlayData.dataUrl; // Mettre à jour la variable externe
+        console.log('[Generate] ✅ ALL overlays applied successfully via server, size:', overlayData.size);
+
+      } catch (overlayError: any) {
+        console.error('[Generate] ❌ Overlays FAILED:', overlayError);
+        alert('⚠️ ERREUR OVERLAYS:\n' + overlayError.message + '\n\nAffichage de l\'image sans overlay.');
+        // Utiliser l'image originale (fallback)
+        finalImageUrl = data.imageUrl;
       }
 
       console.log('[Generate] Final image ready:', {
