@@ -37,82 +37,83 @@ const API_PROVIDERS = {
 };
 
 // ===== FLUX RSS FRANÇAIS - Source principale (pas de quota) =====
+// Timeouts réduits à 5000ms pour chargement plus rapide
 const RSS_FEEDS = [
   // À la une - flux généraux fiables
-  { url: 'https://www.lemonde.fr/rss/une.xml', category: 'À la une', timeout: 8000 },
-  { url: 'https://www.francetvinfo.fr/titres.rss', category: 'À la une', timeout: 8000 },
-  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', category: 'À la une', timeout: 8000 },
+  { url: 'https://www.lemonde.fr/rss/une.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.francetvinfo.fr/titres.rss', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.20minutes.fr/feeds/rss-une.xml', category: 'À la une', timeout: 5000 },
 
   // Tech - flux tech fiables
-  { url: 'https://www.numerama.com/feed/', category: 'Tech', timeout: 8000 },
-  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech', timeout: 8000 },
-  { url: 'https://www.clubic.com/feed/', category: 'Tech', timeout: 8000 },
-  { url: 'https://www.journaldunet.com/rss/', category: 'Tech', timeout: 8000 },
+  { url: 'https://www.numerama.com/feed/', category: 'Tech', timeout: 5000 },
+  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech', timeout: 5000 },
+  { url: 'https://www.clubic.com/feed/', category: 'Tech', timeout: 5000 },
+  { url: 'https://www.journaldunet.com/rss/', category: 'Tech', timeout: 5000 },
 
   // Business
-  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business', timeout: 8000 },
-  { url: 'https://www.capital.fr/rss', category: 'Business', timeout: 8000 },
-  { url: 'https://www.lesechos.fr/rss.xml', category: 'Business', timeout: 8000 },
+  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business', timeout: 5000 },
+  { url: 'https://www.capital.fr/rss', category: 'Business', timeout: 5000 },
+  { url: 'https://www.lesechos.fr/rss.xml', category: 'Business', timeout: 5000 },
 
   // Finance
-  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Finance', timeout: 8000 },
-  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Finance', timeout: 8000 },
+  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Finance', timeout: 5000 },
+  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Finance', timeout: 5000 },
 
   // Santé
-  { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé', timeout: 8000 },
-  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé', timeout: 8000 },
+  { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé', timeout: 5000 },
+  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé', timeout: 5000 },
 
   // Sport
-  { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport', timeout: 8000 },
-  { url: 'https://www.sports.fr/feed/', category: 'Sport', timeout: 8000 },
+  { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport', timeout: 5000 },
+  { url: 'https://www.sports.fr/feed/', category: 'Sport', timeout: 5000 },
 
   // Culture
-  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture', timeout: 8000 },
-  { url: 'https://www.premiere.fr/rss', category: 'Culture', timeout: 8000 },
+  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture', timeout: 5000 },
+  { url: 'https://www.premiere.fr/rss', category: 'Culture', timeout: 5000 },
 
   // Politique
-  { url: 'https://www.lemonde.fr/politique/rss_full.xml', category: 'Politique', timeout: 8000 },
-  { url: 'https://www.francetvinfo.fr/politique.rss', category: 'Politique', timeout: 8000 },
+  { url: 'https://www.lemonde.fr/politique/rss_full.xml', category: 'Politique', timeout: 5000 },
+  { url: 'https://www.francetvinfo.fr/politique.rss', category: 'Politique', timeout: 5000 },
 
   // International
-  { url: 'https://www.france24.com/fr/rss', category: 'International', timeout: 8000 },
-  { url: 'https://www.lemonde.fr/international/rss_full.xml', category: 'International', timeout: 8000 },
+  { url: 'https://www.france24.com/fr/rss', category: 'International', timeout: 5000 },
+  { url: 'https://www.lemonde.fr/international/rss_full.xml', category: 'International', timeout: 5000 },
 
   // Automobile
-  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Automobile', timeout: 8000 },
-  { url: 'https://www.largus.fr/rss.xml', category: 'Automobile', timeout: 8000 },
+  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Automobile', timeout: 5000 },
+  { url: 'https://www.largus.fr/rss.xml', category: 'Automobile', timeout: 5000 },
 
   // Lifestyle
-  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle', timeout: 8000 },
-  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle', timeout: 8000 },
+  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
+  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
 
   // Gaming
-  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Gaming', timeout: 8000 },
-  { url: 'https://www.journaldugeek.com/feed/', category: 'Gaming', timeout: 8000 },
+  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Gaming', timeout: 5000 },
+  { url: 'https://www.journaldugeek.com/feed/', category: 'Gaming', timeout: 5000 },
 
   // Science
-  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science', timeout: 8000 },
-  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science', timeout: 8000 },
+  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science', timeout: 5000 },
+  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science', timeout: 5000 },
 
   // Climat
-  { url: 'https://www.geo.fr/rss.xml', category: 'Climat', timeout: 8000 },
-  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Climat', timeout: 8000 },
+  { url: 'https://www.geo.fr/rss.xml', category: 'Climat', timeout: 5000 },
+  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Climat', timeout: 5000 },
 
   // People
-  { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 8000 },
-  { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 8000 },
+  { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 5000 },
+  { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 5000 },
 
   // Restauration
-  { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 8000 },
-  { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 8000 },
+  { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 5000 },
+  { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 5000 },
 
   // Tendances - Flux variés couvrant lifestyle, pop culture, buzz, viral
-  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 8000 },
-  { url: 'https://www.aufeminin.com/rss.xml', category: 'Tendances', timeout: 8000 },
-  { url: 'https://www.grazia.fr/rss.xml', category: 'Tendances', timeout: 8000 },
-  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Tendances', timeout: 8000 },
-  { url: 'https://hitek.fr/feed', category: 'Tendances', timeout: 8000 },
-  { url: 'https://www.demotivateur.fr/feed', category: 'Tendances', timeout: 8000 },
+  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 5000 },
+  { url: 'https://www.aufeminin.com/rss.xml', category: 'Tendances', timeout: 5000 },
+  { url: 'https://www.grazia.fr/rss.xml', category: 'Tendances', timeout: 5000 },
+  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Tendances', timeout: 5000 },
+  { url: 'https://hitek.fr/feed', category: 'Tendances', timeout: 5000 },
+  { url: 'https://www.demotivateur.fr/feed', category: 'Tendances', timeout: 5000 },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -121,7 +122,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'Finance': ['financ', 'banque', 'bourse', 'action', 'investissement', 'trading', 'crypto', 'bitcoin', 'ethereum', 'euro', 'dollar', 'taux', 'crédit', 'dette', 'inflation', 'cac 40', 'assurance', 'immobilier', 'patrimoine', 'prix', 'tarif', 'coût', 'essence', 'carburant', 'gazole', 'diesel', 'pompe', 'sp95', 'sp98', 'e10', 'station-service', 'budget', 'pouvoir d\'achat', 'économies', 'facture'],
 
-  'Tech': ['startup', 'start-up', 'licorne', 'scale-up', 'venture capital', 'seed funding', 'série a', 'série b', 'levée de fonds', 'financement startup', 'french tech', 'station f', 'incubateur', 'accélérateur', 'innovation technologique', 'innovation numérique', 'deeptech', 'greentech', 'fintech', 'edtech', 'healthtech', 'insurtech', 'proptech', 'foodtech', 'agritech', 'cleantech', 'biotech', 'nanotech', 'quantum computing', 'calcul quantique', 'intelligence artificielle startup', 'ia startup', 'chatgpt', 'openai', 'anthropic', 'mistral ai', 'hugging face', 'stability ai', 'midjourney', 'runway ml', 'web3', 'blockchain startup', 'crypto startup', 'nft startup', 'metaverse startup', 'réalité virtuelle startup', 'réalité augmentée startup', 'robotique startup', 'drone startup', 'mobilité électrique', 'véhicule autonome', 'voiture connectée', 'smart city', 'ville intelligente', 'iot startup', 'objets connectés startup', 'saas', 'paas', 'iaas', 'cloud native', 'no-code', 'low-code', 'api economy', 'microservices', 'devops', 'révolution numérique', 'disruption', 'disruptif', 'transformation digitale entreprise', 'digitalisation', 'industrie 4.0', 'usine du futur', 'impression 3d startup', 'fabrication additive', 'matériaux innovants', 'nanotechnologie', 'biotechnologie startup', 'medtech', 'e-santé', 'télémédecine startup', 'diagnostic ia', 'génomique', 'crispr', 'thérapie génique', 'neurotechnologie', 'interface cerveau-machine', 'exosquelette', 'prothèse intelligente', 'cobotique', 'robot collaboratif', 'automatisation intelligente', 'rpa', 'hyperautomatisation', 'edge computing', 'fog computing', '5g startup', '6g', 'satellite startup', 'spatial privé', 'new space', 'économie spatiale', 'transition énergétique tech', 'hydrogène vert startup', 'batterie nouvelle génération', 'stockage énergie', 'réseau intelligent', 'smart grid', 'agrivoltaïque', 'agriculture de précision', 'vertical farming', 'aquaponie startup', 'protéine alternative', 'viande cellulaire', 'fermentation précision', 'économie circulaire tech', 'recyclage innovant', 'upcycling tech', 'impact tech', 'social tech', 'civic tech', 'govtech', 'regtech', 'legaltech', 'hrtech', 'talent tech', 'future of work', 'travail du futur tech', 'collaboration tools startup', 'productivité startup', 'cybersécurité startup', 'zero trust', 'sécurité cloud', 'privacy tech', 'souveraineté numérique', 'tech européenne', 'tech française', 'champion tech', 'licorne française', 'next40', 'ft120'],
+  'Tech': ['technolog', 'tech ', 'numériq', 'digital', 'informatiqu', 'logiciel', 'software', 'application', 'app ', 'site web', 'internet', 'wifi', 'réseau', 'serveur', 'cloud', 'data', 'données', 'algorithme', 'code', 'programmation', 'développement', 'dev ', 'startup', 'start-up', 'licorne', 'scale-up', 'venture capital', 'levée de fonds', 'french tech', 'station f', 'incubateur', 'accélérateur', 'innovation', 'deeptech', 'greentech', 'fintech', 'edtech', 'healthtech', 'insurtech', 'proptech', 'foodtech', 'agritech', 'cleantech', 'nanotech', 'intelligence artificielle', 'ia ', 'ai ', 'chatgpt', 'openai', 'anthropic', 'claude ai', 'mistral ai', 'machine learning', 'deep learning', 'neural network', 'web3', 'blockchain', 'crypto', 'nft', 'metaverse', 'métavers', 'réalité virtuelle', 'réalité augmentée', 'vr ', 'ar ', 'robotique', 'robot', 'drone', 'véhicule autonome', 'voiture connectée', 'smart city', 'ville intelligente', 'iot', 'objets connectés', 'domotique', 'saas', 'paas', 'iaas', 'cloud computing', 'no-code', 'low-code', 'api', 'microservices', 'devops', 'cybersécurité', 'cyber-sécurité', 'sécurité informatique', 'hacker', 'piratage', 'malware', 'virus informatique', 'antivirus', 'smartphone', 'téléphone', 'mobile', 'tablette', 'ordinateur', 'pc ', 'mac ', 'windows', 'android', 'ios', 'apple', 'google', 'microsoft', 'meta', 'facebook', 'instagram', 'whatsapp', 'twitter', 'tiktok', 'youtube', 'amazon', 'netflix', 'uber', '5g', '6g', 'satellite', 'spacex', 'starlink', 'fibre optique', 'connexion', 'débit', 'streaming', 'podcast', 'influenceur tech', 'youtuber tech', 'geek', 'gadget', 'innovation numérique', 'transformation digitale', 'digitalisation', 'e-commerce', 'marketplace', 'paiement en ligne', 'transaction', 'plateforme', 'réseau social'],
 
   'Business': ['business', 'entreprise', 'entrepreneur', 'économ', 'startup', 'pme', 'société commerciale', 'pdg', 'ceo', 'dirigeant', 'manager', 'employé', 'travail', 'télétravail', 'recrutement', 'commerce', 'marketing', 'vente', 'client', 'croissance', 'acquisition', 'partenariat', 'chiffre d\'affaires', 'profit'],
 

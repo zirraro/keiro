@@ -222,8 +222,51 @@ export async function addTextOverlay(
               // Reset shadow
               ctx.shadowColor = 'transparent';
               ctx.shadowBlur = 0;
+            } else if (backgroundStyle === 'solid') {
+              // Fond OPAQUE sans transparence
+              // Convertir la couleur en RGB opaque
+              const solidColor = finalBgColor.includes('rgba')
+                ? finalBgColor.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/, 'rgb($1, $2, $3)')
+                : finalBgColor.replace(/,\s*[\d.]+\)/, ', 1)');
+              ctx.fillStyle = solidColor;
+              ctx.fill();
+            } else if (backgroundStyle === 'gradient') {
+              // Gradient linéaire (haut vers bas)
+              const gradient = ctx.createLinearGradient(bgX, bgY, bgX, bgY + bgHeight);
+              // Extraire la couleur de base
+              const baseColor = finalBgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+              if (baseColor) {
+                const r = baseColor[1], g = baseColor[2], b = baseColor[3];
+                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.9)`);
+              } else {
+                gradient.addColorStop(0, finalBgColor);
+                gradient.addColorStop(1, finalBgColor);
+              }
+              ctx.fillStyle = gradient;
+              ctx.fill();
+            } else if (backgroundStyle === 'blur') {
+              // Effet blur simulé avec plusieurs couches légèrement transparentes
+              ctx.shadowColor = finalBgColor;
+              ctx.shadowBlur = 20;
+              ctx.fillStyle = finalBgColor;
+              ctx.fill();
+              // Deuxième couche plus transparente
+              const blurColor = finalBgColor.includes('rgba')
+                ? finalBgColor.replace(/,\s*([\d.]+)\)/, ', 0.3)')
+                : finalBgColor.replace('rgb', 'rgba').replace(')', ', 0.3)');
+              ctx.fillStyle = blurColor;
+              ctx.fill();
+              // Reset shadow
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+            } else if (backgroundStyle === 'transparent') {
+              // Fond transparent (comportement par défaut)
+              ctx.fillStyle = finalBgColor;
+              ctx.fill();
             } else {
-              // Fond solide/transparent/gradient/blur
+              // Fallback: utiliser la couleur telle quelle
               ctx.fillStyle = finalBgColor;
               ctx.fill();
             }

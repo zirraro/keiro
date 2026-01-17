@@ -27,56 +27,93 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
-    // Construire le prompt expert ultra-ciblé
-    const prompt = `Tu es un expert stratège en communication digitale et copywriting Instagram, spécialisé dans la création de propositions de valeur percutantes.
+    // Construire le prompt expert ultra-ciblé avec TONS VARIÉS
+    const prompt = `Tu es un expert stratège en communication Instagram et réseaux sociaux, spécialisé dans la création de textes overlay percutants qui génèrent de l'engagement.
 
 ANALYSE DU CONTEXTE:
 
-📰 ACTUALITÉ:
+📰 ACTUALITÉ PRÉCISE:
 Titre: "${newsTitle}"
 ${newsDescription ? `Détails: ${newsDescription}` : ''}
 
 🏢 BUSINESS CLIENT:
 Type: ${businessType}
 ${businessDescription ? `Description: ${businessDescription}` : ''}
-${targetAudience ? `Audience: ${targetAudience}` : ''}
-Ton: ${tone || 'Inspirant et engageant'}
+${targetAudience ? `Audience cible: ${targetAudience}` : ''}
+Ton général: ${tone || 'Inspirant et engageant'}
 
-🎯 TA MISSION STRATÉGIQUE:
+🎯 MISSION ULTRA-CIBLÉE:
 
-1. ANALYSER le lien entre cette actualité et ce business spécifique
-2. IDENTIFIER l'opportunité, le problème résolu, ou la valeur ajoutée CONCRÈTE
-3. CRÉER 5 propositions ultra-ciblées qui montrent CE business comme LA solution face à CETTE actualité
+Tu dois créer 5 TEXTES COURTS (max 45 caractères) pour overlay sur image Instagram.
+Chaque texte doit :
+1. CONNECTER explicitement CETTE actualité spécifique avec CE business précis
+2. Montrer une VALEUR CONCRÈTE ou un BÉNÉFICE TANGIBLE
+3. Utiliser un TON et une APPROCHE DIFFÉRENTS à chaque fois
 
-RÈGLES STRICTES:
+📋 LES 5 APPROCHES OBLIGATOIRES (une par suggestion):
 
-✅ FAIRE:
-- Lien DIRECT et ÉVIDENT actualité → business (pas générique!)
-- Proposition de valeur CONCRÈTE (comment ça aide le client?)
-- Vocabulaire SPÉCIFIQUE au secteur du business
-- Angle unique qui positionne ce business comme expert
-- Call-to-action implicite ou question engageante
-- Maximum 50 caractères (ultra-lisible sur mobile)
+1️⃣ APPROCHE STATISTIQUE/CHIFFRES
+→ Utilise des chiffres, %, €, temps gagné, économies
+→ Ex: "IA = -50% temps compta" | "Prix fixes 12 mois"
+→ Montre un impact MESURABLE et CONCRET
 
-❌ NE PAS FAIRE:
-- Textes génériques qui marcheraient pour n'importe quel business
-- Clichés marketing ("saisissez l'opportunité", "découvrez", etc.)
-- Questions vagues sans lien précis
-- Formules bateau qui ne montrent pas la valeur
+2️⃣ APPROCHE QUESTION PROVOCANTE
+→ Pose UNE question qui connecte l'actu au besoin du client
+→ Ex: "Inflation = faillite ?" | "ChatGPT va remplacer ton job ?"
+→ Crée de la CURIOSITÉ et du DÉBAT
 
-EXEMPLES DE QUALITÉ:
+3️⃣ APPROCHE SOLUTION/CTA DIRECTE
+→ Formule claire : Problème → Solution
+→ Ex: "Hausse prix ? Nous on bloque !" | "Cyber-attaque ? Protégé en 24h"
+→ Montre TON business comme LA réponse immédiate
 
-❌ MAUVAIS (générique): "Votre solution face à l'actu"
-✅ BON (spécifique): "IA = -50% temps comptable" [si actu IA + business comptabilité]
+4️⃣ APPROCHE ÉMOTIONNELLE/INSPIRANTE
+→ Joue sur l'aspiration, la transformation, l'espoir
+→ Ex: "Ton futur commence ici" | "Libère ton potentiel"
+→ Crée de la CONNEXION émotionnelle
 
-❌ MAUVAIS: "Comment ça vous impacte?"
-✅ BON: "Inflation? On fixe vos prix 12 mois" [si actu inflation + business fournisseur]
+5️⃣ APPROCHE URGENCE/OPPORTUNITÉ
+→ FOMO, temps limité, exclusivité, opportunité rare
+→ Ex: "Derniers jours -40%" | "Offre spéciale actu"
+→ Pousse à l'ACTION IMMÉDIATE
 
-❌ MAUVAIS: "L'opportunité du moment"
-✅ BON: "Nouveau CPF = formation cybersécurité offerte" [si actu CPF + business formation]
+⚠️ RÈGLES CRITIQUES:
 
-GÉNÈRE 5 propositions qui suivent ce niveau d'excellence.
-Chaque texte doit montrer un lien ULTRA-PRÉCIS entre l'actualité et la valeur unique de ce business.
+✅ OBLIGATOIRE:
+- Maximum 45 caractères (lisibilité mobile)
+- Lien EXPLICITE entre l'actu "${newsTitle.substring(0, 30)}..." et "${businessType}"
+- Vocabulaire du SECTEUR (pas générique!)
+- Chaque suggestion = TON DIFFÉRENT (statistique, question, CTA, émotionnel, urgence)
+- Proposition de valeur ULTRA-CONCRÈTE
+
+❌ INTERDIT:
+- "Découvrez", "Profitez", "Saisissez" (clichés marketing)
+- Textes qui marcheraient pour N'IMPORTE quel business
+- Lien vague ou forcé avec l'actualité
+- Répétition du même ton/approche
+
+📐 EXEMPLES PAR APPROCHE:
+
+Actu: "Inflation record 5.2%"
+Business: "Restaurant"
+
+1️⃣ Stat: "Menu 15€ garanti 1 an 🔒"
+2️⃣ Question: "Manger bon = ruiner son budget ?"
+3️⃣ CTA: "Inflation ? Pas chez nous ! 🍽️"
+4️⃣ Émotion: "Le bonheur se mange ici ❤️"
+5️⃣ Urgence: "-20% avant hausse tarifs ⏰"
+
+Actu: "IA ChatGPT explose"
+Business: "Formation professionnelle"
+
+1️⃣ Stat: "IA = +35% productivité 📈"
+2️⃣ Question: "Ton job existe encore en 2030 ?"
+3️⃣ CTA: "Maîtrise l'IA avant qu'elle te remplace"
+4️⃣ Émotion: "Deviens expert IA dès demain ⚡"
+5️⃣ Urgence: "Formation IA complète ce mois 🔥"
+
+GÉNÈRE 5 propositions EN FRANÇAIS qui suivent CES APPROCHES EXACTES.
+Chaque texte = lien ULTRA-PRÉCIS entre "${newsTitle.substring(0, 40)}..." et "${businessType}".
 
 FORMAT DE RÉPONSE:
 JSON array uniquement, rien d'autre.
@@ -119,7 +156,7 @@ JSON array uniquement, rien d'autre.
     // Filtrer et limiter la longueur
     suggestions = suggestions
       .filter(s => typeof s === 'string' && s.trim().length > 0)
-      .map(s => s.trim().substring(0, 50))
+      .map(s => s.trim().substring(0, 45))
       .slice(0, 5);
 
     console.log('[SuggestText] ✅ Generated', suggestions.length, 'suggestions');

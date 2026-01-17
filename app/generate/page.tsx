@@ -172,6 +172,7 @@ export default function GeneratePage() {
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null); // Image SANS overlays pour édition studio
+  const [imageWithWatermarkOnly, setImageWithWatermarkOnly] = useState<string | null>(null); // Image avec watermark SEULEMENT (sans texte overlay)
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
@@ -182,7 +183,7 @@ export default function GeneratePage() {
   const [textBackgroundColor, setTextBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
   const [fontSize, setFontSize] = useState(60);
   const [fontFamily, setFontFamily] = useState<'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair'>('inter');
-  const [backgroundStyle, setBackgroundStyle] = useState<'transparent' | 'solid' | 'gradient' | 'blur'>('transparent');
+  const [backgroundStyle, setBackgroundStyle] = useState<'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow'>('transparent');
   const [textTemplate, setTextTemplate] = useState<'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern'>('headline');
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
@@ -563,8 +564,8 @@ export default function GeneratePage() {
       return;
     }
 
-    // Utiliser l'image ORIGINALE (sans overlays) pour éviter la superposition
-    const imageToPreview = originalImageUrl || selectedEditVersion || generatedImageUrl;
+    // Utiliser l'image AVEC WATERMARK UNIQUEMENT pour garder le watermark visible
+    const imageToPreview = imageWithWatermarkOnly || originalImageUrl || selectedEditVersion || generatedImageUrl;
     if (!imageToPreview) {
       setTextPreviewUrl(null);
       return;
@@ -991,6 +992,11 @@ export default function GeneratePage() {
 
                 console.log('[Generate] ✅ Watermark applied');
               }
+
+              // SAUVEGARDER l'image avec watermark UNIQUEMENT (avant d'ajouter le texte)
+              const watermarkOnlyDataUrl = canvas.toDataURL('image/png', 1.0);
+              setImageWithWatermarkOnly(watermarkOnlyDataUrl);
+              console.log('[Generate] ✅ Image with watermark-only saved for studio');
 
               // TEXTE OVERLAY centré (taille réduite pour Instagram 1080x1080)
               if (textToApply) {
