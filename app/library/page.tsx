@@ -46,6 +46,18 @@ const DownloadIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+  </svg>
+);
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
 type SavedImage = {
   id: string;
   image_url: string;
@@ -81,6 +93,14 @@ export default function LibraryPage() {
     total_favorites: 0,
     total_instagram_drafts: 0
   });
+
+  // États pour le workspace Instagram
+  const [showInstagramWorkspace, setShowInstagramWorkspace] = useState(false);
+  const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
+  const [instaCaption, setInstaCaption] = useState('');
+  const [instaHashtags, setInstaHashtags] = useState<string[]>([]);
+  const [hashtagInput, setHashtagInput] = useState('');
+  const [savingInstaDraft, setSavingInstaDraft] = useState(false);
 
   // Charger l'utilisateur
   useEffect(() => {
@@ -181,6 +201,62 @@ export default function LibraryPage() {
       }
     } catch (error) {
       console.error('[Library] Error deleting image:', error);
+    }
+  };
+
+  // Ouvrir le workspace Instagram pour une image
+  const openInstagramWorkspace = (image: SavedImage) => {
+    setSelectedImageForInsta(image);
+    setInstaCaption('');
+    setInstaHashtags([]);
+    setHashtagInput('');
+    setShowInstagramWorkspace(true);
+  };
+
+  // Ajouter un hashtag
+  const addHashtag = () => {
+    const tag = hashtagInput.trim();
+    if (tag && !instaHashtags.includes(tag)) {
+      setInstaHashtags([...instaHashtags, tag.startsWith('#') ? tag : `#${tag}`]);
+      setHashtagInput('');
+    }
+  };
+
+  // Retirer un hashtag
+  const removeHashtag = (tag: string) => {
+    setInstaHashtags(instaHashtags.filter(t => t !== tag));
+  };
+
+  // Sauvegarder le brouillon Instagram
+  const saveInstagramDraft = async () => {
+    if (!selectedImageForInsta) return;
+
+    setSavingInstaDraft(true);
+
+    try {
+      const response = await fetch('/api/library/instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          savedImageId: selectedImageForInsta.id,
+          caption: instaCaption,
+          hashtags: instaHashtags
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('✅ Brouillon Instagram sauvegardé !');
+        setShowInstagramWorkspace(false);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (error: any) {
+      console.error('[Library] Error saving Instagram draft:', error);
+      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+    } finally {
+      setSavingInstaDraft(false);
     }
   };
 
@@ -342,27 +418,37 @@ export default function LibraryPage() {
                   />
 
                   {/* Overlay avec actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => toggleFavorite(image.id, image.is_favorite)}
+                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                        title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                      >
+                        <HeartIcon className="w-5 h-5 text-red-500" filled={image.is_favorite} />
+                      </button>
+                      <button
+                        onClick={() => downloadImage(image.image_url, image.title || image.news_title)}
+                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                        title="Télécharger"
+                      >
+                        <DownloadIcon className="w-5 h-5 text-blue-600" />
+                      </button>
+                      <button
+                        onClick={() => deleteImage(image.id)}
+                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                        title="Supprimer"
+                      >
+                        <TrashIcon className="w-5 h-5 text-red-600" />
+                      </button>
+                    </div>
                     <button
-                      onClick={() => toggleFavorite(image.id, image.is_favorite)}
-                      className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                      title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                      onClick={() => openInstagramWorkspace(image)}
+                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg"
+                      title="Préparer post Instagram"
                     >
-                      <HeartIcon className="w-5 h-5 text-red-500" filled={image.is_favorite} />
-                    </button>
-                    <button
-                      onClick={() => downloadImage(image.image_url, image.title || image.news_title)}
-                      className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                      title="Télécharger"
-                    >
-                      <DownloadIcon className="w-5 h-5 text-blue-600" />
-                    </button>
-                    <button
-                      onClick={() => deleteImage(image.id)}
-                      className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                      title="Supprimer"
-                    >
-                      <TrashIcon className="w-5 h-5 text-red-600" />
+                      <InstagramIcon className="w-5 h-5" />
+                      <span className="text-sm">Préparer post</span>
                     </button>
                   </div>
 
@@ -399,6 +485,185 @@ export default function LibraryPage() {
           <span>{stats.total_folders} dossiers • {stats.total_favorites} favoris</span>
         </div>
       </div>
+
+      {/* Modal Workspace Instagram */}
+      {showInstagramWorkspace && selectedImageForInsta && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center gap-3">
+                <InstagramIcon className="w-8 h-8 text-pink-600" />
+                <h2 className="text-2xl font-bold text-neutral-900">Préparer post Instagram</h2>
+              </div>
+              <button
+                onClick={() => setShowInstagramWorkspace(false)}
+                className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+              >
+                <XIcon className="w-6 h-6 text-neutral-600" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Colonne gauche : Image */}
+                <div>
+                  <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
+                    <img
+                      src={selectedImageForInsta.image_url}
+                      alt={selectedImageForInsta.title || selectedImageForInsta.news_title || ''}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <p className="text-sm text-neutral-600 mt-2">
+                    {selectedImageForInsta.title || selectedImageForInsta.news_title || 'Sans titre'}
+                  </p>
+                </div>
+
+                {/* Colonne droite : Formulaire */}
+                <div className="space-y-6">
+                  {/* Description/Caption */}
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                      Description du post
+                    </label>
+                    <textarea
+                      value={instaCaption}
+                      onChange={(e) => setInstaCaption(e.target.value)}
+                      placeholder="Écrivez une description engageante pour votre post..."
+                      className="w-full h-40 px-4 py-3 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                      maxLength={2200}
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {instaCaption.length} / 2200 caractères
+                    </p>
+                  </div>
+
+                  {/* Hashtags */}
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                      Hashtags
+                    </label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        value={hashtagInput}
+                        onChange={(e) => setHashtagInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
+                        placeholder="Ajouter un hashtag..."
+                        className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      />
+                      <button
+                        onClick={addHashtag}
+                        className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+
+                    {/* Liste des hashtags */}
+                    <div className="flex flex-wrap gap-2">
+                      {instaHashtags.map((tag, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm"
+                        >
+                          <span>{tag}</span>
+                          <button
+                            onClick={() => removeHashtag(tag)}
+                            className="hover:text-red-600"
+                          >
+                            <XIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {instaHashtags.length === 0 && (
+                      <p className="text-xs text-neutral-500 mt-2">
+                        Aucun hashtag ajouté. Ajoutez-en pour améliorer la visibilité !
+                      </p>
+                    )}
+                    <p className="text-xs text-neutral-500 mt-2">
+                      {instaHashtags.length} / 30 hashtags max
+                    </p>
+                  </div>
+
+                  {/* Suggestion de hashtags (optionnel futur) */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800 font-medium mb-2">💡 Suggestions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedImageForInsta.news_category && (
+                        <button
+                          onClick={() => {
+                            const tag = `#${selectedImageForInsta.news_category?.toLowerCase().replace(/\s/g, '')}`;
+                            if (!instaHashtags.includes(tag)) {
+                              setInstaHashtags([...instaHashtags, tag]);
+                            }
+                          }}
+                          className="px-2 py-1 bg-white border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+                        >
+                          #{selectedImageForInsta.news_category.toLowerCase().replace(/\s/g, '')}
+                        </button>
+                      )}
+                      {['actualite', 'business', 'entrepreneur', 'marketing', 'reseauxsociaux'].map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => {
+                            const fullTag = `#${tag}`;
+                            if (!instaHashtags.includes(fullTag)) {
+                              setInstaHashtags([...instaHashtags, fullTag]);
+                            }
+                          }}
+                          className="px-2 py-1 bg-white border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100 transition-colors"
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer avec actions */}
+            <div className="border-t p-6 bg-neutral-50 flex justify-between items-center">
+              <p className="text-sm text-neutral-600">
+                Le post sera sauvegardé en brouillon. Vous pourrez le publier plus tard.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowInstagramWorkspace(false)}
+                  className="px-6 py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={saveInstagramDraft}
+                  disabled={savingInstaDraft || !instaCaption.trim()}
+                  className={`px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center gap-2 ${
+                    savingInstaDraft || !instaCaption.trim()
+                      ? 'bg-neutral-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                  }`}
+                >
+                  {savingInstaDraft ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Sauvegarde...</span>
+                    </>
+                  ) : (
+                    <>
+                      <InstagramIcon className="w-5 h-5" />
+                      <span>Sauvegarder le brouillon</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

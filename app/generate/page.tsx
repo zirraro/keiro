@@ -8,6 +8,7 @@ import AdminBadge from '@/components/AdminBadge';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import { generateTextSuggestions } from '@/lib/text-suggestion';
 import { addTextOverlay } from '@/lib/canvas-text-overlay';
 import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
@@ -1135,7 +1136,9 @@ export default function GeneratePage() {
     setSavingToLibrary(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Utiliser supabaseBrowser pour avoir accès à la session
+      const supabaseClient = supabaseBrowser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
         alert('Vous devez être connecté pour sauvegarder dans votre librairie');
