@@ -78,6 +78,70 @@ type Folder = {
   color: string;
 };
 
+// Données de démonstration pour le mode visiteur
+const DEMO_IMAGES: SavedImage[] = [
+  {
+    id: 'demo-1',
+    image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=800&fit=crop',
+    title: 'Stratégie Marketing Digital',
+    news_title: 'Nouvelles tendances IA en 2026',
+    news_category: 'Tech',
+    text_overlay: 'Boostez votre visibilité 🚀',
+    is_favorite: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-2',
+    image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=800&fit=crop',
+    title: 'Croissance Business',
+    news_title: 'L\'économie française en expansion',
+    news_category: 'Business',
+    text_overlay: 'Développez votre entreprise 📈',
+    is_favorite: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-3',
+    image_url: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&h=800&fit=crop',
+    title: 'Innovation Technologique',
+    news_title: 'IA et transformation digitale',
+    news_category: 'Tech',
+    text_overlay: 'L\'avenir commence maintenant ✨',
+    is_favorite: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-4',
+    image_url: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=800&fit=crop',
+    title: 'Leadership & Management',
+    news_title: 'Nouvelles méthodes de management',
+    news_category: 'Business',
+    text_overlay: 'Inspirez vos équipes 💼',
+    is_favorite: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-5',
+    image_url: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=800&fit=crop',
+    title: 'Communication Moderne',
+    news_title: 'Social media en 2026',
+    news_category: 'Culture',
+    text_overlay: 'Connectez avec votre audience 📱',
+    is_favorite: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'demo-6',
+    image_url: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=800&fit=crop',
+    title: 'Collaboration & Teamwork',
+    news_title: 'Le travail hybride s\'impose',
+    news_category: 'Business',
+    text_overlay: 'Travaillez ensemble 🤝',
+    is_favorite: true,
+    created_at: new Date().toISOString()
+  }
+];
+
 export default function LibraryPage() {
   const supabase = useMemo(() => supabaseBrowser(), []);
   const [user, setUser] = useState<any>(null);
@@ -111,13 +175,24 @@ export default function LibraryPage() {
       if (error) console.error('[Library] Error loading user:', error);
       setUser(user);
       setLoading(false);
+
+      // Si pas d'utilisateur, charger les données de démo
+      if (!user) {
+        setImages(DEMO_IMAGES);
+        setStats({
+          total_images: DEMO_IMAGES.length,
+          total_folders: 0,
+          total_favorites: DEMO_IMAGES.filter(img => img.is_favorite).length,
+          total_instagram_drafts: 0
+        });
+      }
     };
     loadUser();
   }, [supabase]);
 
   // Charger les images et dossiers
   useEffect(() => {
-    if (!user) return;
+    if (!user) return; // Mode visiteur déjà géré dans loadUser
 
     const loadLibrary = async () => {
       try {
@@ -289,49 +364,54 @@ export default function LibraryPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-4 py-2 text-sm text-white mb-6 shadow-lg">
-              <PhotoIcon className="w-4 h-4" />
-              Librairie verrouillée
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-6 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Connectez-vous pour accéder à votre librairie
-            </h1>
-            <p className="text-lg text-neutral-600 mb-8">
-              Sauvegardez, organisez et gérez tous vos visuels générés dans un seul endroit.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <a
-                href="/login"
-                className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-              >
-                Se connecter
-              </a>
-              <a
-                href="/generate"
-                className="px-6 py-3 rounded-xl border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors"
-              >
-                Générer un visuel
-              </a>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  // Mode visiteur : afficher la librairie de démo (pas de return early)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Bandeau Mode Visiteur */}
+        {!user && (
+          <div className="mb-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl p-6 text-white shadow-lg">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-center md:text-left">
+                <div className="flex items-center gap-2 justify-center md:justify-start mb-2">
+                  <PhotoIcon className="w-5 h-5" />
+                  <span className="text-sm font-semibold uppercase tracking-wider">Mode Visiteur</span>
+                </div>
+                <h2 className="text-xl md:text-2xl font-bold mb-1">Découvrez votre futur espace de travail</h2>
+                <p className="text-blue-100 text-sm md:text-base">
+                  Connectez-vous pour sauvegarder vos visuels, préparer vos posts Instagram et bien plus encore
+                </p>
+              </div>
+              <div className="flex gap-3 flex-shrink-0">
+                <a
+                  href="/login"
+                  className="px-6 py-3 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-colors shadow-md"
+                >
+                  Se connecter
+                </a>
+                <a
+                  href="/generate"
+                  className="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors border-2 border-white"
+                >
+                  Générer un visuel
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-neutral-900 mb-2">Ma Librairie</h1>
+          <h1 className="text-3xl font-bold text-neutral-900 mb-2">
+            {user ? 'Ma Librairie' : 'Aperçu de la Librairie'}
+          </h1>
           <p className="text-neutral-600">
-            {stats.total_images} {stats.total_images > 1 ? 'visuels' : 'visuel'} sauvegardé{stats.total_images > 1 ? 's' : ''}
+            {user ? (
+              <>{stats.total_images} {stats.total_images > 1 ? 'visuels' : 'visuel'} sauvegardé{stats.total_images > 1 ? 's' : ''}</>
+            ) : (
+              <>Exemples de visuels générés avec Keiro AI</>
+            )}
           </p>
         </div>
 
@@ -419,37 +499,51 @@ export default function LibraryPage() {
 
                   {/* Overlay avec actions */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => toggleFavorite(image.id, image.is_favorite)}
-                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                        title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                      >
-                        <HeartIcon className="w-5 h-5 text-red-500" filled={image.is_favorite} />
-                      </button>
-                      <button
-                        onClick={() => downloadImage(image.image_url, image.title || image.news_title)}
-                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                        title="Télécharger"
-                      >
-                        <DownloadIcon className="w-5 h-5 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => deleteImage(image.id)}
-                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                        title="Supprimer"
-                      >
-                        <TrashIcon className="w-5 h-5 text-red-600" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => openInstagramWorkspace(image)}
-                      className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg"
-                      title="Préparer post Instagram"
-                    >
-                      <InstagramIcon className="w-5 h-5" />
-                      <span className="text-sm">Préparer post</span>
-                    </button>
+                    {user ? (
+                      <>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => toggleFavorite(image.id, image.is_favorite)}
+                            className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                            title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                          >
+                            <HeartIcon className="w-5 h-5 text-red-500" filled={image.is_favorite} />
+                          </button>
+                          <button
+                            onClick={() => downloadImage(image.image_url, image.title || image.news_title)}
+                            className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                            title="Télécharger"
+                          >
+                            <DownloadIcon className="w-5 h-5 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => deleteImage(image.id)}
+                            className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                            title="Supprimer"
+                          >
+                            <TrashIcon className="w-5 h-5 text-red-600" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => openInstagramWorkspace(image)}
+                          className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg"
+                          title="Préparer post Instagram"
+                        >
+                          <InstagramIcon className="w-5 h-5" />
+                          <span className="text-sm">Préparer post</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-white font-semibold mb-3">Mode Visiteur</p>
+                        <a
+                          href="/login"
+                          className="inline-block px-6 py-3 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-colors shadow-lg"
+                        >
+                          Connectez-vous pour interagir
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* Badge favori */}

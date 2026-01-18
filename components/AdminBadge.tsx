@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import { isAdminUser, isAdminEmail } from '@/lib/adminWhitelist';
 
 /**
@@ -15,6 +15,7 @@ export default function AdminBadge() {
   useEffect(() => {
     async function checkAdmin() {
       try {
+        const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
         console.log('[AdminBadge] User check:', {
           user,

@@ -1162,7 +1162,8 @@ export default function GeneratePage() {
           textOverlay: optionalText,
           visualStyle: visualStyle,
           tone: tone,
-          generationPrompt: generatedPrompt,
+          // Limiter le prompt à 1000 caractères pour éviter les erreurs "Request Entity Too Large"
+          generationPrompt: generatedPrompt ? generatedPrompt.substring(0, 1000) : null,
           aiModel: 'seedream',
           title: selectedNews.title,
           tags: [selectedNews.category, businessType].filter(Boolean)
