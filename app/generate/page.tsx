@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
+import AdminBadge from '@/components/AdminBadge';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
@@ -175,6 +176,8 @@ export default function GeneratePage() {
   const [imageWithWatermarkOnly, setImageWithWatermarkOnly] = useState<string | null>(null); // Image avec watermark SEULEMENT (sans texte overlay)
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [imageSavedToLibrary, setImageSavedToLibrary] = useState(false);
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
 
   /* --- États pour l'éditeur de texte overlay intégré --- */
   const [overlayText, setOverlayText] = useState('');
@@ -613,14 +616,36 @@ export default function GeneratePage() {
       return;
     }
 
-    // Vérifier les limites de génération (freemium)
-    if (generationLimit.requiredAction === 'email') {
-      setShowEmailGate(true);
-      return;
+    // Réinitialiser l'état de sauvegarde pour la nouvelle génération
+    setImageSavedToLibrary(false);
+
+    // Vérifier si l'utilisateur est admin (whitelist)
+    const { data: { user } } = await supabase.auth.getUser();
+    const { isAdminUser, isAdminEmail } = await import('@/lib/adminWhitelist');
+
+    // Vérifier admin via DB ou email
+    let isAdmin = false;
+    if (user?.id) {
+      isAdmin = await isAdminUser(user.id);
     }
-    if (generationLimit.requiredAction === 'signup') {
-      setShowSignupGate(true);
-      return;
+    if (!isAdmin && user?.email) {
+      isAdmin = isAdminEmail(user.email);
+    }
+
+    console.log('[Generate] Admin check:', { userId: user?.id, email: user?.email, isAdmin });
+
+    // Vérifier les limites de génération (freemium) - SAUF pour les admins
+    if (!isAdmin) {
+      if (generationLimit.requiredAction === 'email') {
+        setShowEmailGate(true);
+        return;
+      }
+      if (generationLimit.requiredAction === 'signup') {
+        setShowSignupGate(true);
+        return;
+      }
+    } else {
+      console.log('[Generate] Admin user detected - bypassing generation limits');
     }
 
     setGenerating(true);
@@ -893,7 +918,8 @@ export default function GeneratePage() {
         const hasPremiumPlan = user?.user_metadata?.subscription_status === 'active' || false;
         const hasProvidedEmail = !!generationLimit.email;
         const hasCreatedAccount = generationLimit.hasAccount;
-        const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan);
+        const userEmail = user?.email || generationLimit.email || null;
+        const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan, userEmail);
 
         // Préparer le texte overlay
         let textToApply = optionalText && optionalText.trim()
@@ -1099,6 +1125,79 @@ export default function GeneratePage() {
     }
   }
 
+  // Sauvegarder l'image dans la librairie
+  async function saveToLibrary() {
+    if (!generatedImageUrl || !selectedNews) {
+      console.error('[SaveToLibrary] Missing image or news data');
+      return;
+    }
+
+    setSavingToLibrary(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+        setSavingToLibrary(false);
+        return;
+      }
+
+      console.log('[SaveToLibrary] Saving image to library...');
+
+      const response = await fetch('/api/library/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: generatedImageUrl,
+          newsTitle: selectedNews.title,
+          newsDescription: selectedNews.description,
+          newsCategory: selectedNews.category,
+          newsSource: selectedNews.source,
+          businessType: businessType,
+          businessDescription: businessDescription,
+          textOverlay: optionalText,
+          visualStyle: visualStyle,
+          tone: tone,
+          generationPrompt: generatedPrompt,
+          aiModel: 'seedream',
+          title: selectedNews.title,
+          tags: [selectedNews.category, businessType].filter(Boolean)
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        setImageSavedToLibrary(true);
+        console.log('[SaveToLibrary] ✅ Image saved to library:', data.savedImage.id);
+
+        // Afficher notification de succès (toast simple)
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+        toast.innerHTML = `
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Sauvegardé dans votre librairie !</span>
+          </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (error: any) {
+      console.error('[SaveToLibrary] ❌ Error:', error);
+      alert(error.message || 'Erreur lors de la sauvegarde dans la librairie');
+    } finally {
+      setSavingToLibrary(false);
+    }
+  }
+
   // Génération de vidéo avec Seedream/SeedDance
   async function handleGenerateVideo() {
     if (!selectedNews || !businessType.trim()) return;
@@ -1204,6 +1303,9 @@ export default function GeneratePage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
+      {/* Badge Admin */}
+      <AdminBadge />
+
       <div className="max-w-7xl mx-auto">
         <p className="text-neutral-600 mb-6">
           Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité
@@ -2052,16 +2154,24 @@ export default function GeneratePage() {
                   {/* Deuxième ligne de boutons */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                      onClick={saveToLibrary}
+                      disabled={savingToLibrary || imageSavedToLibrary}
+                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
+                        imageSavedToLibrary
+                          ? 'bg-green-600 cursor-not-allowed'
+                          : savingToLibrary
+                          ? 'bg-blue-400 cursor-wait'
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      }`}
                     >
-                      Enregistrer dans ma librairie (pro)
+                      {imageSavedToLibrary ? '✓ Sauvegardé' : savingToLibrary ? 'Sauvegarde...' : '📁 Sauvegarder'}
                     </button>
                     <button
                       onClick={() => {
                         setGeneratedImageUrl(null);
                         setOriginalImageUrl(null);
                         setGeneratedPrompt(null);
+                        setImageSavedToLibrary(false);
                       }}
                       className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                     >

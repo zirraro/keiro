@@ -135,8 +135,28 @@ export async function addWatermark(
 
 /**
  * Vérifie si un utilisateur est freemium (a email ou compte mais pas de plan payant)
+ *
+ * @param hasEmail - A fourni son email
+ * @param hasAccount - A créé un compte
+ * @param hasPremiumPlan - A un plan premium actif
+ * @param userEmail - Email de l'utilisateur (pour vérification whitelist admin)
+ * @returns true si freemium (doit avoir watermark), false sinon
  */
-export function isFreemiumUser(hasEmail: boolean, hasAccount: boolean, hasPremiumPlan: boolean): boolean {
+export function isFreemiumUser(
+  hasEmail: boolean,
+  hasAccount: boolean,
+  hasPremiumPlan: boolean,
+  userEmail?: string | null
+): boolean {
+  // Si admin whitelist → pas freemium (pas de watermark)
+  if (userEmail) {
+    const { isAdminEmail } = require('./adminWhitelist');
+    if (isAdminEmail(userEmail)) {
+      console.log('[Watermark] Admin user detected - NO watermark');
+      return false;
+    }
+  }
+
   // Freemium = a fourni email OU créé compte, MAIS n'a pas de plan premium
   return (hasEmail || hasAccount) && !hasPremiumPlan;
 }
