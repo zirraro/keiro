@@ -2633,29 +2633,26 @@ export default function GeneratePage() {
                       {/* Style de fond */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">Style de fond</label>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           {[
                             { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-                            { value: 'minimal', emoji: '🎯', label: 'Minimal' },
-                            { value: 'none', emoji: '✨', label: 'Contraste' },
-                            { value: 'transparent', emoji: '👻', label: 'Semi-transp.' },
+                            { value: 'transparent', emoji: '👻', label: 'Transparent' },
                             { value: 'solid', emoji: '⬛', label: 'Solide' },
                             { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
                             { value: 'blur', emoji: '💨', label: 'Flou' },
-                            { value: 'outline', emoji: '⭕', label: 'Contour' },
-                            { value: 'glow', emoji: '💫', label: 'Glow' }
+                            { value: 'outline', emoji: '⭕', label: 'Contour' }
                           ].map((style) => (
                             <button
                               key={style.value}
                               onClick={() => setBackgroundStyle(style.value as any)}
-                              className={`px-2 py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
+                              className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                                 backgroundStyle === style.value
                                   ? 'bg-purple-500 text-white'
                                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                               }`}
                             >
-                              <span className="text-lg">{style.emoji}</span>
-                              <span className="text-[10px] leading-tight text-center">{style.label}</span>
+                              <span className="text-base">{style.emoji}</span>
+                              <span>{style.label}</span>
                             </button>
                           ))}
                         </div>
