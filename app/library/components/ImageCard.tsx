@@ -85,16 +85,18 @@ export default function ImageCard({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className="group relative bg-white rounded-lg border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow"
     >
-      {/* Image */}
-      <div className="aspect-square bg-neutral-100 relative">
+      {/* Image - Zone draggable */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="aspect-square bg-neutral-100 relative cursor-grab active:cursor-grabbing"
+      >
         <img
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Visuel généré'}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover pointer-events-none"
           loading="lazy"
         />
 

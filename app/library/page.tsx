@@ -417,10 +417,8 @@ export default function LibraryPage() {
       });
 
       if (res.ok) {
-        // Mettre à jour localement
-        setImages(prev => prev.map(img =>
-          img.id === imageId ? { ...img, folder_id: folderId } : img
-        ));
+        // Recharger les images pour refléter le changement de dossier
+        await loadImages();
 
         // Recharger les dossiers pour mettre à jour les compteurs
         const foldersRes = await fetch('/api/library/folders');
@@ -428,9 +426,12 @@ export default function LibraryPage() {
         if (foldersData.ok) {
           setFolders(foldersData.folders);
         }
+      } else {
+        alert('Erreur lors du déplacement de l\'image');
       }
     } catch (error) {
       console.error('[Library] Error moving image:', error);
+      alert('Erreur lors du déplacement de l\'image');
     }
   };
 
@@ -503,15 +504,13 @@ export default function LibraryPage() {
           }}
         />
 
-        {/* Navigation par onglets - Afficher seulement pour les utilisateurs connectés */}
-        {user && (
-          <TabNavigation
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            imageCount={stats.total_images}
-            draftCount={stats.total_instagram_drafts}
-          />
-        )}
+        {/* Navigation par onglets - Visible pour tous */}
+        <TabNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          imageCount={stats.total_images}
+          draftCount={stats.total_instagram_drafts}
+        />
 
         {/* Contenu principal avec sidebar (drag & drop enabled) */}
         {user ? (
@@ -578,20 +577,28 @@ export default function LibraryPage() {
         ) : (
           /* Mode visiteur - pas de drag & drop */
           <ErrorBoundary>
-            {loadingImages ? (
-              <LoadingSkeleton />
+            {activeTab === 'images' ? (
+              loadingImages ? (
+                <LoadingSkeleton />
+              ) : (
+                <ImageGrid
+                  images={images}
+                  user={user}
+                  searchQuery={searchQuery}
+                  selectedFolder={selectedFolder}
+                  showFavoritesOnly={showFavoritesOnly}
+                  onToggleFavorite={toggleFavorite}
+                  onDownload={downloadImage}
+                  onDelete={deleteImage}
+                  onOpenInstagram={openInstagramModal}
+                  onTitleEdit={handleTitleEdit}
+                />
+              )
             ) : (
-              <ImageGrid
-                images={images}
-                user={user}
-                searchQuery={searchQuery}
-                selectedFolder={selectedFolder}
-                showFavoritesOnly={showFavoritesOnly}
-                onToggleFavorite={toggleFavorite}
-                onDownload={downloadImage}
-                onDelete={deleteImage}
-                onOpenInstagram={openInstagramModal}
-                onTitleEdit={handleTitleEdit}
+              <InstagramDraftsTab
+                drafts={[]}
+                onEdit={editInstagramDraft}
+                onDelete={deleteInstagramDraft}
               />
             )}
           </ErrorBoundary>
