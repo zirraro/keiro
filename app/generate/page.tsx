@@ -1148,37 +1148,49 @@ export default function GeneratePage() {
 
       console.log('[SaveToLibrary] Saving image to library...');
 
+      // Préparer les données ultra-compressées
+      const payload = {
+        imageUrl: generatedImageUrl,
+        newsTitle: selectedNews.title ? selectedNews.title.substring(0, 100) : 'Image',
+        newsDescription: selectedNews.description ? selectedNews.description.substring(0, 150) : null,
+        newsCategory: selectedNews.category ? selectedNews.category.substring(0, 30) : null,
+        newsSource: selectedNews.source ? selectedNews.source.substring(0, 50) : null,
+        businessType: businessType ? businessType.substring(0, 50) : null,
+        businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
+        textOverlay: optionalText ? optionalText.substring(0, 80) : null,
+        visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
+        tone: tone ? tone.substring(0, 50) : null,
+        generationPrompt: null,
+        aiModel: 'seedream',
+        title: selectedNews.title ? selectedNews.title.substring(0, 100) : 'Image',
+        tags: [selectedNews.category, businessType].filter(Boolean).map(t => t?.substring(0, 30))
+      };
+
+      // Log la taille pour debug
+      const payloadSize = new Blob([JSON.stringify(payload)]).size;
+      console.log('[SaveToLibrary] Payload size:', payloadSize, 'bytes');
+
       const response = await fetch('/api/library/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: generatedImageUrl,
-          newsTitle: selectedNews.title,
-          // Limiter newsDescription à 200 caractères
-          newsDescription: selectedNews.description ? selectedNews.description.substring(0, 200) : null,
-          newsCategory: selectedNews.category,
-          newsSource: selectedNews.source,
-          businessType: businessType,
-          // Limiter businessDescription à 200 caractères
-          businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
-          // Limiter textOverlay à 100 caractères
-          textOverlay: optionalText ? optionalText.substring(0, 100) : null,
-          visualStyle: visualStyle,
-          tone: tone,
-          // NE PAS envoyer le generationPrompt car il est trop long
-          generationPrompt: null,
-          aiModel: 'seedream',
-          title: selectedNews.title,
-          tags: [selectedNews.category, businessType].filter(Boolean)
-        })
+        body: JSON.stringify(payload)
       });
 
       let data;
       try {
+        // Vérifier d'abord le status
+        console.log('[SaveToLibrary] Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[SaveToLibrary] Server error:', errorText);
+          throw new Error(`Erreur serveur (${response.status}): ${errorText.substring(0, 100)}`);
+        }
+
         data = await response.json();
-      } catch (jsonError) {
-        console.error('[SaveToLibrary] JSON parse error:', jsonError);
-        throw new Error('Erreur serveur. La requête est peut-être trop volumineuse.');
+      } catch (jsonError: any) {
+        console.error('[SaveToLibrary] Error:', jsonError);
+        throw new Error(jsonError.message || 'Erreur lors de la sauvegarde');
       }
 
       if (data.ok) {
@@ -2866,25 +2878,27 @@ export default function GeneratePage() {
                                       return;
                                     }
 
+                                    const payload = {
+                                      imageUrl: version,
+                                      newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 100) : 'Image éditée',
+                                      newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 150) : null,
+                                      newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 30) : null,
+                                      newsSource: selectedNews?.source ? selectedNews.source.substring(0, 50) : null,
+                                      businessType: businessType ? businessType.substring(0, 50) : null,
+                                      businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
+                                      textOverlay: optionalText ? optionalText.substring(0, 80) : null,
+                                      visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
+                                      tone: tone ? tone.substring(0, 50) : null,
+                                      generationPrompt: null,
+                                      aiModel: 'seedream',
+                                      title: `${selectedNews?.title ? selectedNews.title.substring(0, 80) : 'Image'} - V${idx + 1}`,
+                                      tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean).map(t => t?.substring(0, 30))
+                                    };
+
                                     const response = await fetch('/api/library/save', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        imageUrl: version,
-                                        newsTitle: selectedNews?.title || 'Image éditée',
-                                        newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 200) : null,
-                                        newsCategory: selectedNews?.category,
-                                        newsSource: selectedNews?.source,
-                                        businessType: businessType,
-                                        businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
-                                        textOverlay: optionalText ? optionalText.substring(0, 100) : null,
-                                        visualStyle: visualStyle,
-                                        tone: tone,
-                                        generationPrompt: null,
-                                        aiModel: 'seedream',
-                                        title: `${selectedNews?.title || 'Image'} - V${idx + 1}`,
-                                        tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
-                                      })
+                                      body: JSON.stringify(payload)
                                     });
 
                                     const data = await response.json();
@@ -2975,25 +2989,27 @@ export default function GeneratePage() {
                                   return;
                                 }
 
+                                const payload = {
+                                  imageUrl: version,
+                                  newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 100) : 'Image éditée',
+                                  newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 150) : null,
+                                  newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 30) : null,
+                                  newsSource: selectedNews?.source ? selectedNews.source.substring(0, 50) : null,
+                                  businessType: businessType ? businessType.substring(0, 50) : null,
+                                  businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
+                                  textOverlay: optionalText ? optionalText.substring(0, 80) : null,
+                                  visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
+                                  tone: tone ? tone.substring(0, 50) : null,
+                                  generationPrompt: null,
+                                  aiModel: 'seedream',
+                                  title: `${selectedNews?.title ? selectedNews.title.substring(0, 80) : 'Image'} - V${idx + 1}`,
+                                  tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean).map(t => t?.substring(0, 30))
+                                };
+
                                 const response = await fetch('/api/library/save', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    imageUrl: version,
-                                    newsTitle: selectedNews?.title || 'Image éditée',
-                                    newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 200) : null,
-                                    newsCategory: selectedNews?.category,
-                                    newsSource: selectedNews?.source,
-                                    businessType: businessType,
-                                    businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
-                                    textOverlay: optionalText ? optionalText.substring(0, 100) : null,
-                                    visualStyle: visualStyle,
-                                    tone: tone,
-                                    generationPrompt: null,
-                                    aiModel: 'seedream',
-                                    title: `${selectedNews?.title || 'Image'} - V${idx + 1}`,
-                                    tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
-                                  })
+                                  body: JSON.stringify(payload)
                                 });
 
                                 const data = await response.json();

@@ -2,18 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 /**
+ * Configuration pour augmenter la limite de taille du body
+ */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+/**
  * API Route: Sauvegarder une image dans la librairie
  * POST /api/library/save
  */
 export async function POST(req: NextRequest) {
   try {
     let body;
+    let bodyText;
+
     try {
-      body = await req.json();
+      // Lire le body comme texte d'abord pour voir sa taille
+      bodyText = await req.text();
+      console.log('[Library/Save] Body size:', new Blob([bodyText]).size, 'bytes');
+
+      // Parser le JSON
+      body = JSON.parse(bodyText);
     } catch (jsonError: any) {
       console.error('[Library/Save] Error parsing JSON:', jsonError);
+      console.error('[Library/Save] Body text preview:', bodyText?.substring(0, 200));
       return NextResponse.json(
-        { ok: false, error: 'Requête trop volumineuse ou JSON invalide' },
+        { ok: false, error: 'JSON invalide ou requête trop volumineuse' },
         { status: 400 }
       );
     }
@@ -45,41 +60,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Créer le client Supabase
+    // Créer le client Supabase avec la service role key
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Récupérer l'utilisateur depuis les cookies de la requête
+    const cookieHeader = req.headers.get('cookie') || '';
+
     // Récupérer l'utilisateur authentifié
-    const authHeader = req.headers.get('authorization');
     let userId: string | null = null;
 
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    // Essayer de récupérer l'utilisateur depuis la session
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (authError || !user) {
-        return NextResponse.json(
-          { ok: false, error: 'Non authentifié' },
-          { status: 401 }
-        );
-      }
-
-      userId = user.id;
-    } else {
-      // Fallback: essayer de récupérer l'utilisateur depuis le cookie
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-      if (authError || !user) {
-        return NextResponse.json(
-          { ok: false, error: 'Non authentifié' },
-          { status: 401 }
-        );
-      }
-
-      userId = user.id;
+    if (authError || !user) {
+      console.log('[Library/Save] No authenticated user found');
+      return NextResponse.json(
+        { ok: false, error: 'Non authentifié. Veuillez vous connecter.' },
+        { status: 401 }
+      );
     }
 
+    userId = user.id;
     console.log('[Library/Save] Saving image for user:', userId);
 
     // Insérer l'image dans la table saved_images
@@ -111,7 +114,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Library/Save] Error saving image:', error);
+      console.error('[Library/Save] Supabase error:', error);
       return NextResponse.json(
         { ok: false, error: error.message },
         { status: 500 }
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('[Library/Save] ❌ Unexpected error:', error);
     return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
+      { ok: false, error: error.message || 'Erreur serveur interne' },
       { status: 500 }
     );
   }
