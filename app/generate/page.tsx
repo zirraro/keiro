@@ -1148,27 +1148,34 @@ export default function GeneratePage() {
 
       console.log('[SaveToLibrary] Saving image to library...');
 
-      // Préparer les données ultra-compressées
+      // PAYLOAD ULTRA-MINIMAL pour éviter 413 Request Entity Too Large
       const payload = {
         imageUrl: generatedImageUrl,
-        newsTitle: selectedNews.title ? selectedNews.title.substring(0, 100) : 'Image',
-        newsDescription: selectedNews.description ? selectedNews.description.substring(0, 150) : null,
-        newsCategory: selectedNews.category ? selectedNews.category.substring(0, 30) : null,
-        newsSource: selectedNews.source ? selectedNews.source.substring(0, 50) : null,
-        businessType: businessType ? businessType.substring(0, 50) : null,
-        businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
-        textOverlay: optionalText ? optionalText.substring(0, 80) : null,
-        visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
-        tone: tone ? tone.substring(0, 50) : null,
+        title: selectedNews.title ? selectedNews.title.substring(0, 50) : 'Image',
+        newsTitle: selectedNews.title ? selectedNews.title.substring(0, 50) : null,
+        newsCategory: selectedNews.category ? selectedNews.category.substring(0, 20) : null,
+        // Tous les autres champs à null pour réduire drastiquement la taille
+        newsDescription: null,
+        newsSource: null,
+        businessType: null,
+        businessDescription: null,
+        textOverlay: null,
+        visualStyle: null,
+        tone: null,
         generationPrompt: null,
+        thumbnailUrl: null,
+        folderId: null,
         aiModel: 'seedream',
-        title: selectedNews.title ? selectedNews.title.substring(0, 100) : 'Image',
-        tags: [selectedNews.category, businessType].filter(Boolean).map(t => t?.substring(0, 30))
+        tags: []
       };
 
       // Log la taille pour debug
       const payloadSize = new Blob([JSON.stringify(payload)]).size;
       console.log('[SaveToLibrary] Payload size:', payloadSize, 'bytes');
+
+      if (payloadSize > 50000) {
+        throw new Error(`Payload trop volumineux: ${payloadSize} bytes. L'URL de l'image est probablement trop longue.`);
+      }
 
       const response = await fetch('/api/library/save', {
         method: 'POST',
@@ -2878,21 +2885,24 @@ export default function GeneratePage() {
                                       return;
                                     }
 
+                                    // PAYLOAD ULTRA-MINIMAL
                                     const payload = {
                                       imageUrl: version,
-                                      newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 100) : 'Image éditée',
-                                      newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 150) : null,
-                                      newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 30) : null,
-                                      newsSource: selectedNews?.source ? selectedNews.source.substring(0, 50) : null,
-                                      businessType: businessType ? businessType.substring(0, 50) : null,
-                                      businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
-                                      textOverlay: optionalText ? optionalText.substring(0, 80) : null,
-                                      visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
-                                      tone: tone ? tone.substring(0, 50) : null,
+                                      title: `Image V${idx + 1}`,
+                                      newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+                                      newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
+                                      newsDescription: null,
+                                      newsSource: null,
+                                      businessType: null,
+                                      businessDescription: null,
+                                      textOverlay: null,
+                                      visualStyle: null,
+                                      tone: null,
                                       generationPrompt: null,
+                                      thumbnailUrl: null,
+                                      folderId: null,
                                       aiModel: 'seedream',
-                                      title: `${selectedNews?.title ? selectedNews.title.substring(0, 80) : 'Image'} - V${idx + 1}`,
-                                      tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean).map(t => t?.substring(0, 30))
+                                      tags: []
                                     };
 
                                     const response = await fetch('/api/library/save', {
@@ -2989,21 +2999,24 @@ export default function GeneratePage() {
                                   return;
                                 }
 
+                                // PAYLOAD ULTRA-MINIMAL
                                 const payload = {
                                   imageUrl: version,
-                                  newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 100) : 'Image éditée',
-                                  newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 150) : null,
-                                  newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 30) : null,
-                                  newsSource: selectedNews?.source ? selectedNews.source.substring(0, 50) : null,
-                                  businessType: businessType ? businessType.substring(0, 50) : null,
-                                  businessDescription: businessDescription ? businessDescription.substring(0, 150) : null,
-                                  textOverlay: optionalText ? optionalText.substring(0, 80) : null,
-                                  visualStyle: visualStyle ? visualStyle.substring(0, 50) : null,
-                                  tone: tone ? tone.substring(0, 50) : null,
+                                  title: `Image V${idx + 1}`,
+                                  newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+                                  newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
+                                  newsDescription: null,
+                                  newsSource: null,
+                                  businessType: null,
+                                  businessDescription: null,
+                                  textOverlay: null,
+                                  visualStyle: null,
+                                  tone: null,
                                   generationPrompt: null,
+                                  thumbnailUrl: null,
+                                  folderId: null,
                                   aiModel: 'seedream',
-                                  title: `${selectedNews?.title ? selectedNews.title.substring(0, 80) : 'Image'} - V${idx + 1}`,
-                                  tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean).map(t => t?.substring(0, 30))
+                                  tags: []
                                 };
 
                                 const response = await fetch('/api/library/save', {
