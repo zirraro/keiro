@@ -9,22 +9,51 @@ async function getAccessTokenFromCookies(): Promise<string | null> {
   const cookieStore = await cookies();
   const allCookies = cookieStore.getAll();
 
+  console.log('[Library/Images] All cookies:', allCookies.map(c => c.name));
+
   // Chercher le cookie avec pattern sb-{PROJECT_ID}-auth-token
   for (const cookie of allCookies) {
     if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+      console.log('[Library/Images] Found Supabase cookie:', cookie.name);
+      console.log('[Library/Images] Cookie value length:', cookie.value?.length);
+      console.log('[Library/Images] Cookie value preview:', cookie.value?.substring(0, 100));
+
       try {
         const parsed = JSON.parse(cookie.value);
-        const token = parsed.access_token || parsed[0];
-        if (token) {
-          console.log('[Library/Images] Found auth cookie:', cookie.name);
-          return token;
+        console.log('[Library/Images] Parsed cookie type:', typeof parsed);
+        console.log('[Library/Images] Parsed cookie is array:', Array.isArray(parsed));
+
+        let token = null;
+
+        // Si c'est un array [access_token, refresh_token]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          token = parsed[0];
+          console.log('[Library/Images] Extracted token from array[0]');
         }
-      } catch {
+        // Si c'est un objet {access_token: "...", refresh_token: "..."}
+        else if (parsed && typeof parsed === 'object') {
+          token = parsed.access_token;
+          console.log('[Library/Images] Extracted token from parsed.access_token');
+        }
+
+        if (token) {
+          console.log('[Library/Images] ✅ Token extracted, length:', token.length);
+          return token;
+        } else {
+          console.error('[Library/Images] ❌ Could not extract token from parsed cookie');
+        }
+      } catch (err) {
+        console.error('[Library/Images] ❌ JSON parse error:', err);
         // Si c'est une string directe
-        if (cookie.value) return cookie.value;
+        if (cookie.value) {
+          console.log('[Library/Images] Using cookie value directly as token');
+          return cookie.value;
+        }
       }
     }
   }
+
+  console.log('[Library/Images] No Supabase auth cookie found');
 
   // Fallback aux anciens noms
   return cookieStore.get('sb-access-token')?.value ||
