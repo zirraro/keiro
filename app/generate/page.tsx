@@ -228,10 +228,14 @@ export default function GeneratePage() {
   /* --- Vérifier si l'utilisateur est connecté pour débloquer les limites --- */
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const supabaseClient = supabaseBrowser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
       if (user) {
         generationLimit.setHasAccount(true);
         editLimit.setHasAccount(true);
+        console.log('[Generate] User authenticated:', user.email);
+      } else {
+        console.log('[Generate] No authenticated user');
       }
     };
     checkAuth();
@@ -620,8 +624,9 @@ export default function GeneratePage() {
     // Réinitialiser l'état de sauvegarde pour la nouvelle génération
     setImageSavedToLibrary(false);
 
-    // Vérifier si l'utilisateur est admin (whitelist)
-    const { data: { user } } = await supabase.auth.getUser();
+    // Vérifier si l'utilisateur est admin (whitelist) - UTILISER supabaseBrowser pour avoir la session
+    const supabaseClient = supabaseBrowser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     const { isAdminUser, isAdminEmail } = await import('@/lib/adminWhitelist');
 
     // Vérifier admin via DB ou email
@@ -638,15 +643,17 @@ export default function GeneratePage() {
     // Vérifier les limites de génération (freemium) - SAUF pour les admins
     if (!isAdmin) {
       if (generationLimit.requiredAction === 'email') {
+        console.log('[Generate] Non-admin user requires email');
         setShowEmailGate(true);
         return;
       }
       if (generationLimit.requiredAction === 'signup') {
+        console.log('[Generate] Non-admin user requires signup');
         setShowSignupGate(true);
         return;
       }
     } else {
-      console.log('[Generate] Admin user detected - bypassing generation limits');
+      console.log('[Generate] ✅ Admin user detected - bypassing ALL generation limits');
     }
 
     setGenerating(true);
@@ -915,7 +922,7 @@ export default function GeneratePage() {
 
       try {
         // Vérifier statut premium pour watermark
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         const hasPremiumPlan = user?.user_metadata?.subscription_status === 'active' || false;
         const hasProvidedEmail = !!generationLimit.email;
         const hasCreatedAccount = generationLimit.hasAccount;
@@ -1091,7 +1098,7 @@ export default function GeneratePage() {
 
       // Auto-save vers la librairie si l'utilisateur est connecté
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
           console.log('[Generate] User logged in, auto-saving to library...');
           const saveResponse = await fetch('/api/storage/upload', {
