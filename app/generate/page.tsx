@@ -2936,9 +2936,48 @@ export default function GeneratePage() {
                                       return;
                                     }
 
-                                    // PAYLOAD ULTRA-MINIMAL
+                                    // Upload vers Supabase Storage si data URL
+                                    let finalImageUrl = version;
+                                    if (version.startsWith('data:')) {
+                                      console.log('[EditStudio/Mobile] Data URL detected, uploading to Storage...');
+                                      const response = await fetch(version);
+                                      const blob = await response.blob();
+                                      const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
+
+                                      const { error: uploadError } = await supabaseClient.storage
+                                        .from('generated-images')
+                                        .upload(fileName, blob, {
+                                          contentType: 'image/png',
+                                          cacheControl: '3600',
+                                          upsert: false
+                                        });
+
+                                      if (uploadError) {
+                                        console.error('[EditStudio/Mobile] Upload error:', uploadError);
+                                        alert(`❌ Erreur d'upload : ${uploadError.message}`);
+                                        return;
+                                      }
+
+                                      const { data: { publicUrl } } = supabaseClient.storage
+                                        .from('generated-images')
+                                        .getPublicUrl(fileName);
+
+                                      finalImageUrl = publicUrl;
+                                      console.log('[EditStudio/Mobile] Uploaded successfully:', publicUrl);
+                                    }
+
+                                    // Récupérer le token d'authentification
+                                    const { data: { session } } = await supabaseClient.auth.getSession();
+                                    const headers: HeadersInit = {
+                                      'Content-Type': 'application/json'
+                                    };
+                                    if (session?.access_token) {
+                                      headers['Authorization'] = `Bearer ${session.access_token}`;
+                                    }
+
+                                    // PAYLOAD avec URL courte
                                     const payload = {
-                                      imageUrl: version,
+                                      imageUrl: finalImageUrl,
                                       title: `Image V${idx + 1}`,
                                       newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
                                       newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
@@ -2958,7 +2997,7 @@ export default function GeneratePage() {
 
                                     const response = await fetch('/api/library/save', {
                                       method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
+                                      headers,
                                       body: JSON.stringify(payload)
                                     });
 
@@ -3050,9 +3089,48 @@ export default function GeneratePage() {
                                   return;
                                 }
 
-                                // PAYLOAD ULTRA-MINIMAL
+                                // Upload vers Supabase Storage si data URL
+                                let finalImageUrl = version;
+                                if (version.startsWith('data:')) {
+                                  console.log('[EditStudio/Desktop] Data URL detected, uploading to Storage...');
+                                  const response = await fetch(version);
+                                  const blob = await response.blob();
+                                  const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
+
+                                  const { error: uploadError } = await supabaseClient.storage
+                                    .from('generated-images')
+                                    .upload(fileName, blob, {
+                                      contentType: 'image/png',
+                                      cacheControl: '3600',
+                                      upsert: false
+                                    });
+
+                                  if (uploadError) {
+                                    console.error('[EditStudio/Desktop] Upload error:', uploadError);
+                                    alert(`❌ Erreur d'upload : ${uploadError.message}`);
+                                    return;
+                                  }
+
+                                  const { data: { publicUrl } } = supabaseClient.storage
+                                    .from('generated-images')
+                                    .getPublicUrl(fileName);
+
+                                  finalImageUrl = publicUrl;
+                                  console.log('[EditStudio/Desktop] Uploaded successfully:', publicUrl);
+                                }
+
+                                // Récupérer le token d'authentification
+                                const { data: { session } } = await supabaseClient.auth.getSession();
+                                const headers: HeadersInit = {
+                                  'Content-Type': 'application/json'
+                                };
+                                if (session?.access_token) {
+                                  headers['Authorization'] = `Bearer ${session.access_token}`;
+                                }
+
+                                // PAYLOAD avec URL courte
                                 const payload = {
-                                  imageUrl: version,
+                                  imageUrl: finalImageUrl,
                                   title: `Image V${idx + 1}`,
                                   newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
                                   newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
@@ -3072,7 +3150,7 @@ export default function GeneratePage() {
 
                                 const response = await fetch('/api/library/save', {
                                   method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers,
                                   body: JSON.stringify(payload)
                                 });
 
