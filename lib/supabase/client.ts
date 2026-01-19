@@ -39,8 +39,64 @@ export function createClient() {
     return supabaseInstance;
   }
 
-  // Créer et stocker l'instance singleton
-  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  // Créer et stocker l'instance singleton avec gestion des cookies
+  supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        // Vérifier si on est dans le navigateur
+        if (typeof document === 'undefined') return null;
+
+        // Lire depuis les cookies du navigateur
+        const value = document.cookie
+          .split('; ')
+          .find(row => row.startsWith(`${name}=`))
+          ?.split('=')[1];
+        return value ? decodeURIComponent(value) : null;
+      },
+      set(name: string, value: string, options: any) {
+        // Vérifier si on est dans le navigateur
+        if (typeof document === 'undefined') return;
+
+        // Écrire dans les cookies du navigateur
+        let cookieString = `${name}=${encodeURIComponent(value)}`;
+
+        if (options?.maxAge) {
+          cookieString += `; max-age=${options.maxAge}`;
+        }
+        if (options?.path) {
+          cookieString += `; path=${options.path}`;
+        } else {
+          cookieString += '; path=/';
+        }
+        if (options?.domain) {
+          cookieString += `; domain=${options.domain}`;
+        }
+        if (options?.sameSite) {
+          cookieString += `; samesite=${options.sameSite}`;
+        }
+        if (options?.secure) {
+          cookieString += '; secure';
+        }
+
+        document.cookie = cookieString;
+        console.log('[Supabase Client] Cookie set:', name);
+      },
+      remove(name: string, options: any) {
+        // Vérifier si on est dans le navigateur
+        if (typeof document === 'undefined') return;
+
+        // Supprimer le cookie
+        let cookieString = `${name}=; max-age=0`;
+        if (options?.path) {
+          cookieString += `; path=${options.path}`;
+        } else {
+          cookieString += '; path=/';
+        }
+        document.cookie = cookieString;
+        console.log('[Supabase Client] Cookie removed:', name);
+      },
+    },
+  });
   return supabaseInstance;
 }
 
