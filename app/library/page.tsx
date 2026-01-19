@@ -459,6 +459,104 @@ export default function LibraryPage() {
           </div>
         </div>
 
+        {/* Aperçu Espace Instagram */}
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+              <InstagramIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-900">Espace de travail Instagram</h2>
+              <p className="text-sm text-neutral-600">Préparez vos posts avec caption et hashtags</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-purple-200 p-4">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Colonne gauche : Image de démo */}
+              <div>
+                <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
+                  <img
+                    src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=800&fit=crop"
+                    alt="Aperçu espace Instagram"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <p className="text-sm text-neutral-600 mt-2 text-center">
+                  {user ? 'Sélectionnez une image pour commencer' : 'Connectez-vous pour utiliser cette fonctionnalité'}
+                </p>
+              </div>
+
+              {/* Colonne droite : Aperçu de l'éditeur */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                    Caption Instagram
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      readOnly
+                      disabled={!user}
+                      placeholder={user ? "Rédigez votre caption ici..." : "Connectez-vous pour utiliser"}
+                      className="w-full h-32 px-3 py-2 rounded-lg border border-neutral-300 bg-neutral-50 resize-none text-sm text-neutral-500"
+                      value="🚀 Découvrez comment l'IA transforme votre stratégie marketing...\n\n#marketing #digitalmarketing #ai #business"
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-1">Limite : 2200 caractères</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                    Hashtags
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                      #marketing
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                      #digitalmarketing
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                      #ai
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled={!user}
+                    placeholder={user ? "Ajouter un hashtag..." : "Connectez-vous"}
+                    className="w-full px-3 py-2 rounded-lg border border-neutral-300 bg-neutral-50 text-sm"
+                  />
+                </div>
+
+                {user ? (
+                  <button
+                    disabled
+                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-400 to-pink-400 text-white font-semibold opacity-50 cursor-not-allowed"
+                  >
+                    Sélectionnez une image pour commencer
+                  </button>
+                ) : (
+                  <a
+                    href="/login"
+                    className="block w-full px-6 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold text-center hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg"
+                  >
+                    Connectez-vous pour utiliser
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {user && (
+              <div className="mt-4 pt-4 border-t border-purple-200">
+                <p className="text-sm text-purple-700 text-center">
+                  💡 Astuce : Survolez vos images ci-dessous et cliquez sur "Préparer post" pour ouvrir l'éditeur Instagram
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Grille d'images */}
         {images.length === 0 ? (
           <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">

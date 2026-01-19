@@ -7,7 +7,17 @@ import { createClient } from '@supabase/supabase-js';
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError: any) {
+      console.error('[Library/Save] Error parsing JSON:', jsonError);
+      return NextResponse.json(
+        { ok: false, error: 'Requête trop volumineuse ou JSON invalide' },
+        { status: 400 }
+      );
+    }
+
     const {
       imageUrl,
       thumbnailUrl,

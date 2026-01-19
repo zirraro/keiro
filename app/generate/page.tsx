@@ -2849,23 +2849,44 @@ export default function GeneratePage() {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   try {
-                                    const response = await fetch('/api/storage/upload', {
+                                    const supabaseClient = supabaseBrowser();
+                                    const { data: { user } } = await supabaseClient.auth.getUser();
+
+                                    if (!user) {
+                                      alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+                                      return;
+                                    }
+
+                                    const response = await fetch('/api/library/save', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
-                                        url: version,
-                                        type: 'image',
-                                        prompt: `Version ${idx + 1} - ${generatedPrompt || 'Image éditée'}`
+                                        imageUrl: version,
+                                        newsTitle: selectedNews?.title || 'Image éditée',
+                                        newsDescription: selectedNews?.description,
+                                        newsCategory: selectedNews?.category,
+                                        newsSource: selectedNews?.source,
+                                        businessType: businessType,
+                                        businessDescription: businessDescription,
+                                        textOverlay: optionalText,
+                                        visualStyle: visualStyle,
+                                        tone: tone,
+                                        generationPrompt: `Version ${idx + 1} - ${generatedPrompt?.substring(0, 500) || 'Image éditée'}`,
+                                        aiModel: 'seedream',
+                                        title: `${selectedNews?.title || 'Image'} - Version ${idx + 1}`,
+                                        tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
                                       })
                                     });
+
                                     const data = await response.json();
                                     if (data.ok) {
-                                      alert('✅ Sauvegardé dans votre librairie');
+                                      alert('✅ Sauvegardé dans votre librairie !');
                                     } else {
-                                      alert('❌ Impossible de sauvegarder. Veuillez réessayer.');
+                                      alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                     }
                                   } catch (error: any) {
-                                    alert('❌ Erreur de connexion. Vérifiez votre internet.');
+                                    console.error('Error saving to library:', error);
+                                    alert(`❌ Erreur : ${error.message || 'Vérifiez votre connexion'}`);
                                   }
                                 }}
                                 className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
@@ -2937,23 +2958,44 @@ export default function GeneratePage() {
                             onClick={async (e) => {
                               e.stopPropagation();
                               try {
-                                const response = await fetch('/api/storage/upload', {
+                                const supabaseClient = supabaseBrowser();
+                                const { data: { user } } = await supabaseClient.auth.getUser();
+
+                                if (!user) {
+                                  alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+                                  return;
+                                }
+
+                                const response = await fetch('/api/library/save', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
-                                    url: version,
-                                    type: 'image',
-                                    prompt: `Version ${idx + 1} - ${generatedPrompt || 'Image éditée'}`
+                                    imageUrl: version,
+                                    newsTitle: selectedNews?.title || 'Image éditée',
+                                    newsDescription: selectedNews?.description,
+                                    newsCategory: selectedNews?.category,
+                                    newsSource: selectedNews?.source,
+                                    businessType: businessType,
+                                    businessDescription: businessDescription,
+                                    textOverlay: optionalText,
+                                    visualStyle: visualStyle,
+                                    tone: tone,
+                                    generationPrompt: `Version ${idx + 1} - ${generatedPrompt?.substring(0, 500) || 'Image éditée'}`,
+                                    aiModel: 'seedream',
+                                    title: `${selectedNews?.title || 'Image'} - Version ${idx + 1}`,
+                                    tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
                                   })
                                 });
+
                                 const data = await response.json();
                                 if (data.ok) {
-                                  alert('✅ Sauvegardé dans votre librairie');
+                                  alert('✅ Sauvegardé dans votre librairie !');
                                 } else {
-                                  alert('❌ Impossible de sauvegarder. Veuillez réessayer.');
+                                  alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                 }
                               } catch (error: any) {
-                                alert('❌ Erreur de connexion. Vérifiez votre internet.');
+                                console.error('Error saving to library:', error);
+                                alert(`❌ Erreur : ${error.message || 'Vérifiez votre connexion'}`);
                               }
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
