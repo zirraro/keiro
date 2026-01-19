@@ -21,6 +21,11 @@ export default function DebugLibraryPage() {
         return acc;
       }, {});
 
+      // Chercher le cookie Supabase avec pattern sb-{PROJECT_ID}-auth-token
+      const supabaseCookie = Object.keys(cookies).find(name =>
+        name.startsWith('sb-') && name.endsWith('-auth-token')
+      );
+
       // 3. Vérifier directement dans la base de données
       let images = [];
       let dbError = null;
@@ -51,6 +56,8 @@ export default function DebugLibraryPage() {
         cookies: {
           hasSbAccessToken: !!cookies['sb-access-token'],
           hasSupabaseAuthToken: !!cookies['supabase-auth-token'],
+          hasSupabaseProjectCookie: !!supabaseCookie,
+          supabaseCookieName: supabaseCookie || null,
           allCookies: Object.keys(cookies)
         },
         database: {
@@ -120,19 +127,34 @@ export default function DebugLibraryPage() {
           <h2 className="text-xl font-semibold mb-4">🍪 Cookies</h2>
           <div className="space-y-2">
             <p>
-              <strong>sb-access-token:</strong>{' '}
+              <strong>Cookie Supabase (sb-*-auth-token):</strong>{' '}
+              {debug.cookies.hasSupabaseProjectCookie ? (
+                <span className="text-green-600 font-bold">✅ Présent ({debug.cookies.supabaseCookieName})</span>
+              ) : (
+                <span className="text-red-600 font-bold">❌ Absent</span>
+              )}
+            </p>
+            <p className="text-xs text-neutral-500 italic">
+              {debug.cookies.hasSupabaseProjectCookie ?
+                "✅ Le cookie d'authentification est correctement créé" :
+                "⚠️ Vous devez vous déconnecter et reconnecter pour créer le cookie"
+              }
+            </p>
+            <hr className="my-3" />
+            <p>
+              <strong>sb-access-token (legacy):</strong>{' '}
               {debug.cookies.hasSbAccessToken ? (
                 <span className="text-green-600">✅ Présent</span>
               ) : (
-                <span className="text-red-600">❌ Absent</span>
+                <span className="text-neutral-400">❌ Absent (normal)</span>
               )}
             </p>
             <p>
-              <strong>supabase-auth-token:</strong>{' '}
+              <strong>supabase-auth-token (legacy):</strong>{' '}
               {debug.cookies.hasSupabaseAuthToken ? (
                 <span className="text-green-600">✅ Présent</span>
               ) : (
-                <span className="text-red-600">❌ Absent</span>
+                <span className="text-neutral-400">❌ Absent (normal)</span>
               )}
             </p>
             <details className="mt-2">
@@ -223,15 +245,26 @@ export default function DebugLibraryPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">🔍 Diagnostic</h2>
           {!debug.user ? (
-            <p className="text-red-600">❌ Vous n'êtes pas connecté. Connectez-vous d'abord.</p>
+            <p className="text-red-600 font-semibold">❌ Vous n'êtes pas connecté. Connectez-vous d'abord sur /login.</p>
+          ) : !debug.cookies.hasSupabaseProjectCookie ? (
+            <div>
+              <p className="text-red-600 font-semibold">❌ Le cookie d'authentification n'est pas créé !</p>
+              <p className="mt-2 text-sm">
+                <strong>Solution :</strong> Vous devez vous <strong>déconnecter</strong> (effacer les cookies ou navigation privée)
+                puis vous <strong>reconnecter</strong> sur /login pour créer le nouveau cookie.
+              </p>
+            </div>
           ) : debug.database.imageCount === 0 ? (
             <p className="text-orange-600">⚠️ Aucune image dans la base de données. Essayez de sauvegarder une image d'abord.</p>
           ) : debug.api.status === 401 ? (
-            <p className="text-red-600">❌ L'API ne reconnaît pas votre session. Problème d'authentification côté serveur.</p>
+            <div>
+              <p className="text-red-600 font-semibold">❌ L'API ne reconnaît pas votre session.</p>
+              <p className="mt-2 text-sm">Le cookie existe mais l'API ne peut pas le lire. Vérifiez les logs serveur.</p>
+            </div>
           ) : debug.api.imageCount === 0 && debug.database.imageCount > 0 ? (
             <p className="text-red-600">❌ Les images existent dans la DB mais l'API ne les retourne pas. Problème de filtrage ou de requête.</p>
           ) : (
-            <p className="text-green-600">✅ Tout semble OK ! Les images devraient apparaître dans /library.</p>
+            <p className="text-green-600 font-semibold">✅ Tout fonctionne ! Les images devraient apparaître dans /library.</p>
           )}
         </div>
       </div>

@@ -68,8 +68,32 @@ export async function POST(req: NextRequest) {
 
     // Récupérer l'utilisateur depuis les cookies Next.js
     const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value ||
-                       cookieStore.get('supabase-auth-token')?.value;
+
+    // Chercher le cookie Supabase avec pattern sb-{PROJECT_ID}-auth-token
+    let accessToken: string | undefined;
+    const allCookies = cookieStore.getAll();
+
+    for (const cookie of allCookies) {
+      if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+        // Extraire le token depuis le JSON stocké
+        try {
+          const parsed = JSON.parse(cookie.value);
+          accessToken = parsed.access_token || parsed[0]; // Peut être un objet ou un array
+          console.log('[Library/Save] Found Supabase auth cookie:', cookie.name);
+          break;
+        } catch {
+          // Si c'est déjà une string directe
+          accessToken = cookie.value;
+          break;
+        }
+      }
+    }
+
+    // Fallback aux anciens noms
+    if (!accessToken) {
+      accessToken = cookieStore.get('sb-access-token')?.value ||
+                   cookieStore.get('supabase-auth-token')?.value;
+    }
 
     console.log('[Library/Save] Access token present:', !!accessToken);
 

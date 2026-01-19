@@ -3,6 +3,36 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 /**
+ * Helper: Extraire le access_token depuis les cookies Supabase
+ */
+async function getAccessTokenFromCookies(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+
+  // Chercher le cookie avec pattern sb-{PROJECT_ID}-auth-token
+  for (const cookie of allCookies) {
+    if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+      try {
+        const parsed = JSON.parse(cookie.value);
+        const token = parsed.access_token || parsed[0];
+        if (token) {
+          console.log('[Library/Images] Found auth cookie:', cookie.name);
+          return token;
+        }
+      } catch {
+        // Si c'est une string directe
+        if (cookie.value) return cookie.value;
+      }
+    }
+  }
+
+  // Fallback aux anciens noms
+  return cookieStore.get('sb-access-token')?.value ||
+         cookieStore.get('supabase-auth-token')?.value ||
+         null;
+}
+
+/**
  * API Route: Récupérer les images de la librairie
  * GET /api/library/images?folderId=xxx&search=xxx&limit=20&offset=0
  */
@@ -20,10 +50,17 @@ export async function GET(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur depuis les cookies Next.js
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value ||
-                       cookieStore.get('supabase-auth-token')?.value;
+    // Récupérer le token d'accès
+    let accessToken = await getAccessTokenFromCookies();
+
+    // Fallback au header Authorization
+    if (!accessToken) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+        console.log('[Library/Images] Using Bearer token from header');
+      }
+    }
 
     let user = null;
 
@@ -31,29 +68,13 @@ export async function GET(req: NextRequest) {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
       if (authUser) {
         user = authUser;
-        console.log('[Library/Images] User authenticated from cookies:', user.id);
+        console.log('[Library/Images] User authenticated:', user.id);
       } else if (authError) {
         console.error('[Library/Images] Auth error:', authError);
       }
     }
 
-    // Fallback au header Authorization
     if (!user) {
-      const authHeader = req.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: { user: authUser } } = await supabase.auth.getUser(token);
-        if (authUser) {
-          user = authUser;
-          console.log('[Library/Images] User authenticated from Bearer token:', user.id);
-        }
-      }
-    }
-
-    const { error: authError } = { error: null };
-    const authData = { user };
-
-    if (authError || !user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
@@ -146,26 +167,21 @@ export async function DELETE(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur depuis les cookies Next.js
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value ||
-                       cookieStore.get('supabase-auth-token')?.value;
+    // Récupérer le token d'accès
+    let accessToken = await getAccessTokenFromCookies();
+
+    // Fallback au header Authorization
+    if (!accessToken) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+      }
+    }
 
     let user = null;
-
     if (accessToken) {
       const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
       if (authUser) user = authUser;
-    }
-
-    // Fallback au header Authorization
-    if (!user) {
-      const authHeader = req.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: { user: authUser } } = await supabase.auth.getUser(token);
-        if (authUser) user = authUser;
-      }
     }
 
     if (!user) {
@@ -228,26 +244,21 @@ export async function PATCH(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur depuis les cookies Next.js
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value ||
-                       cookieStore.get('supabase-auth-token')?.value;
+    // Récupérer le token d'accès
+    let accessToken = await getAccessTokenFromCookies();
+
+    // Fallback au header Authorization
+    if (!accessToken) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+      }
+    }
 
     let user = null;
-
     if (accessToken) {
       const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
       if (authUser) user = authUser;
-    }
-
-    // Fallback au header Authorization
-    if (!user) {
-      const authHeader = req.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const { data: { user: authUser } } = await supabase.auth.getUser(token);
-        if (authUser) user = authUser;
-      }
     }
 
     if (!user) {
