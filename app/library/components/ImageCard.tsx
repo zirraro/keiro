@@ -111,8 +111,8 @@ export default function ImageCard({
           />
         </div>
 
-        {/* Overlay avec actions - Desktop HOVER - z-index au dessus du drag handle */}
-        <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center gap-2 p-4 z-10 pointer-events-none group-hover:pointer-events-auto">
+        {/* Overlay avec actions - Desktop HOVER - pointer-events TOUJOURS none, seulement les boutons sont cliquables */}
+        <div className={`hidden md:flex absolute inset-0 bg-black/60 ${isDragging ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex-col items-center justify-center gap-2 p-4 z-10 pointer-events-none`}>
           {user ? (
             <>
               <div className="flex gap-2">
