@@ -172,7 +172,7 @@ JSON array uniquement, rien d'autre. Pas de texte avant ou après.
 ["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5"]`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-opus-20240229',
       max_tokens: 2048, // Augmenté pour permettre une meilleure analyse
       messages: [
         {
