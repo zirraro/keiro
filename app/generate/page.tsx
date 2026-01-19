@@ -1148,13 +1148,48 @@ export default function GeneratePage() {
 
       console.log('[SaveToLibrary] Saving image to library...');
 
-      // PAYLOAD ULTRA-MINIMAL pour éviter 413 Request Entity Too Large
+      // ÉTAPE 1: Vérifier si l'URL est une data URL base64 (trop volumineuse)
+      let finalImageUrl = generatedImageUrl;
+
+      if (generatedImageUrl.startsWith('data:')) {
+        console.log('[SaveToLibrary] Data URL detected, uploading to Supabase Storage...');
+
+        // Convertir data URL en Blob
+        const response = await fetch(generatedImageUrl);
+        const blob = await response.blob();
+
+        // Générer un nom de fichier unique
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+
+        // Upload vers Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabaseClient.storage
+          .from('generated-images')
+          .upload(fileName, blob, {
+            contentType: 'image/png',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('[SaveToLibrary] Upload error:', uploadError);
+          throw new Error('Impossible d\'uploader l\'image. Veuillez réessayer.');
+        }
+
+        // Obtenir l'URL publique
+        const { data: { publicUrl } } = supabaseClient.storage
+          .from('generated-images')
+          .getPublicUrl(fileName);
+
+        finalImageUrl = publicUrl;
+        console.log('[SaveToLibrary] Image uploaded, public URL:', publicUrl);
+      }
+
+      // ÉTAPE 2: PAYLOAD ULTRA-MINIMAL avec URL courte
       const payload = {
-        imageUrl: generatedImageUrl,
+        imageUrl: finalImageUrl,
         title: selectedNews.title ? selectedNews.title.substring(0, 50) : 'Image',
         newsTitle: selectedNews.title ? selectedNews.title.substring(0, 50) : null,
         newsCategory: selectedNews.category ? selectedNews.category.substring(0, 20) : null,
-        // Tous les autres champs à null pour réduire drastiquement la taille
         newsDescription: null,
         newsSource: null,
         businessType: null,
@@ -1172,10 +1207,6 @@ export default function GeneratePage() {
       // Log la taille pour debug
       const payloadSize = new Blob([JSON.stringify(payload)]).size;
       console.log('[SaveToLibrary] Payload size:', payloadSize, 'bytes');
-
-      if (payloadSize > 50000) {
-        throw new Error(`Payload trop volumineux: ${payloadSize} bytes. L'URL de l'image est probablement trop longue.`);
-      }
 
       const response = await fetch('/api/library/save', {
         method: 'POST',
