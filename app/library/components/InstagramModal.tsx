@@ -107,9 +107,23 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
 
         {/* Contenu */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Image en haut sur mobile, à gauche sur desktop */}
+          <div className="mb-4 sm:mb-0 sm:hidden">
+            <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
+              <img
+                src={image.image_url}
+                alt={image.title || image.news_title || ''}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <p className="text-sm text-neutral-600 mt-2 font-medium">
+              {image.title || image.news_title || 'Sans titre'}
+            </p>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-            {/* Colonne gauche : Image - Masquée sur très petits écrans */}
-            <div className="hidden sm:block">
+            {/* Colonne gauche : Image - Desktop uniquement */}
+            <div className="hidden md:block">
               <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
                 <img
                   src={image.image_url}
@@ -123,7 +137,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
             </div>
 
             {/* Colonne droite : Formulaire */}
-            <div className="space-y-6">
+            <div className="space-y-6 md:space-y-6 space-y-4">
               {/* Bouton Suggérer avec IA */}
               <button
                 onClick={handleSuggest}

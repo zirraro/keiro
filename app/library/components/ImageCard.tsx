@@ -67,63 +67,83 @@ export default function ImageCard({
     }
   };
 
-  // Drag and drop
+  // Drag and drop - SEULEMENT sur desktop
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: image.id,
     disabled: !user
   });
 
-  const style = transform ? {
+  const dragStyle = transform ? {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
-    cursor: isDragging ? 'grabbing' : user ? 'grab' : 'default'
-  } : {
-    cursor: user ? 'grab' : 'default'
-  };
+  } : undefined;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="group relative bg-white rounded-lg border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow"
-    >
-      {/* Image - Zone draggable */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="aspect-square bg-neutral-100 relative cursor-grab active:cursor-grabbing"
-      >
-        <img
-          src={image.thumbnail_url || image.image_url}
-          alt={image.title || image.news_title || 'Visuel généré'}
-          className="w-full h-full object-cover pointer-events-none"
-          loading="lazy"
-        />
+    <div className="group relative bg-white rounded-lg border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Image avec drag handle UNIQUEMENT pour desktop */}
+      <div className="aspect-square bg-neutral-100 relative">
+        {/* Drag handle invisible - SEULEMENT l'image, PAS les boutons */}
+        {user && (
+          <div
+            ref={setNodeRef}
+            style={dragStyle}
+            {...attributes}
+            {...listeners}
+            className="hidden md:block absolute inset-0 z-0"
+          >
+            <img
+              src={image.thumbnail_url || image.image_url}
+              alt={image.title || image.news_title || 'Visuel généré'}
+              className="w-full h-full object-cover cursor-grab active:cursor-grabbing"
+              loading="lazy"
+              draggable={false}
+            />
+          </div>
+        )}
 
-        {/* Overlay avec actions - Desktop uniquement */}
-        <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center gap-2 p-4">
+        {/* Image normale pour mobile (sans drag) */}
+        <div className="md:hidden absolute inset-0">
+          <img
+            src={image.thumbnail_url || image.image_url}
+            alt={image.title || image.news_title || 'Visuel généré'}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+
+        {/* Overlay avec actions - Desktop HOVER - z-index au dessus du drag handle */}
+        <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center gap-2 p-4 z-10 pointer-events-none group-hover:pointer-events-auto">
           {user ? (
             <>
               <div className="flex gap-2">
                 <button
-                  onClick={() => onToggleFavorite(image.id, image.is_favorite)}
-                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(image.id, image.is_favorite);
+                  }}
+                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 pointer-events-auto"
                   title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   aria-label={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                 >
                   <HeartIcon className="w-5 h-5 text-red-500" filled={image.is_favorite} />
                 </button>
                 <button
-                  onClick={() => onDownload(image.image_url, image.title || image.news_title)}
-                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownload(image.image_url, image.title || image.news_title);
+                  }}
+                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 pointer-events-auto"
                   title="Télécharger"
                   aria-label="Télécharger l'image"
                 >
                   <DownloadIcon className="w-5 h-5 text-blue-600" />
                 </button>
                 <button
-                  onClick={() => onDelete(image.id)}
-                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(image.id);
+                  }}
+                  className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 pointer-events-auto"
                   title="Supprimer"
                   aria-label="Supprimer l'image"
                 >
@@ -131,8 +151,11 @@ export default function ImageCard({
                 </button>
               </div>
               <button
-                onClick={() => onOpenInstagram(image)}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenInstagram(image);
+                }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 pointer-events-auto"
                 title="Préparer post Instagram"
                 aria-label="Préparer un post Instagram"
               >
@@ -141,7 +164,7 @@ export default function ImageCard({
               </button>
             </>
           ) : (
-            <div className="text-center">
+            <div className="text-center pointer-events-auto">
               <p className="text-white font-semibold mb-3">Mode Visiteur</p>
               <a
                 href="/login"
@@ -155,7 +178,7 @@ export default function ImageCard({
 
         {/* Badge favori */}
         {image.is_favorite && (
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 right-2 z-20">
             <HeartIcon className="w-6 h-6 text-red-500 drop-shadow-lg" filled />
           </div>
         )}
@@ -199,36 +222,62 @@ export default function ImageCard({
         {/* Actions mobiles - Visible uniquement sur mobile */}
         <div className="md:hidden mt-3 pt-3 border-t border-neutral-200">
           {user ? (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
+              {/* Bouton principal Instagram */}
               <button
-                onClick={() => onToggleFavorite(image.id, image.is_favorite)}
-                className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-                aria-label={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onOpenInstagram(image);
+                }}
+                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+                type="button"
               >
-                <HeartIcon className="w-4 h-4 text-red-500" filled={image.is_favorite} />
+                <InstagramIcon className="w-5 h-5" />
+                <span>Préparer post Instagram</span>
               </button>
-              <button
-                onClick={() => onDownload(image.image_url, image.title || image.news_title)}
-                className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-                aria-label="Télécharger l'image"
-              >
-                <DownloadIcon className="w-4 h-4 text-blue-600" />
-              </button>
-              <button
-                onClick={() => onOpenInstagram(image)}
-                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-1"
-                aria-label="Préparer un post Instagram"
-              >
-                <InstagramIcon className="w-4 h-4" />
-                <span>Post Insta</span>
-              </button>
-              <button
-                onClick={() => onDelete(image.id)}
-                className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                aria-label="Supprimer l'image"
-              >
-                <TrashIcon className="w-4 h-4" />
-              </button>
+
+              {/* Actions secondaires */}
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onToggleFavorite(image.id, image.is_favorite);
+                  }}
+                  className="flex-1 p-3 rounded-lg border-2 border-neutral-200 hover:border-red-300 hover:bg-red-50 transition-colors active:scale-95"
+                  aria-label={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  type="button"
+                >
+                  <HeartIcon className="w-5 h-5 text-red-500 mx-auto" filled={image.is_favorite} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onDownload(image.image_url, image.title || image.news_title);
+                  }}
+                  className="flex-1 p-3 rounded-lg border-2 border-neutral-200 hover:border-blue-300 hover:bg-blue-50 transition-colors active:scale-95"
+                  aria-label="Télécharger l'image"
+                  type="button"
+                >
+                  <DownloadIcon className="w-5 h-5 text-blue-600 mx-auto" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (confirm('Voulez-vous vraiment supprimer cette image ?')) {
+                      onDelete(image.id);
+                    }
+                  }}
+                  className="flex-1 p-3 rounded-lg border-2 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors active:scale-95"
+                  aria-label="Supprimer l'image"
+                  type="button"
+                >
+                  <TrashIcon className="w-5 h-5 mx-auto" />
+                </button>
+              </div>
             </div>
           ) : (
             <a
