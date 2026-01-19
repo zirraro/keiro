@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     console.log('[Library/Folders] Fetching folders for user:', user.id);
 
     // Récupérer tous les dossiers de l'utilisateur
-    const { data, error } = await supabase
+    const { data: folders, error } = await supabase
       .from('library_folders')
       .select('*')
       .eq('user_id', user.id)
@@ -99,11 +99,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('[Library/Folders] ✅ Fetched', data?.length || 0, 'folders');
+    // Ajouter le compteur d'images pour chaque dossier
+    const foldersWithCounts = await Promise.all(
+      (folders || []).map(async (folder) => {
+        const { count } = await supabase
+          .from('saved_images')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('folder_id', folder.id);
+
+        return {
+          ...folder,
+          image_count: count || 0
+        };
+      })
+    );
+
+    console.log('[Library/Folders] ✅ Fetched', foldersWithCounts.length, 'folders');
 
     return NextResponse.json({
       ok: true,
-      folders: data || []
+      folders: foldersWithCounts
     });
 
   } catch (error: any) {
