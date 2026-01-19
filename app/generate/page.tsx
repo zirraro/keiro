@@ -1208,9 +1208,22 @@ export default function GeneratePage() {
       const payloadSize = new Blob([JSON.stringify(payload)]).size;
       console.log('[SaveToLibrary] Payload size:', payloadSize, 'bytes');
 
+      // Obtenir le token de session pour l'authentification
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+        console.log('[SaveToLibrary] Sending with auth token');
+      } else {
+        console.warn('[SaveToLibrary] No session token available');
+      }
+
       const response = await fetch('/api/library/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify(payload)
       });
 

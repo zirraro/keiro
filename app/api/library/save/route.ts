@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 
 /**
  * Configuration pour augmenter la limite de taille du body
@@ -65,16 +66,44 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur depuis les cookies de la requête
-    const cookieHeader = req.headers.get('cookie') || '';
+    // Récupérer l'utilisateur depuis les cookies Next.js
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('sb-access-token')?.value ||
+                       cookieStore.get('supabase-auth-token')?.value;
 
-    // Récupérer l'utilisateur authentifié
+    console.log('[Library/Save] Access token present:', !!accessToken);
+
     let userId: string | null = null;
 
-    // Essayer de récupérer l'utilisateur depuis la session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (accessToken) {
+      // Utiliser le token pour obtenir l'utilisateur
+      const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
 
-    if (authError || !user) {
+      if (authError) {
+        console.error('[Library/Save] Auth error:', authError);
+      }
+
+      if (user) {
+        userId = user.id;
+        console.log('[Library/Save] User authenticated:', userId);
+      }
+    }
+
+    // Si pas de token dans les cookies, essayer depuis le header Authorization
+    if (!userId) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+        if (user) {
+          userId = user.id;
+          console.log('[Library/Save] User authenticated from Bearer token:', userId);
+        }
+      }
+    }
+
+    if (!userId) {
       console.log('[Library/Save] No authenticated user found');
       return NextResponse.json(
         { ok: false, error: 'Non authentifié. Veuillez vous connecter.' },
@@ -82,7 +111,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    userId = user.id;
     console.log('[Library/Save] Saving image for user:', userId);
 
     // Insérer l'image dans la table saved_images
