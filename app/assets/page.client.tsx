@@ -50,7 +50,7 @@ export default function AssetsPage() {
   return (
     <main className="min-h-screen bg-white text-neutral-900 p-6">
       <div className="max-w-5xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold">Librairie d’assets</h1>
+        <h1 className="text-2xl font-bold">Galerie d’assets</h1>
         <TiltCard className="p-5">
           <div className="flex items-center gap-3">
             <select value={kind} onChange={(e)=>setKind(e.target.value as any)} className="bg-white border border-neutral-200 rounded px-3 py-2">

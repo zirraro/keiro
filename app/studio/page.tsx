@@ -27,12 +27,15 @@ function StudioContent() {
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showTextEditor, setShowTextEditor] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [savingToGallery, setSavingToGallery] = useState(false);
 
   // Vérifier si l'utilisateur est connecté au chargement et écouter les changements d'auth
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        setUser(session.user);
         editLimit.setHasAccount(true);
         setShowSignupGate(false);
       }
@@ -42,9 +45,11 @@ function StudioContent() {
     // Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
         editLimit.setHasAccount(true);
         setShowSignupGate(false);
       } else if (event === 'SIGNED_OUT') {
+        setUser(null);
         editLimit.reset();
       }
     });
@@ -62,6 +67,44 @@ function StudioContent() {
     setOriginalImage(imageUrl);
     setLoadedImage(imageUrl);
     setEditedImages([]);
+  };
+
+  const handleSaveToGallery = async () => {
+    if (!user) {
+      alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+      return;
+    }
+
+    if (!loadedImage) {
+      alert('Aucune image à sauvegarder');
+      return;
+    }
+
+    setSavingToGallery(true);
+    try {
+      const response = await fetch('/api/library/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: loadedImage,
+          title: 'Image éditée depuis Studio',
+          tags: ['studio', 'édition']
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('✅ Image sauvegardée dans votre galerie !');
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (error: any) {
+      console.error('[Studio] Error saving:', error);
+      alert(error.message || 'Erreur lors de la sauvegarde');
+    } finally {
+      setSavingToGallery(false);
+    }
   };
 
   const handleFileUpload = (file: File) => {
@@ -352,10 +395,15 @@ function StudioContent() {
                       Télécharger
                     </a>
                     <button
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="flex-1 py-2 bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition text-sm"
+                      onClick={user ? handleSaveToGallery : () => setShowSubscriptionModal(true)}
+                      disabled={savingToGallery}
+                      className={`flex-1 py-2 text-white text-center rounded transition text-sm ${
+                        savingToGallery
+                          ? 'bg-neutral-400 cursor-not-allowed'
+                          : 'bg-cyan-600 hover:bg-cyan-700'
+                      }`}
                     >
-                      Enregistrer dans ma librairie (pro)
+                      {savingToGallery ? 'Sauvegarde...' : user ? 'Enregistrer dans ma galerie' : 'Enregistrer (pro)'}
                     </button>
                   </div>
                 </>

@@ -79,7 +79,7 @@ export default function DashboardPage() {
         {/* Raccourcis */}
         <div className="flex gap-3">
           <a className="px-4 py-2 rounded border" href="/generate">Générer un visuel</a>
-          <a className="px-4 py-2 rounded border" href="/library">Ouvrir la librairie</a>
+          <a className="px-4 py-2 rounded border" href="/library">Ouvrir la galerie</a>
         </div>
       </main>
     </div>

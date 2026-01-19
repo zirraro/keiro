@@ -1,3 +1,4 @@
+import { getAuthUser } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -68,7 +69,7 @@ async function getAuthenticatedUser(req: NextRequest) {
 }
 
 /**
- * API Route: Gérer les dossiers de la librairie
+ * API Route: Gérer les dossiers de la galerie
  * GET /api/library/folders - Liste tous les dossiers
  */
 export async function GET(req: NextRequest) {

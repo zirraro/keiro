@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * API Route: Sauvegarder une image dans la librairie
+ * API Route: Sauvegarder une image dans la galerie
  * POST /api/library/save
  */
 export async function POST(req: NextRequest) {

@@ -175,7 +175,7 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Visuels illimités</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Génération vidéo illimitée</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Studio d'édition complet</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Librairie personnelle</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Galerie personnelle</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Démo personnalisée offerte</strong></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Support prioritaire</li>
             </ul>
@@ -205,7 +205,7 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Visuels illimités</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Génération vidéo (10/mois)</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Studio d'édition complet</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Librairie personnelle</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Galerie personnelle</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>Démo personnalisée offerte</strong></li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>Garantie satisfait 30j</strong></li>
             </ul>
@@ -309,7 +309,7 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Librairie</td>
+                  <td className="py-3 px-2 font-medium">Galerie</td>
                   <td className="text-center py-3 px-2">-</td>
                   <td className="text-center py-3 px-2">✓</td>
                   <td className="text-center py-3 px-2 bg-amber-50">✓</td>

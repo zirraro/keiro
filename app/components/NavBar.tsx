@@ -15,7 +15,7 @@ export default function NavBar() {
     { href: "/", label: "Accueil" },
     { href: "/generate", label: "Générer" },
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/library", label: "Librairie" },
+    { href: "/library", label: "Galerie" },
   ];
 
   return (

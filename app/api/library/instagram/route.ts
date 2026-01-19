@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthUser } from '@/lib/auth-server';
 
 /**
  * API Route: Workspace Instagram - Préparer les posts
@@ -15,8 +16,8 @@ export async function GET(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur authentifié depuis les cookies
+    const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -81,8 +82,8 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur authentifié depuis les cookies
+    const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -150,8 +151,8 @@ export async function PATCH(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur authentifié depuis les cookies
+    const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -223,8 +224,8 @@ export async function DELETE(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur authentifié depuis les cookies
+    const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
       return NextResponse.json(

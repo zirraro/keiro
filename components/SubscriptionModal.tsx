@@ -80,7 +80,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               Débloquez toutes les fonctionnalités
             </h2>
             <p className="text-neutral-600">
-              Enregistrez vos créations dans votre librairie et accédez à toutes les fonctionnalités premium
+              Enregistrez vos créations dans votre galerie et accédez à toutes les fonctionnalités premium
             </p>
           </div>
           <button

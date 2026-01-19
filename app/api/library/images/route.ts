@@ -1,3 +1,4 @@
+import { getAuthUser } from '@/lib/auth-server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -67,7 +68,7 @@ async function getAccessTokenFromCookies(): Promise<string | null> {
 }
 
 /**
- * API Route: Récupérer les images de la librairie
+ * API Route: Récupérer les images de la galerie
  * GET /api/library/images?folderId=xxx&search=xxx&limit=20&offset=0
  */
 export async function GET(req: NextRequest) {

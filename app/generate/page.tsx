@@ -1096,7 +1096,7 @@ export default function GeneratePage() {
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
 
-      // Auto-save vers la librairie si l'utilisateur est connecté
+      // Auto-save vers la galerie si l'utilisateur est connecté
       try {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
@@ -1133,7 +1133,7 @@ export default function GeneratePage() {
     }
   }
 
-  // Sauvegarder l'image dans la librairie
+  // Sauvegarder l'image dans la galerie
   async function saveToLibrary() {
     if (!generatedImageUrl || !selectedNews) {
       console.error('[SaveToLibrary] Missing image or news data');
@@ -1148,7 +1148,7 @@ export default function GeneratePage() {
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
-        alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+        alert('Vous devez être connecté pour sauvegarder dans votre galerie');
         setSavingToLibrary(false);
         return;
       }
@@ -1263,7 +1263,7 @@ export default function GeneratePage() {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Sauvegardé dans votre librairie !</span>
+            <span>Sauvegardé dans votre galerie !</span>
           </div>
         `;
         document.body.appendChild(toast);
@@ -1275,7 +1275,7 @@ export default function GeneratePage() {
       }
     } catch (error: any) {
       console.error('[SaveToLibrary] ❌ Error:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde dans la librairie');
+      alert(error.message || 'Erreur lors de la sauvegarde dans la galerie');
     } finally {
       setSavingToLibrary(false);
     }
@@ -2293,7 +2293,7 @@ export default function GeneratePage() {
                     onClick={() => setShowSubscriptionModal(true)}
                     className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
                   >
-                    Enregistrer dans ma librairie (pro)
+                    Enregistrer dans ma galerie (pro)
                   </button>
                   <button
                     onClick={() => setGeneratedVideoUrl(null)}
@@ -2932,7 +2932,7 @@ export default function GeneratePage() {
                                     const { data: { user } } = await supabaseClient.auth.getUser();
 
                                     if (!user) {
-                                      alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+                                      alert('Vous devez être connecté pour sauvegarder dans votre galerie');
                                       return;
                                     }
 
@@ -3003,7 +3003,7 @@ export default function GeneratePage() {
 
                                     const data = await response.json();
                                     if (data.ok) {
-                                      alert('✅ Sauvegardé dans votre librairie !');
+                                      alert('✅ Sauvegardé dans votre galerie !');
                                     } else {
                                       alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                     }
@@ -3014,7 +3014,7 @@ export default function GeneratePage() {
                                 }}
                                 className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
                               >
-                                💾 Librairie
+                                💾 Galerie
                               </button>
                               <div className="flex gap-2">
                                 <a
@@ -3085,7 +3085,7 @@ export default function GeneratePage() {
                                 const { data: { user } } = await supabaseClient.auth.getUser();
 
                                 if (!user) {
-                                  alert('Vous devez être connecté pour sauvegarder dans votre librairie');
+                                  alert('Vous devez être connecté pour sauvegarder dans votre galerie');
                                   return;
                                 }
 
@@ -3156,7 +3156,7 @@ export default function GeneratePage() {
 
                                 const data = await response.json();
                                 if (data.ok) {
-                                  alert('✅ Sauvegardé dans votre librairie !');
+                                  alert('✅ Sauvegardé dans votre galerie !');
                                 } else {
                                   alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                 }
@@ -3167,7 +3167,7 @@ export default function GeneratePage() {
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
                           >
-                            💾 Librairie
+                            💾 Galerie
                           </button>
                           <div className="flex gap-1.5">
                             <a
