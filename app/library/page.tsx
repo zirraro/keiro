@@ -222,16 +222,31 @@ export default function LibraryPage() {
       if (searchQuery) params.append('search', searchQuery);
       if (showFavoritesOnly) params.append('favoritesOnly', 'true');
 
-      const res = await fetch(`/api/library/images?${params}`);
+      console.log('[Library/Client] Loading images with params:', params.toString());
+      console.log('[Library/Client] User:', user?.email);
+
+      const res = await fetch(`/api/library/images?${params}`, {
+        credentials: 'include' // Forcer l'envoi des cookies
+      });
+
+      console.log('[Library/Client] Response status:', res.status);
+
       const data = await res.json();
+      console.log('[Library/Client] Response data:', data);
 
       if (data.ok) {
+        console.log('[Library/Client] ✅ Loaded', data.images?.length, 'images');
         setImages(data.images);
         setStats(prev => ({
           ...prev,
           total_images: data.total,
           total_favorites: data.images.filter((img: SavedImage) => img.is_favorite).length
         }));
+      } else {
+        console.error('[Library/Client] ❌ API returned error:', data.error);
+        if (res.status === 401) {
+          console.error('[Library/Client] Not authenticated - user may need to re-login');
+        }
       }
     } catch (error) {
       console.error('[Library] Error loading images:', error);
