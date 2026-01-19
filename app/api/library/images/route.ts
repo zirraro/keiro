@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 
 /**
  * API Route: Récupérer les images de la librairie
@@ -19,8 +20,38 @@ export async function GET(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur depuis les cookies Next.js
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('sb-access-token')?.value ||
+                       cookieStore.get('supabase-auth-token')?.value;
+
+    let user = null;
+
+    if (accessToken) {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(accessToken);
+      if (authUser) {
+        user = authUser;
+        console.log('[Library/Images] User authenticated from cookies:', user.id);
+      } else if (authError) {
+        console.error('[Library/Images] Auth error:', authError);
+      }
+    }
+
+    // Fallback au header Authorization
+    if (!user) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user: authUser } } = await supabase.auth.getUser(token);
+        if (authUser) {
+          user = authUser;
+          console.log('[Library/Images] User authenticated from Bearer token:', user.id);
+        }
+      }
+    }
+
+    const { error: authError } = { error: null };
+    const authData = { user };
 
     if (authError || !user) {
       return NextResponse.json(
@@ -115,10 +146,29 @@ export async function DELETE(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur depuis les cookies Next.js
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('sb-access-token')?.value ||
+                       cookieStore.get('supabase-auth-token')?.value;
 
-    if (authError || !user) {
+    let user = null;
+
+    if (accessToken) {
+      const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+      if (authUser) user = authUser;
+    }
+
+    // Fallback au header Authorization
+    if (!user) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user: authUser } } = await supabase.auth.getUser(token);
+        if (authUser) user = authUser;
+      }
+    }
+
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
@@ -178,10 +228,29 @@ export async function PATCH(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Récupérer l'utilisateur depuis les cookies Next.js
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('sb-access-token')?.value ||
+                       cookieStore.get('supabase-auth-token')?.value;
 
-    if (authError || !user) {
+    let user = null;
+
+    if (accessToken) {
+      const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+      if (authUser) user = authUser;
+    }
+
+    // Fallback au header Authorization
+    if (!user) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user: authUser } } = await supabase.auth.getUser(token);
+        if (authUser) user = authUser;
+      }
+    }
+
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }

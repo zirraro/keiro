@@ -1,5 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+
+/**
+ * Helper: Récupérer l'utilisateur authentifié depuis les cookies
+ */
+async function getAuthenticatedUser(req: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('sb-access-token')?.value ||
+                     cookieStore.get('supabase-auth-token')?.value;
+
+  let user = null;
+
+  if (accessToken) {
+    const { data: { user: authUser } } = await supabase.auth.getUser(accessToken);
+    if (authUser) user = authUser;
+  }
+
+  // Fallback au header Authorization
+  if (!user) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const { data: { user: authUser } } = await supabase.auth.getUser(token);
+      if (authUser) user = authUser;
+    }
+  }
+
+  return { user, supabase };
+}
 
 /**
  * API Route: Gérer les dossiers de la librairie
@@ -7,15 +40,9 @@ import { createClient } from '@supabase/supabase-js';
  */
 export async function GET(req: NextRequest) {
   try {
-    // Créer le client Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { user, supabase } = await getAuthenticatedUser(req);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
@@ -70,15 +97,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Créer le client Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { user, supabase } = await getAuthenticatedUser(req);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
@@ -141,15 +162,9 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Créer le client Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { user, supabase } = await getAuthenticatedUser(req);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
@@ -215,15 +230,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Créer le client Supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { user, supabase } = await getAuthenticatedUser(req);
 
-    // Récupérer l'utilisateur authentifié
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
