@@ -19,7 +19,17 @@ async function getAccessTokenFromCookies(): Promise<string | null> {
       console.log('[Library/Images] Cookie value preview:', cookie.value?.substring(0, 100));
 
       try {
-        const parsed = JSON.parse(cookie.value);
+        let cookieValue = cookie.value;
+
+        // Décoder le base64 si nécessaire
+        if (cookieValue.startsWith('base64-')) {
+          console.log('[Library/Images] Detected base64 encoding, decoding...');
+          const base64Content = cookieValue.substring(7); // Enlever "base64-"
+          cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+          console.log('[Library/Images] Decoded value preview:', cookieValue.substring(0, 100));
+        }
+
+        const parsed = JSON.parse(cookieValue);
         console.log('[Library/Images] Parsed cookie type:', typeof parsed);
         console.log('[Library/Images] Parsed cookie is array:', Array.isArray(parsed));
 
@@ -43,12 +53,7 @@ async function getAccessTokenFromCookies(): Promise<string | null> {
           console.error('[Library/Images] ❌ Could not extract token from parsed cookie');
         }
       } catch (err) {
-        console.error('[Library/Images] ❌ JSON parse error:', err);
-        // Si c'est une string directe
-        if (cookie.value) {
-          console.log('[Library/Images] Using cookie value directly as token');
-          return cookie.value;
-        }
+        console.error('[Library/Images] ❌ Error processing cookie:', err);
       }
     }
   }

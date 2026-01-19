@@ -77,14 +77,20 @@ export async function POST(req: NextRequest) {
       if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
         // Extraire le token depuis le JSON stocké
         try {
-          const parsed = JSON.parse(cookie.value);
-          accessToken = parsed.access_token || parsed[0]; // Peut être un objet ou un array
+          let cookieValue = cookie.value;
+
+          // Décoder le base64 si nécessaire
+          if (cookieValue.startsWith('base64-')) {
+            const base64Content = cookieValue.substring(7);
+            cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+          }
+
+          const parsed = JSON.parse(cookieValue);
+          accessToken = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : undefined);
           console.log('[Library/Save] Found Supabase auth cookie:', cookie.name);
           break;
-        } catch {
-          // Si c'est déjà une string directe
-          accessToken = cookie.value;
-          break;
+        } catch (err) {
+          console.error('[Library/Save] Error processing cookie:', err);
         }
       }
     }

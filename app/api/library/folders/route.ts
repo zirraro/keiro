@@ -13,15 +13,22 @@ async function getAccessTokenFromCookies(): Promise<string | null> {
   for (const cookie of allCookies) {
     if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
       try {
-        const parsed = JSON.parse(cookie.value);
-        const token = parsed.access_token || parsed[0];
+        let cookieValue = cookie.value;
+
+        // Décoder le base64 si nécessaire
+        if (cookieValue.startsWith('base64-')) {
+          const base64Content = cookieValue.substring(7);
+          cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+        }
+
+        const parsed = JSON.parse(cookieValue);
+        const token = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
         if (token) {
           console.log('[Library/Folders] Found auth cookie:', cookie.name);
           return token;
         }
-      } catch {
-        // Si c'est une string directe
-        if (cookie.value) return cookie.value;
+      } catch (err) {
+        console.error('[Library/Folders] Error processing cookie:', err);
       }
     }
   }
