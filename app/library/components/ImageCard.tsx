@@ -98,8 +98,8 @@ export default function ImageCard({
           loading="lazy"
         />
 
-        {/* Overlay avec actions */}
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+        {/* Overlay avec actions - Desktop uniquement */}
+        <div className="hidden md:flex absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex-col items-center justify-center gap-2 p-4">
           {user ? (
             <>
               <div className="flex gap-2">
@@ -193,6 +193,50 @@ export default function ImageCard({
         <p className="text-xs text-neutral-400 mt-1">
           {new Date(image.created_at).toLocaleDateString('fr-FR')}
         </p>
+
+        {/* Actions mobiles - Visible uniquement sur mobile */}
+        <div className="md:hidden mt-3 pt-3 border-t border-neutral-200">
+          {user ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onToggleFavorite(image.id, image.is_favorite)}
+                className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+                aria-label={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              >
+                <HeartIcon className="w-4 h-4 text-red-500" filled={image.is_favorite} />
+              </button>
+              <button
+                onClick={() => onDownload(image.image_url, image.title || image.news_title)}
+                className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+                aria-label="Télécharger l'image"
+              >
+                <DownloadIcon className="w-4 h-4 text-blue-600" />
+              </button>
+              <button
+                onClick={() => onOpenInstagram(image)}
+                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-1"
+                aria-label="Préparer un post Instagram"
+              >
+                <InstagramIcon className="w-4 h-4" />
+                <span>Post Insta</span>
+              </button>
+              <button
+                onClick={() => onDelete(image.id)}
+                className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                aria-label="Supprimer l'image"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <a
+              href="/login"
+              className="block w-full px-4 py-2 text-center rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Connectez-vous pour interagir
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

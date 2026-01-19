@@ -88,27 +88,28 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-3">
-            <InstagramIcon className="w-8 h-8 text-pink-600" />
-            <h2 className="text-2xl font-bold text-neutral-900">Préparer post Instagram</h2>
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <InstagramIcon className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600" />
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Post Instagram</h2>
           </div>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            aria-label="Fermer"
           >
-            <XIcon className="w-6 h-6 text-neutral-600" />
+            <XIcon className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" />
           </button>
         </div>
 
         {/* Contenu */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Colonne gauche : Image */}
-            <div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Colonne gauche : Image - Masquée sur très petits écrans */}
+            <div className="hidden sm:block">
               <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
                 <img
                   src={image.image_url}
@@ -242,23 +243,23 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         </div>
 
         {/* Footer avec actions */}
-        <div className="border-t p-6 bg-neutral-50">
+        <div className="border-t p-4 sm:p-6 bg-neutral-50">
           <div className="mb-3 text-center">
-            <p className="text-sm text-neutral-600">
+            <p className="text-xs sm:text-sm text-neutral-600">
               💡 Fonctionnalité de publication automatique à venir
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onClose}
-              className="px-6 py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+              className="px-4 sm:px-6 py-2 sm:py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-sm sm:text-base"
             >
               Annuler
             </button>
             <button
               onClick={() => handleSave('draft')}
               disabled={saving || !caption.trim()}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
                 saving || !caption.trim()
                   ? 'bg-neutral-400 cursor-not-allowed'
                   : 'bg-neutral-700 hover:bg-neutral-800'
@@ -270,13 +271,13 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                   <span>Sauvegarde...</span>
                 </>
               ) : (
-                <span>Sauvegarder en brouillon</span>
+                <span>Brouillon</span>
               )}
             </button>
             <button
               onClick={() => handleSave('ready')}
               disabled={saving || !caption.trim()}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
                 saving || !caption.trim()
                   ? 'bg-neutral-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
@@ -289,8 +290,8 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                 </>
               ) : (
                 <>
-                  <InstagramIcon className="w-5 h-5" />
-                  <span>Marquer prêt à publier</span>
+                  <InstagramIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                  <span>Prêt à publier</span>
                 </>
               )}
             </button>
