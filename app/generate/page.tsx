@@ -1154,23 +1154,32 @@ export default function GeneratePage() {
         body: JSON.stringify({
           imageUrl: generatedImageUrl,
           newsTitle: selectedNews.title,
-          newsDescription: selectedNews.description,
+          // Limiter newsDescription à 200 caractères
+          newsDescription: selectedNews.description ? selectedNews.description.substring(0, 200) : null,
           newsCategory: selectedNews.category,
           newsSource: selectedNews.source,
           businessType: businessType,
-          businessDescription: businessDescription,
-          textOverlay: optionalText,
+          // Limiter businessDescription à 200 caractères
+          businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
+          // Limiter textOverlay à 100 caractères
+          textOverlay: optionalText ? optionalText.substring(0, 100) : null,
           visualStyle: visualStyle,
           tone: tone,
-          // Limiter le prompt à 1000 caractères pour éviter les erreurs "Request Entity Too Large"
-          generationPrompt: generatedPrompt ? generatedPrompt.substring(0, 1000) : null,
+          // NE PAS envoyer le generationPrompt car il est trop long
+          generationPrompt: null,
           aiModel: 'seedream',
           title: selectedNews.title,
           tags: [selectedNews.category, businessType].filter(Boolean)
         })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('[SaveToLibrary] JSON parse error:', jsonError);
+        throw new Error('Erreur serveur. La requête est peut-être trop volumineuse.');
+      }
 
       if (data.ok) {
         setImageSavedToLibrary(true);
@@ -2863,17 +2872,17 @@ export default function GeneratePage() {
                                       body: JSON.stringify({
                                         imageUrl: version,
                                         newsTitle: selectedNews?.title || 'Image éditée',
-                                        newsDescription: selectedNews?.description,
+                                        newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 200) : null,
                                         newsCategory: selectedNews?.category,
                                         newsSource: selectedNews?.source,
                                         businessType: businessType,
-                                        businessDescription: businessDescription,
-                                        textOverlay: optionalText,
+                                        businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
+                                        textOverlay: optionalText ? optionalText.substring(0, 100) : null,
                                         visualStyle: visualStyle,
                                         tone: tone,
-                                        generationPrompt: `Version ${idx + 1} - ${generatedPrompt?.substring(0, 500) || 'Image éditée'}`,
+                                        generationPrompt: null,
                                         aiModel: 'seedream',
-                                        title: `${selectedNews?.title || 'Image'} - Version ${idx + 1}`,
+                                        title: `${selectedNews?.title || 'Image'} - V${idx + 1}`,
                                         tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
                                       })
                                     });
@@ -2972,17 +2981,17 @@ export default function GeneratePage() {
                                   body: JSON.stringify({
                                     imageUrl: version,
                                     newsTitle: selectedNews?.title || 'Image éditée',
-                                    newsDescription: selectedNews?.description,
+                                    newsDescription: selectedNews?.description ? selectedNews.description.substring(0, 200) : null,
                                     newsCategory: selectedNews?.category,
                                     newsSource: selectedNews?.source,
                                     businessType: businessType,
-                                    businessDescription: businessDescription,
-                                    textOverlay: optionalText,
+                                    businessDescription: businessDescription ? businessDescription.substring(0, 200) : null,
+                                    textOverlay: optionalText ? optionalText.substring(0, 100) : null,
                                     visualStyle: visualStyle,
                                     tone: tone,
-                                    generationPrompt: `Version ${idx + 1} - ${generatedPrompt?.substring(0, 500) || 'Image éditée'}`,
+                                    generationPrompt: null,
                                     aiModel: 'seedream',
-                                    title: `${selectedNews?.title || 'Image'} - Version ${idx + 1}`,
+                                    title: `${selectedNews?.title || 'Image'} - V${idx + 1}`,
                                     tags: [selectedNews?.category, businessType, 'édité'].filter(Boolean)
                                   })
                                 });
