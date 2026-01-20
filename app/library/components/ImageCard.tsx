@@ -82,8 +82,8 @@ export default function ImageCard({
     <div className="group relative bg-white rounded-lg border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
       {/* Image avec drag handle UNIQUEMENT pour desktop */}
       <div className="aspect-square bg-neutral-100 relative">
-        {/* Drag handle invisible - SEULEMENT l'image, PAS les boutons */}
-        {user && (
+        {/* Image desktop avec drag handle si utilisateur connecté */}
+        {user ? (
           <div
             ref={setNodeRef}
             style={dragStyle}
@@ -97,6 +97,16 @@ export default function ImageCard({
               className="w-full h-full object-cover cursor-grab active:cursor-grabbing"
               loading="lazy"
               draggable={false}
+            />
+          </div>
+        ) : (
+          /* Image desktop sans drag pour visiteurs */
+          <div className="hidden md:block absolute inset-0 z-0">
+            <img
+              src={image.thumbnail_url || image.image_url}
+              alt={image.title || image.news_title || 'Visuel généré'}
+              className="w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
         )}

@@ -6,7 +6,12 @@
     "dev": "next dev -p 3002 -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "keywords:test": "node test_api_connection.js",
+    "keywords:generate": "node generate_keywords.js",
+    "keywords:update": "node update_keywords.js",
+    "keywords:optimize": "node run_keyword_optimization.js",
+    "keywords:list": "node list_created_files.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

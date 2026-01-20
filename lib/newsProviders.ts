@@ -103,6 +103,11 @@ const RSS_FEEDS = [
   { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 5000 },
   { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 5000 },
 
+  // Musique - NOUVELLE CATÉGORIE
+  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Musique', timeout: 5000 },
+  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Musique', timeout: 5000 },
+  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Musique', timeout: 5000 },
+
   // Restauration
   { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 5000 },
   { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 5000 },

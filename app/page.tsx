@@ -74,102 +74,110 @@ export default function HomeKeiro() {
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">Transformez une publication basique en visuel captivant</h2>
-          <p className="mt-2 text-neutral-600">Exemple concret : Restaurant bio "La Table Verte" pendant la hausse des prix de l'essence</p>
+          <h2 className="text-3xl font-bold">De la photo smartphone basique au visuel viral Instagram</h2>
+          <p className="mt-2 text-neutral-600">Transformation complète : Coach sportif qui surfe sur l'actualité "Janvier, mois sans alcool"</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           {/* AVANT */}
           <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-neutral-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-              ❌ AVANT
+            <div className="absolute -top-3 -left-3 bg-neutral-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+              ❌ AVANT - Amateur
             </div>
             <div className="rounded-2xl border-2 border-neutral-300 overflow-hidden bg-white">
-              {/* Image basique */}
-              <div className="relative">
+              {/* Image smartphone basique */}
+              <div className="relative bg-neutral-200">
                 <img
-                  src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop"
-                  alt="Plat de restaurant basique"
-                  className="w-full aspect-square object-cover"
+                  src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=60&w=800&auto=format&fit=crop"
+                  alt="Photo smartphone basique salle de sport"
+                  className="w-full aspect-square object-cover opacity-90"
                 />
               </div>
 
-              {/* Caption Instagram classique */}
+              {/* Caption Instagram fade */}
               <div className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600"></div>
-                  <span className="text-sm font-semibold">latableverte</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500"></div>
+                  <span className="text-sm font-semibold">coach_maxime</span>
                 </div>
                 <p className="text-sm text-neutral-600">
-                  Salade fraîche du jour 🥗<br/>
-                  #restaurant #bio #local #salad
+                  Nouvelle année, nouveaux objectifs 💪<br/>
+                  Venez vous entraîner !<br/><br/>
+                  #sport #fitness #coach
                 </p>
                 <div className="pt-2 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-500">👁️ 12 vues • 💬 0 commentaires • 📢 Portée faible</p>
+                  <p className="text-xs text-neutral-500">👁️ 18 vues • 💬 1 commentaire • 📢 Portée faible</p>
                 </div>
               </div>
 
               {/* Résultat */}
               <div className="bg-neutral-100 p-4 text-center border-t border-neutral-200">
-                <p className="text-sm font-semibold text-neutral-700">😴 Post basique, zéro lien avec l'actualité</p>
-                <p className="text-xs text-neutral-500 mt-1">Personne ne s'arrête, engagement minimal</p>
+                <p className="text-sm font-semibold text-neutral-700">😴 Photo floue, message générique, 0 lien avec l'actu</p>
+                <p className="text-xs text-neutral-500 mt-1">Le scroll continue... Zéro impact.</p>
               </div>
             </div>
           </div>
 
           {/* APRÈS */}
           <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-              ✨ APRÈS avec Keiro
+            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10 animate-pulse">
+              ✨ APRÈS - Keiro Pro
             </div>
-            <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
-              {/* Image retravaillée avec overlay */}
+            <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
+              {/* Image pro avec overlay viral */}
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop"
-                  alt="Plat de restaurant avec overlay"
-                  className="w-full aspect-square object-cover brightness-75"
+                  src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=95&w=800&auto=format&fit=crop"
+                  alt="Visuel pro créé avec Keiro"
+                  className="w-full aspect-square object-cover brightness-90"
                 />
-                {/* Text overlay professionnel */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
-                  <div className="text-center space-y-3">
-                    <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
-                      <p className="text-xs font-medium text-white">🌱 CIRCUIT COURT</p>
+                {/* Overlay Keiro - Design qui stoppe le scroll */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-black/70 via-blue-900/50 to-transparent">
+                  <div className="text-center space-y-4">
+                    <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-1.5 rounded-full shadow-xl">
+                      <p className="text-sm font-bold text-white">🔥 JANVIER SANS ALCOOL</p>
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-black text-white leading-tight drop-shadow-2xl">
-                      L'essence flambe ?<br/>
-                      Nos légumes arrivent<br/>
-                      à vélo ! 🚴‍♂️
+                    <h3 className="text-3xl md:text-4xl font-black text-white leading-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
+                      T'es sobre en janvier ?<br/>
+                      <span className="text-cyan-400">Transforme ça en muscles</span>
                     </h3>
-                    <div className="inline-block bg-gradient-to-r from-green-500 to-green-600 px-6 py-3 rounded-xl shadow-2xl">
-                      <p className="text-base font-bold text-white">-20% cette semaine</p>
+                    <div className="inline-block bg-gradient-to-r from-orange-500 to-red-600 px-8 py-4 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform">
+                      <p className="text-xl font-black text-white">1ère séance OFFERTE</p>
+                      <p className="text-sm text-white/90 font-medium">Code: JANVIER2026</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Caption Instagram optimisée */}
-              <div className="p-4 space-y-3">
+              {/* Caption Instagram optimisée par IA */}
+              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-blue-50/30">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600"></div>
-                  <span className="text-sm font-semibold">latableverte</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 ring-2 ring-blue-300"></div>
+                  <span className="text-sm font-semibold">coach_maxime</span>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Créé avec Keiro</span>
                 </div>
-                <p className="text-sm text-neutral-700">
-                  💚 L'essence explose ? Nos circuits courts sont la solution !<br/><br/>
-                  Pendant que les prix s'envolent, nos légumes parcourent 5km au lieu de 500.<br/><br/>
-                  Cette semaine : -20% sur tous nos plats 🎉<br/><br/>
-                  👉 Réservez maintenant (lien en bio)
+                <p className="text-sm text-neutral-800 leading-relaxed">
+                  <span className="font-bold text-blue-600">Tu fais Janvier Sans Alcool ?</span> Bravo ! 🎉<br/><br/>
+
+                  Mais sais-tu qu'1 mois sans alcool = 2-3kg de moins + 20% d'énergie en plus ? 💪<br/><br/>
+
+                  <span className="font-bold">Pendant que tes potes dépriment devant une tisane</span>, toi tu te transformes.<br/><br/>
+
+                  👉 1ère séance GRATUITE ce mois-ci<br/>
+                  Code: JANVIER2026 (lien en bio)<br/><br/>
+
+                  <span className="text-xs text-neutral-600">Places limitées - 12 déjà réservées aujourd'hui</span>
                 </p>
-                <p className="text-xs text-blue-600">#essence #circuitcourt #local #bio #economie</p>
-                <div className="pt-2 border-t border-neutral-200">
-                  <p className="text-xs text-blue-600 font-medium">🔥 482 vues • 💬 37 commentaires • 📢 Portée x8</p>
+                <p className="text-xs text-blue-600 font-medium">#janviersansalcool #dryjanuary #transformation #coaching #motivation #objectif2026 #sport #fitness #bienetre #sante</p>
+                <div className="pt-2 border-t border-blue-200">
+                  <p className="text-xs text-blue-600 font-bold">🔥 1 247 vues • 💬 89 commentaires • 📢 Portée x23 • 🎯 12 réservations</p>
                 </div>
               </div>
 
               {/* Résultat */}
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-4 text-center border-t border-blue-200">
-                <p className="text-sm font-semibold text-blue-900">🚀 Visuel qui capte l'attention + lien actuel</p>
-                <p className="text-xs text-blue-700 mt-1">Les gens s'arrêtent, commentent, réservent !</p>
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 text-center border-t-2 border-cyan-400">
+                <p className="text-sm font-bold text-white">🚀 Visuel PRO + Lien actuel VIRAL + Call-to-action IRRÉSISTIBLE</p>
+                <p className="text-xs text-white/90 mt-1">Le scroll s'arrête. Les gens likent, commentent, réservent !</p>
               </div>
             </div>
           </div>
