@@ -127,7 +127,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'renault', 'peugeot', 'citroën', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
     'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'voiture électrique', 'voiture hybride',
     'voiture essence', 'voiture diesel', 'suv', 'berline', 'citadine', 'sportive', 'batterie', 'autonomie', 'recharge', 'borne',
-    'superchargeur', 'pile à combustible', 'hydrogène', 'salon auto', 'mondial de l'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'permis de conduire',
+    'superchargeur', 'pile à combustible', 'hydrogène', 'salon auto', 'mondial de l\'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'permis de conduire',
     'code de la route', 'sécurité routière', 'accident', 'assurance auto', 'contrôle technique', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
     'byd', 'nio', 'xpeng', 'geely'
   ],
@@ -145,7 +145,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'People': [
     'kylian mbappé', 'zinedine zidane', 'tony parker', 'marion cotillard', 'léa seydoux', 'vincent cassel', 'squeezie', 'cyprien', 'norman', 'enjoy phoenix',
-    'caroline receveur', 'léna situations', 'les marseillais', 'les ch'tis', 'koh-lanta', 'secret story', 'paparazzi', 'jet-set', 'vie privée', 'liaison',
+    'caroline receveur', 'léna situations', 'les marseillais', 'les ch\'tis', 'koh-lanta', 'secret story', 'paparazzi', 'jet-set', 'vie privée', 'liaison',
     'rupture', 'fiançailles', 'baby bump', 'grossesse', 'accouchement'
   ],
 
@@ -167,7 +167,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 
   'Sport': [
     'ligue des champions', 'europa league', 'premier league', 'liga', 'serie a', 'bundesliga', 'mbappé', 'messi', 'ronaldo', 'haaland',
-    'neymar', 'roland-garros', 'wimbledon', 'us open', 'open d'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'nba',
+    'neymar', 'roland-garros', 'wimbledon', 'us open', 'open d\'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'nba',
     'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'verstappen', 'hamilton', 'leclerc', 'red bull', 'ferrari',
     'mercedes', 'grand prix'
   ],
@@ -204,7 +204,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 
   'Lifestyle': [
-    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l'oréal',
+    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
     'lancôme', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip',
     'backpacking'
   ],
