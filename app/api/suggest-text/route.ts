@@ -27,149 +27,96 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
-    // Construire le prompt expert ULTRA-ULTRA-ciblé avec analyse approfondie
-    const prompt = `Tu es un EXPERT STRATÈGE en communication Instagram spécialisé dans les textes overlay viraux.
-Ta spécialité : créer des accroches ultra-ciblées qui mixent PARFAITEMENT actualité + business pour maximiser l'engagement.
+    // Construire le prompt expert ULTRA-AGRESSIF pour textes Instagram qui STOPPENT le scroll
+    const prompt = `Tu es un EXPERT en copywriting Instagram viral et provocateur.
+Ta mission : créer des punchlines overlay qui ARRÊTENT le défilement en 0,5 seconde.
 
-ANALYSE DU CONTEXTE:
-
-📰 ACTUALITÉ PRÉCISE:
-Titre: "${newsTitle}"
+CONTEXTE:
+📰 Actualité: "${newsTitle}"
 ${newsDescription ? `Détails: ${newsDescription}` : ''}
-
-🏢 BUSINESS CLIENT:
-Type: ${businessType}
+🏢 Business: ${businessType}
 ${businessDescription ? `Description: ${businessDescription}` : ''}
-${targetAudience ? `Audience cible: ${targetAudience}` : ''}
-Ton général: ${tone || 'Inspirant et engageant'}
+${targetAudience ? `Audience: ${targetAudience}` : ''}
+Ton voulu: ${tone || 'Confiant, premium, provocateur'}
 
-🎯 ÉTAPE 1 : ANALYSE STRATÉGIQUE (fais-la mentalement, ne l'écris pas)
+RÈGLES DE CRÉATION (IMPÉRATIF):
 
-Avant de générer, ANALYSE :
-1. Quel est le LIEN CONCRET entre "${newsTitle.substring(0, 40)}..." et "${businessType}" ?
-2. Quelle OPPORTUNITÉ ou PROBLÈME cette actu crée-t-elle pour ce business ?
-3. Quelle est la PROPOSITION DE VALEUR unique que ce business peut offrir face à cette actu ?
-4. Quel BÉNÉFICE TANGIBLE le client final peut-il tirer de ce business dans le contexte de cette actu ?
+✅ AUTORISÉ et ENCOURAGÉ:
+- Ellipse et tension (phrases incomplètes mais évocatrices)
+- Ton confiant, premium, provocateur, ironique, satirique
+- Questions qui dérangent, affirmations qui choquent
+- Jeux de mots, double-sens, second degré
+- Chiffres brutaux, vérités crues
+- Emojis stratégiques (max 1 par texte)
+- Lecture instantanée (0,5 seconde max)
 
-🎯 ÉTAPE 2 : GÉNÉRATION DES 5 TEXTES
+❌ INTERDICTIONS ABSOLUES:
+- Banalités marketing ("Découvrez", "Profitez", "Saisissez l'opportunité")
+- Mots creux (innovation, disruption, révolution, transformation digitale)
+- Reformulation plate de l'actualité
+- Textes qui passent inaperçus
+- Gentillesse corporate fade
+- Questions rhétoriques molles
 
-Créer 5 TEXTES COURTS (max 45 caractères) pour overlay sur image Instagram.
-Chaque texte doit :
-1. CONNECTER EXPLICITEMENT "${newsTitle.substring(0, 30)}..." avec "${businessType}"
-2. Montrer une VALEUR CONCRÈTE ou un BÉNÉFICE TANGIBLE MESURABLE
-3. Utiliser un TON et une APPROCHE DIFFÉRENTS
-4. Être VIRAL : percutant, mémorable, partageable
+🎯 10 PUNCHLINES OBLIGATOIRES (approches variées):
 
-📋 LES 5 APPROCHES OBLIGATOIRES (une par suggestion):
+1. CHIFFRE BRUTAL → Ex: "IA = -70% jobs 🤖"
+2. QUESTION PROVOCANTE → Ex: "T'es obsolète en 2026 ?"
+3. AFFIRMATION CHOC → Ex: "Ton diplôme ne vaut rien"
+4. IRONIE/SATIRE → Ex: "Inflation ? Quelle inflation ? 🙃"
+5. ELLIPSE TENDUE → Ex: "Quand ton boss découvre..."
+6. VÉRITÉ CRUE → Ex: "Marketing = mensonge légal"
+7. URGENCE BRUTALE → Ex: "2 semaines pour survivre ⏰"
+8. DOUBLE-SENS → Ex: "Tout le monde te ment. Nous aussi."
+9. CALL-OUT DIRECT → Ex: "Oui, toi qui scrolles"
+10. PUNCHLINE PREMIUM → Ex: "Pendant que tu hésites..."
 
-1️⃣ APPROCHE STATISTIQUE/CHIFFRES + EMOJI
-→ Chiffres, %, €, temps gagné, économies + emoji pertinent
-→ Ex: "IA = -50% temps compta 📊" | "Prix fixes 12 mois 🔒"
-→ Impact MESURABLE, emoji qui RENFORCE le message
+EXEMPLES DE PUNCHLINES QUI TUENT:
 
-2️⃣ APPROCHE QUESTION PROVOCANTE + EMOJI
-→ Question qui CHOQUE ou INTERPELLE + emoji d'alerte
-→ Ex: "Inflation = faillite ? 😰" | "ChatGPT te remplace ? 🤖"
-→ CURIOSITÉ maximale, emoji qui amplifie l'émotion
+Actu: "Inflation 5.2%"
+Business: "Restaurant bio"
+❌ FADE: "Manger bio malgré l'inflation"
+✅ TUEUR: "Bio à 15€ quand tout explose ? 😏"
 
-3️⃣ APPROCHE SOLUTION/CTA + EMOJI
-→ Problème → Solution claire + emoji de réussite
-→ Ex: "Hausse prix ? On bloque tout ! 🛡️" | "Cyberattaque ? Protégé 24h ✅"
-→ TON business = LA réponse, emoji de confiance
+Actu: "IA ChatGPT 100M users"
+Business: "Formation"
+❌ FADE: "Formez-vous à l'IA"
+✅ TUEUR: "Ton job n'existe plus en 2027"
 
-4️⃣ APPROCHE ÉMOTIONNELLE/INSPIRANTE + EMOJI
-→ Aspiration, transformation, espoir + emoji rêve
-→ Ex: "Ton futur commence ici ✨" | "Libère ton potentiel 🚀"
-→ CONNEXION émotionnelle forte, emoji aspirationnel
+Actu: "Canicule 42°C"
+Business: "Climatisation"
+❌ FADE: "Climatisation écologique"
+✅ TUEUR: "Crever de chaud ET de culpabilité ?"
 
-5️⃣ APPROCHE URGENCE/FOMO + EMOJI
-→ Temps limité, exclusivité, rareté + emoji temps/feu
-→ Ex: "Derniers jours -40% ⏰" | "Offre spéciale actu 🔥"
-→ ACTION IMMÉDIATE, emoji d'urgence visuelle
+CONTRAINTES TECHNIQUES:
+- Maximum 45 caractères (emojis inclus)
+- 10 propositions DISTINCTES
+- Aucune justification, juste les textes
+- Chaque texte = approche DIFFÉRENTE
+- Lisible et compris en 0,5 seconde
 
-⚠️ RÈGLES CRITIQUES:
+TON MISSION MAINTENANT:
 
-✅ OBLIGATOIRE (sinon = ÉCHEC):
-- Maximum 45 caractères TOTAL (avec emojis)
-- Lien ULTRA-EXPLICITE : l'actu "${newsTitle.substring(0, 25)}..." + "${businessType}" = ÉVIDENT
-- Vocabulaire SPÉCIFIQUE du secteur (termes métier)
-- 5 tons DIFFÉRENTS (stat, question, CTA, émotion, urgence)
-- Valeur MESURABLE ou TANGIBLE (pas vague!)
-- 1 emoji STRATÉGIQUE par texte (renforce le message)
-- Format Instagram : percutant, visuel, viral
+1. Analyse le lien entre "${newsTitle}" et "${businessType}"
+2. Trouve l'ANGLE LE PLUS VIOLENT/PROVOCANT/INATTENDU
+3. Génère 10 PUNCHLINES qui STOPPENT le scroll Instagram
+4. Varie les approches (chiffre brutal, question choc, ironie, ellipse, etc.)
+5. Zéro banalité. Zéro politesse corporate. Pure efficacité.
 
-❌ INTERDIT (= INACCEPTABLE):
-- Clichés marketing : "Découvrez", "Profitez", "Saisissez", "Ne manquez pas"
-- Textes génériques (qui marchent pour tout business)
-- Lien VAGUE avec l'actu (trop abstrait, trop étiré)
-- Répétition du même ton ou du même emoji
-- Formulations plates, ennuyeuses, corporate
-- Questions rhétoriques sans punch
+CRITÈRES DE RÉUSSITE:
+- Si je peux lire le texte sur n'importe quelle autre marque → ÉCHEC
+- Si ça ne choque/interpelle/intrigue pas → ÉCHEC
+- Si c'est "gentil" et consensuel → ÉCHEC
+- Si ça dépasse 45 caractères → ÉCHEC
+- Si quelqu'un scroll sans s'arrêter → ÉCHEC TOTAL
 
-📐 EXEMPLES ULTRA-CIBLÉS PAR SECTEUR:
-
-💡 EXEMPLE 1
-Actu: "Inflation record 5.2%"
-Business: "Restaurant bio local"
-
-1️⃣ Stat: "Menu 15€ garanti 1 an 🔒"
-2️⃣ Question: "Inflation = renoncer au bio ? 🤔"
-3️⃣ CTA: "Prix bloqués, qualité intacte ✅"
-4️⃣ Émotion: "Le bonheur se mange ici ❤️"
-5️⃣ Urgence: "-20% avant hausse tarifs ⏰"
-
-💡 EXEMPLE 2
-Actu: "IA ChatGPT explose, 100M utilisateurs"
-Business: "Formation professionnelle digitale"
-
-1️⃣ Stat: "Maîtrise IA = +35% salaire 📈"
-2️⃣ Question: "Ton job existe encore en 2030 ? 🤖"
-3️⃣ CTA: "Certifié IA en 30 jours 🎓"
-4️⃣ Émotion: "Deviens expert IA dès demain ⚡"
-5️⃣ Urgence: "Dernières places formation IA 🔥"
-
-💡 EXEMPLE 3
-Actu: "Nouveau CPF 2025 : 500€ de crédit"
-Business: "École de code web"
-
-1️⃣ Stat: "500€ CPF = formation gratuite 💰"
-2️⃣ Question: "Gaspiller ton CPF ou changer de vie ? 💻"
-3️⃣ CTA: "CPF accepté, reste 0€ à payer ✅"
-4️⃣ Émotion: "Code ton futur, c'est maintenant ✨"
-5️⃣ Urgence: "CPF 2025 : places limitées ⏳"
-
-💡 EXEMPLE 4
-Actu: "Canicule record : 42°C en France"
-Business: "Climatisation écologique"
-
-1️⃣ Stat: "Clim éco = -60% conso élec 🌱"
-2️⃣ Question: "Canicule = souffrir ou polluer ? 🥵"
-3️⃣ CTA: "Fraîcheur garantie 0% culpabilité 🍃"
-4️⃣ Émotion: "Respire frais, dors tranquille 😌"
-5️⃣ Urgence: "Installé sous 48h avant prochaine vague 🔥"
-
-⚡ CONSIGNES FINALES ULTRA-IMPORTANTES:
-
-1. RÉFLÉCHIS d'abord au lien CONCRET entre l'actu et ce business SPÉCIFIQUE
-2. Trouve l'ANGLE UNIQUE qui fait que ce business est LA solution face à cette actu
-3. GÉNÈRE 5 textes qui montrent ce lien de façon CLAIRE et PERCUTANTE
-4. Chaque texte = approche DIFFÉRENTE (stat, question, CTA, émotion, urgence)
-5. Utilise 1 emoji STRATÉGIQUE par texte (qui renforce le message, pas décoratif)
-6. Max 45 caractères TOTAL (emojis inclus)
-7. ÉVITE les formules bateau, sois CRÉATIF et SPÉCIFIQUE
-
-🎯 Objectif final : Quand quelqu'un lit un de tes textes sur Instagram, il doit IMMÉDIATEMENT comprendre :
-- De quelle actu on parle
-- Ce que fait ce business
-- Pourquoi ce business est la solution/opportunité face à cette actu
-
-GÉNÈRE maintenant 5 propositions EN FRANÇAIS pour :
+GÉNÈRE maintenant 10 punchlines EN FRANÇAIS pour:
 Actu: "${newsTitle}"
 Business: "${businessType}"
 
 FORMAT DE RÉPONSE:
-JSON array uniquement, rien d'autre. Pas de texte avant ou après.
-["Texte 1", "Texte 2", "Texte 3", "Texte 4", "Texte 5"]`;
+JSON array uniquement. Une punchline par ligne. Aucune explication.
+["Punchline 1", "Punchline 2", "Punchline 3", "Punchline 4", "Punchline 5", "Punchline 6", "Punchline 7", "Punchline 8", "Punchline 9", "Punchline 10"]`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -209,7 +156,7 @@ JSON array uniquement, rien d'autre. Pas de texte avant ou après.
     suggestions = suggestions
       .filter(s => typeof s === 'string' && s.trim().length > 0)
       .map(s => s.trim().substring(0, 45))
-      .slice(0, 5);
+      .slice(0, 10);
 
     console.log('[SuggestText] ✅ Generated', suggestions.length, 'suggestions');
 

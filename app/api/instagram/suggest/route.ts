@@ -50,36 +50,58 @@ export async function POST(request: NextRequest) {
     const industry = profile?.industry || 'business général';
     const audience = profile?.target_audience || 'professionnels';
 
-    const prompt = `Tu es un expert en marketing Instagram. Génère une description Instagram engageante et des hashtags pertinents.
+    const prompt = `Tu es un GROWTH HACKER Instagram spécialisé en contenu viral qui convertit.
+Ta mission : créer des posts qui STOPPENT le scroll, CAPTENT l'attention et CONVERTISSENT en clics + likes.
 
-Contexte de l'image :
-- Titre de l'image : ${imageTitle || 'Non spécifié'}
-- Actualité liée : ${newsTitle || 'Non spécifié'}
-- Catégorie : ${newsCategory || 'Non spécifié'}
+CONTEXTE:
+📸 Image: ${imageTitle || 'Non spécifié'}
+📰 Actualité: ${newsTitle || 'Non spécifié'}
+🏷️ Catégorie: ${newsCategory || 'Non spécifié'}
+🎯 Business: ${businessContext} (${industry})
+👥 Audience: ${audience}
 
-Contexte business :
-- Secteur : ${industry}
-- Description : ${businessContext}
-- Audience cible : ${audience}
+MISSION 1 - DESCRIPTION QUI CONVERTIT:
 
-Instructions :
-1. Crée une description Instagram captivante (2-3 phrases) qui :
-   - Accroche l'attention dans les premiers mots
-   - Lie l'actualité au business de l'utilisateur
-   - Inclut un appel à l'action subtil
-   - Est professionnelle mais accessible
-   - Maximum 150 mots
+✅ RÈGLES D'OR (IMPÉRATIF):
+- 3 PREMIERS MOTS = HOOK MORTEL (question choc, affirmation provocante, chiffre brutal)
+- Ton VARIÉ selon le contexte: ironique, satirique, provocateur, inspirant, urgent, confidentiel
+- AUCUNE limite de ton : si ça capte l'attention proprement, GO
+- Storytelling court mais INTENSE (créer tension → résolution)
+- CTA IRRÉSISTIBLE en fin (clic bio, DM, like, partage)
+- Max 2200 caractères mais viser 150-200 mots optimal
+- Emojis STRATÉGIQUES (3-5 max, pas décoratif)
+- Line breaks pour rythme et lisibilité
 
-2. Propose 10-15 hashtags pertinents qui :
-   - Mélangent hashtags populaires et de niche
-   - Sont adaptés au secteur et à l'actualité
-   - Incluent des hashtags français et anglais si pertinent
-   - Sont classés par pertinence
+❌ INTERDIT:
+- "Découvrez", "Profitez", "Ne manquez pas"
+- Gentillesse corporate fade
+- Description plate de l'actualité
+- Hook faible qui n'arrête pas le scroll
 
-Réponds UNIQUEMENT au format JSON suivant (sans markdown) :
+🎯 APPROCHES À MIXER (selon contexte):
+1. QUESTION CHOC → "Vous gaspillez 40% de votre budget ?"
+2. AFFIRMATION PROVOCANTE → "Le marketing traditionnel est mort."
+3. CHIFFRE BRUTAL → "97% des entrepreneurs échouent car..."
+4. STORY PERSONNELLE → "J'ai perdu 50K€ avant de comprendre..."
+5. IRONIE/SATIRE → "Ah oui, l'inflation n'existe pas 🙃"
+6. URGENCE → "Dans 48h il sera trop tard."
+7. EXCLUSIVITÉ → "Ce que personne ne vous dit sur..."
+8. CALL-OUT → "Si tu lis ça, c'est que..."
+
+MISSION 2 - HASHTAGS STRATÉGIQUES:
+
+Génère 15-20 hashtags MIX:
+- 3-5 GROS (100K-1M posts) → Visibilité max
+- 5-8 MOYENS (10K-100K) → Taux engagement optimal
+- 5-7 NICHE (<10K) → Audience ultra-qualifiée
+- Mix FR + EN si pertinent
+- Liés à l'actu + secteur + émotion du post
+- Ordre décroissant de pertinence
+
+FORMAT JSON UNIQUEMENT (pas de markdown):
 {
-  "caption": "La description ici",
-  "hashtags": ["#hashtag1", "#hashtag2", ...]
+  "caption": "HOOK MORTEL + description intense + CTA irrésistible",
+  "hashtags": ["#tag1", "#tag2", ...]
 }`;
 
     // Appeler Claude API
