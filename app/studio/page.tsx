@@ -85,12 +85,29 @@ function StudioContent() {
       const response = await fetch('/api/library/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Important pour envoyer les cookies d'auth
         body: JSON.stringify({
           imageUrl: loadedImage,
           title: 'Image éditée depuis Studio',
           tags: ['studio', 'édition']
         })
       });
+
+      // Vérifier si la réponse est bien du JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Si ce n'est pas du JSON, lire comme texte
+        const errorText = await response.text();
+        console.error('[Studio] Non-JSON response:', errorText);
+
+        if (response.status === 413) {
+          throw new Error('Image trop volumineuse. Veuillez utiliser une image plus petite.');
+        } else if (response.status === 401) {
+          throw new Error('Non authentifié. Veuillez vous reconnecter.');
+        } else {
+          throw new Error('Erreur serveur: ' + (errorText.substring(0, 100) || 'Réponse invalide'));
+        }
+      }
 
       const data = await response.json();
 
@@ -101,7 +118,7 @@ function StudioContent() {
       }
     } catch (error: any) {
       console.error('[Studio] Error saving:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde');
+      alert('❌ ' + (error.message || 'Erreur lors de la sauvegarde'));
     } finally {
       setSavingToGallery(false);
     }

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 
 /**
  * Configuration pour augmenter la limite de taille du body
+ * Note: Next.js App Router n'a pas de limite de body par défaut
  */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,15 +22,25 @@ export async function POST(req: NextRequest) {
     try {
       // Lire le body comme texte d'abord pour voir sa taille
       bodyText = await req.text();
-      console.log('[Library/Save] Body size:', new Blob([bodyText]).size, 'bytes');
+      const bodySizeKB = (new Blob([bodyText]).size / 1024).toFixed(2);
+      console.log('[Library/Save] Body size:', bodySizeKB, 'KB');
+
+      // Vérifier si c'est trop gros (> 5MB)
+      if (new Blob([bodyText]).size > 5 * 1024 * 1024) {
+        console.error('[Library/Save] Body too large:', bodySizeKB, 'KB');
+        return NextResponse.json(
+          { ok: false, error: 'Image trop volumineuse. Maximum 5MB. Utilisez une URL hébergée au lieu d\'une data URL.' },
+          { status: 413 }
+        );
+      }
 
       // Parser le JSON
       body = JSON.parse(bodyText);
     } catch (jsonError: any) {
-      console.error('[Library/Save] Error parsing JSON:', jsonError);
+      console.error('[Library/Save] Error parsing JSON:', jsonError.message);
       console.error('[Library/Save] Body text preview:', bodyText?.substring(0, 200));
       return NextResponse.json(
-        { ok: false, error: 'JSON invalide ou requête trop volumineuse' },
+        { ok: false, error: 'Format JSON invalide. Vérifiez les données envoyées.' },
         { status: 400 }
       );
     }
