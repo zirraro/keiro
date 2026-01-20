@@ -1,0 +1,99 @@
+{
+  "Automobile": [
+    "renault", "peugeot", "citroën", "ds", "alpine", "bugatti",
+    "tesla", "bmw", "mercedes", "audi", "volkswagen", "toyota", "hyundai", "kia", "ford", "porsche", "ferrari", "lamborghini",
+    "voiture électrique", "voiture hybride", "voiture essence", "voiture diesel", "suv", "berline", "citadine", "sportive",
+    "batterie", "autonomie", "recharge", "borne", "superchargeur", "pile à combustible", "hydrogène",
+    "salon auto", "mondial de l'auto", "essai", "comparatif", "nouveauté", "lancement",
+    "permis de conduire", "code de la route", "sécurité routière", "accident", "assurance auto", "contrôle technique",
+    "rolls-royce", "bentley", "maserati", "aston martin", "mclaren",
+    "byd", "nio", "xpeng", "geely"
+  ],
+  "Musique": [
+    "aya nakamura", "gims", "stromae", "angèle", "orelsan", "nekfeu", "soprano", "jul", "sch", "ninho", "pnl", "booba", "niska", "dadju", "maître gims",
+    "taylor swift", "beyoncé", "drake", "the weeknd", "billie eilish", "ariana grande", "ed sheeran", "rihanna", "kanye west", "travis scott",
+    "rap", "hip-hop", "pop", "rock", "électro", "house", "techno", "edm", "r&b", "soul", "jazz", "classique", "metal", "punk",
+    "concert", "tournée", "festival", "coachella", "lollapalooza", "rock en seine", "hellfest", "solidays", "printemps de bourges",
+    "album", "single", "ep", "clip", "streaming", "spotify", "deezer", "apple music", "youtube music", "charts", "billboard", "top 50",
+    "grammy", "nrj music awards", "victoires de la musique", "mtv awards",
+    "featuring", "feat", "ft", "collaboration", "remix", "cover", "acoustique", "live", "concert live"
+  ],
+  "People": [
+    "kylian mbappé", "zinedine zidane", "tony parker", "marion cotillard", "léa seydoux", "vincent cassel",
+    "squeezie", "cyprien", "norman", "enjoy phoenix", "caroline receveur", "léna situations",
+    "les marseillais", "les ch'tis", "koh-lanta", "secret story",
+    "paparazzi", "jet-set", "vie privée", "liaison", "rupture", "fiançailles", "baby bump", "grossesse", "accouchement"
+  ],
+  "Tech": [
+    "ia générative", "llm", "gpt", "gemini", "bard", "copilot", "github", "gitlab", "typescript", "react", "next.js", "vue", "angular",
+    "ransomware", "phishing", "data breach", "fuite de données", "rgpd",
+    "defi", "staking", "wallet", "exchange", "binance", "coinbase", "stablecoin"
+  ],
+  "Finance": [
+    "trading", "trader", "dividende", "indice boursier", "s&p 500", "dow jones", "nasdaq", "obligations", "forex",
+    "bnp paribas", "société générale", "crédit agricole", "la banque postale", "boursorama",
+    "revolut", "n26", "lydia", "paypal", "stripe", "klarna"
+  ],
+  "Business": [
+    "blablacar", "doctolib", "contentsquare", "mirakl", "back market", "vinted",
+    "amazon", "alibaba", "shopify", "marketplace", "dropshipping",
+    "carrefour", "auchan", "leclerc", "intermarché", "casino", "lidl", "aldi"
+  ],
+  "Sport": [
+    "ligue des champions", "europa league", "premier league", "liga", "serie a", "bundesliga", "mbappé", "messi", "ronaldo", "haaland", "neymar",
+    "roland-garros", "wimbledon", "us open", "open d'australie", "djokovic", "nadal", "federer", "alcaraz",
+    "nba", "wembanyama", "lebron james", "stephen curry", "lakers", "warriors",
+    "verstappen", "hamilton", "leclerc", "red bull", "ferrari", "mercedes", "grand prix"
+  ],
+  "Culture": [
+    "netflix", "disney+", "prime video", "apple tv+", "max", "paramount+",
+    "game of thrones", "stranger things", "the last of us", "the mandalorian", "wednesday",
+    "marvel", "dc", "blockbuster", "box-office", "avengers", "batman", "spider-man",
+    "best-seller", "goncourt", "renaudot", "femina", "prix littéraire"
+  ],
+  "Politique": [
+    "renaissance", "lr", "ps", "lfi", "rn", "eelv", "modem",
+    "emmanuel macron", "marine le pen", "jean-luc mélenchon", "édouard philippe", "bruno le maire",
+    "motion de censure", "49.3", "projet de loi", "plf", "budget", "fiscalité"
+  ],
+  "Santé": [
+    "alzheimer", "parkinson", "diabète", "avc", "infarctus", "hypertension",
+    "régime", "végétarien", "vegan", "bio", "sans gluten", "keto", "jeûne intermittent",
+    "yoga", "méditation", "mindfulness", "sommeil", "stress", "burn-out"
+  ],
+  "Climat": [
+    "nucléaire", "photovoltaïque", "biomasse", "géothermie", "hydrogène vert",
+    "neutralité carbone", "empreinte carbone", "bilan carbone", "compensation carbone",
+    "cop28", "cop29", "giec", "accord de paris"
+  ],
+  "Science": [
+    "spacex", "blue origin", "mars", "lune", "iss", "james webb", "télescope",
+    "crispr", "génétique", "adn", "clonage", "cellules souches",
+    "cnrs", "cern", "esa", "nasa", "mit", "stanford"
+  ],
+  "Gaming": [
+    "fortnite", "league of legends", "valorant", "cs:go", "minecraft", "gta", "call of duty", "fifa", "elden ring",
+    "steam", "epic games", "battle.net", "origin", "ubisoft connect",
+    "lec", "lcs", "worlds", "the international", "major", "équipe esport"
+  ],
+  "Lifestyle": [
+    "chanel", "dior", "louis vuitton", "hermès", "gucci", "prada", "zara", "h&m",
+    "sephora", "l'oréal", "lancôme", "mac", "fenty beauty", "skincare", "routine beauté",
+    "airbnb", "booking", "tripadvisor", "city break", "road trip", "backpacking"
+  ],
+  "Restauration": [
+    "alain ducasse", "paul bocuse", "gordon ramsay", "jamie oliver", "cyril lignac", "philippe etchebest",
+    "top chef", "masterchef", "cauchemar en cuisine",
+    "street food", "food truck", "fusion", "bistronomie", "fermentation"
+  ],
+  "International": [
+    "ukraine", "gaza", "taïwan", "corée du nord", "iran", "syrie",
+    "joe biden", "donald trump", "xi jinping", "vladimir poutine", "emmanuel macron",
+    "otan", "ue", "fmi", "banque mondiale", "g7", "g20", "brics"
+  ],
+  "Tendances": [
+    "tiktok", "instagram reels", "youtube shorts", "snapchat", "bereal",
+    "influenceur", "créateur de contenu", "ugc", "pov", "aesthetic", "vibe", "mood",
+    "meme", "challenge", "trend", "filter", "effect", "sound viral"
+  ]
+}

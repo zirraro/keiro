@@ -123,37 +123,107 @@ const RSS_FEEDS = [
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
-  'People': ['brigitte bardot', 'bardot', 'beyoncé', 'beyonce', 'célébrité', 'star', 'acteur', 'actrice', 'chanteur', 'chanteuse', 'influenceur', 'influenceuse', 'couple', 'mariage célébrité', 'scandale', 'divorce', 'séparation', 'romance', 'relation amoureuse', 'people', 'pipole', 'mort de', 'décès de', 'hommage à', 'obsèques', 'enterrement', 'biographie', 'vie de', 'carrière de', 'personnalité', 'icône', 'légende', 'vedette', 'reine de la pop', 'roi de la pop', 'nabilla', 'cyril hanouna', 'kylian mbappé', 'rihanna', 'johnny depp', 'angelina jolie', 'brad pitt', 'kim kardashian', 'kanye west', 'shakira', 'gims', 'stromae', 'angèle', 'aya nakamura', 'soprano', 'orelsan', 'nekfeu', 'omar sy', 'gad elmaleh', 'jamel debbouze', 'florence foresti', 'johnny hallyday', 'laeticia hallyday', 'laura smet', 'vanessa paradis', 'carla bruni', 'lady gaga', 'ariana grande', 'justin bieber', 'taylor swift', 'billie eilish', 'leonardo dicaprio', 'tom cruise', 'will smith', 'robert downey jr', 'scarlett johansson', 'jennifer lawrence', 'emma watson', 'margot robbie', 'zendaya', 'timothée chalamet'],
+  'Automobile': [
+    'renault', 'peugeot', 'citroën', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
+    'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'voiture électrique', 'voiture hybride',
+    'voiture essence', 'voiture diesel', 'suv', 'berline', 'citadine', 'sportive', 'batterie', 'autonomie', 'recharge', 'borne',
+    'superchargeur', 'pile à combustible', 'hydrogène', 'salon auto', 'mondial de l'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'permis de conduire',
+    'code de la route', 'sécurité routière', 'accident', 'assurance auto', 'contrôle technique', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
+    'byd', 'nio', 'xpeng', 'geely'
+  ],
 
-  'Finance': ['financ', 'banque', 'bourse', 'action', 'investissement', 'trading', 'crypto', 'bitcoin', 'ethereum', 'euro', 'dollar', 'taux', 'crédit', 'dette', 'inflation', 'cac 40', 'assurance', 'immobilier', 'patrimoine', 'prix', 'tarif', 'coût', 'essence', 'carburant', 'gazole', 'diesel', 'pompe', 'sp95', 'sp98', 'e10', 'station-service', 'budget', 'pouvoir d\'achat', 'économies', 'facture'],
+  'Musique': [
+    'aya nakamura', 'gims', 'stromae', 'angèle', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
+    'pnl', 'booba', 'niska', 'dadju', 'maître gims', 'taylor swift', 'beyoncé', 'drake', 'the weeknd', 'billie eilish',
+    'ariana grande', 'ed sheeran', 'rihanna', 'kanye west', 'travis scott', 'rap', 'hip-hop', 'pop', 'rock', 'électro',
+    'house', 'techno', 'edm', 'r&b', 'soul', 'jazz', 'classique', 'metal', 'punk', 'concert',
+    'tournée', 'festival', 'coachella', 'lollapalooza', 'rock en seine', 'hellfest', 'solidays', 'printemps de bourges', 'album', 'single',
+    'ep', 'clip', 'streaming', 'spotify', 'deezer', 'apple music', 'youtube music', 'charts', 'billboard', 'top 50',
+    'grammy', 'nrj music awards', 'victoires de la musique', 'mtv awards', 'featuring', 'feat', 'ft', 'collaboration', 'remix', 'cover',
+    'acoustique', 'live', 'concert live'
+  ],
 
-  'Tech': ['technolog', 'tech ', 'numériq', 'digital', 'informatiqu', 'logiciel', 'software', 'application', 'app ', 'site web', 'internet', 'wifi', 'réseau', 'serveur', 'cloud', 'data', 'données', 'algorithme', 'code', 'programmation', 'développement', 'dev ', 'startup', 'start-up', 'licorne', 'scale-up', 'venture capital', 'levée de fonds', 'french tech', 'station f', 'incubateur', 'accélérateur', 'innovation', 'deeptech', 'greentech', 'fintech', 'edtech', 'healthtech', 'insurtech', 'proptech', 'foodtech', 'agritech', 'cleantech', 'nanotech', 'intelligence artificielle', 'ia ', 'ai ', 'chatgpt', 'openai', 'anthropic', 'claude ai', 'mistral ai', 'machine learning', 'deep learning', 'neural network', 'web3', 'blockchain', 'crypto', 'nft', 'metaverse', 'métavers', 'réalité virtuelle', 'réalité augmentée', 'vr ', 'ar ', 'robotique', 'robot', 'drone', 'véhicule autonome', 'voiture connectée', 'smart city', 'ville intelligente', 'iot', 'objets connectés', 'domotique', 'saas', 'paas', 'iaas', 'cloud computing', 'no-code', 'low-code', 'api', 'microservices', 'devops', 'cybersécurité', 'cyber-sécurité', 'sécurité informatique', 'hacker', 'piratage', 'malware', 'virus informatique', 'antivirus', 'smartphone', 'téléphone', 'mobile', 'tablette', 'ordinateur', 'pc ', 'mac ', 'windows', 'android', 'ios', 'apple', 'google', 'microsoft', 'meta', 'facebook', 'instagram', 'whatsapp', 'twitter', 'tiktok', 'youtube', 'amazon', 'netflix', 'uber', '5g', '6g', 'satellite', 'spacex', 'starlink', 'fibre optique', 'connexion', 'débit', 'streaming', 'podcast', 'influenceur tech', 'youtuber tech', 'geek', 'gadget', 'innovation numérique', 'transformation digitale', 'digitalisation', 'e-commerce', 'marketplace', 'paiement en ligne', 'transaction', 'plateforme', 'réseau social'],
+  'People': [
+    'kylian mbappé', 'zinedine zidane', 'tony parker', 'marion cotillard', 'léa seydoux', 'vincent cassel', 'squeezie', 'cyprien', 'norman', 'enjoy phoenix',
+    'caroline receveur', 'léna situations', 'les marseillais', 'les ch'tis', 'koh-lanta', 'secret story', 'paparazzi', 'jet-set', 'vie privée', 'liaison',
+    'rupture', 'fiançailles', 'baby bump', 'grossesse', 'accouchement'
+  ],
 
-  'Business': ['business', 'entreprise', 'entrepreneur', 'économ', 'startup', 'pme', 'société commerciale', 'pdg', 'ceo', 'dirigeant', 'manager', 'employé', 'travail', 'télétravail', 'recrutement', 'commerce', 'marketing', 'vente', 'client', 'croissance', 'acquisition', 'partenariat', 'chiffre d\'affaires', 'profit'],
+  'Tech': [
+    'ia générative', 'llm', 'gpt', 'gemini', 'bard', 'copilot', 'github', 'gitlab', 'typescript', 'react',
+    'next.js', 'vue', 'angular', 'ransomware', 'phishing', 'data breach', 'fuite de données', 'rgpd', 'defi', 'staking',
+    'wallet', 'exchange', 'binance', 'coinbase', 'stablecoin'
+  ],
 
-  'Santé': ['santé', 'médic', 'médecin', 'hôpital', 'patient', 'maladie', 'cancer', 'covid', 'vaccin', 'traitement', 'pharmacie', 'nutrition', 'fitness', 'bien-être', 'mental', 'psycho', 'chirurgie', 'soin', 'clinique', 'épidémie', 'pandémie', 'virus', 'bactérie'],
+  'Finance': [
+    'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
+    'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna'
+  ],
 
-  'Sport': ['sport', 'foot', 'football', 'ligue 1', 'match', 'joueur de foot', 'équipe de', 'psg', 'om', 'tennis', 'rugby', 'basket', 'formule 1', 'f1', 'olympique', 'champion', 'victoire', 'transfert', 'entraîneur', 'stade', 'terrain', 'compétition', 'tournoi', 'coupe', 'ballon'],
+  'Business': [
+    'blablacar', 'doctolib', 'contentsquare', 'mirakl', 'back market', 'vinted', 'amazon', 'alibaba', 'shopify', 'marketplace',
+    'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'casino', 'lidl', 'aldi'
+  ],
 
-  'Culture': ['culture', 'film', 'cinéma', 'série', 'musique', 'concert', 'festival', 'cannes', 'oscar', 'césar', 'théâtre', 'livre', 'musée', 'exposition', 'art', 'peinture', 'sculpture', 'artiste', 'réalisateur', 'metteur en scène', 'album', 'single', 'clip', 'tournage'],
+  'Sport': [
+    'ligue des champions', 'europa league', 'premier league', 'liga', 'serie a', 'bundesliga', 'mbappé', 'messi', 'ronaldo', 'haaland',
+    'neymar', 'roland-garros', 'wimbledon', 'us open', 'open d'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'nba',
+    'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'verstappen', 'hamilton', 'leclerc', 'red bull', 'ferrari',
+    'mercedes', 'grand prix'
+  ],
 
-  'Politique': ['politique', 'gouvernement', 'ministre', 'président', 'macron', 'élection', 'vote', 'parlement', 'assemblée nationale', 'sénat', 'député', 'sénateur', 'parti politique', 'loi', 'réforme', 'manifestation', 'syndicat', 'grève', 'décret', 'conseil des ministres'],
+  'Culture': [
+    'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'game of thrones', 'stranger things', 'the last of us', 'the mandalorian',
+    'wednesday', 'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man', 'best-seller', 'goncourt',
+    'renaudot', 'femina', 'prix littéraire'
+  ],
 
-  'Climat': ['climat', 'écologie', 'environnement', 'énergie renouvelable', 'solaire', 'éolien', 'pollution', 'co2', 'carbone', 'réchauffement', 'biodiversité', 'transition écologique', 'cop', 'giec', 'déforestation', 'océan', 'mer'],
+  'Politique': [
+    'renaissance', 'lr', 'ps', 'lfi', 'rn', 'eelv', 'modem', 'emmanuel macron', 'marine le pen', 'jean-luc mélenchon',
+    'édouard philippe', 'bruno le maire', 'motion de censure', '49.3', 'projet de loi', 'plf', 'budget', 'fiscalité'
+  ],
 
-  'Automobile': ['auto', 'voiture', 'véhicule', 'électrique', 'hybride', 'tesla', 'renault', 'peugeot', 'citroën', 'bmw', 'mercedes', 'audi', 'volkswagen', 'salon auto', 'permis de conduire', 'code de la route', 'sécurité routière', 'accident de la route'],
+  'Santé': [
+    'alzheimer', 'parkinson', 'diabète', 'avc', 'infarctus', 'hypertension', 'régime', 'végétarien', 'vegan', 'bio',
+    'sans gluten', 'keto', 'jeûne intermittent', 'yoga', 'méditation', 'mindfulness', 'sommeil', 'stress', 'burn-out'
+  ],
 
-  'Lifestyle': ['mode', 'fashion', 'beauté', 'maquillage', 'cosmétique', 'voyage', 'vacances', 'destination', 'maison', 'déco', 'décoration', 'intérieur', 'mariage', 'luxe', 'tendance mode', 'défilé', 'collection'],
+  'Climat': [
+    'nucléaire', 'photovoltaïque', 'biomasse', 'géothermie', 'hydrogène vert', 'neutralité carbone', 'empreinte carbone', 'bilan carbone', 'compensation carbone', 'cop28',
+    'cop29', 'giec', 'accord de paris'
+  ],
 
-  'Gaming': ['gaming', 'jeu vidéo', 'gamer', 'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'switch', 'pc gaming', 'fortnite', 'esport', 'e-sport', 'twitch', 'stream', 'streamer', 'console', 'manette', 'dlc'],
+  'Science': [
+    'spacex', 'blue origin', 'mars', 'lune', 'iss', 'james webb', 'télescope', 'crispr', 'génétique', 'adn',
+    'clonage', 'cellules souches', 'cnrs', 'cern', 'esa', 'nasa', 'mit', 'stanford'
+  ],
 
-  'Restauration': ['restaurant', 'cuisine', 'chef', 'gastronomie', 'michelin', 'étoile', 'vin', 'recette', 'plat', 'menu', 'dégustation', 'sommelier', 'cuisinier', 'pâtisserie', 'boulangerie'],
+  'Gaming': [
+    'fortnite', 'league of legends', 'valorant', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
+    'epic games', 'battle.net', 'origin', 'ubisoft connect', 'lec', 'lcs', 'worlds', 'the international', 'major', 'équipe esport'
+  ],
 
-  'Science': ['science', 'scientifique', 'recherche', 'chercheur', 'découverte', 'étude', 'espace', 'nasa', 'astronomie', 'physique', 'chimie', 'biologie', 'laboratoire', 'expérience', 'planète', 'galaxie', 'univers', 'cnrs'],
+  'Lifestyle': [
+    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l'oréal',
+    'lancôme', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip',
+    'backpacking'
+  ],
 
-  'International': ['international', 'monde', 'guerre', 'conflit', 'onu', 'états-unis', 'usa', 'chine', 'russie', 'ukraine', 'israël', 'gaza', 'palestine', 'trump', 'biden', 'poutine', 'zelensky', 'netanyahu', 'diplomatie', 'géopolitique', 'ambassade'],
+  'Restauration': [
+    'alain ducasse', 'paul bocuse', 'gordon ramsay', 'jamie oliver', 'cyril lignac', 'philippe etchebest', 'top chef', 'masterchef', 'cauchemar en cuisine', 'street food',
+    'food truck', 'fusion', 'bistronomie', 'fermentation'
+  ],
 
-  'Tendances': ['tendance', 'viral', 'buzz', 'trending', 'tiktok', 'réseaux sociaux', 'instagram', 'twitter', 'x', 'phénomène', 'engouement', 'insolite', 'wtf', 'incroyable', 'fou', 'dingue', 'génial', 'meme', 'le saviez-vous', 'fail', 'meilleur', 'pire', 'top 10', 'classement', 'vidéo buzz', 'vidéo virale', 'photo virale', 'photo buzz', 'record', 'inédit', 'première fois', 'jamais vu', 'sensation', 'révélation', 'découverte étonnante', 'hallucinant', 'choc', 'polémique', 'débat', 'controverse', 'réaction', 'commentaire', 'partage', 'like', 'retweet', 'story', 'reel', 'clip viral', 'challenge', 'défi', 'mode passagère'],
+  'International': [
+    'ukraine', 'gaza', 'taïwan', 'corée du nord', 'iran', 'syrie', 'joe biden', 'donald trump', 'xi jinping', 'vladimir poutine',
+    'emmanuel macron', 'otan', 'ue', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics'
+  ],
+
+  'Tendances': [
+    'tiktok', 'instagram reels', 'youtube shorts', 'snapchat', 'bereal', 'influenceur', 'créateur de contenu', 'ugc', 'pov', 'aesthetic',
+    'vibe', 'mood', 'meme', 'challenge', 'trend', 'filter', 'effect', 'sound viral'
+  ],
+
 };
 
 // Catégoriser avec scoring pondéré (titre = 3x description)
