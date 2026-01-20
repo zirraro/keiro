@@ -75,7 +75,7 @@ export default function HomeKeiro() {
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold">De la photo smartphone basique au visuel viral Instagram</h2>
-          <p className="mt-2 text-neutral-600">Transformation complète : Coach sportif qui surfe sur l'actualité "Janvier, mois sans alcool"</p>
+          <p className="mt-2 text-neutral-600">Transformation complète : Coach bien-être qui surfe sur le "Blue Monday"</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -88,8 +88,8 @@ export default function HomeKeiro() {
               {/* Image smartphone basique */}
               <div className="relative bg-neutral-200">
                 <img
-                  src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=60&w=800&auto=format&fit=crop"
-                  alt="Photo smartphone basique salle de sport"
+                  src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=60&w=800&auto=format&fit=crop"
+                  alt="Photo smartphone basique yoga"
                   className="w-full aspect-square object-cover opacity-90"
                 />
               </div>
@@ -97,16 +97,16 @@ export default function HomeKeiro() {
               {/* Caption Instagram fade */}
               <div className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500"></div>
-                  <span className="text-sm font-semibold">coach_maxime</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500"></div>
+                  <span className="text-sm font-semibold">claire.yoga</span>
                 </div>
                 <p className="text-sm text-neutral-600">
-                  Nouvelle année, nouveaux objectifs 💪<br/>
-                  Venez vous entraîner !<br/><br/>
-                  #sport #fitness #coach
+                  Nouvelle année, nouveau départ 🧘‍♀️<br/>
+                  Venez essayer le yoga !<br/><br/>
+                  #yoga #bienetre #relaxation
                 </p>
                 <div className="pt-2 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-500">👁️ 18 vues • 💬 1 commentaire • 📢 Portée faible</p>
+                  <p className="text-xs text-neutral-500">👁️ 23 vues • 💬 2 commentaires • 📢 Portée faible</p>
                 </div>
               </div>
 
@@ -124,88 +124,94 @@ export default function HomeKeiro() {
               ✨ APRÈS - Keiro Pro
             </div>
             <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
-              {/* Image pro avec overlay viral */}
+              {/* Image pro avec overlay subtil et élégant */}
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=95&w=800&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=95&w=800&auto=format&fit=crop"
                   alt="Visuel pro créé avec Keiro"
-                  className="w-full aspect-square object-cover brightness-90"
+                  className="w-full aspect-square object-cover brightness-95"
                 />
-                {/* Overlay Keiro - Design qui stoppe le scroll */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-black/70 via-blue-900/50 to-transparent">
-                  <div className="text-center space-y-4">
-                    <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-400 px-4 py-1.5 rounded-full shadow-xl">
-                      <p className="text-sm font-bold text-white">🔥 JANVIER SANS ALCOOL</p>
+                {/* Overlay Keiro - Design subtil et professionnel */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-transparent via-indigo-900/40 to-black/60">
+                  <div className="text-center space-y-6">
+                    {/* Badge simple */}
+                    <div className="inline-block bg-white/95 backdrop-blur-sm px-5 py-2 rounded-full shadow-lg">
+                      <p className="text-sm font-semibold text-indigo-700">💙 Blue Monday</p>
                     </div>
-                    <h3 className="text-3xl md:text-4xl font-black text-white leading-tight drop-shadow-[0_4px_20px_rgba(0,0,0,0.8)]">
-                      T'es sobre en janvier ?<br/>
-                      <span className="text-cyan-400">Transforme ça en muscles</span>
+
+                    {/* Titre émotionnel court */}
+                    <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]">
+                      Le jour le plus dur<br/>
+                      de l'année ?<br/>
+                      <span className="text-cyan-300">Pas pour toi.</span>
                     </h3>
-                    <div className="inline-block bg-gradient-to-r from-orange-500 to-red-600 px-8 py-4 rounded-2xl shadow-2xl transform hover:scale-105 transition-transform">
-                      <p className="text-xl font-black text-white">1ère séance OFFERTE</p>
-                      <p className="text-sm text-white/90 font-medium">Code: JANVIER2026</p>
+
+                    {/* CTA simple et élégant */}
+                    <div className="inline-block bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3 rounded-xl shadow-xl">
+                      <p className="text-lg font-bold text-white">Séance découverte -50%</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Caption Instagram optimisée par IA */}
-              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-blue-50/30">
+              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-indigo-50/30">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 ring-2 ring-blue-300"></div>
-                  <span className="text-sm font-semibold">coach_maxime</span>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Créé avec Keiro</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 ring-2 ring-indigo-300"></div>
+                  <span className="text-sm font-semibold">claire.yoga</span>
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">Créé avec Keiro</span>
                 </div>
                 <p className="text-sm text-neutral-800 leading-relaxed">
-                  <span className="font-bold text-blue-600">Tu fais Janvier Sans Alcool ?</span> Bravo ! 🎉<br/><br/>
+                  <span className="font-bold text-indigo-700">Aujourd'hui c'est Blue Monday</span>, le jour le plus déprimant de l'année. 💙<br/><br/>
 
-                  Mais sais-tu qu'1 mois sans alcool = 2-3kg de moins + 20% d'énergie en plus ? 💪<br/><br/>
+                  Fatigue, stress, manque de lumière... Tu le sens aussi ?<br/><br/>
 
-                  <span className="font-bold">Pendant que tes potes dépriment devant une tisane</span>, toi tu te transformes.<br/><br/>
+                  <span className="font-semibold">1 séance de yoga = -40% de stress + sommeil réparateur</span><br/>
+                  (études scientifiques à l'appui)<br/><br/>
 
-                  👉 1ère séance GRATUITE ce mois-ci<br/>
-                  Code: JANVIER2026 (lien en bio)<br/><br/>
+                  🎁 Séance découverte à -50% aujourd'hui<br/>
+                  Réserve ton créneau (lien en bio)<br/><br/>
 
-                  <span className="text-xs text-neutral-600">Places limitées - 12 déjà réservées aujourd'hui</span>
+                  <span className="text-xs text-neutral-600">Offre spéciale Blue Monday - Valable 48h</span>
                 </p>
-                <p className="text-xs text-blue-600 font-medium">#janviersansalcool #dryjanuary #transformation #coaching #motivation #objectif2026 #sport #fitness #bienetre #sante</p>
-                <div className="pt-2 border-t border-blue-200">
-                  <p className="text-xs text-blue-600 font-bold">🔥 1 247 vues • 💬 89 commentaires • 📢 Portée x23 • 🎯 12 réservations</p>
+                <p className="text-xs text-indigo-600 font-medium">#bluemonday #yoga #bienetre #stressrelief #selfcare #mentalhealth #yogatherapy #meditation #mindfulness</p>
+                <div className="pt-2 border-t border-indigo-200">
+                  <p className="text-xs text-indigo-600 font-bold">🔥 892 vues • 💬 67 commentaires • 📢 Portée x18 • 🎯 9 réservations</p>
                 </div>
               </div>
 
               {/* Résultat */}
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 text-center border-t-2 border-cyan-400">
-                <p className="text-sm font-bold text-white">🚀 Visuel PRO + Lien actuel VIRAL + Call-to-action IRRÉSISTIBLE</p>
-                <p className="text-xs text-white/90 mt-1">Le scroll s'arrête. Les gens likent, commentent, réservent !</p>
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-4 text-center border-t-2 border-purple-400">
+                <p className="text-sm font-bold text-white">✨ Visuel élégant + Actualité émotionnelle + Offre limitée</p>
+                <p className="text-xs text-white/90 mt-1">L'overlay est subtil mais le message percute. Le scroll s'arrête.</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Explication sous les images */}
-        <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6">
-          <h3 className="text-lg font-bold text-blue-900 mb-3">🎯 Ce qui change tout :</h3>
+        <div className="mt-8 bg-indigo-50 rounded-2xl border border-indigo-200 p-6">
+          <h3 className="text-lg font-bold text-indigo-900 mb-3">🎯 Ce qui change tout :</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-indigo-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Texte overlay professionnel</p>
-                <p className="text-xs text-blue-700">Le message clé est visible immédiatement</p>
+                <p className="text-sm font-semibold text-indigo-900">Overlay subtil et professionnel</p>
+                <p className="text-xs text-indigo-700">Moins de texte, plus d'impact émotionnel</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-indigo-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Lien direct avec l'actualité</p>
-                <p className="text-xs text-blue-700">Circuits courts vs hausse de l'essence</p>
+                <p className="text-sm font-semibold text-indigo-900">Actualité du jour</p>
+                <p className="text-xs text-indigo-700">Blue Monday = le jour le plus déprimant</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-indigo-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Appel à l'action immédiat</p>
-                <p className="text-xs text-blue-700">-20% + réservation, message clair</p>
+                <p className="text-sm font-semibold text-indigo-900">Message émotionnel expert</p>
+                <p className="text-xs text-indigo-700">Touche le ressenti, apporte la solution</p>
               </div>
             </div>
           </div>
