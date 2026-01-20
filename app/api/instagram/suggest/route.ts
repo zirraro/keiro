@@ -84,7 +84,7 @@ Réponds UNIQUEMENT au format JSON suivant (sans markdown) :
 
     // Appeler Claude API
     const message = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229',
+      model: 'claude-3-haiku-20240307',
       max_tokens: 1024,
       messages: [
         {
