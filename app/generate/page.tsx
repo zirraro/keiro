@@ -2379,6 +2379,53 @@ export default function GeneratePage() {
                     <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
                       <h3 className="text-base font-semibold mb-3">Assistant d'Édition</h3>
 
+                      {/* Logo (optionnel) */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-semibold text-neutral-800 mb-2">
+                          🎨 Logo (optionnel)
+                        </label>
+                        {!logoUrl ? (
+                          <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
+                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      setLogoUrl(ev.target?.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                              📤 Ajouter votre logo
+                            </label>
+                            <p className="text-xs text-neutral-600 mt-2">Ajoutez votre logo si vous avez oublié</p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-purple-200">
+                            <img src={logoUrl} alt="Logo" className="w-12 h-12 object-contain rounded border" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-neutral-700">Logo ajouté</p>
+                              <p className="text-xs text-neutral-500">Sera en overlay sur l'image</p>
+                            </div>
+                            <button
+                              onClick={() => setLogoUrl('')}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Retirer le logo"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Mode sélection */}
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-2">Mode de modification :</p>
@@ -2411,79 +2458,10 @@ export default function GeneratePage() {
                         </p>
                       </div>
 
-                      {/* Aide spécialisée */}
-                      <div className="mb-4">
-                        <p className="text-sm font-medium mb-2">💡 Aide spécialisée :</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['seo', 'marketing', 'content', 'copywriter'].map((spec) => (
-                            <button
-                              key={spec}
-                              onClick={() => setSpecialist(specialist === spec ? '' : spec)}
-                              className={`text-sm px-3 py-2 rounded-lg font-medium min-h-[44px] transition-colors ${
-                                specialist === spec
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
-                              }`}
-                            >
-                              {spec === 'seo' && '📊 SEO'}
-                              {spec === 'marketing' && '📈 Marketing'}
-                              {spec === 'content' && '✍️ Contenu'}
-                              {spec === 'copywriter' && '✨ Copy'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Conseils contextuels */}
-                      {specialist && (
-                        <div className="mb-4 p-3 bg-white rounded-lg text-xs text-purple-900 border border-purple-200">
-                          {specialist === 'seo' && (
-                            <>
-                              <p className="font-medium mb-1">💡 Suggestions SEO :</p>
-                              <ul className="list-disc pl-4 space-y-0.5">
-                                <li>Ajoutez des éléments visuels liés aux mots-clés</li>
-                                <li>Améliorez la lisibilité du texte sur l'image</li>
-                                <li>Intégrez des symboles reconnaissables de votre secteur</li>
-                              </ul>
-                            </>
-                          )}
-                          {specialist === 'marketing' && (
-                            <>
-                              <p className="font-medium mb-1">💡 Optimisation Marketing :</p>
-                              <ul className="list-disc pl-4 space-y-0.5">
-                                <li>Renforcez votre identité visuelle (couleurs, logo)</li>
-                                <li>Ajoutez des éléments qui attirent l'œil</li>
-                                <li>Créez de l'urgence ou de l'exclusivité visuellement</li>
-                              </ul>
-                            </>
-                          )}
-                          {specialist === 'content' && (
-                            <>
-                              <p className="font-medium mb-1">💡 Amélioration Contenu :</p>
-                              <ul className="list-disc pl-4 space-y-0.5">
-                                <li>Ajustez l'ambiance pour refléter votre message</li>
-                                <li>Équilibrez texte et visuel pour la clarté</li>
-                                <li>Renforcez l'émotion de votre histoire</li>
-                              </ul>
-                            </>
-                          )}
-                          {specialist === 'copywriter' && (
-                            <>
-                              <p className="font-medium mb-1">💡 Impact Copywriting :</p>
-                              <ul className="list-disc pl-4 space-y-0.5">
-                                <li>Mettez en valeur votre appel à l'action</li>
-                                <li>Utilisez des contrastes pour le texte clé</li>
-                                <li>Créez une hiérarchie visuelle claire</li>
-                              </ul>
-                            </>
-                          )}
-                        </div>
-                      )}
-
                       {/* Textarea pour prompt */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">
-                          Décrivez vos modifications :
+                        <label className="block text-sm font-semibold text-neutral-800 mb-2">
+                          ✏️ Décrivez vos modifications :
                         </label>
                         <textarea
                           value={editPrompt}
@@ -2492,10 +2470,20 @@ export default function GeneratePage() {
                           className="w-full text-base rounded-lg border-2 border-purple-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                           placeholder={
                             editMode === 'precise'
-                              ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite...'
-                              : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
+                              ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite, améliorer les couleurs...'
+                              : 'Ex: Transformer en style cyberpunk, ajouter des néons, rendre plus moderne...'
                           }
                         />
+                        <div className="flex items-start gap-2 mt-2">
+                          <svg className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <p className="text-xs text-neutral-600 leading-relaxed">
+                            <span className="font-semibold text-neutral-800">Astuce :</span> Soyez précis pour de meilleurs résultats.
+                            Décrivez les <span className="font-semibold">couleurs</span>, les <span className="font-semibold">éléments</span> à modifier,
+                            ou le <span className="font-semibold">style</span> souhaité.
+                          </p>
+                        </div>
                       </div>
 
                       {/* Bouton d'édition */}
@@ -3224,6 +3212,52 @@ export default function GeneratePage() {
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
                     <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
 
+                    {/* Logo (optionnel) */}
+                    <div className="mb-3">
+                      <label className="block text-xs font-semibold text-neutral-800 mb-1.5">
+                        🎨 Logo (optionnel)
+                      </label>
+                      {!logoUrl ? (
+                        <div className="border-2 border-dashed border-purple-300 rounded-lg p-3 text-center">
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-[10px] font-medium">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    setLogoUrl(ev.target?.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            📤 Ajouter logo
+                          </label>
+                          <p className="text-[9px] text-neutral-600 mt-1.5">Si vous avez oublié</p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 bg-white rounded-lg p-2 border border-purple-200">
+                          <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded border" />
+                          <div className="flex-1">
+                            <p className="text-[10px] font-medium text-neutral-700">Logo ajouté</p>
+                            <p className="text-[9px] text-neutral-500">En overlay</p>
+                          </div>
+                          <button
+                            onClick={() => setLogoUrl('')}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Mode d'édition */}
                     <div className="mb-3">
                       <p className="text-xs font-medium mb-1.5">Mode de modification :</p>
@@ -3256,115 +3290,30 @@ export default function GeneratePage() {
                       </p>
                     </div>
 
-                    {/* Accompagnement spécialisé dans l'édition */}
-                    <div className="mb-3">
-                      <p className="text-xs font-medium mb-1.5">💡 Aide spécialisée :</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          onClick={() => setSpecialist('seo')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
-                            specialist === 'seo'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
-                          }`}
-                        >
-                          📊 SEO
-                        </button>
-                        <button
-                          onClick={() => setSpecialist('marketing')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
-                            specialist === 'marketing'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
-                          }`}
-                        >
-                          📈 Marketing
-                        </button>
-                        <button
-                          onClick={() => setSpecialist('content')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
-                            specialist === 'content'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
-                          }`}
-                        >
-                          ✍️ Contenu
-                        </button>
-                        <button
-                          onClick={() => setSpecialist('copywriter')}
-                          className={`text-[9px] px-1.5 py-1 rounded transition ${
-                            specialist === 'copywriter'
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-white text-purple-800 hover:bg-purple-100 border border-purple-300'
-                          }`}
-                        >
-                          ✨ Copy
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Conseils contextuels */}
-                    {specialist && (
-                      <div className="mb-3 p-2 bg-white rounded text-[8px] text-purple-900 border border-purple-200">
-                        {specialist === 'seo' && (
-                          <>
-                            <p className="font-medium mb-1">💡 Suggestions SEO :</p>
-                            <ul className="list-disc pl-3 space-y-0.5">
-                              <li>Ajoutez des éléments visuels liés aux mots-clés</li>
-                              <li>Améliorez la lisibilité du texte sur l'image</li>
-                              <li>Intégrez des symboles reconnaissables de votre secteur</li>
-                            </ul>
-                          </>
-                        )}
-                        {specialist === 'marketing' && (
-                          <>
-                            <p className="font-medium mb-1">💡 Optimisation Marketing :</p>
-                            <ul className="list-disc pl-3 space-y-0.5">
-                              <li>Renforcez votre identité visuelle (couleurs, logo)</li>
-                              <li>Ajoutez des éléments qui attirent l'œil</li>
-                              <li>Créez de l'urgence ou de l'exclusivité visuellement</li>
-                            </ul>
-                          </>
-                        )}
-                        {specialist === 'content' && (
-                          <>
-                            <p className="font-medium mb-1">💡 Amélioration Contenu :</p>
-                            <ul className="list-disc pl-3 space-y-0.5">
-                              <li>Ajustez l'ambiance pour refléter votre message</li>
-                              <li>Équilibrez texte et visuel pour la clarté</li>
-                              <li>Renforcez l'émotion de votre histoire</li>
-                            </ul>
-                          </>
-                        )}
-                        {specialist === 'copywriter' && (
-                          <>
-                            <p className="font-medium mb-1">💡 Impact Copywriting :</p>
-                            <ul className="list-disc pl-3 space-y-0.5">
-                              <li>Mettez en valeur votre appel à l'action</li>
-                              <li>Utilisez des contrastes pour le texte clé</li>
-                              <li>Créez une hiérarchie visuelle claire</li>
-                            </ul>
-                          </>
-                        )}
-                      </div>
-                    )}
-
                     {/* Prompt de modification */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1">
-                        Décrivez vos modifications :
+                      <label className="block text-xs font-semibold text-neutral-800 mb-1">
+                        ✏️ Décrivez vos modifications :
                       </label>
                       <textarea
                         value={editPrompt}
                         onChange={(e) => setEditPrompt(e.target.value)}
                         placeholder={
                           editMode === 'precise'
-                            ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite...'
-                            : 'Ex: Transformer en style cyberpunk, ajouter des néons...'
+                            ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite, améliorer les couleurs...'
+                            : 'Ex: Transformer en style cyberpunk, ajouter des néons, rendre plus moderne...'
                         }
                         rows={4}
                         className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
+                      <div className="flex items-start gap-1.5 mt-1.5">
+                        <svg className="w-3 h-3 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-[9px] text-neutral-600 leading-relaxed">
+                          <span className="font-semibold text-neutral-800">Astuce :</span> Soyez précis (couleurs, éléments, style) pour de meilleurs résultats.
+                        </p>
+                      </div>
                     </div>
 
                     {/* Bouton d'édition */}
