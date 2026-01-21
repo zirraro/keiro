@@ -15,6 +15,7 @@ import FolderList from './components/FolderList';
 import InstagramPreviewCard from './components/InstagramPreviewCard';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSkeleton from './components/LoadingSkeleton';
+import EmailGateModal from './components/EmailGateModal';
 
 type SavedImage = {
   id: string;
@@ -140,6 +141,11 @@ export default function LibraryPage() {
   // États pour les dossiers
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
 
+  // États pour le Guest Mode
+  const [showEmailGate, setShowEmailGate] = useState(false);
+  const [guestEmail, setGuestEmail] = useState<string | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+
   // Charger l'utilisateur
   useEffect(() => {
     const loadUser = async () => {
@@ -148,15 +154,56 @@ export default function LibraryPage() {
       setUser(user);
       setLoading(false);
 
-      // Si pas d'utilisateur, charger les données de démo
+      // Si pas d'utilisateur, vérifier le mode guest
       if (!user) {
-        setImages(DEMO_IMAGES);
-        setStats({
-          total_images: DEMO_IMAGES.length,
-          total_folders: 0,
-          total_favorites: DEMO_IMAGES.filter(img => img.is_favorite).length,
-          total_instagram_drafts: 0
-        });
+        const storedEmail = localStorage.getItem('keiro_guest_email');
+        if (storedEmail) {
+          setGuestEmail(storedEmail);
+          setIsGuest(true);
+          console.log('[Library] Guest mode activated:', storedEmail);
+
+          // Charger les images guest depuis localStorage
+          const guestImages = localStorage.getItem('keiro_guest_images');
+          if (guestImages) {
+            try {
+              const parsedImages = JSON.parse(guestImages);
+              setImages(parsedImages);
+              setStats({
+                total_images: parsedImages.length,
+                total_folders: 0,
+                total_favorites: parsedImages.filter((img: SavedImage) => img.is_favorite).length,
+                total_instagram_drafts: 0
+              });
+            } catch (err) {
+              console.error('[Library] Error parsing guest images:', err);
+              setImages(DEMO_IMAGES);
+            }
+          } else {
+            // Première visite guest, montrer les images de démo
+            setImages(DEMO_IMAGES);
+          }
+
+          // Charger le brouillon Instagram guest
+          const guestDraft = localStorage.getItem('keiro_guest_instagram_draft');
+          if (guestDraft) {
+            try {
+              const parsedDraft = JSON.parse(guestDraft);
+              setInstagramDrafts([parsedDraft]);
+              setStats(prev => ({ ...prev, total_instagram_drafts: 1 }));
+            } catch (err) {
+              console.error('[Library] Error parsing guest draft:', err);
+            }
+          }
+        } else {
+          // Visiteur sans email, charger les données de démo
+          setImages(DEMO_IMAGES);
+          setStats({
+            total_images: DEMO_IMAGES.length,
+            total_folders: 0,
+            total_favorites: DEMO_IMAGES.filter(img => img.is_favorite).length,
+            total_instagram_drafts: 0
+          });
+        }
       }
     };
     loadUser();
@@ -464,14 +511,100 @@ export default function LibraryPage() {
     );
   }
 
+  const handleStartFree = () => {
+    setShowEmailGate(true);
+  };
+
+  const handleEmailSubmit = (email: string) => {
+    setGuestEmail(email);
+    setIsGuest(true);
+    console.log('[Library] Guest mode activated:', email);
+  };
+
+  const handleUpload = async (files: FileList) => {
+    console.log('[Library] Uploading files:', files.length);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        const newImage: SavedImage = {
+          id: `img-${Date.now()}-${i}`,
+          image_url: imageUrl,
+          title: file.name.replace(/\.[^/.]+$/, ''), // Nom sans extension
+          is_favorite: false,
+          created_at: new Date().toISOString()
+        };
+
+        if (isGuest) {
+          // Mode guest : sauvegarder dans localStorage
+          setImages(prev => {
+            const updated = [newImage, ...prev];
+            localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
+            return updated;
+          });
+          setStats(prev => ({
+            ...prev,
+            total_images: prev.total_images + 1
+          }));
+          console.log('[Library] Image saved to guest localStorage');
+        } else if (user) {
+          // User authentifié : TODO - sauvegarder via Supabase
+          setImages(prev => [newImage, ...prev]);
+          setStats(prev => ({
+            ...prev,
+            total_images: prev.total_images + 1
+          }));
+          console.log('[Library] Image uploaded (TODO: save to Supabase)');
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Email Gate Modal */}
+        <EmailGateModal
+          isOpen={showEmailGate}
+          onClose={() => setShowEmailGate(false)}
+          onSubmit={handleEmailSubmit}
+        />
+
         {/* Bandeau Mode Visiteur */}
-        {!user && <VisitorBanner />}
+        {!user && !isGuest && <VisitorBanner onStartFree={handleStartFree} />}
+
+        {/* Bandeau Guest Mode */}
+        {!user && isGuest && (
+          <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white shadow-lg">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="text-center md:text-left">
+                <p className="text-sm font-semibold mb-1">🎉 Mode Gratuit Activé</p>
+                <p className="text-green-100 text-xs">
+                  {guestEmail} • Upload illimité • 1 brouillon Instagram gratuit
+                </p>
+              </div>
+              <a
+                href="/login"
+                className="px-4 py-2 rounded-lg bg-white text-green-600 font-semibold text-sm hover:bg-green-50 transition-colors"
+              >
+                Créer un compte pour publier automatiquement
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
-        <GalleryHeader user={user} stats={stats} />
+        <GalleryHeader
+          user={user}
+          stats={stats}
+          isGuest={isGuest}
+          onUpload={handleUpload}
+        />
 
         {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
         {user && activeTab === 'images' && (
