@@ -1,5 +1,7 @@
 'use client';
 
+import BookDemoButton from '@/components/BookDemoButton';
+
 export default function HomeKeiro() {
   return (
     <main className="min-h-dvh bg-white">
@@ -25,6 +27,7 @@ export default function HomeKeiro() {
               <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
                 Voir un exemple
               </a>
+              <BookDemoButton variant="outline" size="md" />
             </div>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
               <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">

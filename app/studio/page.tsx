@@ -112,7 +112,16 @@ function StudioContent() {
       const data = await response.json();
 
       if (data.ok) {
-        alert('✅ Image sauvegardée dans votre galerie !');
+        // Toast de succès
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        toast.innerHTML = '✅ Image sauvegardée dans votre galerie ! Redirection...';
+        document.body.appendChild(toast);
+
+        // Rediriger vers la galerie après 1.5s
+        setTimeout(() => {
+          router.push('/library');
+        }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }

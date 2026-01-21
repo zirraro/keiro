@@ -1,4 +1,5 @@
 import { InstagramIcon, TrashIcon } from './Icons';
+import InstagramHelpGuide from './InstagramHelpGuide';
 
 type InstagramDraft = {
   id: string;
@@ -90,8 +91,13 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {drafts.map((draft) => (
+    <div className="space-y-6">
+      {/* Guide d'aide pour connecter Instagram */}
+      <InstagramHelpGuide />
+
+      {/* Grille de brouillons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {drafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image */}
           <div className="aspect-square bg-neutral-100 relative">
@@ -167,6 +173,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

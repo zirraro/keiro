@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
@@ -47,6 +48,8 @@ const CATEGORIES = [
 
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
+  const router = useRouter();
+
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('Dernières news');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1316,13 +1319,15 @@ export default function GeneratePage() {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Sauvegardé dans votre galerie !</span>
+            <span>Sauvegardé dans votre galerie ! Redirection...</span>
           </div>
         `;
         document.body.appendChild(toast);
+
+        // Rediriger vers la galerie après 1.5 secondes
         setTimeout(() => {
-          toast.remove();
-        }, 3000);
+          router.push('/library');
+        }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -2997,7 +3002,16 @@ export default function GeneratePage() {
 
                                     const data = await response.json();
                                     if (data.ok) {
-                                      alert('✅ Sauvegardé dans votre galerie !');
+                                      // Toast de succès
+                                      const toast = document.createElement('div');
+                                      toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                                      toast.innerHTML = '✅ Sauvegardé dans votre galerie ! Redirection...';
+                                      document.body.appendChild(toast);
+
+                                      // Rediriger vers la galerie après 1.5s
+                                      setTimeout(() => {
+                                        router.push('/library');
+                                      }, 1500);
                                     } else {
                                       alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                     }
@@ -3150,7 +3164,16 @@ export default function GeneratePage() {
 
                                 const data = await response.json();
                                 if (data.ok) {
-                                  alert('✅ Sauvegardé dans votre galerie !');
+                                  // Toast de succès
+                                  const toast = document.createElement('div');
+                                  toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                                  toast.innerHTML = '✅ Sauvegardé dans votre galerie ! Redirection...';
+                                  document.body.appendChild(toast);
+
+                                  // Rediriger vers la galerie après 1.5s
+                                  setTimeout(() => {
+                                    router.push('/library');
+                                  }, 1500);
                                 } else {
                                   alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                 }

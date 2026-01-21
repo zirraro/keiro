@@ -2,13 +2,15 @@ import { InstagramIcon } from './Icons';
 
 interface InstagramPreviewCardProps {
   user: any;
+  isGuest?: boolean;
   draftCount: number;
   onOpenModal: () => void;
+  onStartFree?: () => void;
 }
 
-export default function InstagramPreviewCard({ user, draftCount, onOpenModal }: InstagramPreviewCardProps) {
-  // Version visiteur - Mise en valeur de la fonctionnalité
-  if (!user) {
+export default function InstagramPreviewCard({ user, isGuest, draftCount, onOpenModal, onStartFree }: InstagramPreviewCardProps) {
+  // Version visiteur (ni user ni guest) - Mise en valeur de la fonctionnalité
+  if (!user && !isGuest) {
     return (
       <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700 rounded-xl shadow-xl mb-6">
         {/* Motif de fond décoratif */}
@@ -67,15 +69,15 @@ export default function InstagramPreviewCard({ user, draftCount, onOpenModal }: 
               </div>
 
               {/* CTA */}
-              <a
-                href="/login"
+              <button
+                onClick={onStartFree}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-purple-600 rounded-lg font-semibold text-sm hover:bg-neutral-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               >
                 <span>Commencer gratuitement</span>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -83,7 +85,7 @@ export default function InstagramPreviewCard({ user, draftCount, onOpenModal }: 
     );
   }
 
-  // Version utilisateur connecté - Carte compacte
+  // Version utilisateur connecté ou guest - Carte compacte
   return (
     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-5 mb-6 hover:shadow-lg transition-shadow">
       <div className="flex items-center justify-between">

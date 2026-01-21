@@ -1,3 +1,5 @@
+import BookDemoButton from '@/components/BookDemoButton';
+
 interface GalleryHeaderProps {
   user: any;
   stats: {
@@ -34,22 +36,28 @@ export default function GalleryHeader({ user, stats, isGuest, onUpload }: Galler
           </p>
         </div>
 
-        {/* Bouton Upload (pour guests et users) */}
-        {(user || isGuest) && onUpload && (
-          <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Ajouter des images</span>
-          </label>
-        )}
+        {/* Boutons d'action */}
+        <div className="flex items-center gap-3">
+          {/* Bouton Upload (pour guests et users) */}
+          {(user || isGuest) && onUpload && (
+            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Ajouter des images</span>
+            </label>
+          )}
+
+          {/* Bouton Démo */}
+          <BookDemoButton variant="outline" size="md" />
+        </div>
       </div>
     </div>
   );

@@ -16,6 +16,7 @@ import InstagramPreviewCard from './components/InstagramPreviewCard';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import EmailGateModal from './components/EmailGateModal';
+import DropZone from './components/DropZone';
 
 type SavedImage = {
   id: string;
@@ -145,6 +146,9 @@ export default function LibraryPage() {
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [guestEmail, setGuestEmail] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
+
+  // État pour le drag & drop
+  const [isDragging, setIsDragging] = useState(false);
 
   // Charger l'utilisateur
   useEffect(() => {
@@ -556,47 +560,124 @@ export default function LibraryPage() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const reader = new FileReader();
 
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        const newImage: SavedImage = {
-          id: `img-${Date.now()}-${i}`,
-          image_url: imageUrl,
-          title: file.name.replace(/\.[^/.]+$/, ''), // Nom sans extension
-          is_favorite: false,
-          created_at: new Date().toISOString()
-        };
+      // Vérification de type
+      if (!file.type.startsWith('image/')) {
+        alert(`❌ ${file.name} n'est pas une image valide`);
+        continue;
+      }
 
-        if (isGuest) {
-          // Mode guest : sauvegarder dans localStorage
-          setImages(prev => {
-            const updated = [newImage, ...prev];
-            localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
-            return updated;
-          });
-          setStats(prev => ({
-            ...prev,
-            total_images: prev.total_images + 1
-          }));
-          console.log('[Library] Image saved to guest localStorage');
-        } else if (user) {
-          // User authentifié : TODO - sauvegarder via Supabase
-          setImages(prev => [newImage, ...prev]);
-          setStats(prev => ({
-            ...prev,
-            total_images: prev.total_images + 1
-          }));
-          console.log('[Library] Image uploaded (TODO: save to Supabase)');
-        }
-      };
+      // Vérification de taille (max 5MB pour localStorage)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        alert(`❌ ${file.name} est trop volumineux (max 5MB)`);
+        continue;
+      }
 
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+
+        await new Promise<void>((resolve, reject) => {
+          reader.onload = (e) => {
+            try {
+              const imageUrl = e.target?.result as string;
+              const newImage: SavedImage = {
+                id: `img-${Date.now()}-${i}`,
+                image_url: imageUrl,
+                title: file.name.replace(/\.[^/.]+$/, ''), // Nom sans extension
+                is_favorite: false,
+                created_at: new Date().toISOString()
+              };
+
+              if (isGuest) {
+                // Mode guest : sauvegarder dans localStorage
+                setImages(prev => {
+                  const updated = [newImage, ...prev];
+                  try {
+                    localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
+                  } catch (storageError) {
+                    console.error('[Library] localStorage error:', storageError);
+                    alert('❌ Erreur: Espace de stockage insuffisant. Supprimez des images anciennes.');
+                    return prev;
+                  }
+                  return updated;
+                });
+                setStats(prev => ({
+                  ...prev,
+                  total_images: prev.total_images + 1
+                }));
+                console.log('[Library] Image saved to guest localStorage');
+              } else if (user) {
+                // User authentifié : TODO - sauvegarder via Supabase
+                setImages(prev => [newImage, ...prev]);
+                setStats(prev => ({
+                  ...prev,
+                  total_images: prev.total_images + 1
+                }));
+                console.log('[Library] Image uploaded (TODO: save to Supabase)');
+              }
+              resolve();
+            } catch (error) {
+              console.error('[Library] Error processing image:', error);
+              reject(error);
+            }
+          };
+
+          reader.onerror = (error) => {
+            console.error('[Library] FileReader error:', error);
+            reject(error);
+          };
+
+          reader.readAsDataURL(file);
+        });
+      } catch (error) {
+        console.error('[Library] Upload error for', file.name, ':', error);
+        alert(`❌ Erreur lors du téléchargement de ${file.name}`);
+      }
+    }
+  };
+
+  // Handlers pour le drag & drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (user || isGuest) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Vérifier si on quitte vraiment la zone (pas un enfant)
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (!user && !isGuest) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleUpload(files);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
+    <main
+      className="min-h-screen bg-gradient-to-br from-neutral-50 to-white"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* DropZone Overlay */}
+      <DropZone isDragging={isDragging} />
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Email Gate Modal */}
         <EmailGateModal
@@ -654,6 +735,7 @@ export default function LibraryPage() {
         {/* Carte compacte Instagram */}
         <InstagramPreviewCard
           user={user}
+          isGuest={isGuest}
           draftCount={stats.total_instagram_drafts}
           onOpenModal={() => {
             // Ouvrir le modal sans image sélectionnée
@@ -665,6 +747,7 @@ export default function LibraryPage() {
               alert('Veuillez d\'abord générer au moins une image');
             }
           }}
+          onStartFree={handleStartFree}
         />
 
         {/* Navigation par onglets - Visible pour tous */}
