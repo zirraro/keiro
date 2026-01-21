@@ -278,16 +278,6 @@ export default function GeneratePage() {
     }
   }, [loading, allNewsItems, filteredNews, availableCategories, category]);
 
-  /* --- Appliquer automatiquement le preset au changement de profil de communication --- */
-  useEffect(() => {
-    const preset = tonePresets[communicationProfile];
-    setTone(preset.tone);
-    setEmotionToConvey(preset.emotion);
-    setPublicationGoal(preset.goal);
-    setStoryToTell(preset.story);
-    setVisualStyle(preset.visualStyle);
-  }, [communicationProfile]);
-
   /* --- Sauvegarder et restaurer l'état du formulaire --- */
   // Charger l'état sauvegardé au montage
   useEffect(() => {
@@ -1729,7 +1719,6 @@ export default function GeneratePage() {
                       >
                         <div className="text-2xl mb-1">{preset.icon}</div>
                         <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
-                        <div className="text-[9px] text-blue-600 font-medium mt-0.5 leading-tight">{preset.marketingStrategy}</div>
                       </button>
                     );
                   })}
@@ -1751,6 +1740,9 @@ export default function GeneratePage() {
                         {/* Points clés inline */}
                         <div className="space-y-1">
                           <p className="text-[10px] text-neutral-600">
+                            <span className="text-blue-600 font-bold">▸</span> <strong>Stratégie :</strong> {tonePresets[communicationProfile].details}
+                          </p>
+                          <p className="text-[10px] text-neutral-600">
                             <span className="text-blue-600 font-bold">▸</span> <strong>Exemple :</strong> {tonePresets[communicationProfile].example}
                           </p>
                           <p className="text-[10px] text-neutral-600">
@@ -1760,21 +1752,6 @@ export default function GeneratePage() {
                       </div>
                     </div>
 
-                    {/* Bouton remplissage automatique - petit et inline */}
-                    <button
-                      onClick={() => {
-                        // Auto-fill selon la stratégie
-                        const preset = tonePresets[communicationProfile];
-                        setTone(preset.tone);
-                        setVisualStyle(preset.visualStyle);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-md transition-all"
-                    >
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Remplir automatiquement
-                    </button>
                   </div>
                 )}
               </div>
@@ -1822,41 +1799,32 @@ export default function GeneratePage() {
                   />
                 </div>
 
-                {/* Angle marketing */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Angle marketing
-                  </label>
-                  <select
-                    onChange={(e) => {
-                      if (e.target.value !== 'custom') {
-                        setMarketingAngle(e.target.value);
-                      } else {
-                        setMarketingAngle('');
-                      }
-                    }}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                  >
-                    <option value="">-- Choisir une suggestion --</option>
-                    <option value="Profiter de l'opportunité créée par l'actualité">Opportunité créée par l'actu</option>
-                    <option value="Résoudre le problème soulevé par l'actualité">Résoudre le problème de l'actu</option>
-                    <option value="Se positionner en expert face à l'actualité">Expert face à l'actu</option>
-                    <option value="Surfer sur la tendance de l'actualité">Surfer sur la tendance</option>
-                    <option value="Anticiper les conséquences de l'actualité">Anticiper les conséquences</option>
-                    <option value="custom">✏️ Personnalisé</option>
-                  </select>
-                  <textarea
-                    value={marketingAngle}
-                    onChange={(e) => setMarketingAngle(e.target.value)}
-                    placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
-                    rows={2}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                  />
-                </div>
-
                 {/* Nouveaux champs pour guidance détaillée */}
                 <div className="border-t pt-2 mt-2">
-                  <p className="text-[10px] font-medium text-neutral-600 mb-2">📝 Direction du contenu</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
+
+                    {/* Bouton remplissage automatique */}
+                    {communicationProfile && (
+                      <button
+                        onClick={() => {
+                          // Auto-fill selon la stratégie
+                          const preset = tonePresets[communicationProfile];
+                          setTone(preset.tone);
+                          setVisualStyle(preset.visualStyle);
+                          setEmotionToConvey(preset.emotion);
+                          setPublicationGoal(preset.goal);
+                          setStoryToTell(preset.story);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-md transition-all"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Remplir automatiquement
+                      </button>
+                    )}
+                  </div>
 
                   {/* Angle de l'image */}
                   <div className="mb-2">
@@ -1887,6 +1855,38 @@ export default function GeneratePage() {
                       onChange={(e) => setImageAngle(e.target.value)}
                       placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+
+                  {/* Angle marketing */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                      Angle marketing
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value !== 'custom') {
+                          setMarketingAngle(e.target.value);
+                        } else {
+                          setMarketingAngle('');
+                        }
+                      }}
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                    >
+                      <option value="">-- Choisir une suggestion --</option>
+                      <option value="Profiter de l'opportunité créée par l'actualité">Opportunité créée par l'actu</option>
+                      <option value="Résoudre le problème soulevé par l'actualité">Résoudre le problème de l'actu</option>
+                      <option value="Se positionner en expert face à l'actualité">Expert face à l'actu</option>
+                      <option value="Surfer sur la tendance de l'actualité">Surfer sur la tendance</option>
+                      <option value="Anticiper les conséquences de l'actualité">Anticiper les conséquences</option>
+                      <option value="custom">✏️ Personnalisé</option>
+                    </select>
+                    <textarea
+                      value={marketingAngle}
+                      onChange={(e) => setMarketingAngle(e.target.value)}
+                      placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
+                      rows={2}
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
                   </div>
 
