@@ -160,6 +160,42 @@ function StudioContent() {
     }
   };
 
+  // Fonction pour compresser les images data URL avant envoi API
+  const compressImageDataUrl = async (dataUrl: string, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Redimensionner si nécessaire
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = width * ratio;
+          height = height * ratio;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Cannot get canvas context'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir en JPEG avec compression
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = dataUrl;
+    });
+  };
+
   const handleEdit = async () => {
     // Vérifier les limites freemium
     if (editLimit.requiredAction === 'email') {
@@ -186,11 +222,23 @@ function StudioContent() {
 
     setEditingImage(true);
     try {
+      // Compresser l'image si c'est une data URL
+      let imageToSend = loadedImage;
+      if (loadedImage.startsWith('data:image/')) {
+        console.log('[Studio] Compressing image before sending...');
+        try {
+          imageToSend = await compressImageDataUrl(loadedImage);
+          console.log('[Studio] Image compressed successfully');
+        } catch (err) {
+          console.warn('[Studio] Compression failed, sending original:', err);
+        }
+      }
+
       const res = await fetch("/api/seedream/i2i", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imageUrl: loadedImage,
+          imageUrl: imageToSend,
           prompt: editPrompt,
           strength: 0.5,
         }),

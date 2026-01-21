@@ -131,17 +131,17 @@ export default function HomeKeiro() {
                   alt="Visuel pro créé avec Keiro"
                   className="w-full aspect-square object-cover brightness-90"
                 />
-                {/* Overlay Keiro RÉALISTE - Texte simple dans carré arrondi */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-black/30 to-black/60">
-                  {/* Carré arrondi simple avec texte */}
-                  <div className="bg-white/95 backdrop-blur-sm px-8 py-6 rounded-3xl shadow-2xl max-w-md">
-                    <div className="text-center space-y-3">
-                      <p className="text-2xl">💪</p>
-                      <h3 className="text-2xl md:text-3xl font-black text-neutral-900 leading-tight">
+                {/* Overlay Keiro RÉALISTE - Texte simple dans carré arrondi SUBTIL */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-black/20 to-black/50">
+                  {/* Carré arrondi RÉDUIT et subtil */}
+                  <div className="bg-white/95 backdrop-blur-sm px-6 py-4 rounded-2xl shadow-xl max-w-xs">
+                    <div className="text-center space-y-2">
+                      <p className="text-xl">💪</p>
+                      <h3 className="text-lg md:text-xl font-black text-neutral-900 leading-tight">
                         Transforme ton corps<br/>
                         en 30 jours
                       </h3>
-                      <p className="text-base text-neutral-700 font-semibold">
+                      <p className="text-xs text-neutral-700 font-semibold">
                         Programme janvier 2026
                       </p>
                     </div>

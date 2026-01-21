@@ -127,29 +127,72 @@ const RSS_FEEDS = [
 // Mots-clés ENRICHIS pour catégorisation intelligente
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'Automobile': [
-    'renault', 'peugeot', 'citroën', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
-    'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'voiture électrique', 'voiture hybride',
-    'voiture essence', 'voiture diesel', 'suv', 'berline', 'citadine', 'sportive', 'batterie', 'autonomie', 'recharge', 'borne',
-    'superchargeur', 'pile à combustible', 'hydrogène', 'salon auto', 'mondial de l\'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'permis de conduire',
-    'code de la route', 'sécurité routière', 'accident', 'assurance auto', 'contrôle technique', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
-    'byd', 'nio', 'xpeng', 'geely'
+    // Marques voitures
+    'renault', 'peugeot', 'citroën', 'citroen', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
+    'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
+    'byd', 'nio', 'xpeng', 'geely', 'fiat', 'opel', 'nissan', 'mazda', 'honda', 'subaru', 'volvo', 'jaguar', 'land rover', 'mini', 'seat', 'skoda',
+    // F1 et sport auto
+    'f1', 'formule 1', 'formule1', 'grand prix', 'gp', 'verstappen', 'hamilton', 'leclerc', 'sainz', 'alonso', 'red bull racing', 'ferrari f1', 'mercedes f1',
+    'mclaren f1', 'alpine f1', 'williams', 'haas', 'alfa romeo', 'alphatauri', 'circuit', 'pole position', 'podium', 'paddock', 'qualification', 'essais libres',
+    // Motos
+    'moto', 'motogp', 'motocross', 'superbike', 'yamaha', 'kawasaki', 'harley', 'ducati', 'bmw motorrad', 'honda moto', 'suzuki', 'ktm', 'triumph', 'scooter', 'deux-roues',
+    // Voitures types
+    'voiture électrique', 'voiture hybride', 'voiture essence', 'voiture diesel', 'suv', 'berline', 'citadine', 'sportive', 'coupé', 'cabriolet', 'monospace', '4x4', 'crossover',
+    // Technologies
+    'batterie', 'autonomie', 'recharge', 'borne', 'superchargeur', 'pile à combustible', 'hydrogène', 'électrique', 'hybride rechargeable',
+    // Événements
+    'salon auto', 'mondial de l\'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'sortie', 'concept car',
+    // Général
+    'permis de conduire', 'code de la route', 'sécurité routière', 'accident', 'assurance auto', 'contrôle technique', 'autoroute', 'radar', 'amende'
   ],
 
   'Musique': [
-    'aya nakamura', 'gims', 'stromae', 'angèle', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
-    'pnl', 'booba', 'niska', 'dadju', 'maître gims', 'taylor swift', 'beyoncé', 'drake', 'the weeknd', 'billie eilish',
-    'ariana grande', 'ed sheeran', 'rihanna', 'kanye west', 'travis scott', 'rap', 'hip-hop', 'pop', 'rock', 'électro',
-    'house', 'techno', 'edm', 'r&b', 'soul', 'jazz', 'classique', 'metal', 'punk', 'concert',
-    'tournée', 'festival', 'coachella', 'lollapalooza', 'rock en seine', 'hellfest', 'solidays', 'printemps de bourges', 'album', 'single',
-    'ep', 'clip', 'streaming', 'spotify', 'deezer', 'apple music', 'youtube music', 'charts', 'billboard', 'top 50',
-    'grammy', 'nrj music awards', 'victoires de la musique', 'mtv awards', 'featuring', 'feat', 'ft', 'collaboration', 'remix', 'cover',
-    'acoustique', 'live', 'concert live'
+    // Artistes français
+    'aya nakamura', 'gims', 'maitre gims', 'stromae', 'angèle', 'angele', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
+    'pnl', 'booba', 'niska', 'dadju', 'damso', 'soolking', 'naps', 'soso maness', 'tiakola', 'ziak', 'gazo', 'freeze corleone',
+    'clara luciani', 'pomme', 'videoclub', 'juliette armanet', 'eddy de pretto', 'louane', 'vianney', 'kendji girac', 'slimane',
+    // Artistes internationaux
+    'taylor swift', 'beyoncé', 'beyonce', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
+    'kanye west', 'travis scott', 'dua lipa', 'harry styles', 'adele', 'bruno mars', 'post malone', 'bad bunny', 'rosalia',
+    'coldplay', 'imagine dragons', 'muse', 'radiohead', 'arctic monkeys', 'daft punk', 'david guetta', 'martin garrix', 'calvin harris',
+    // Genres
+    'rap', 'hip-hop', 'hip hop', 'pop', 'rock', 'électro', 'electro', 'house', 'techno', 'edm', 'r&b', 'rnb', 'soul', 'jazz',
+    'classique', 'metal', 'punk', 'reggae', 'dancehall', 'afrobeat', 'drill', 'trap', 'funk', 'disco',
+    // Événements
+    'concert', 'tournée', 'tournee', 'festival', 'coachella', 'lollapalooza', 'rock en seine', 'hellfest', 'solidays',
+    'printemps de bourges', 'les vieilles charrues', 'festival de cannes', 'olympia', 'zenith', 'bercy', 'accor arena', 'stade de france',
+    // Industrie
+    'album', 'single', 'ep', 'clip', 'clip video', 'streaming', 'spotify', 'deezer', 'apple music', 'youtube music',
+    'charts', 'billboard', 'top 50', 'top chart', 'numero 1', 'disque d\'or', 'disque de platine', 'certifié',
+    // Awards
+    'grammy', 'grammys', 'nrj music awards', 'victoires de la musique', 'mtv awards', 'ama', 'billboard awards',
+    // Termes généraux
+    'featuring', 'feat', 'ft', 'collaboration', 'remix', 'cover', 'acoustique', 'live', 'concert live', 'sortie album',
+    'nouveau titre', 'nouvelle chanson', 'artiste', 'chanteur', 'chanteuse', 'rappeur', 'dj', 'producteur', 'beatmaker'
   ],
 
   'People': [
-    'kylian mbappé', 'zinedine zidane', 'tony parker', 'marion cotillard', 'léa seydoux', 'vincent cassel', 'squeezie', 'cyprien', 'norman', 'enjoy phoenix',
-    'caroline receveur', 'léna situations', 'les marseillais', 'les ch\'tis', 'koh-lanta', 'secret story', 'paparazzi', 'jet-set', 'vie privée', 'liaison',
-    'rupture', 'fiançailles', 'baby bump', 'grossesse', 'accouchement'
+    // Sportifs français
+    'kylian mbappé', 'kylian mbappe', 'zinedine zidane', 'tony parker', 'teddy riner', 'renaud lavillenie', 'martin fourcade',
+    'camille lacourt', 'florent manaudou', 'clarisse agbegnenou', 'sarah lefort', 'antoine griezmann', 'karim benzema',
+    // Acteurs/Actrices français
+    'marion cotillard', 'léa seydoux', 'lea seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
+    'dany boon', 'isabelle adjani', 'juliette binoche', 'audrey tautou', 'romain duris', 'jean dujardin', 'guillaume canet',
+    // Influenceurs français
+    'squeezie', 'cyprien', 'norman', 'enjoy phoenix', 'caroline receveur', 'léna situations', 'lena situations', 'mcfly et carlito',
+    'tibo inshape', 'natoo', 'mister v', 'amixem', 'gotaga', 'michou', 'inoxtag', 'seb la frite',
+    // TV/Reality
+    'les marseillais', 'les ch\'tis', 'koh-lanta', 'secret story', 'danse avec les stars', 'top chef', 'the voice',
+    'n\'oubliez pas les paroles', 'c\'est canteloup', 'quotidien', 'touche pas à mon poste', 'tpmp', 'hanouna', 'yann barthès',
+    // Célébrités internationales
+    'kim kardashian', 'kylie jenner', 'brad pitt', 'angelina jolie', 'johnny depp', 'leonardo dicaprio', 'jennifer lawrence',
+    'dwayne johnson', 'chris hemsworth', 'scarlett johansson', 'emma watson', 'tom cruise', 'will smith',
+    // Termes people
+    'paparazzi', 'jet-set', 'jet set', 'vie privée', 'vie privee', 'liaison', 'couple', 'relation', 'rupture', 'divorce',
+    'fiançailles', 'fiancailles', 'mariage', 'baby bump', 'grossesse', 'enceinte', 'accouchement', 'naissance', 'bébé', 'bebe',
+    'scandale', 'polémique', 'polemique', 'clash', 'rumeur', 'exclu', 'révélation', 'revelation', 'confession', 'interview',
+    'tapis rouge', 'gala', 'soirée', 'soiree', 'après-ski', 'vacances', 'yacht', 'villa', 'luxe', 'people', 'célébrité', 'celebrite', 'star'
+  ],
   ],
 
   'Tech': [

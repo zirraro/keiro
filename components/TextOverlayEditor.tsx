@@ -11,7 +11,7 @@ export interface TextOverlayConfig {
   fontFamily: 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
   fontSize: number;
   backgroundStyle: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
-  template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'annonce' | 'urgent' | 'premium-gold' | 'elegant' | 'story' | 'temoignage' | 'evenement';
+  template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'annonce' | 'urgent' | 'premium-gold' | 'elegant' | 'story' | 'temoignage' | 'evenement' | 'transformation';
 }
 
 interface TextOverlayEditorProps {
@@ -200,6 +200,20 @@ const TEMPLATES = [
       position: 'center-right' as const,
       fontFamily: 'montserrat' as const,
       fontSize: 52,
+    }
+  },
+  {
+    id: 'transformation',
+    name: '💪 Programme',
+    icon: '💪',
+    description: 'Carré blanc arrondi centre',
+    defaults: {
+      textColor: '#1e293b',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backgroundStyle: 'solid' as const,
+      position: 'center' as const,
+      fontFamily: 'montserrat' as const,
+      fontSize: 42,
     }
   },
 ];
