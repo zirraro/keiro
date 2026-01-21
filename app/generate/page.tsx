@@ -135,7 +135,7 @@ export default function GeneratePage() {
   /* --- États pour le sélecteur de profil de communication --- */
   const [communicationProfile, setCommunicationProfile] = useState<'inspirant' | 'expert' | 'urgent' | 'conversationnel'>('inspirant');
 
-  // Presets de tons par profil
+  // Presets de tons par profil - Stratégies marketing détaillées
   const tonePresets = {
     inspirant: {
       tone: 'Inspirant et chaleureux',
@@ -144,7 +144,12 @@ export default function GeneratePage() {
       story: 'Transformation et réussite humaine',
       visualStyle: 'Lumineux et épuré',
       icon: '✨',
-      label: 'Inspirant'
+      label: 'Inspirant',
+      description: 'Créez une connexion émotionnelle avec votre audience',
+      details: 'Storytelling, transformation personnelle, valeurs humaines. Parfait pour : coachs, thérapeutes, formations personnelles.',
+      example: 'Ex: "Leur vie a changé en 30 jours..."',
+      marketingStrategy: 'Marketing émotionnel',
+      whenToUse: 'Produits/services à forte valeur émotionnelle ou transformationnelle'
     },
     expert: {
       tone: 'Professionnel et pédagogique',
@@ -153,7 +158,12 @@ export default function GeneratePage() {
       story: 'Expertise et valeur apportée',
       visualStyle: 'Moderne et structuré',
       icon: '🎯',
-      label: 'Expert'
+      label: 'Expert',
+      description: 'Positionnez-vous comme référence dans votre domaine',
+      details: 'Pédagogie, données, preuves sociales. Parfait pour : consultants, B2B, services techniques, formateurs.',
+      example: 'Ex: "3 erreurs à éviter selon les experts..."',
+      marketingStrategy: 'Content marketing & Thought leadership',
+      whenToUse: 'Vendre de l\'expertise, du conseil, de la formation avancée'
     },
     urgent: {
       tone: 'Dynamique et percutant',
@@ -162,7 +172,12 @@ export default function GeneratePage() {
       story: 'Opportunité limitée et bénéfices concrets',
       visualStyle: 'Énergique et contrasté',
       icon: '⚡',
-      label: 'Urgent'
+      label: 'Urgent',
+      description: 'Créez un sentiment d\'urgence pour déclencher l\'action',
+      details: 'Scarcité, offres limitées, FOMO. Parfait pour : e-commerce, événements, lancements, promotions.',
+      example: 'Ex: "Plus que 48h ! Stock limité..."',
+      marketingStrategy: 'Marketing de l\'urgence & Conversion directe',
+      whenToUse: 'Promotions, soldes, lancements, places limitées'
     },
     conversationnel: {
       tone: 'Amical et accessible',
@@ -171,7 +186,12 @@ export default function GeneratePage() {
       story: 'Expériences partagées et humanité',
       visualStyle: 'Naturel et chaleureux',
       icon: '💬',
-      label: 'Dialogue'
+      label: 'Dialogue',
+      description: 'Parlez naturellement comme à un ami',
+      details: 'Authenticité, questions, partage. Parfait pour : personal branding, influenceurs, communautés, lifestyle.',
+      example: 'Ex: "J\'ai testé pour vous et franchement..."',
+      marketingStrategy: 'Marketing conversationnel & Community building',
+      whenToUse: 'Construire une communauté engagée et fidèle'
     }
   };
 
@@ -1686,27 +1706,66 @@ export default function GeneratePage() {
                 </div>
               )}
 
-              {/* Sélecteur de Profil de Communication */}
+              {/* Sélecteur de Profil de Communication - Stratégies Marketing */}
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  🎭 Profil de communication
+                <label className="block text-sm font-semibold text-neutral-900 mb-3">
+                  🎭 Choisissez votre stratégie marketing
+                  <span className="block text-xs font-normal text-neutral-500 mt-1">
+                    Sélectionnez l'approche qui correspond le mieux à votre activité et vos objectifs
+                  </span>
                 </label>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {Object.entries(tonePresets).map(([key, preset]) => (
                     <button
                       key={key}
                       onClick={() => setCommunicationProfile(key as any)}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                      className={`p-4 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                         communicationProfile === key
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-neutral-200 hover:border-neutral-300'
+                          ? 'border-blue-500 bg-blue-50 shadow-lg ring-2 ring-blue-200'
+                          : 'border-neutral-200 hover:border-blue-300 hover:bg-neutral-50'
                       }`}
                     >
-                      <div className="text-2xl mb-1">{preset.icon}</div>
-                      <div className="text-xs font-semibold">{preset.label}</div>
+                      {/* Header */}
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="text-3xl">{preset.icon}</div>
+                        <div className="flex-1">
+                          <div className="font-bold text-sm text-neutral-900">{preset.label}</div>
+                          <div className="text-[10px] text-blue-600 font-semibold uppercase tracking-wide">{preset.marketingStrategy}</div>
+                        </div>
+                        {communicationProfile === key && (
+                          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-neutral-700 font-medium mb-2">{preset.description}</p>
+                      <p className="text-[11px] text-neutral-600 mb-2 leading-relaxed">{preset.details}</p>
+
+                      {/* Exemple */}
+                      <div className="bg-white/80 rounded-lg px-2 py-1.5 mb-2">
+                        <p className="text-[10px] text-blue-700 italic">{preset.example}</p>
+                      </div>
+
+                      {/* Quand utiliser */}
+                      <div className="text-[10px] text-neutral-500">
+                        <span className="font-semibold">Idéal pour :</span> {preset.whenToUse}
+                      </div>
                     </button>
                   ))}
                 </div>
+
+                {/* Légende */}
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-800">
+                    <span className="font-semibold">💡 Conseil :</span> Votre profil de communication sera automatiquement appliqué au ton, style visuel et message de votre contenu.
+                  </p>
+                </div>
+
                 <p className="text-xs text-neutral-500 mt-2">
                   Sélectionnez un profil pour pré-remplir les champs selon votre stratégie de communication
                 </p>
@@ -2428,7 +2487,7 @@ export default function GeneratePage() {
                               />
                               📤 Ajouter votre logo
                             </label>
-                            <p className="text-xs text-neutral-600 mt-2">Ajoutez votre logo si vous avez oublié</p>
+                            <p className="text-xs text-neutral-600 mt-2">Optionnel - Pour renforcer votre branding</p>
                           </div>
                         ) : (
                           <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-purple-200">
@@ -2609,13 +2668,15 @@ export default function GeneratePage() {
 
                     {/* Exemples de modifications */}
                     <div className="bg-neutral-50 rounded-lg border p-4">
-                      <p className="text-sm font-medium mb-3">💡 Exemples de modifications :</p>
+                      <p className="text-sm font-medium mb-3">💡 Exemples concrets :</p>
                       <div className="space-y-2">
                         {[
-                          'Ajouter un filtre chaleureux et lumineux',
-                          'Rendre l\'arrière-plan flou pour mettre en valeur le sujet',
-                          'Améliorer les contrastes et la saturation des couleurs',
-                          'Ajouter mon logo de marque discrètement en bas à droite'
+                          'Rendre l\'arrière-plan flou style bokeh professionnel',
+                          'Ajouter un effet cinématique avec vignette sombre',
+                          'Augmenter la luminosité et le contraste de +30%',
+                          'Style Instagram : filtre chaud avec saturation élevée',
+                          'Faire ressortir le sujet principal avec netteté accrue',
+                          'Appliquer un grain film argentique vintage'
                         ].map((example) => (
                           <button
                             key={example}
@@ -3313,7 +3374,7 @@ export default function GeneratePage() {
                             />
                             📤 Ajouter logo
                           </label>
-                          <p className="text-[9px] text-neutral-600 mt-1.5">Si vous avez oublié</p>
+                          <p className="text-[9px] text-neutral-600 mt-1.5">Optionnel - Branding</p>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 bg-white rounded-lg p-2 border border-purple-200">
@@ -3515,16 +3576,22 @@ export default function GeneratePage() {
                         • Flou d'arrière-plan
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Améliorer les contrastes et la saturation des couleurs')}
+                        onClick={() => setEditPrompt('Augmenter la luminosité et le contraste de +30%')}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Contraste et saturation
+                        • Contraste luminosité
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Ajouter mon logo de marque discrètement en bas à droite')}
+                        onClick={() => setEditPrompt('Effet cinématique avec vignette sombre')}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Ajouter logo
+                        • Style cinéma
+                      </button>
+                      <button
+                        onClick={() => setEditPrompt('Grain film argentique vintage')}
+                        className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
+                      >
+                        • Grain vintage
                       </button>
                     </div>
                   </div>

@@ -130,17 +130,25 @@ export default function HomeKeiro() {
               {/* Image pro avec overlay SIMPLE et RÉALISTE */}
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=95&w=800&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=95&w=800&auto=format&fit=crop"
                   alt="Visuel pro créé avec Keiro"
-                  className="w-full aspect-square object-cover brightness-90"
+                  className="w-full aspect-square object-cover brightness-75 contrast-110 saturate-110"
                 />
-                {/* Overlay Keiro RÉALISTE - Une ligne impactante sans emoji */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-black/20 to-black/50">
-                  {/* Carré arrondi minimaliste - UNE ligne percutante */}
-                  <div className="bg-white/95 backdrop-blur-sm px-8 py-5 rounded-2xl shadow-xl max-w-md">
-                    <h3 className="text-xl md:text-2xl font-black text-neutral-900 text-center leading-tight">
-                      30 jours pour tout changer
-                    </h3>
+                {/* Overlay Keiro RÉALISTE - Style réseaux sociaux moderne */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-b from-black/40 via-black/30 to-black/60">
+                  {/* Style moderne pour réseaux sociaux - accrocheur et impactant */}
+                  <div className="relative group">
+                    {/* Glow effect derrière */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 blur-2xl opacity-60 group-hover:opacity-80 transition-opacity rounded-3xl"></div>
+
+                    {/* Texte principal */}
+                    <div className="relative bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 p-[3px] rounded-2xl shadow-2xl">
+                      <div className="bg-black/80 backdrop-blur-xl px-8 py-5 rounded-2xl">
+                        <h3 className="text-xl md:text-3xl font-black bg-gradient-to-r from-white via-blue-100 to-cyan-100 bg-clip-text text-transparent text-center leading-tight tracking-tight">
+                          30 jours pour tout changer
+                        </h3>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
