@@ -13,6 +13,9 @@ export interface TextOverlayOptions {
   backgroundColor?: string;
   backgroundStyle?: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   maxWidth?: number;
+  logoUrl?: string;
+  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  logoSize?: number;
 }
 
 /**
@@ -123,6 +126,41 @@ export async function addTextOverlay(
 
         // Dessiner l'image de base
         ctx.drawImage(img, 0, 0);
+
+        // Dessiner le logo SI fourni (AVANT le texte pour que le texte soit par-dessus)
+        if (options.logoUrl) {
+          const logoImg = new Image();
+          await new Promise<void>((resolveLogo, rejectLogo) => {
+            logoImg.onload = () => resolveLogo();
+            logoImg.onerror = () => rejectLogo(new Error('Erreur chargement logo'));
+            // Ne pas définir crossOrigin pour les data URLs
+            if (!options.logoUrl!.startsWith('data:')) {
+              logoImg.crossOrigin = 'anonymous';
+            }
+            logoImg.src = options.logoUrl!;
+          });
+
+          const logoSize = options.logoSize || 100;
+          const padding = 30; // Padding depuis les bords
+
+          // Calculer position X et Y selon logoPosition
+          let logoX = padding;
+          let logoY = padding;
+
+          if (options.logoPosition === 'top-right') {
+            logoX = canvas.width - logoSize - padding;
+            logoY = padding;
+          } else if (options.logoPosition === 'bottom-left') {
+            logoX = padding;
+            logoY = canvas.height - logoSize - padding;
+          } else if (options.logoPosition === 'bottom-right') {
+            logoX = canvas.width - logoSize - padding;
+            logoY = canvas.height - logoSize - padding;
+          }
+
+          // Dessiner le logo
+          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+        }
 
         // Détecter si c'est un CTA
         const isCallToAction = isCTA(text);

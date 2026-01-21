@@ -12,6 +12,9 @@ export interface TextOverlayConfig {
   fontSize: number;
   backgroundStyle: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   template: 'headline' | 'cta' | 'promo-flash' | 'badge-nouveau' | 'citation' | 'annonce' | 'urgent' | 'premium-gold' | 'elegant' | 'story' | 'temoignage' | 'evenement' | 'transformation';
+  logoUrl?: string; // URL du logo à ajouter en overlay
+  logoPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  logoSize?: number; // Taille du logo en pixels
 }
 
 interface TextOverlayEditorProps {
@@ -241,6 +244,9 @@ export default function TextOverlayEditor({
     fontSize: initialConfig?.fontSize || 60,
     backgroundStyle: initialConfig?.backgroundStyle || 'transparent',
     template: initialConfig?.template || 'headline',
+    logoUrl: initialConfig?.logoUrl || undefined,
+    logoPosition: initialConfig?.logoPosition || 'top-left',
+    logoSize: initialConfig?.logoSize || 100,
   });
 
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -269,6 +275,9 @@ export default function TextOverlayEditor({
         textColor: config.textColor,
         backgroundColor: config.backgroundColor,
         backgroundStyle: config.backgroundStyle,
+        logoUrl: config.logoUrl,
+        logoPosition: config.logoPosition,
+        logoSize: config.logoSize,
       });
 
       setPreviewUrl(result);
@@ -306,7 +315,7 @@ export default function TextOverlayEditor({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-neutral-900">✨ Éditeur de Texte Overlay</h2>
+          <h2 className="text-xl font-bold text-neutral-900">✨ Personnaliser le texte et le logo</h2>
           <button
             onClick={onCancel}
             className="text-neutral-400 hover:text-neutral-600 transition-colors"
@@ -499,17 +508,114 @@ export default function TextOverlayEditor({
 
               {/* Texte */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">Texte</label>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  💬 Votre message
+                </label>
                 <textarea
                   value={config.text}
                   onChange={(e) => setConfig(prev => ({ ...prev, text: e.target.value }))}
-                  placeholder="Écrivez votre texte accrocheur..."
+                  placeholder="Ex: -50% ce week-end seulement !"
                   rows={3}
-                  className="w-full px-4 py-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-none"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-300 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 resize-none"
                 />
-                <p className="text-xs text-neutral-500 mt-1">
-                  {config.text.length} caractères • Max 100 recommandé
-                </p>
+                <div className="flex items-start gap-2 mt-2">
+                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs text-neutral-600 leading-relaxed">
+                    <span className="font-semibold text-neutral-700">{config.text.length} caractères</span> •
+                    Soyez <span className="font-semibold">direct et percutant</span>. Utilisez des chiffres, émojis et urgence pour capter l'attention.
+                  </p>
+                </div>
+              </div>
+
+              {/* Logo */}
+              <div className="border-t-2 border-neutral-100 pt-4">
+                <label className="block text-sm font-semibold text-neutral-700 mb-3">
+                  🎨 Logo (optionnel)
+                </label>
+
+                {!config.logoUrl ? (
+                  <div className="border-2 border-dashed border-neutral-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
+                    <svg className="w-12 h-12 mx-auto text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all font-medium text-sm">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              setConfig(prev => ({ ...prev, logoUrl: ev.target?.result as string }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      📤 Ajouter votre logo
+                    </label>
+                    <p className="text-xs text-neutral-500 mt-2">PNG avec fond transparent recommandé</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                      <img src={config.logoUrl} alt="Logo" className="w-16 h-16 object-contain bg-white rounded border border-neutral-200" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-neutral-700">Logo ajouté</p>
+                        <p className="text-xs text-neutral-500">Visible en overlay sur l'image</p>
+                      </div>
+                      <button
+                        onClick={() => setConfig(prev => ({ ...prev, logoUrl: undefined }))}
+                        className="px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors font-medium"
+                      >
+                        Retirer
+                      </button>
+                    </div>
+
+                    {/* Position du logo */}
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-2">Position du logo</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
+                          <button
+                            key={pos}
+                            onClick={() => setConfig(prev => ({ ...prev, logoPosition: pos }))}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                              config.logoPosition === pos
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                            }`}
+                          >
+                            {pos === 'top-left' && '↖️ Haut gauche'}
+                            {pos === 'top-right' && '↗️ Haut droite'}
+                            {pos === 'bottom-left' && '↙️ Bas gauche'}
+                            {pos === 'bottom-right' && '↘️ Bas droite'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Taille du logo */}
+                    <div>
+                      <label className="block text-xs font-semibold text-neutral-700 mb-2">
+                        Taille du logo ({config.logoSize}px)
+                      </label>
+                      <input
+                        type="range"
+                        min="50"
+                        max="300"
+                        step="10"
+                        value={config.logoSize}
+                        onChange={(e) => setConfig(prev => ({ ...prev, logoSize: parseInt(e.target.value) }))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
