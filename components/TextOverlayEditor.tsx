@@ -182,7 +182,6 @@ export default function TextOverlayEditor({
 
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'templates' | 'customize'>('templates');
 
   // Générer preview
   const generatePreview = async () => {
@@ -257,31 +256,6 @@ export default function TextOverlayEditor({
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 pt-4 border-b border-neutral-200">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
-                activeTab === 'templates'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              🎨 Templates
-            </button>
-            <button
-              onClick={() => setActiveTab('customize')}
-              className={`px-4 py-2 rounded-t-lg font-medium text-sm transition-colors ${
-                activeTab === 'customize'
-                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              ⚙️ Personnaliser
-            </button>
-          </div>
-        </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
@@ -307,32 +281,7 @@ export default function TextOverlayEditor({
             </div>
 
             {/* Controls */}
-            <div className="space-y-4">
-              {activeTab === 'templates' && (
-                <div>
-                  <h3 className="text-sm font-semibold text-neutral-700 mb-3">Choisir un template</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {TEMPLATES.map((template) => (
-                      <button
-                        key={template.id}
-                        onClick={() => applyTemplate(template)}
-                        className={`p-4 rounded-xl border-2 text-left transition-all hover:scale-105 ${
-                          config.template === template.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-neutral-200 hover:border-blue-300'
-                        }`}
-                      >
-                        <div className="text-3xl mb-2">{template.icon}</div>
-                        <div className="text-sm font-semibold text-neutral-900">{template.name}</div>
-                        <div className="text-xs text-neutral-500 mt-1">{template.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'customize' && (
-                <div className="space-y-4">
+            <div className="space-y-6">
                   {/* Texte */}
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -557,8 +506,29 @@ export default function TextOverlayEditor({
                       ))}
                     </div>
                   </div>
+
+                  {/* Templates */}
+                  <div className="border-t-2 border-neutral-100 pt-4">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3">🎨 Templates</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {TEMPLATES.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => applyTemplate(template)}
+                          className={`p-3 rounded-xl border-2 text-left transition-all hover:scale-105 ${
+                            config.template === template.id
+                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                              : 'border-neutral-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{template.icon}</div>
+                          <div className="text-xs font-semibold text-neutral-900">{template.name}</div>
+                          <div className="text-[10px] text-neutral-500 mt-0.5">{template.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
             </div>
           </div>
         </div>

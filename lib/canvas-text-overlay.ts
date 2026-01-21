@@ -317,8 +317,11 @@ export async function addTextOverlay(
 
           // Styles adaptatifs selon backgroundStyle
           if (backgroundStyle === 'clean') {
-            // Clean: VRAIMENT rien (juste le texte pur)
-            // Pas d'ombre, pas de contour
+            // Clean: texte pur MAIS avec ombre portée pour visibilité
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = fontSize * 0.12;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
           } else if (backgroundStyle === 'minimal') {
             // Minimal: ombre très légère, pas de contour
             ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';

@@ -21,6 +21,7 @@ type SavedImage = {
 interface ImageCardProps {
   image: SavedImage;
   user: any;
+  isGuest?: boolean;
   onToggleFavorite: (imageId: string, currentState: boolean) => void;
   onDownload: (imageUrl: string, title?: string) => void;
   onDelete: (imageId: string) => void;
@@ -31,6 +32,7 @@ interface ImageCardProps {
 export default function ImageCard({
   image,
   user,
+  isGuest = false,
   onToggleFavorite,
   onDownload,
   onDelete,
@@ -41,7 +43,7 @@ export default function ImageCard({
   const [editedTitle, setEditedTitle] = useState(image.title || image.news_title || '');
 
   const handleTitleClick = () => {
-    if (user) {
+    if (user || isGuest) {
       setIsEditingTitle(true);
     }
   };
@@ -123,7 +125,7 @@ export default function ImageCard({
 
         {/* Overlay avec actions - Desktop HOVER - pointer-events TOUJOURS none, seulement les boutons sont cliquables */}
         <div className={`hidden md:flex absolute inset-0 bg-black/60 ${isDragging ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex-col items-center justify-center gap-2 p-4 z-10 pointer-events-none`}>
-          {user ? (
+          {(user || isGuest) ? (
             <>
               <div className="flex gap-2">
                 <button
@@ -212,9 +214,9 @@ export default function ImageCard({
           <p
             onClick={handleTitleClick}
             className={`text-sm font-medium text-neutral-900 truncate ${
-              user ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''
+              (user || isGuest) ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''
             }`}
-            title={user ? 'Cliquer pour modifier' : undefined}
+            title={(user || isGuest) ? 'Cliquer pour modifier' : undefined}
           >
             {image.title || image.news_title || 'Sans titre'}
           </p>
@@ -231,7 +233,7 @@ export default function ImageCard({
 
         {/* Actions mobiles - Visible uniquement sur mobile */}
         <div className="md:hidden mt-3 pt-3 border-t border-neutral-200">
-          {user ? (
+          {(user || isGuest) ? (
             <div className="flex flex-col gap-2">
               {/* Bouton principal Instagram */}
               <button

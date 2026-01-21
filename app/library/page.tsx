@@ -17,6 +17,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import EmailGateModal from './components/EmailGateModal';
 import DropZone from './components/DropZone';
+import InstagramMetaInfo from './components/InstagramMetaInfo';
+import InstagramConnectionModal from './components/InstagramConnectionModal';
 
 type SavedImage = {
   id: string;
@@ -134,6 +136,7 @@ export default function LibraryPage() {
   // États pour le workspace Instagram
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
+  const [showConnectionModal, setShowConnectionModal] = useState(false);
 
   // États pour les onglets
   const [activeTab, setActiveTab] = useState<Tab>('images');
@@ -180,11 +183,11 @@ export default function LibraryPage() {
               });
             } catch (err) {
               console.error('[Library] Error parsing guest images:', err);
-              setImages(DEMO_IMAGES);
+              setImages([]); // Guest avec erreur : tableau vide
             }
           } else {
-            // Première visite guest, montrer les images de démo
-            setImages(DEMO_IMAGES);
+            // Première visite guest, démarrer avec galerie vide
+            setImages([]);
           }
 
           // Charger le brouillon Instagram guest
@@ -750,6 +753,11 @@ export default function LibraryPage() {
           onStartFree={handleStartFree}
         />
 
+        {/* Info bulle Meta Business API - Visible pour utilisateurs connectés et guests */}
+        {(user || isGuest) && (
+          <InstagramMetaInfo onLearnMore={() => setShowConnectionModal(true)} />
+        )}
+
         {/* Navigation par onglets - Visible pour tous */}
         <TabNavigation
           activeTab={activeTab}
@@ -799,6 +807,7 @@ export default function LibraryPage() {
                       <ImageGrid
                         images={images}
                         user={user}
+                        isGuest={isGuest}
                         searchQuery={searchQuery}
                         selectedFolder={selectedFolder}
                         showFavoritesOnly={showFavoritesOnly}
@@ -830,6 +839,7 @@ export default function LibraryPage() {
                 <ImageGrid
                   images={images}
                   user={user}
+                  isGuest={isGuest}
                   searchQuery={searchQuery}
                   selectedFolder={selectedFolder}
                   showFavoritesOnly={showFavoritesOnly}
@@ -873,6 +883,12 @@ export default function LibraryPage() {
           onSave={createFolder}
         />
       )}
+
+      {/* Modal Connexion Instagram Meta */}
+      <InstagramConnectionModal
+        isOpen={showConnectionModal}
+        onClose={() => setShowConnectionModal(false)}
+      />
     </main>
   );
 }

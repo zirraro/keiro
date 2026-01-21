@@ -18,6 +18,7 @@ type SavedImage = {
 interface ImageGridProps {
   images: SavedImage[];
   user: any;
+  isGuest?: boolean;
   searchQuery: string;
   selectedFolder: string | null;
   showFavoritesOnly: boolean;
@@ -31,6 +32,7 @@ interface ImageGridProps {
 export default function ImageGrid({
   images,
   user,
+  isGuest = false,
   searchQuery,
   selectedFolder,
   showFavoritesOnly,
@@ -92,6 +94,7 @@ export default function ImageGrid({
           key={image.id}
           image={image}
           user={user}
+          isGuest={isGuest}
           onToggleFavorite={onToggleFavorite}
           onDownload={onDownload}
           onDelete={onDelete}
