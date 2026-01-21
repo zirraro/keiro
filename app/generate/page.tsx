@@ -102,6 +102,7 @@ export default function GeneratePage() {
   /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoMode, setLogoMode] = useState<'overlay' | 'modify'>('overlay'); // Mode: ajouter en overlay ou modifier l'image
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -883,13 +884,18 @@ export default function GeneratePage() {
 
       console.log('[Generate] Full prompt:', fullPrompt);
 
-      // Choisir entre i2i (si logo présent) ou t2i
-      const endpoint = logoUrl ? '/api/seedream/i2i' : '/api/seedream/t2i';
-      const requestBody = logoUrl
+      // Choisir entre i2i (si logo en mode modify) ou t2i
+      const useI2I = logoUrl && logoMode === 'modify';
+      const endpoint = useI2I ? '/api/seedream/i2i' : '/api/seedream/t2i';
+      const requestBody = useI2I
         ? { prompt: fullPrompt, image: logoUrl }
         : { prompt: fullPrompt };
 
-      console.log(`[Generate] Using ${logoUrl ? 'i2i' : 't2i'} endpoint`);
+      console.log(`[Generate] Using ${useI2I ? 'i2i (modify image)' : 't2i'} endpoint`, {
+        hasLogo: !!logoUrl,
+        logoMode: logoMode,
+        willAddLogoOverlay: logoUrl && logoMode === 'overlay'
+      });
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -989,6 +995,41 @@ export default function GeneratePage() {
 
               // Dessiner l'image de base
               ctx.drawImage(img, 0, 0);
+
+              // LOGO EN OVERLAY (si mode overlay activé)
+              if (logoUrl && logoMode === 'overlay') {
+                console.log('[Generate] Adding logo overlay...');
+                const logoImg = new Image();
+                await new Promise<void>((resolveLogo, rejectLogo) => {
+                  logoImg.onload = () => {
+                    try {
+                      const logoSize = Math.floor(img.width * 0.12); // 12% de la largeur de l'image
+                      const padding = Math.floor(img.width * 0.03);
+
+                      // Position en haut à gauche par défaut
+                      const logoX = padding;
+                      const logoY = padding;
+
+                      // Dessiner le logo
+                      ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+                      console.log('[Generate] ✅ Logo overlay applied');
+                      resolveLogo();
+                    } catch (err) {
+                      console.error('[Generate] Logo overlay error:', err);
+                      rejectLogo(err as Error);
+                    }
+                  };
+                  logoImg.onerror = () => {
+                    console.error('[Generate] Failed to load logo for overlay');
+                    rejectLogo(new Error('Failed to load logo'));
+                  };
+                  // Ne pas définir crossOrigin pour les data URLs
+                  if (!logoUrl.startsWith('data:')) {
+                    logoImg.crossOrigin = 'anonymous';
+                  }
+                  logoImg.src = logoUrl;
+                });
+              }
 
               // WATERMARK en bas à droite
               if (isUserFreemium || true) {
@@ -1512,7 +1553,7 @@ export default function GeneratePage() {
                 }`}
               >
                 {logoUrl ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <img
                       src={logoUrl}
                       alt="Logo"
@@ -1520,11 +1561,45 @@ export default function GeneratePage() {
                       crossOrigin="anonymous"
                       loading="eager"
                     />
+
+                    {/* Options mode logo */}
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <p className="text-xs font-semibold text-blue-900 mb-2">Comment utiliser cette image ?</p>
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="logoMode"
+                            checked={logoMode === 'overlay'}
+                            onChange={() => setLogoMode('overlay')}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-900">🎨 Ajouter comme logo en overlay</p>
+                            <p className="text-[10px] text-blue-700">Votre logo sera ajouté par-dessus l'image générée</p>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="logoMode"
+                            checked={logoMode === 'modify'}
+                            onChange={() => setLogoMode('modify')}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-900">✏️ Modifier cette image avec l'IA</p>
+                            <p className="text-[10px] text-blue-700">L'IA va transformer votre image selon l'actualité</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
                     <button
                       onClick={() => setLogoUrl(null)}
-                      className="text-xs text-red-600 hover:underline"
+                      className="text-xs text-red-600 hover:underline font-medium"
                     >
-                      Supprimer
+                      🗑️ Supprimer
                     </button>
                   </div>
                 ) : (
@@ -1568,121 +1643,6 @@ export default function GeneratePage() {
                   </p>
                 </div>
               )}
-
-              {/* Accompagnement spécialisé */}
-              <div className="mb-3 p-2 bg-amber-50 rounded border border-amber-200">
-                <p className="text-xs font-medium text-amber-900 mb-2">💡 Besoin d'aide pour optimiser votre contenu ?</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    onClick={() => setSpecialist('seo')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
-                      specialist === 'seo'
-                        ? 'bg-amber-600 text-white font-medium'
-                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
-                    }`}
-                  >
-                    📊 SEO
-                  </button>
-                  <button
-                    onClick={() => setSpecialist('marketing')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
-                      specialist === 'marketing'
-                        ? 'bg-amber-600 text-white font-medium'
-                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
-                    }`}
-                  >
-                    📈 Marketing
-                  </button>
-                  <button
-                    onClick={() => setSpecialist('content')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
-                      specialist === 'content'
-                        ? 'bg-amber-600 text-white font-medium'
-                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
-                    }`}
-                  >
-                    ✍️ Contenu
-                  </button>
-                  <button
-                    onClick={() => setSpecialist('copywriter')}
-                    className={`text-[10px] px-2 py-1.5 rounded transition ${
-                      specialist === 'copywriter'
-                        ? 'bg-amber-600 text-white font-medium'
-                        : 'bg-white text-amber-800 hover:bg-amber-100 border border-amber-300'
-                    }`}
-                  >
-                    ✨ Copywriting
-                  </button>
-                </div>
-                {specialist && (
-                  <div className="mt-2 p-2 bg-white rounded text-[10px] text-amber-900 border border-amber-200">
-                    {specialist === 'seo' && (
-                      <>
-                        <p className="font-medium mb-1">Conseils SEO :</p>
-                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
-                          <li>Utilisez des mots-clés pertinents liés à l'actualité</li>
-                          <li>Décrivez précisément votre secteur d'activité</li>
-                          <li>Mentionnez votre zone géographique si pertinent</li>
-                        </ul>
-                        <button
-                          onClick={() => applySpecialistSuggestion('seo')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
-                        >
-                          🚀 Remplir automatiquement
-                        </button>
-                      </>
-                    )}
-                    {specialist === 'marketing' && (
-                      <>
-                        <p className="font-medium mb-1">Stratégie Marketing :</p>
-                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
-                          <li>Identifiez clairement votre audience cible</li>
-                          <li>Soulignez votre proposition de valeur unique</li>
-                          <li>Définissez un objectif clair (notoriété, conversion...)</li>
-                        </ul>
-                        <button
-                          onClick={() => applySpecialistSuggestion('marketing')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
-                        >
-                          🚀 Remplir automatiquement
-                        </button>
-                      </>
-                    )}
-                    {specialist === 'content' && (
-                      <>
-                        <p className="font-medium mb-1">Création de Contenu :</p>
-                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
-                          <li>Racontez une histoire authentique de votre marque</li>
-                          <li>Adaptez le ton à votre communauté</li>
-                          <li>Apportez de la valeur ajoutée, pas seulement de la promo</li>
-                        </ul>
-                        <button
-                          onClick={() => applySpecialistSuggestion('content')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
-                        >
-                          🚀 Remplir automatiquement
-                        </button>
-                      </>
-                    )}
-                    {specialist === 'copywriter' && (
-                      <>
-                        <p className="font-medium mb-1">Copywriting Efficace :</p>
-                        <ul className="list-disc pl-3 space-y-0.5 mb-2">
-                          <li>Créez un lien émotionnel avec l'actualité</li>
-                          <li>Utilisez des verbes d'action et appels à l'action clairs</li>
-                          <li>Gardez des phrases courtes et impactantes</li>
-                        </ul>
-                        <button
-                          onClick={() => applySpecialistSuggestion('copywriter')}
-                          className="w-full py-1 text-[10px] bg-amber-600 text-white rounded hover:bg-amber-700"
-                        >
-                          🚀 Remplir automatiquement
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
 
               {/* Section d'aide pour créer le lien actualité/business */}
               {selectedNews && (
