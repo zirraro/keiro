@@ -345,6 +345,36 @@ export default function LibraryPage() {
     if (!selectedImageForInsta) return;
 
     try {
+      // MODE GUEST : Limiter à 1 brouillon et sauvegarder dans localStorage
+      if (isGuest) {
+        const existingDraft = localStorage.getItem('keiro_guest_instagram_draft');
+        if (existingDraft && instagramDrafts.length > 0) {
+          alert('⚠️ Limite atteinte !\n\nVous avez déjà créé votre brouillon Instagram gratuit.\n\nCréez un compte pour créer plus de brouillons et publier automatiquement ! 🚀');
+          return;
+        }
+
+        // Créer le brouillon guest
+        const guestDraft: InstagramDraft = {
+          id: `guest-draft-${Date.now()}`,
+          saved_image_id: selectedImageForInsta.id,
+          image_url: selectedImageForInsta.image_url,
+          caption,
+          hashtags,
+          status,
+          created_at: new Date().toISOString()
+        };
+
+        // Sauvegarder dans localStorage
+        localStorage.setItem('keiro_guest_instagram_draft', JSON.stringify(guestDraft));
+        setInstagramDrafts([guestDraft]);
+        setStats(prev => ({ ...prev, total_instagram_drafts: 1 }));
+
+        alert('✅ Brouillon Instagram sauvegardé !\n\nCréez un compte pour le publier automatiquement sur Instagram ! 🎉');
+        setShowInstagramModal(false);
+        return;
+      }
+
+      // MODE USER : Appel API normal
       const response = await fetch('/api/library/instagram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
