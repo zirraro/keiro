@@ -108,7 +108,7 @@ export async function addTextOverlay(
       img.crossOrigin = 'anonymous';
     }
 
-    img.onload = () => {
+    img.onload = async () => {
       console.log('[TextOverlay] Image loaded successfully:', {
         width: img.width,
         height: img.height

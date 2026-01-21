@@ -981,7 +981,7 @@ export default function GeneratePage() {
         finalImageUrl = await new Promise<string>((resolve, reject) => {
           const img = new Image();
 
-          img.onload = () => {
+          img.onload = async () => {
             try {
               // Créer canvas aux dimensions de l'image
               const canvas = document.createElement('canvas');
