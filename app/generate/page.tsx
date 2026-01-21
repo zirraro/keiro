@@ -123,8 +123,8 @@ export default function GeneratePage() {
   const [textSuggestions, setTextSuggestions] = useState<string[]>([]); // Suggestions de texte intelligentes
   const [showTextSuggestions, setShowTextSuggestions] = useState(false); // Afficher les suggestions
   const [platform, setPlatform] = useState('Instagram');
-  const [tone, setTone] = useState('Professionnel');
-  const [visualStyle, setVisualStyle] = useState('Moderne et épuré');
+  const [tone, setTone] = useState('');
+  const [visualStyle, setVisualStyle] = useState('');
   const [specialist, setSpecialist] = useState<string>('');
 
   // NOUVELLES questions EXPERTES pour personnalisation ultra-précise
@@ -1713,7 +1713,7 @@ export default function GeneratePage() {
                 </label>
 
                 {/* Sélection simple en ligne */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
                   {Object.entries(tonePresets).map(([key, preset]) => {
                     const isSelected = communicationProfile === key;
 
@@ -1721,15 +1721,15 @@ export default function GeneratePage() {
                       <button
                         key={key}
                         onClick={() => setCommunicationProfile(key as any)}
-                        className={`p-3 rounded-xl border-2 text-center transition-all ${
+                        className={`p-3 rounded-lg border-2 text-center transition-all ${
                           isSelected
-                            ? 'border-blue-500 bg-blue-50 shadow-lg ring-2 ring-blue-200'
-                            : 'border-neutral-200 hover:border-blue-300 bg-white hover:shadow-md'
+                            ? 'border-blue-500 bg-blue-50 shadow-md'
+                            : 'border-neutral-200 hover:border-blue-300 bg-white'
                         }`}
                       >
-                        <div className="text-3xl mb-2">{preset.icon}</div>
-                        <div className="text-sm font-bold text-neutral-900">{preset.label}</div>
-                        <div className="text-[10px] text-blue-600 font-semibold mt-1">{preset.marketingStrategy}</div>
+                        <div className="text-2xl mb-1">{preset.icon}</div>
+                        <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
+                        <div className="text-[9px] text-blue-600 font-medium mt-0.5 leading-tight">{preset.marketingStrategy}</div>
                       </button>
                     );
                   })}
@@ -1737,32 +1737,30 @@ export default function GeneratePage() {
 
                 {/* Détails de la stratégie sélectionnée - Compact */}
                 {communicationProfile && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="text-3xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
-                      <div className="flex-1 space-y-2">
-                        <h4 className="font-bold text-neutral-900 text-sm">
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-neutral-900 text-xs mb-1">
                           {tonePresets[communicationProfile].marketingStrategy}
                         </h4>
-                        <p className="text-xs text-neutral-700 leading-relaxed">
+                        <p className="text-[11px] text-neutral-700 leading-snug mb-2">
                           {tonePresets[communicationProfile].description}
                         </p>
 
-                        {/* Points clés */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-start gap-2 text-xs text-neutral-600">
-                            <span className="text-blue-600 font-bold">•</span>
-                            <span><strong>Exemple :</strong> {tonePresets[communicationProfile].example}</span>
-                          </div>
-                          <div className="flex items-start gap-2 text-xs text-neutral-600">
-                            <span className="text-blue-600 font-bold">•</span>
-                            <span><strong>Idéal pour :</strong> {tonePresets[communicationProfile].whenToUse}</span>
-                          </div>
+                        {/* Points clés inline */}
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-neutral-600">
+                            <span className="text-blue-600 font-bold">▸</span> <strong>Exemple :</strong> {tonePresets[communicationProfile].example}
+                          </p>
+                          <p className="text-[10px] text-neutral-600">
+                            <span className="text-blue-600 font-bold">▸</span> <strong>Idéal pour :</strong> {tonePresets[communicationProfile].whenToUse}
+                          </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* Bouton remplissage automatique */}
+                    {/* Bouton remplissage automatique - petit et inline */}
                     <button
                       onClick={() => {
                         // Auto-fill selon la stratégie
@@ -1770,12 +1768,12 @@ export default function GeneratePage() {
                         setTone(preset.tone);
                         setVisualStyle(preset.visualStyle);
                       }}
-                      className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-md transition-all"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      Remplir automatiquement selon cette stratégie
+                      Remplir automatiquement
                     </button>
                   </div>
                 )}
