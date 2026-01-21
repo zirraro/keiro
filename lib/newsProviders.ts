@@ -193,7 +193,6 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'scandale', 'polémique', 'polemique', 'clash', 'rumeur', 'exclu', 'révélation', 'revelation', 'confession', 'interview',
     'tapis rouge', 'gala', 'soirée', 'soiree', 'après-ski', 'vacances', 'yacht', 'villa', 'luxe', 'people', 'célébrité', 'celebrite', 'star'
   ],
-  ],
 
   'Tech': [
     'ia générative', 'llm', 'gpt', 'gemini', 'bard', 'copilot', 'github', 'gitlab', 'typescript', 'react',
