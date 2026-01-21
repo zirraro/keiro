@@ -99,26 +99,29 @@ const RSS_FEEDS = [
   { url: 'https://www.geo.fr/rss.xml', category: 'Climat', timeout: 5000 },
   { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Climat', timeout: 5000 },
 
-  // People
-  { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 5000 },
-  { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 5000 },
+  // People - flux enrichis avec recatégorisation auto
+  { url: 'https://www.purepeople.com/rss.xml', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.gala.fr/rss.xml', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.voici.fr/rss.xml', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.closermag.fr/rss.xml', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
 
-  // Musique - NOUVELLE CATÉGORIE
-  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Musique', timeout: 5000 },
-  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Musique', timeout: 5000 },
-  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Musique', timeout: 5000 },
+  // Musique - flux enrichis avec recatégorisation auto
+  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
+  { url: 'https://www.ticketmaster.fr/discover/feed', category: 'À la une', timeout: 5000 }, // Recatégorisé auto
 
   // Restauration
   { url: 'https://www.atablecheznanou.com/feed/', category: 'Restauration', timeout: 5000 },
   { url: 'https://www.750g.com/rss.xml', category: 'Restauration', timeout: 5000 },
 
-  // Tendances - Flux variés couvrant lifestyle, pop culture, buzz, viral
-  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.aufeminin.com/rss.xml', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.grazia.fr/rss.xml', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Tendances', timeout: 5000 },
-  { url: 'https://hitek.fr/feed', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.demotivateur.fr/feed', category: 'Tendances', timeout: 5000 },
+  // Tendances - Flux variés recatégorisés auto (peuvent contenir People, Musique, etc.)
+  { url: 'https://www.konbini.com/fr/feed/', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.aufeminin.com/rss.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.grazia.fr/rss.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://hitek.fr/feed', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.demotivateur.fr/feed', category: 'À la une', timeout: 5000 },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente
@@ -267,7 +270,7 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
 
         const articles: NewsArticle[] = [];
 
-        for (const item of parsed.items.slice(0, 12)) {
+        for (const item of parsed.items.slice(0, 20)) {
           const title = item.title?.trim() || '';
           const description = item.contentSnippet?.trim() || item.content?.trim() || item.summary?.trim() || '';
           const url = item.link || '';
