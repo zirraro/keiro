@@ -134,7 +134,6 @@ export default function GeneratePage() {
 
   /* --- États pour le sélecteur de profil de communication --- */
   const [communicationProfile, setCommunicationProfile] = useState<'inspirant' | 'expert' | 'urgent' | 'conversationnel'>('inspirant');
-  const [expandedStrategy, setExpandedStrategy] = useState<string | null>(null);
 
   // Presets de tons par profil - Stratégies marketing détaillées
   const tonePresets = {
@@ -1711,90 +1710,73 @@ export default function GeneratePage() {
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-neutral-900 mb-3">
                   🎭 Choisissez votre stratégie marketing
-                  <span className="block text-xs font-normal text-neutral-500 mt-1">
-                    Cliquez sur une stratégie pour découvrir ses détails et l'utiliser
-                  </span>
                 </label>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Sélection simple en ligne */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                   {Object.entries(tonePresets).map(([key, preset]) => {
-                    const expanded = expandedStrategy === key;
                     const isSelected = communicationProfile === key;
 
                     return (
-                      <div
+                      <button
                         key={key}
-                        className={`relative rounded-xl border-2 transition-all ${
+                        onClick={() => setCommunicationProfile(key as any)}
+                        className={`p-3 rounded-xl border-2 text-center transition-all ${
                           isSelected
-                            ? 'border-blue-500 bg-blue-50 shadow-lg'
-                            : 'border-neutral-200 hover:border-blue-300 bg-white'
-                        } ${expanded ? 'lg:col-span-2' : ''}`}
+                            ? 'border-blue-500 bg-blue-50 shadow-lg ring-2 ring-blue-200'
+                            : 'border-neutral-200 hover:border-blue-300 bg-white hover:shadow-md'
+                        }`}
                       >
-                        {/* Compact view */}
-                        <button
-                          onClick={() => setExpandedStrategy(expanded ? null : key)}
-                          className="w-full p-4 text-left"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="text-2xl">{preset.icon}</div>
-                            <div className="flex-1">
-                              <div className="font-bold text-sm text-neutral-900">{preset.label}</div>
-                              <div className="text-[10px] text-blue-600 font-semibold">{preset.marketingStrategy}</div>
-                            </div>
-                            {isSelected && (
-                              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                            <svg
-                              className={`w-4 h-4 text-neutral-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </button>
-
-                        {/* Expanded details */}
-                        {expanded && (
-                          <div className="px-4 pb-4 space-y-3 border-t border-neutral-200 pt-3">
-                            <p className="text-xs text-neutral-700 font-medium">{preset.description}</p>
-                            <p className="text-[11px] text-neutral-600 leading-relaxed">{preset.details}</p>
-
-                            <div className="bg-blue-50 rounded-lg px-3 py-2">
-                              <p className="text-[10px] text-blue-700 italic">{preset.example}</p>
-                            </div>
-
-                            <div className="text-[10px] text-neutral-500">
-                              <span className="font-semibold">Idéal pour :</span> {preset.whenToUse}
-                            </div>
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCommunicationProfile(key as any);
-                                setExpandedStrategy(null);
-                              }}
-                              className="w-full mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                            >
-                              Utiliser cette stratégie
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                        <div className="text-3xl mb-2">{preset.icon}</div>
+                        <div className="text-sm font-bold text-neutral-900">{preset.label}</div>
+                        <div className="text-[10px] text-blue-600 font-semibold mt-1">{preset.marketingStrategy}</div>
+                      </button>
                     );
                   })}
                 </div>
 
+                {/* Détails de la stratégie sélectionnée - Compact */}
                 {communicationProfile && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-800">
-                      <span className="font-semibold">✓ Stratégie sélectionnée :</span> {tonePresets[communicationProfile as keyof typeof tonePresets].marketingStrategy}
-                    </p>
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
+                      <div className="flex-1 space-y-2">
+                        <h4 className="font-bold text-neutral-900 text-sm">
+                          {tonePresets[communicationProfile].marketingStrategy}
+                        </h4>
+                        <p className="text-xs text-neutral-700 leading-relaxed">
+                          {tonePresets[communicationProfile].description}
+                        </p>
+
+                        {/* Points clés */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-start gap-2 text-xs text-neutral-600">
+                            <span className="text-blue-600 font-bold">•</span>
+                            <span><strong>Exemple :</strong> {tonePresets[communicationProfile].example}</span>
+                          </div>
+                          <div className="flex items-start gap-2 text-xs text-neutral-600">
+                            <span className="text-blue-600 font-bold">•</span>
+                            <span><strong>Idéal pour :</strong> {tonePresets[communicationProfile].whenToUse}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bouton remplissage automatique */}
+                    <button
+                      onClick={() => {
+                        // Auto-fill selon la stratégie
+                        const preset = tonePresets[communicationProfile];
+                        setTone(preset.tone);
+                        setVisualStyle(preset.visualStyle);
+                      }}
+                      className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Remplir automatiquement selon cette stratégie
+                    </button>
                   </div>
                 )}
               </div>
