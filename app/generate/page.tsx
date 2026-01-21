@@ -2516,8 +2516,8 @@ export default function GeneratePage() {
                           className="w-full text-base rounded-lg border-2 border-purple-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                           placeholder={
                             editMode === 'precise'
-                              ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite, améliorer les couleurs...'
-                              : 'Ex: Transformer en style cyberpunk, ajouter des néons, rendre plus moderne...'
+                              ? 'Ex: Améliorer la lumière naturelle, saturer les couleurs chaudes, ajouter du contraste, flouter légèrement l\'arrière-plan...'
+                              : 'Ex: Style vintage années 80, ambiance golden hour, effet peinture impressionniste, look magazine luxe...'
                           }
                         />
                         <div className="flex items-start gap-2 mt-2">
@@ -3380,8 +3380,8 @@ export default function GeneratePage() {
                         onChange={(e) => setEditPrompt(e.target.value)}
                         placeholder={
                           editMode === 'precise'
-                            ? 'Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite, améliorer les couleurs...'
-                            : 'Ex: Transformer en style cyberpunk, ajouter des néons, rendre plus moderne...'
+                            ? 'Ex: Améliorer lumière, saturer couleurs, ajouter contraste, flouter arrière-plan...'
+                            : 'Ex: Style vintage 80s, ambiance golden hour, effet peinture, look magazine luxe...'
                         }
                         rows={4}
                         className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
