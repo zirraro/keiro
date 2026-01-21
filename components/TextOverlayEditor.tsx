@@ -528,7 +528,6 @@ export default function TextOverlayEditor({
                       ))}
                     </div>
                   </div>
-                </div>
             </div>
           </div>
         </div>
