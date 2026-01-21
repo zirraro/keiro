@@ -103,6 +103,7 @@ export default function GeneratePage() {
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoMode, setLogoMode] = useState<'overlay' | 'modify'>('overlay'); // Mode: ajouter en overlay ou modifier l'image
+  const [logoPosition, setLogoPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('top-left');
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -1006,9 +1007,20 @@ export default function GeneratePage() {
                       const logoSize = Math.floor(img.width * 0.12); // 12% de la largeur de l'image
                       const padding = Math.floor(img.width * 0.03);
 
-                      // Position en haut à gauche par défaut
-                      const logoX = padding;
-                      const logoY = padding;
+                      // Position selon logoPosition
+                      let logoX = padding;
+                      let logoY = padding;
+
+                      if (logoPosition === 'top-right') {
+                        logoX = img.width - logoSize - padding;
+                        logoY = padding;
+                      } else if (logoPosition === 'bottom-left') {
+                        logoX = padding;
+                        logoY = img.height - logoSize - padding;
+                      } else if (logoPosition === 'bottom-right') {
+                        logoX = img.width - logoSize - padding;
+                        logoY = img.height - logoSize - padding;
+                      }
 
                       // Dessiner le logo
                       ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
@@ -2318,7 +2330,14 @@ export default function GeneratePage() {
                     🖼️ Image
                   </button>
                   <button
-                    onClick={() => setActiveTab('edit')}
+                    onClick={() => {
+                      setActiveTab('edit');
+                      // Initialiser selectedEditVersion si ce n'est pas déjà fait
+                      if (!selectedEditVersion && generatedImageUrl) {
+                        setEditVersions([generatedImageUrl]);
+                        setSelectedEditVersion(generatedImageUrl);
+                      }
+                    }}
                     className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'edit'
                         ? 'border-blue-500 text-blue-600'
@@ -2422,6 +2441,33 @@ export default function GeneratePage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
+                          </div>
+                        )}
+
+                        {/* Position du logo (si logo uploadé) */}
+                        {logoUrl && (
+                          <div className="mt-3 p-3 bg-white rounded-lg border border-neutral-200">
+                            <label className="block text-sm font-semibold text-neutral-800 mb-2">Position du logo</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {([
+                                { pos: 'top-left', label: '↖️ Haut gauche' },
+                                { pos: 'top-right', label: '↗️ Haut droite' },
+                                { pos: 'bottom-left', label: '↙️ Bas gauche' },
+                                { pos: 'bottom-right', label: '↘️ Bas droite' }
+                              ] as const).map(({ pos, label }) => (
+                                <button
+                                  key={pos}
+                                  onClick={() => setLogoPosition(pos)}
+                                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                                    logoPosition === pos
+                                      ? 'bg-purple-500 text-white ring-2 ring-purple-300'
+                                      : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3185,7 +3231,14 @@ export default function GeneratePage() {
                   {/* Onglets desktop */}
                   <div className="flex gap-2 bg-white rounded-lg p-1 border">
                     <button
-                      onClick={() => setActiveTab('edit')}
+                      onClick={() => {
+                        setActiveTab('edit');
+                        // Initialiser selectedEditVersion si ce n'est pas déjà fait
+                        if (!selectedEditVersion && generatedImageUrl) {
+                          setEditVersions([generatedImageUrl]);
+                          setSelectedEditVersion(generatedImageUrl);
+                        }
+                      }}
                       className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                         activeTab === 'edit'
                           ? 'bg-blue-500 text-white'
@@ -3254,6 +3307,33 @@ export default function GeneratePage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
+                        </div>
+                      )}
+
+                      {/* Position du logo (si logo uploadé) */}
+                      {logoUrl && (
+                        <div className="mt-2 p-2 bg-white rounded-lg border border-neutral-200">
+                          <label className="block text-[10px] font-semibold text-neutral-800 mb-1.5">Position du logo</label>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {([
+                              { pos: 'top-left', label: '↖️ Haut gauche' },
+                              { pos: 'top-right', label: '↗️ Haut droite' },
+                              { pos: 'bottom-left', label: '↙️ Bas gauche' },
+                              { pos: 'bottom-right', label: '↘️ Bas droite' }
+                            ] as const).map(({ pos, label }) => (
+                              <button
+                                key={pos}
+                                onClick={() => setLogoPosition(pos)}
+                                className={`px-2 py-1.5 rounded text-[9px] font-medium transition-all ${
+                                  logoPosition === pos
+                                    ? 'bg-purple-500 text-white ring-1 ring-purple-300'
+                                    : 'bg-neutral-100 text-neutral-700'
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

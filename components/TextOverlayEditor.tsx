@@ -476,9 +476,20 @@ export default function TextOverlayEditor({
                   {/* Style de fond */}
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Style de fond</label>
+                    {/* Bouton "Aucun" distinct en haut */}
+                    <button
+                      onClick={() => setConfig(prev => ({ ...prev, backgroundStyle: 'clean' }))}
+                      className={`w-full mb-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        config.backgroundStyle === 'clean'
+                          ? 'bg-green-500 text-white ring-2 ring-green-300'
+                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border-2 border-dashed border-neutral-300'
+                      }`}
+                    >
+                      <span className="mr-1">🚫</span>
+                      AUCUN FOND - Texte pur
+                    </button>
                     <div className="grid grid-cols-2 gap-2">
                       {([
-                        { value: 'clean', label: 'Sans fond (pur)', emoji: '🔲' },
                         { value: 'minimal', label: 'Minimal (léger)', emoji: '🎯' },
                         { value: 'none', label: 'Fort contraste', emoji: '✨' },
                         { value: 'transparent', label: 'Semi-transparent', emoji: '👻' },
