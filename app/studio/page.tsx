@@ -29,6 +29,13 @@ function StudioContent() {
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [savingToGallery, setSavingToGallery] = useState(false);
+  const [lastTextConfig, setLastTextConfig] = useState<any>({
+    text: '',
+    position: 'center',
+    fontSize: 80,
+    textColor: '#ffffff',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  });
 
   // Vérifier si l'utilisateur est connecté au chargement et écouter les changements d'auth
   useEffect(() => {
@@ -650,12 +657,10 @@ function StudioContent() {
       {showTextEditor && loadedImage && (
         <TextOverlayEditor
           baseImageUrl={loadedImage}
-          initialConfig={{
-            text: '',
-            position: 'center',
-          }}
+          initialConfig={lastTextConfig}
           onApply={(newImageUrl, config) => {
             setLoadedImage(newImageUrl);
+            setLastTextConfig(config);
             setShowTextEditor(false);
           }}
           onCancel={() => setShowTextEditor(false)}

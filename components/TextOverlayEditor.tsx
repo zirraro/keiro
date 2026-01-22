@@ -172,7 +172,7 @@ export default function TextOverlayEditor({
     textColor: initialConfig?.textColor || '#ffffff',
     backgroundColor: initialConfig?.backgroundColor || 'rgba(0, 0, 0, 0.5)',
     fontFamily: initialConfig?.fontFamily || 'inter',
-    fontSize: initialConfig?.fontSize || 60,
+    fontSize: initialConfig?.fontSize || 80,
     backgroundStyle: initialConfig?.backgroundStyle || 'transparent',
     template: initialConfig?.template || 'headline',
     logoUrl: initialConfig?.logoUrl || undefined,

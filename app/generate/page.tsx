@@ -58,6 +58,9 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
 
+  /* --- Ref pour le scroll auto sur mobile --- */
+  const promptSectionRef = useRef<HTMLDivElement>(null);
+
   /* --- Calculer les catégories qui ont au moins une news --- */
   const availableCategories = useMemo(() => {
     const categoriesWithNews = new Set<string>();
@@ -370,6 +373,24 @@ export default function GeneratePage() {
     uniqueAdvantage,
     desiredVisualIdea
   ]);
+
+  /* --- Auto-scroll vers le prompt IA sur mobile après sélection d'une actualité --- */
+  useEffect(() => {
+    if (selectedNews && promptSectionRef.current) {
+      // Vérifier si on est sur mobile (< 768px)
+      const isMobile = window.innerWidth < 768;
+
+      if (isMobile) {
+        // Attendre un court instant pour que le rendu soit complet
+        setTimeout(() => {
+          promptSectionRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }, 100);
+      }
+    }
+  }, [selectedNews]);
 
   async function fetchAllNews() {
     try {
@@ -1800,7 +1821,7 @@ export default function GeneratePage() {
                 </div>
 
                 {/* Nouveaux champs pour guidance détaillée */}
-                <div className="border-t pt-2 mt-2">
+                <div ref={promptSectionRef} className="border-t pt-2 mt-2">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
 
@@ -2926,7 +2947,9 @@ export default function GeneratePage() {
                             return; // Pas de texte à ajouter
                           }
 
-                          const imageToEdit = selectedEditVersion || generatedImageUrl;
+                          // IMPORTANT : Toujours utiliser l'image ORIGINALE générée (sans texte)
+                          // pour éviter d'avoir du texte superposé
+                          const imageToEdit = originalImageUrl || generatedImageUrl;
                           if (!imageToEdit) return;
 
                           try {
