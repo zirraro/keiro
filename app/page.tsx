@@ -56,45 +56,51 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* VIDÉO WORKFLOW - Comment ça marche en vidéo */}
-      <section className="bg-gradient-to-br from-blue-50 to-cyan-50 border-y border-blue-100">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-2">🎬 Voyez Keiro en action</h2>
-            <p className="text-neutral-600">De l'actualité au post Instagram en 3 minutes chrono</p>
-          </div>
+      {/* VIDÉO WORKFLOW - Compact version */}
+      <section className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border-b border-blue-100">
+        <div className="mx-auto max-w-6xl px-6 py-8">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            {/* Texte + Video à gauche */}
+            <div className="md:w-2/5">
+              <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                <span>🎬</span>
+                <span>Voyez Keiro en action</span>
+              </h3>
+              <p className="text-sm text-neutral-600 mb-4">
+                De l'actualité au post Instagram en 3 minutes chrono
+              </p>
 
-          {/* Vidéo placeholder - À remplacer par embed YouTube */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="relative bg-neutral-900 aspect-video flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 hover:scale-110 transition-transform cursor-pointer">
-                  <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
+              {/* Vidéo compacte */}
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="relative bg-neutral-900 aspect-video flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center mx-auto hover:scale-110 transition-transform cursor-pointer">
+                      <svg className="w-7 h-7 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-lg font-semibold mb-1">Workflow complet Keiro</div>
-                <div className="text-sm text-neutral-400">Actualité → Génération IA → Post Instagram → Analytics</div>
               </div>
             </div>
-          </div>
 
-          {/* Points clés sous la vidéo */}
-          <div className="grid md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-white rounded-lg p-4 border border-blue-100">
-              <div className="text-2xl mb-2">⚡</div>
-              <div className="font-semibold text-sm mb-1">3 minutes</div>
-              <div className="text-xs text-neutral-600">Du choix de l'actu au visuel final</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-blue-100">
-              <div className="text-2xl mb-2">🎯</div>
-              <div className="font-semibold text-sm mb-1">Zéro compétence</div>
-              <div className="text-xs text-neutral-600">L'IA fait tout le travail créatif</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-blue-100">
-              <div className="text-2xl mb-2">📈</div>
-              <div className="font-semibold text-sm mb-1">Résultats mesurables</div>
-              <div className="text-xs text-neutral-600">Analytics intégrés pour optimiser</div>
+            {/* Points clés à droite */}
+            <div className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+                <div className="text-xl mb-1">⚡</div>
+                <div className="font-semibold text-xs mb-0.5">3 minutes</div>
+                <div className="text-[10px] text-neutral-600">Du choix de l'actu au visuel final</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+                <div className="text-xl mb-1">🎯</div>
+                <div className="font-semibold text-xs mb-0.5">Zéro compétence</div>
+                <div className="text-[10px] text-neutral-600">L'IA fait tout le travail créatif</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+                <div className="text-xl mb-1">📈</div>
+                <div className="font-semibold text-xs mb-0.5">Résultats mesurables</div>
+                <div className="text-[10px] text-neutral-600">Analytics intégrés pour optimiser</div>
+              </div>
             </div>
           </div>
         </div>

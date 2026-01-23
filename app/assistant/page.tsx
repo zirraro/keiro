@@ -76,52 +76,52 @@ export default function AssistantPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Header intelligent personnalisé */}
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6 mb-6">
-          <div className="flex items-start justify-between">
+        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 md:p-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                👋 Bonjour {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'there'} !
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                👋 Bonjour {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'à vous'} !
               </h1>
-              <p className="text-neutral-600 mb-4">
+              <p className="text-sm md:text-base text-neutral-600 mb-4">
                 Voici votre tableau de bord marketing IA personnalisé
               </p>
 
               {/* Stats résumé */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
-                  <div className="text-xs text-blue-700 font-semibold mb-1">Cette semaine</div>
-                  <div className="text-2xl font-bold text-blue-900">{stats.postsThisWeek}</div>
-                  <div className="text-[10px] text-blue-600">visuels générés</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 md:p-4">
+                  <div className="text-[10px] md:text-xs text-blue-700 font-semibold mb-1">Cette semaine</div>
+                  <div className="text-xl md:text-2xl font-bold text-blue-900">{stats.postsThisWeek}</div>
+                  <div className="text-[9px] md:text-[10px] text-blue-600">visuels générés</div>
                   {stats.improvement > 0 && (
-                    <div className="text-[10px] text-green-600 font-semibold mt-1">
-                      +{stats.improvement}% vs semaine dernière
+                    <div className="text-[9px] md:text-[10px] text-green-600 font-semibold mt-1">
+                      +{stats.improvement}%
                     </div>
                   )}
                 </div>
 
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4">
-                  <div className="text-xs text-cyan-700 font-semibold mb-1">Engagement moyen</div>
-                  <div className="text-2xl font-bold text-cyan-900">{stats.avgEngagement}</div>
-                  <div className="text-[10px] text-cyan-600">vues/post</div>
+                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-3 md:p-4">
+                  <div className="text-[10px] md:text-xs text-cyan-700 font-semibold mb-1">Engagement</div>
+                  <div className="text-xl md:text-2xl font-bold text-cyan-900">{stats.avgEngagement}</div>
+                  <div className="text-[9px] md:text-[10px] text-cyan-600">vues/post</div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
-                  <div className="text-xs text-purple-700 font-semibold mb-1">Top catégorie</div>
-                  <div className="text-sm font-bold text-purple-900">{stats.topCategory}</div>
-                  <div className="text-[10px] text-purple-600">meilleure performance</div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 md:p-4">
+                  <div className="text-[10px] md:text-xs text-purple-700 font-semibold mb-1">Top catégorie</div>
+                  <div className="text-xs md:text-sm font-bold text-purple-900 truncate">{stats.topCategory}</div>
+                  <div className="text-[9px] md:text-[10px] text-purple-600">performance</div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
-                  <div className="text-xs text-green-700 font-semibold mb-1">Prochain conseil</div>
-                  <div className="text-sm font-bold text-green-900">Mardi 18h</div>
-                  <div className="text-[10px] text-green-600">meilleur moment</div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 md:p-4">
+                  <div className="text-[10px] md:text-xs text-green-700 font-semibold mb-1">Prochain</div>
+                  <div className="text-xs md:text-sm font-bold text-green-900">Mardi 18h</div>
+                  <div className="text-[9px] md:text-[10px] text-green-600">meilleur moment</div>
                 </div>
               </div>
             </div>
 
             <a
               href="/generate"
-              className="ml-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              className="w-full md:w-auto md:ml-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-sm md:text-base font-semibold rounded-xl hover:shadow-lg transition-all text-center shrink-0"
             >
               Créer un visuel →
             </a>
@@ -167,52 +167,45 @@ export default function AssistantPage() {
 
 // Onglet Dashboard
 function DashboardTab({ stats, chartData, user }: any) {
-  // Si pas de données, afficher un message d'invitation
-  if (!user || stats.totalPosts === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow border border-neutral-200 p-12 text-center">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className="text-2xl font-bold mb-2">Commencez à tracker vos performances</h2>
-          <p className="text-neutral-600 mb-6">
-            Créez vos premiers visuels et suivez leurs performances en temps réel
-          </p>
-          <a
-            href="/generate"
-            className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-          >
-            Créer mon premier visuel →
-          </a>
-        </div>
+  // Données de démo pour afficher des graphiques d'exemple
+  const demoEngagementTrend = [
+    { date: '2026-01-01', views: 320, likes: 45, comments: 8 },
+    { date: '2026-01-05', views: 450, likes: 62, comments: 12 },
+    { date: '2026-01-10', views: 380, likes: 51, comments: 9 },
+    { date: '2026-01-15', views: 620, likes: 89, comments: 18 },
+    { date: '2026-01-20', views: 540, likes: 75, comments: 14 },
+    { date: '2026-01-23', views: 710, likes: 102, comments: 22 }
+  ];
 
-        {/* Instructions pour ajouter des analytics */}
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6">
-          <h3 className="text-lg font-bold mb-3">💡 Comment ça marche ?</h3>
-          <div className="space-y-3 text-sm text-neutral-700">
-            <div className="flex gap-3">
-              <span className="text-blue-600 font-bold">1.</span>
-              <p>Créez des visuels avec Keiro et sauvegardez-les dans votre galerie</p>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-blue-600 font-bold">2.</span>
-              <p>Publiez-les sur Instagram (manuellement pour l'instant)</p>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-blue-600 font-bold">3.</span>
-              <p>Vos performances s'afficheront automatiquement ici (à venir)</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const demoBestTimes = [
+    { label: 'Mardi 18h', engagement: 850 },
+    { label: 'Jeudi 12h', engagement: 720 },
+    { label: 'Lundi 9h', engagement: 680 },
+    { label: 'Mercredi 20h', engagement: 650 },
+    { label: 'Vendredi 17h', engagement: 580 }
+  ];
+
+  const demoTopCategories = [
+    { category: 'Tech', count: 8, avgEngagement: 450 },
+    { category: 'Business', count: 6, avgEngagement: 380 },
+    { category: 'Marketing', count: 5, avgEngagement: 520 },
+    { category: 'Santé', count: 4, avgEngagement: 310 }
+  ];
+
+  // Utiliser les vraies données si disponibles, sinon données de démo
+  const hasRealData = stats.totalPosts > 0;
+  const displayEngagementTrend = hasRealData && chartData.engagementTrend?.length > 0
+    ? chartData.engagementTrend
+    : demoEngagementTrend;
+  const displayTopCategories = hasRealData && chartData.topCategories?.length > 0
+    ? chartData.topCategories
+    : demoTopCategories;
 
   // Préparer les données pour le graphique des meilleurs moments
-  const bestTimesData: Array<{ label: string; engagement: number }> = [];
-  const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  let displayBestTimes: Array<{ label: string; engagement: number }> = [];
 
-  if (chartData.bestTimes && Object.keys(chartData.bestTimes).length > 0) {
-    // Trouver les 5 meilleurs créneaux horaires
+  if (hasRealData && chartData.bestTimes && Object.keys(chartData.bestTimes).length > 0) {
+    // Utiliser les vraies données
     const allSlots: Array<{ day: string; hour: number; engagement: number }> = [];
 
     Object.entries(chartData.bestTimes).forEach(([day, hours]: [string, any]) => {
@@ -230,26 +223,58 @@ function DashboardTab({ stats, chartData, user }: any) {
     allSlots.sort((a, b) => b.engagement - a.engagement);
 
     allSlots.slice(0, 7).forEach(slot => {
-      bestTimesData.push({
+      displayBestTimes.push({
         label: `${slot.day} ${slot.hour}h`,
         engagement: slot.engagement
       });
     });
+  } else {
+    // Utiliser les données de démo
+    displayBestTimes = demoBestTimes;
   }
 
   return (
     <div className="space-y-6">
+      {/* Bannière démo si pas de vraies données */}
+      {!hasRealData && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📊</span>
+              <div>
+                <h3 className="font-bold text-amber-900 mb-1">Données d'exemple</h3>
+                <p className="text-sm text-amber-800">
+                  Ces graphiques montrent des données fictives. Commencez à créer des visuels pour voir vos vraies performances !
+                </p>
+              </div>
+            </div>
+            <a
+              href="/generate"
+              className="shrink-0 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
+            >
+              Créer un visuel →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Section Analytics */}
       <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
-        <h2 className="text-xl font-bold mb-6">📈 Vos performances</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold">📈 Vos performances</h2>
+          {!hasRealData && (
+            <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+              EXEMPLE
+            </span>
+          )}
+        </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* Graphique 1: Évolution engagement */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
             <h3 className="text-sm font-semibold mb-3 text-neutral-700">Évolution de l'engagement</h3>
-            {chartData.engagementTrend && chartData.engagementTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <LineChart data={chartData.engagementTrend}>
+            <ResponsiveContainer width="100%" height="90%">
+              <LineChart data={displayEngagementTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="date"
@@ -273,19 +298,13 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name="Commentaires" />
                 </LineChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
-                Pas encore de données
-              </div>
-            )}
           </div>
 
           {/* Graphique 2: Meilleurs moments */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
             <h3 className="text-sm font-semibold mb-3 text-neutral-700">Meilleurs moments pour poster</h3>
-            {bestTimesData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <BarChart data={bestTimesData} layout="horizontal">
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart data={displayBestTimes} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="label" tick={{ fontSize: 9 }} width={80} />
@@ -293,19 +312,13 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <Bar dataKey="engagement" fill="#06b6d4" name="Engagement" />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
-                Pas encore de données
-              </div>
-            )}
           </div>
 
           {/* Graphique 3: Top catégories */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
             <h3 className="text-sm font-semibold mb-3 text-neutral-700">Top catégories</h3>
-            {chartData.topCategories && chartData.topCategories.length > 0 ? (
-              <ResponsiveContainer width="100%" height="90%">
-                <BarChart data={chartData.topCategories}>
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart data={displayTopCategories}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="category"
@@ -321,11 +334,6 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <Bar dataKey="avgEngagement" fill="#10b981" name="Engagement moyen" />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
-                Pas encore de données
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -376,6 +384,8 @@ function DashboardTab({ stats, chartData, user }: any) {
 
 // Onglet Masterclass
 function FormationTab() {
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
   const videos = [
     {
       id: 1,
@@ -384,7 +394,7 @@ function FormationTab() {
       duration: '8:32',
       views: '12K vues',
       badge: 'POPULAIRE',
-      youtubeUrl: '#', // À remplacer par vraie URL
+      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
       description: 'Les 5 techniques secrètes des top créateurs Instagram pour exploser l\'engagement',
       level: 'Débutant'
     },
@@ -395,7 +405,7 @@ function FormationTab() {
       duration: '12:47',
       views: '8.5K vues',
       badge: 'NOUVEAU',
-      youtubeUrl: '#',
+      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
       description: 'Données exclusives : patterns, horaires, formats qui génèrent le plus d\'engagement',
       level: 'Avancé'
     },
@@ -406,7 +416,7 @@ function FormationTab() {
       duration: '15:20',
       views: '15K vues',
       badge: 'ESSENTIEL',
-      youtubeUrl: '#',
+      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
       description: 'Stratégie complète pour surfer sur les actualités et booster vos ventes',
       level: 'Intermédiaire'
     },
@@ -417,7 +427,7 @@ function FormationTab() {
       duration: '10:15',
       views: '9K vues',
       badge: '',
-      youtubeUrl: '#',
+      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
       description: 'Templates de légendes prêts à copier pour maximiser clics et conversions',
       level: 'Débutant'
     }
@@ -448,6 +458,7 @@ function FormationTab() {
         {videos.map((video) => (
           <div
             key={video.id}
+            onClick={() => setSelectedVideo(video.youtubeId)}
             className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
           >
             {/* Thumbnail */}
@@ -525,6 +536,41 @@ function FormationTab() {
           Créer mon premier visuel viral →
         </a>
       </div>
+
+      {/* Modal vidéo YouTube */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-white rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton fermer */}
+            <button
+              onClick={() => setSelectedVideo(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg"
+            >
+              <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Vidéo YouTube embed */}
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
