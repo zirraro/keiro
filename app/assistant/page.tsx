@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AssistantPage() {
   const [user, setUser] = useState<any>(null);
@@ -12,14 +13,29 @@ export default function AssistantPage() {
   const [stats, setStats] = useState({
     postsThisWeek: 0,
     avgEngagement: 0,
+    avgViews: 0,
+    avgLikes: 0,
     topCategory: '',
-    improvement: 0
+    improvement: 0,
+    totalPosts: 0,
+    tableExists: false
+  });
+
+  const [chartData, setChartData] = useState<any>({
+    engagementTrend: [],
+    bestTimes: {},
+    topCategories: []
   });
 
   useEffect(() => {
     checkAuth();
-    loadStats();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
 
   async function checkAuth() {
     const supabase = supabaseBrowser();
@@ -29,14 +45,19 @@ export default function AssistantPage() {
   }
 
   async function loadStats() {
-    // TODO: Charger les vraies stats depuis l'API
-    // Pour l'instant, données simulées
-    setStats({
-      postsThisWeek: 12,
-      avgEngagement: 347,
-      topCategory: 'Fitness & Sport',
-      improvement: 40
-    });
+    try {
+      const res = await fetch('/api/assistant/stats');
+      const data = await res.json();
+
+      if (data.ok) {
+        setStats(data.stats);
+        setChartData(data.chartData);
+      } else {
+        console.error('Error loading stats:', data.error);
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+    }
   }
 
   if (loading) {
@@ -135,7 +156,7 @@ export default function AssistantPage() {
 
         {/* Contenu selon onglet */}
         {activeTab === 'dashboard' ? (
-          <DashboardTab />
+          <DashboardTab stats={stats} chartData={chartData} user={user} />
         ) : (
           <FormationTab />
         )}
@@ -145,37 +166,166 @@ export default function AssistantPage() {
 }
 
 // Onglet Dashboard
-function DashboardTab() {
+function DashboardTab({ stats, chartData, user }: any) {
+  // Si pas de données, afficher un message d'invitation
+  if (!user || stats.totalPosts === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow border border-neutral-200 p-12 text-center">
+          <div className="text-6xl mb-4">📊</div>
+          <h2 className="text-2xl font-bold mb-2">Commencez à tracker vos performances</h2>
+          <p className="text-neutral-600 mb-6">
+            Créez vos premiers visuels et suivez leurs performances en temps réel
+          </p>
+          <a
+            href="/generate"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+          >
+            Créer mon premier visuel →
+          </a>
+        </div>
+
+        {/* Instructions pour ajouter des analytics */}
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6">
+          <h3 className="text-lg font-bold mb-3">💡 Comment ça marche ?</h3>
+          <div className="space-y-3 text-sm text-neutral-700">
+            <div className="flex gap-3">
+              <span className="text-blue-600 font-bold">1.</span>
+              <p>Créez des visuels avec Keiro et sauvegardez-les dans votre galerie</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-blue-600 font-bold">2.</span>
+              <p>Publiez-les sur Instagram (manuellement pour l'instant)</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="text-blue-600 font-bold">3.</span>
+              <p>Vos performances s'afficheront automatiquement ici (à venir)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Préparer les données pour le graphique des meilleurs moments
+  const bestTimesData: Array<{ label: string; engagement: number }> = [];
+  const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+  if (chartData.bestTimes && Object.keys(chartData.bestTimes).length > 0) {
+    // Trouver les 5 meilleurs créneaux horaires
+    const allSlots: Array<{ day: string; hour: number; engagement: number }> = [];
+
+    Object.entries(chartData.bestTimes).forEach(([day, hours]: [string, any]) => {
+      Object.entries(hours).forEach(([hour, engagement]: [string, any]) => {
+        if (engagement > 0) {
+          allSlots.push({
+            day,
+            hour: parseInt(hour),
+            engagement: engagement as number
+          });
+        }
+      });
+    });
+
+    allSlots.sort((a, b) => b.engagement - a.engagement);
+
+    allSlots.slice(0, 7).forEach(slot => {
+      bestTimesData.push({
+        label: `${slot.day} ${slot.hour}h`,
+        engagement: slot.engagement
+      });
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Section Analytics */}
       <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
-        <h2 className="text-xl font-bold mb-4">📈 Vos performances</h2>
+        <h2 className="text-xl font-bold mb-6">📈 Vos performances</h2>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Placeholder pour graphiques */}
-          <div className="bg-neutral-50 rounded-lg p-6 h-64 flex items-center justify-center">
-            <div className="text-center text-neutral-400">
-              <div className="text-4xl mb-2">📊</div>
-              <div className="text-sm">Évolution engagement</div>
-              <div className="text-xs">(en développement)</div>
-            </div>
+          {/* Graphique 1: Évolution engagement */}
+          <div className="bg-neutral-50 rounded-lg p-4 h-80">
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Évolution de l'engagement</h3>
+            {chartData.engagementTrend && chartData.engagementTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="90%">
+                <LineChart data={chartData.engagementTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getDate()}/${date.getMonth() + 1}`;
+                    }}
+                  />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12 }}
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} name="Vues" />
+                  <Line type="monotone" dataKey="likes" stroke="#ec4899" strokeWidth={2} name="Likes" />
+                  <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name="Commentaires" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                Pas encore de données
+              </div>
+            )}
           </div>
 
-          <div className="bg-neutral-50 rounded-lg p-6 h-64 flex items-center justify-center">
-            <div className="text-center text-neutral-400">
-              <div className="text-4xl mb-2">🕒</div>
-              <div className="text-sm">Meilleurs moments</div>
-              <div className="text-xs">(en développement)</div>
-            </div>
+          {/* Graphique 2: Meilleurs moments */}
+          <div className="bg-neutral-50 rounded-lg p-4 h-80">
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Meilleurs moments pour poster</h3>
+            {bestTimesData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="90%">
+                <BarChart data={bestTimesData} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} />
+                  <YAxis type="category" dataKey="label" tick={{ fontSize: 9 }} width={80} />
+                  <Tooltip contentStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="engagement" fill="#06b6d4" name="Engagement" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                Pas encore de données
+              </div>
+            )}
           </div>
 
-          <div className="bg-neutral-50 rounded-lg p-6 h-64 flex items-center justify-center">
-            <div className="text-center text-neutral-400">
-              <div className="text-4xl mb-2">📁</div>
-              <div className="text-sm">Top catégories</div>
-              <div className="text-xs">(en développement)</div>
-            </div>
+          {/* Graphique 3: Top catégories */}
+          <div className="bg-neutral-50 rounded-lg p-4 h-80">
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Top catégories</h3>
+            {chartData.topCategories && chartData.topCategories.length > 0 ? (
+              <ResponsiveContainer width="100%" height="90%">
+                <BarChart data={chartData.topCategories}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="category"
+                    tick={{ fontSize: 9 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip contentStyle={{ fontSize: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="count" fill="#3b82f6" name="Nombre de posts" />
+                  <Bar dataKey="avgEngagement" fill="#10b981" name="Engagement moyen" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-neutral-400 text-sm">
+                Pas encore de données
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -183,9 +333,42 @@ function DashboardTab() {
       {/* Section Insights IA (prochaine phase) */}
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow border border-purple-200 p-6">
         <h2 className="text-xl font-bold mb-4">🤖 Insights IA personnalisés</h2>
-        <p className="text-neutral-600 text-sm">
-          Recommandations intelligentes basées sur vos données (Phase 2)
-        </p>
+        {stats.totalPosts >= 10 ? (
+          <div className="space-y-3 text-sm">
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <p className="font-semibold mb-1">Recommandation stratégique</p>
+                  <p className="text-neutral-700">
+                    Votre catégorie <strong>{stats.topCategory}</strong> performe exceptionnellement bien.
+                    Continuez à créer du contenu dans ce domaine pour maximiser votre engagement.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-purple-200">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">📊</span>
+                <div>
+                  <p className="font-semibold mb-1">Analyse de tendance</p>
+                  <p className="text-neutral-700">
+                    {stats.improvement > 0 ? (
+                      <>Votre activité est en hausse de <strong>{stats.improvement}%</strong> cette semaine. Excellente dynamique !</>
+                    ) : (
+                      <>Maintenez votre rythme de publication pour optimiser votre visibilité.</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-neutral-600 text-sm">
+            Créez au moins 10 posts avec analytics pour débloquer les insights IA personnalisés.
+            (Actuellement : {stats.totalPosts} posts)
+          </p>
+        )}
       </div>
     </div>
   );
