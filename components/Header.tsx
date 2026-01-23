@@ -10,6 +10,7 @@ const navItems = [
   { href: "/generate", label: "Générer" },
   { href: "/studio", label: "Studio Édition" },
   { href: "/library", label: "Galerie & Posts" },
+  { href: "/assistant", label: "Mon Assistant" },
   { href: "/pricing", label: "Tarifs", highlight: true },
 ];
 
