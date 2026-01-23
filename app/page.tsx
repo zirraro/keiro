@@ -101,39 +101,25 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF BAR */}
-      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 py-4 border-y border-blue-700">
+      {/* LANCEMENT 2026 - EARLY ACCESS */}
+      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 py-5 border-y border-blue-700">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 text-white">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl md:text-4xl font-bold">2,500+</div>
-              <div className="text-sm md:text-base">
-                <div className="font-semibold">visuels générés</div>
-                <div className="text-blue-100 text-xs">en 3 mois</div>
-              </div>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white text-center md:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30">
+              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+              <span className="text-sm font-bold">Lancement 2026 🚀</span>
             </div>
-            <div className="hidden md:block w-px h-12 bg-blue-400"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-3xl md:text-4xl font-bold">450+</div>
-              <div className="text-sm md:text-base">
-                <div className="font-semibold">entrepreneurs actifs</div>
-                <div className="text-blue-100 text-xs">PME & indépendants</div>
-              </div>
-            </div>
-            <div className="hidden md:block w-px h-12 bg-blue-400"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-3xl md:text-4xl font-bold flex items-center gap-1">
-                4.8/5
-                <span className="text-2xl">⭐</span>
-              </div>
-              <div className="text-sm md:text-base">
-                <div className="font-semibold">satisfaction client</div>
-                <div className="text-blue-100 text-xs">+120 avis</div>
-              </div>
+            <div className="text-base md:text-lg">
+              <span className="font-semibold">Rejoins les premiers entrepreneurs</span>
+              <span className="text-blue-100 mx-2">•</span>
+              <span className="text-blue-100">Tarifs fondateurs disponibles</span>
             </div>
           </div>
         </div>
       </section>
+
+      {/* QUIZ INTERACTIF + ROI CALCULATOR */}
+      <QuizAndCalculator />
 
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border-b border-blue-100">
@@ -688,8 +674,8 @@ export default function HomeKeiro() {
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Ce que disent nos utilisateurs</h2>
-          <p className="text-neutral-600">+120 entrepreneurs nous font confiance au quotidien</p>
+          <h2 className="text-3xl font-bold mb-2">Ce que disent nos premiers utilisateurs</h2>
+          <p className="text-neutral-600">Retours d'expérience de nos early adopters</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
@@ -771,7 +757,7 @@ export default function HomeKeiro() {
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
           <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
-            Rejoindre 450+ entrepreneurs →
+            Devenir early adopter →
           </a>
           <p className="mt-3 text-sm text-neutral-600">
             ✨ 7 jours d'essai gratuit • Sans engagement • Annulation en 1 clic
@@ -846,9 +832,6 @@ export default function HomeKeiro() {
           </p>
         </div>
       </section>
-
-      {/* QUIZ INTERACTIF + ROI CALCULATOR */}
-      <QuizAndCalculator />
 
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
