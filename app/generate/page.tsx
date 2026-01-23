@@ -146,6 +146,8 @@ export default function GeneratePage() {
       goal: 'Inspirer et créer une connexion émotionnelle',
       story: 'Transformation et réussite humaine',
       visualStyle: 'Lumineux et épuré',
+      imageAngle: 'Storytelling visuel authentique et inspirant',
+      marketingAngle: 'Inspirer l\'audience via l\'actualité pour créer une connexion émotionnelle',
       icon: '✨',
       label: 'Inspirant',
       description: 'Créez une connexion émotionnelle avec votre audience',
@@ -160,6 +162,8 @@ export default function GeneratePage() {
       goal: 'Éduquer et établir une autorité',
       story: 'Expertise et valeur apportée',
       visualStyle: 'Moderne et structuré',
+      imageAngle: 'Visuel clair avec mots-clés et données visuelles professionnelles',
+      marketingAngle: 'Se positionner en expert face à l\'actualité pour établir son autorité',
       icon: '🎯',
       label: 'Expert',
       description: 'Positionnez-vous comme référence dans votre domaine',
@@ -174,6 +178,8 @@ export default function GeneratePage() {
       goal: 'Pousser à l\'action immédiate',
       story: 'Opportunité limitée et bénéfices concrets',
       visualStyle: 'Énergique et contrasté',
+      imageAngle: 'Impact visuel maximal avec call-to-action fort et urgence visible',
+      marketingAngle: 'Profiter de l\'opportunité créée par l\'actualité pour pousser à l\'action',
       icon: '⚡',
       label: 'Urgent',
       description: 'Créez un sentiment d\'urgence pour déclencher l\'action',
@@ -188,6 +194,8 @@ export default function GeneratePage() {
       goal: 'Créer du dialogue et de l\'engagement',
       story: 'Expériences partagées et humanité',
       visualStyle: 'Naturel et chaleureux',
+      imageAngle: 'Visuel naturel et authentique qui invite au dialogue',
+      marketingAngle: 'Surfer sur la tendance de l\'actualité de manière conversationnelle',
       icon: '💬',
       label: 'Dialogue',
       description: 'Parlez naturellement comme à un ami',
@@ -1718,7 +1726,7 @@ export default function GeneratePage() {
               )}
 
               {/* Sélecteur de Profil de Communication - Stratégies Marketing */}
-              <div className="mb-4">
+              <div ref={promptSectionRef} className="mb-4">
                 <label className="block text-sm font-semibold text-neutral-900 mb-3">
                   🎭 Choisissez votre stratégie marketing
                 </label>
@@ -1821,7 +1829,7 @@ export default function GeneratePage() {
                 </div>
 
                 {/* Nouveaux champs pour guidance détaillée */}
-                <div ref={promptSectionRef} className="border-t pt-2 mt-2">
+                <div className="border-t pt-2 mt-2">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
 
@@ -1836,6 +1844,8 @@ export default function GeneratePage() {
                           setEmotionToConvey(preset.emotion);
                           setPublicationGoal(preset.goal);
                           setStoryToTell(preset.story);
+                          setImageAngle(preset.imageAngle);
+                          setMarketingAngle(preset.marketingAngle);
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-md transition-all"
                       >
