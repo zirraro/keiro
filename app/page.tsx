@@ -42,14 +42,58 @@ export default function HomeKeiro() {
             </ul>
           </div>
           <div className="lg:col-span-5">
-            <div className="rounded-2xl border shadow-sm overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1200&auto=format&fit=crop"
-                alt="Exemple de visuel"
-                className="w-full h-72 object-cover"
-              />
-              <div className="p-4 text-sm text-neutral-600">
-                Exemple de rendu Keiro combinant une actu + un business (texte et visuel prêts à publier).
+            {/* Assistant IA Preview Card */}
+            <div className="rounded-2xl border-2 border-purple-300 shadow-lg overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
+              <div className="p-5 border-b border-purple-200 bg-white/80 backdrop-blur">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl">
+                    🤖
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-purple-900">Assistant IA Marketing</h3>
+                    <p className="text-xs text-purple-600">Optimise tes posts en temps réel</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-3">
+                {/* Stats cards mini */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <div className="text-xs text-purple-600 font-medium">Engagement</div>
+                    <div className="text-xl font-bold text-purple-900">+347%</div>
+                    <div className="text-[10px] text-green-600">↗ +28% vs semaine</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <div className="text-xs text-purple-600 font-medium">Posts analysés</div>
+                    <div className="text-xl font-bold text-purple-900">24</div>
+                    <div className="text-[10px] text-purple-600">6 graphiques live</div>
+                  </div>
+                </div>
+
+                {/* Insight preview */}
+                <div className="bg-white rounded-lg p-3 border border-purple-200">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">🎯</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-purple-900 mb-1">Recommandation IA</p>
+                      <p className="text-[11px] text-neutral-700 leading-relaxed">
+                        Tes posts "Tech" génèrent <strong className="text-purple-600">3.2x plus d'engagement</strong>.
+                        Publie 3 posts cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-purple-600 rounded-lg p-3 text-center">
+                  <p className="text-xs font-bold text-white">✨ Insights personnalisés à ton business</p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-white border-t border-purple-200 text-center">
+                <a href="/assistant" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                  Découvrir l'Assistant IA →
+                </a>
               </div>
             </div>
           </div>
@@ -115,12 +159,115 @@ export default function HomeKeiro() {
               Parcours les catégories (économie, sport, tech, lifestyle…) et sélectionne une actualité.
             </Step>
             <Step num="2" title="Décris ton activité">
-              Type d’offre, cible, ton souhaité. Keiro propose un angle pertinent, sans fautes.
+              Type d'offre, cible, ton souhaité. Keiro propose un angle pertinent, sans fautes.
             </Step>
             <Step num="3" title="Génère & ajuste">
               Lumière, ambiance, éléments visuels… Export en formats réseaux en 1 clic.
             </Step>
           </div>
+        </div>
+      </section>
+
+      {/* GALERIE & POSTS INSTAGRAM */}
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold">Galerie & Posts Instagram automatisés</h2>
+          <p className="mt-2 text-neutral-600">Organise tes visuels et prépare tes posts avec descriptions IA</p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
+          {/* Galerie preview */}
+          <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>📁</span> Ta Galerie Organisée
+              </h3>
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="aspect-square rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 border border-blue-200 flex items-center justify-center">
+                    <span className="text-2xl">🖼️</span>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-blue-600">
+                  <span>✓</span>
+                  <span>Dossiers personnalisés avec icônes</span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-600">
+                  <span>✓</span>
+                  <span>Drag & drop pour organiser</span>
+                </div>
+                <div className="flex items-center gap-2 text-blue-600">
+                  <span>✓</span>
+                  <span>Édition des titres en 1 clic</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Instagram automation preview */}
+          <div className="rounded-2xl border-2 border-purple-200 overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span>📱</span> Posts Instagram IA
+              </h3>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <div className="flex items-start gap-2 mb-2">
+                  <span className="text-lg">✨</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-purple-900">Caption générée automatiquement</p>
+                    <p className="text-[11px] text-neutral-600 mt-1">
+                      "🔥 Cette semaine, on parle de [ton sujet]...<br/>
+                      ✅ 3 actions concrètes<br/>
+                      💡 Conseil d'expert"
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <div className="flex items-start gap-2">
+                  <span className="text-lg">#️⃣</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-purple-900">Hashtags optimisés</p>
+                    <p className="text-[11px] text-purple-600 mt-1">
+                      #businesslocal #entrepreneurfr #marketing2026
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-purple-600">
+                  <span>✓</span>
+                  <span>Brouillons sauvegardés automatiquement</span>
+                </div>
+                <div className="flex items-center gap-2 text-purple-600">
+                  <span>✓</span>
+                  <span>Édition complète avant publication</span>
+                </div>
+                <div className="flex items-center gap-2 text-purple-600">
+                  <span>✓</span>
+                  <span>Statut "Prêt à publier"</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-white border-t border-purple-200 text-center">
+              <a href="/library" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                Voir ma Galerie & Posts →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6 text-center">
+          <p className="text-sm text-blue-900">
+            <strong>Gain de temps :</strong> Plus besoin de rédiger tes captions Instagram manuellement.
+            L'IA génère des descriptions engageantes adaptées à ton visuel et ton business.
+          </p>
         </div>
       </section>
 
@@ -266,7 +413,197 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* POURQUOI PUBLIER SUR L’ACTU */}
+      {/* ASSISTANT IA MARKETING */}
+      <section className="border-y bg-gradient-to-br from-purple-50 to-pink-50">
+        <div className="mx-auto max-w-6xl px-6 py-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
+              Intelligence Artificielle Avancée
+            </div>
+            <h2 className="text-3xl font-bold">🤖 Ton Assistant IA Marketing Personnel</h2>
+            <p className="mt-2 text-neutral-600">Analyse tes performances et t'aide à prendre les meilleures décisions stratégiques</p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* Analytics Dashboard Preview */}
+            <div className="rounded-2xl border-2 border-purple-300 overflow-hidden bg-white shadow-xl">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-5">
+                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                  <span>📊</span> Dashboard Analytics Complet
+                </h3>
+                <p className="text-purple-100 text-sm mt-1">6 graphiques en temps réel</p>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Stats cards preview */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                    <div className="text-xs text-blue-700 font-semibold mb-1">Cette semaine</div>
+                    <div className="text-2xl font-bold text-blue-900">12</div>
+                    <div className="text-xs text-blue-600">visuels générés</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
+                    <div className="text-xs text-cyan-700 font-semibold mb-1">Engagement</div>
+                    <div className="text-2xl font-bold text-cyan-900">347</div>
+                    <div className="text-xs text-green-600 font-semibold">↗ +40%</div>
+                  </div>
+                </div>
+
+                {/* Charts preview */}
+                <div className="space-y-3">
+                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                    <p className="text-xs font-semibold text-neutral-700 mb-2">📈 Évolution de l'engagement</p>
+                    <div className="h-20 bg-gradient-to-r from-blue-100 to-cyan-100 rounded flex items-end justify-around p-2">
+                      {[40, 60, 45, 80, 70, 95].map((h, i) => (
+                        <div key={i} className="bg-blue-500 rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                    <p className="text-xs font-semibold text-neutral-700 mb-2">🕐 Meilleurs horaires de publication</p>
+                    <div className="h-16 bg-gradient-to-r from-cyan-100 to-blue-100 rounded flex items-center justify-center">
+                      <p className="text-xs text-cyan-700 font-semibold">17h-19h = 85% meilleur engagement</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
+                    <p className="text-xs font-semibold text-neutral-700 mb-2">🏆 Top catégories</p>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 bg-purple-500 rounded" style={{ width: '80%' }}></div>
+                        <span className="text-[10px] text-neutral-600">Tech</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 bg-purple-400 rounded" style={{ width: '60%' }}></div>
+                        <span className="text-[10px] text-neutral-600">Business</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200 text-center">
+                  <p className="text-xs text-purple-700 font-semibold">+ 3 autres graphiques détaillés</p>
+                  <p className="text-[10px] text-purple-600 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Insights Preview */}
+            <div className="space-y-4">
+              <div className="rounded-2xl border-2 border-purple-300 overflow-hidden bg-white shadow-xl">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-5">
+                  <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span>🎯</span> Recommandations Stratégiques
+                  </h3>
+                  <p className="text-purple-100 text-sm mt-1">Personnalisées à ton business</p>
+                </div>
+
+                <div className="p-5 space-y-3">
+                  {/* Insight 1 */}
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-2xl">🎯</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-purple-900 mb-1">Stratégie secteur adaptée</p>
+                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
+                          Pour ton activité <strong>Business</strong>, les contenus "Tech" génèrent
+                          <strong className="text-purple-600"> 3.2x plus d'engagement</strong> que la moyenne.
+                        </p>
+                        <div className="bg-purple-100 rounded p-2">
+                          <p className="text-[10px] text-purple-800">
+                            💡 Publie 3 posts "Tech" cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Insight 2 */}
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-2xl">⏰</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-amber-900 mb-1">Timing optimal détecté</p>
+                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
+                          Posts entre <strong>17h-19h</strong> obtiennent
+                          <strong className="text-amber-600"> +85% d'engagement</strong>
+                        </p>
+                        <div className="bg-amber-100 rounded p-2">
+                          <p className="text-[10px] text-amber-800">
+                            ⚡ Reprogramme pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>. Impact estimé : <strong>+420 vues/post</strong>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Insight 3 */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="text-2xl">🔮</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-green-900 mb-1">Projection de croissance</p>
+                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
+                          En appliquant ces optimisations : <strong className="text-green-600">+2 800 abonnés</strong> et
+                          <strong className="text-green-600"> +15 000 vues</strong> dans 90 jours
+                        </p>
+                        <div className="bg-green-100 rounded p-2">
+                          <p className="text-[10px] text-green-800">
+                            ✨ Potentiel : <strong>+180% de croissance</strong> avec stratégie accélérée
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Features list */}
+              <div className="bg-white rounded-2xl border-2 border-purple-200 p-5 shadow-lg">
+                <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+                  <span>✨</span> Fonctionnalités incluses
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-neutral-700"><strong>6 graphiques interactifs</strong> mis à jour en temps réel</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-neutral-700"><strong>Analyse IA de 30 jours</strong> comparée à 500K+ posts</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-neutral-700"><strong>Recommandations horaires</strong> précises par jour</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-neutral-700"><strong>Benchmark sectoriel</strong> personnalisé</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-neutral-700"><strong>Projections 90 jours</strong> avec plans d'action</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-10 text-center">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+              Découvrir Mon Assistant IA →
+            </a>
+            <p className="mt-3 text-sm text-purple-700">
+              💡 Disponible dès le plan Starter • Analytics détaillées • Insights quotidiens
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* POURQUOI PUBLIER SUR L'ACTU */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <h2 className="text-2xl font-semibold">Pourquoi publier sur l’actualité ?</h2>
