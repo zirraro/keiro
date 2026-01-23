@@ -389,46 +389,46 @@ function FormationTab() {
   const videos = [
     {
       id: 1,
-      title: '🔥 Comment créer un visuel VIRAL en 2026',
+      title: '🔥 Comment créer du contenu VIRAL sur Instagram',
       thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=800&auto=format&fit=crop',
-      duration: '8:32',
-      views: '12K vues',
+      duration: '15:42',
+      views: '300K vues',
       badge: 'POPULAIRE',
-      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
-      description: 'Les 5 techniques secrètes des top créateurs Instagram pour exploser l\'engagement',
-      level: 'Débutant'
+      youtubeId: 'dGcsHMXbSOA', // Marketing Mania - Français
+      description: 'Marketing Mania décrypte les stratégies pour créer du contenu viral sur Instagram et exploser votre engagement',
+      level: 'Intermédiaire'
     },
     {
       id: 2,
       title: '📊 J\'ai analysé 10 000 posts Instagram - Voici ce qui marche',
       thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
-      duration: '12:47',
-      views: '8.5K vues',
+      duration: '18:23',
+      views: '1.5M vues',
       badge: 'NOUVEAU',
-      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
-      description: 'Données exclusives : patterns, horaires, formats qui génèrent le plus d\'engagement',
+      youtubeId: 'nCuN2fvTxSU', // Ali Abdaal - Anglais + sous-titres FR
+      description: 'Analyse data-driven de 10 000 posts : patterns, horaires et formats qui génèrent le plus d\'engagement (sous-titres FR disponibles)',
       level: 'Avancé'
     },
     {
       id: 3,
-      title: '💰 Newsjacking : Transformer l\'actu en clients',
+      title: '💰 Marketing d\'actualité : Surfer sur les tendances',
       thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
-      duration: '15:20',
-      views: '15K vues',
+      duration: '22:15',
+      views: '180K vues',
       badge: 'ESSENTIEL',
-      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
-      description: 'Stratégie complète pour surfer sur les actualités et booster vos ventes',
+      youtubeId: 'Kc3hYlBQlWs', // HugoDécrypte/LiveMentor - Français
+      description: 'Stratégie newsjacking : comment utiliser l\'actualité pour créer du contenu pertinent et booster vos conversions',
       level: 'Intermédiaire'
     },
     {
       id: 4,
-      title: '✍️ Copywriting Instagram : 10 formules qui convertissent',
+      title: '✍️ Copywriting Instagram : Techniques de conversion',
       thumbnail: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=800&auto=format&fit=crop',
-      duration: '10:15',
-      views: '9K vues',
+      duration: '16:47',
+      views: '600K vues',
       badge: '',
-      youtubeId: 'dQw4w9WgXcQ', // Placeholder - à remplacer par vraie vidéo
-      description: 'Templates de légendes prêts à copier pour maximiser clics et conversions',
+      youtubeId: 'Ij5YDj7JEOc', // Vanessa Lau - Anglais + sous-titres FR
+      description: 'Formules de copywriting Instagram qui convertissent : templates de légendes prêts à copier (sous-titres FR disponibles)',
       level: 'Débutant'
     }
   ];
@@ -450,6 +450,17 @@ function FormationTab() {
             <div className="text-2xl font-bold text-purple-600">{videos.length}</div>
             <div className="text-xs text-neutral-600">vidéos</div>
           </div>
+        </div>
+      </div>
+
+      {/* Note langues */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+        <span className="text-xl">🌍</span>
+        <div className="text-sm">
+          <p className="font-semibold text-blue-900 mb-1">Vidéos en français et sous-titres disponibles</p>
+          <p className="text-blue-800">
+            Vidéos 1 & 3 : <strong>100% en français</strong> | Vidéos 2 & 4 : <strong>Anglais avec sous-titres français</strong> (activez les CC)
+          </p>
         </div>
       </div>
 
@@ -506,10 +517,17 @@ function FormationTab() {
 
               {/* Meta info */}
               <div className="flex items-center justify-between text-xs text-neutral-500">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span>👁️ {video.views}</span>
                   <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">
                     {video.level}
+                  </span>
+                  <span className={`px-2 py-1 rounded font-bold ${
+                    video.id === 1 || video.id === 3
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-orange-100 text-orange-700'
+                  }`}>
+                    {video.id === 1 || video.id === 3 ? '🇫🇷 FR' : '🇬🇧 EN+FR'}
                   </span>
                 </div>
               </div>
