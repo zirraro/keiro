@@ -552,48 +552,213 @@ function DashboardTab({ stats, chartData, user }: any) {
 
 // Onglet Masterclass
 function FormationTab() {
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  const videos = [
+    {
+      id: 1,
+      title: '🔥 Comment EXPLOSER sur Instagram en 2024',
+      thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=800&auto=format&fit=crop',
+      duration: '12:45',
+      views: '250K vues',
+      badge: 'NOUVEAU',
+      youtubeId: '5Z4yAgV5hOg', // TEST - URL fournie par l'utilisateur
+      description: 'Stratégies complètes pour faire exploser votre compte Instagram : algorithme, contenus viraux et engagement',
+      level: 'Débutant',
+    },
+    {
+      id: 2,
+      title: '📊 Stratégie Instagram Complète pour 2024',
+      thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
+      duration: '18:30',
+      views: '180K vues',
+      badge: '',
+      youtubeId: 'XXXXXXX', // À remplacer
+      description: 'Guide complet : Reels, Stories, Posts, Hashtags - Tout pour réussir sur Instagram en 2024',
+      level: 'Intermédiaire',
+    },
+    {
+      id: 3,
+      title: '💰 Vendre avec Instagram : La Méthode Complète',
+      thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
+      duration: '25:12',
+      views: '320K vues',
+      badge: '',
+      youtubeId: 'XXXXXXX', // À remplacer
+      description: 'Comment transformer votre compte Instagram en machine à vendre : stratégie complète de A à Z',
+      level: 'Avancé',
+    },
+    {
+      id: 4,
+      title: '✍️ Copywriting Instagram : Écrire des Légendes qui Vendent',
+      thumbnail: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=800&auto=format&fit=crop',
+      duration: '14:28',
+      views: '150K vues',
+      badge: '',
+      youtubeId: 'XXXXXXX', // À remplacer
+      description: 'Les secrets du copywriting Instagram : formules, hooks, appels à l\'action qui convertissent vraiment',
+      level: 'Débutant',
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Bientôt disponible */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-300 p-12 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 mb-6">
-          <span className="text-4xl">📺</span>
+      {/* Header section */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              📺 Masterclass Marketing
+            </h2>
+            <p className="text-neutral-700 text-sm">
+              Stratégies exclusives pour dominer Instagram et multiplier vos ventes
+            </p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
+            <div className="text-2xl font-bold text-purple-600">{videos.length}</div>
+            <div className="text-xs text-neutral-600">vidéos</div>
+          </div>
         </div>
-        <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Masterclass Marketing
-        </h2>
-        <p className="text-lg text-neutral-700 mb-6 max-w-2xl mx-auto">
-          Des tutoriels vidéo exclusifs sur Instagram, le copywriting, et les stratégies de vente
-        </p>
-        <div className="bg-white rounded-xl border border-purple-200 p-6 max-w-xl mx-auto mb-6">
-          <p className="text-sm text-neutral-600 mb-3">
-            🎬 <strong>4 vidéos en préparation :</strong>
-          </p>
-          <ul className="text-sm text-neutral-700 space-y-2 text-left">
-            <li className="flex items-start gap-2">
-              <span className="text-purple-500">•</span>
-              <span>Comment EXPLOSER sur Instagram en 2024</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-purple-500">•</span>
-              <span>Stratégie Instagram Complète (Reels, Stories, Posts)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-purple-500">•</span>
-              <span>Vendre avec Instagram : La Méthode Complète</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-purple-500">•</span>
-              <span>Copywriting Instagram : Écrire des Légendes qui Vendent</span>
-            </li>
-          </ul>
-        </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 max-w-xl mx-auto">
-          <p className="text-sm text-amber-800">
-            <strong>Bientôt disponible</strong> • Les vidéos seront ajoutées prochainement avec du contenu français de qualité
+      </div>
+
+      {/* Note test */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+        <span className="text-xl">🧪</span>
+        <div className="text-sm">
+          <p className="font-semibold text-blue-900 mb-1">Test en cours</p>
+          <p className="text-blue-800">
+            Vidéo 1 : <strong>URL YouTube de test</strong> | Vidéos 2-4 : <strong>En attente d'URLs</strong>
           </p>
         </div>
       </div>
+
+      {/* Vidéos grid */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            onClick={() => video.youtubeId !== 'XXXXXXX' && setSelectedVideo(video.youtubeId)}
+            className={`bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden transition-all ${
+              video.youtubeId !== 'XXXXXXX'
+                ? 'hover:shadow-xl cursor-pointer group'
+                : 'opacity-60 cursor-not-allowed'
+            }`}
+          >
+            {/* Thumbnail */}
+            <div className="relative">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className={`w-full h-48 object-cover ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:scale-105' : ''} transition-transform`}
+              />
+
+              {/* Play button overlay */}
+              {video.youtubeId !== 'XXXXXXX' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+              )}
+
+              {/* Status badge */}
+              {video.badge && (
+                <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">
+                  {video.badge}
+                </div>
+              )}
+
+              {/* En attente badge */}
+              {video.youtubeId === 'XXXXXXX' && (
+                <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-3 py-1 rounded-full font-bold">
+                  En attente
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <h3 className={`font-bold text-neutral-900 mb-2 line-clamp-2 ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:text-blue-600' : ''} transition-colors`}>
+                {video.title}
+              </h3>
+              <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
+                {video.description}
+              </p>
+
+              {/* Meta info */}
+              <div className="flex items-center justify-between text-xs text-neutral-500 mb-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">
+                    {video.level}
+                  </span>
+                </div>
+              </div>
+
+              {/* CTA */}
+              {video.youtubeId !== 'XXXXXXX' ? (
+                <button className="w-full py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                  ▶️ Regarder maintenant
+                </button>
+              ) : (
+                <div className="w-full py-2 bg-neutral-200 text-neutral-500 font-semibold rounded-lg text-center">
+                  Bientôt disponible
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA final */}
+      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6 text-center">
+        <h3 className="text-xl font-bold mb-2">🚀 Prêt à passer à l'action ?</h3>
+        <p className="text-neutral-700 mb-4">
+          Mettez en pratique ces stratégies maintenant avec Keiro
+        </p>
+        <a
+          href="/generate"
+          className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+        >
+          Créer mon premier visuel viral →
+        </a>
+      </div>
+
+      {/* Modal vidéo YouTube */}
+      {selectedVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl bg-white rounded-xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Bouton fermer */}
+            <button
+              onClick={() => setSelectedVideo(null)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg"
+            >
+              <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Vidéo YouTube embed */}
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute inset-0 w-full h-full"
+                src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
