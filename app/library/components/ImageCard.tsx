@@ -26,6 +26,7 @@ interface ImageCardProps {
   onDownload: (imageUrl: string, title?: string) => void;
   onDelete: (imageId: string) => void;
   onOpenInstagram: (image: SavedImage) => void;
+  onSchedule?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
 }
 
@@ -37,6 +38,7 @@ export default function ImageCard({
   onDownload,
   onDelete,
   onOpenInstagram,
+  onSchedule,
   onTitleEdit
 }: ImageCardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -162,18 +164,36 @@ export default function ImageCard({
                   <TrashIcon className="w-5 h-5 text-red-600" />
                 </button>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenInstagram(image);
-                }}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 pointer-events-auto"
-                title="Préparer post Instagram"
-                aria-label="Préparer un post Instagram"
-              >
-                <InstagramIcon className="w-5 h-5" />
-                <span className="text-sm">Préparer post</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenInstagram(image);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 pointer-events-auto"
+                  title="Préparer post Instagram"
+                  aria-label="Préparer un post Instagram"
+                >
+                  <InstagramIcon className="w-5 h-5" />
+                  <span className="text-sm">Préparer post</span>
+                </button>
+                {onSchedule && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSchedule(image);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 pointer-events-auto"
+                    title="Planifier publication"
+                    aria-label="Planifier une publication"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm">Planifier</span>
+                  </button>
+                )}
+              </div>
             </>
           ) : (
             <div className="text-center pointer-events-auto">
@@ -235,19 +255,37 @@ export default function ImageCard({
         <div className="md:hidden mt-3 pt-3 border-t border-neutral-200">
           {(user || isGuest) ? (
             <div className="flex flex-col gap-2">
-              {/* Bouton principal Instagram */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onOpenInstagram(image);
-                }}
-                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
-                type="button"
-              >
-                <InstagramIcon className="w-5 h-5" />
-                <span>Préparer post Instagram</span>
-              </button>
+              {/* Boutons principaux */}
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onOpenInstagram(image);
+                  }}
+                  className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+                  type="button"
+                >
+                  <InstagramIcon className="w-5 h-5" />
+                  <span>Post</span>
+                </button>
+                {onSchedule && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onSchedule(image);
+                    }}
+                    className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+                    type="button"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Planifier</span>
+                  </button>
+                )}
+              </div>
 
               {/* Actions secondaires */}
               <div className="flex gap-2">

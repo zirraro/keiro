@@ -1,13 +1,14 @@
-export type Tab = 'images' | 'drafts';
+export type Tab = 'images' | 'drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   imageCount: number;
   draftCount: number;
+  scheduledCount: number;
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, draftCount }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, draftCount, scheduledCount }: TabNavigationProps) {
   return (
     <div className="border-b border-neutral-200 mb-6">
       <div className="flex gap-8">
@@ -47,6 +48,26 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, draf
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {draftCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('calendar')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'calendar'
+              ? 'text-green-600 border-b-2 border-green-600'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          📅 Calendrier
+          {scheduledCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'calendar'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {scheduledCount}
             </span>
           )}
         </button>
