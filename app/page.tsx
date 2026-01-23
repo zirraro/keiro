@@ -56,6 +56,50 @@ export default function HomeKeiro() {
         </div>
       </section>
 
+      {/* VIDÉO WORKFLOW - Comment ça marche en vidéo */}
+      <section className="bg-gradient-to-br from-blue-50 to-cyan-50 border-y border-blue-100">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold mb-2">🎬 Voyez Keiro en action</h2>
+            <p className="text-neutral-600">De l'actualité au post Instagram en 3 minutes chrono</p>
+          </div>
+
+          {/* Vidéo placeholder - À remplacer par embed YouTube */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="relative bg-neutral-900 aspect-video flex items-center justify-center">
+              <div className="text-center text-white">
+                <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 hover:scale-110 transition-transform cursor-pointer">
+                  <svg className="w-10 h-10 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <div className="text-lg font-semibold mb-1">Workflow complet Keiro</div>
+                <div className="text-sm text-neutral-400">Actualité → Génération IA → Post Instagram → Analytics</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Points clés sous la vidéo */}
+          <div className="grid md:grid-cols-3 gap-4 mt-6">
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <div className="text-2xl mb-2">⚡</div>
+              <div className="font-semibold text-sm mb-1">3 minutes</div>
+              <div className="text-xs text-neutral-600">Du choix de l'actu au visuel final</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <div className="text-2xl mb-2">🎯</div>
+              <div className="font-semibold text-sm mb-1">Zéro compétence</div>
+              <div className="text-xs text-neutral-600">L'IA fait tout le travail créatif</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-blue-100">
+              <div className="text-2xl mb-2">📈</div>
+              <div className="font-semibold text-sm mb-1">Résultats mesurables</div>
+              <div className="text-xs text-neutral-600">Analytics intégrés pour optimiser</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* COMMENT ÇA MARCHE */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">

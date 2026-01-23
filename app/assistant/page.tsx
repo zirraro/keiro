@@ -128,7 +128,7 @@ export default function AssistantPage() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              📚 Formation & Ressources
+              📺 Masterclass
             </button>
           </div>
         </div>
@@ -191,47 +191,156 @@ function DashboardTab() {
   );
 }
 
-// Onglet Formation
+// Onglet Masterclass
 function FormationTab() {
+  const videos = [
+    {
+      id: 1,
+      title: '🔥 Comment créer un visuel VIRAL en 2026',
+      thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=800&auto=format&fit=crop',
+      duration: '8:32',
+      views: '12K vues',
+      badge: 'POPULAIRE',
+      youtubeUrl: '#', // À remplacer par vraie URL
+      description: 'Les 5 techniques secrètes des top créateurs Instagram pour exploser l\'engagement',
+      level: 'Débutant'
+    },
+    {
+      id: 2,
+      title: '📊 J\'ai analysé 10 000 posts Instagram - Voici ce qui marche',
+      thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
+      duration: '12:47',
+      views: '8.5K vues',
+      badge: 'NOUVEAU',
+      youtubeUrl: '#',
+      description: 'Données exclusives : patterns, horaires, formats qui génèrent le plus d\'engagement',
+      level: 'Avancé'
+    },
+    {
+      id: 3,
+      title: '💰 Newsjacking : Transformer l\'actu en clients',
+      thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
+      duration: '15:20',
+      views: '15K vues',
+      badge: 'ESSENTIEL',
+      youtubeUrl: '#',
+      description: 'Stratégie complète pour surfer sur les actualités et booster vos ventes',
+      level: 'Intermédiaire'
+    },
+    {
+      id: 4,
+      title: '✍️ Copywriting Instagram : 10 formules qui convertissent',
+      thumbnail: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=800&auto=format&fit=crop',
+      duration: '10:15',
+      views: '9K vues',
+      badge: '',
+      youtubeUrl: '#',
+      description: 'Templates de légendes prêts à copier pour maximiser clics et conversions',
+      level: 'Débutant'
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Vidéo démo Keiro */}
-      <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
-        <h2 className="text-xl font-bold mb-4">🎬 Nouveau sur Keiro ? Regardez le workflow</h2>
-        <div className="bg-neutral-100 rounded-lg aspect-video flex items-center justify-center">
-          <div className="text-center text-neutral-400">
-            <div className="text-4xl mb-2">▶️</div>
-            <div className="text-sm">Vidéo démo : De l'actu au post Instagram</div>
-            <div className="text-xs">(à intégrer)</div>
+      {/* Header section */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              📺 Masterclass Marketing
+            </h2>
+            <p className="text-neutral-700 text-sm">
+              Stratégies exclusives pour dominer Instagram et multiplier vos ventes
+            </p>
+          </div>
+          <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
+            <div className="text-2xl font-bold text-purple-600">{videos.length}</div>
+            <div className="text-xs text-neutral-600">vidéos</div>
           </div>
         </div>
       </div>
 
-      {/* Articles blog (prochaine phase) */}
-      <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
-        <h2 className="text-xl font-bold mb-4">📚 Articles & Formations</h2>
-        <p className="text-neutral-600 text-sm mb-4">
-          Ressources pour améliorer votre marketing (Phase 1.5)
-        </p>
+      {/* Vidéos grid */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {videos.map((video) => (
+          <div
+            key={video.id}
+            className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer group"
+          >
+            {/* Thumbnail */}
+            <div className="relative">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform"
+              />
 
-        {/* Placeholder articles */}
-        <div className="grid md:grid-cols-2 gap-4">
-          {[
-            { title: '🎯 Comment créer un visuel viral', time: '5 min', level: 'Débutant' },
-            { title: '📊 Analyse : 10 000 posts Instagram', time: '12 min', level: 'Avancé' },
-          ].map((article, idx) => (
-            <div key={idx} className="border border-neutral-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer">
-              <h3 className="font-semibold mb-2">{article.title}</h3>
-              <div className="flex items-center gap-3 text-xs text-neutral-600">
-                <span>⏱️ {article.time}</span>
-                <span>🏷️ {article.level}</span>
+              {/* Play button overlay */}
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                  <svg className="w-8 h-8 text-red-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
               </div>
-              <div className="mt-2 text-xs text-blue-600 font-semibold">
-                Lire l'article →
+
+              {/* Duration badge */}
+              <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded font-semibold">
+                {video.duration}
               </div>
+
+              {/* Status badge */}
+              {video.badge && (
+                <div className={`absolute top-2 left-2 text-white text-xs px-3 py-1 rounded-full font-bold ${
+                  video.badge === 'NOUVEAU' ? 'bg-green-500' :
+                  video.badge === 'POPULAIRE' ? 'bg-red-500' :
+                  'bg-purple-500'
+                }`}>
+                  {video.badge}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <h3 className="font-bold text-neutral-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                {video.title}
+              </h3>
+              <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
+                {video.description}
+              </p>
+
+              {/* Meta info */}
+              <div className="flex items-center justify-between text-xs text-neutral-500">
+                <div className="flex items-center gap-3">
+                  <span>👁️ {video.views}</span>
+                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">
+                    {video.level}
+                  </span>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button className="mt-4 w-full py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                ▶️ Regarder maintenant
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA final */}
+      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6 text-center">
+        <h3 className="text-xl font-bold mb-2">🚀 Prêt à passer à l'action ?</h3>
+        <p className="text-neutral-700 mb-4">
+          Mettez en pratique ces stratégies maintenant avec Keiro
+        </p>
+        <a
+          href="/generate"
+          className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+        >
+          Créer mon premier visuel viral →
+        </a>
       </div>
     </div>
   );
