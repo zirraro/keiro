@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://keiro.ai';
+  const baseUrl = 'https://www.keiroai.com';
 
   return {
     rules: [

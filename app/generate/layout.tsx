@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Générer un visuel marketing IA - Keiro",
     description: "Créez des visuels marketing pro en quelques secondes avec l'IA. Surfez sur l'actualité pour maximiser l'engagement.",
-    url: "https://keiro.ai/generate",
+    url: "https://www.keiroai.com/generate",
     type: "website"
   },
   twitter: {

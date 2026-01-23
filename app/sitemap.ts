@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://keiro.ai';
+  const baseUrl = 'https://www.keiroai.com';
   const currentDate = new Date();
 
   return [

@@ -25,14 +25,14 @@ export const metadata: Metadata = {
   authors: [{ name: "Keiro" }],
   creator: "Keiro",
   publisher: "Keiro",
-  metadataBase: new URL("https://keiro.ai"),
+  metadataBase: new URL("https://www.keiroai.com"),
   alternates: {
     canonical: "/"
   },
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: "https://keiro.ai",
+    url: "https://www.keiroai.com",
     title: "Keiro - Créez des visuels marketing IA qui surfent sur l'actualité",
     description: "Générez des visuels marketing professionnels en quelques secondes grâce à l'IA. Associez votre business aux actualités tendances.",
     siteName: "Keiro",

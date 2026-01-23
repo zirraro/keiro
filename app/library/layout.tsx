@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Galerie & Posts Instagram - Keiro",
     description: "Gérez vos visuels marketing créés avec l'IA. Organisez, préparez et publiez vos posts Instagram.",
-    url: "https://keiro.ai/library",
+    url: "https://www.keiroai.com/library",
     type: "website"
   },
   twitter: {

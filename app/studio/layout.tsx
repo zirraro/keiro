@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Studio d'édition - Keiro",
     description: "Éditez et personnalisez vos visuels marketing avec des outils professionnels.",
-    url: "https://keiro.ai/studio",
+    url: "https://www.keiroai.com/studio",
     type: "website"
   },
   twitter: {

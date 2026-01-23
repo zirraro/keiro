@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Tarifs - Plans Freemium, Pro & Business - Keiro",
     description: "Plans adaptés à vos besoins. Essai gratuit, formules Pro et Business. Sans engagement.",
-    url: "https://keiro.ai/pricing",
+    url: "https://www.keiroai.com/pricing",
     type: "website"
   },
   twitter: {
