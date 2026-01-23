@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
 
 export default function HomeKeiro() {
@@ -846,6 +847,9 @@ export default function HomeKeiro() {
         </div>
       </section>
 
+      {/* QUIZ INTERACTIF + ROI CALCULATOR */}
+      <QuizAndCalculator />
+
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
@@ -957,6 +961,342 @@ export default function HomeKeiro() {
         </div>
       </section>
     </main>
+  );
+}
+
+/* --- Quiz & Calculator Component --- */
+function QuizAndCalculator() {
+  const [activeSection, setActiveSection] = useState<'quiz' | 'calculator'>('quiz');
+  const [quizStep, setQuizStep] = useState(1);
+  const [quizAnswers, setQuizAnswers] = useState({
+    businessType: '',
+    objective: '',
+    budget: ''
+  });
+  const [showQuizResult, setShowQuizResult] = useState(false);
+
+  // ROI Calculator state
+  const [visualsPerMonth, setVisualsPerMonth] = useState(8);
+
+  const businessTypes = [
+    { id: 'restaurant', label: '🍽️ Restaurant / Café', value: 'restaurant' },
+    { id: 'coach', label: '💪 Coach / Consultant', value: 'coach' },
+    { id: 'ecommerce', label: '🛍️ E-commerce / Boutique', value: 'ecommerce' },
+    { id: 'service', label: '🔧 Service local / Artisan', value: 'service' },
+    { id: 'other', label: '💼 Autre activité', value: 'other' }
+  ];
+
+  const objectives = [
+    { id: 'awareness', label: '📢 Notoriété / Visibilité', value: 'awareness' },
+    { id: 'leads', label: '🎯 Génération de leads', value: 'leads' },
+    { id: 'sales', label: '💰 Ventes directes', value: 'sales' },
+    { id: 'retention', label: '❤️ Fidélisation clients', value: 'retention' }
+  ];
+
+  const budgets = [
+    { id: 'none', label: '0€ (pas de budget pub)', value: 'none' },
+    { id: 'small', label: 'Moins de 500€/mois', value: 'small' },
+    { id: 'medium', label: '500€ - 2,000€/mois', value: 'medium' },
+    { id: 'large', label: 'Plus de 2,000€/mois', value: 'large' }
+  ];
+
+  const handleQuizAnswer = (step: number, value: string) => {
+    if (step === 1) setQuizAnswers({ ...quizAnswers, businessType: value });
+    if (step === 2) setQuizAnswers({ ...quizAnswers, objective: value });
+    if (step === 3) {
+      setQuizAnswers({ ...quizAnswers, budget: value });
+      setShowQuizResult(true);
+    }
+  };
+
+  const getRecommendedPlan = () => {
+    if (quizAnswers.budget === 'large' || quizAnswers.businessType === 'ecommerce') return 'Pro';
+    if (quizAnswers.budget === 'medium') return 'Starter';
+    if (quizAnswers.budget === 'small') return 'Fondateurs';
+    return 'Starter';
+  };
+
+  const resetQuiz = () => {
+    setQuizStep(1);
+    setQuizAnswers({ businessType: '', objective: '', budget: '' });
+    setShowQuizResult(false);
+  };
+
+  // ROI Calculator logic
+  const costGraphiste = visualsPerMonth * 500;
+  const costKeiro = 199;
+  const savings = costGraphiste - costKeiro;
+  const savingsPercent = Math.round((savings / costGraphiste) * 100);
+
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-12">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold mb-2">Trouve ton plan idéal en 30 secondes</h2>
+        <p className="text-neutral-600">Réponds à 3 questions ou calcule tes économies</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex justify-center gap-4 mb-8">
+        <button
+          onClick={() => setActiveSection('quiz')}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            activeSection === 'quiz'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+              : 'bg-white border border-neutral-200 text-neutral-700 hover:border-purple-300'
+          }`}
+        >
+          🎯 Quiz personnalisé
+        </button>
+        <button
+          onClick={() => setActiveSection('calculator')}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+            activeSection === 'calculator'
+              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
+              : 'bg-white border border-neutral-200 text-neutral-700 hover:border-blue-300'
+          }`}
+        >
+          💰 Calculer mes économies
+        </button>
+      </div>
+
+      {/* Quiz Section */}
+      {activeSection === 'quiz' && !showQuizResult && (
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-purple-200 p-8 max-w-3xl mx-auto">
+          {/* Progress bar */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-purple-900">Question {quizStep}/3</span>
+              <span className="text-xs text-purple-600">{Math.round((quizStep / 3) * 100)}%</span>
+            </div>
+            <div className="h-2 bg-purple-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-600 to-pink-600 transition-all duration-500"
+                style={{ width: `${(quizStep / 3) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Question 1 */}
+          {quizStep === 1 && (
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton type d'activité ?</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                {businessTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => {
+                      handleQuizAnswer(1, type.value);
+                      setQuizStep(2);
+                    }}
+                    className="p-4 bg-white rounded-xl border-2 border-purple-200 hover:border-purple-500 hover:shadow-lg transition-all text-left font-medium"
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Question 2 */}
+          {quizStep === 2 && (
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton objectif principal ?</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                {objectives.map((obj) => (
+                  <button
+                    key={obj.id}
+                    onClick={() => {
+                      handleQuizAnswer(2, obj.value);
+                      setQuizStep(3);
+                    }}
+                    className="p-4 bg-white rounded-xl border-2 border-purple-200 hover:border-purple-500 hover:shadow-lg transition-all text-left font-medium"
+                  >
+                    {obj.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setQuizStep(1)}
+                className="mt-4 text-sm text-purple-600 hover:text-purple-700 underline"
+              >
+                ← Retour
+              </button>
+            </div>
+          )}
+
+          {/* Question 3 */}
+          {quizStep === 3 && (
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton budget pub actuel ?</h3>
+              <div className="grid md:grid-cols-2 gap-3">
+                {budgets.map((budget) => (
+                  <button
+                    key={budget.id}
+                    onClick={() => handleQuizAnswer(3, budget.value)}
+                    className="p-4 bg-white rounded-xl border-2 border-purple-200 hover:border-purple-500 hover:shadow-lg transition-all text-left font-medium"
+                  >
+                    {budget.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setQuizStep(2)}
+                className="mt-4 text-sm text-purple-600 hover:text-purple-700 underline"
+              >
+                ← Retour
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quiz Result */}
+      {activeSection === 'quiz' && showQuizResult && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-300 p-8 max-w-3xl mx-auto">
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-3xl mb-4">
+              ✓
+            </div>
+            <h3 className="text-2xl font-bold text-green-900 mb-2">Ton plan idéal : {getRecommendedPlan()}</h3>
+            <p className="text-green-700">Parfait pour ton activité et tes objectifs</p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 mb-6">
+            <h4 className="font-bold text-neutral-900 mb-4">Ce qui est inclus :</h4>
+            <ul className="space-y-3">
+              {getRecommendedPlan() === 'Pro' && (
+                <>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>Visuels & vidéos illimités</strong> - Aucune limite de production</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>30 vidéos/mois</strong> - Parfait pour TikTok & Reels</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>Calendrier de contenus</strong> - Planification automatisée</span>
+                  </li>
+                </>
+              )}
+              {(getRecommendedPlan() === 'Starter' || getRecommendedPlan() === 'Fondateurs') && (
+                <>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>Visuels illimités</strong> - Génère autant que tu veux</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>10 vidéos/mois</strong> - Pour diversifier ton contenu</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm">
+                    <span className="text-green-500 text-lg">✓</span>
+                    <span><strong>Assistant IA Marketing</strong> - Insights personnalisés</span>
+                  </li>
+                </>
+              )}
+              <li className="flex items-start gap-2 text-sm">
+                <span className="text-green-500 text-lg">✓</span>
+                <span><strong>Galerie & Posts Instagram</strong> - Captions automatiques</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <a
+              href="/generate"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
+            >
+              Commencer avec {getRecommendedPlan()} →
+            </a>
+            <button
+              onClick={resetQuiz}
+              className="px-6 py-3 bg-white border border-green-300 text-green-700 font-semibold rounded-xl hover:bg-green-50 transition-all"
+            >
+              Recommencer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ROI Calculator */}
+      {activeSection === 'calculator' && (
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-8 max-w-3xl mx-auto">
+          <h3 className="text-2xl font-bold text-blue-900 mb-6 text-center">
+            Calcule tes économies mensuelles
+          </h3>
+
+          <div className="bg-white rounded-xl p-6 mb-6">
+            <label className="block mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-neutral-900">Combien de visuels par mois ?</span>
+                <span className="text-2xl font-bold text-blue-600">{visualsPerMonth}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={visualsPerMonth}
+                onChange={(e) => setVisualsPerMonth(Number(e.target.value))}
+                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-neutral-500 mt-1">
+                <span>1</span>
+                <span>10</span>
+                <span>20</span>
+              </div>
+            </label>
+          </div>
+
+          {/* Calculs */}
+          <div className="space-y-4 mb-6">
+            <div className="bg-neutral-100 rounded-xl p-5 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-neutral-600 mb-1">Coût graphiste freelance</div>
+                <div className="text-xs text-neutral-500">{visualsPerMonth} visuels × 500€</div>
+              </div>
+              <div className="text-2xl font-bold text-neutral-900">{costGraphiste.toLocaleString()}€</div>
+            </div>
+
+            <div className="bg-blue-100 rounded-xl p-5 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-blue-900 font-semibold mb-1">Keiro Starter</div>
+                <div className="text-xs text-blue-700">Visuels illimités</div>
+              </div>
+              <div className="text-2xl font-bold text-blue-900">{costKeiro}€</div>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm opacity-90 mb-1">💰 Économie mensuelle</div>
+                  <div className="text-xs opacity-75">Soit {savings * 12}€/an</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold">{savings.toLocaleString()}€</div>
+                  <div className="text-sm text-right">{savingsPercent}% d'économie</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-green-900">
+              <strong>💡 Conseil :</strong> Avec Keiro, tu génères <strong>autant de visuels que tu veux</strong>
+              pour un forfait fixe. Plus tu produis, plus tu économises !
+            </p>
+          </div>
+
+          <a
+            href="/generate"
+            className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
+          >
+            Économiser {savings.toLocaleString()}€/mois →
+          </a>
+        </div>
+      )}
+    </section>
   );
 }
 
