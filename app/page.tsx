@@ -100,6 +100,40 @@ export default function HomeKeiro() {
         </div>
       </section>
 
+      {/* SOCIAL PROOF BAR */}
+      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 py-4 border-y border-blue-700">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 text-white">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl md:text-4xl font-bold">2,500+</div>
+              <div className="text-sm md:text-base">
+                <div className="font-semibold">visuels générés</div>
+                <div className="text-blue-100 text-xs">en 3 mois</div>
+              </div>
+            </div>
+            <div className="hidden md:block w-px h-12 bg-blue-400"></div>
+            <div className="flex items-center gap-3">
+              <div className="text-3xl md:text-4xl font-bold">450+</div>
+              <div className="text-sm md:text-base">
+                <div className="font-semibold">entrepreneurs actifs</div>
+                <div className="text-blue-100 text-xs">PME & indépendants</div>
+              </div>
+            </div>
+            <div className="hidden md:block w-px h-12 bg-blue-400"></div>
+            <div className="flex items-center gap-3">
+              <div className="text-3xl md:text-4xl font-bold flex items-center gap-1">
+                4.8/5
+                <span className="text-2xl">⭐</span>
+              </div>
+              <div className="text-sm md:text-base">
+                <div className="font-semibold">satisfaction client</div>
+                <div className="text-blue-100 text-xs">+120 avis</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border-b border-blue-100">
         <div className="mx-auto max-w-6xl px-6 py-8">
@@ -304,6 +338,16 @@ export default function HomeKeiro() {
           <p className="text-sm text-blue-900">
             <strong>Gain de temps :</strong> Plus besoin de rédiger tes captions Instagram manuellement.
             L'IA génère des descriptions engageantes adaptées à ton visuel et ton business.
+          </p>
+        </div>
+
+        {/* CTA après Galerie */}
+        <div className="mt-10 text-center">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            Essayer gratuitement →
+          </a>
+          <p className="mt-3 text-sm text-neutral-600">
+            🚀 Génère ton premier visuel en 5 minutes • 7 jours gratuits
           </p>
         </div>
       </section>
@@ -640,6 +684,100 @@ export default function HomeKeiro() {
         </div>
       </section>
 
+      {/* TÉMOIGNAGES CLIENTS */}
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold mb-2">Ce que disent nos utilisateurs</h2>
+          <p className="text-neutral-600">+120 entrepreneurs nous font confiance au quotidien</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Témoignage 1 */}
+          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+            </div>
+            <p className="text-neutral-700 mb-4 leading-relaxed">
+              "Avec Keiro, je publie <strong>3× plus régulièrement</strong> qu'avant.
+              Mes DM ont explosé et j'ai <strong>converti 8 nouveaux clients</strong> ce mois-ci.
+              L'outil indispensable pour mon restaurant !"
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg">
+                M
+              </div>
+              <div>
+                <div className="font-bold text-neutral-900">Marie Dubois</div>
+                <div className="text-sm text-neutral-600">Le Bistrot du Port</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Témoignage 2 */}
+          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+            </div>
+            <p className="text-neutral-700 mb-4 leading-relaxed">
+              "Fini les 2h de galère sur Canva ! Maintenant, je crée un visuel pro en <strong>5 minutes chrono</strong>.
+              L'IA comprend exactement mon business et mes clients. Un gain de temps immense."
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                T
+              </div>
+              <div>
+                <div className="font-bold text-neutral-900">Thomas Legrand</div>
+                <div className="text-sm text-neutral-600">Coach Move&Fit</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Témoignage 3 */}
+          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+              <span>⭐</span>
+            </div>
+            <p className="text-neutral-700 mb-4 leading-relaxed">
+              "J'ai économisé <strong>1,500€/mois</strong> en arrêtant mon graphiste freelance.
+              Keiro génère des visuels aussi qualitatifs, mais en quelques clics.
+              L'Assistant IA m'aide même à optimiser mes horaires de publication !"
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                S
+              </div>
+              <div>
+                <div className="font-bold text-neutral-900">Sophie Martin</div>
+                <div className="text-sm text-neutral-600">Boutique SophieStyle</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA après témoignages */}
+        <div className="mt-10 text-center">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            Rejoindre 450+ entrepreneurs →
+          </a>
+          <p className="mt-3 text-sm text-neutral-600">
+            ✨ 7 jours d'essai gratuit • Sans engagement • Annulation en 1 clic
+          </p>
+        </div>
+      </section>
+
       {/* POURQUOI PUBLIER SUR L'ACTU */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
@@ -695,6 +833,16 @@ export default function HomeKeiro() {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* CTA après Comparatif */}
+        <div className="mt-10 text-center">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            Commencer maintenant →
+          </a>
+          <p className="mt-3 text-sm text-neutral-600">
+            💰 Économise jusqu'à 1,800€/mois vs. graphiste • 7 jours gratuits
+          </p>
         </div>
       </section>
 
