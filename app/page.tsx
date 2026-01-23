@@ -185,11 +185,48 @@ export default function HomeKeiro() {
             </div>
             <div className="p-5">
               <div className="grid grid-cols-3 gap-2 mb-4">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="aspect-square rounded-lg bg-gradient-to-br from-blue-100 to-cyan-100 border border-blue-200 flex items-center justify-center">
-                    <span className="text-2xl">🖼️</span>
-                  </div>
-                ))}
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1533750516457-a7f992034fec?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                  <img
+                    src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=400&auto=format&fit=crop"
+                    alt="Exemple visuel"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-blue-600">
