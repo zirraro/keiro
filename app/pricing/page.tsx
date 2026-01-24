@@ -112,7 +112,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700"><strong>Toutes les fonctionnalités</strong> Starter</span>
+                <span className="text-sm text-neutral-700"><strong>Toutes les fonctionnalités</strong> Fondateurs</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700"><strong>Bascule auto</strong> sur Starter à 199€/mois</span>
+                <span className="text-sm text-neutral-700"><strong>6.99€ déduits</strong> si tu continues (142.01€ au lieu de 149€)</span>
               </li>
             </ul>
 
@@ -154,11 +154,36 @@ export default function PricingPage() {
         <p className="text-center text-neutral-600 mb-8">Choisissez le plan adapté à vos besoins</p>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          {/* Solo 49€ */}
+          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <span>🚀</span> Solo
+              </h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">49€</span>
+                <span className="text-neutral-500">/mois</span>
+              </div>
+              <p className="text-neutral-600 text-sm">Pour créateurs</p>
+            </div>
+            <ul className="space-y-3 mb-6 text-sm">
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 visuels/mois</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> 3 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Brouillons Instagram</li>
+            </ul>
+            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+              Choisir Solo
+            </Link>
+          </div>
+
           {/* Fondateurs 149€ - HIGHLIGHT */}
           <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                50 places seulement
+                50 places - puis 199€
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -172,53 +197,31 @@ export default function PricingPage() {
               <p className="text-amber-100 text-sm font-medium">Prix verrouillé à vie</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Visuels illimités</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Génération vidéo illimitée</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Studio d'édition complet</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Galerie personnelle</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Démo personnalisée offerte</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Support prioritaire</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 80 visuels/mois</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 12 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Assistant IA Marketing complet</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics avancé</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Kit style personnalisé</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Export 4K + multi-formats</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Support prioritaire + Démo</strong></li>
             </ul>
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg">
-              Rejoindre les Fondateurs
+              Devenir Fondateur
             </Link>
             <p className="text-center text-amber-100 text-xs mt-2">Places limitées</p>
           </div>
 
-          {/* Starter 199€ */}
-          <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl transition-all transform hover:scale-105">
+          {/* Business 349€ */}
+          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                Populaire
+              <span className="bg-blue-900 text-blue-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+                Pour agences
               </span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🚀</span> Starter
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">199€</span>
-                <span className="text-neutral-500">/mois</span>
-              </div>
-            </div>
-            <ul className="space-y-3 mb-6 text-sm">
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Visuels illimités</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Génération vidéo (10/mois)</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Studio d'édition complet</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Galerie personnelle</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>Démo personnalisée offerte</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>Garantie satisfait 30j</strong></li>
-            </ul>
-            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-blue-500 text-blue-600 font-medium hover:bg-blue-50 transition-all">
-              Choisir Starter
-            </Link>
-          </div>
-
-          {/* Pro 349€ */}
-          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>💼</span> Pro
+                <span>🏢</span> Business
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">349€</span>
@@ -226,40 +229,43 @@ export default function PricingPage() {
               </div>
             </div>
             <ul className="space-y-3 mb-6 text-sm">
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Starter</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Génération vidéo (30/mois)</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Calendrier de contenus</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Kit de style (couleurs, ton)</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Onboarding premium inclus</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Support chat prioritaire</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> 180 visuels/mois</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> 30 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Multi-comptes (1+5 clients)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Calendrier collaboratif</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
             <Link href="/generate" className="block w-full py-2 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all">
-              Choisir Pro
+              Contacter
             </Link>
             <p className="text-center text-blue-100 text-xs mt-2">Sans engagement</p>
           </div>
 
-          {/* Business 599€ */}
-          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all">
+          {/* Elite 999€ */}
+          <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-lg transition-all">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🏆</span> Business
+                <span>🏆</span> Elite
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">599€</span>
+                <span className="text-4xl font-bold">999€</span>
                 <span className="text-neutral-500">/mois</span>
               </div>
+              <p className="text-neutral-600 text-sm">Service premium + consulting</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm">
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Tout Pro</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Génération vidéo illimitée</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Espace équipe (5 users)</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Modèles internes</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>Stratégie mensuelle incluse</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Rapports & analytics</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> 500 visuels/mois + 100 vidéos</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> 2h/mois consulting stratégique</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Features custom développées</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Formation équipe (20 pers.)</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> SLA 99.9% garanti</li>
             </ul>
-            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
-              Choisir Business
+            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all">
+              Contacter Elite
             </Link>
           </div>
         </div>
@@ -273,67 +279,60 @@ export default function PricingPage() {
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">Fonctionnalité</th>
                   <th className="text-center py-3 px-2">Gratuit</th>
-                  <th className="text-center py-3 px-2">Essai 7j</th>
+                  <th className="text-center py-3 px-2">Solo</th>
                   <th className="text-center py-3 px-2 bg-amber-50">Fondateurs</th>
-                  <th className="text-center py-3 px-2">Starter</th>
-                  <th className="text-center py-3 px-2 bg-blue-50">Pro</th>
                   <th className="text-center py-3 px-2">Business</th>
+                  <th className="text-center py-3 px-2">Elite</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Visuels</td>
                   <td className="text-center py-3 px-2">3 (watermark)</td>
-                  <td className="text-center py-3 px-2">Illimités</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Illimités</td>
-                  <td className="text-center py-3 px-2">Illimités</td>
-                  <td className="text-center py-3 px-2 bg-blue-50">Illimités</td>
-                  <td className="text-center py-3 px-2">Illimités</td>
+                  <td className="text-center py-3 px-2">20/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">80/mois</td>
+                  <td className="text-center py-3 px-2">180/mois</td>
+                  <td className="text-center py-3 px-2">500/mois</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Vidéos</td>
                   <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">10/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Illimitées</td>
-                  <td className="text-center py-3 px-2">10/mois</td>
-                  <td className="text-center py-3 px-2 bg-blue-50">30/mois</td>
-                  <td className="text-center py-3 px-2">Illimitées</td>
+                  <td className="text-center py-3 px-2">3/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">12/mois</td>
+                  <td className="text-center py-3 px-2">30/mois</td>
+                  <td className="text-center py-3 px-2">100/mois</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Studio édition</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-blue-50">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Galerie</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-blue-50">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Démo personnalisée</td>
+                  <td className="py-3 px-2 font-medium">Assistant IA</td>
                   <td className="text-center py-3 px-2">-</td>
                   <td className="text-center py-3 px-2">-</td>
                   <td className="text-center py-3 px-2 bg-amber-50">✓</td>
                   <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-blue-50">✓</td>
                   <td className="text-center py-3 px-2">✓</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Calendrier</td>
+                  <td className="text-center py-3 px-2">-</td>
+                  <td className="text-center py-3 px-2">✓</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">✓ Auto</td>
+                  <td className="text-center py-3 px-2">✓ Collaboratif</td>
+                  <td className="text-center py-3 px-2">✓ Collaboratif</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Multi-comptes</td>
+                  <td className="text-center py-3 px-2">-</td>
+                  <td className="text-center py-3 px-2">-</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">-</td>
+                  <td className="text-center py-3 px-2">1+5</td>
+                  <td className="text-center py-3 px-2">Illimité</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-2 font-medium">Prix</td>
                   <td className="text-center py-3 px-2 font-bold">0€</td>
-                  <td className="text-center py-3 px-2 font-bold">29€</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€/mois</td>
-                  <td className="text-center py-3 px-2 font-bold">199€/mois</td>
-                  <td className="text-center py-3 px-2 bg-blue-50 font-bold text-blue-600">349€/mois</td>
-                  <td className="text-center py-3 px-2 font-bold">599€/mois</td>
+                  <td className="text-center py-3 px-2 font-bold">49€/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€/mois*</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">349€/mois</td>
+                  <td className="text-center py-3 px-2 font-bold text-amber-700">999€/mois</td>
                 </tr>
               </tbody>
             </table>
@@ -346,11 +345,11 @@ export default function PricingPage() {
           <div className="space-y-4">
             <details className="bg-white rounded-xl p-6 border border-neutral-200">
               <summary className="font-semibold cursor-pointer text-neutral-900">
-                Comment fonctionne l'essai 7 jours à 29€ ?
+                Comment fonctionne l'essai 5 jours à 6.99€ ?
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Vous payez 29€ pour accéder à toutes les fonctionnalités pendant 7 jours. Si vous êtes satisfait et passez sur le plan Starter,
-                ces 29€ sont déduits de votre premier mois. Sinon, aucun engagement - vous gardez vos créations.
+                Vous payez 6.99€ pour accéder à toutes les fonctionnalités Fondateurs pendant 5 jours. Si vous continuez,
+                ces 6.99€ sont déduits de votre premier mois (vous payez 142.01€ au lieu de 149€). Sinon, aucun engagement - vous gardez vos créations.
               </p>
             </details>
 
@@ -359,7 +358,7 @@ export default function PricingPage() {
                 Qu'est-ce que l'offre Fondateurs ?
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Les 20 premiers clients bénéficient du tarif Fondateur à 149€/mois (au lieu de 199€) verrouillé à vie.
+                Les 50 premiers clients bénéficient du tarif Fondateur à 149€/mois (au lieu de 199€) verrouillé à vie.
                 Tant que vous restez abonné, votre prix ne changera jamais. Plus une démo personnalisée offerte pour vous accompagner.
               </p>
             </details>
@@ -370,7 +369,7 @@ export default function PricingPage() {
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
                 Oui, absolument ! Tous nos plans sont sans engagement. Vous pouvez annuler à tout moment en 1 clic depuis votre espace.
-                Le plan Starter inclut même une garantie satisfait ou remboursé 30 jours.
+                Tous les plans incluent une garantie satisfait ou remboursé 30 jours.
               </p>
             </details>
 

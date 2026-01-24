@@ -863,37 +863,38 @@ export default function HomeKeiro() {
             />
 
             <Plan
+              title="🚀 Solo"
+              price="49€ / mois"
+              subtitle="Pour créateurs"
+              bullets={[
+                '20 visuels/mois',
+                '3 vidéos/mois',
+                'Toutes catégories d\'actualités',
+                'Tous styles visuels',
+                'Calendrier de publications',
+                'Brouillons Instagram',
+                'Export HD (1080px)'
+              ]}
+              ctaLabel="Choisir Solo"
+            />
+
+            <Plan
               title="⭐ Fondateurs"
               price="149€ / mois"
-              subtitle="50 places - Prix à vie"
+              subtitle="50 places - puis 199€"
               special
+              highlight
               bullets={[
                 '80 visuels/mois',
                 '12 vidéos/mois',
                 'Assistant IA Marketing complet',
                 'Analytics avancé',
                 'Calendrier + Planification auto',
-                'Prix verrouillé pour toujours',
+                'Kit de style personnalisé',
+                'Export 4K + multi-formats',
                 'Support prioritaire + Démo'
               ]}
               ctaLabel="Devenir Fondateur"
-            />
-
-            <Plan
-              title="💼 Pro"
-              price="199€ / mois"
-              subtitle="Le plus populaire"
-              highlight
-              bullets={[
-                '80 visuels/mois',
-                '12 vidéos/mois',
-                'Assistant IA + Analytics',
-                'Calendrier de publications',
-                'Brouillons Instagram',
-                'Kit de style personnalisé',
-                'Export 4K + multi-formats'
-              ]}
-              ctaLabel="Choisir Pro"
             />
 
             <Plan
@@ -903,7 +904,7 @@ export default function HomeKeiro() {
               bullets={[
                 '180 visuels/mois',
                 '30 vidéos/mois',
-                'Tout Pro +',
+                'Tout Fondateurs +',
                 'Multi-comptes (1+5 clients)',
                 'Calendrier collaboratif',
                 'Workflow validation équipe',
@@ -975,7 +976,7 @@ export default function HomeKeiro() {
                 ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
               </p>
               <p className="text-xs text-blue-600 mt-2">
-                💡 6.99€ déduits si tu continues (paye 192.01€ au lieu de 199€ le premier mois)
+                💡 6.99€ déduits si tu continues (paye 142.01€ au lieu de 149€ le premier mois)
               </p>
             </div>
           </div>
