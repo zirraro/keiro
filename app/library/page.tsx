@@ -764,6 +764,7 @@ export default function LibraryPage() {
           onTabChange={setActiveTab}
           imageCount={stats.total_images}
           draftCount={stats.total_instagram_drafts}
+          scheduledCount={0}
         />
 
         {/* Contenu principal avec sidebar (drag & drop enabled) */}
