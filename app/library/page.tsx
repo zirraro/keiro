@@ -9,6 +9,7 @@ import ImageGrid from './components/ImageGrid';
 import InstagramModal from './components/InstagramModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
 import InstagramDraftsTab from './components/InstagramDraftsTab';
+import CalendarTab from './components/CalendarTab';
 import CreateFolderModal from './components/CreateFolderModal';
 import DragProvider from './components/DragProvider';
 import FolderList from './components/FolderList';
@@ -819,13 +820,19 @@ export default function LibraryPage() {
                         onTitleEdit={handleTitleEdit}
                       />
                     )
-                  ) : (
+                  ) : activeTab === 'drafts' ? (
                     <InstagramDraftsTab
                       drafts={instagramDrafts}
                       onEdit={editInstagramDraft}
                       onDelete={deleteInstagramDraft}
                     />
-                  )}
+                  ) : activeTab === 'calendar' ? (
+                    <CalendarTab
+                      scheduledPosts={[]}
+                      onEditPost={(post) => console.log('Edit post:', post)}
+                      onDeletePost={(postId) => console.log('Delete post:', postId)}
+                    />
+                  ) : null}
                 </ErrorBoundary>
               </div>
             </div>
@@ -851,13 +858,19 @@ export default function LibraryPage() {
                   onTitleEdit={handleTitleEdit}
                 />
               )
-            ) : (
+            ) : activeTab === 'drafts' ? (
               <InstagramDraftsTab
                 drafts={[]}
                 onEdit={editInstagramDraft}
                 onDelete={deleteInstagramDraft}
               />
-            )}
+            ) : activeTab === 'calendar' ? (
+              <CalendarTab
+                scheduledPosts={[]}
+                onEditPost={(post) => console.log('Edit post:', post)}
+                onDeletePost={(postId) => console.log('Delete post:', postId)}
+              />
+            ) : null}
           </ErrorBoundary>
         )}
 
