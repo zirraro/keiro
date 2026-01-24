@@ -357,79 +357,118 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }
         </div>
       )}
 
-      {/* Empty State avec aperçu */}
+      {/* Aperçu avec exemple de calendrier */}
       {scheduledPosts.length === 0 && (
         <div>
-          {/* Aperçu de la fonctionnalité */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
-            <div className="flex items-start gap-3 mb-4">
+          {/* Bannière info */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-6">
+            <div className="flex items-start gap-3">
               <span className="text-2xl">🤖</span>
               <div>
-                <h3 className="text-lg font-bold text-blue-900 mb-2">
+                <h3 className="text-base font-bold text-blue-900 mb-1">
                   Planification automatique de vos publications
                 </h3>
-                <p className="text-sm text-blue-800 mb-4">
-                  Une fois que vous préparez un post Instagram avec description et hashtags,
-                  vous pourrez planifier sa publication automatique. Keiro s'occupera de tout !
+                <p className="text-sm text-blue-800">
+                  Voici un aperçu de ce à quoi ressemblera votre calendrier une fois que vous aurez planifié vos posts.
+                  Keiro publiera automatiquement vos contenus aux dates et heures choisies !
                 </p>
-              </div>
-            </div>
-
-            {/* Mockup visuel */}
-            <div className="bg-white rounded-lg p-4 border border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-3">📆 Exemple de calendrier avec publications planifiées :</p>
-              <div className="grid grid-cols-7 gap-1 mb-3">
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Lun</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Mar</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Mer</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Jeu</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Ven</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Sam</div>
-                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Dim</div>
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="aspect-square bg-neutral-50 rounded flex flex-col items-center justify-center p-1">
-                    <span className="text-xs text-neutral-500">{i + 1}</span>
-                    {(i === 1 || i === 3 || i === 5) && (
-                      <div className="w-full mt-1">
-                        <div className="bg-blue-500 text-white text-[8px] rounded px-1 py-0.5 text-center">📷 18h</div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <span className="text-blue-500">1.</span>
-                <span>Préparez votre post dans l'onglet <strong>"Mes images"</strong></span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <span className="text-blue-500">2.</span>
-                <span>Cliquez sur <strong>"Préparer post"</strong> puis <strong>"Planifier la publication"</strong></span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <span className="text-blue-500">3.</span>
-                <span>Choisissez la date et l'heure, et voilà ! Keiro publiera automatiquement</span>
               </div>
             </div>
           </div>
 
-          {/* Message d'encouragement */}
-          <div className="text-center py-8">
-            <div className="text-5xl mb-3">📸</div>
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">Commencez à planifier vos posts</h3>
-            <p className="text-neutral-600 mb-6">
-              Rendez-vous dans l'onglet "Mes images" pour préparer votre premier post Instagram
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-            >
-              Retour à mes images
-            </button>
+          {/* Exemple de calendrier avec données fictives */}
+          <div className="bg-white rounded-xl border-2 border-blue-200 p-4 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900">Janvier 2026 (Exemple)</h3>
+                <p className="text-sm text-neutral-600">3 publications planifiées</p>
+              </div>
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                APERÇU
+              </span>
+            </div>
+
+            {/* Grille calendrier avec exemples */}
+            <div className="border border-neutral-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-7 bg-neutral-50 border-b border-neutral-200">
+                {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
+                  <div key={day} className="p-2 text-center text-xs font-semibold text-neutral-700">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {[...Array(35)].map((_, i) => {
+                  const day = i + 1;
+                  const hasPost = day === 8 || day === 15 || day === 22;
+                  return (
+                    <div
+                      key={i}
+                      className={`min-h-[80px] border-b border-r border-neutral-100 p-2 ${
+                        day > 31 ? 'bg-neutral-50' : 'bg-white'
+                      }`}
+                    >
+                      {day <= 31 && (
+                        <>
+                          <div className="text-xs font-medium text-neutral-900 mb-1">{day}</div>
+                          {hasPost && (
+                            <div className="bg-blue-500 text-white text-[10px] rounded px-2 py-1 mb-1">
+                              📷 {day === 8 ? '18h00' : day === 15 ? '12h30' : '19h15'}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Liste des posts exemples */}
+            <div className="mt-4 space-y-2">
+              <p className="text-xs font-semibold text-neutral-700 mb-2">📋 Publications programmées :</p>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
+                <span className="text-blue-500">→</span>
+                <span className="font-medium">Lun 8 jan à 18h00</span>
+                <span className="text-neutral-600">•</span>
+                <span className="truncate flex-1">Nouveau produit : Découvrez notre innovation...</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
+                <span className="text-blue-500">→</span>
+                <span className="font-medium">Lun 15 jan à 12h30</span>
+                <span className="text-neutral-600">•</span>
+                <span className="truncate flex-1">Promo exclusive : -30% ce week-end uniquement...</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
+                <span className="text-blue-500">→</span>
+                <span className="font-medium">Lun 22 jan à 19h15</span>
+                <span className="text-neutral-600">•</span>
+                <span className="truncate flex-1">Témoignage client : Sophie partage son expérience...</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-white rounded-xl border border-neutral-200 p-5">
+            <h4 className="font-bold text-neutral-900 mb-3">🎯 Comment planifier vos posts :</h4>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm text-neutral-700">
+                <span className="font-semibold text-blue-600">1.</span>
+                <span>Allez dans l'onglet <strong>"Mes images"</strong></span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-neutral-700">
+                <span className="font-semibold text-blue-600">2.</span>
+                <span>Survolez une image et cliquez sur <strong>"Préparer post"</strong></span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-neutral-700">
+                <span className="font-semibold text-blue-600">3.</span>
+                <span>Ajoutez description et hashtags, puis cliquez sur <strong>"Planifier la publication"</strong></span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-neutral-700">
+                <span className="font-semibold text-blue-600">4.</span>
+                <span>Choisissez date et heure → Keiro publiera automatiquement !</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

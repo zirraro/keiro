@@ -969,16 +969,22 @@ export default function HomeKeiro() {
 
           {/* Trial Info */}
           <div className="mt-10 text-center">
-            <div className="inline-block bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl p-6 max-w-2xl">
               <p className="text-lg font-semibold text-blue-900 mb-2">
                 ⚡ Sprint Fondateur: 3 jours → 4.99€
               </p>
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-blue-700 mb-4">
                 ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
               </p>
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-blue-600 mb-4">
                 💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
               </p>
+              <a
+                href="/generate"
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all hover:shadow-lg hover:scale-105"
+              >
+                Démarrer mon essai 4.99€ →
+              </a>
             </div>
           </div>
         </div>

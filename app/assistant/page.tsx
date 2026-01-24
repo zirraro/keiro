@@ -267,13 +267,13 @@ function DashboardTab({ stats, chartData, user }: any) {
     <div className="space-y-6">
       {/* Bannière démo si pas de vraies données */}
       {!hasRealData && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">📊</span>
               <div>
-                <h3 className="font-bold text-amber-900 mb-1">Données d'exemple</h3>
-                <p className="text-sm text-amber-800">
+                <h3 className="font-bold text-blue-900 mb-1">Données d'exemple</h3>
+                <p className="text-sm text-blue-800">
                   Ces graphiques montrent des données fictives. Commencez à créer des visuels pour voir vos vraies performances !
                 </p>
               </div>
@@ -293,7 +293,7 @@ function DashboardTab({ stats, chartData, user }: any) {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">📈 Vos performances</h2>
           {!hasRealData && (
-            <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
               EXEMPLE
             </span>
           )}
@@ -414,11 +414,11 @@ function DashboardTab({ stats, chartData, user }: any) {
       </div>
 
       {/* Section Insights IA personnalisés */}
-      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow border border-purple-200 p-6">
+      <div className="bg-blue-50 rounded-xl shadow border border-blue-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">🤖 Insights IA personnalisés</h2>
           {stats.totalPosts > 0 && (
-            <span className="text-xs px-3 py-1 bg-purple-600 text-white rounded-full font-bold">
+            <span className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full font-bold">
               ACTIF
             </span>
           )}
@@ -426,19 +426,19 @@ function DashboardTab({ stats, chartData, user }: any) {
 
         <div className="space-y-4 text-sm">
           {/* Insight 1 : Recommandation stratégique business */}
-          <div className="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">🎯</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-purple-900">Stratégie secteur adaptée</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">Stratégie secteur adaptée</p>
                 <p className="text-neutral-700 mb-3">
                   Pour votre activité <strong>{user?.user_metadata?.business_type || 'Business'}</strong>,
                   les contenus de type <strong>"{stats.topCategory}"</strong> génèrent 3.2x plus d'engagement
                   que la moyenne de votre secteur.
                 </p>
-                <div className="bg-purple-50 p-3 rounded-lg">
-                  <p className="font-semibold text-purple-900 mb-1">💡 Action recommandée :</p>
-                  <p className="text-purple-800 text-xs">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="font-semibold text-blue-900 mb-1">💡 Action recommandée :</p>
+                  <p className="text-blue-800 text-xs">
                     Publiez 3 posts "{stats.topCategory}" cette semaine avec un angle "avant/après"
                     pour capitaliser sur cette tendance. Meilleur moment : <strong>Mardi 18h et Jeudi 12h</strong>.
                   </p>
@@ -448,19 +448,19 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 2 : Optimisation horaire personnalisée */}
-          <div className="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">⏰</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-purple-900">Timing optimal détecté</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">Timing optimal détecté</p>
                 <p className="text-neutral-700 mb-3">
                   Vos posts publiés entre <strong>17h-19h</strong> obtiennent un taux d'engagement
                   <strong> 85% supérieur</strong> à ceux publiés le matin.
                   Votre audience est particulièrement active en fin de journée.
                 </p>
-                <div className="bg-amber-50 p-3 rounded-lg">
-                  <p className="font-semibold text-amber-900 mb-1">⚡ Opportunité immédiate :</p>
-                  <p className="text-amber-800 text-xs">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="font-semibold text-blue-900 mb-1">⚡ Opportunité immédiate :</p>
+                  <p className="text-blue-800 text-xs">
                     Reprogrammez vos 2 prochains posts pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>.
                     Basé sur l'analyse de 30 jours, vous pourriez augmenter votre portée de +420 vues par post.
                   </p>
@@ -470,11 +470,11 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 3 : Analyse concurrentielle */}
-          <div className="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">📈</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-purple-900">Benchmark sectoriel</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">Benchmark sectoriel</p>
                 <p className="text-neutral-700 mb-3">
                   Dans votre niche, les comptes similaires avec <strong>+40% d'engagement</strong> utilisent
                   en moyenne 8-12 hashtags ciblés et des carrousels de 5-7 slides.
@@ -493,19 +493,19 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 4 : Prédiction de croissance */}
-          <div className="bg-white rounded-lg p-5 border border-purple-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">🔮</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-purple-900">Projection de croissance</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">Projection de croissance</p>
                 <p className="text-neutral-700 mb-3">
                   En maintenant votre rythme actuel ({stats.postsThisWeek} posts/semaine) et en
                   appliquant les optimisations ci-dessus, vous pourriez atteindre
                   <strong> +2 800 abonnés</strong> et <strong>+15 000 vues mensuelles</strong> dans les 90 prochains jours.
                 </p>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <p className="font-semibold text-green-900 mb-1">✨ Pour accélérer :</p>
-                  <p className="text-green-800 text-xs">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="font-semibold text-blue-900 mb-1">✨ Pour accélérer :</p>
+                  <p className="text-blue-800 text-xs">
                     Passez à 5 posts/semaine avec 2 Reels de 15-30sec sur vos meilleures performances.
                     L'IA estime un potentiel de <strong>+180% de croissance</strong> avec cette stratégie.
                   </p>
@@ -535,7 +535,7 @@ function DashboardTab({ stats, chartData, user }: any) {
               </a>
             </div>
           ) : (
-            <div className="text-xs text-purple-700 bg-purple-100 p-3 rounded-lg">
+            <div className="text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
               <p className="font-semibold mb-1">📊 Méthodologie :</p>
               <p>
                 Ces insights sont générés par analyse IA de vos {stats.totalPosts} derniers posts,
@@ -604,10 +604,10 @@ function FormationTab() {
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-6">
+      <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold mb-2 text-blue-900">
               📺 Masterclass Marketing
             </h2>
             <p className="text-neutral-700 text-sm">
@@ -615,7 +615,7 @@ function FormationTab() {
             </p>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-purple-600">{videos.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{videos.length}</div>
             <div className="text-xs text-neutral-600">vidéos</div>
           </div>
         </div>
@@ -672,7 +672,7 @@ function FormationTab() {
 
               {/* En attente badge */}
               {video.youtubeId === 'XXXXXXX' && (
-                <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-3 py-1 rounded-full font-bold">
+                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-bold">
                   En attente
                 </div>
               )}
