@@ -14,7 +14,7 @@ export default function PricingPage() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </span>
-            Offre de lancement - 20 places Fondateurs
+            Offre de lancement - 50 places Fondateurs
           </div>
           <h1 className="text-5xl font-bold mb-6">
             Choisissez votre plan et{' '}
@@ -23,7 +23,7 @@ export default function PricingPage() {
             </span>
           </h1>
           <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
-            Commencez gratuitement avec 3 visuels, testez pendant 7 jours à 29€,
+            Commencez gratuitement avec 3 visuels, testez pendant 5 jours à 6.99€,
             ou rejoignez les Fondateurs pour verrouiller un prix à vie.
           </p>
         </div>
@@ -98,11 +98,11 @@ export default function PricingPage() {
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>💡</span> Essai 7 jours
+                <span>💡</span> Essai 5 jours
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold">29€</span>
-                <span className="text-neutral-500">/7 jours</span>
+                <span className="text-5xl font-bold">6.99€</span>
+                <span className="text-neutral-500">/5 jours</span>
               </div>
               <p className="text-neutral-600 text-sm">Déduit du 1er mois si vous continuez</p>
             </div>
@@ -144,7 +144,7 @@ export default function PricingPage() {
               href="/generate"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
             >
-              Démarrer l'essai 7 jours
+              Démarrer l'essai 5 jours
             </Link>
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function PricingPage() {
           <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                20 places seulement
+                50 places seulement
               </span>
             </div>
             <div className="mb-4 pt-2">

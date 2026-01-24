@@ -17,9 +17,10 @@ interface InstagramDraftsTabProps {
   onEdit: (draft: InstagramDraft) => void;
   onDelete: (draftId: string) => void;
   onPublish?: (draftId: string) => void;
+  onSchedule?: (draft: InstagramDraft) => void;
 }
 
-export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish }: InstagramDraftsTabProps) {
+export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule }: InstagramDraftsTabProps) {
   if (drafts.length === 0) {
     return (
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-12 text-center">
@@ -141,34 +142,49 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </p>
 
             {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => onEdit(draft)}
-                className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
-                aria-label="Modifier le brouillon"
-              >
-                Modifier
-              </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onEdit(draft)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
+                  aria-label="Modifier le brouillon"
+                >
+                  Modifier
+                </button>
+
+                <button
+                  onClick={() => onDelete(draft.id)}
+                  className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  title="Supprimer"
+                  aria-label="Supprimer le brouillon"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {onSchedule && (
+                <button
+                  onClick={() => onSchedule(draft)}
+                  className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold hover:from-green-600 hover:to-emerald-600 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center justify-center gap-2"
+                  aria-label="Ajouter au planning"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  📅 Ajouter au planning
+                </button>
+              )}
 
               {draft.status === 'ready' && onPublish && (
                 <button
                   onClick={() => onPublish(draft.id)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-700 hover:to-pink-700 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-700 hover:to-pink-700 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center justify-center gap-1"
                   aria-label="Publier sur Instagram"
                 >
-                  <InstagramIcon className="w-4 h-4 inline mr-1" />
-                  Publier
+                  <InstagramIcon className="w-4 h-4" />
+                  Publier maintenant
                 </button>
               )}
-
-              <button
-                onClick={() => onDelete(draft.id)}
-                className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                title="Supprimer"
-                aria-label="Supprimer le brouillon"
-              >
-                <TrashIcon className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>

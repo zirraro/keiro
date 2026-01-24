@@ -835,76 +835,149 @@ export default function HomeKeiro() {
 
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium mb-4">
-              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-              Offre de lancement - 20 places Fondateurs
+        <div className="mx-auto max-w-7xl px-6 py-16">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold mb-6 shadow-lg">
+              <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
+              Offre de lancement - 50 places Fondateurs
             </div>
-            <h2 className="text-2xl font-semibold">Offres & tarifs</h2>
+            <h2 className="text-4xl font-bold mb-4">Offres & Tarifs</h2>
+            <p className="text-lg text-neutral-600">
+              Choisissez le plan qui correspond à vos besoins
+            </p>
           </div>
 
-          {/* Plans principaux */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Plans Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Plan
               title="🎁 Gratuit"
               price="0€"
               subtitle="Pour découvrir"
               bullets={[
-                '3 visuels avec watermark',
-                'Actualités par catégories',
-                'Export réseaux sociaux'
+                '3 visuels/mois avec watermark',
+                '5 catégories d\'actualités',
+                'Export réseaux sociaux (1080px)',
+                '2 styles visuels'
               ]}
-              ctaLabel="Essayer"
+              ctaLabel="Essayer gratuitement"
             />
+
             <Plan
               title="⭐ Fondateurs"
               price="149€ / mois"
-              subtitle="20 places - Prix verrouillé à vie"
+              subtitle="50 places - Prix à vie"
               special
               bullets={[
-                'Visuels illimités',
-                'Génération vidéo illimitée',
-                'Démo personnalisée offerte',
-                'Support prioritaire'
+                '80 visuels/mois',
+                '12 vidéos/mois',
+                'Assistant IA Marketing complet',
+                'Analytics avancé',
+                'Calendrier + Planification auto',
+                'Prix verrouillé pour toujours',
+                'Support prioritaire + Démo'
               ]}
-              ctaLabel="Rejoindre"
+              ctaLabel="Devenir Fondateur"
             />
-            <Plan
-              title="🚀 Starter"
-              price="199€ / mois"
-              subtitle="Garantie satisfait 30j"
-              highlight
-              bullets={[
-                'Visuels illimités',
-                '10 vidéos/mois',
-                'Démo personnalisée offerte',
-                'Studio édition complet'
-              ]}
-              ctaLabel="Choisir Starter"
-            />
+
             <Plan
               title="💼 Pro"
-              price="349€ / mois"
-              subtitle="Onboarding premium inclus"
+              price="199€ / mois"
+              subtitle="Le plus populaire"
+              highlight
               bullets={[
-                'Tout Starter',
-                '30 vidéos/mois',
-                'Calendrier de contenus',
-                'Kit de style (couleurs, ton)'
+                '80 visuels/mois',
+                '12 vidéos/mois',
+                'Assistant IA + Analytics',
+                'Calendrier de publications',
+                'Brouillons Instagram',
+                'Kit de style personnalisé',
+                'Export 4K + multi-formats'
               ]}
               ctaLabel="Choisir Pro"
             />
+
+            <Plan
+              title="🏢 Business"
+              price="349€ / mois"
+              subtitle="Pour agences"
+              bullets={[
+                '180 visuels/mois',
+                '30 vidéos/mois',
+                'Tout Pro +',
+                'Multi-comptes (1+5 clients)',
+                'Calendrier collaboratif',
+                'Workflow validation équipe',
+                'Reporting PDF brandé'
+              ]}
+              ctaLabel="Contacter"
+            />
           </div>
 
-          <div className="mt-8 text-center">
-            <a href="/pricing" className="text-blue-600 hover:underline text-sm font-medium">
-              Voir tous les plans dont Business (599€/mois) →
-            </a>
+          {/* Elite Plan - Séparé */}
+          <div className="max-w-4xl mx-auto relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full z-10">
+              PREMIUM
+            </div>
+            <div className="rounded-xl p-6 border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl">
+              <h3 className="text-xl font-bold mb-2">🏆 Elite</h3>
+              <div className="text-3xl font-black mb-1">999€ / mois</div>
+              <p className="text-sm text-neutral-600 mb-6">Service premium avec consulting</p>
+              <ul className="grid md:grid-cols-2 gap-3 mb-6">
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>500 visuels/mois + 100 vidéos/mois</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>Tout Business +</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>Account Manager dédié personnel</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>2h/mois consulting stratégique inclus</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>Développement features custom</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>Formation équipe (jusqu'à 20 personnes)</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>Priority lane (nouveautés en avant-première)</span>
+                </li>
+                <li className="text-sm flex items-start gap-2">
+                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span>SLA 99.9% garanti</span>
+                </li>
+              </ul>
+              <a
+                href="/generate"
+                className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-xl"
+              >
+                Contacter l'équipe Elite
+              </a>
+            </div>
           </div>
 
-          <div className="mt-4 text-center text-sm text-neutral-600">
-            💡 <b>Essai 7 jours à 29€</b> (déduit du 1er mois) • Sans engagement • Annulation en 1 clic
+          {/* Trial Info */}
+          <div className="mt-10 text-center">
+            <div className="inline-block bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6">
+              <p className="text-lg font-semibold text-blue-900 mb-2">
+                🎁 Essai 5 jours → 6.99€ seulement
+              </p>
+              <p className="text-sm text-blue-700">
+                ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                💡 6.99€ déduits si tu continues (paye 192.01€ au lieu de 199€ le premier mois)
+              </p>
+            </div>
           </div>
         </div>
       </section>

@@ -247,17 +247,17 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
             </p>
           </div>
 
-          {/* Warning Manual Publication */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          {/* Auto-Publish Confirmation */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex gap-3">
-              <span className="text-2xl">⚠️</span>
+              <span className="text-2xl">✅</span>
               <div>
-                <p className="text-sm font-semibold text-amber-900 mb-1">
-                  Publication manuelle requise
+                <p className="text-sm font-semibold text-green-900 mb-1">
+                  Publication automatique activée
                 </p>
-                <p className="text-xs text-amber-800">
-                  Pour le moment, vous recevrez une notification au moment prévu avec votre contenu prêt à copier-coller.
-                  La publication automatique sera disponible prochainement avec l'intégration Meta API.
+                <p className="text-xs text-green-800">
+                  Votre post sera publié automatiquement à la date et heure choisies.
+                  Vous recevrez une confirmation une fois la publication effectuée.
                 </p>
               </div>
             </div>
