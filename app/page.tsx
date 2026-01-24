@@ -63,7 +63,7 @@ export default function HomeKeiro() {
                   <div className="bg-white rounded-lg p-3 border border-purple-200">
                     <div className="text-xs text-purple-600 font-medium">Engagement</div>
                     <div className="text-xl font-bold text-purple-900">+347%</div>
-                    <div className="text-[10px] text-green-600">↗ +28% vs semaine</div>
+                    <div className="text-[10px] text-blue-600">↗ +28% vs semaine</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-purple-200">
                     <div className="text-xs text-purple-600 font-medium">Posts analysés</div>
@@ -101,20 +101,26 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* LANCEMENT 2026 - EARLY ACCESS */}
-      <section className="bg-gradient-to-r from-blue-600 to-cyan-600 py-5 border-y border-blue-700">
+      {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
+      <section className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 py-6 border-y border-purple-700 shadow-lg">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30">
-              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-              <span className="text-sm font-bold">Lancement 2026 🚀</span>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30 animate-pulse">
+              <span className="text-2xl">🚀</span>
+              <span className="text-base font-bold">Offre de lancement</span>
             </div>
-            <div className="text-base md:text-lg">
-              <span className="font-semibold">Rejoins les premiers entrepreneurs</span>
-              <span className="text-blue-100 mx-2">•</span>
-              <span className="text-blue-100">Tarifs fondateurs disponibles</span>
+            <div className="text-lg md:text-xl font-bold">
+              <span className="text-yellow-300">Sprint Fondateur: 3 jours pour seulement 4.99€</span>
             </div>
           </div>
+          <div className="text-center mt-3">
+            <a href="/generate" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-purple-700 font-bold hover:shadow-xl hover:scale-105 transition-all">
+              Essayer maintenant pour 4.99€ →
+            </a>
+          </div>
+          <p className="text-center text-white/90 text-sm mt-3">
+            ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • 4.99€ déduits si tu continues
+          </p>
         </div>
       </section>
 
@@ -514,7 +520,7 @@ export default function HomeKeiro() {
                   <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
                     <div className="text-xs text-cyan-700 font-semibold mb-1">Engagement</div>
                     <div className="text-2xl font-bold text-cyan-900">347</div>
-                    <div className="text-xs text-green-600 font-semibold">↗ +40%</div>
+                    <div className="text-xs text-blue-600 font-semibold">↗ +40%</div>
                   </div>
                 </div>
 
@@ -589,17 +595,17 @@ export default function HomeKeiro() {
                   </div>
 
                   {/* Insight 2 */}
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">⏰</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-amber-900 mb-1">Timing optimal détecté</p>
+                        <p className="text-sm font-bold text-blue-900 mb-1">Timing optimal détecté</p>
                         <p className="text-xs text-neutral-700 leading-relaxed mb-2">
                           Posts entre <strong>17h-19h</strong> obtiennent
-                          <strong className="text-amber-600"> +85% d'engagement</strong>
+                          <strong className="text-blue-600"> +85% d'engagement</strong>
                         </p>
-                        <div className="bg-amber-100 rounded p-2">
-                          <p className="text-[10px] text-amber-800">
+                        <div className="bg-blue-100 rounded p-2">
+                          <p className="text-[10px] text-blue-800">
                             ⚡ Reprogramme pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>. Impact estimé : <strong>+420 vues/post</strong>
                           </p>
                         </div>
@@ -608,17 +614,17 @@ export default function HomeKeiro() {
                   </div>
 
                   {/* Insight 3 */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🔮</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-green-900 mb-1">Projection de croissance</p>
+                        <p className="text-sm font-bold text-purple-900 mb-1">Projection de croissance</p>
                         <p className="text-xs text-neutral-700 leading-relaxed mb-2">
-                          En appliquant ces optimisations : <strong className="text-green-600">+2 800 abonnés</strong> et
-                          <strong className="text-green-600"> +15 000 vues</strong> dans 90 jours
+                          En appliquant ces optimisations : <strong className="text-purple-600">+2 800 abonnés</strong> et
+                          <strong className="text-purple-600"> +15 000 vues</strong> dans 90 jours
                         </p>
-                        <div className="bg-green-100 rounded p-2">
-                          <p className="text-[10px] text-green-800">
+                        <div className="bg-purple-100 rounded p-2">
+                          <p className="text-[10px] text-purple-800">
                             ✨ Potentiel : <strong>+180% de croissance</strong> avec stratégie accélérée
                           </p>
                         </div>
@@ -681,7 +687,7 @@ export default function HomeKeiro() {
         <div className="grid md:grid-cols-3 gap-6">
           {/* Témoignage 1 */}
           <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+            <div className="flex items-center gap-1 mb-4 text-purple-400">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -706,7 +712,7 @@ export default function HomeKeiro() {
 
           {/* Témoignage 2 */}
           <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+            <div className="flex items-center gap-1 mb-4 text-purple-400">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -730,7 +736,7 @@ export default function HomeKeiro() {
 
           {/* Témoignage 3 */}
           <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-1 mb-4 text-yellow-400">
+            <div className="flex items-center gap-1 mb-4 text-purple-400">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -837,7 +843,7 @@ export default function HomeKeiro() {
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-7xl px-6 py-16">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold mb-6 shadow-lg">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
               Offre de lancement - 50 places Fondateurs
             </div>
@@ -916,50 +922,50 @@ export default function HomeKeiro() {
 
           {/* Elite Plan - Séparé */}
           <div className="max-w-4xl mx-auto relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full z-10">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full z-10">
               PREMIUM
             </div>
-            <div className="rounded-xl p-6 border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl">
+            <div className="rounded-xl p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl">
               <h3 className="text-xl font-bold mb-2">🏆 Elite</h3>
               <div className="text-3xl font-black mb-1">999€ / mois</div>
               <p className="text-sm text-neutral-600 mb-6">Service premium avec consulting</p>
               <ul className="grid md:grid-cols-2 gap-3 mb-6">
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>500 visuels/mois + 100 vidéos/mois</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>Tout Business +</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>Account Manager dédié personnel</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>2h/mois consulting stratégique inclus</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>Développement features custom</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>Formation équipe (jusqu'à 20 personnes)</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>Priority lane (nouveautés en avant-première)</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
-                  <span className="text-green-600 font-bold text-lg">✓</span>
+                  <span className="text-purple-600 font-bold text-lg">✓</span>
                   <span>SLA 99.9% garanti</span>
                 </li>
               </ul>
               <a
                 href="/generate"
-                className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-xl"
+                className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
               >
                 Contacter l'équipe Elite
               </a>
@@ -968,15 +974,15 @@ export default function HomeKeiro() {
 
           {/* Trial Info */}
           <div className="mt-10 text-center">
-            <div className="inline-block bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-xl p-6">
+            <div className="inline-block bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
               <p className="text-lg font-semibold text-blue-900 mb-2">
-                🎁 Essai 5 jours → 6.99€ seulement
+                ⚡ Sprint Fondateur: 3 jours → 4.99€
               </p>
               <p className="text-sm text-blue-700">
                 ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
               </p>
               <p className="text-xs text-blue-600 mt-2">
-                💡 6.99€ déduits si tu continues (paye 142.01€ au lieu de 149€ le premier mois)
+                💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
               </p>
             </div>
           </div>
@@ -1209,13 +1215,13 @@ function QuizAndCalculator() {
 
       {/* Quiz Result */}
       {activeSection === 'quiz' && showQuizResult && (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-300 p-8 max-w-3xl mx-auto">
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-300 p-8 max-w-3xl mx-auto">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-3xl mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-3xl mb-4">
               ✓
             </div>
-            <h3 className="text-2xl font-bold text-green-900 mb-2">Ton plan idéal : {getRecommendedPlan()}</h3>
-            <p className="text-green-700">Parfait pour ton activité et tes objectifs</p>
+            <h3 className="text-2xl font-bold text-blue-900 mb-2">Ton plan idéal : {getRecommendedPlan()}</h3>
+            <p className="text-blue-700">Parfait pour ton activité et tes objectifs</p>
           </div>
 
           <div className="bg-white rounded-xl p-6 mb-6">
@@ -1224,15 +1230,15 @@ function QuizAndCalculator() {
               {getRecommendedPlan() === 'Pro' && (
                 <>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>Visuels & vidéos illimités</strong> - Aucune limite de production</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>30 vidéos/mois</strong> - Parfait pour TikTok & Reels</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>Calendrier de contenus</strong> - Planification automatisée</span>
                   </li>
                 </>
@@ -1240,21 +1246,21 @@ function QuizAndCalculator() {
               {(getRecommendedPlan() === 'Starter' || getRecommendedPlan() === 'Fondateurs') && (
                 <>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>Visuels illimités</strong> - Génère autant que tu veux</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>10 vidéos/mois</strong> - Pour diversifier ton contenu</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm">
-                    <span className="text-green-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span><strong>Assistant IA Marketing</strong> - Insights personnalisés</span>
                   </li>
                 </>
               )}
               <li className="flex items-start gap-2 text-sm">
-                <span className="text-green-500 text-lg">✓</span>
+                <span className="text-blue-500 text-lg">✓</span>
                 <span><strong>Galerie & Posts Instagram</strong> - Captions automatiques</span>
               </li>
             </ul>
@@ -1263,13 +1269,13 @@ function QuizAndCalculator() {
           <div className="flex gap-3">
             <a
               href="/generate"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
             >
               Commencer avec {getRecommendedPlan()} →
             </a>
             <button
               onClick={resetQuiz}
-              className="px-6 py-3 bg-white border border-green-300 text-green-700 font-semibold rounded-xl hover:bg-green-50 transition-all"
+              className="px-6 py-3 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition-all"
             >
               Recommencer
             </button>
@@ -1324,7 +1330,7 @@ function QuizAndCalculator() {
               <div className="text-2xl font-bold text-blue-900">{costKeiro}€</div>
             </div>
 
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm opacity-90 mb-1">💰 Économie mensuelle</div>
@@ -1338,8 +1344,8 @@ function QuizAndCalculator() {
             </div>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-green-900">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-blue-900">
               <strong>💡 Conseil :</strong> Avec Keiro, tu génères <strong>autant de visuels que tu veux</strong>
               pour un forfait fixe. Plus tu produis, plus tu économises !
             </p>

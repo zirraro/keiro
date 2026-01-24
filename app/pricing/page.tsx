@@ -89,22 +89,22 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          {/* Essai 7 jours */}
+          {/* Sprint Fondateur 3 jours */}
           <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-lg transition-all">
             <div className="absolute -top-3 left-4">
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
-                Pour tester sérieusement
+              <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                ⚡ Sprint intensif
               </span>
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>💡</span> Essai 5 jours
+                <span>⚡</span> Sprint Fondateur
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold">6.99€</span>
-                <span className="text-neutral-500">/5 jours</span>
+                <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">4.99€</span>
+                <span className="text-neutral-500">/3 jours</span>
               </div>
-              <p className="text-neutral-600 text-sm">Déduit du 1er mois si vous continuez</p>
+              <p className="text-neutral-600 text-sm font-medium">Teste intensément, décide vite</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -118,33 +118,33 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">Visuels illimités sans watermark</span>
+                <span className="text-sm text-neutral-700">20 visuels + 3 vidéos inclus</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">Studio d'édition complet</span>
+                <span className="text-sm text-neutral-700">Assistant IA + Analytics</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">Génération vidéo incluse</span>
+                <span className="text-sm text-neutral-700">Calendrier + Planification auto</span>
               </li>
               <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700"><strong>6.99€ déduits</strong> si tu continues (142.01€ au lieu de 149€)</span>
+                <span className="text-sm text-neutral-700"><strong>4.99€ déduits</strong> si tu continues (payes 144.01€ au lieu de 149€)</span>
               </li>
             </ul>
 
             <Link
               href="/generate"
-              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all"
+              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
-              Démarrer l'essai 5 jours
+              Démarrer le Sprint 3 jours ⚡
             </Link>
           </div>
         </div>

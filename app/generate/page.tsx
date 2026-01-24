@@ -393,7 +393,7 @@ export default function GeneratePage() {
         setTimeout(() => {
           promptSectionRef.current?.scrollIntoView({
             behavior: 'smooth',
-            block: 'start'
+            block: 'nearest'
           });
         }, 100);
       }
