@@ -62,7 +62,7 @@ export default function AssistantPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-neutral-600">Chargement de votre assistant...</p>
@@ -72,14 +72,14 @@ export default function AssistantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+    <div className="min-h-screen bg-blue-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Header intelligent personnalisé */}
         <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 md:p-6 mb-6">
           <div className="flex flex-col gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 text-blue-900">
                 👋 Bonjour {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'à vous'} !
               </h1>
               <p className="text-sm md:text-base text-neutral-600 mb-4">
@@ -99,29 +99,29 @@ export default function AssistantPage() {
                   )}
                 </div>
 
-                <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-cyan-700 font-semibold mb-2">Engagement moyen</div>
-                  <div className="text-3xl md:text-4xl font-bold text-cyan-900 mb-1">{stats.avgEngagement}</div>
-                  <div className="text-xs md:text-sm text-cyan-600 mb-2">vues par post</div>
-                  <div className="text-xs text-cyan-700 font-medium">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Engagement moyen</div>
+                  <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.avgEngagement}</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">vues par post</div>
+                  <div className="text-xs text-blue-700 font-medium">
                     {stats.avgLikes} likes moyens
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-purple-700 font-semibold mb-2">Top catégorie</div>
-                  <div className="text-lg md:text-xl font-bold text-purple-900 mb-1">{stats.topCategory}</div>
-                  <div className="text-xs md:text-sm text-purple-600 mb-2">meilleure performance</div>
-                  <div className="text-xs text-purple-700 font-medium">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Top catégorie</div>
+                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">{stats.topCategory}</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">meilleure performance</div>
+                  <div className="text-xs text-blue-700 font-medium">
                     {stats.totalPosts} posts au total
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-green-700 font-semibold mb-2">Prochain post</div>
-                  <div className="text-lg md:text-xl font-bold text-green-900 mb-1">Mardi 18h</div>
-                  <div className="text-xs md:text-sm text-green-600 mb-2">meilleur moment</div>
-                  <div className="text-xs text-green-700 font-medium">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Prochain post</div>
+                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">Mardi 18h</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">meilleur moment</div>
+                  <div className="text-xs text-blue-700 font-medium">
                     Basé sur vos données
                   </div>
                 </div>
@@ -280,7 +280,7 @@ function DashboardTab({ stats, chartData, user }: any) {
             </div>
             <a
               href="/generate"
-              className="shrink-0 px-6 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
+              className="shrink-0 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
             >
               Créer un visuel →
             </a>

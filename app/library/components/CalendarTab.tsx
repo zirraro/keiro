@@ -357,20 +357,80 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State avec aperçu */}
       {scheduledPosts.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">📅</div>
-          <h3 className="text-xl font-bold text-neutral-900 mb-2">Aucune publication planifiée</h3>
-          <p className="text-neutral-600 mb-6">
-            Commencez à planifier vos publications depuis l'onglet "Mes images"
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-          >
-            Retour à mes images
-          </button>
+        <div>
+          {/* Aperçu de la fonctionnalité */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
+            <div className="flex items-start gap-3 mb-4">
+              <span className="text-2xl">🤖</span>
+              <div>
+                <h3 className="text-lg font-bold text-blue-900 mb-2">
+                  Planification automatique de vos publications
+                </h3>
+                <p className="text-sm text-blue-800 mb-4">
+                  Une fois que vous préparez un post Instagram avec description et hashtags,
+                  vous pourrez planifier sa publication automatique. Keiro s'occupera de tout !
+                </p>
+              </div>
+            </div>
+
+            {/* Mockup visuel */}
+            <div className="bg-white rounded-lg p-4 border border-blue-200">
+              <p className="text-xs font-semibold text-blue-900 mb-3">📆 Exemple de calendrier avec publications planifiées :</p>
+              <div className="grid grid-cols-7 gap-1 mb-3">
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Lun</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Mar</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Mer</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Jeu</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Ven</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Sam</div>
+                <div className="text-center text-xs font-semibold text-neutral-600 py-1">Dim</div>
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-neutral-50 rounded flex flex-col items-center justify-center p-1">
+                    <span className="text-xs text-neutral-500">{i + 1}</span>
+                    {(i === 1 || i === 3 || i === 5) && (
+                      <div className="w-full mt-1">
+                        <div className="bg-blue-500 text-white text-[8px] rounded px-1 py-0.5 text-center">📷 18h</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <span className="text-blue-500">1.</span>
+                <span>Préparez votre post dans l'onglet <strong>"Mes images"</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <span className="text-blue-500">2.</span>
+                <span>Cliquez sur <strong>"Préparer post"</strong> puis <strong>"Planifier la publication"</strong></span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <span className="text-blue-500">3.</span>
+                <span>Choisissez la date et l'heure, et voilà ! Keiro publiera automatiquement</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Message d'encouragement */}
+          <div className="text-center py-8">
+            <div className="text-5xl mb-3">📸</div>
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">Commencez à planifier vos posts</h3>
+            <p className="text-neutral-600 mb-6">
+              Rendez-vous dans l'onglet "Mes images" pour préparer votre premier post Instagram
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+            >
+              Retour à mes images
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -1387,14 +1387,14 @@ function Plan({
   special?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-5 bg-white shadow-sm transition-all hover:shadow-lg ${
+    <div className={`rounded-2xl border p-5 bg-white shadow-sm transition-all hover:shadow-lg flex flex-col ${
       special ? 'ring-2 ring-amber-400 bg-gradient-to-br from-amber-50 to-orange-50' :
       highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''
     }`}>
       <h3 className="text-base font-semibold">{title}</h3>
       <div className="text-xl font-bold mt-1">{price}</div>
       {subtitle && <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>}
-      <ul className="mt-4 space-y-2 text-sm text-neutral-700">
+      <ul className="mt-4 space-y-2 text-sm text-neutral-700 flex-1">
         {bullets.map((b, i) => (
           <li key={i} className="flex gap-2">
             <span className={special ? "text-amber-500" : "text-blue-500"}>✓</span>
@@ -1402,7 +1402,7 @@ function Plan({
           </li>
         ))}
       </ul>
-      <a href="/generate" className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-2 hover:shadow-lg transition-all text-sm ${
+      <a href="/generate" className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
         special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
         'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
       }`}>

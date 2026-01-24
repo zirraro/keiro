@@ -183,7 +183,7 @@ export default function ImageCard({
                       e.stopPropagation();
                       onSchedule(image);
                     }}
-                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white font-medium hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 pointer-events-auto"
+                    className="px-4 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-all flex items-center gap-2 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 pointer-events-auto"
                     title="Planifier publication"
                     aria-label="Planifier une publication"
                   >
@@ -276,7 +276,7 @@ export default function ImageCard({
                       e.preventDefault();
                       onSchedule(image);
                     }}
-                    className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
+                    className="flex-1 px-4 py-3 rounded-lg bg-blue-500 text-white text-sm font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-md active:scale-95"
                     type="button"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
