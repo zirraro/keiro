@@ -122,19 +122,48 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }
 
   return (
     <div className="space-y-6">
-      {/* Auto-Publish Banner */}
+      {/* Auto-Publish Banner avec aperçu */}
       {scheduledPosts.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-start gap-3">
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+          <div className="flex items-start gap-3 mb-4">
             <span className="text-2xl">🤖</span>
-            <div>
-              <p className="text-sm font-semibold text-green-900 mb-1">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-900 mb-1">
                 Publication automatique activée
               </p>
-              <p className="text-xs text-green-800">
-                Ces posts seront publiés automatiquement aux dates et heures prévues.
-                Vous recevrez une confirmation par email après chaque publication.
+              <p className="text-xs text-blue-800">
+                Keiro publiera automatiquement vos posts aux dates et heures programmées. Vous recevrez une confirmation par email.
               </p>
+            </div>
+          </div>
+
+          {/* Aperçu des 3 prochaines publications */}
+          <div className="bg-white rounded-lg p-3 border border-blue-200">
+            <p className="text-xs font-semibold text-blue-900 mb-2">📆 Prochaines publications automatiques :</p>
+            <div className="space-y-2">
+              {scheduledPosts
+                .filter(post => new Date(post.scheduled_for) > new Date())
+                .sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime())
+                .slice(0, 3)
+                .map(post => (
+                  <div key={post.id} className="flex items-center gap-2 text-xs">
+                    <span className="text-blue-500">→</span>
+                    <span className="font-medium text-neutral-900">
+                      {new Date(post.scheduled_for).toLocaleDateString('fr-FR', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short'
+                      })} à {new Date(post.scheduled_for).toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                    <span className="text-neutral-600">•</span>
+                    <span className="text-neutral-600 truncate flex-1">
+                      {post.caption.substring(0, 40)}...
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         </div>

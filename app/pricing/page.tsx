@@ -155,7 +155,7 @@ export default function PricingPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {/* Solo 49€ */}
-          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all">
+          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all flex flex-col">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🚀</span> Solo
@@ -166,7 +166,7 @@ export default function PricingPage() {
               </div>
               <p className="text-neutral-600 text-sm">Pour créateurs</p>
             </div>
-            <ul className="space-y-3 mb-6 text-sm">
+            <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 visuels/mois</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 3 vidéos/mois</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
@@ -174,16 +174,16 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Brouillons Instagram</li>
             </ul>
-            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+            <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all mt-auto">
               Choisir Solo
             </Link>
           </div>
 
           {/* Fondateurs 149€ - HIGHLIGHT */}
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                50 places - puis 199€
+                50 places à 149€ à vie
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -194,9 +194,9 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">149€</span>
                 <span className="text-amber-100">/mois</span>
               </div>
-              <p className="text-amber-100 text-sm font-medium">Prix verrouillé à vie</p>
+              <p className="text-amber-100 text-sm font-medium">Prix verrouillé à vie • Puis 199€</p>
             </div>
-            <ul className="space-y-3 mb-6 text-sm">
+            <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 80 visuels/mois</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 12 vidéos/mois</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Assistant IA Marketing complet</li>
@@ -206,14 +206,14 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Export 4K + multi-formats</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Support prioritaire + Démo</strong></li>
             </ul>
-            <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg">
+            <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
               Devenir Fondateur
             </Link>
-            <p className="text-center text-amber-100 text-xs mt-2">Places limitées</p>
+            <p className="text-center text-amber-100 text-xs mt-2">🔥 Seulement 50 places à ce prix</p>
           </div>
 
           {/* Business 349€ */}
-          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105">
+          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-blue-900 text-blue-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 Pour agences
@@ -227,8 +227,9 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">349€</span>
                 <span className="text-blue-100">/mois</span>
               </div>
+              <p className="text-blue-100 text-sm">Pour agences</p>
             </div>
-            <ul className="space-y-3 mb-6 text-sm">
+            <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 180 visuels/mois</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 30 vidéos/mois</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
@@ -237,14 +238,14 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
-            <Link href="/generate" className="block w-full py-2 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all">
+            <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
               Contacter
             </Link>
             <p className="text-center text-blue-100 text-xs mt-2">Sans engagement</p>
           </div>
 
           {/* Elite 999€ */}
-          <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-lg transition-all">
+          <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-lg transition-all flex flex-col">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🏆</span> Elite
@@ -255,7 +256,7 @@ export default function PricingPage() {
               </div>
               <p className="text-neutral-600 text-sm">Service premium + consulting</p>
             </div>
-            <ul className="space-y-3 mb-6 text-sm">
+            <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-amber-500">✓</span> 500 visuels/mois + 100 vidéos</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
@@ -264,7 +265,7 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Formation équipe (20 pers.)</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> SLA 99.9% garanti</li>
             </ul>
-            <Link href="/generate" className="block w-full py-2 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all">
+            <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
               Contacter Elite
             </Link>
           </div>
@@ -358,8 +359,9 @@ export default function PricingPage() {
                 Qu'est-ce que l'offre Fondateurs ?
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Les 50 premiers clients bénéficient du tarif Fondateur à 149€/mois (au lieu de 199€) verrouillé à vie.
-                Tant que vous restez abonné, votre prix ne changera jamais. Plus une démo personnalisée offerte pour vous accompagner.
+                <strong>Les 50 premières places bénéficient du tarif de 149€/mois verrouillé à vie.</strong>
+                Après les 50 premiers, le prix passera à 199€/mois. Tant que vous restez abonné parmi les 50 premiers,
+                votre prix de 149€ ne changera jamais. Vous bénéficiez également d'une démo personnalisée offerte pour vous accompagner.
               </p>
             </details>
 

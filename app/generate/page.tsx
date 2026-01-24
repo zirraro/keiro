@@ -60,6 +60,7 @@ export default function GeneratePage() {
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
+  const uploadSectionRef = useRef<HTMLDivElement>(null);
 
   /* --- Calculer les catégories qui ont au moins une news --- */
   const availableCategories = useMemo(() => {
@@ -382,18 +383,18 @@ export default function GeneratePage() {
     desiredVisualIdea
   ]);
 
-  /* --- Auto-scroll vers le prompt IA sur mobile après sélection d'une actualité --- */
+  /* --- Auto-scroll vers la section upload sur mobile après sélection d'une actualité --- */
   useEffect(() => {
-    if (selectedNews && promptSectionRef.current) {
+    if (selectedNews && uploadSectionRef.current) {
       // Vérifier si on est sur mobile (< 768px)
       const isMobile = window.innerWidth < 768;
 
       if (isMobile) {
         // Attendre un court instant pour que le rendu soit complet
         setTimeout(() => {
-          promptSectionRef.current?.scrollIntoView({
+          uploadSectionRef.current?.scrollIntoView({
             behavior: 'smooth',
-            block: 'nearest'
+            block: 'start'
           });
         }, 100);
       }
@@ -1594,7 +1595,7 @@ export default function GeneratePage() {
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
           <div className="lg:col-span-4 space-y-4">
             {/* Zone Upload Logo/Photo (optionnel) */}
-            <div>
+            <div ref={uploadSectionRef}>
               <div
                 onDragOver={(e) => {
                   e.preventDefault();

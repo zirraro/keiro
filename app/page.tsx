@@ -44,15 +44,15 @@ export default function HomeKeiro() {
           </div>
           <div className="lg:col-span-5">
             {/* Assistant IA Preview Card */}
-            <div className="rounded-2xl border-2 border-purple-300 shadow-lg overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
-              <div className="p-5 border-b border-purple-200 bg-white/80 backdrop-blur">
+            <div className="rounded-2xl border-2 border-blue-200 shadow-lg overflow-hidden bg-white">
+              <div className="p-5 border-b border-blue-200 bg-blue-50/50">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl">
+                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl">
                     🤖
                   </div>
                   <div>
-                    <h3 className="font-bold text-purple-900">Assistant IA Marketing</h3>
-                    <p className="text-xs text-purple-600">Optimise tes posts en temps réel</p>
+                    <h3 className="font-bold text-blue-900">Assistant IA Marketing</h3>
+                    <p className="text-xs text-blue-600">Optimise tes posts en temps réel</p>
                   </div>
                 </div>
               </div>
@@ -60,39 +60,39 @@ export default function HomeKeiro() {
               <div className="p-5 space-y-3">
                 {/* Stats cards mini */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white rounded-lg p-3 border border-purple-200">
-                    <div className="text-xs text-purple-600 font-medium">Engagement</div>
-                    <div className="text-xl font-bold text-purple-900">+347%</div>
+                  <div className="bg-white rounded-lg p-3 border border-blue-200">
+                    <div className="text-xs text-blue-600 font-medium">Engagement</div>
+                    <div className="text-xl font-bold text-blue-900">+347%</div>
                     <div className="text-[10px] text-blue-600">↗ +28% vs semaine</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-purple-200">
-                    <div className="text-xs text-purple-600 font-medium">Posts analysés</div>
-                    <div className="text-xl font-bold text-purple-900">24</div>
-                    <div className="text-[10px] text-purple-600">6 graphiques live</div>
+                  <div className="bg-white rounded-lg p-3 border border-blue-200">
+                    <div className="text-xs text-blue-600 font-medium">Posts analysés</div>
+                    <div className="text-xl font-bold text-blue-900">24</div>
+                    <div className="text-[10px] text-blue-600">6 graphiques live</div>
                   </div>
                 </div>
 
                 {/* Insight preview */}
-                <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <div className="bg-white rounded-lg p-3 border border-blue-200">
                   <div className="flex items-start gap-2">
                     <span className="text-lg">🎯</span>
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-purple-900 mb-1">Recommandation IA</p>
+                      <p className="text-xs font-semibold text-blue-900 mb-1">Recommandation IA</p>
                       <p className="text-[11px] text-neutral-700 leading-relaxed">
-                        Tes posts "Tech" génèrent <strong className="text-purple-600">3.2x plus d'engagement</strong>.
+                        Tes posts "Tech" génèrent <strong className="text-blue-600">3.2x plus d'engagement</strong>.
                         Publie 3 posts cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-purple-600 rounded-lg p-3 text-center">
+                <div className="bg-blue-600 rounded-lg p-3 text-center">
                   <p className="text-xs font-bold text-white">✨ Insights personnalisés à ton business</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-white border-t border-purple-200 text-center">
-                <a href="/assistant" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+              <div className="p-3 bg-white border-t border-blue-200 text-center">
+                <a href="/assistant" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
                   Découvrir l'Assistant IA →
                 </a>
               </div>
@@ -102,25 +102,20 @@ export default function HomeKeiro() {
       </section>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
-      <section className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 py-6 border-y border-purple-700 shadow-lg">
+      <section className="bg-blue-600 py-4 border-y border-blue-700">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-white text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur border border-white/30 animate-pulse">
-              <span className="text-2xl">🚀</span>
-              <span className="text-base font-bold">Offre de lancement</span>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⚡</span>
+              <div>
+                <p className="font-semibold">Sprint Fondateur: 3 jours pour 4.99€</p>
+                <p className="text-xs text-blue-100">Accès complet • 4.99€ déduits si tu continues</p>
+              </div>
             </div>
-            <div className="text-lg md:text-xl font-bold">
-              <span className="text-yellow-300">Sprint Fondateur: 3 jours pour seulement 4.99€</span>
-            </div>
-          </div>
-          <div className="text-center mt-3">
-            <a href="/generate" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-purple-700 font-bold hover:shadow-xl hover:scale-105 transition-all">
-              Essayer maintenant pour 4.99€ →
+            <a href="/generate" className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
+              Essayer maintenant →
             </a>
           </div>
-          <p className="text-center text-white/90 text-sm mt-3">
-            ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • 4.99€ déduits si tu continues
-          </p>
         </div>
       </section>
 
@@ -273,18 +268,18 @@ export default function HomeKeiro() {
           </div>
 
           {/* Instagram automation preview */}
-          <div className="rounded-2xl border-2 border-purple-200 overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4">
+          <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg">
+            <div className="bg-blue-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📱</span> Posts Instagram IA
               </h3>
             </div>
             <div className="p-5 space-y-3">
-              <div className="bg-white rounded-lg p-3 border border-purple-200">
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-lg">✨</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-purple-900">Caption générée automatiquement</p>
+                    <p className="text-xs font-semibold text-blue-900">Caption générée automatiquement</p>
                     <p className="text-[11px] text-neutral-600 mt-1">
                       "🔥 Cette semaine, on parle de [ton sujet]...<br/>
                       ✅ 3 actions concrètes<br/>
@@ -293,34 +288,34 @@ export default function HomeKeiro() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg p-3 border border-purple-200">
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
                 <div className="flex items-start gap-2">
                   <span className="text-lg">#️⃣</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-purple-900">Hashtags optimisés</p>
-                    <p className="text-[11px] text-purple-600 mt-1">
+                    <p className="text-xs font-semibold text-blue-900">Hashtags optimisés</p>
+                    <p className="text-[11px] text-blue-600 mt-1">
                       #businesslocal #entrepreneurfr #marketing2026
                     </p>
                   </div>
                 </div>
               </div>
               <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-purple-600">
+                <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
                   <span>Brouillons sauvegardés automatiquement</span>
                 </div>
-                <div className="flex items-center gap-2 text-purple-600">
+                <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
                   <span>Édition complète avant publication</span>
                 </div>
-                <div className="flex items-center gap-2 text-purple-600">
+                <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
                   <span>Statut "Prêt à publier"</span>
                 </div>
               </div>
             </div>
-            <div className="p-3 bg-white border-t border-purple-200 text-center">
-              <a href="/library" className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+            <div className="p-3 bg-white border-t border-blue-200 text-center">
+              <a href="/library" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
                 Voir ma Galerie & Posts →
               </a>
             </div>
@@ -488,11 +483,11 @@ export default function HomeKeiro() {
       </section>
 
       {/* ASSISTANT IA MARKETING */}
-      <section className="border-y bg-gradient-to-br from-purple-50 to-pink-50">
+      <section className="border-y bg-blue-50">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium mb-4">
-              <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
               Intelligence Artificielle Avancée
             </div>
             <h2 className="text-3xl font-bold">🤖 Ton Assistant IA Marketing Personnel</h2>
@@ -501,8 +496,8 @@ export default function HomeKeiro() {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Analytics Dashboard Preview */}
-            <div className="rounded-2xl border-2 border-purple-300 overflow-hidden bg-white shadow-xl">
-              <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-5">
+            <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
+              <div className="bg-blue-600 p-5">
                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
                   <span>📊</span> Dashboard Analytics Complet
                 </h3>
@@ -546,28 +541,28 @@ export default function HomeKeiro() {
                     <p className="text-xs font-semibold text-neutral-700 mb-2">🏆 Top catégories</p>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-purple-500 rounded" style={{ width: '80%' }}></div>
+                        <div className="h-2 bg-blue-500 rounded" style={{ width: '80%' }}></div>
                         <span className="text-[10px] text-neutral-600">Tech</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-purple-400 rounded" style={{ width: '60%' }}></div>
+                        <div className="h-2 bg-blue-400 rounded" style={{ width: '60%' }}></div>
                         <span className="text-[10px] text-neutral-600">Business</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200 text-center">
-                  <p className="text-xs text-purple-700 font-semibold">+ 3 autres graphiques détaillés</p>
-                  <p className="text-[10px] text-purple-600 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-center">
+                  <p className="text-xs text-blue-700 font-semibold">+ 3 autres graphiques détaillés</p>
+                  <p className="text-[10px] text-blue-600 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
                 </div>
               </div>
             </div>
 
             {/* AI Insights Preview */}
             <div className="space-y-4">
-              <div className="rounded-2xl border-2 border-purple-300 overflow-hidden bg-white shadow-xl">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-5">
+              <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
+                <div className="bg-blue-600 p-5">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
                     <span>🎯</span> Recommandations Stratégiques
                   </h3>
@@ -576,17 +571,17 @@ export default function HomeKeiro() {
 
                 <div className="p-5 space-y-3">
                   {/* Insight 1 */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🎯</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-purple-900 mb-1">Stratégie secteur adaptée</p>
+                        <p className="text-sm font-bold text-blue-900 mb-1">Stratégie secteur adaptée</p>
                         <p className="text-xs text-neutral-700 leading-relaxed mb-2">
                           Pour ton activité <strong>Business</strong>, les contenus "Tech" génèrent
-                          <strong className="text-purple-600"> 3.2x plus d'engagement</strong> que la moyenne.
+                          <strong className="text-blue-600"> 3.2x plus d'engagement</strong> que la moyenne.
                         </p>
-                        <div className="bg-purple-100 rounded p-2">
-                          <p className="text-[10px] text-purple-800">
+                        <div className="bg-blue-100 rounded p-2">
+                          <p className="text-[10px] text-blue-800">
                             💡 Publie 3 posts "Tech" cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>
                           </p>
                         </div>
@@ -595,7 +590,7 @@ export default function HomeKeiro() {
                   </div>
 
                   {/* Insight 2 */}
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-200">
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">⏰</span>
                       <div className="flex-1">
@@ -614,17 +609,17 @@ export default function HomeKeiro() {
                   </div>
 
                   {/* Insight 3 */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🔮</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-purple-900 mb-1">Projection de croissance</p>
+                        <p className="text-sm font-bold text-blue-900 mb-1">Projection de croissance</p>
                         <p className="text-xs text-neutral-700 leading-relaxed mb-2">
-                          En appliquant ces optimisations : <strong className="text-purple-600">+2 800 abonnés</strong> et
-                          <strong className="text-purple-600"> +15 000 vues</strong> dans 90 jours
+                          En appliquant ces optimisations : <strong className="text-blue-600">+2 800 abonnés</strong> et
+                          <strong className="text-blue-600"> +15 000 vues</strong> dans 90 jours
                         </p>
-                        <div className="bg-purple-100 rounded p-2">
-                          <p className="text-[10px] text-purple-800">
+                        <div className="bg-blue-100 rounded p-2">
+                          <p className="text-[10px] text-blue-800">
                             ✨ Potentiel : <strong>+180% de croissance</strong> avec stratégie accélérée
                           </p>
                         </div>
@@ -635,29 +630,29 @@ export default function HomeKeiro() {
               </div>
 
               {/* Features list */}
-              <div className="bg-white rounded-2xl border-2 border-purple-200 p-5 shadow-lg">
-                <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
+              <div className="bg-white rounded-2xl border-2 border-blue-200 p-5 shadow-lg">
+                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
                   <span>✨</span> Fonctionnalités incluses
                 </h4>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span className="text-neutral-700"><strong>6 graphiques interactifs</strong> mis à jour en temps réel</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span className="text-neutral-700"><strong>Analyse IA de 30 jours</strong> comparée à 500K+ posts</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span className="text-neutral-700"><strong>Recommandations horaires</strong> précises par jour</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span className="text-neutral-700"><strong>Benchmark sectoriel</strong> personnalisé</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-purple-500 text-lg">✓</span>
+                    <span className="text-blue-500 text-lg">✓</span>
                     <span className="text-neutral-700"><strong>Projections 90 jours</strong> avec plans d'action</span>
                   </li>
                 </ul>
@@ -667,10 +662,10 @@ export default function HomeKeiro() {
 
           {/* CTA */}
           <div className="mt-10 text-center">
-            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
               Découvrir Mon Assistant IA →
             </a>
-            <p className="mt-3 text-sm text-purple-700">
+            <p className="mt-3 text-sm text-blue-700">
               💡 Disponible dès le plan Starter • Analytics détaillées • Insights quotidiens
             </p>
           </div>
@@ -700,7 +695,7 @@ export default function HomeKeiro() {
               L'outil indispensable pour mon restaurant !"
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 M
               </div>
               <div>
@@ -712,7 +707,7 @@ export default function HomeKeiro() {
 
           {/* Témoignage 2 */}
           <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-1 mb-4 text-purple-400">
+            <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -724,7 +719,7 @@ export default function HomeKeiro() {
               L'IA comprend exactement mon business et mes clients. Un gain de temps immense."
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 T
               </div>
               <div>
@@ -736,7 +731,7 @@ export default function HomeKeiro() {
 
           {/* Témoignage 3 */}
           <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
-            <div className="flex items-center gap-1 mb-4 text-purple-400">
+            <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -749,7 +744,7 @@ export default function HomeKeiro() {
               L'Assistant IA m'aide même à optimiser mes horaires de publication !"
             </p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 S
               </div>
               <div>
