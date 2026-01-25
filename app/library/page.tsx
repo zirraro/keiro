@@ -849,10 +849,8 @@ export default function LibraryPage() {
           onStartFree={handleStartFree}
         />
 
-        {/* Widget aperçu Instagram - Visible pour utilisateurs connectés */}
-        {!isGuest && user && (
-          <InstagramWidget />
-        )}
+        {/* Widget aperçu Instagram - Visible pour tous (démo pour visiteurs) */}
+        <InstagramWidget isGuest={!user} />
 
         {/* Info bulle Meta Business API - Visible pour utilisateurs connectés et guests */}
         {(user || isGuest) && (
