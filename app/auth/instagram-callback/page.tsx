@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabaseBrowser } from '@/lib/supabase/client';
 
-export default function InstagramCallback() {
+function InstagramCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -104,5 +103,21 @@ export default function InstagramCallback() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function InstagramCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Chargement</h2>
+          <p className="text-neutral-600">Préparation...</p>
+        </div>
+      </div>
+    }>
+      <InstagramCallbackContent />
+    </Suspense>
   );
 }
