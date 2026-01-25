@@ -67,3 +67,18 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
     return { id: publish.id };
   }
 }
+
+export async function publishStoryToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string): Promise<{ id: string }> {
+  // 1) Créer un "container" pour une story
+  const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+    image_url: imageUrl,
+    media_type: "STORIES",
+  });
+
+  // 2) Publier la story
+  const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+    creation_id: container.id,
+  });
+
+  return { id: publish.id };
+}
