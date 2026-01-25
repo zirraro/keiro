@@ -50,64 +50,67 @@ export async function POST(request: NextRequest) {
     const industry = profile?.industry || 'business général';
     const audience = profile?.target_audience || 'professionnels';
 
-    const prompt = `Tu es un GROWTH HACKER Instagram spécialisé en contenu viral qui convertit.
-Ta mission : créer des posts qui STOPPENT le scroll, CAPTENT l'attention et CONVERTISSENT en clics + likes.
+    const prompt = `Tu es un expert Instagram en contenu viral. Crée un post qui STOPPE le scroll et CONVERTIT.
 
-CONTEXTE:
-📸 Image: ${imageTitle || 'Non spécifié'}
-📰 Actualité: ${newsTitle || 'Non spécifié'}
-🏷️ Catégorie: ${newsCategory || 'Non spécifié'}
-🎯 Business: ${businessContext} (${industry})
-👥 Audience: ${audience}
+📋 CONTEXTE:
+Image: ${imageTitle || newsTitle}
+Actualité: ${newsTitle}
+Catégorie: ${newsCategory || 'Business'}
+Business: ${businessContext} (${industry})
+Audience: ${audience}
 
-MISSION 1 - DESCRIPTION QUI CONVERTIT:
+🎯 MISSION 1 - CAPTION INSTAGRAM:
 
-✅ RÈGLES D'OR (IMPÉRATIF):
-- 3 PREMIERS MOTS = HOOK MORTEL (question choc, affirmation provocante, chiffre brutal)
-- Ton VARIÉ selon le contexte: ironique, satirique, provocateur, inspirant, urgent, confidentiel
-- AUCUNE limite de ton : si ça capte l'attention proprement, GO
-- Storytelling court mais INTENSE (créer tension → résolution)
-- CTA IRRÉSISTIBLE en fin (clic bio, DM, like, partage)
-- Max 2200 caractères mais viser 150-200 mots optimal
-- Emojis STRATÉGIQUES (3-5 max, pas décoratif)
-- Line breaks pour rythme et lisibilité
+HOOK (3 premiers mots):
+✅ Question choc: "Vous perdez combien ?"
+✅ Affirmation provocante: "Le marketing est mort."
+✅ Chiffre brutal: "97% des entrepreneurs échouent..."
+✅ Urgence: "Plus que 48h..."
+❌ Éviter: "Découvrez", "Profitez", formules fades
 
-❌ INTERDIT:
-- "Découvrez", "Profitez", "Ne manquez pas"
-- Gentillesse corporate fade
-- Description plate de l'actualité
-- Hook faible qui n'arrête pas le scroll
+STRUCTURE:
+1. HOOK mortel (3 mots)
+2. CORPS: 100-200 mots, storytelling intense
+3. CTA puissant (bio, DM, like, partage)
+4. 3-5 emojis stratégiques
+5. Line breaks pour lisibilité
 
-🎯 APPROCHES À MIXER (selon contexte):
-1. QUESTION CHOC → "Vous gaspillez 40% de votre budget ?"
-2. AFFIRMATION PROVOCANTE → "Le marketing traditionnel est mort."
-3. CHIFFRE BRUTAL → "97% des entrepreneurs échouent car..."
-4. STORY PERSONNELLE → "J'ai perdu 50K€ avant de comprendre..."
-5. IRONIE/SATIRE → "Ah oui, l'inflation n'existe pas 🙃"
-6. URGENCE → "Dans 48h il sera trop tard."
-7. EXCLUSIVITÉ → "Ce que personne ne vous dit sur..."
-8. CALL-OUT → "Si tu lis ça, c'est que..."
+TONALITÉ: Ironique, provocateur, inspirant, urgent (selon contexte)
+MAX: 2200 caractères
 
-MISSION 2 - HASHTAGS STRATÉGIQUES:
+EXEMPLES:
+❌ "Découvrez notre solution innovante pour votre business..."
+✅ "Vous brûlez 40% de votre budget. Chaque. Jour. 💸
 
-Génère 15-20 hashtags MIX:
-- 3-5 GROS (100K-1M posts) → Visibilité max
-- 5-8 MOYENS (10K-100K) → Taux engagement optimal
-- 5-7 NICHE (<10K) → Audience ultra-qualifiée
-- Mix FR + EN si pertinent
-- Liés à l'actu + secteur + émotion du post
-- Ordre décroissant de pertinence
+Pendant que vos concurrents testent, analysent, optimisent... vous payez pour du vent.
 
-FORMAT JSON UNIQUEMENT (pas de markdown):
+J'ai perdu 50K€ avant de comprendre ça:
+[développe avec tension puis résolution]
+
+Lien en bio → On vous montre les vrais chiffres."
+
+🏷️ MISSION 2 - HASHTAGS (15-20):
+
+MIX STRATÉGIQUE:
+- 3-5 GROS (100K-1M posts): visibilité
+- 5-8 MOYENS (10K-100K): engagement
+- 5-7 NICHE (<10K): audience qualifiée
+- FR + EN si pertinent
+- Liés à: actualité + secteur + émotion
+
+📤 FORMAT (JSON pur, pas de markdown):
 {
-  "caption": "HOOK MORTEL + description intense + CTA irrésistible",
-  "hashtags": ["#tag1", "#tag2", ...]
-}`;
+  "caption": "HOOK + corps + CTA",
+  "hashtags": ["#tag1", "#tag2", "#tag3", ...]
+}
+
+Génère maintenant le post parfait pour ce contexte.`;
 
     // Appeler Claude API
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 1024,
+      max_tokens: 1536, // Augmenté pour des descriptions plus riches et détaillées
+      temperature: 0.9, // Créativité élevée tout en gardant cohérence
       messages: [
         {
           role: 'user',

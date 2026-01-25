@@ -26,6 +26,7 @@ interface ImageGridProps {
   onDownload: (imageUrl: string, title?: string) => void;
   onDelete: (imageId: string) => void;
   onOpenInstagram: (image: SavedImage) => void;
+  onSchedule?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
 }
 
@@ -40,6 +41,7 @@ export default function ImageGrid({
   onDownload,
   onDelete,
   onOpenInstagram,
+  onSchedule,
   onTitleEdit
 }: ImageGridProps) {
   if (images.length === 0) {
@@ -99,6 +101,7 @@ export default function ImageGrid({
           onDownload={onDownload}
           onDelete={onDelete}
           onOpenInstagram={onOpenInstagram}
+          onSchedule={onSchedule}
           onTitleEdit={onTitleEdit}
         />
       ))}

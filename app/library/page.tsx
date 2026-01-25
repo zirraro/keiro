@@ -7,6 +7,7 @@ import GalleryHeader from './components/GalleryHeader';
 import FilterBar from './components/FilterBar';
 import ImageGrid from './components/ImageGrid';
 import InstagramModal from './components/InstagramModal';
+import ScheduleModal from './components/ScheduleModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
 import InstagramDraftsTab from './components/InstagramDraftsTab';
 import CalendarTab from './components/CalendarTab';
@@ -139,9 +140,14 @@ export default function LibraryPage() {
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
 
+  // États pour la planification
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedImageForSchedule, setSelectedImageForSchedule] = useState<SavedImage | null>(null);
+
   // États pour les onglets
   const [activeTab, setActiveTab] = useState<Tab>('images');
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
+  const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
 
   // États pour les dossiers
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -231,6 +237,19 @@ export default function LibraryPage() {
     }
   };
 
+  // Fonction pour charger les posts planifiés
+  const loadScheduledPosts = async () => {
+    try {
+      const res = await fetch('/api/library/scheduled-posts');
+      const data = await res.json();
+      if (data.ok) {
+        setScheduledPosts(data.posts || []);
+      }
+    } catch (error) {
+      console.error('[Library] Error loading scheduled posts:', error);
+    }
+  };
+
   // Charger les images et dossiers
   useEffect(() => {
     if (!user) return;
@@ -250,6 +269,9 @@ export default function LibraryPage() {
 
         // Charger les brouillons Instagram
         await loadInstagramDrafts();
+
+        // Charger les posts planifiés
+        await loadScheduledPosts();
       } catch (error) {
         console.error('[Library] Error loading library:', error);
       }
@@ -441,6 +463,78 @@ export default function LibraryPage() {
       }
     } catch (error) {
       console.error('[Library] Error deleting Instagram draft:', error);
+    }
+  };
+
+  // Modifier un post planifié
+  const handleEditPost = async (post: any) => {
+    // TODO: Ouvrir un modal pour éditer le post
+    console.log('[Library] Edit scheduled post:', post);
+  };
+
+  // Supprimer un post planifié
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Supprimer ce post planifié ?')) return;
+
+    try {
+      const res = await fetch(`/api/library/scheduled-posts?id=${postId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        await loadScheduledPosts();
+      } else {
+        alert('Erreur lors de la suppression du post');
+      }
+    } catch (error) {
+      console.error('[Library] Error deleting scheduled post:', error);
+      alert('Erreur lors de la suppression du post');
+    }
+  };
+
+  // Ouvrir le modal de planification pour une image
+  const openScheduleModal = (image: SavedImage) => {
+    setSelectedImageForSchedule(image);
+    setShowScheduleModal(true);
+  };
+
+  // Planifier un post
+  const handleSchedulePost = async (data: {
+    platform: string;
+    scheduledFor: string;
+    caption: string;
+    hashtags: string[];
+  }) => {
+    if (!selectedImageForSchedule) return;
+
+    try {
+      const res = await fetch('/api/library/scheduled-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          saved_image_id: selectedImageForSchedule.id,
+          platform: data.platform,
+          scheduled_for: data.scheduledFor,
+          caption: data.caption,
+          hashtags: data.hashtags
+        })
+      });
+
+      const result = await res.json();
+
+      if (result.ok) {
+        alert('✅ Post planifié avec succès !');
+        await loadScheduledPosts();
+        setShowScheduleModal(false);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la planification');
+      }
+    } catch (error: any) {
+      console.error('[Library] Error scheduling post:', error);
+      alert(error.message || 'Erreur lors de la planification du post');
+      throw error;
     }
   };
 
@@ -765,7 +859,7 @@ export default function LibraryPage() {
           onTabChange={setActiveTab}
           imageCount={stats.total_images}
           draftCount={stats.total_instagram_drafts}
-          scheduledCount={0}
+          scheduledCount={scheduledPosts.length}
         />
 
         {/* Contenu principal avec sidebar (drag & drop enabled) */}
@@ -817,6 +911,7 @@ export default function LibraryPage() {
                         onDownload={downloadImage}
                         onDelete={deleteImage}
                         onOpenInstagram={openInstagramModal}
+                        onSchedule={openScheduleModal}
                         onTitleEdit={handleTitleEdit}
                       />
                     )
@@ -828,9 +923,9 @@ export default function LibraryPage() {
                     />
                   ) : activeTab === 'calendar' ? (
                     <CalendarTab
-                      scheduledPosts={[]}
-                      onEditPost={(post) => console.log('Edit post:', post)}
-                      onDeletePost={(postId) => console.log('Delete post:', postId)}
+                      scheduledPosts={scheduledPosts}
+                      onEditPost={handleEditPost}
+                      onDeletePost={handleDeletePost}
                     />
                   ) : null}
                 </ErrorBoundary>
@@ -855,6 +950,7 @@ export default function LibraryPage() {
                   onDownload={downloadImage}
                   onDelete={deleteImage}
                   onOpenInstagram={openInstagramModal}
+                  onSchedule={openScheduleModal}
                   onTitleEdit={handleTitleEdit}
                 />
               )
@@ -887,6 +983,16 @@ export default function LibraryPage() {
           image={selectedImageForInsta}
           onClose={() => setShowInstagramModal(false)}
           onSave={saveInstagramDraft}
+        />
+      )}
+
+      {/* Modal Planification */}
+      {showScheduleModal && selectedImageForSchedule && (
+        <ScheduleModal
+          isOpen={showScheduleModal}
+          image={selectedImageForSchedule}
+          onClose={() => setShowScheduleModal(false)}
+          onSchedule={handleSchedulePost}
         />
       )}
 

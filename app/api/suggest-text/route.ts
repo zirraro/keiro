@@ -27,17 +27,16 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
-    // Construire le prompt expert ULTRA-AGRESSIF pour textes Instagram qui STOPPENT le scroll
-    const prompt = `Tu es un EXPERT en copywriting Instagram viral et provocateur.
-Ta mission : créer des punchlines overlay qui ARRÊTENT le défilement en 0,5 seconde.
+    // Construire le prompt optimisé pour Claude Haiku
+    const prompt = `Tu es un copywriter Instagram expert. Crée 10 punchlines overlay qui STOPPENT le scroll en 0,5 seconde.
 
-CONTEXTE:
-📰 Actualité: "${newsTitle}"
+📋 CONTEXTE:
+Actualité: "${newsTitle}"
 ${newsDescription ? `Détails: ${newsDescription}` : ''}
-🏢 Business: ${businessType}
+Business: ${businessType}
 ${businessDescription ? `Description: ${businessDescription}` : ''}
 ${targetAudience ? `Audience: ${targetAudience}` : ''}
-Ton voulu: ${tone || 'Confiant, premium, provocateur'}
+Ton: ${tone || 'Confiant, premium, provocateur'}
 
 RÈGLES DE CRÉATION (IMPÉRATIF):
 
@@ -95,32 +94,28 @@ CONTRAINTES TECHNIQUES:
 - Chaque texte = approche DIFFÉRENTE
 - Lisible et compris en 0,5 seconde
 
-TON MISSION MAINTENANT:
+🎯 TA MISSION:
 
-1. Analyse le lien entre "${newsTitle}" et "${businessType}"
-2. Trouve l'ANGLE LE PLUS VIOLENT/PROVOCANT/INATTENDU
-3. Génère 10 PUNCHLINES qui STOPPENT le scroll Instagram
-4. Varie les approches (chiffre brutal, question choc, ironie, ellipse, etc.)
-5. Zéro banalité. Zéro politesse corporate. Pure efficacité.
+1. Trouve l'angle PROVOCANT/INATTENDU entre "${newsTitle}" et "${businessType}"
+2. Génère 10 PUNCHLINES distinctes qui STOPPENT le scroll
+3. Varie les 10 approches (chiffre brutal, question choc, ironie, ellipse, urgence, etc.)
 
-CRITÈRES DE RÉUSSITE:
-- Si je peux lire le texte sur n'importe quelle autre marque → ÉCHEC
-- Si ça ne choque/interpelle/intrigue pas → ÉCHEC
-- Si c'est "gentil" et consensuel → ÉCHEC
-- Si ça dépasse 45 caractères → ÉCHEC
-- Si quelqu'un scroll sans s'arrêter → ÉCHEC TOTAL
+⚡ CRITÈRES DE SUCCÈS:
+- Unique à cette marque (pas générique)
+- Choque/interpelle/intrigue
+- Max 45 caractères (emojis inclus)
+- Lecture instantanée (0,5 sec)
+- Pas consensuel ou "gentil"
 
-GÉNÈRE maintenant 10 punchlines EN FRANÇAIS pour:
-Actu: "${newsTitle}"
-Business: "${businessType}"
+📤 FORMAT (JSON array pur):
+["Punchline 1", "Punchline 2", "Punchline 3", "Punchline 4", "Punchline 5", "Punchline 6", "Punchline 7", "Punchline 8", "Punchline 9", "Punchline 10"]
 
-FORMAT DE RÉPONSE:
-JSON array uniquement. Une punchline par ligne. Aucune explication.
-["Punchline 1", "Punchline 2", "Punchline 3", "Punchline 4", "Punchline 5", "Punchline 6", "Punchline 7", "Punchline 8", "Punchline 9", "Punchline 10"]`;
+Génère maintenant les 10 punchlines EN FRANÇAIS.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 2048, // Augmenté pour permettre une meilleure analyse
+      max_tokens: 2048,
+      temperature: 1.0, // Maximum de créativité pour des punchlines variées
       messages: [
         {
           role: 'user',
