@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 function InstagramCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
