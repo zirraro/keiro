@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * GET /api/auth/instagram-oauth
  * Initie le flux OAuth Instagram/Meta en redirigeant vers Meta
+ * Version: 1.0 - Production ready
  */
 export async function GET(req: NextRequest) {
   try {
