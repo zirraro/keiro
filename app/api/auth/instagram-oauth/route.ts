@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Permissions Instagram Business requises
+    // Permissions Instagram Business pour publier sur Instagram
     const scopes = [
       'instagram_basic',
       'instagram_content_publish',
