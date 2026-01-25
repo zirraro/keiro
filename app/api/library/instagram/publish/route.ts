@@ -1,0 +1,161 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { publishImageToInstagram } from '@/lib/meta';
+
+/**
+ * Helper: Extract access token from Supabase cookies
+ */
+async function getAccessTokenFromCookies(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+
+  for (const cookie of allCookies) {
+    if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+      try {
+        let cookieValue = cookie.value;
+
+        if (cookieValue.startsWith('base64-')) {
+          const base64Content = cookieValue.substring(7);
+          cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
+        }
+
+        const parsed = JSON.parse(cookieValue);
+        return parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+      } catch (err) {
+        console.error('[PublishInstagram] Error processing cookie:', err);
+      }
+    }
+  }
+
+  return cookieStore.get('sb-access-token')?.value ||
+         cookieStore.get('supabase-auth-token')?.value ||
+         null;
+}
+
+/**
+ * POST /api/library/instagram/publish
+ * Publie une image sur Instagram immédiatement
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Récupérer l'utilisateur connecté
+    let accessToken = await getAccessTokenFromCookies();
+
+    if (!accessToken) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        accessToken = authHeader.substring(7);
+      }
+    }
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { ok: false, error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { ok: false, error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+
+    // Récupérer les données du body
+    const { imageUrl, caption, hashtags } = await req.json();
+
+    if (!imageUrl) {
+      return NextResponse.json(
+        { ok: false, error: 'Image URL manquante' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[PublishInstagram] Publishing to Instagram...', {
+      userId: user.id,
+      imageUrl: imageUrl.substring(0, 50)
+    });
+
+    // Récupérer les informations Instagram de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, instagram_access_token, instagram_username')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('[PublishInstagram] Error fetching profile:', profileError);
+      return NextResponse.json(
+        { ok: false, error: 'Profil non trouvé' },
+        { status: 404 }
+      );
+    }
+
+    if (!profile.instagram_business_account_id || !profile.instagram_access_token) {
+      return NextResponse.json(
+        { ok: false, error: 'Compte Instagram non connecté. Veuillez d\'abord connecter votre compte Instagram Business.' },
+        { status: 400 }
+      );
+    }
+
+    // Construire la caption finale (caption + hashtags)
+    let finalCaption = caption || '';
+    if (hashtags && hashtags.length > 0) {
+      const hashtagString = hashtags.join(' ');
+      finalCaption = finalCaption ? `${finalCaption}\n\n${hashtagString}` : hashtagString;
+    }
+
+    console.log('[PublishInstagram] Caption length:', finalCaption.length);
+
+    // Publier sur Instagram
+    const result = await publishImageToInstagram(
+      profile.instagram_business_account_id,
+      profile.instagram_access_token,
+      imageUrl,
+      finalCaption
+    );
+
+    console.log('[PublishInstagram] ✅ Published successfully:', result.id);
+
+    // Sauvegarder le post dans la table instagram_posts
+    const { error: insertError } = await supabase
+      .from('instagram_posts')
+      .insert({
+        user_id: user.id,
+        caption: finalCaption,
+        hashtags: hashtags || [],
+        status: 'published',
+        published_at: new Date().toISOString(),
+        instagram_post_id: result.id,
+        instagram_permalink: result.permalink || null
+      });
+
+    if (insertError) {
+      console.error('[PublishInstagram] Error saving post to database:', insertError);
+      // Ne pas retourner d'erreur car la publication a réussi
+    }
+
+    return NextResponse.json({
+      ok: true,
+      post: {
+        id: result.id,
+        permalink: result.permalink
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[PublishInstagram] ❌ Unexpected error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Erreur lors de la publication' },
+      { status: 500 }
+    );
+  }
+}
