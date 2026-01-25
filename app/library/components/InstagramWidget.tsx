@@ -35,7 +35,7 @@ export default function InstagramWidget() {
         const response = await fetch('/api/instagram/posts');
         if (response.ok) {
           const data = await response.json();
-          setPosts(data.posts?.slice(0, 4) || []);
+          setPosts(data.posts?.slice(0, 8) || []);
         }
       }
     } catch (error) {
@@ -50,8 +50,8 @@ export default function InstagramWidget() {
       <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-4">
         <div className="animate-pulse">
           <div className="h-4 bg-neutral-200 rounded w-32 mb-3"></div>
-          <div className="grid grid-cols-2 gap-2">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-4 gap-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="aspect-square bg-neutral-200 rounded-lg"></div>
             ))}
           </div>
@@ -95,17 +95,22 @@ export default function InstagramWidget() {
               <p className="text-xs text-neutral-500">@{profile.instagram_username}</p>
             </div>
           </div>
-          <Link
-            href="/dashboard"
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          <a
+            href={`https://www.instagram.com/${profile.instagram_username}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-pink-600 hover:text-pink-700 font-medium flex items-center gap-1"
           >
-            Tout voir
-          </Link>
+            Voir sur Instagram
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
         </div>
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-1 p-1">
+        <div className="grid grid-cols-4 gap-1 p-1">
           {posts.map((post) => (
             <a
               key={post.id}

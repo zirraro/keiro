@@ -228,7 +228,7 @@ export default function Header() {
                     <div className="px-4 py-2 text-sm">
                       {profile.instagram_username ? (
                         <Link
-                          href="/dashboard"
+                          href="/library"
                           className="flex items-center gap-2 text-green-600 hover:bg-green-50 transition-colors rounded-lg p-2 -m-2"
                           onClick={() => setShowMenu(false)}
                         >
