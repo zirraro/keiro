@@ -926,6 +926,7 @@ export default function LibraryPage() {
                       scheduledPosts={scheduledPosts}
                       onEditPost={handleEditPost}
                       onDeletePost={handleDeletePost}
+                      isVisitor={false}
                     />
                   ) : null}
                 </ErrorBoundary>
@@ -965,6 +966,7 @@ export default function LibraryPage() {
                 scheduledPosts={[]}
                 onEditPost={(post) => console.log('Edit post:', post)}
                 onDeletePost={(postId) => console.log('Delete post:', postId)}
+                isVisitor={true}
               />
             ) : null}
           </ErrorBoundary>

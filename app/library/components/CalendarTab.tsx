@@ -18,9 +18,10 @@ interface CalendarTabProps {
   scheduledPosts: ScheduledPost[];
   onEditPost: (post: ScheduledPost) => void;
   onDeletePost: (postId: string) => void;
+  isVisitor?: boolean; // Indique si l'utilisateur est en mode visiteur
 }
 
-export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }: CalendarTabProps) {
+export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, isVisitor = false }: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
 
@@ -122,8 +123,11 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }
 
   return (
     <div className="space-y-6">
-      {/* Auto-Publish Banner avec aperçu */}
-      {scheduledPosts.length > 0 && (
+      {/* Calendrier réel - Mode utilisateur connecté uniquement */}
+      {!isVisitor && (
+        <>
+          {/* Auto-Publish Banner avec aperçu */}
+          {scheduledPosts.length > 0 && (
         <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
           <div className="flex items-start gap-3 mb-4">
             <span className="text-2xl">🤖</span>
@@ -356,9 +360,11 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost }
           </div>
         </div>
       )}
+        </>
+      )}
 
-      {/* Aperçu avec exemple de calendrier */}
-      {scheduledPosts.length === 0 && (
+      {/* Aperçu avec exemple de calendrier - Mode visiteur uniquement */}
+      {isVisitor && (
         <div>
           {/* Bannière info */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-6">
