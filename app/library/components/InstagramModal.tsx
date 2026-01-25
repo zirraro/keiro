@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { InstagramIcon, XIcon } from './Icons';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 type SavedImage = {
   id: string;
@@ -26,6 +27,39 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   const [hashtagInput, setHashtagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [isInstagramConnected, setIsInstagramConnected] = useState(false);
+  const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
+  const [checkingConnection, setCheckingConnection] = useState(true);
+
+  // Vérifier si l'utilisateur a connecté son compte Instagram
+  useEffect(() => {
+    const checkInstagramConnection = async () => {
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('instagram_business_account_id, instagram_username')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.instagram_business_account_id) {
+            setIsInstagramConnected(true);
+            setInstagramUsername(profile.instagram_username);
+          }
+        }
+      } catch (error) {
+        console.error('[InstagramModal] Error checking Instagram connection:', error);
+      } finally {
+        setCheckingConnection(false);
+      }
+    };
+
+    checkInstagramConnection();
+  }, []);
 
   const addHashtag = () => {
     const tag = hashtagInput.trim();
@@ -85,6 +119,59 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
     } finally {
       setSuggesting(false);
     }
+  };
+
+  const handlePublishNow = async () => {
+    if (!caption.trim()) {
+      alert('Veuillez écrire une description pour votre post');
+      return;
+    }
+
+    if (!isInstagramConnected) {
+      alert('Veuillez d\'abord connecter votre compte Instagram Business');
+      return;
+    }
+
+    const confirm = window.confirm(
+      '🚀 Publier maintenant sur Instagram ?\n\nVotre post sera publié immédiatement sur votre compte Instagram Business.'
+    );
+
+    if (!confirm) return;
+
+    setPublishing(true);
+    try {
+      const response = await fetch('/api/library/instagram/publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageUrl: image.image_url,
+          caption,
+          hashtags
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert('✅ Post publié avec succès sur Instagram !\n\nVotre contenu est maintenant visible par votre audience.');
+        onClose();
+      } else {
+        throw new Error(data.error || 'Erreur lors de la publication');
+      }
+    } catch (error: any) {
+      console.error('[InstagramModal] Error publishing:', error);
+      alert(`❌ Erreur lors de la publication:\n${error.message || 'Une erreur est survenue'}`);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleConnectInstagram = () => {
+    // Ouvrir le flux OAuth dans une nouvelle fenêtre
+    window.location.href = '/api/auth/instagram-oauth';
   };
 
   return (
@@ -258,11 +345,33 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
 
         {/* Footer avec actions */}
         <div className="border-t p-4 sm:p-6 bg-neutral-50">
-          <div className="mb-3 text-center">
-            <p className="text-xs sm:text-sm text-neutral-600">
-              💡 Fonctionnalité de publication automatique à venir
-            </p>
-          </div>
+          {/* Statut de connexion Instagram */}
+          {!checkingConnection && (
+            <div className="mb-4">
+              {isInstagramConnected ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Connecté à Instagram : <strong>@{instagramUsername}</strong></span>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200 mb-3">
+                    ⚠️ Connectez votre compte Instagram Business pour publier automatiquement
+                  </p>
+                  <button
+                    onClick={handleConnectInstagram}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                  >
+                    <InstagramIcon className="w-5 h-5" />
+                    <span>Connecter Instagram</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onClose}
@@ -288,27 +397,53 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                 <span>Brouillon</span>
               )}
             </button>
-            <button
-              onClick={() => handleSave('ready')}
-              disabled={saving || !caption.trim()}
-              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
-                saving || !caption.trim()
-                  ? 'bg-neutral-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-              }`}
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Sauvegarde...</span>
-                </>
-              ) : (
-                <>
-                  <InstagramIcon className="w-4 sm:w-5 h-4 sm:h-5" />
-                  <span>Prêt à publier</span>
-                </>
-              )}
-            </button>
+
+            {/* Bouton Publier maintenant (seulement si Instagram connecté) */}
+            {isInstagramConnected ? (
+              <button
+                onClick={handlePublishNow}
+                disabled={publishing || !caption.trim()}
+                className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
+                  publishing || !caption.trim()
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {publishing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Publication...</span>
+                  </>
+                ) : (
+                  <>
+                    <InstagramIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                    <span>🚀 Publier maintenant</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSave('ready')}
+                disabled={saving || !caption.trim()}
+                className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
+                  saving || !caption.trim()
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Sauvegarde...</span>
+                  </>
+                ) : (
+                  <>
+                    <InstagramIcon className="w-4 sm:w-5 h-4 sm:h-5" />
+                    <span>Prêt à publier</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
