@@ -21,6 +21,7 @@ import EmailGateModal from './components/EmailGateModal';
 import DropZone from './components/DropZone';
 import InstagramMetaInfo from './components/InstagramMetaInfo';
 import InstagramConnectionModal from './components/InstagramConnectionModal';
+import InstagramWidget from './components/InstagramWidget';
 
 type SavedImage = {
   id: string;
@@ -847,6 +848,11 @@ export default function LibraryPage() {
           }}
           onStartFree={handleStartFree}
         />
+
+        {/* Widget aperçu Instagram - Visible pour utilisateurs connectés */}
+        {!isGuest && user && (
+          <InstagramWidget />
+        )}
 
         {/* Info bulle Meta Business API - Visible pour utilisateurs connectés et guests */}
         {(user || isGuest) && (
