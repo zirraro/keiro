@@ -32,6 +32,11 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
   const [checkingConnection, setCheckingConnection] = useState(true);
 
+  // Nouveaux états pour la galerie
+  const [availableImages, setAvailableImages] = useState<SavedImage[]>([]);
+  const [selectedImage, setSelectedImage] = useState<SavedImage>(image);
+  const [loadingImages, setLoadingImages] = useState(false);
+
   // Vérifier si l'utilisateur a connecté son compte Instagram
   useEffect(() => {
     const checkInstagramConnection = async () => {
@@ -60,6 +65,40 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
 
     checkInstagramConnection();
   }, []);
+
+  // Charger images du même dossier pour sélection rapide
+  useEffect(() => {
+    const loadImages = async () => {
+      setLoadingImages(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        // Récupérer images du même dossier OU toutes si pas de dossier
+        const query = supabase
+          .from('saved_images')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (image.folder_id) {
+          query.eq('folder_id', image.folder_id);
+        }
+
+        const { data: images } = await query;
+        setAvailableImages(images || []);
+      } catch (error) {
+        console.error('[InstagramModal] Error loading images:', error);
+      } finally {
+        setLoadingImages(false);
+      }
+    };
+
+    loadImages();
+  }, [image.folder_id]);
 
   const addHashtag = () => {
     const tag = hashtagInput.trim();
@@ -99,9 +138,9 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageTitle: image.title || image.news_title,
-          newsTitle: image.news_title,
-          newsCategory: image.news_category
+          imageTitle: selectedImage.title || selectedImage.news_title,
+          newsTitle: selectedImage.news_title,
+          newsCategory: selectedImage.news_category
         })
       });
 
@@ -147,7 +186,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: image.image_url,
+          imageUrl: selectedImage.image_url,
           caption,
           hashtags
         })
@@ -190,7 +229,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: image.image_url
+          imageUrl: selectedImage.image_url
         })
       });
 
@@ -211,62 +250,100 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   const handleConnectInstagram = () => {
-    // Ouvrir le flux OAuth dans une nouvelle fenêtre
     window.location.href = '/api/auth/instagram-oauth';
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex items-center gap-2 sm:gap-3">
             <InstagramIcon className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600" />
-            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Post Instagram</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Préparer un post Instagram</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            className="p-2 rounded-full hover:bg-white/50 transition-colors"
             aria-label="Fermer"
           >
             <XIcon className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" />
           </button>
         </div>
 
-        {/* Contenu */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* Image en haut sur mobile, à gauche sur desktop */}
-          <div className="mb-4 sm:mb-0 sm:hidden">
-            <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
-              <img
-                src={image.image_url}
-                alt={image.title || image.news_title || ''}
-                className="w-full h-full object-cover"
-              />
+        {/* NOUVEAU LAYOUT 3 COLONNES */}
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+
+          {/* GALERIE D'IMAGES - SIDEBAR GAUCHE */}
+          <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
+            <div className="p-2 space-y-2">
+              <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
+                Sélectionner une image
+              </p>
+              {loadingImages ? (
+                // Skeleton loading
+                [1, 2, 3, 4, 5, 6].map(i => (
+                  <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
+                ))
+              ) : (
+                availableImages.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => setSelectedImage(img)}
+                    className={`
+                      w-full aspect-square rounded-lg overflow-hidden transition-all
+                      ${selectedImage.id === img.id
+                        ? 'ring-2 ring-pink-500 scale-105 shadow-lg'
+                        : 'ring-1 ring-neutral-300 hover:ring-pink-300 hover:scale-102'
+                      }
+                    `}
+                    title={img.title || img.news_title || 'Image'}
+                  >
+                    <img
+                      src={img.thumbnail_url || img.image_url}
+                      alt={img.title || 'Image'}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))
+              )}
+              {!loadingImages && availableImages.length === 0 && (
+                <p className="text-xs text-neutral-400 text-center py-4">
+                  Aucune autre image
+                </p>
+              )}
             </div>
-            <p className="text-sm text-neutral-600 mt-2 font-medium">
-              {image.title || image.news_title || 'Sans titre'}
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-            {/* Colonne gauche : Image - Desktop uniquement */}
-            <div className="hidden md:block">
-              <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
-                <img
-                  src={image.image_url}
-                  alt={image.title || image.news_title || ''}
-                  className="w-full h-full object-cover"
-                />
+          {/* PREVIEW + FORM - RESTE À DROITE */}
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+            {/* PREVIEW STICKY */}
+            <div className="md:w-1/2 md:overflow-y-auto md:p-6 p-4 bg-neutral-50">
+              <div className="md:sticky md:top-0">
+                <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg">
+                  <img
+                    src={selectedImage.image_url}
+                    alt={selectedImage.title || selectedImage.news_title || 'Preview'}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                {selectedImage.title && (
+                  <p className="mt-3 text-sm font-medium text-neutral-700 text-center">
+                    {selectedImage.title}
+                  </p>
+                )}
+                {selectedImage.news_category && (
+                  <p className="mt-1 text-xs text-neutral-500 text-center">
+                    {selectedImage.news_category}
+                  </p>
+                )}
               </div>
-              <p className="text-sm text-neutral-600 mt-2">
-                {image.title || image.news_title || 'Sans titre'}
-              </p>
             </div>
 
-            {/* Colonne droite : Formulaire */}
-            <div className="space-y-6 md:space-y-6 space-y-4">
-              {/* Bouton Suggérer avec IA */}
+            {/* FORM SCROLLABLE */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              {/* Bouton Suggérer IA */}
               <button
                 onClick={handleSuggest}
                 disabled={suggesting}
@@ -291,7 +368,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                 )}
               </button>
 
-              {/* Description/Caption */}
+              {/* Caption textarea */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
                   Description du post
@@ -299,92 +376,92 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
+                  className="w-full h-40 px-4 py-3 border border-neutral-300 rounded-lg resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="Écrivez une description engageante pour votre post..."
-                  className="w-full h-40 px-4 py-3 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
                   maxLength={2200}
                 />
-                <p className="text-xs text-neutral-500 mt-1">
+                <p className="mt-1 text-xs text-neutral-500 text-right">
                   {caption.length} / 2200 caractères
                 </p>
               </div>
 
-              {/* Hashtags */}
+              {/* Hashtags section */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
                   Hashtags
                 </label>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={hashtagInput}
                     onChange={(e) => setHashtagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
-                    placeholder="Ajouter un hashtag..."
-                    className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="#hashtag"
                   />
                   <button
                     onClick={addHashtag}
-                    className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors"
+                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium"
                   >
                     Ajouter
                   </button>
                 </div>
 
-                {/* Liste des hashtags */}
+                {/* Liste hashtags */}
                 <div className="flex flex-wrap gap-2">
-                  {hashtags.map((tag, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm"
+                  {hashtags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-sm"
                     >
-                      <span>{tag}</span>
-                      <button
-                        onClick={() => removeHashtag(tag)}
-                        className="hover:text-red-600"
-                      >
-                        <XIcon className="w-4 h-4" />
+                      {tag}
+                      <button onClick={() => removeHashtag(tag)} className="hover:text-red-600 font-bold">
+                        ×
                       </button>
-                    </div>
+                    </span>
                   ))}
                 </div>
+
                 {hashtags.length === 0 && (
                   <p className="text-xs text-neutral-500 mt-2">
-                    Aucun hashtag ajouté. Ajoutez-en pour améliorer la visibilité !
+                    Aucun hashtag ajouté
                   </p>
                 )}
                 <p className="text-xs text-neutral-500 mt-2">
                   {hashtags.length} / 30 hashtags max
                 </p>
-              </div>
 
-              {/* Suggestion de hashtags */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800 font-medium mb-2">💡 Suggestions</p>
-                <div className="flex flex-wrap gap-2">
-                  {image.news_category && (
-                    <button
-                      onClick={() => suggestHashtag(image.news_category!.toLowerCase().replace(/\s/g, ''))}
-                      className="px-2 py-1 bg-white border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100 transition-colors"
-                    >
-                      #{image.news_category.toLowerCase().replace(/\s/g, '')}
-                    </button>
-                  )}
-                  {['actualite', 'business', 'entrepreneur', 'marketing', 'reseauxsociaux'].map(tag => (
-                    <button
-                      key={tag}
-                      onClick={() => suggestHashtag(tag)}
-                      className="px-2 py-1 bg-white border border-blue-300 rounded text-xs text-blue-700 hover:bg-blue-100 transition-colors"
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
+                {/* Suggestions */}
+                {hashtags.length < 30 && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-blue-700 font-medium mb-2">💡 Suggestions</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedImage.news_category && (
+                        <button
+                          onClick={() => suggestHashtag(selectedImage.news_category!.toLowerCase().replace(/\s/g, ''))}
+                          className="text-xs px-2 py-1 bg-white rounded hover:bg-blue-100 text-blue-600 border border-blue-200"
+                        >
+                          #{selectedImage.news_category.toLowerCase().replace(/\s/g, '')}
+                        </button>
+                      )}
+                      {['marketing', 'business', 'instagram', 'viral', 'trend2026'].map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => suggestHashtag(tag)}
+                          className="text-xs px-2 py-1 bg-white rounded hover:bg-blue-100 text-blue-600 border border-blue-200"
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer avec actions */}
+        {/* FOOTER - Boutons action */}
         <div className="border-t p-4 sm:p-6 bg-neutral-50">
           {/* Statut de connexion Instagram */}
           {!checkingConnection && (

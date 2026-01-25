@@ -90,9 +90,19 @@ export async function GET() {
       );
     }
 
+    // Déclencher sync automatique en arrière-plan (ne pas bloquer la réponse)
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    fetch(`${baseUrl}/api/instagram/sync-media`, {
+      method: 'POST',
+      headers: {
+        'Cookie': `sb-access-token=${accessToken}` // Pass auth
+      }
+    }).catch(err => console.error('[InstagramPosts] Background sync failed:', err));
+
     return NextResponse.json({
       ok: true,
-      posts: data.data || []
+      posts: data.data || [],
+      syncTriggered: true
     });
 
   } catch (error: any) {
