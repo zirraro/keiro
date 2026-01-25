@@ -129,6 +129,12 @@ export async function POST(req: NextRequest) {
 
     for (const page of pages) {
       try {
+        // Vérifier que la page a un access_token avant de continuer
+        if (!page.access_token) {
+          console.log(`[InstagramCallback] Page ${page.id} has no access_token`);
+          continue;
+        }
+
         const igAccount = await getPageInstagramAccount(page.id, page.access_token);
         if (igAccount) {
           instagramAccount = igAccount;
@@ -140,7 +146,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!instagramAccount || !selectedPage) {
+    if (!instagramAccount || !selectedPage || !selectedPage.access_token) {
       return NextResponse.json(
         { ok: false, error: 'Aucun compte Instagram Business trouvé. Veuillez connecter un compte Instagram Business à votre Page Facebook.' },
         { status: 400 }

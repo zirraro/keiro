@@ -45,7 +45,7 @@ export async function publishToFacebookPage(pageId: string, pageAccessToken: str
   return graphPOST<{ id: string }>(`/${pageId}/feed`, pageAccessToken, { message });
 }
 
-export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string) {
+export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string): Promise<{ id: string; permalink?: string }> {
   // 1) Créer un "container"
   const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
     image_url: imageUrl,
@@ -55,5 +55,15 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
   const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
     creation_id: container.id,
   });
-  return publish;
+
+  // 3) Récupérer le permalink du post publié
+  try {
+    const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
+      fields: "permalink"
+    });
+    return { id: publish.id, permalink: postInfo.permalink };
+  } catch (error) {
+    console.error('[publishImageToInstagram] Error fetching permalink:', error);
+    return { id: publish.id };
+  }
 }
