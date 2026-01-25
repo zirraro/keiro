@@ -75,7 +75,11 @@ export async function publishStoryToInstagram(igUserId: string, pageAccessToken:
     media_type: "STORIES",
   });
 
-  // 2) Publier la story
+  // 2) Attendre que le media soit prêt (Instagram nécessite quelques secondes)
+  console.log('[Story] Container created:', container.id, '- Waiting for media to be ready...');
+  await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
+
+  // 3) Publier la story
   const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
     creation_id: container.id,
   });

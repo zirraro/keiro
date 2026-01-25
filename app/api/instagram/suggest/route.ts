@@ -6,134 +6,89 @@ import { getAuthUser } from '@/lib/auth-server';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Vérifier que la clé API Anthropic est configurée
 if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('[Suggest] ANTHROPIC_API_KEY is not configured in environment variables');
+  console.error('[Suggest] ANTHROPIC_API_KEY not configured');
 }
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || ''
 });
 
-/**
- * API Route: Suggérer du contenu Instagram avec IA
- * POST /api/instagram/suggest
- * Body: { imageTitle, newsTitle, newsCategory, userBusiness? }
- */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('[Suggest] Starting...');
 
-    // Vérifier l'authentification depuis les cookies
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { ok: false, error: 'API IA non configurée' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
+      console.error('[Suggest] Auth error:', authError);
       return NextResponse.json(
         { ok: false, error: 'Non authentifié' },
         { status: 401 }
       );
     }
 
-    // Récupérer les données de la requête
     const body = await request.json();
-    const { imageTitle, newsTitle, newsCategory, userBusiness } = body;
+    const { imageTitle, newsTitle, newsCategory } = body;
 
-    // Récupérer les informations du profil utilisateur (si disponible)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('business_description, industry, target_audience')
+      .select('business_type, business_description')
       .eq('id', user.id)
       .single();
 
-    // Construire le prompt pour Claude
-    const businessContext = userBusiness || profile?.business_description || 'entreprise générale';
-    const industry = profile?.industry || 'business général';
-    const audience = profile?.target_audience || 'professionnels';
+    const business = profile?.business_description || profile?.business_type || 'entreprise';
+    const title = imageTitle || newsTitle || 'contenu';
+    const category = newsCategory || 'Business';
 
-    const prompt = `Tu es un expert Instagram en contenu viral. Crée un post qui STOPPE le scroll et CONVERTIT.
+    const prompt = `Crée un post Instagram viral pour "${title}" (catégorie: ${category}, business: ${business}).
 
-📋 CONTEXTE:
-Image: ${imageTitle || newsTitle}
-Actualité: ${newsTitle}
-Catégorie: ${newsCategory || 'Business'}
-Business: ${businessContext} (${industry})
-Audience: ${audience}
-
-🎯 MISSION 1 - CAPTION INSTAGRAM:
-
-HOOK (3 premiers mots):
-✅ Question choc: "Vous perdez combien ?"
-✅ Affirmation provocante: "Le marketing est mort."
-✅ Chiffre brutal: "97% des entrepreneurs échouent..."
-✅ Urgence: "Plus que 48h..."
-❌ Éviter: "Découvrez", "Profitez", formules fades
-
-STRUCTURE:
-1. HOOK mortel (3 mots)
-2. CORPS: 100-200 mots, storytelling intense
-3. CTA puissant (bio, DM, like, partage)
-4. 3-5 emojis stratégiques
-5. Line breaks pour lisibilité
-
-TONALITÉ: Ironique, provocateur, inspirant, urgent (selon contexte)
-MAX: 2200 caractères
-
-EXEMPLES:
-❌ "Découvrez notre solution innovante pour votre business..."
-✅ "Vous brûlez 40% de votre budget. Chaque. Jour. 💸
-
-Pendant que vos concurrents testent, analysent, optimisent... vous payez pour du vent.
-
-J'ai perdu 50K€ avant de comprendre ça:
-[développe avec tension puis résolution]
-
-Lien en bio → On vous montre les vrais chiffres."
-
-🏷️ MISSION 2 - HASHTAGS (15-20):
-
-MIX STRATÉGIQUE:
-- 3-5 GROS (100K-1M posts): visibilité
-- 5-8 MOYENS (10K-100K): engagement
-- 5-7 NICHE (<10K): audience qualifiée
-- FR + EN si pertinent
-- Liés à: actualité + secteur + émotion
-
-📤 FORMAT (JSON pur, pas de markdown):
+Réponds UNIQUEMENT avec ce JSON (pas de markdown):
 {
-  "caption": "HOOK + corps + CTA",
-  "hashtags": ["#tag1", "#tag2", "#tag3", ...]
-}
+  "caption": "Hook accrocheur\n\nCorps du post (150-200 mots)\n\nCTA avec emoji",
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5", "#tag6", "#tag7", "#tag8", "#tag9", "#tag10"]
+}`;
 
-Génère maintenant le post parfait pour ce contexte.`;
+    console.log('[Suggest] Calling Claude...');
 
-    // Appeler Claude API
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1536, // Augmenté pour des descriptions plus riches et détaillées
-      temperature: 0.9, // Créativité élevée tout en gardant cohérence
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      temperature: 0.8,
+      messages: [{ role: 'user', content: prompt }]
     });
 
-    // Extraire la réponse
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    console.log('[Suggest] Response:', text.substring(0, 200));
 
-    // Parser la réponse JSON
     let suggestion;
     try {
-      // Nettoyer la réponse si elle contient des backticks markdown
-      const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      suggestion = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('[Suggest] Failed to parse AI response:', responseText);
-      return NextResponse.json(
-        { ok: false, error: 'Erreur lors du parsing de la réponse IA' },
-        { status: 500 }
-      );
+      let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) cleaned = match[0];
+
+      suggestion = JSON.parse(cleaned);
+
+      if (!suggestion.caption) suggestion.caption = `${title}\n\nDécouvrez notre actualité.\n\n👉 En savoir plus !`;
+      if (!Array.isArray(suggestion.hashtags)) suggestion.hashtags = [];
+      suggestion.hashtags = suggestion.hashtags.map((t: string) => t.startsWith('#') ? t : `#${t}`);
+
+      console.log('[Suggest] Success!');
+
+    } catch (e: any) {
+      console.error('[Suggest] Parse error:', e.message);
+      suggestion = {
+        caption: `${title}\n\n✨ Découvrez notre actualité sur ${category.toLowerCase()}.\n\n💭 Qu'en pensez-vous ?\n\n👉 Commentez !`,
+        hashtags: ['#business', '#entreprise', '#inspiration', '#motivation', '#france', '#instagram', '#contenu', `#${category.toLowerCase().replace(/\s+/g, '')}`]
+      };
     }
 
     return NextResponse.json({
@@ -143,9 +98,9 @@ Génère maintenant le post parfait pour ce contexte.`;
     });
 
   } catch (error: any) {
-    console.error('[Suggest] Error:', error);
+    console.error('[Suggest] Error:', error.message);
     return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
+      { ok: false, error: error.message },
       { status: 500 }
     );
   }
