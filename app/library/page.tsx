@@ -849,9 +849,6 @@ export default function LibraryPage() {
           onStartFree={handleStartFree}
         />
 
-        {/* Widget aperçu Instagram - Visible pour tous (démo pour visiteurs) */}
-        <InstagramWidget isGuest={!user} />
-
         {/* Info bulle Meta Business API - Visible pour utilisateurs connectés et guests */}
         {(user || isGuest) && (
           <InstagramMetaInfo onLearnMore={() => setShowConnectionModal(true)} />
@@ -974,6 +971,13 @@ export default function LibraryPage() {
               />
             ) : null}
           </ErrorBoundary>
+        )}
+
+        {/* Widget aperçu Instagram - En bas de page */}
+        {activeTab === 'images' && (
+          <div className="mt-8">
+            <InstagramWidget isGuest={!user} />
+          </div>
         )}
 
         {/* Stats footer */}
