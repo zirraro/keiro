@@ -61,7 +61,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           .from('instagram_posts')
           .select('*')
           .eq('user_id', user.id)
-          .order('timestamp', { ascending: false })
+          .order('posted_at', { ascending: false })
           .limit(8);
 
         if (error) {
@@ -89,7 +89,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
             cachedUrl: post.cached_media_url, // URL stable depuis Storage
             permalink: post.permalink, // Lien vers le vrai post Instagram
             media_type: post.media_type,
-            timestamp: post.timestamp
+            timestamp: post.posted_at
           }));
 
           console.log('[InstagramWidget] Loaded', transformedPosts.length, 'Instagram posts');

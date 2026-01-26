@@ -37,6 +37,9 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   const [selectedImage, setSelectedImage] = useState<SavedImage>(image);
   const [loadingImages, setLoadingImages] = useState(false);
 
+  // Angle/ton de la description
+  const [contentAngle, setContentAngle] = useState('informatif');
+
   // Vérifier si l'utilisateur a connecté son compte Instagram
   useEffect(() => {
     const checkInstagramConnection = async () => {
@@ -138,9 +141,11 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         },
         credentials: 'include',
         body: JSON.stringify({
+          imageUrl: selectedImage.image_url,
           imageTitle: selectedImage.title || selectedImage.news_title,
           newsTitle: selectedImage.news_title,
-          newsCategory: selectedImage.news_category
+          newsCategory: selectedImage.news_category,
+          contentAngle: contentAngle
         })
       });
 
@@ -395,6 +400,27 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
 
             {/* FORM SCROLLABLE - Prend toute la hauteur sur mobile */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+              {/* Sélecteur d'angle/ton */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                  Quel angle voulez-vous pour votre post ?
+                </label>
+                <select
+                  value={contentAngle}
+                  onChange={(e) => setContentAngle(e.target.value)}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white"
+                >
+                  <option value="informatif">📰 Informatif - Donner des faits et informations</option>
+                  <option value="emotionnel">❤️ Émotionnel - Toucher les émotions</option>
+                  <option value="inspirant">✨ Inspirant - Motiver et encourager</option>
+                  <option value="humoristique">😄 Humoristique - Faire rire</option>
+                  <option value="professionnel">💼 Professionnel - Sérieux et expert</option>
+                  <option value="storytelling">📖 Storytelling - Raconter une histoire</option>
+                  <option value="educatif">🎓 Éducatif - Enseigner quelque chose</option>
+                  <option value="provocateur">🔥 Provocateur - Questionner et débattre</option>
+                </select>
+              </div>
+
               {/* Bouton Suggérer IA */}
               <button
                 onClick={handleSuggest}

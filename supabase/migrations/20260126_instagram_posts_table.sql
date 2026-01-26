@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS instagram_posts (
   caption TEXT,
   permalink TEXT NOT NULL, -- Lien vers le post Instagram original
   media_type TEXT, -- IMAGE, VIDEO, CAROUSEL_ALBUM
-  timestamp TIMESTAMP WITH TIME ZONE,
+  posted_at TIMESTAMP WITH TIME ZONE,
 
   -- URLs
   original_media_url TEXT, -- URL Instagram originale (peut expirer)
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS instagram_posts (
 
 -- Index pour performance
 CREATE INDEX IF NOT EXISTS idx_instagram_posts_user_id
-  ON instagram_posts(user_id, timestamp DESC);
+  ON instagram_posts(user_id, posted_at DESC);
 
 -- RLS Policies
 ALTER TABLE instagram_posts ENABLE ROW LEVEL SECURITY;

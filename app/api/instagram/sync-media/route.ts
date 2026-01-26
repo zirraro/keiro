@@ -174,7 +174,7 @@ export async function POST() {
             caption: post.caption,
             permalink: post.permalink,
             media_type: post.media_type,
-            timestamp: post.timestamp,
+            posted_at: post.timestamp,
             original_media_url: imageUrl,
             cached_media_url: publicUrl,
             synced_at: new Date().toISOString()
