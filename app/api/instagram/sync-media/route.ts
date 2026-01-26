@@ -110,6 +110,14 @@ export async function POST() {
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // VALIDATION CRITIQUE : Vérifier que l'image n'est pas vide
+        if (buffer.length < 1000) {
+          console.error(`[SyncMedia] ❌ Image too small for ${post.id}: ${buffer.length} bytes - likely failed download`);
+          continue;
+        }
+
+        console.log(`[SyncMedia] Downloaded ${post.id}: ${(buffer.length / 1024).toFixed(2)} KB`);
+
         // Déterminer le type de contenu de l'image
         const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
         const extension = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
@@ -125,9 +133,11 @@ export async function POST() {
           });
 
         if (uploadError) {
-          console.error(`[SyncMedia] Upload error for ${post.id}:`, uploadError);
+          console.error(`[SyncMedia] ❌ Upload error for ${post.id}:`, uploadError);
           continue;
         }
+
+        console.log(`[SyncMedia] ✓ Uploaded ${fileName} to Storage (${(buffer.length / 1024).toFixed(2)} KB)`);
 
         // Obtenir URL publique - VÉRIFIER que le bucket est accessible
         const { data: urlData } = supabase.storage
@@ -136,7 +146,21 @@ export async function POST() {
 
         const publicUrl = urlData.publicUrl;
 
-        // Vérifier que l'URL est accessible
+        // Vérifier que l'URL est accessible en testant avec une requête HEAD
+        try {
+          const urlCheck = await fetch(publicUrl, { method: 'HEAD', cache: 'no-store' });
+          if (!urlCheck.ok) {
+            console.error(`[SyncMedia] ❌ URL not accessible for ${post.id}: ${urlCheck.status} ${urlCheck.statusText}`);
+            console.error(`[SyncMedia]   URL: ${publicUrl}`);
+            console.error(`[SyncMedia]   Bucket might not be public - check Supabase Dashboard`);
+            continue;
+          }
+          console.log(`[SyncMedia] ✓ URL verified accessible: ${publicUrl}`);
+        } catch (urlError) {
+          console.error(`[SyncMedia] ❌ Failed to verify URL for ${post.id}:`, urlError);
+          continue;
+        }
+
         console.log(`[SyncMedia] ✓ Cached ${post.id} successfully`);
         console.log(`[SyncMedia]   File: ${fileName}`);
         console.log(`[SyncMedia]   Public URL: ${publicUrl}`);
