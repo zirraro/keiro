@@ -14,6 +14,21 @@ export async function POST() {
   }
 
   try {
+    // Vérifier si le bucket existe, sinon le créer
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.name === 'instagram-media');
+
+    if (!bucketExists) {
+      console.log('[SyncMedia] Creating instagram-media bucket...');
+      const { error: bucketError } = await supabase.storage.createBucket('instagram-media', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+      });
+      if (bucketError) {
+        console.error('[SyncMedia] Bucket creation error:', bucketError);
+      }
+    }
+
     // 1. Récupérer profil Instagram
     const { data: profile } = await supabase
       .from('profiles')
@@ -50,27 +65,61 @@ export async function POST() {
           continue;
         }
 
-        // Télécharger l'image depuis Instagram
-        const imageResponse = await fetch(imageUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
+        // Télécharger l'image depuis Instagram avec retry
+        let imageResponse;
+        let retries = 3;
 
-        if (!imageResponse.ok) {
-          console.error(`[SyncMedia] Failed to fetch ${post.id}: ${imageResponse.statusText}`);
+        while (retries > 0) {
+          try {
+            imageResponse = await fetch(imageUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://www.instagram.com/',
+                'Sec-Fetch-Dest': 'image',
+                'Sec-Fetch-Mode': 'no-cors',
+                'Sec-Fetch-Site': 'cross-site',
+              }
+            });
+
+            if (imageResponse.ok) {
+              break;
+            }
+
+            console.warn(`[SyncMedia] Retry ${4 - retries} for ${post.id}: ${imageResponse.statusText}`);
+            retries--;
+
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+            }
+          } catch (fetchError) {
+            console.error(`[SyncMedia] Fetch error for ${post.id}:`, fetchError);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        if (!imageResponse || !imageResponse.ok) {
+          console.error(`[SyncMedia] Failed to fetch ${post.id} after retries`);
           continue;
         }
 
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // Déterminer le type de contenu de l'image
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        const extension = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+
         // Upload vers Supabase Storage
-        const fileName = `${user.id}/${post.id}.jpg`;
+        const fileName = `${user.id}/${post.id}.${extension}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('instagram-media')
           .upload(fileName, buffer, {
-            contentType: 'image/jpeg',
+            contentType,
             upsert: true, // Remplace si existe déjà
             cacheControl: '31536000', // Cache 1 an
           });
@@ -80,20 +129,23 @@ export async function POST() {
           continue;
         }
 
-        // Obtenir URL publique
+        // Obtenir URL publique avec timestamp pour éviter le cache
         const { data: { publicUrl } } = supabase.storage
           .from('instagram-media')
           .getPublicUrl(fileName);
 
+        // Ajouter timestamp pour forcer le refresh du cache navigateur
+        const cachedUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
+
         cachedPosts.push({
           id: post.id,
-          cachedUrl: publicUrl,
+          cachedUrl: cachedUrlWithTimestamp,
           mediaType: post.media_type,
           timestamp: post.timestamp,
           permalink: post.permalink,
         });
 
-        console.log(`[SyncMedia] Cached ${post.id} successfully`);
+        console.log(`[SyncMedia] ✓ Cached ${post.id} successfully at ${fileName}`);
 
       } catch (error) {
         console.error(`[SyncMedia] Error processing ${post.id}:`, error);

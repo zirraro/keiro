@@ -261,7 +261,7 @@ export default function TextOverlayEditor({
         <div className="flex-1 overflow-y-auto">
           <div className="grid lg:grid-cols-2 gap-6 p-6">
             {/* Preview */}
-            <div className="space-y-4">
+            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
               <h3 className="text-sm font-semibold text-neutral-700">Aperçu en temps réel</h3>
               <div className="relative aspect-square bg-neutral-100 rounded-xl overflow-hidden border-2 border-neutral-200">
                 {isGenerating && (
