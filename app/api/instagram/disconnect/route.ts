@@ -22,7 +22,6 @@ export async function POST() {
         instagram_username: null,
         instagram_business_account_id: null,
         instagram_access_token: null,
-        instagram_user_id: null,
       })
       .eq('id', user.id);
 
