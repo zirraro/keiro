@@ -28,166 +28,12 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
-  const [syncing, setSyncing] = useState(false);
-  const [testingUrls, setTestingUrls] = useState(false);
-  const [fixingUrls, setFixingUrls] = useState(false);
 
   useEffect(() => {
     if (!isGuest) {
       loadData();
     }
   }, [isGuest]);
-
-  const testStorageUrls = async () => {
-    setTestingUrls(true);
-    try {
-      const postsWithCache = posts.filter(p => p.cachedUrl);
-
-      if (postsWithCache.length === 0) {
-        alert('Aucune URL cachée trouvée.\n\nCliquez d\'abord sur "Synchroniser les images".');
-        return;
-      }
-
-      console.log('[InstagramWidget] Testing Storage URLs...');
-      let results = '📊 TEST DES URLS STORAGE:\n\n';
-
-      for (const post of postsWithCache.slice(0, 3)) { // Tester 3 URLs max
-        results += `📷 Post ${post.id}:\n`;
-        results += `URL: ${post.cachedUrl}\n`;
-
-        try {
-          const response = await fetch(post.cachedUrl);
-          if (response.ok) {
-            results += `✅ Status: ${response.status} OK\n`;
-            results += `Type: ${response.headers.get('content-type')}\n`;
-          } else {
-            results += `❌ Status: ${response.status} ${response.statusText}\n`;
-          }
-        } catch (error: any) {
-          results += `❌ Erreur: ${error.message}\n`;
-        }
-        results += '\n';
-      }
-
-      results += '\n💡 SI ERREUR 404:\nLe bucket n\'est pas public.\nAllez dans Supabase → Storage → instagram-media → Cochez "Public"';
-
-      alert(results);
-      console.log('[InstagramWidget] Test results:', results);
-    } catch (error) {
-      console.error('[InstagramWidget] Test error:', error);
-      alert('Erreur lors du test');
-    } finally {
-      setTestingUrls(false);
-    }
-  };
-
-  const handleFixCachedUrls = async () => {
-    const confirm = window.confirm(
-      '🔧 Corriger les URLs en base de données ?\n\n' +
-      'Cette action va :\n' +
-      '• Chercher les images dans Storage\n' +
-      '• Mettre à jour la BDD avec les URLs correctes\n' +
-      '• Afficher le nombre d\'images corrigées\n\n' +
-      'À utiliser si les images sont noires malgré la synchronisation.'
-    );
-
-    if (!confirm) return;
-
-    setFixingUrls(true);
-    try {
-      console.log('[InstagramWidget] Fixing cached URLs in database...');
-      const response = await fetch('/api/instagram/update-cached-urls', {
-        method: 'POST',
-      });
-      const data = await response.json();
-
-      if (data.ok) {
-        console.log('[InstagramWidget] Fix successful:', data);
-        alert(
-          `✅ Correction réussie !\n\n` +
-          `Entrées mises à jour : ${data.updated}\n` +
-          `Entrées créées : ${data.created}\n` +
-          `Total traité : ${data.total}\n\n` +
-          `Rechargez la page pour voir les images.`
-        );
-
-        // Recharger les données
-        await loadData();
-      } else {
-        console.error('[InstagramWidget] Fix failed:', data);
-        alert(`❌ Erreur : ${data.error}`);
-      }
-    } catch (error) {
-      console.error('[InstagramWidget] Fix error:', error);
-      alert('Erreur lors de la correction des URLs');
-    } finally {
-      setFixingUrls(false);
-    }
-  };
-
-  const handleManualSync = async () => {
-    setSyncing(true);
-    try {
-      console.log('[InstagramWidget] Manual sync triggered...');
-      const response = await fetch('/api/instagram/sync-media', {
-        method: 'POST',
-      });
-      const data = await response.json();
-
-      if (data.ok) {
-        console.log('[InstagramWidget] Sync successful:', data);
-        console.log('[InstagramWidget] Cached posts with URLs:', data.posts);
-
-        // Mettre à jour directement les posts avec les URLs cachées
-        if (data.posts && data.posts.length > 0) {
-          // Récupérer les posts actuels
-          const supabase = supabaseBrowser();
-          const { data: { user } } = await supabase.auth.getUser();
-
-          if (user) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('instagram_business_account_id, instagram_access_token')
-              .eq('id', user.id)
-              .single();
-
-            if (profileData?.instagram_business_account_id) {
-              // Récupérer les posts Instagram
-              const fields = 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp';
-              const instagramApiUrl = `https://graph.facebook.com/v20.0/${profileData.instagram_business_account_id}/media?fields=${fields}&limit=24&access_token=${profileData.instagram_access_token}`;
-
-              const postsResponse = await fetch(instagramApiUrl);
-              const postsData = await postsResponse.json();
-
-              if (postsData.data) {
-                // Merger les posts avec les URLs cachées
-                const mergedPosts = postsData.data.map((post: any) => {
-                  const cachedPost = data.posts.find((cp: any) => cp.id === post.id);
-                  return {
-                    ...post,
-                    cachedUrl: cachedPost?.cachedUrl || null
-                  };
-                });
-
-                console.log('[InstagramWidget] Merged posts:', mergedPosts);
-                setPosts(mergedPosts.slice(0, 12));
-              }
-            }
-          }
-        }
-
-        alert(`✓ Synchronisation réussie !\n\n${data.cached} images sur ${data.total} ont été téléchargées.\n\nLes images devraient maintenant s'afficher.`);
-      } else {
-        console.error('[InstagramWidget] Sync failed:', data);
-        alert(`Erreur de synchronisation: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('[InstagramWidget] Sync error:', error);
-      alert('Erreur lors de la synchronisation');
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const loadData = async () => {
     try {
@@ -201,26 +47,56 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
 
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('instagram_username, instagram_business_account_id')
+        .select('instagram_username, instagram_business_account_id, instagram_access_token')
         .eq('id', user.id)
         .single();
 
       setProfile(profileData);
 
       if (profileData?.instagram_business_account_id) {
-        console.log('[InstagramWidget] Fetching Instagram posts...');
-        const response = await fetch('/api/instagram/posts');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[InstagramWidget] Received posts:', {
-            total: data.posts?.length,
-            cached: data.cached,
-            hasCachedUrls: data.posts?.some((p: any) => p.cachedUrl)
-          });
-          setPosts(data.posts?.slice(0, 12) || []);
+        console.log('[InstagramWidget] Loading Instagram images from database...');
+
+        // Charger les images depuis saved_images avec cached_instagram_url
+        const { data: images, error } = await supabase
+          .from('saved_images')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('cached_instagram_url', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(12);
+
+        if (error) {
+          console.error('[InstagramWidget] Error loading images:', error);
+        } else if (images && images.length > 0) {
+          // Transformer les images en format posts
+          const transformedPosts = images.map(img => ({
+            id: img.id,
+            caption: img.title || '',
+            media_url: img.image_url,
+            thumbnail_url: img.thumbnail_url,
+            cachedUrl: img.cached_instagram_url,
+            permalink: `https://www.instagram.com/p/${img.id}/`,
+            media_type: 'IMAGE',
+            timestamp: img.created_at
+          }));
+
+          console.log('[InstagramWidget] Loaded', transformedPosts.length, 'images from database');
+          setPosts(transformedPosts);
         } else {
-          console.error('[InstagramWidget] Failed to fetch posts:', response.status);
+          console.log('[InstagramWidget] No cached images found in database');
         }
+
+        // Lancer la synchronisation en arrière-plan (ne pas attendre)
+        fetch('/api/instagram/sync-media', { method: 'POST' })
+          .then(r => r.json())
+          .then(data => {
+            if (data.ok) {
+              console.log('[InstagramWidget] Background sync completed:', data.cached, 'images');
+              // Recharger les données après la sync
+              loadData();
+            }
+          })
+          .catch(err => console.error('[InstagramWidget] Background sync failed:', err));
       }
     } catch (error) {
       console.error('[InstagramWidget] Error:', error);
@@ -332,88 +208,12 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
             </svg>
           </a>
         </div>
-
-        {/* Boutons de synchronisation et test */}
-        <div className="space-y-2">
-          <button
-            onClick={handleManualSync}
-            disabled={syncing}
-            className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {syncing ? (
-              <>
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Synchronisation...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Synchroniser les images
-              </>
-            )}
-          </button>
-
-          {/* Bouton de test - visible seulement si on a des posts */}
-          {posts.length > 0 && (
-            <button
-              onClick={testStorageUrls}
-              disabled={testingUrls}
-              className="w-full px-3 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {testingUrls ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Test en cours...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Tester les URLs Storage
-                </>
-              )}
-            </button>
-          )}
-
-          {/* Bouton pour corriger les URLs en BDD */}
-          <button
-            onClick={handleFixCachedUrls}
-            disabled={fixingUrls}
-            className="w-full px-3 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {fixingUrls ? (
-              <>
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Correction en cours...
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                🔧 Corriger URLs en BDD
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
       {posts.length > 0 ? (
         <div className="grid grid-cols-6 gap-1 p-2">
           {posts.map((post) => {
-            // Utiliser UNIQUEMENT cachedUrl si disponible, sinon fallback
             const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
-
-            // Debug détaillé
-            console.log(`[InstagramWidget] Post ${post.id}:`, {
-              hasCachedUrl: !!post.cachedUrl,
-              cachedUrl: post.cachedUrl,
-              fallbackUrl: post.thumbnail_url || post.media_url,
-              usingUrl: imageUrl
-            });
 
             return (
               <a
@@ -445,24 +245,15 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                   }}
                   onLoad={(e) => {
                     const img = e.target as HTMLImageElement;
-                    console.log(`[InstagramWidget] ✅ Image loaded for post ${post.id}`);
-                    console.log(`[InstagramWidget]    URL: ${imageUrl}`);
-                    console.log(`[InstagramWidget]    Natural size: ${img.naturalWidth}x${img.naturalHeight}`);
-
-                    // Vérifier que l'image a une taille valide
                     if (img.naturalWidth > 0 && img.naturalHeight > 0) {
                       img.style.opacity = '1';
                       img.style.zIndex = '10';
                     } else {
-                      console.error(`[InstagramWidget] ❌ Image has invalid dimensions for post ${post.id}`);
                       img.style.display = 'none';
                     }
                   }}
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    console.error(`[InstagramWidget] ❌ Image FAILED to load for post ${post.id}`);
-                    console.error(`[InstagramWidget]    URL: ${imageUrl}`);
-                    // Cacher l'image - le fallback sera visible
                     img.style.display = 'none';
                   }}
                 />
