@@ -69,7 +69,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           console.error('[InstagramWidget] Error loading images:', error);
         } else if (images && images.length > 0) {
           // Transformer les images en format posts
-          const transformedPosts = images.map(img => ({
+          const transformedPosts = images.map((img: any) => ({
             id: img.id,
             caption: img.title || '',
             media_url: img.image_url,
