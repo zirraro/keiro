@@ -165,6 +165,43 @@ export async function POST() {
         console.log(`[SyncMedia]   File: ${fileName}`);
         console.log(`[SyncMedia]   Public URL: ${publicUrl}`);
 
+        // CRITIQUE: Mettre à jour la BDD avec l'URL cachée
+        // Chercher si une entrée existe déjà pour ce post
+        const { data: existingImage } = await supabase
+          .from('saved_images')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', post.caption?.substring(0, 100) || `Instagram post ${post.id}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingImage) {
+          // Mettre à jour l'URL cachée
+          await supabase
+            .from('saved_images')
+            .update({
+              cached_instagram_url: publicUrl,
+              instagram_media_cached_at: new Date().toISOString()
+            })
+            .eq('id', existingImage.id);
+          console.log(`[SyncMedia] ✓ Updated DB for ${post.id}`);
+        } else {
+          // Créer une nouvelle entrée si elle n'existe pas
+          await supabase
+            .from('saved_images')
+            .insert({
+              user_id: user.id,
+              image_url: publicUrl,
+              thumbnail_url: publicUrl,
+              cached_instagram_url: publicUrl,
+              instagram_media_cached_at: new Date().toISOString(),
+              title: post.caption?.substring(0, 100) || `Instagram post ${post.id}`,
+              is_favorite: false,
+              created_at: post.timestamp || new Date().toISOString()
+            });
+          console.log(`[SyncMedia] ✓ Created DB entry for ${post.id}`);
+        }
+
         cachedPosts.push({
           id: post.id,
           cachedUrl: publicUrl,
