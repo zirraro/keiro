@@ -30,6 +30,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
   const [loading, setLoading] = useState(!isGuest);
   const [syncing, setSyncing] = useState(false);
   const [testingUrls, setTestingUrls] = useState(false);
+  const [fixingUrls, setFixingUrls] = useState(false);
 
   useEffect(() => {
     if (!isGuest) {
@@ -77,6 +78,50 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       alert('Erreur lors du test');
     } finally {
       setTestingUrls(false);
+    }
+  };
+
+  const handleFixCachedUrls = async () => {
+    const confirm = window.confirm(
+      '🔧 Corriger les URLs en base de données ?\n\n' +
+      'Cette action va :\n' +
+      '• Chercher les images dans Storage\n' +
+      '• Mettre à jour la BDD avec les URLs correctes\n' +
+      '• Afficher le nombre d\'images corrigées\n\n' +
+      'À utiliser si les images sont noires malgré la synchronisation.'
+    );
+
+    if (!confirm) return;
+
+    setFixingUrls(true);
+    try {
+      console.log('[InstagramWidget] Fixing cached URLs in database...');
+      const response = await fetch('/api/instagram/update-cached-urls', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (data.ok) {
+        console.log('[InstagramWidget] Fix successful:', data);
+        alert(
+          `✅ Correction réussie !\n\n` +
+          `Entrées mises à jour : ${data.updated}\n` +
+          `Entrées créées : ${data.created}\n` +
+          `Total traité : ${data.total}\n\n` +
+          `Rechargez la page pour voir les images.`
+        );
+
+        // Recharger les données
+        await loadData();
+      } else {
+        console.error('[InstagramWidget] Fix failed:', data);
+        alert(`❌ Erreur : ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[InstagramWidget] Fix error:', error);
+      alert('Erreur lors de la correction des URLs');
+    } finally {
+      setFixingUrls(false);
     }
   };
 
@@ -332,6 +377,27 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
               )}
             </button>
           )}
+
+          {/* Bouton pour corriger les URLs en BDD */}
+          <button
+            onClick={handleFixCachedUrls}
+            disabled={fixingUrls}
+            className="w-full px-3 py-2 bg-orange-500 text-white text-xs font-medium rounded-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {fixingUrls ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Correction en cours...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                🔧 Corriger URLs en BDD
+              </>
+            )}
+          </button>
         </div>
       </div>
 
