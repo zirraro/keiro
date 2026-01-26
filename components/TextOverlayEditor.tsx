@@ -261,9 +261,9 @@ export default function TextOverlayEditor({
         <div className="flex-1 overflow-y-auto">
           <div className="grid lg:grid-cols-2 gap-6 p-6">
             {/* Preview */}
-            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-10rem)]">
+            <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
               <h3 className="text-sm font-semibold text-neutral-700">Aperçu en temps réel</h3>
-              <div className="relative aspect-square bg-neutral-100 rounded-xl overflow-hidden border-2 border-neutral-200 max-w-full">
+              <div className="relative w-full max-h-[70vh] bg-neutral-100 rounded-xl overflow-hidden border-2 border-neutral-200 flex items-center justify-center">
                 {isGenerating && (
                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
                     <div className="text-center">
@@ -275,7 +275,7 @@ export default function TextOverlayEditor({
                 <img
                   src={previewUrl || baseImageUrl}
                   alt="Preview"
-                  className="w-full h-full object-contain"
+                  className="w-full max-h-[70vh] object-contain"
                 />
               </div>
             </div>

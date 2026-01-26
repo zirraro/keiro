@@ -28,12 +28,39 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!isGuest) {
       loadData();
     }
   }, [isGuest]);
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      console.log('[InstagramWidget] Manual sync triggered...');
+      const response = await fetch('/api/instagram/sync-media', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (data.ok) {
+        console.log('[InstagramWidget] Sync successful:', data);
+        alert(`✓ Synchronisation réussie !\n\n${data.cached} images sur ${data.total} ont été téléchargées.`);
+        // Recharger les posts
+        await loadData();
+      } else {
+        console.error('[InstagramWidget] Sync failed:', data);
+        alert(`Erreur de synchronisation: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('[InstagramWidget] Sync error:', error);
+      alert('Erreur lors de la synchronisation');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -156,7 +183,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
   return (
     <div className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden">
       <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-purple-50 to-pink-50">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -178,6 +205,27 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
             </svg>
           </a>
         </div>
+
+        {/* Bouton de synchronisation manuelle */}
+        <button
+          onClick={handleManualSync}
+          disabled={syncing}
+          className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {syncing ? (
+            <>
+              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Synchronisation...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Synchroniser les images
+            </>
+          )}
+        </button>
       </div>
 
       {posts.length > 0 ? (
