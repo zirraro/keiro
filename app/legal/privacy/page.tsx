@@ -1,6 +1,9 @@
 export const metadata = {
   title: 'Privacy Policy | Keiro',
   description: 'Privacy Policy for Keiro application',
+  alternates: {
+    canonical: 'https://keiroai.com/legal/privacy'
+  }
 };
 
 export default function PrivacyPolicyPage() {
@@ -193,10 +196,10 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="bg-neutral-100 p-4 rounded-lg">
               <p className="text-neutral-700 mb-2">
-                <strong>Email:</strong> privacy@keiro.app
+                <strong>Email:</strong> privacy@keiroai.com
               </p>
               <p className="text-neutral-700 mb-2">
-                <strong>Data Protection Officer:</strong> dpo@keiro.app
+                <strong>Data Protection Officer:</strong> dpo@keiroai.com
               </p>
               <p className="text-neutral-700">
                 <strong>Address:</strong> Keiro, France

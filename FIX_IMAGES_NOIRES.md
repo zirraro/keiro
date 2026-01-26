@@ -28,8 +28,11 @@ UPDATE storage.buckets
 SET public = true
 WHERE name = 'instagram-media';
 
--- Ajouter policy d'accès public
-CREATE POLICY IF NOT EXISTS "Public Access"
+-- Supprimer l'ancienne policy si elle existe
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+
+-- Créer la policy d'accès public
+CREATE POLICY "Public Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'instagram-media' );
 ```

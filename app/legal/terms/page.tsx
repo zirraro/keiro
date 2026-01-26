@@ -1,6 +1,9 @@
 export const metadata = {
   title: 'Terms of Service | Keiro',
   description: 'Terms of Service for Keiro application',
+  alternates: {
+    canonical: 'https://keiroai.com/legal/terms'
+  }
 };
 
 export default function TermsOfServicePage() {
@@ -147,7 +150,7 @@ export default function TermsOfServicePage() {
               For questions about these Terms of Service, please contact us at:
             </p>
             <p className="text-neutral-700 font-medium">
-              Email: legal@keiro.app
+              Email: legal@keiroai.com
             </p>
           </section>
 
