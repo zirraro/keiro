@@ -129,23 +129,22 @@ export async function POST() {
           continue;
         }
 
-        // Obtenir URL publique avec timestamp pour éviter le cache
+        // Obtenir URL publique
         const { data: { publicUrl } } = supabase.storage
           .from('instagram-media')
           .getPublicUrl(fileName);
 
-        // Ajouter timestamp pour forcer le refresh du cache navigateur
-        const cachedUrlWithTimestamp = `${publicUrl}?t=${Date.now()}`;
-
         cachedPosts.push({
           id: post.id,
-          cachedUrl: cachedUrlWithTimestamp,
+          cachedUrl: publicUrl,
           mediaType: post.media_type,
           timestamp: post.timestamp,
           permalink: post.permalink,
         });
 
-        console.log(`[SyncMedia] ✓ Cached ${post.id} successfully at ${fileName}`);
+        console.log(`[SyncMedia] ✓ Cached ${post.id} successfully`);
+        console.log(`[SyncMedia]   File: ${fileName}`);
+        console.log(`[SyncMedia]   URL: ${publicUrl}`);
 
       } catch (error) {
         console.error(`[SyncMedia] Error processing ${post.id}:`, error);

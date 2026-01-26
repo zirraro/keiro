@@ -54,10 +54,18 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       setProfile(profileData);
 
       if (profileData?.instagram_business_account_id) {
+        console.log('[InstagramWidget] Fetching Instagram posts...');
         const response = await fetch('/api/instagram/posts');
         if (response.ok) {
           const data = await response.json();
+          console.log('[InstagramWidget] Received posts:', {
+            total: data.posts?.length,
+            cached: data.cached,
+            hasCachedUrls: data.posts?.some((p: any) => p.cachedUrl)
+          });
           setPosts(data.posts?.slice(0, 12) || []);
+        } else {
+          console.error('[InstagramWidget] Failed to fetch posts:', response.status);
         }
       }
     } catch (error) {
@@ -178,6 +186,11 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
             // Utiliser cachedUrl si disponible (Supabase Storage), sinon fallback sur URLs Instagram
             const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
 
+            // Debug: Log URL being used
+            if (!post.cachedUrl && (post.thumbnail_url || post.media_url)) {
+              console.warn(`[InstagramWidget] Post ${post.id} using fallback URL (no cachedUrl)`);
+            }
+
             return (
               <a
                 key={post.id}
@@ -185,6 +198,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative aspect-square rounded overflow-hidden group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50"
+                title={post.cachedUrl ? 'Image from Supabase Storage' : 'Image from Instagram CDN (may fail)'}
               >
                 {/* Icône de fallback toujours en arrière-plan */}
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -198,7 +212,11 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                   alt={post.caption?.substring(0, 30) || 'Instagram post'}
                   className="relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 z-10"
                   loading="lazy"
+                  onLoad={(e) => {
+                    console.log(`[InstagramWidget] Image loaded successfully for post ${post.id}`);
+                  }}
                   onError={(e) => {
+                    console.error(`[InstagramWidget] Image failed to load for post ${post.id}:`, imageUrl);
                     // Cacher l'image si elle ne charge pas - l'icône en arrière-plan sera visible
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
