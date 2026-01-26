@@ -94,10 +94,16 @@ export async function GET() {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     try {
+      // Recréer les cookies Supabase pour l'appel interne
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      const cookieString = allCookies.map(c => `${c.name}=${c.value}`).join('; ');
+
       const syncResponse = await fetch(`${baseUrl}/api/instagram/sync-media`, {
         method: 'POST',
         headers: {
-          'Cookie': request.headers.get('cookie') || ''
+          'Cookie': cookieString,
+          'Content-Type': 'application/json'
         }
       });
 
