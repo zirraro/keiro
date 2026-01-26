@@ -29,12 +29,56 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
   const [syncing, setSyncing] = useState(false);
+  const [testingUrls, setTestingUrls] = useState(false);
 
   useEffect(() => {
     if (!isGuest) {
       loadData();
     }
   }, [isGuest]);
+
+  const testStorageUrls = async () => {
+    setTestingUrls(true);
+    try {
+      const postsWithCache = posts.filter(p => p.cachedUrl);
+
+      if (postsWithCache.length === 0) {
+        alert('Aucune URL cachée trouvée.\n\nCliquez d\'abord sur "Synchroniser les images".');
+        return;
+      }
+
+      console.log('[InstagramWidget] Testing Storage URLs...');
+      let results = '📊 TEST DES URLS STORAGE:\n\n';
+
+      for (const post of postsWithCache.slice(0, 3)) { // Tester 3 URLs max
+        results += `📷 Post ${post.id}:\n`;
+        results += `URL: ${post.cachedUrl}\n`;
+
+        try {
+          const response = await fetch(post.cachedUrl);
+          if (response.ok) {
+            results += `✅ Status: ${response.status} OK\n`;
+            results += `Type: ${response.headers.get('content-type')}\n`;
+          } else {
+            results += `❌ Status: ${response.status} ${response.statusText}\n`;
+          }
+        } catch (error: any) {
+          results += `❌ Erreur: ${error.message}\n`;
+        }
+        results += '\n';
+      }
+
+      results += '\n💡 SI ERREUR 404:\nLe bucket n\'est pas public.\nAllez dans Supabase → Storage → instagram-media → Cochez "Public"';
+
+      alert(results);
+      console.log('[InstagramWidget] Test results:', results);
+    } catch (error) {
+      console.error('[InstagramWidget] Test error:', error);
+      alert('Erreur lors du test');
+    } finally {
+      setTestingUrls(false);
+    }
+  };
 
   const handleManualSync = async () => {
     setSyncing(true);
@@ -244,26 +288,51 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           </a>
         </div>
 
-        {/* Bouton de synchronisation manuelle */}
-        <button
-          onClick={handleManualSync}
-          disabled={syncing}
-          className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {syncing ? (
-            <>
-              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Synchronisation...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Synchroniser les images
-            </>
+        {/* Boutons de synchronisation et test */}
+        <div className="space-y-2">
+          <button
+            onClick={handleManualSync}
+            disabled={syncing}
+            className="w-full px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {syncing ? (
+              <>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Synchronisation...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Synchroniser les images
+              </>
+            )}
+          </button>
+
+          {/* Bouton de test - visible seulement si on a des posts */}
+          {posts.length > 0 && (
+            <button
+              onClick={testStorageUrls}
+              disabled={testingUrls}
+              className="w-full px-3 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {testingUrls ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Test en cours...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Tester les URLs Storage
+                </>
+              )}
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {posts.length > 0 ? (
