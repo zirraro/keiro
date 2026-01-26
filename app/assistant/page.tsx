@@ -8,7 +8,7 @@ import ChatMarketingTab from './ChatMarketingTab';
 export default function AssistantPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('chat');
 
   // Analytics data
   const [stats, setStats] = useState({
