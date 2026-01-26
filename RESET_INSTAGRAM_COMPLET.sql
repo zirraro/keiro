@@ -13,7 +13,10 @@ DROP POLICY IF EXISTS "Users can upload to own folder" ON storage.objects;
 DROP POLICY IF EXISTS "Users can update own files" ON storage.objects;
 DROP POLICY IF EXISTS "Users can delete own files" ON storage.objects;
 
--- 3. SUPPRIMER LE BUCKET (si existe)
+-- 3. SUPPRIMER TOUS LES FICHIERS DU BUCKET D'ABORD
+DELETE FROM storage.objects WHERE bucket_id = 'instagram-media';
+
+-- 4. MAINTENANT SUPPRIMER LE BUCKET
 DELETE FROM storage.buckets WHERE name = 'instagram-media';
 
 -- 4. CRÉER LE BUCKET EN PUBLIC
