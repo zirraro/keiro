@@ -63,112 +63,38 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/library/instagram - Créer un brouillon de post Instagram
+ * NOTE: Cette fonctionnalité n'est plus disponible. instagram_posts est maintenant
+ * pour les vrais posts Instagram synchronisés depuis Instagram uniquement.
+ * Il faudrait une table séparée pour les drafts/workspace.
  */
 export async function POST(req: NextRequest) {
-  try {
-    return NextResponse.json(
-      { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
-      { status: 400 }
-    );
-
-    // NOTE: Ce endpoint était pour créer des "drafts" liés à saved_images
-    // Maintenant instagram_posts = VRAIS posts Instagram synchronisés depuis Instagram
-    // Il faudrait une table séparée pour les drafts/workspace
-
-    if (error) {
-      console.error('[Library/Instagram] Error creating post:', error);
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
-    }
-
-    console.log('[Library/Instagram] ✅ Draft post created:', data.id);
-
-    return NextResponse.json({
-      ok: true,
-      post: data
-    });
-
-  } catch (error: any) {
-    console.error('[Library/Instagram] ❌ Unexpected error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
+    { status: 400 }
+  );
 }
 
 /**
  * PATCH /api/library/instagram - Mettre à jour un post Instagram
+ * NOTE: Cette fonctionnalité n'est plus disponible. instagram_posts est maintenant
+ * pour les posts réels synchronisés depuis Instagram (read-only).
  */
 export async function PATCH(req: NextRequest) {
-  try {
-    return NextResponse.json(
-      { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
-      { status: 400 }
-    );
-
-    // NOTE: Ce endpoint était pour mettre à jour des "drafts"
-    // Maintenant instagram_posts = posts réels synchronisés depuis Instagram (read-only)
-
-    if (error) {
-      console.error('[Library/Instagram] Error updating post:', error);
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
-    }
-
-    console.log('[Library/Instagram] ✅ Post updated');
-
-    return NextResponse.json({
-      ok: true,
-      post: data
-    });
-
-  } catch (error: any) {
-    console.error('[Library/Instagram] ❌ Unexpected error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
+    { status: 400 }
+  );
 }
 
 /**
  * DELETE /api/library/instagram?id=xxx
  * Supprimer un post Instagram
+ * NOTE: Cette fonctionnalité n'est plus disponible. instagram_posts est maintenant
+ * pour les posts réels depuis Instagram (ne peuvent pas être supprimés ici).
  */
 export async function DELETE(req: NextRequest) {
-  try {
-    return NextResponse.json(
-      { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
-      { status: 400 }
-    );
-
-    // NOTE: Ce endpoint était pour supprimer des "drafts"
-    // Maintenant instagram_posts = posts réels depuis Instagram (ne peuvent pas être supprimés ici)
-
-    if (error) {
-      console.error('[Library/Instagram] Error deleting post:', error);
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
-    }
-
-    console.log('[Library/Instagram] ✅ Post deleted');
-
-    return NextResponse.json({
-      ok: true
-    });
-
-  } catch (error: any) {
-    console.error('[Library/Instagram] ❌ Unexpected error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { ok: false, error: 'Cette fonctionnalité n\'est plus disponible. instagram_posts est maintenant pour les vrais posts Instagram uniquement.' },
+    { status: 400 }
+  );
 }
