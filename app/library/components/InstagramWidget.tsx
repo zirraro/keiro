@@ -62,7 +62,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           .select('*')
           .eq('user_id', user.id)
           .order('timestamp', { ascending: false })
-          .limit(12);
+          .limit(8);
 
         if (error) {
           console.error('[InstagramWidget] Error loading posts:', error);
@@ -109,8 +109,8 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-4">
         <div className="animate-pulse">
           <div className="h-4 bg-neutral-200 rounded w-32 mb-3"></div>
-          <div className="grid grid-cols-6 gap-1">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+          <div className="grid grid-cols-4 gap-1">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="aspect-square bg-neutral-200 rounded"></div>
             ))}
           </div>
@@ -145,7 +145,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
         </div>
 
         {isGuest ? (
-          <div className="grid grid-cols-6 gap-1 p-2">
+          <div className="grid grid-cols-4 gap-1 p-2">
             {displayPosts.map((post) => (
               <div
                 key={post.id}
@@ -210,7 +210,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-6 gap-1 p-2">
+        <div className="grid grid-cols-4 gap-1 p-2">
           {posts.map((post) => {
             const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
 

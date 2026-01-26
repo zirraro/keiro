@@ -195,7 +195,18 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
       const data = await response.json();
 
       if (data.ok) {
-        alert('✅ Post publié avec succès sur Instagram !\n\nVotre contenu est maintenant visible par votre audience.');
+        // Message de succès plus engageant
+        const successMessage = `🎉 Post publié avec succès sur Instagram !\n\n✅ Votre contenu est maintenant visible\n📊 Il apparaîtra dans votre feed et profil\n💬 Les interactions commenceront bientôt\n\nFélicitations ! 🚀`;
+        alert(successMessage);
+
+        // Proposer d'ouvrir Instagram pour voir le post
+        const openPost = window.confirm('Voulez-vous ouvrir Instagram pour voir votre post ?');
+        if (openPost && data.permalink) {
+          window.open(data.permalink, '_blank');
+        } else if (openPost) {
+          window.open(`https://www.instagram.com/${instagramUsername}/`, '_blank');
+        }
+
         onClose();
       } else {
         throw new Error(data.error || 'Erreur lors de la publication');
@@ -236,7 +247,16 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
       const data = await response.json();
 
       if (data.ok) {
-        alert('✅ Story publiée avec succès sur Instagram !\n\nVotre story est maintenant visible pendant 24h par votre audience.');
+        // Message de succès plus engageant pour la story
+        const confirmMessage = `🎉 Story publiée avec succès sur Instagram !\n\n✨ Votre story est maintenant visible pendant 24h\n📱 Ouvrez l'app Instagram pour la voir en direct\n👀 Elle apparaîtra dans le cercle de votre profil\n\nFélicitations ! 🚀`;
+        alert(confirmMessage);
+
+        // Ouvrir Instagram dans un nouvel onglet (si possible)
+        const openInstagram = window.confirm('Voulez-vous ouvrir Instagram pour voir votre story ?');
+        if (openInstagram) {
+          window.open(`https://www.instagram.com/${instagramUsername}/`, '_blank');
+        }
+
         onClose();
       } else {
         throw new Error(data.error || 'Erreur lors de la publication de la story');
