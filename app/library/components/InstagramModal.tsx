@@ -274,7 +274,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
         {/* NOUVEAU LAYOUT 3 COLONNES */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
-          {/* GALERIE D'IMAGES - SIDEBAR GAUCHE */}
+          {/* GALERIE D'IMAGES - SIDEBAR GAUCHE (Desktop seulement) */}
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">
               <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
@@ -315,11 +315,43 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
             </div>
           </div>
 
+          {/* CARROUSEL MOBILE - En haut sur mobile seulement */}
+          <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
+            <p className="text-xs font-semibold text-neutral-600 mb-2">Sélectionner une image</p>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
+              {loadingImages ? (
+                [1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
+                ))
+              ) : (
+                availableImages.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => setSelectedImage(img)}
+                    className={`
+                      flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
+                      ${selectedImage.id === img.id
+                        ? 'ring-2 ring-pink-500 shadow-lg'
+                        : 'ring-1 ring-neutral-300'
+                      }
+                    `}
+                  >
+                    <img
+                      src={img.thumbnail_url || img.image_url}
+                      alt={img.title || 'Image'}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
           {/* PREVIEW + FORM - RESTE À DROITE */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-            {/* PREVIEW STICKY */}
-            <div className="md:w-1/2 md:overflow-y-auto md:p-6 p-4 bg-neutral-50">
+            {/* PREVIEW STICKY - Desktop seulement */}
+            <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
               <div className="md:sticky md:top-0">
                 <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg">
                   <img
@@ -341,8 +373,8 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
               </div>
             </div>
 
-            {/* FORM SCROLLABLE */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            {/* FORM SCROLLABLE - Prend toute la hauteur sur mobile */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Bouton Suggérer IA */}
               <button
                 onClick={handleSuggest}
