@@ -62,7 +62,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(8);
+          .limit(6);
 
         if (error) {
           console.error('[InstagramWidget] Error loading posts:', error);
@@ -122,10 +122,10 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
     return (
       <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-2">
         <div className="animate-pulse">
-          <div className="h-4 bg-neutral-200 rounded w-32 mb-2"></div>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-px">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="aspect-square bg-neutral-200"></div>
+          <div className="h-4 bg-neutral-200 rounded w-32 mb-3"></div>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="aspect-square bg-neutral-200 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -159,11 +159,11 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
         </div>
 
         {isGuest ? (
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-px p-1">
-            {displayPosts.map((post) => (
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-1 p-2">
+            {displayPosts.slice(0, 6).map((post) => (
               <div
                 key={post.id}
-                className="relative aspect-square rounded overflow-hidden bg-neutral-100"
+                className="relative aspect-square rounded-lg overflow-hidden bg-neutral-100"
               >
                 <img
                   src={post.media_url}
@@ -224,7 +224,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-px p-1">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 p-2">
           {posts.map((post) => {
             const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
 
@@ -234,7 +234,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                 href={post.permalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative aspect-square rounded overflow-hidden group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50"
+                className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50"
                 title={post.cachedUrl ? `Storage: ${post.cachedUrl}` : `Instagram CDN (may fail): ${imageUrl}`}
               >
                 {/* Indicateur de chargement + Fallback */}
