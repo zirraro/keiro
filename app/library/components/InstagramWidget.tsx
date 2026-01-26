@@ -54,49 +54,48 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       setProfile(profileData);
 
       if (profileData?.instagram_business_account_id) {
-        console.log('[InstagramWidget] Loading Instagram images from database...');
+        console.log('[InstagramWidget] Loading Instagram posts from database...');
 
-        // Charger les images depuis saved_images avec cached_instagram_url
-        const { data: images, error } = await supabase
-          .from('saved_images')
+        // Charger les posts Instagram depuis la table dédiée
+        const { data: instagramPosts, error } = await supabase
+          .from('instagram_posts')
           .select('*')
           .eq('user_id', user.id)
-          .not('cached_instagram_url', 'is', null)
-          .order('created_at', { ascending: false })
+          .order('timestamp', { ascending: false })
           .limit(12);
 
         if (error) {
-          console.error('[InstagramWidget] Error loading images:', error);
-        } else if (images && images.length > 0) {
-          // Transformer les images en format posts
-          const transformedPosts = images.map((img: any) => ({
-            id: img.id,
-            caption: img.title || '',
-            media_url: img.image_url,
-            thumbnail_url: img.thumbnail_url,
-            cachedUrl: img.cached_instagram_url,
-            permalink: `https://www.instagram.com/p/${img.id}/`,
-            media_type: 'IMAGE',
-            timestamp: img.created_at
+          console.error('[InstagramWidget] Error loading posts:', error);
+        } else if (instagramPosts && instagramPosts.length > 0) {
+          // Transformer en format attendu par le widget
+          const transformedPosts = instagramPosts.map((post: any) => ({
+            id: post.id,
+            caption: post.caption || '',
+            media_url: post.original_media_url,
+            thumbnail_url: post.cached_media_url,
+            cachedUrl: post.cached_media_url, // URL stable depuis Storage
+            permalink: post.permalink, // Lien vers le vrai post Instagram
+            media_type: post.media_type,
+            timestamp: post.timestamp
           }));
 
-          console.log('[InstagramWidget] Loaded', transformedPosts.length, 'images from database');
+          console.log('[InstagramWidget] Loaded', transformedPosts.length, 'Instagram posts');
           setPosts(transformedPosts);
         } else {
-          console.log('[InstagramWidget] No cached images found in database');
-        }
+          console.log('[InstagramWidget] No Instagram posts found - triggering sync');
 
-        // Lancer la synchronisation en arrière-plan (ne pas attendre)
-        fetch('/api/instagram/sync-media', { method: 'POST' })
-          .then(r => r.json())
-          .then(data => {
-            if (data.ok) {
-              console.log('[InstagramWidget] Background sync completed:', data.cached, 'images');
-              // Recharger les données après la sync
-              loadData();
-            }
-          })
-          .catch(err => console.error('[InstagramWidget] Background sync failed:', err));
+          // Si pas de posts, lancer la sync immédiatement
+          fetch('/api/instagram/sync-media', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+              if (data.ok) {
+                console.log('[InstagramWidget] Initial sync completed:', data.cached, 'posts');
+                // Recharger après la première sync
+                loadData();
+              }
+            })
+            .catch(err => console.error('[InstagramWidget] Sync failed:', err));
+        }
       }
     } catch (error) {
       console.error('[InstagramWidget] Error:', error);
