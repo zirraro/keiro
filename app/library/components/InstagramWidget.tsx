@@ -47,9 +47,47 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
 
       if (data.ok) {
         console.log('[InstagramWidget] Sync successful:', data);
-        alert(`✓ Synchronisation réussie !\n\n${data.cached} images sur ${data.total} ont été téléchargées.`);
-        // Recharger les posts
-        await loadData();
+        console.log('[InstagramWidget] Cached posts with URLs:', data.posts);
+
+        // Mettre à jour directement les posts avec les URLs cachées
+        if (data.posts && data.posts.length > 0) {
+          // Récupérer les posts actuels
+          const supabase = supabaseBrowser();
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (user) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('instagram_business_account_id, instagram_access_token')
+              .eq('id', user.id)
+              .single();
+
+            if (profileData?.instagram_business_account_id) {
+              // Récupérer les posts Instagram
+              const fields = 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp';
+              const instagramApiUrl = `https://graph.facebook.com/v20.0/${profileData.instagram_business_account_id}/media?fields=${fields}&limit=24&access_token=${profileData.instagram_access_token}`;
+
+              const postsResponse = await fetch(instagramApiUrl);
+              const postsData = await postsResponse.json();
+
+              if (postsData.data) {
+                // Merger les posts avec les URLs cachées
+                const mergedPosts = postsData.data.map((post: any) => {
+                  const cachedPost = data.posts.find((cp: any) => cp.id === post.id);
+                  return {
+                    ...post,
+                    cachedUrl: cachedPost?.cachedUrl || null
+                  };
+                });
+
+                console.log('[InstagramWidget] Merged posts:', mergedPosts);
+                setPosts(mergedPosts.slice(0, 12));
+              }
+            }
+          }
+        }
+
+        alert(`✓ Synchronisation réussie !\n\n${data.cached} images sur ${data.total} ont été téléchargées.\n\nLes images devraient maintenant s'afficher.`);
       } else {
         console.error('[InstagramWidget] Sync failed:', data);
         alert(`Erreur de synchronisation: ${data.error}`);
@@ -231,13 +269,16 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       {posts.length > 0 ? (
         <div className="grid grid-cols-6 gap-1 p-2">
           {posts.map((post) => {
-            // Utiliser cachedUrl si disponible (Supabase Storage), sinon fallback sur URLs Instagram
+            // Utiliser UNIQUEMENT cachedUrl si disponible, sinon fallback
             const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
 
-            // Debug: Log URL being used
-            if (!post.cachedUrl && (post.thumbnail_url || post.media_url)) {
-              console.warn(`[InstagramWidget] Post ${post.id} using fallback URL (no cachedUrl)`);
-            }
+            // Debug détaillé
+            console.log(`[InstagramWidget] Post ${post.id}:`, {
+              hasCachedUrl: !!post.cachedUrl,
+              cachedUrl: post.cachedUrl,
+              fallbackUrl: post.thumbnail_url || post.media_url,
+              usingUrl: imageUrl
+            });
 
             return (
               <a
@@ -246,7 +287,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative aspect-square rounded overflow-hidden group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50"
-                title={post.cachedUrl ? 'Image from Supabase Storage' : 'Image from Instagram CDN (may fail)'}
+                title={post.cachedUrl ? `Storage: ${post.cachedUrl}` : `Instagram CDN (may fail): ${imageUrl}`}
               >
                 {/* Icône de fallback toujours en arrière-plan */}
                 <div className="absolute inset-0 flex items-center justify-center">

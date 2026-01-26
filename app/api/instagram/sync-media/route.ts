@@ -129,10 +129,17 @@ export async function POST() {
           continue;
         }
 
-        // Obtenir URL publique
-        const { data: { publicUrl } } = supabase.storage
+        // Obtenir URL publique - VÉRIFIER que le bucket est accessible
+        const { data: urlData } = supabase.storage
           .from('instagram-media')
           .getPublicUrl(fileName);
+
+        const publicUrl = urlData.publicUrl;
+
+        // Vérifier que l'URL est accessible
+        console.log(`[SyncMedia] ✓ Cached ${post.id} successfully`);
+        console.log(`[SyncMedia]   File: ${fileName}`);
+        console.log(`[SyncMedia]   Public URL: ${publicUrl}`);
 
         cachedPosts.push({
           id: post.id,
@@ -141,10 +148,6 @@ export async function POST() {
           timestamp: post.timestamp,
           permalink: post.permalink,
         });
-
-        console.log(`[SyncMedia] ✓ Cached ${post.id} successfully`);
-        console.log(`[SyncMedia]   File: ${fileName}`);
-        console.log(`[SyncMedia]   URL: ${publicUrl}`);
 
       } catch (error) {
         console.error(`[SyncMedia] Error processing ${post.id}:`, error);
