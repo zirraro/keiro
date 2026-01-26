@@ -66,6 +66,19 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
 
         if (error) {
           console.error('[InstagramWidget] Error loading posts:', error);
+          // Si erreur (table n'existe pas?), déclencher la sync qui créera les posts
+          console.log('[InstagramWidget] Table error - triggering sync to create posts');
+
+          fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
+            .then(r => r.json())
+            .then(data => {
+              console.log('[InstagramWidget] Sync result:', data);
+              if (data.ok) {
+                // Attendre 2 secondes puis recharger
+                setTimeout(() => loadData(), 2000);
+              }
+            })
+            .catch(err => console.error('[InstagramWidget] Sync failed:', err));
         } else if (instagramPosts && instagramPosts.length > 0) {
           // Transformer en format attendu par le widget
           const transformedPosts = instagramPosts.map((post: any) => ({
@@ -85,13 +98,14 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           console.log('[InstagramWidget] No Instagram posts found - triggering sync');
 
           // Si pas de posts, lancer la sync immédiatement
-          fetch('/api/instagram/sync-media', { method: 'POST' })
+          fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
             .then(r => r.json())
             .then(data => {
+              console.log('[InstagramWidget] Sync result:', data);
               if (data.ok) {
                 console.log('[InstagramWidget] Initial sync completed:', data.cached, 'posts');
-                // Recharger après la première sync
-                loadData();
+                // Attendre 2 secondes puis recharger
+                setTimeout(() => loadData(), 2000);
               }
             })
             .catch(err => console.error('[InstagramWidget] Sync failed:', err));

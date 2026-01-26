@@ -60,7 +60,7 @@ Réponds UNIQUEMENT avec ce JSON (pas de markdown):
     console.log('[Suggest] Calling Claude...');
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-3-haiku-20240307',
       max_tokens: 2000,
       temperature: 0.8,
       messages: [{ role: 'user', content: prompt }]

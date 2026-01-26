@@ -130,7 +130,7 @@ Style:
     console.log('[MarketingAssistant] Calling Claude Haiku...');
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022', // Haiku: 12x moins cher que Sonnet!
+      model: 'claude-3-haiku-20240307', // Haiku stable et disponible partout
       max_tokens: 800, // Réduit de 1500 pour économiser
       system: systemPrompt,
       temperature: 0.7,
@@ -186,7 +186,7 @@ Style:
         user_id: user.id,
         role: 'assistant',
         content: assistantMessage,
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-haiku-20240307',
         tokens_used: tokensUsed,
       },
     ]);
