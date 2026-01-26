@@ -226,7 +226,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       {posts.length > 0 ? (
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 p-2">
           {posts.map((post) => {
-            const imageUrl = post.cachedUrl || post.thumbnail_url || post.media_url;
+            const imageUrl = post.cached_media_url || post.thumbnail_url || post.media_url;
 
             return (
               <a
@@ -235,7 +235,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50"
-                title={post.cachedUrl ? `Storage: ${post.cachedUrl}` : `Instagram CDN (may fail): ${imageUrl}`}
+                title={post.cached_media_url ? `Storage: ${post.cached_media_url}` : `Instagram CDN (may fail): ${imageUrl}`}
               >
                 {/* Indicateur de chargement + Fallback */}
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
