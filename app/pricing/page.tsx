@@ -23,7 +23,7 @@ export default function PricingPage() {
             </span>
           </h1>
           <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
-            Commencez gratuitement avec 3 visuels, testez pendant 5 jours à 6.99€,
+            Commencez gratuitement avec 3 visuels, testez pendant 3 jours à 4.99€,
             ou rejoignez les Fondateurs pour verrouiller un prix à vie.
           </p>
         </div>

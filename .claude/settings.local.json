@@ -5,7 +5,9 @@
       "Bash(node test-claude-quick.js:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(vercel --version:*)"
+      "Bash(vercel --version:*)",
+      "Bash(npx vercel --prod --yes)",
+      "Bash(curl:*)"
     ]
   }
 }

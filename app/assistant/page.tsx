@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import ChatMarketingTab from './ChatMarketingTab';
 
 export default function AssistantPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'formation'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('dashboard');
 
   // Analytics data
   const [stats, setStats] = useState({
@@ -144,6 +145,16 @@ export default function AssistantPage() {
               📊 Tableau de bord
             </button>
             <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                activeTab === 'chat'
+                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              💬 Chat Marketing
+            </button>
+            <button
               onClick={() => setActiveTab('formation')}
               className={`flex-1 px-6 py-4 font-semibold transition-colors ${
                 activeTab === 'formation'
@@ -159,6 +170,8 @@ export default function AssistantPage() {
         {/* Contenu selon onglet */}
         {activeTab === 'dashboard' ? (
           <DashboardTab stats={stats} chartData={chartData} user={user} />
+        ) : activeTab === 'chat' ? (
+          <ChatMarketingTab user={user} />
         ) : (
           <FormationTab />
         )}

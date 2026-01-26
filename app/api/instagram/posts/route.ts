@@ -90,20 +90,54 @@ export async function GET() {
       );
     }
 
-    // Déclencher sync automatique en arrière-plan (ne pas bloquer la réponse)
+    // Appeler sync-media et ATTENDRE les URLs cachées
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    fetch(`${baseUrl}/api/instagram/sync-media`, {
-      method: 'POST',
-      headers: {
-        'Cookie': `sb-access-token=${accessToken}` // Pass auth
-      }
-    }).catch(err => console.error('[InstagramPosts] Background sync failed:', err));
 
-    return NextResponse.json({
-      ok: true,
-      posts: data.data || [],
-      syncTriggered: true
-    });
+    try {
+      const syncResponse = await fetch(`${baseUrl}/api/instagram/sync-media`, {
+        method: 'POST',
+        headers: {
+          'Cookie': request.headers.get('cookie') || ''
+        }
+      });
+
+      const syncData = await syncResponse.json();
+
+      if (syncData.ok && syncData.posts) {
+        console.log(`[InstagramPosts] Sync completed: ${syncData.cached}/${syncData.total} images cached`);
+
+        // Merger les URLs cachées avec les posts originaux
+        const postsWithCache = data.data.map((post: any) => {
+          const cachedPost = syncData.posts.find((cp: any) => cp.id === post.id);
+          return {
+            ...post,
+            cachedUrl: cachedPost?.cachedUrl || null
+          };
+        });
+
+        return NextResponse.json({
+          ok: true,
+          posts: postsWithCache,
+          cached: syncData.cached
+        });
+      } else {
+        console.error('[InstagramPosts] Sync failed:', syncData.error);
+        // Fallback : retourner les posts sans cache
+        return NextResponse.json({
+          ok: true,
+          posts: data.data || [],
+          cached: 0
+        });
+      }
+    } catch (syncError) {
+      console.error('[InstagramPosts] Sync error:', syncError);
+      // Fallback : retourner les posts sans cache
+      return NextResponse.json({
+        ok: true,
+        posts: data.data || [],
+        cached: 0
+      });
+    }
 
   } catch (error: any) {
     console.error('[InstagramPosts] Error:', error);
