@@ -52,40 +52,63 @@ export async function POST(request: NextRequest) {
     const title = imageTitle || newsTitle || 'contenu';
     const category = newsCategory || 'Business';
 
-    // Définir le prompt selon l'angle choisi
+    // Définir le prompt selon l'angle choisi - APPROCHE B2C
     const angleInstructions = {
-      informatif: "Adopte un ton informatif et factuel. Présente des informations claires et vérifiables. Utilise des données si possible.",
-      emotionnel: "Adopte un ton émotionnel et touchant. Crée une connexion personnelle avec l'audience. Parle aux émotions et sentiments.",
-      inspirant: "Adopte un ton inspirant et motivant. Encourage l'action et le dépassement de soi. Utilise des messages positifs.",
-      humoristique: "Adopte un ton humoristique et léger. Fais sourire ou rire. Utilise l'humour intelligent.",
-      professionnel: "Adopte un ton professionnel et expert. Démontre ton expertise. Reste formel mais accessible.",
-      storytelling: "Raconte une histoire captivante. Utilise une structure narrative avec début, milieu, fin. Crée du suspense.",
-      educatif: "Adopte un ton éducatif et pédagogique. Enseigne quelque chose de concret. Rends l'apprentissage facile.",
-      provocateur: "Adopte un ton provocateur et questionnant. Suscite le débat. Remets en question les idées reçues."
+      informatif: "Parle comme un ami qui partage une découverte utile. Mets en avant les BÉNÉFICES concrets pour le client. Utilise 'vous' et 'tu' pour créer une connexion.",
+      emotionnel: "Raconte une histoire qui touche le cœur. Parle des rêves, peurs, désirs du client. Crée une connexion émotionnelle forte. Utilise des mots sensoriels.",
+      inspirant: "Parle directement aux aspirations du client. Montre la transformation possible. Utilise 'vous pouvez', 'imaginez', 'c'est possible'. Crée du rêve.",
+      humoristique: "Amuse-toi ! Utilise l'humour du quotidien, des situations relatable. Fais sourire le lecteur. Reste léger et accessible.",
+      professionnel: "Reste accessible mais crédible. Montre la valeur sans jargon. Parle des résultats, pas des processus. Le client veut des solutions, pas des features.",
+      storytelling: "Raconte l'histoire du CLIENT, pas du produit. Commence par un problème relatable, montre la transformation, termine par l'invitation à agir.",
+      educatif: "Apprends quelque chose d'utile et APPLICABLE immédiatement. Utilise des exemples concrets. Rends l'info facile à retenir et partager.",
+      provocateur: "Challenge les croyances limitantes. Pose des questions qui font réfléchir. Crée la curiosité. Donne envie de découvrir la solution."
     };
 
     const angleInstruction = angleInstructions[contentAngle as keyof typeof angleInstructions] || angleInstructions.informatif;
 
-    const prompt = `Tu es un expert en marketing Instagram. Analyse cette image et crée un post Instagram engageant.
+    const prompt = `Tu es un copywriter Instagram expert en conversion B2C. Ta mission : créer du contenu qui ATTIRE les clients vers ${business}.
 
-CONTEXTE:
+🎯 OBJECTIF CRITIQUE:
+Ce post doit attirer des CONSOMMATEURS FINAUX (clients potentiels), PAS des professionnels.
+Le contenu doit donner ENVIE d'acheter, d'essayer, de découvrir, de contacter.
+
+📊 CONTEXTE:
 - Business: ${business}
-- Titre: ${title}
+- Sujet: ${title}
 - Catégorie: ${category}
-- ANGLE DEMANDÉ: ${contentAngle.toUpperCase()}
+- ANGLE: ${contentAngle.toUpperCase()}
   ${angleInstruction}
 
-INSTRUCTIONS:
-1. Analyse visuellement l'image fournie
-2. Identifie les éléments clés, couleurs, émotions, message visuel
-3. Crée une description qui CORRESPOND à ce que tu vois dans l'image
-4. Utilise l'angle "${contentAngle}" pour le ton et le style
-5. Rends le post viral et engageant pour Instagram
+🖼️ ANALYSE DE L'IMAGE:
+1. Regarde VRAIMENT l'image - couleurs, ambiance, éléments visuels
+2. Identifie l'émotion principale qu'elle dégage
+3. Trouve le message subtil qu'elle communique
+4. Repère ce qui attire l'œil en premier
 
-Réponds UNIQUEMENT avec ce JSON (pas de markdown, pas de \`\`\`):
+✍️ RÉDACTION:
+Structure du post:
+1. HOOK (1ère ligne): Captive en 3 secondes max - question, affirmation choc, ou promesse claire
+2. BÉNÉFICE CLIENT: Parle de CE QUE LE CLIENT GAGNE (pas de ce que tu fais)
+3. PREUVE SOCIALE/CRÉDIBILITÉ: Léger, subtil (ex: "Des centaines de clients satisfaits")
+4. CALL TO ACTION: Clair et simple (DM, visite profil, clic lien bio, réserve maintenant)
+
+RÈGLES D'OR:
+- Parle AU client, pas DU produit ("Imaginez..." pas "Nous proposons...")
+- Utilise des verbes d'action et mots émotionnels
+- Crée l'urgence ou la rareté si pertinent (sans mentir)
+- Reste authentique - pas de sur-promesses
+- Max 150-180 mots (Instagram = scroll rapide)
+- Emojis stratégiques (1-2 par paragraphe max)
+
+🏷️ HASHTAGS:
+- Mélange de hashtags populaires (100k-1M posts) et niches (10k-50k)
+- Inclus des hashtags locaux si business local
+- Évite les hashtags trop saturés (#love, #instagood)
+
+Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
 {
-  "caption": "Hook accrocheur basé sur l'image\\n\\nCorps du post (150-200 mots) qui décrit et complète l'image\\n\\nCTA avec emoji",
-  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5", "#tag6", "#tag7", "#tag8", "#tag9", "#tag10"]
+  "caption": "🎯 Hook percutant basé sur l'image\\n\\n💡 Bénéfice client clair\\n\\n✨ Mini preuve sociale\\n\\n👉 CTA avec emoji",
+  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
 }`;
 
     console.log('[Suggest] Calling Claude Vision...');

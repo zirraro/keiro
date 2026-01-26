@@ -120,12 +120,12 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-4">
+      <div className="bg-white rounded-xl shadow-lg border border-neutral-200 p-3">
         <div className="animate-pulse">
-          <div className="h-4 bg-neutral-200 rounded w-32 mb-3"></div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="h-4 bg-neutral-200 rounded w-32 mb-2"></div>
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-0.5">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="aspect-square bg-neutral-200 rounded"></div>
+              <div key={i} className="aspect-square bg-neutral-200 rounded-sm"></div>
             ))}
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
         </div>
 
         {isGuest ? (
-          <div className="grid grid-cols-4 gap-1 p-2">
+          <div className="grid grid-cols-4 md:grid-cols-8 gap-0.5 p-1">
             {displayPosts.map((post) => (
               <div
                 key={post.id}
