@@ -16,12 +16,13 @@ type SavedImage = {
 };
 
 interface InstagramModalProps {
-  image: SavedImage;
+  image?: SavedImage;
+  images?: SavedImage[];
   onClose: () => void;
-  onSave: (caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
+  onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
 }
 
-export default function InstagramModal({ image, onClose, onSave }: InstagramModalProps) {
+export default function InstagramModal({ image, images, onClose, onSave }: InstagramModalProps) {
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -33,9 +34,9 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   const [checkingConnection, setCheckingConnection] = useState(true);
 
   // Nouveaux états pour la galerie
-  const [availableImages, setAvailableImages] = useState<SavedImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<SavedImage>(image);
-  const [loadingImages, setLoadingImages] = useState(false);
+  const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
+  const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
+  const [loadingImages, setLoadingImages] = useState(!images);
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
@@ -69,9 +70,18 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
     checkInstagramConnection();
   }, []);
 
-  // Charger images du même dossier pour sélection rapide
+  // Charger images si pas passées en props
   useEffect(() => {
     const loadImages = async () => {
+      // Si les images sont déjà passées en props, ne pas les charger
+      if (images && images.length > 0) {
+        setLoadingImages(false);
+        if (!selectedImage && images.length > 0) {
+          setSelectedImage(images[0]);
+        }
+        return;
+      }
+
       setLoadingImages(true);
       try {
         const supabase = supabaseBrowser();
@@ -84,15 +94,20 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
           .from('saved_images')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false})
           .limit(20);
 
-        if (image.folder_id) {
+        if (image?.folder_id) {
           query.eq('folder_id', image.folder_id);
         }
 
-        const { data: images } = await query;
-        setAvailableImages(images || []);
+        const { data: loadedImages } = await query;
+        setAvailableImages(loadedImages || []);
+
+        // Sélectionner la première image si aucune n'est sélectionnée
+        if (!selectedImage && loadedImages && loadedImages.length > 0) {
+          setSelectedImage(loadedImages[0]);
+        }
       } catch (error) {
         console.error('[InstagramModal] Error loading images:', error);
       } finally {
@@ -101,7 +116,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
     };
 
     loadImages();
-  }, [image.folder_id]);
+  }, [image?.folder_id, images]);
 
   const addHashtag = () => {
     const tag = hashtagInput.trim();
@@ -116,9 +131,13 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   const handleSave = async (status: 'draft' | 'ready') => {
+    if (!selectedImage) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
     setSaving(true);
     try {
-      await onSave(caption, hashtags, status);
+      await onSave(selectedImage, caption, hashtags, status);
     } finally {
       setSaving(false);
     }
@@ -132,6 +151,11 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   const handleSuggest = async () => {
+    if (!selectedImage) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
     setSuggesting(true);
     try {
       const response = await fetch('/api/instagram/suggest', {
@@ -166,6 +190,11 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   const handlePublishNow = async () => {
+    if (!selectedImage) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
     if (!caption.trim()) {
       alert('Veuillez écrire une description pour votre post');
       return;
@@ -225,6 +254,11 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
   };
 
   const handlePublishStory = async () => {
+    if (!selectedImage) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
     if (!isInstagramConnected) {
       alert('Veuillez d\'abord connecter votre compte Instagram Business');
       return;
@@ -278,6 +312,53 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
     window.location.href = '/api/auth/instagram-oauth';
   };
 
+  // Si aucune image sélectionnée et chargement terminé, ne rien afficher
+  if (!selectedImage && !loadingImages && availableImages.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mb-4">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucune image disponible</h3>
+          <p className="text-neutral-600 text-sm mb-6">
+            Ajoutez des images à votre galerie pour créer des posts Instagram
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Pendant le chargement
+  if (loadingImages && !selectedImage) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-pulse mb-4">
+            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </div>
+          <p className="text-neutral-600 text-sm">Chargement des images...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si on arrive ici, selectedImage est forcément non-null (ou bien il y a des images disponibles)
+  // TypeScript ne le comprend pas, donc on doit asserter
+  if (!selectedImage) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
@@ -317,7 +398,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                     onClick={() => setSelectedImage(img)}
                     className={`
                       w-full aspect-square rounded-lg overflow-hidden transition-all
-                      ${selectedImage.id === img.id
+                      ${selectedImage?.id === img.id
                         ? 'ring-2 ring-pink-500 scale-105 shadow-lg'
                         : 'ring-1 ring-neutral-300 hover:ring-pink-300 hover:scale-102'
                       }
@@ -355,7 +436,7 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
                     onClick={() => setSelectedImage(img)}
                     className={`
                       flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
-                      ${selectedImage.id === img.id
+                      ${selectedImage?.id === img.id
                         ? 'ring-2 ring-pink-500 shadow-lg'
                         : 'ring-1 ring-neutral-300'
                       }
@@ -376,27 +457,29 @@ export default function InstagramModal({ image, onClose, onSave }: InstagramModa
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
             {/* PREVIEW STICKY - Desktop seulement */}
-            <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
-              <div className="md:sticky md:top-0">
-                <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg">
-                  <img
-                    src={selectedImage.image_url}
-                    alt={selectedImage.title || selectedImage.news_title || 'Preview'}
-                    className="w-full h-full object-cover"
-                  />
+            {selectedImage && (
+              <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
+                <div className="md:sticky md:top-0">
+                  <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg">
+                    <img
+                      src={selectedImage.image_url}
+                      alt={selectedImage.title || selectedImage.news_title || 'Preview'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {selectedImage.title && (
+                    <p className="mt-3 text-sm font-medium text-neutral-700 text-center">
+                      {selectedImage.title}
+                    </p>
+                  )}
+                  {selectedImage.news_category && (
+                    <p className="mt-1 text-xs text-neutral-500 text-center">
+                      {selectedImage.news_category}
+                    </p>
+                  )}
                 </div>
-                {selectedImage.title && (
-                  <p className="mt-3 text-sm font-medium text-neutral-700 text-center">
-                    {selectedImage.title}
-                  </p>
-                )}
-                {selectedImage.news_category && (
-                  <p className="mt-1 text-xs text-neutral-500 text-center">
-                    {selectedImage.news_category}
-                  </p>
-                )}
               </div>
-            </div>
+            )}
 
             {/* FORM SCROLLABLE - Prend toute la hauteur sur mobile */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">

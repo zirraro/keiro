@@ -24,6 +24,7 @@ import InstagramConnectionModal from './components/InstagramConnectionModal';
 import InstagramWidget from './components/InstagramWidget';
 import TikTokWidget from './components/TikTokWidget';
 import TikTokConnectionModal from './components/TikTokConnectionModal';
+import TikTokModal from './components/TikTokModal';
 
 type SavedImage = {
   id: string;
@@ -145,6 +146,7 @@ export default function LibraryPage() {
 
   // États pour TikTok
   const [showTikTokConnectionModal, setShowTikTokConnectionModal] = useState(false);
+  const [showTikTokModal, setShowTikTokModal] = useState(false);
 
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -377,8 +379,8 @@ export default function LibraryPage() {
   };
 
   // Sauvegarder le brouillon Instagram
-  const saveInstagramDraft = async (caption: string, hashtags: string[], status: 'draft' | 'ready') => {
-    if (!selectedImageForInsta) return;
+  const saveInstagramDraft = async (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
+    if (!image) return;
 
     try {
       // MODE GUEST : Limiter à 1 brouillon et sauvegarder dans localStorage
@@ -392,8 +394,8 @@ export default function LibraryPage() {
         // Créer le brouillon guest
         const guestDraft: InstagramDraft = {
           id: `guest-draft-${Date.now()}`,
-          saved_image_id: selectedImageForInsta.id,
-          image_url: selectedImageForInsta.image_url,
+          saved_image_id: image.id,
+          image_url: image.image_url,
           caption,
           hashtags,
           status,
@@ -415,7 +417,7 @@ export default function LibraryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          savedImageId: selectedImageForInsta.id,
+          savedImageId: image.id,
           caption,
           hashtags,
           status
@@ -437,6 +439,46 @@ export default function LibraryPage() {
       }
     } catch (error: any) {
       console.error('[Library] Error saving Instagram draft:', error);
+      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+    }
+  };
+
+  // Sauvegarder le brouillon TikTok
+  const saveTikTokDraft = async (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
+    if (!image) return;
+
+    try {
+      // MODE GUEST : Pas de support TikTok en mode guest pour l'instant
+      if (isGuest) {
+        alert('⚠️ TikTok n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur TikTok ! 🚀');
+        return;
+      }
+
+      // MODE USER : Appel API
+      const response = await fetch('/api/library/tiktok', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          savedImageId: image.id,
+          caption,
+          hashtags,
+          status
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        const message = status === 'ready'
+          ? '✅ Vidéo TikTok prête à publier !'
+          : '✅ Brouillon TikTok sauvegardé !';
+        alert(message);
+        setShowTikTokModal(false);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (error: any) {
+      console.error('[Library] Error saving TikTok draft:', error);
       alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
     }
   };
@@ -853,58 +895,16 @@ export default function LibraryPage() {
             </div>
 
             {/* Widgets Instagram & TikTok côte à côte */}
-            <div className="grid md:grid-cols-2 gap-6 mb-4">
-              <InstagramWidget isGuest={!user} />
-              <TikTokWidget onConnect={() => setShowTikTokConnectionModal(true)} />
+            <div className="grid md:grid-cols-2 gap-6">
+              <InstagramWidget
+                isGuest={!user}
+                onPreparePost={() => setShowInstagramModal(true)}
+              />
+              <TikTokWidget
+                onConnect={() => setShowTikTokConnectionModal(true)}
+                onPreparePost={() => setShowTikTokModal(true)}
+              />
             </div>
-
-            {/* Actions rapides - Boutons pour créer des posts */}
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <button
-                onClick={() => {
-                  const gallery = document.getElementById('image-gallery');
-                  if (gallery) {
-                    gallery.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Message temporaire
-                    const message = document.createElement('div');
-                    message.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce';
-                    message.textContent = '📷 Sélectionnez une image ci-dessous pour créer votre post Instagram';
-                    document.body.appendChild(message);
-                    setTimeout(() => message.remove(), 3000);
-                  }
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                </svg>
-                Préparer un post Instagram
-              </button>
-
-              <button
-                onClick={() => {
-                  const gallery = document.getElementById('image-gallery');
-                  if (gallery) {
-                    gallery.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Message temporaire
-                    const message = document.createElement('div');
-                    message.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-cyan-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce';
-                    message.textContent = '🎵 Sélectionnez une image ci-dessous pour créer votre post TikTok';
-                    document.body.appendChild(message);
-                    setTimeout(() => message.remove(), 3000);
-                  }
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
-                </svg>
-                Préparer un post TikTok
-              </button>
-            </div>
-
-            {/* Info bulle Meta Business API */}
-            <InstagramMetaInfo onLearnMore={() => setShowConnectionModal(true)} />
           </div>
         )}
 
@@ -1094,11 +1094,21 @@ export default function LibraryPage() {
       </div>
 
       {/* Modal Instagram */}
-      {showInstagramModal && selectedImageForInsta && (
+      {showInstagramModal && (
         <InstagramModal
-          image={selectedImageForInsta}
+          image={selectedImageForInsta || undefined}
+          images={images}
           onClose={() => setShowInstagramModal(false)}
           onSave={saveInstagramDraft}
+        />
+      )}
+
+      {/* Modal TikTok */}
+      {showTikTokModal && (
+        <TikTokModal
+          images={images}
+          onClose={() => setShowTikTokModal(false)}
+          onSave={saveTikTokDraft}
         />
       )}
 

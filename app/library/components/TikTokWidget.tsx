@@ -5,9 +5,10 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 
 interface TikTokWidgetProps {
   onConnect?: () => void;
+  onPreparePost?: () => void;
 }
 
-export default function TikTokWidget({ onConnect }: TikTokWidgetProps) {
+export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [stats, setStats] = useState<{
@@ -111,20 +112,24 @@ export default function TikTokWidget({ onConnect }: TikTokWidgetProps) {
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
-        <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
-          <span className="text-xl">🎵</span>
-          Vos vidéos TikTok
-          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-            Connecté
-          </span>
-        </h3>
-        <button
-          onClick={loadTikTokStatus}
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-        >
-          Actualiser
-        </button>
+      <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🎵</span>
+            <div>
+              <h3 className="text-sm font-bold text-neutral-900">Vos vidéos TikTok</h3>
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                Connecté
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onPreparePost}
+            className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
+          >
+            Préparer un post
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
