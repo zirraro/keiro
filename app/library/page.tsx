@@ -842,13 +842,15 @@ export default function LibraryPage() {
           />
         )}
 
-        {/* Section Réseaux Sociaux */}
+        {/* Section Réseaux Sociaux - Pour utilisateurs connectés */}
         {(user || isGuest) && (
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-              <span className="text-2xl">🚀</span>
-              Vos réseaux sociaux
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                <span className="text-2xl">🚀</span>
+                Vos réseaux sociaux
+              </h2>
+            </div>
 
             {/* Widgets Instagram & TikTok côte à côte */}
             <div className="grid md:grid-cols-2 gap-6 mb-4">
@@ -861,22 +863,60 @@ export default function LibraryPage() {
           </div>
         )}
 
-        {/* Carte compacte Instagram - Pour visiteurs uniquement */}
+        {/* Studios Sociaux - Pour visiteurs uniquement */}
         {!user && !isGuest && (
-          <InstagramPreviewCard
-            user={user}
-            isGuest={isGuest}
-            draftCount={stats.total_instagram_drafts}
-            onOpenModal={() => {
-              if (images.length > 0) {
-                setSelectedImageForInsta(images[0]);
-                setShowInstagramModal(true);
-              } else {
-                alert('Veuillez d\'abord générer au moins une image');
-              }
-            }}
-            onStartFree={handleStartFree}
-          />
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+              <span className="text-2xl">🎨</span>
+              Studios de création
+            </h2>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Studio Instagram */}
+              <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-xl border border-pink-200 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">📷</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-neutral-900">Studio Instagram</h3>
+                    <p className="text-sm text-neutral-600">Publication & Analytics</p>
+                  </div>
+                </div>
+                <p className="text-sm text-neutral-700 mb-4">
+                  Créez, planifiez et publiez automatiquement sur Instagram. Suivez vos performances en temps réel.
+                </p>
+                <button
+                  onClick={handleStartFree}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  Essayer gratuitement
+                </button>
+              </div>
+
+              {/* Studio TikTok */}
+              <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 rounded-xl border border-cyan-200 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                    <span className="text-2xl">🎵</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-neutral-900">Studio TikTok</h3>
+                    <p className="text-sm text-neutral-600">Vidéos & Engagement</p>
+                  </div>
+                </div>
+                <p className="text-sm text-neutral-700 mb-4">
+                  Convertissez vos images en vidéos TikTok. Publication automatique et analytics complètes.
+                </p>
+                <button
+                  onClick={handleStartFree}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  Essayer gratuitement
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Navigation par onglets - Visible pour tous */}

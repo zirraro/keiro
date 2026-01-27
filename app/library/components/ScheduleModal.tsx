@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-type Platform = 'instagram' | 'facebook' | 'linkedin' | 'twitter' | 'tiktok';
+type Platform = 'instagram' | 'tiktok' | 'facebook' | 'twitter';
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -50,10 +50,9 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
     const commonHashtags = ['#marketing', '#business', '#entrepreneur', '#digitalmarketing', '#socialmedia'];
     const platformHashtags: Record<Platform, string[]> = {
       instagram: ['#insta', '#instadaily', '#instagood'],
+      tiktok: ['#tiktok', '#fyp', '#viral'],
       facebook: ['#facebook', '#fbpost', '#social'],
-      linkedin: ['#linkedin', '#professional', '#networking'],
-      twitter: ['#twitter', '#tweet', '#trending'],
-      tiktok: ['#tiktok', '#fyp', '#viral']
+      twitter: ['#twitter', '#tweet', '#trending']
     };
 
     const selected = [
@@ -152,8 +151,8 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
             <label className="block text-sm font-semibold text-neutral-900 mb-3">
               Plateformes (sélection multiple)
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter'] as Platform[]).map((p) => {
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(['instagram', 'tiktok', 'facebook', 'twitter'] as Platform[]).map((p) => {
                 const isSelected = selectedPlatforms.includes(p);
                 return (
                   <button
@@ -176,7 +175,6 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                         {p === 'instagram' && '📷'}
                         {p === 'tiktok' && '🎵'}
                         {p === 'facebook' && '👥'}
-                        {p === 'linkedin' && '💼'}
                         {p === 'twitter' && '🐦'}
                       </span>
                       <span className="text-xs font-medium capitalize">{p}</span>
