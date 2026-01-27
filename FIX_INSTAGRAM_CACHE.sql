@@ -10,7 +10,7 @@ SELECT
   media_type,
   CASE
     WHEN cached_media_url IS NOT NULL THEN '✅ Cache OK'
-    WHEN cached_media_url IS NULL AND media_url IS NOT NULL THEN '⚠️ Cache manquant (URL Instagram disponible)'
+    WHEN cached_media_url IS NULL AND original_media_url IS NOT NULL THEN '⚠️ Cache manquant (URL Instagram disponible)'
     ELSE '❌ Aucune URL disponible'
   END as status,
   posted_at
@@ -20,7 +20,7 @@ LIMIT 20;
 
 -- 2. Compter les posts à réparer
 SELECT
-  COUNT(*) FILTER (WHERE cached_media_url IS NULL AND media_url IS NOT NULL) as posts_a_reparer,
+  COUNT(*) FILTER (WHERE cached_media_url IS NULL AND original_media_url IS NOT NULL) as posts_a_reparer,
   COUNT(*) FILTER (WHERE cached_media_url IS NOT NULL) as posts_ok,
   COUNT(*) as total_posts
 FROM instagram_posts;
@@ -30,16 +30,16 @@ FROM instagram_posts;
 -- Tu dois lancer la sync API pour télécharger et cacher les images
 SELECT
   id,
-  substring(media_url from 1 for 80) as media_url_preview,
+  substring(original_media_url from 1 for 80) as media_url_preview,
   CASE
-    WHEN media_url LIKE '%fbcdn.net%' THEN '⚠️ URL Facebook CDN (expire rapidement)'
-    WHEN media_url LIKE '%cdninstagram.com%' THEN '⚠️ URL Instagram CDN (expire)'
+    WHEN original_media_url LIKE '%fbcdn.net%' THEN '⚠️ URL Facebook CDN (expire rapidement)'
+    WHEN original_media_url LIKE '%cdninstagram.com%' THEN '⚠️ URL Instagram CDN (expire)'
     ELSE '❓ URL inconnue'
   END as url_type,
   posted_at
 FROM instagram_posts
 WHERE cached_media_url IS NULL
-  AND media_url IS NOT NULL
+  AND original_media_url IS NOT NULL
 ORDER BY posted_at DESC
 LIMIT 10;
 
@@ -66,14 +66,13 @@ LIMIT 10;
 -- =====================================================
 
 -- 4. (OPTIONNEL) Nettoyer les anciennes URLs Instagram si cache existe
--- Cette requête supprime les anciennes URLs Instagram (media_url, thumbnail_url)
+-- Cette requête supprime les anciennes URLs Instagram (original_media_url)
 -- et garde uniquement cached_media_url (URLs Supabase Storage stables)
 -- ⚠️  NE LANCE CETTE REQUÊTE QUE SI TU ES SÛR QUE TOUS LES POSTS ONT UN CACHE !
 
 -- UPDATE instagram_posts
 -- SET
---   media_url = NULL,
---   thumbnail_url = NULL
+--   original_media_url = NULL
 -- WHERE cached_media_url IS NOT NULL;
 
 -- 5. Vérification finale après sync
