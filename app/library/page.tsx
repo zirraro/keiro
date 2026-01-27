@@ -152,6 +152,10 @@ export default function LibraryPage() {
     total_tiktok_drafts: 0
   });
 
+  // États pour les connexions sociales
+  const [isInstagramConnected, setIsInstagramConnected] = useState(false);
+  const [isTikTokConnected, setIsTikTokConnected] = useState(false);
+
   // États pour le workspace Instagram
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
@@ -246,6 +250,32 @@ export default function LibraryPage() {
     };
     loadUser();
   }, [supabase]);
+
+  // Vérifier les connexions Instagram et TikTok
+  useEffect(() => {
+    const checkConnections = async () => {
+      if (!user) {
+        setIsInstagramConnected(false);
+        setIsTikTokConnected(false);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('instagram_user_id, tiktok_user_id')
+          .eq('id', user.id)
+          .single();
+
+        setIsInstagramConnected(!!profile?.instagram_user_id);
+        setIsTikTokConnected(!!profile?.tiktok_user_id);
+      } catch (error) {
+        console.error('[Library] Error checking connections:', error);
+      }
+    };
+
+    checkConnections();
+  }, [user, supabase]);
 
   // Fonction pour charger les brouillons Instagram
   const loadInstagramDrafts = async () => {
@@ -983,15 +1013,31 @@ export default function LibraryPage() {
             </div>
 
             {/* Widgets Instagram & TikTok côte à côte */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <InstagramWidget
-                isGuest={!user}
-                onPreparePost={() => setShowInstagramModal(true)}
-              />
-              <TikTokWidget
-                onConnect={() => setShowTikTokConnectionModal(true)}
-                onPreparePost={() => setShowTikTokModal(true)}
-              />
+            <div className={`grid gap-6 ${
+              (isInstagramConnected && !isTikTokConnected) || (!isInstagramConnected && isTikTokConnected)
+                ? 'md:grid-cols-3' // Un seul connecté = grille 3 colonnes
+                : 'md:grid-cols-2' // Les deux ou aucun = grille 2 colonnes égales
+            }`}>
+              <div className={
+                isInstagramConnected && !isTikTokConnected
+                  ? 'md:col-span-2' // Instagram connecté seul = 2/3
+                  : '' // Par défaut = 1 colonne
+              }>
+                <InstagramWidget
+                  isGuest={!user}
+                  onPreparePost={() => setShowInstagramModal(true)}
+                />
+              </div>
+              <div className={
+                isTikTokConnected && !isInstagramConnected
+                  ? 'md:col-span-2' // TikTok connecté seul = 2/3
+                  : '' // Par défaut = 1 colonne
+              }>
+                <TikTokWidget
+                  onConnect={() => setShowTikTokConnectionModal(true)}
+                  onPreparePost={() => setShowTikTokModal(true)}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -381,8 +381,8 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
           {/* APERÇU IMAGE - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
             {selectedImage && (
-              <div className="max-w-[220px] mx-auto">
-                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-4 bg-black max-h-[400px]">
+              <div className="max-w-[280px] mx-auto">
+                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-4 bg-black max-h-[500px]">
                   <img
                     src={selectedImage.image_url}
                     alt={selectedImage.title || 'Selected'}
@@ -519,40 +519,117 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="space-y-3 pt-4 border-t">
-                {isTikTokConnected ? (
+            </div>
+          </div>
+        </div>
+
+        {/* FOOTER - Boutons action */}
+        <div className="border-t p-4 sm:p-6 bg-neutral-50">
+          {/* Statut de connexion TikTok */}
+          {!checkingConnection && (
+            <div className="mb-4">
+              {isTikTokConnected ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Connecté à TikTok : <strong>@{tiktokUsername}</strong></span>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200 mb-3">
+                    ⚠️ Connectez votre compte TikTok pour publier automatiquement
+                  </p>
+                  <button
+                    onClick={handleConnectTikTok}
+                    className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                    </svg>
+                    <span>Connecter TikTok</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 sm:px-6 py-2 sm:py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-sm sm:text-base"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => handleSave('draft')}
+              disabled={saving || !caption.trim()}
+              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
+                saving || !caption.trim()
+                  ? 'bg-neutral-400 cursor-not-allowed'
+                  : 'bg-neutral-700 hover:bg-neutral-800'
+              }`}
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Sauvegarde...</span>
+                </>
+              ) : (
+                <span>Brouillon</span>
+              )}
+            </button>
+
+            {/* Bouton de publication TikTok (seulement si connecté) */}
+            {isTikTokConnected ? (
+              <button
+                onClick={handlePublishNow}
+                disabled={publishing || !caption.trim()}
+                className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  publishing || !caption.trim()
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {publishing ? (
                   <>
-                    <button
-                      onClick={handlePublishNow}
-                      disabled={publishing || !selectedImage}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {publishing ? 'Publication en cours...' : '🚀 Publier maintenant'}
-                    </button>
-                    <button
-                      onClick={() => handleSave('draft')}
-                      disabled={saving || !selectedImage}
-                      className="w-full px-4 py-3 border-2 border-cyan-500 text-cyan-600 font-semibold rounded-lg hover:bg-cyan-50 transition-all disabled:opacity-50"
-                    >
-                      {saving ? 'Sauvegarde...' : '📝 Sauvegarder en brouillon'}
-                    </button>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Publication...</span>
                   </>
                 ) : (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-sm text-amber-900 mb-3">
-                      ⚠️ Connectez votre compte TikTok pour publier
-                    </p>
-                    <button
-                      onClick={handleConnectTikTok}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-                    >
-                      Connecter TikTok
-                    </button>
-                  </div>
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                    </svg>
+                    <span>Publier</span>
+                  </>
                 )}
-              </div>
-            </div>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleSave('ready')}
+                disabled={saving || !caption.trim()}
+                className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
+                  saving || !caption.trim()
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Sauvegarde...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                    </svg>
+                    <span>Prêt à publier</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
