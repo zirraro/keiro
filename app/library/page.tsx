@@ -10,6 +10,7 @@ import InstagramModal from './components/InstagramModal';
 import ScheduleModal from './components/ScheduleModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
 import InstagramDraftsTab from './components/InstagramDraftsTab';
+import TikTokDraftsTab from './components/TikTokDraftsTab';
 import CalendarTab from './components/CalendarTab';
 import CreateFolderModal from './components/CreateFolderModal';
 import DragProvider from './components/DragProvider';
@@ -48,6 +49,17 @@ type Folder = {
 };
 
 type InstagramDraft = {
+  id: string;
+  saved_image_id: string;
+  image_url: string;
+  caption: string;
+  hashtags: string[];
+  status: 'draft' | 'ready' | 'published';
+  created_at: string;
+  scheduled_for?: string;
+};
+
+type TikTokDraft = {
   id: string;
   saved_image_id: string;
   image_url: string;
@@ -136,7 +148,8 @@ export default function LibraryPage() {
     total_images: 0,
     total_folders: 0,
     total_favorites: 0,
-    total_instagram_drafts: 0
+    total_instagram_drafts: 0,
+    total_tiktok_drafts: 0
   });
 
   // États pour le workspace Instagram
@@ -155,6 +168,7 @@ export default function LibraryPage() {
   // États pour les onglets
   const [activeTab, setActiveTab] = useState<Tab>('images');
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
+  const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
 
   // États pour les dossiers
@@ -194,7 +208,8 @@ export default function LibraryPage() {
                 total_images: parsedImages.length,
                 total_folders: 0,
                 total_favorites: parsedImages.filter((img: SavedImage) => img.is_favorite).length,
-                total_instagram_drafts: 0
+                total_instagram_drafts: 0,
+                total_tiktok_drafts: 0
               });
             } catch (err) {
               console.error('[Library] Error parsing guest images:', err);
@@ -223,7 +238,8 @@ export default function LibraryPage() {
             total_images: DEMO_IMAGES.length,
             total_folders: 0,
             total_favorites: DEMO_IMAGES.filter(img => img.is_favorite).length,
-            total_instagram_drafts: 0
+            total_instagram_drafts: 0,
+            total_tiktok_drafts: 0
           });
         }
       }
@@ -242,6 +258,20 @@ export default function LibraryPage() {
       }
     } catch (error) {
       console.error('[Library] Error loading Instagram drafts:', error);
+    }
+  };
+
+  // Fonction pour charger les brouillons TikTok
+  const loadTikTokDrafts = async () => {
+    try {
+      const res = await fetch('/api/library/tiktok');
+      const data = await res.json();
+      if (data.ok) {
+        setTikTokDrafts(data.posts || []);
+        setStats(prev => ({ ...prev, total_tiktok_drafts: data.posts?.length || 0 }));
+      }
+    } catch (error) {
+      console.error('[Library] Error loading TikTok drafts:', error);
     }
   };
 
@@ -277,6 +307,9 @@ export default function LibraryPage() {
 
         // Charger les brouillons Instagram
         await loadInstagramDrafts();
+
+        // Charger les brouillons TikTok
+        await loadTikTokDrafts();
 
         // Charger les posts planifiés
         await loadScheduledPosts();
@@ -474,6 +507,8 @@ export default function LibraryPage() {
           : '✅ Brouillon TikTok sauvegardé !';
         alert(message);
         setShowTikTokModal(false);
+        // Recharger les brouillons TikTok
+        await loadTikTokDrafts();
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -512,6 +547,59 @@ export default function LibraryPage() {
     } catch (error) {
       console.error('[Library] Error deleting Instagram draft:', error);
     }
+  };
+
+  // Ajouter Instagram draft au planning
+  const scheduleInstagramDraft = (draft: InstagramDraft) => {
+    const image: SavedImage = {
+      id: draft.saved_image_id,
+      image_url: draft.image_url,
+      is_favorite: false,
+      created_at: draft.created_at
+    };
+    openScheduleModal(image);
+  };
+
+  // Modifier un brouillon TikTok
+  const editTikTokDraft = (draft: TikTokDraft) => {
+    // Pour l'instant, ouvrir le modal TikTok avec l'image correspondante
+    // TODO: Préremplir le modal avec les données du brouillon
+    const image: SavedImage = {
+      id: draft.saved_image_id,
+      image_url: draft.image_url,
+      is_favorite: false,
+      created_at: draft.created_at
+    };
+    // Ouvrir le modal TikTok (à implémenter plus tard avec pre-fill)
+    setShowTikTokModal(true);
+  };
+
+  // Supprimer un brouillon TikTok
+  const deleteTikTokDraft = async (draftId: string) => {
+    if (!confirm('Supprimer ce brouillon TikTok ?')) return;
+
+    try {
+      const res = await fetch(`/api/library/tiktok?id=${draftId}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        await loadTikTokDrafts();
+      }
+    } catch (error) {
+      console.error('[Library] Error deleting TikTok draft:', error);
+    }
+  };
+
+  // Ajouter TikTok draft au planning
+  const scheduleTikTokDraft = (draft: TikTokDraft) => {
+    const image: SavedImage = {
+      id: draft.saved_image_id,
+      image_url: draft.image_url,
+      is_favorite: false,
+      created_at: draft.created_at
+    };
+    openScheduleModal(image);
   };
 
   // Modifier un post planifié
@@ -971,6 +1059,7 @@ export default function LibraryPage() {
             onTabChange={setActiveTab}
             imageCount={stats.total_images}
             draftCount={stats.total_instagram_drafts}
+            tiktokDraftCount={stats.total_tiktok_drafts}
             scheduledCount={scheduledPosts.length}
           />
         </div>
@@ -1033,6 +1122,14 @@ export default function LibraryPage() {
                       drafts={instagramDrafts}
                       onEdit={editInstagramDraft}
                       onDelete={deleteInstagramDraft}
+                      onSchedule={scheduleInstagramDraft}
+                    />
+                  ) : activeTab === 'tiktok-drafts' ? (
+                    <TikTokDraftsTab
+                      drafts={tiktokDrafts}
+                      onEdit={editTikTokDraft}
+                      onDelete={deleteTikTokDraft}
+                      onSchedule={scheduleTikTokDraft}
                     />
                   ) : activeTab === 'calendar' ? (
                     <CalendarTab
@@ -1073,6 +1170,14 @@ export default function LibraryPage() {
                 drafts={[]}
                 onEdit={editInstagramDraft}
                 onDelete={deleteInstagramDraft}
+                onSchedule={scheduleInstagramDraft}
+              />
+            ) : activeTab === 'tiktok-drafts' ? (
+              <TikTokDraftsTab
+                drafts={[]}
+                onEdit={editTikTokDraft}
+                onDelete={deleteTikTokDraft}
+                onSchedule={scheduleTikTokDraft}
               />
             ) : activeTab === 'calendar' ? (
               <CalendarTab

@@ -1,17 +1,18 @@
-export type Tab = 'images' | 'drafts' | 'calendar';
+export type Tab = 'images' | 'drafts' | 'tiktok-drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   imageCount: number;
   draftCount: number;
+  tiktokDraftCount: number;
   scheduledCount: number;
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, draftCount, scheduledCount }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, draftCount, tiktokDraftCount, scheduledCount }: TabNavigationProps) {
   return (
     <div className="border-b border-neutral-200 mb-6">
-      <div className="flex gap-8">
+      <div className="flex gap-8 overflow-x-auto">
         <button
           onClick={() => onTabChange('images')}
           className={`pb-4 px-2 font-semibold transition-all relative ${
@@ -48,6 +49,26 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, draf
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {draftCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('tiktok-drafts')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'tiktok-drafts'
+              ? 'text-cyan-600 border-b-2 border-cyan-600'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          Brouillons TikTok
+          {tiktokDraftCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'tiktok-drafts'
+                ? 'bg-cyan-100 text-cyan-700'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {tiktokDraftCount}
             </span>
           )}
         </button>
