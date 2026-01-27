@@ -92,6 +92,20 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
         <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-1 hover:bg-white/50 rounded transition-colors"
+                title={isCollapsed ? "Développer" : "Réduire"}
+              >
+                <svg
+                  className={`w-4 h-4 text-neutral-600 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
               <span className="text-xl">🎵</span>
               <div>
                 <h3 className="text-sm font-bold text-neutral-900">Vos vidéos TikTok</h3>
@@ -106,20 +120,22 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
             </button>
           </div>
         </div>
-        <div className="p-6 text-center">
-          <svg className="w-12 h-12 text-cyan-300 mx-auto mb-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
-          </svg>
-          <p className="text-sm text-neutral-600 mb-3">
-            Connectez votre TikTok pour publier automatiquement
-          </p>
-          <button
-            onClick={onConnect}
-            className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
-          >
-            Connecter TikTok
-          </button>
-        </div>
+        {!isCollapsed && (
+          <div className="p-6 text-center">
+            <svg className="w-12 h-12 text-cyan-300 mx-auto mb-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+            </svg>
+            <p className="text-sm text-neutral-600 mb-3">
+              Connectez votre TikTok pour publier automatiquement
+            </p>
+            <button
+              onClick={onConnect}
+              className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
+            >
+              Connecter TikTok
+            </button>
+          </div>
+        )}
       </div>
     );
   }

@@ -26,6 +26,7 @@ import InstagramWidget from './components/InstagramWidget';
 import TikTokWidget from './components/TikTokWidget';
 import TikTokConnectionModal from './components/TikTokConnectionModal';
 import TikTokModal from './components/TikTokModal';
+import PlatformChoiceModal from './components/PlatformChoiceModal';
 
 type SavedImage = {
   id: string;
@@ -164,6 +165,10 @@ export default function LibraryPage() {
   // États pour TikTok
   const [showTikTokConnectionModal, setShowTikTokConnectionModal] = useState(false);
   const [showTikTokModal, setShowTikTokModal] = useState(false);
+
+  // États pour le choix de plateforme (galerie)
+  const [showPlatformChoiceModal, setShowPlatformChoiceModal] = useState(false);
+  const [selectedImageForPlatform, setSelectedImageForPlatform] = useState<SavedImage | null>(null);
 
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -439,6 +444,30 @@ export default function LibraryPage() {
   const openInstagramModal = (image: SavedImage) => {
     setSelectedImageForInsta(image);
     setShowInstagramModal(true);
+  };
+
+  // Ouvrir le modal de choix de plateforme (pour les images de la galerie)
+  const openPlatformChoiceModal = (image: SavedImage) => {
+    setSelectedImageForPlatform(image);
+    setShowPlatformChoiceModal(true);
+  };
+
+  // Gérer le choix de plateforme
+  const handleSelectInstagram = () => {
+    if (selectedImageForPlatform) {
+      setShowPlatformChoiceModal(false);
+      openInstagramModal(selectedImageForPlatform);
+      setSelectedImageForPlatform(null);
+    }
+  };
+
+  const handleSelectTikTok = () => {
+    if (selectedImageForPlatform) {
+      setShowPlatformChoiceModal(false);
+      setSelectedImageForInsta(selectedImageForPlatform);
+      setShowTikTokModal(true);
+      setSelectedImageForPlatform(null);
+    }
   };
 
   // Sauvegarder le brouillon Instagram
@@ -1159,7 +1188,7 @@ export default function LibraryPage() {
                         onToggleFavorite={toggleFavorite}
                         onDownload={downloadImage}
                         onDelete={deleteImage}
-                        onOpenInstagram={openInstagramModal}
+                        onOpenInstagram={openPlatformChoiceModal}
                         onSchedule={openScheduleModal}
                         onTitleEdit={handleTitleEdit}
                       />
@@ -1207,7 +1236,7 @@ export default function LibraryPage() {
                   onToggleFavorite={toggleFavorite}
                   onDownload={downloadImage}
                   onDelete={deleteImage}
-                  onOpenInstagram={openInstagramModal}
+                  onOpenInstagram={openPlatformChoiceModal}
                   onSchedule={openScheduleModal}
                   onTitleEdit={handleTitleEdit}
                 />
@@ -1293,6 +1322,15 @@ export default function LibraryPage() {
         isOpen={showTikTokConnectionModal}
         onClose={() => setShowTikTokConnectionModal(false)}
       />
+
+      {/* Modal Choix de Plateforme (pour les images de la galerie) */}
+      {showPlatformChoiceModal && (
+        <PlatformChoiceModal
+          onClose={() => setShowPlatformChoiceModal(false)}
+          onSelectInstagram={handleSelectInstagram}
+          onSelectTikTok={handleSelectTikTok}
+        />
+      )}
     </main>
   );
 }
