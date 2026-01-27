@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
+import PlatformChoiceModal from './PlatformChoiceModal';
 
 // Images de démo pour le mode visiteur
 const DEMO_POSTS = [
@@ -23,13 +24,21 @@ const DEMO_POSTS = [
 interface InstagramWidgetProps {
   isGuest?: boolean;
   onPreparePost?: () => void;
+  onPrepareInstagram?: () => void;
+  onPrepareTikTok?: () => void;
 }
 
-export default function InstagramWidget({ isGuest = false, onPreparePost }: InstagramWidgetProps) {
+export default function InstagramWidget({
+  isGuest = false,
+  onPreparePost,
+  onPrepareInstagram,
+  onPrepareTikTok
+}: InstagramWidgetProps) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showPlatformChoice, setShowPlatformChoice] = useState(false);
 
   useEffect(() => {
     if (!isGuest) {
@@ -88,6 +97,7 @@ export default function InstagramWidget({ isGuest = false, onPreparePost }: Inst
             caption: post.caption || '',
             media_url: post.original_media_url,
             thumbnail_url: post.cached_media_url,
+            cached_media_url: post.cached_media_url, // ✅ FIX: Ajouter cached_media_url
             cachedUrl: post.cached_media_url, // URL stable depuis Storage
             permalink: post.permalink, // Lien vers le vrai post Instagram
             media_type: post.media_type,
@@ -227,13 +237,36 @@ export default function InstagramWidget({ isGuest = false, onPreparePost }: Inst
             </div>
           </div>
           <button
-            onClick={onPreparePost}
+            onClick={() => {
+              // Si les deux callbacks sont fournies, afficher le modal de choix
+              if (onPrepareInstagram && onPrepareTikTok) {
+                setShowPlatformChoice(true);
+              } else {
+                // Sinon, utiliser l'ancien comportement
+                onPreparePost?.();
+              }
+            }}
             className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
           >
             Préparer un post
           </button>
         </div>
       </div>
+
+      {/* Modal de choix de plateforme */}
+      {showPlatformChoice && (
+        <PlatformChoiceModal
+          onClose={() => setShowPlatformChoice(false)}
+          onSelectInstagram={() => {
+            setShowPlatformChoice(false);
+            onPrepareInstagram?.();
+          }}
+          onSelectTikTok={() => {
+            setShowPlatformChoice(false);
+            onPrepareTikTok?.();
+          }}
+        />
+      )}
 
       {!isCollapsed && (posts.length > 0 ? (
         <div className="grid grid-cols-3 gap-2 p-3">

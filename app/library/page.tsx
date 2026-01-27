@@ -1025,7 +1025,8 @@ export default function LibraryPage() {
               }>
                 <InstagramWidget
                   isGuest={!user}
-                  onPreparePost={() => setShowInstagramModal(true)}
+                  onPrepareInstagram={() => setShowInstagramModal(true)}
+                  onPrepareTikTok={() => setShowTikTokModal(true)}
                 />
               </div>
               <div className={
