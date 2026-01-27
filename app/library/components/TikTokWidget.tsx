@@ -48,7 +48,7 @@ export default function TikTokWidget({ onConnect }: TikTokWidgetProps) {
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(6);
+          .limit(3);
 
         if (tiktokPosts && tiktokPosts.length > 0) {
           setPosts(tiktokPosts);
@@ -161,7 +161,7 @@ export default function TikTokWidget({ onConnect }: TikTokWidgetProps) {
 
       {/* Videos Grid */}
       {posts.length > 0 ? (
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 p-2">
+        <div className="grid grid-cols-3 gap-2 p-3">
           {posts.map((post) => (
             <a
               key={post.id}

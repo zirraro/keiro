@@ -62,7 +62,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(6);
+          .limit(3);
 
         if (error) {
           console.error('[InstagramWidget] Error loading posts:', error);
@@ -224,7 +224,7 @@ export default function InstagramWidget({ isGuest = false }: InstagramWidgetProp
       </div>
 
       {posts.length > 0 ? (
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 p-2">
+        <div className="grid grid-cols-3 gap-2 p-3">
           {posts.map((post) => {
             const imageUrl = post.cached_media_url || post.thumbnail_url || post.media_url;
 

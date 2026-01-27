@@ -842,27 +842,41 @@ export default function LibraryPage() {
           />
         )}
 
-        {/* Carte compacte Instagram */}
-        <InstagramPreviewCard
-          user={user}
-          isGuest={isGuest}
-          draftCount={stats.total_instagram_drafts}
-          onOpenModal={() => {
-            // Ouvrir le modal sans image sélectionnée
-            // L'utilisateur devra sélectionner une image depuis la galerie
-            if (images.length > 0) {
-              setSelectedImageForInsta(images[0]);
-              setShowInstagramModal(true);
-            } else {
-              alert('Veuillez d\'abord générer au moins une image');
-            }
-          }}
-          onStartFree={handleStartFree}
-        />
-
-        {/* Info bulle Meta Business API - Visible pour utilisateurs connectés et guests */}
+        {/* Section Réseaux Sociaux */}
         {(user || isGuest) && (
-          <InstagramMetaInfo onLearnMore={() => setShowConnectionModal(true)} />
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+              <span className="text-2xl">🚀</span>
+              Vos réseaux sociaux
+            </h2>
+
+            {/* Widgets Instagram & TikTok côte à côte */}
+            <div className="grid md:grid-cols-2 gap-6 mb-4">
+              <InstagramWidget isGuest={!user} />
+              <TikTokWidget onConnect={() => setShowTikTokConnectionModal(true)} />
+            </div>
+
+            {/* Info bulle Meta Business API */}
+            <InstagramMetaInfo onLearnMore={() => setShowConnectionModal(true)} />
+          </div>
+        )}
+
+        {/* Carte compacte Instagram - Pour visiteurs uniquement */}
+        {!user && !isGuest && (
+          <InstagramPreviewCard
+            user={user}
+            isGuest={isGuest}
+            draftCount={stats.total_instagram_drafts}
+            onOpenModal={() => {
+              if (images.length > 0) {
+                setSelectedImageForInsta(images[0]);
+                setShowInstagramModal(true);
+              } else {
+                alert('Veuillez d\'abord générer au moins une image');
+              }
+            }}
+            onStartFree={handleStartFree}
+          />
         )}
 
         {/* Navigation par onglets - Visible pour tous */}
@@ -984,13 +998,6 @@ export default function LibraryPage() {
           </ErrorBoundary>
         )}
 
-        {/* Widgets sociaux - En bas de page */}
-        {activeTab === 'images' && (
-          <div className="mt-8 space-y-6">
-            <InstagramWidget isGuest={!user} />
-            <TikTokWidget onConnect={() => setShowTikTokConnectionModal(true)} />
-          </div>
-        )}
 
         {/* Stats footer */}
         <div className="mt-8 pt-6 border-t border-neutral-200 flex justify-between text-sm text-neutral-500">
