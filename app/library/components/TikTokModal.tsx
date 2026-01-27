@@ -381,8 +381,8 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
           {/* APERÇU IMAGE - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
             {selectedImage && (
-              <div className="max-w-md mx-auto">
-                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-4 bg-black">
+              <div className="max-w-[220px] mx-auto">
+                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-4 bg-black max-h-[400px]">
                   <img
                     src={selectedImage.image_url}
                     alt={selectedImage.title || 'Selected'}
@@ -438,10 +438,10 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Génération en cours...
+                      Suggestion en cours...
                     </span>
                   ) : (
-                    '✨ Générer avec IA'
+                    '✨ Suggérer description et hashtags'
                   )}
                 </button>
               </div>
