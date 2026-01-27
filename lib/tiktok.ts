@@ -203,7 +203,7 @@ export async function uploadTikTokVideoBytes(
       'Content-Type': 'video/mp4',
       'Content-Length': videoBuffer.length.toString(),
     },
-    body: videoBuffer,
+    body: new Uint8Array(videoBuffer),
   });
 
   if (!response.ok) {
