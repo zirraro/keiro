@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function TikTokCallbackPage() {
+function TikTokCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -142,5 +142,22 @@ export default function TikTokCallbackPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TikTokCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-pink-500 to-cyan-500 rounded-full animate-pulse mb-6">
+            <span className="text-3xl">🎵</span>
+          </div>
+          <p className="text-neutral-600 text-sm">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <TikTokCallbackContent />
+    </Suspense>
   );
 }
