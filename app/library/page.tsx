@@ -22,6 +22,8 @@ import DropZone from './components/DropZone';
 import InstagramMetaInfo from './components/InstagramMetaInfo';
 import InstagramConnectionModal from './components/InstagramConnectionModal';
 import InstagramWidget from './components/InstagramWidget';
+import TikTokWidget from './components/TikTokWidget';
+import TikTokConnectionModal from './components/TikTokConnectionModal';
 
 type SavedImage = {
   id: string;
@@ -140,6 +142,9 @@ export default function LibraryPage() {
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+
+  // États pour TikTok
+  const [showTikTokConnectionModal, setShowTikTokConnectionModal] = useState(false);
 
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -501,9 +506,9 @@ export default function LibraryPage() {
     setShowScheduleModal(true);
   };
 
-  // Planifier un post
+  // Planifier un post (multi-platform)
   const handleSchedulePost = async (data: {
-    platform: string;
+    platforms: string[];
     scheduledFor: string;
     caption: string;
     hashtags: string[];
@@ -511,27 +516,33 @@ export default function LibraryPage() {
     if (!selectedImageForSchedule) return;
 
     try {
-      const res = await fetch('/api/library/scheduled-posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          saved_image_id: selectedImageForSchedule.id,
-          platform: data.platform,
-          scheduled_for: data.scheduledFor,
-          caption: data.caption,
-          hashtags: data.hashtags
-        })
-      });
+      // Créer un post planifié pour chaque plateforme sélectionnée
+      const promises = data.platforms.map(platform =>
+        fetch('/api/library/scheduled-posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            saved_image_id: selectedImageForSchedule.id,
+            platform,
+            scheduled_for: data.scheduledFor,
+            caption: data.caption,
+            hashtags: data.hashtags
+          })
+        }).then(res => res.json())
+      );
 
-      const result = await res.json();
+      const results = await Promise.all(promises);
 
-      if (result.ok) {
-        alert('✅ Post planifié avec succès !');
-        await loadScheduledPosts();
-        setShowScheduleModal(false);
-      } else {
-        throw new Error(result.error || 'Erreur lors de la planification');
+      const failedResults = results.filter(r => !r.ok);
+
+      if (failedResults.length > 0) {
+        throw new Error(`Erreur lors de la planification sur ${failedResults.length} plateforme(s)`);
       }
+
+      const platformNames = data.platforms.join(', ');
+      alert(`✅ Post planifié avec succès sur ${platformNames} !`);
+      await loadScheduledPosts();
+      setShowScheduleModal(false);
     } catch (error: any) {
       console.error('[Library] Error scheduling post:', error);
       alert(error.message || 'Erreur lors de la planification du post');
@@ -973,10 +984,11 @@ export default function LibraryPage() {
           </ErrorBoundary>
         )}
 
-        {/* Widget aperçu Instagram - En bas de page */}
+        {/* Widgets sociaux - En bas de page */}
         {activeTab === 'images' && (
-          <div className="mt-8">
+          <div className="mt-8 space-y-6">
             <InstagramWidget isGuest={!user} />
+            <TikTokWidget onConnect={() => setShowTikTokConnectionModal(true)} />
           </div>
         )}
 
@@ -1018,6 +1030,12 @@ export default function LibraryPage() {
       <InstagramConnectionModal
         isOpen={showConnectionModal}
         onClose={() => setShowConnectionModal(false)}
+      />
+
+      {/* Modal Connexion TikTok */}
+      <TikTokConnectionModal
+        isOpen={showTikTokConnectionModal}
+        onClose={() => setShowTikTokConnectionModal(false)}
       />
     </main>
   );

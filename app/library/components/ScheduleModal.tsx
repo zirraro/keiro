@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-type Platform = 'instagram' | 'facebook' | 'linkedin' | 'twitter';
+type Platform = 'instagram' | 'facebook' | 'linkedin' | 'twitter' | 'tiktok';
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ interface ScheduleModalProps {
     title?: string;
   };
   onSchedule: (data: {
-    platform: Platform;
+    platforms: Platform[];
     scheduledFor: string;
     caption: string;
     hashtags: string[];
@@ -21,7 +21,7 @@ interface ScheduleModalProps {
 }
 
 export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: ScheduleModalProps) {
-  const [platform, setPlatform] = useState<Platform>('instagram');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram']);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [caption, setCaption] = useState('');
@@ -52,12 +52,13 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
       instagram: ['#insta', '#instadaily', '#instagood'],
       facebook: ['#facebook', '#fbpost', '#social'],
       linkedin: ['#linkedin', '#professional', '#networking'],
-      twitter: ['#twitter', '#tweet', '#trending']
+      twitter: ['#twitter', '#tweet', '#trending'],
+      tiktok: ['#tiktok', '#fyp', '#viral']
     };
 
     const selected = [
       ...commonHashtags.slice(0, 3),
-      ...platformHashtags[platform].slice(0, 2)
+      ...platformHashtags[selectedPlatforms[0]].slice(0, 2)
     ];
 
     setHashtags(selected.join(' '));
@@ -66,6 +67,11 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
   const handleSchedule = async () => {
     if (!date || !time) {
       alert('Veuillez sélectionner une date et heure');
+      return;
+    }
+
+    if (selectedPlatforms.length === 0) {
+      alert('Veuillez sélectionner au moins une plateforme');
       return;
     }
 
@@ -78,7 +84,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
         .map(h => h.trim());
 
       await onSchedule({
-        platform,
+        platforms: selectedPlatforms,
         scheduledFor,
         caption,
         hashtags: hashtagArray
@@ -144,31 +150,51 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           {/* Platform Selection */}
           <div>
             <label className="block text-sm font-semibold text-neutral-900 mb-3">
-              Plateforme
+              Plateformes (sélection multiple)
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {(['instagram', 'facebook', 'linkedin', 'twitter'] as Platform[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPlatform(p)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    platform === p
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-2xl">
-                      {p === 'instagram' && '📷'}
-                      {p === 'facebook' && '👥'}
-                      {p === 'linkedin' && '💼'}
-                      {p === 'twitter' && '🐦'}
-                    </span>
-                    <span className="text-xs font-medium capitalize">{p}</span>
-                  </div>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {(['instagram', 'tiktok', 'facebook', 'linkedin', 'twitter'] as Platform[]).map((p) => {
+                const isSelected = selectedPlatforms.includes(p);
+                return (
+                  <button
+                    key={p}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedPlatforms(selectedPlatforms.filter(pl => pl !== p));
+                      } else {
+                        setSelectedPlatforms([...selectedPlatforms, p]);
+                      }
+                    }}
+                    className={`p-3 rounded-lg border-2 transition-all relative ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-neutral-200 hover:border-neutral-300'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-2xl">
+                        {p === 'instagram' && '📷'}
+                        {p === 'tiktok' && '🎵'}
+                        {p === 'facebook' && '👥'}
+                        {p === 'linkedin' && '💼'}
+                        {p === 'twitter' && '🐦'}
+                      </span>
+                      <span className="text-xs font-medium capitalize">{p}</span>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              Sélectionnez une ou plusieurs plateformes pour publier simultanément
+            </p>
           </div>
 
           {/* Date & Time */}
@@ -248,20 +274,35 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           </div>
 
           {/* Auto-Publish Confirmation */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex gap-3">
-              <span className="text-2xl">✅</span>
-              <div>
-                <p className="text-sm font-semibold text-green-900 mb-1">
-                  Publication automatique activée
-                </p>
-                <p className="text-xs text-green-800">
-                  Votre post sera publié automatiquement à la date et heure choisies.
-                  Vous recevrez une confirmation une fois la publication effectuée.
-                </p>
+          {selectedPlatforms.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex gap-3">
+                <span className="text-2xl">✅</span>
+                <div>
+                  <p className="text-sm font-semibold text-green-900 mb-1">
+                    Publication automatique activée
+                  </p>
+                  <p className="text-xs text-green-800">
+                    Votre post sera publié automatiquement sur{' '}
+                    <strong>
+                      {selectedPlatforms.map((p, i) => (
+                        <span key={p}>
+                          {p}
+                          {i < selectedPlatforms.length - 1 && ', '}
+                        </span>
+                      ))}
+                    </strong>{' '}
+                    à la date et heure choisies.
+                    {selectedPlatforms.includes('tiktok') && (
+                      <span className="block mt-1">
+                        🎵 Pour TikTok : Votre image sera automatiquement convertie en vidéo de 5 secondes.
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer Actions */}
@@ -275,10 +316,10 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           </button>
           <button
             onClick={handleSchedule}
-            disabled={saving || !date || !time}
+            disabled={saving || !date || !time || selectedPlatforms.length === 0}
             className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Planification...' : '📅 Planifier'}
+            {saving ? 'Planification...' : `📅 Planifier (${selectedPlatforms.length})`}
           </button>
         </div>
       </div>
