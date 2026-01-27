@@ -54,8 +54,8 @@ export default function TikTokWidget({ onConnect }: TikTokWidgetProps) {
           setPosts(tiktokPosts);
 
           const totalVideos = tiktokPosts.length;
-          const totalViews = tiktokPosts.reduce((sum: number, p) => sum + (p.view_count || 0), 0);
-          const totalLikes = tiktokPosts.reduce((sum: number, p) => sum + (p.like_count || 0), 0);
+          const totalViews = tiktokPosts.reduce((sum: number, p: any) => sum + (p.view_count || 0), 0);
+          const totalLikes = tiktokPosts.reduce((sum: number, p: any) => sum + (p.like_count || 0), 0);
           const avgEngagement = totalViews > 0
             ? ((totalLikes / totalViews) * 100).toFixed(2)
             : '0';
