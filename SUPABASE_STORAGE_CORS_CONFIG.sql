@@ -98,23 +98,28 @@ TO authenticated
 USING (bucket_id = 'tiktok-media' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- =====================================================
--- CONFIGURATION MANUELLE REQUISE (via Dashboard)
+-- ⚠️  IMPORTANT : CORS est AUTOMATIQUE (2026)
 -- =====================================================
--- Les paramètres CORS ne peuvent pas être configurés via SQL.
--- Tu dois les configurer manuellement dans Supabase Dashboard :
+-- ❌ TU N'AS PAS BESOIN DE CONFIGURER CORS !
 --
--- 1. Va dans Storage > Configuration
--- 2. Pour chaque bucket (instagram-media, tiktok-media) :
---    - Allowed Origins: * (ou ton domaine spécifique)
---    - Allowed Methods: GET, HEAD, OPTIONS
---    - Allowed Headers: *
---    - Exposed Headers: Content-Length, Content-Type
---    - Max Age: 3600
+-- Dans Supabase moderne (2026), la CORS est automatique si tu utilises :
+-- ✅ @supabase/supabase-js (client officiel)
+-- ✅ Next.js avec Supabase
+-- ✅ Appels via le client Supabase
 --
--- OU via l'interface CLI Supabase :
--- supabase storage update instagram-media --cors-allowed-origins='*'
--- supabase storage update tiktok-media --cors-allowed-origins='*'
+-- 👉 Il n'y a PLUS de champ "CORS Configuration" dans l'UI Supabase
+-- 👉 Les anciens tutos sont OBSOLÈTES
 --
+-- ℹ️  Si tu as VRAIMENT besoin de CORS (fetch direct, etc.) :
+--    Configure via CLI Supabase (pas l'UI) :
+--
+--    supabase login
+--    supabase link --project-ref TON_PROJECT_REF
+--    supabase projects api update --cors-allowed-origins "http://localhost:3002"
+--
+-- Mais dans 99% des cas : TU N'EN AS PAS BESOIN.
+--
+-- 📖 Voir GUIDE_CORS_SIMPLE.md pour plus d'infos
 -- =====================================================
 
 -- 6. Vérification finale
@@ -133,5 +138,12 @@ WHERE name IN ('instagram-media', 'tiktok-media');
 -- ✅ Deux buckets créés (instagram-media, tiktok-media)
 -- ✅ Buckets publics (public = true)
 -- ✅ Policies RLS configurées
--- ⚠️  CORS doit être configuré manuellement via Dashboard
+-- ✅ CORS automatique (rien à faire !)
+--
+-- Si images toujours noires après ce SQL :
+-- 1. Lance FIX_INSTAGRAM_CACHE.sql pour vérifier le cache
+-- 2. Sync Instagram via /library
+-- 3. Vide le cache navigateur (Ctrl+Shift+R)
+--
+-- 📖 Voir GUIDE_CORS_SIMPLE.md pour le dépannage complet
 -- =====================================================

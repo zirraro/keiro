@@ -1,181 +1,221 @@
-# 🔐 Qu'est-ce que CORS et comment le configurer ?
+# 🔐 Images Instagram noires : LA VRAIE SOLUTION (2026)
 
-## 🤔 C'est quoi CORS ?
+## ⚠️ IMPORTANT : Il n'y a PAS de config CORS à faire !
 
-**CORS** = **C**ross-**O**rigin **R**esource **S**haring (Partage de ressources entre origines)
+**Les anciens guides sur CORS sont OBSOLÈTES.**
 
-### Explication simple :
+Dans Supabase moderne (2026), **la CORS est automatique** si tu utilises :
+- ✅ `@supabase/supabase-js` (client officiel)
+- ✅ Next.js avec Supabase
+- ✅ Appels via le client Supabase
 
-Imagine que ton site web est une **maison** et les images Supabase sont dans un **magasin**.
-
-- ❌ **Sans CORS** : Le magasin (Supabase) refuse de te donner les images car tu n'as pas la permission
-- ✅ **Avec CORS** : Le magasin dit "OK, ce site web peut accéder à mes images"
-
-**En gros :** CORS c'est une **permission** que tu dois donner à ton site web pour qu'il puisse charger les images depuis Supabase.
+👉 **Tu n'as RIEN à configurer dans l'UI** (il n'y a plus de champ "CORS Configuration")
 
 ---
 
-## ⚠️ Pourquoi tu as ce problème ?
+## 🎯 Pourquoi tes images Instagram sont noires ?
 
-Quand tu essayes de charger une image Instagram depuis Supabase Storage dans ton widget, le navigateur vérifie :
+### 3 vraies raisons possibles :
 
-1. **D'où vient la demande ?** → Ton site (ex: `localhost:3002` ou `keiro.app`)
-2. **Est-ce que Supabase autorise cette origine ?** → Si non configuré = ❌ BLOQUÉ
+### 1. Le cache n'existe pas (99% des cas) ❌
 
-Résultat : **Images noires** 🖤
+**Symptôme :** Le widget Instagram est vide ou montre des icônes Instagram roses
 
----
+**Cause :** Tu n'as jamais synchronisé tes posts Instagram → la colonne `cached_media_url` est vide
 
-## ✅ Comment configurer CORS sur Supabase ?
+**Solution :**
+1. Lance **[FIX_INSTAGRAM_CACHE.sql](FIX_INSTAGRAM_CACHE.sql)** pour diagnostiquer
+2. Si `posts_sans_cache` > 0 → Lance la sync Instagram :
+   - Va sur `/library`
+   - Dans le widget Instagram, clique "Synchroniser"
+   - Attends 10-30 secondes
 
-### Option 1 : Via le Dashboard (RECOMMANDÉ - le plus facile)
+### 2. Le bucket n'est pas public 🔒
 
-#### Étape 1 : Va sur Supabase Dashboard
-1. Ouvre [https://app.supabase.com](https://app.supabase.com)
-2. Sélectionne ton projet Keiro
-3. Dans le menu de gauche, clique sur **Storage** 📦
+**Symptôme :** Erreur 403 dans la console (F12 → Network)
 
-#### Étape 2 : Configure le bucket `instagram-media`
-1. Clique sur le bucket **`instagram-media`**
-2. En haut à droite, clique sur le bouton **Settings** (icône engrenage ⚙️)
-3. Tu vas voir une section **CORS Configuration**
+**Cause :** Le bucket Supabase Storage `instagram-media` n'est pas public
 
-#### Étape 3 : Remplis les champs CORS
-Copie-colle exactement ces valeurs :
-
-```
-Allowed Origins:
-*
-
-Allowed Methods:
-GET, HEAD, OPTIONS
-
-Allowed Headers:
-*
-
-Exposed Headers:
-Content-Length, Content-Type
-
-Max Age:
-3600
+**Solution :**
+```sql
+-- Lance ce SQL dans Supabase SQL Editor
+UPDATE storage.buckets
+SET public = true
+WHERE name IN ('instagram-media', 'tiktok-media');
 ```
 
-#### Étape 4 : Sauvegarde
-Clique sur **Save** en bas
+OU via l'UI :
+1. Va sur [Supabase Dashboard](https://app.supabase.com) → Storage
+2. Clique sur `instagram-media`
+3. Clique sur l'icône ⚙️ en haut
+4. Active **"Public bucket"**
+5. Sauvegarde
 
-#### Étape 5 : Répète pour TikTok
-Fais exactement la même chose pour le bucket **`tiktok-media`**
+### 3. Problème dans le code (rare) 🐛
+
+**Symptôme :** Console montre `[InstagramWidget] ❌ Image failed`
+
+**Cause :** Bug dans le code frontend
+
+**Solution :** Vérifie dans la console (F12) :
+- Les URLs chargées
+- Les erreurs réseau
+- Les logs `[InstagramWidget]`
 
 ---
 
-### Option 2 : Via le SQL (si Option 1 ne marche pas)
+## 🚀 Workflow complet (du début à la fin)
 
-**Note :** Le SQL créé les buckets et les permissions, MAIS tu dois quand même faire la config CORS via le Dashboard (Option 1).
+```bash
+# 1. Diagnostic : Lance ce SQL
+FIX_INSTAGRAM_CACHE.sql
 
-1. Lance le fichier **SUPABASE_STORAGE_CORS_CONFIG.sql** dans Supabase SQL Editor
-2. Puis suis l'Option 1 pour configurer CORS
+# 2. Si posts_sans_cache > 0 → Sync Instagram
+/library → Widget Instagram → "Synchroniser"
+
+# 3. Si bucket pas public → Lance ce SQL
+UPDATE storage.buckets SET public = true WHERE name = 'instagram-media';
+
+# 4. Recharge /library
+Ctrl+Shift+R (vider le cache)
+
+# 5. ✅ Vérifie console
+Cherche "[InstagramWidget] ✅ Image loaded"
+```
 
 ---
 
-## 🧪 Comment tester si CORS est configuré ?
+## 🧠 Et si j'ai VRAIMENT besoin de configurer CORS ?
 
-### Test 1 : Vérifier dans le Dashboard
-1. Va sur [Supabase Dashboard](https://app.supabase.com) → Storage → `instagram-media`
-2. Clique sur Settings ⚙️
-3. Tu devrais voir les valeurs CORS que tu as configurées
+**Dans 99% des cas : TU N'EN AS PAS BESOIN.**
 
-### Test 2 : Vérifier dans ton app
-1. Va sur `/library` dans ton app
-2. Ouvre la console du navigateur (F12)
-3. Regarde les logs :
-   - ✅ `[InstagramWidget] ✅ Image loaded` → CORS OK !
-   - ❌ `[InstagramWidget] ❌ Image failed` → CORS encore bloqué
+Mais si tu fais des appels `fetch()` direct vers Supabase Storage (sans passer par le client), tu peux configurer CORS via la **CLI Supabase** (pas l'UI) :
 
-### Test 3 : Vérifier directement l'URL
+### Étape 1 : Installer la CLI
+```bash
+npm install -g supabase
+```
+
+### Étape 2 : Login
+```bash
+supabase login
+```
+
+### Étape 3 : Lier ton projet
+```bash
+supabase link --project-ref TON_PROJECT_REF
+```
+
+(Trouve `TON_PROJECT_REF` dans Settings → General → Project URL)
+
+### Étape 4 : Configurer CORS
+```bash
+supabase projects api update \
+  --cors-allowed-origins "http://localhost:3002,https://ton-domaine.com"
+```
+
+**Mais encore une fois : tu n'en as probablement PAS besoin.**
+
+---
+
+## 🔍 Comment savoir si c'est un vrai problème CORS ?
+
+Ouvre la console (F12) et cherche :
+
+### ❌ CORS bloqué (rare)
+```
+Access to fetch at '...' from origin '...' has been blocked by CORS policy
+```
+→ Tu as besoin de configurer CORS via CLI (voir ci-dessus)
+
+### ✅ Pas de CORS (99% des cas)
+```
+[InstagramWidget] ❌ Image failed: 17abcd123456 from cache
+```
+→ Le problème n'est PAS CORS, c'est :
+- Bucket pas public
+- URL manquante (pas de sync)
+- Autre bug code
+
+---
+
+## 🧪 Tests rapides
+
+### Test 1 : Vérifier le cache
+```sql
+-- Lance dans Supabase SQL Editor
+SELECT
+  COUNT(*) FILTER (WHERE cached_media_url IS NOT NULL) as avec_cache,
+  COUNT(*) FILTER (WHERE cached_media_url IS NULL) as sans_cache
+FROM instagram_posts;
+```
+
+**Attendu :** `avec_cache` > 0
+
+### Test 2 : Vérifier que le bucket est public
+```sql
+-- Lance dans Supabase SQL Editor
+SELECT name, public FROM storage.buckets WHERE name = 'instagram-media';
+```
+
+**Attendu :** `public` = `true`
+
+### Test 3 : Tester une URL directement
 1. Va sur [Supabase Dashboard](https://app.supabase.com) → Storage → `instagram-media`
 2. Clique sur une image
-3. Copie l'URL publique (ex: `https://ABC.supabase.co/storage/v1/object/public/instagram-media/...`)
-4. Ouvre cette URL dans un nouvel onglet
-5. Si l'image s'affiche → Bucket public OK, vérifie CORS
-6. Si erreur 403/404 → Bucket pas public, relance le SQL
+3. Copie l'URL publique
+4. Colle l'URL dans un nouvel onglet
+5. **Attendu :** L'image s'affiche
+6. **Si erreur 403 :** Le bucket n'est pas public → Lance le SQL de l'étape 2 ci-dessus
 
 ---
 
-## 🔄 Workflow complet (du début à la fin)
+## 📋 Checklist finale
 
-```
-1. Lance FIX_INSTAGRAM_CACHE.sql dans Supabase SQL Editor
-   ↓
-   (Tu verras si tu as des posts sans cache)
-   ↓
-2. Si posts sans cache → Lance sync Instagram (/library → bouton Sync)
-   ↓
-3. Lance SUPABASE_STORAGE_CORS_CONFIG.sql dans Supabase SQL Editor
-   ↓
-4. Configure CORS via Dashboard (Option 1 ci-dessus)
-   ↓
-5. Recharge /library dans ton app
-   ↓
-6. ✅ Images Instagram devraient s'afficher !
-```
+- [ ] J'ai lancé **FIX_INSTAGRAM_CACHE.sql** pour vérifier le cache
+- [ ] Si `posts_sans_cache` > 0 → J'ai lancé la sync Instagram
+- [ ] J'ai vérifié que le bucket `instagram-media` est **public**
+- [ ] J'ai vidé le cache du navigateur (Ctrl+Shift+R)
+- [ ] J'ai regardé la console (F12) pour les erreurs
+- [ ] **Images Instagram s'affichent correctement** ✅
 
 ---
 
-## 🚨 Problèmes courants
+## ❓ FAQ
 
-### Problème 1 : Images toujours noires après config CORS
-**Solutions :**
-1. Vide le cache du navigateur (Ctrl+Shift+R ou Cmd+Shift+R)
-2. Ouvre la console (F12) → Cherche les erreurs
-3. Vérifie que le bucket est **public** (dans Dashboard Storage)
-4. Relance la sync Instagram
+### Pourquoi les anciens tutos parlent de CORS dans l'UI ?
+Parce qu'ils datent d'avant 2024. Supabase a supprimé la config CORS de l'UI et l'a rendue automatique.
 
-### Problème 2 : Erreur "Access to fetch blocked by CORS policy"
-**Solution :**
-Tu n'as pas configuré CORS correctement. Suis l'Option 1 exactement comme indiqué.
+### Je vois toujours des images noires
+1. Vérifie la console (F12)
+2. Lance **FIX_INSTAGRAM_CACHE.sql**
+3. Vérifie que le bucket est public
+4. Vide le cache navigateur
 
-### Problème 3 : Bucket `instagram-media` n'existe pas
-**Solution :**
-Lance **SUPABASE_STORAGE_CORS_CONFIG.sql** d'abord pour créer le bucket.
+### J'ai une erreur "Access to fetch blocked by CORS"
+C'est rare avec Supabase moderne. Si ça arrive :
+1. Vérifie que tu utilises le client Supabase (`supabaseBrowser()`)
+2. Ne fais PAS de `fetch()` direct vers les URLs Storage
+3. Si vraiment nécessaire → Configure CORS via CLI (voir section ci-dessus)
 
----
-
-## 📝 Résumé ultra-simple
-
-**En 3 étapes :**
-
-1. **Crée les buckets** → Lance `SUPABASE_STORAGE_CORS_CONFIG.sql`
-2. **Configure CORS** → Va sur Supabase Dashboard → Storage → Settings → Met `*` partout
-3. **Teste** → Va sur `/library` et regarde si les images s'affichent
-
-**Si ça marche pas :**
-- Vide le cache
-- Vérifie que les URLs sont dans `cached_media_url` (lance DIAGNOSTIC_IMAGES_INSTAGRAM.sql)
-- Regarde la console navigateur pour les erreurs
-
----
-
-## ❓ Questions fréquentes
-
-### Pourquoi mettre `*` dans Allowed Origins ?
-`*` = "Autorise TOUS les sites". C'est OK pour un bucket **public** (images Instagram visibles par tout le monde).
-
-Si tu veux être plus strict :
-```
-Allowed Origins:
-http://localhost:3002, https://keiro.app, https://www.keiro.app
+### Comment savoir si mon bucket est public ?
+Lance ce SQL :
+```sql
+SELECT name, public FROM storage.buckets WHERE name = 'instagram-media';
 ```
 
-### C'est dangereux de mettre `*` ?
-Non, tant que le bucket contient seulement des images publiques (pas de données sensibles).
-
-### Je dois faire ça pour chaque bucket ?
-Oui, configure CORS pour :
-- `instagram-media` (images Instagram)
-- `tiktok-media` (vidéos TikTok)
+Si `public` = `false` :
+```sql
+UPDATE storage.buckets SET public = true WHERE name = 'instagram-media';
+```
 
 ---
 
-## 🎉 Félicitations !
+## 🎉 En résumé
 
-Une fois CORS configuré, tu n'auras plus jamais à le refaire. Les images Instagram s'afficheront toujours ! 🚀
+1. **Pas de CORS à configurer** (c'est automatique avec Supabase moderne)
+2. **Vrai problème = cache manquant ou bucket pas public**
+3. **Solution = Sync Instagram + rendre bucket public**
+4. **Si vraiment CORS needed → CLI uniquement**
+
+Voilà la VRAIE solution 2026 ! 🚀

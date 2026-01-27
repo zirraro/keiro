@@ -87,9 +87,9 @@ fetch('/api/instagram/sync-media', { method: 'POST' })
 
 ---
 
-### 3️⃣ `SUPABASE_STORAGE_CORS_CONFIG.sql` 🔐 SI PROBLÈMES CORS
+### 3️⃣ `SUPABASE_STORAGE_CORS_CONFIG.sql` 📦 Créer les buckets Storage
 
-**Objectif :** Configurer les buckets Supabase Storage avec les bonnes permissions.
+**Objectif :** Créer les buckets Supabase Storage avec les bonnes permissions.
 
 **Utilisation :**
 1. Va sur [Supabase Dashboard](https://app.supabase.com) → SQL Editor
@@ -100,19 +100,14 @@ fetch('/api/instagram/sync-media', { method: 'POST' })
 - Crée les buckets `instagram-media` et `tiktok-media` s'ils n'existent pas
 - Configure les buckets en **public**
 - Ajoute les **policies RLS** pour lire/écrire les fichiers
-- **Note :** CORS doit être configuré manuellement via le Dashboard (voir instructions dans le fichier)
 
-**Configuration CORS manuelle (après avoir lancé le SQL) :**
-1. Va sur [Supabase Dashboard](https://app.supabase.com) → Storage
-2. Clique sur le bucket `instagram-media`
-3. Va dans l'onglet **Configuration**
-4. Configure CORS :
-   - **Allowed Origins:** `*` (ou `http://localhost:3002,https://ton-domaine.com`)
-   - **Allowed Methods:** `GET, HEAD, OPTIONS`
-   - **Allowed Headers:** `*`
-   - **Exposed Headers:** `Content-Length, Content-Type`
-   - **Max Age:** `3600`
-5. Répète pour le bucket `tiktok-media`
+**⚠️ IMPORTANT : CORS est automatique (2026) !**
+
+Tu n'as **PAS besoin** de configurer CORS manuellement. Supabase moderne gère la CORS automatiquement si tu utilises le client officiel (`@supabase/supabase-js`).
+
+👉 **Il n'y a PLUS de champ "CORS Configuration" dans l'UI Supabase**
+
+📖 Voir [GUIDE_CORS_SIMPLE.md](GUIDE_CORS_SIMPLE.md) pour comprendre pourquoi
 
 ---
 
@@ -133,9 +128,13 @@ fetch('/api/instagram/sync-media', { method: 'POST' })
    ↓ OUI
 4. Lance SUPABASE_STORAGE_CORS_CONFIG.sql
    ↓
-   Configure CORS manuellement via Dashboard
+   Vérifie que les buckets sont "public = true"
    ↓
-5. ✅ Images Instagram devraient s'afficher !
+5. Vide le cache navigateur (Ctrl+Shift+R)
+   ↓
+6. ✅ Images Instagram devraient s'afficher !
+
+(Pas besoin de config CORS - c'est automatique !)
 ```
 
 ---
@@ -176,10 +175,13 @@ fetch('/api/instagram/sync-media', { method: 'POST' })
 - [ ] Fix code appliqué (`crossOrigin` supprimé)
 - [ ] Diagnostic SQL lancé (DIAGNOSTIC_IMAGES_INSTAGRAM.sql)
 - [ ] Sync Instagram lancée (si cache manquant)
-- [ ] Configuration Storage + CORS (SUPABASE_STORAGE_CORS_CONFIG.sql)
-- [ ] CORS configuré manuellement via Dashboard
+- [ ] Buckets Storage créés (SUPABASE_STORAGE_CORS_CONFIG.sql)
+- [ ] Buckets configurés en "public" ✅
 - [ ] Cache vérifié (devrait être 100%)
+- [ ] Cache navigateur vidé (Ctrl+Shift+R)
 - [ ] Images Instagram s'affichent correctement dans `/library` ✅
+
+**Note :** Pas besoin de config CORS - c'est automatique ! 🎉
 
 ---
 
