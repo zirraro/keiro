@@ -559,7 +559,7 @@ export default function PricingPage() {
           {/* Stats support */}
           <div className="mt-8 grid grid-cols-3 gap-4 max-w-2xl mx-auto text-center">
             <div>
-              <p className="text-2xl font-bold text-purple-600">< 2h</p>
+              <p className="text-2xl font-bold text-purple-600">&lt; 2h</p>
               <p className="text-xs text-neutral-600">Réponse moyenne</p>
             </div>
             <div>
