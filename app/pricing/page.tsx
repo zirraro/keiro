@@ -149,6 +149,28 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* Multi-platform Highlight */}
+        <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-purple-200 p-8 mb-10 text-center">
+          <h3 className="text-2xl font-bold mb-3 flex items-center justify-center gap-2">
+            <span>🚀</span> Publication Multi-Plateforme Incluse
+          </h3>
+          <p className="text-neutral-700 mb-4 max-w-3xl mx-auto">
+            <strong>Nouveauté :</strong> Tous les plans avec vidéos incluent maintenant la publication automatique sur <strong>Instagram (Post & Story)</strong> et <strong>TikTok (Vidéo 9:16)</strong>.
+            Les vidéos sont essentielles pour maximiser votre visibilité sur TikTok et Reels Instagram.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <div className="bg-white rounded-lg px-4 py-2 border border-purple-200">
+              <span className="font-semibold text-purple-600">📱 Instagram</span> • Post & Story
+            </div>
+            <div className="bg-white rounded-lg px-4 py-2 border border-cyan-200">
+              <span className="font-semibold text-cyan-600">🎵 TikTok</span> • Vidéos 9:16
+            </div>
+            <div className="bg-white rounded-lg px-4 py-2 border border-blue-200">
+              <span className="font-semibold text-blue-600">✨ IA</span> • Captions adaptées
+            </div>
+          </div>
+        </div>
+
         {/* Premium Plans */}
         <h3 className="text-2xl font-bold text-center mb-2">Plans Premium</h3>
         <p className="text-center text-neutral-600 mb-8">Choisissez le plan adapté à vos besoins</p>
@@ -168,11 +190,11 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> 3 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>5 vidéos/mois</strong> (TikTok)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram (Post & Story)</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Brouillons Instagram</li>
             </ul>
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all mt-auto">
               Choisir Solo
@@ -198,12 +220,12 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 80 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 12 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>15 vidéos/mois</strong> (Multi-plateforme)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Publication Instagram + TikTok</strong></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Assistant IA Marketing complet</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics avancé</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics avancé (Instagram & TikTok)</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Kit style personnalisé</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Export 4K + multi-formats</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Support prioritaire + Démo</strong></li>
             </ul>
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
@@ -231,9 +253,9 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 180 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> 30 vidéos/mois</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>40 vidéos/mois</strong> (Multi-plateforme)</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Multi-comptes (1+5 clients)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Calendrier collaboratif</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
@@ -296,12 +318,20 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2">500/mois</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Vidéos</td>
+                  <td className="py-3 px-2 font-medium">Vidéos (TikTok)</td>
                   <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">3/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">12/mois</td>
-                  <td className="text-center py-3 px-2">30/mois</td>
+                  <td className="text-center py-3 px-2">5/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>15/mois</strong></td>
+                  <td className="text-center py-3 px-2">40/mois</td>
                   <td className="text-center py-3 px-2">100/mois</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Multi-plateforme</td>
+                  <td className="text-center py-3 px-2">-</td>
+                  <td className="text-center py-3 px-2">Instagram</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Instagram + TikTok</strong></td>
+                  <td className="text-center py-3 px-2">Instagram + TikTok</td>
+                  <td className="text-center py-3 px-2">Tous réseaux</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Assistant IA</td>

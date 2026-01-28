@@ -580,31 +580,44 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
               )}
             </button>
 
-            {/* Bouton de publication TikTok (seulement si connecté) */}
+            {/* Boutons de publication TikTok (seulement si connecté) - Format aligné avec Instagram */}
             {isTikTokConnected ? (
-              <button
-                onClick={handlePublishNow}
-                disabled={publishing || !caption.trim()}
-                className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                  publishing || !caption.trim()
-                    ? 'bg-neutral-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {publishing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Publication...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-                    </svg>
-                    <span>Publier</span>
-                  </>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={handlePublishNow}
+                  disabled={publishing || !caption.trim()}
+                  className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                    publishing || !caption.trim()
+                      ? 'bg-neutral-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {publishing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Publication...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                      </svg>
+                      <span>Vidéo</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  disabled={true}
+                  title="Fonctionnalité bientôt disponible - Publiez plusieurs images en carrousel TikTok"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-neutral-400 cursor-not-allowed opacity-60"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                  </svg>
+                  <span>Carrousel</span>
+                  <span className="hidden sm:inline text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded-full ml-1">Bientôt</span>
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => handleSave('ready')}

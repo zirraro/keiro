@@ -133,7 +133,7 @@ export default function HomeKeiro() {
                 <span>Voyez Keiro en action</span>
               </h3>
               <p className="text-sm text-neutral-600 mb-4">
-                De l'actualité au post Instagram en 3 minutes chrono
+                De l'actualité au post Instagram & TikTok en 3 minutes chrono
               </p>
 
               {/* Vidéo compacte */}
@@ -190,11 +190,11 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* GALERIE & POSTS INSTAGRAM */}
+      {/* GALERIE & POSTS MULTI-PLATEFORME */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">Galerie & Posts Instagram automatisés</h2>
-          <p className="mt-2 text-neutral-600">Organise tes visuels et prépare tes posts avec descriptions IA</p>
+          <h2 className="text-3xl font-bold">Galerie & Publication Multi-Plateforme</h2>
+          <p className="mt-2 text-neutral-600">Organise tes visuels et publie sur Instagram & TikTok avec descriptions IA</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-center">
@@ -267,11 +267,11 @@ export default function HomeKeiro() {
             </div>
           </div>
 
-          {/* Instagram automation preview */}
+          {/* Multi-platform automation preview */}
           <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg">
-            <div className="bg-blue-500 p-4">
+            <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <span>📱</span> Posts Instagram IA
+                <span>📱</span> Posts Instagram & TikTok IA
               </h3>
             </div>
             <div className="p-5 space-y-3">
@@ -302,15 +302,15 @@ export default function HomeKeiro() {
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Brouillons sauvegardés automatiquement</span>
+                  <span>Publication Instagram (Post & Story)</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Édition complète avant publication</span>
+                  <span>Publication TikTok (vidéos 9:16)</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Statut "Prêt à publier"</span>
+                  <span>Brouillons & édition avant publication</span>
                 </div>
               </div>
             </div>
@@ -322,10 +322,10 @@ export default function HomeKeiro() {
           </div>
         </div>
 
-        <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6 text-center">
+        <div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-6 text-center">
           <p className="text-sm text-blue-900">
-            <strong>Gain de temps :</strong> Plus besoin de rédiger tes captions Instagram manuellement.
-            L'IA génère des descriptions engageantes adaptées à ton visuel et ton business.
+            <strong>🚀 Multi-plateforme automatique :</strong> Publie le même visuel sur Instagram (Post & Story) et TikTok (vidéo) en un clic.
+            L'IA génère des descriptions adaptées à chaque plateforme et ton business.
           </p>
         </div>
 
