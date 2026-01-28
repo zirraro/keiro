@@ -265,71 +265,53 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       const data = await response.json();
 
       if (data.status === 'completed' && data.videoUrl) {
-        // Video ready! Upload to Supabase Storage and save to gallery
-        console.log('[TikTokModal] Video generated, uploading to Supabase Storage...');
+        // Video ready! Download and store server-side to avoid CORS
+        console.log('[TikTokModal] Video generated, downloading and storing via server...');
 
         try {
-          // Download video from Seedream
-          const videoResponse = await fetch(data.videoUrl);
-          const videoBlob = await videoResponse.blob();
+          // Call server-side endpoint to download from Seedream and upload to Supabase
+          const response = await fetch('/api/seedream/download-and-store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              videoUrl: data.videoUrl,
+              originalImageId: selectedImage?.id,
+              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`
+            })
+          });
 
-          // Upload to Supabase Storage
-          const supabase = supabaseBrowser();
-          const { data: { user } } = await supabase.auth.getUser();
+          const result = await response.json();
 
-          if (!user) throw new Error('User not authenticated');
-
-          const fileName = `tiktok-videos/${user.id}/${Date.now()}.mp4`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('generated-images')
-            .upload(fileName, videoBlob, {
-              contentType: 'video/mp4',
-              upsert: false
-            });
-
-          if (uploadError) throw uploadError;
-
-          // Get public URL
-          const publicUrlData = supabase.storage
-            .from('generated-images')
-            .getPublicUrl(fileName);
-
-          const publicUrl = publicUrlData.data.publicUrl;
-
-          console.log('[TikTokModal] Video uploaded to Supabase:', publicUrl);
-          console.log('[TikTokModal] Full public URL data:', publicUrlData);
-
-          // Validate URL format
-          if (!publicUrl || !publicUrl.startsWith('http')) {
-            throw new Error(`Invalid Supabase URL: ${publicUrl}`);
+          if (!result.ok) {
+            throw new Error(result.error || 'Failed to download and store video');
           }
 
-          // Save to saved_images table
-          const { error: insertError } = await supabase
-            .from('saved_images')
-            .insert({
-              user_id: user.id,
-              image_url: publicUrl,
-              thumbnail_url: selectedImage?.thumbnail_url || selectedImage?.image_url,
-              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`,
-              is_favorite: false,
-              folder_id: selectedImage?.folder_id
-            });
-
-          if (insertError) {
-            console.error('[TikTokModal] Error saving to gallery:', insertError);
-          } else {
-            console.log('[TikTokModal] Video saved to gallery');
-          }
+          console.log('[TikTokModal] Video downloaded and stored successfully:', result.videoUrl);
 
           // Use the Supabase URL as preview
-          setVideoPreview(publicUrl);
-          console.log('[TikTokModal] Video preview URL set:', publicUrl);
+          setVideoPreview(result.videoUrl);
+
+          // Reload images to show the newly added video
+          const supabase = supabaseBrowser();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: loadedImages } = await supabase
+              .from('saved_images')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false })
+              .limit(20);
+
+            if (loadedImages) {
+              setAvailableImages(loadedImages);
+            }
+          }
 
         } catch (uploadError: any) {
-          console.error('[TikTokModal] Error uploading video:', uploadError);
-          // Fallback: use Seedream URL as preview (temporary)
+          console.error('[TikTokModal] Error downloading and storing video:', uploadError);
+          // Fallback: use Seedream URL as preview (temporary, may have CORS issues)
           setVideoPreview(data.videoUrl);
+          alert('⚠️ Vidéo générée mais non sauvegardée dans la galerie. Vous pourrez quand même la publier.');
         }
 
         setGeneratingPreview(false);

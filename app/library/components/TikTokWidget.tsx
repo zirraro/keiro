@@ -20,10 +20,37 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
   } | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadTikTokStatus();
   }, []);
+
+  const handleSyncMedia = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/tiktok/sync-media', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        console.log('[TikTokWidget] Synced', data.synced, 'videos');
+        // Reload status after sync
+        await loadTikTokStatus();
+        alert(`✅ ${data.synced} vidéo(s) synchronisée(s) depuis TikTok`);
+      } else {
+        throw new Error(data.error || 'Failed to sync');
+      }
+    } catch (error: any) {
+      console.error('[TikTokWidget] Error syncing:', error);
+      alert(`❌ Erreur lors de la synchronisation: ${error.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadTikTokStatus = async () => {
     try {
@@ -35,24 +62,31 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
         return;
       }
 
+      console.log('[TikTokWidget] Loading TikTok status for user:', user.id);
+
       // Check if TikTok is connected
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('tiktok_user_id, tiktok_username, tiktok_display_name')
         .eq('id', user.id)
         .single();
 
+      console.log('[TikTokWidget] Profile data:', profile, 'Error:', profileError);
+
       if (profile?.tiktok_user_id) {
         setConnected(true);
-        setTiktokUsername(profile.tiktok_username);
+        setTiktokUsername(profile.tiktok_username || profile.tiktok_display_name || null);
+        console.log('[TikTokWidget] TikTok connected, username:', profile.tiktok_username);
 
         // Load TikTok posts stats
-        const { data: tiktokPosts } = await supabase
+        const { data: tiktokPosts, error: postsError } = await supabase
           .from('tiktok_posts')
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
           .limit(6);
+
+        console.log('[TikTokWidget] TikTok posts:', tiktokPosts, 'Error:', postsError);
 
         if (tiktokPosts && tiktokPosts.length > 0) {
           setPosts(tiktokPosts);
@@ -70,7 +104,13 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
             totalLikes,
             avgEngagement: `${avgEngagement}%`,
           });
+
+          console.log('[TikTokWidget] Stats calculated:', { totalVideos, totalViews, totalLikes });
+        } else {
+          console.log('[TikTokWidget] No TikTok posts found, you may need to sync');
         }
+      } else {
+        console.log('[TikTokWidget] TikTok not connected');
       }
     } catch (error) {
       console.error('[TikTokWidget] Error loading status:', error);
@@ -268,8 +308,27 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
           <svg className="w-12 h-12 mx-auto text-neutral-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <p className="text-sm text-neutral-500">Aucune vidéo publiée</p>
-          <p className="text-xs text-neutral-400 mt-1">Publie ta première vidéo TikTok !</p>
+          <p className="text-sm text-neutral-500 mb-3">Aucune vidéo synchronisée</p>
+          <p className="text-xs text-neutral-400 mb-4">Synchronise tes vidéos TikTok existantes ou publie ta première vidéo !</p>
+          <button
+            onClick={handleSyncMedia}
+            disabled={syncing}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+          >
+            {syncing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Synchronisation...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Synchroniser mes vidéos TikTok</span>
+              </>
+            )}
+          </button>
         </div>
       )}
         </>
