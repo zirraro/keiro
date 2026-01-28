@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { convertImageToVideoClient, isFFmpegSupported } from '@/lib/video-converter-client';
 
 type SavedImage = {
   id: string;
@@ -188,32 +189,25 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
       return;
     }
 
+    // Check if browser supports FFmpeg.wasm
+    if (!isFFmpegSupported()) {
+      alert('❌ Votre navigateur ne supporte pas la conversion vidéo.\n\nVeuillez utiliser un navigateur récent (Chrome, Firefox, Edge).');
+      return;
+    }
+
     setGeneratingPreview(true);
     try {
-      const response = await fetch('/api/tiktok/preview-video', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          imageUrl: selectedImages[0].image_url
-        })
-      });
+      console.log('[TikTokCarouselModal] Starting client-side video conversion...');
 
-      const data = await response.json();
+      // Convert first image to video (client-side with FFmpeg.wasm)
+      const videoBlobUrl = await convertImageToVideoClient(selectedImages[0].image_url, 5);
 
-      if (data.ok) {
-        // Convert base64 to blob URL
-        const videoBlob = await fetch(`data:video/mp4;base64,${data.videoBase64}`).then(r => r.blob());
-        const videoBlobUrl = URL.createObjectURL(videoBlob);
-        setVideoPreview(videoBlobUrl);
-      } else {
-        alert(`❌ Erreur : ${data.error}`);
-      }
+      setVideoPreview(videoBlobUrl);
+      console.log('[TikTokCarouselModal] Video preview generated successfully');
+
     } catch (error: any) {
       console.error('[TikTokCarouselModal] Error generating preview:', error);
-      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}`);
+      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}\n\nNote: La première conversion peut prendre quelques secondes (chargement de FFmpeg).`);
     } finally {
       setGeneratingPreview(false);
     }
