@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import TikTokCarouselModal from './TikTokCarouselModal';
 
 type SavedImage = {
   id: string;
@@ -39,6 +40,9 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   // États pour la prévisualisation vidéo
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+
+  // État pour le modal carrousel
+  const [showCarouselModal, setShowCarouselModal] = useState(false);
 
   // États pour la galerie
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -716,17 +720,14 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                   )}
                 </button>
                 <button
-                  onClick={() => {
-                    alert('🎵 Carrousel TikTok\n\n📸 Fonctionnalité en préparation\n\n✨ Bientôt disponible : Publiez jusqu\'à 35 images en carrousel sur TikTok !\n\nVous serez notifié(e) dès que cette fonctionnalité sera activée.');
-                  }}
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-pink-400 to-orange-400 hover:from-pink-500 hover:to-orange-500 opacity-75 hover:opacity-90"
+                  onClick={() => setShowCarouselModal(true)}
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                   </svg>
                   <span className="hidden sm:inline">Préparer carrousel</span>
                   <span className="sm:hidden">Carrousel</span>
-                  <span className="text-[10px] bg-white/30 px-1.5 py-0.5 rounded-full ml-1">Bientôt</span>
                 </button>
               </>
             ) : (
@@ -757,6 +758,14 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
           </div>
         </div>
       </div>
+
+      {/* Modal Carrousel */}
+      {showCarouselModal && (
+        <TikTokCarouselModal
+          images={availableImages}
+          onClose={() => setShowCarouselModal(false)}
+        />
+      )}
     </div>
   );
 }
