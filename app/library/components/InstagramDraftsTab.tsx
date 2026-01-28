@@ -93,15 +93,12 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
 
   return (
     <div className="space-y-6">
-      {/* Guide d'aide pour connecter Instagram */}
-      <InstagramHelpGuide />
-
       {/* Grille de brouillons */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {drafts.map((draft) => (
-        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
+        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow max-w-sm mx-auto">
           {/* Image */}
-          <div className="aspect-square bg-neutral-100 relative">
+          <div className="aspect-square bg-neutral-100 relative max-h-80">
             <img
               src={draft.image_url}
               alt="Instagram post preview"

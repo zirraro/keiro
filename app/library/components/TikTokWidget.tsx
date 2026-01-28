@@ -50,7 +50,7 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(3);
+          .limit(6);
 
         if (tiktokPosts && tiktokPosts.length > 0) {
           setPosts(tiktokPosts);
