@@ -254,14 +254,70 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       const data = await response.json();
 
       if (data.status === 'completed' && data.videoUrl) {
-        // Video ready!
-        setVideoPreview(data.videoUrl);
+        // Video ready! Upload to Supabase Storage and save to gallery
+        console.log('[TikTokModal] Video generated, uploading to Supabase Storage...');
+
+        try {
+          // Download video from Seedream
+          const videoResponse = await fetch(data.videoUrl);
+          const videoBlob = await videoResponse.blob();
+
+          // Upload to Supabase Storage
+          const supabase = supabaseBrowser();
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (!user) throw new Error('User not authenticated');
+
+          const fileName = `tiktok-videos/${user.id}/${Date.now()}.mp4`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('generated-images')
+            .upload(fileName, videoBlob, {
+              contentType: 'video/mp4',
+              upsert: false
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('generated-images')
+            .getPublicUrl(fileName);
+
+          console.log('[TikTokModal] Video uploaded to Supabase:', publicUrl);
+
+          // Save to saved_images table
+          const { error: insertError } = await supabase
+            .from('saved_images')
+            .insert({
+              user_id: user.id,
+              image_url: publicUrl,
+              thumbnail_url: selectedImage?.thumbnail_url || selectedImage?.image_url,
+              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`,
+              is_favorite: false,
+              folder_id: selectedImage?.folder_id
+            });
+
+          if (insertError) {
+            console.error('[TikTokModal] Error saving to gallery:', insertError);
+          } else {
+            console.log('[TikTokModal] Video saved to gallery');
+          }
+
+          // Use the Supabase URL as preview
+          setVideoPreview(publicUrl);
+
+        } catch (uploadError: any) {
+          console.error('[TikTokModal] Error uploading video:', uploadError);
+          // Fallback: use Seedream URL as preview (temporary)
+          setVideoPreview(data.videoUrl);
+        }
+
         setGeneratingPreview(false);
         if (pollingInterval) {
           clearInterval(pollingInterval);
           setPollingInterval(null);
         }
-        console.log('[TikTokModal] Video generated successfully:', data.videoUrl);
+
       } else if (data.status === 'failed' || !data.ok) {
         setGeneratingPreview(false);
         if (pollingInterval) {
@@ -368,8 +424,10 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
     setPublishing(true);
     try {
-      // Use video preview if available, otherwise use the original URL (if it's already a video)
+      // Video URL is already uploaded to Supabase during generation
       const videoUrlToPublish = videoPreview || selectedImage.image_url;
+
+      console.log('[TikTokModal] Publishing to TikTok with URL:', videoUrlToPublish);
 
       const response = await fetch('/api/library/tiktok/publish', {
         method: 'POST',
@@ -387,7 +445,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = `🎉 Vidéo publiée avec succès sur TikTok !\n\n✅ Votre contenu est maintenant visible\n🚀 Publication réussie\n💬 Les interactions commenceront bientôt\n\nFélicitations !`;
+        const successMessage = `🎉 Vidéo publiée avec succès sur TikTok !\n\n✅ Publication réussie\n💬 Les interactions vont commencer\n\nFélicitations ! 🚀`;
         alert(successMessage);
 
         if (data.post?.share_url) {
