@@ -113,3 +113,71 @@ export async function publishStoryToInstagram(igUserId: string, pageAccessToken:
     throw error; // Re-throw pour que l'endpoint puisse le gérer
   }
 }
+
+export async function publishCarouselToInstagram(
+  igUserId: string,
+  pageAccessToken: string,
+  imageUrls: string[],
+  caption?: string
+): Promise<{ id: string; permalink?: string }> {
+  try {
+    if (imageUrls.length < 2 || imageUrls.length > 10) {
+      throw new Error('Instagram carousel requires 2-10 images');
+    }
+
+    console.log('[publishCarouselToInstagram] Step 1: Creating child containers...', {
+      imageCount: imageUrls.length
+    });
+
+    // 1) Créer un container pour chaque image (children)
+    const childIds: string[] = [];
+    for (let i = 0; i < imageUrls.length; i++) {
+      const imageUrl = imageUrls[i];
+      console.log(`[publishCarouselToInstagram] Creating child ${i + 1}/${imageUrls.length}...`);
+
+      const childContainer = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+        image_url: imageUrl,
+        is_carousel_item: true,
+      });
+
+      childIds.push(childContainer.id);
+      console.log(`[publishCarouselToInstagram] Child ${i + 1} created:`, childContainer.id);
+    }
+
+    console.log('[publishCarouselToInstagram] Step 2: Creating parent carousel container...');
+
+    // 2) Créer le container parent de type CAROUSEL
+    const carouselContainer = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+      media_type: "CAROUSEL",
+      caption: caption || "",
+      children: childIds.join(','),
+    });
+
+    console.log('[publishCarouselToInstagram] Carousel container created:', carouselContainer.id);
+
+    console.log('[publishCarouselToInstagram] Step 3: Publishing carousel...');
+
+    // 3) Publier le carrousel
+    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+      creation_id: carouselContainer.id,
+    });
+
+    console.log('[publishCarouselToInstagram] Carousel published:', publish.id);
+
+    // 4) Récupérer le permalink
+    try {
+      console.log('[publishCarouselToInstagram] Step 4: Fetching permalink...');
+      const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
+        fields: "permalink"
+      });
+      return { id: publish.id, permalink: postInfo.permalink };
+    } catch (error) {
+      console.error('[publishCarouselToInstagram] Error fetching permalink:', error);
+      return { id: publish.id };
+    }
+
+  } catch (error: any) {
+    console.error('[publishCarouselToInstagram] Error during carousel publication:', error);
+    throw error;
+  }
+}

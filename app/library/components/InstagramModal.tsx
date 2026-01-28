@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { InstagramIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import ErrorSupportModal from './ErrorSupportModal';
+import InstagramCarouselModal from './InstagramCarouselModal';
 
 type SavedImage = {
   id: string;
@@ -41,6 +42,9 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
   const [errorTitle, setErrorTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [errorTechnical, setErrorTechnical] = useState('');
+
+  // État pour le modal carrousel
+  const [showCarouselModal, setShowCarouselModal] = useState(false);
 
   // Nouveaux états pour la galerie
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -738,6 +742,16 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
                   )}
                 </button>
                 <button
+                  onClick={() => setShowCarouselModal(true)}
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-lg hover:shadow-xl"
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                  </svg>
+                  <span className="hidden sm:inline">Carrousel</span>
+                  <span className="sm:hidden">Carousel</span>
+                </button>
+                <button
                   onClick={handlePublishStory}
                   disabled={publishing}
                   className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
@@ -796,6 +810,14 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
         errorMessage={errorMessage}
         technicalError={errorTechnical}
       />
+
+      {/* Modal Carrousel */}
+      {showCarouselModal && (
+        <InstagramCarouselModal
+          images={availableImages}
+          onClose={() => setShowCarouselModal(false)}
+        />
+      )}
     </div>
   );
 }
