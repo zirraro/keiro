@@ -254,10 +254,9 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
 
         // Proposer d'ouvrir Instagram pour voir le post
         const openPost = window.confirm('Voulez-vous ouvrir Instagram pour voir votre post ?');
-        if (openPost && data.permalink) {
-          window.open(data.permalink, '_blank');
-        } else if (openPost) {
-          window.open(`https://www.instagram.com/${instagramUsername}/`, '_blank');
+        if (openPost) {
+          const instagramUrl = data.post?.permalink || `https://www.instagram.com/${instagramUsername}/`;
+          window.open(instagramUrl, '_blank');
         }
 
         onClose();

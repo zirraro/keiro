@@ -18,9 +18,10 @@ interface InstagramDraftsTabProps {
   onDelete: (draftId: string) => void;
   onPublish?: (draftId: string) => void;
   onSchedule?: (draft: InstagramDraft) => void;
+  onBackToImages?: () => void;
 }
 
-export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule }: InstagramDraftsTabProps) {
+export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages }: InstagramDraftsTabProps) {
   if (drafts.length === 0) {
     return (
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-200 p-12 text-center">
@@ -52,16 +53,20 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </li>
           </ol>
         </div>
-        <a
-          href="#images-tab"
-          onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+        <button
+          onClick={() => {
+            if (onBackToImages) {
+              onBackToImages();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Retour aux images
-        </a>
+        </button>
       </div>
     );
   }

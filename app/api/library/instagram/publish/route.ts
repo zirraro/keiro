@@ -141,22 +141,27 @@ export async function POST(req: NextRequest) {
 
     console.log('[PublishInstagram] ✅ Published successfully:', result.id);
 
-    // Sauvegarder le post dans la table instagram_posts
+    // Sauvegarder le post dans la table instagram_posts (nouveau schema)
     const { error: insertError } = await supabase
       .from('instagram_posts')
       .insert({
+        id: result.id, // ID du post Instagram (TEXT)
         user_id: user.id,
         caption: finalCaption,
-        hashtags: hashtags || [],
-        status: 'published',
-        published_at: new Date().toISOString(),
-        instagram_post_id: result.id,
-        instagram_permalink: result.permalink || null
+        permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
+        media_type: 'IMAGE',
+        posted_at: new Date().toISOString(),
+        original_media_url: imageUrl,
+        cached_media_url: imageUrl, // URL de l'image publiée
+        synced_at: new Date().toISOString()
       });
 
     if (insertError) {
       console.error('[PublishInstagram] Error saving post to database:', insertError);
+      console.error('[PublishInstagram] Insert error details:', JSON.stringify(insertError, null, 2));
       // Ne pas retourner d'erreur car la publication a réussi
+    } else {
+      console.log('[PublishInstagram] ✅ Post saved to database');
     }
 
     return NextResponse.json({

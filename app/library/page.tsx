@@ -304,7 +304,7 @@ export default function LibraryPage() {
   // Fonction pour charger les brouillons TikTok
   const loadTikTokDrafts = async () => {
     try {
-      const res = await fetch('/api/library/tiktok');
+      const res = await fetch('/api/library/tiktok-drafts');
       const data = await res.json();
       if (data.ok) {
         setTikTokDrafts(data.posts || []);
@@ -554,7 +554,7 @@ export default function LibraryPage() {
       }
 
       // MODE USER : Appel API
-      const response = await fetch('/api/library/tiktok', {
+      const response = await fetch('/api/library/tiktok-drafts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -645,7 +645,7 @@ export default function LibraryPage() {
     if (!confirm('Supprimer ce brouillon TikTok ?')) return;
 
     try {
-      const res = await fetch(`/api/library/tiktok?id=${draftId}`, {
+      const res = await fetch(`/api/library/tiktok-drafts?id=${draftId}`, {
         method: 'DELETE'
       });
 
@@ -1206,6 +1206,7 @@ export default function LibraryPage() {
                       onEdit={editInstagramDraft}
                       onDelete={deleteInstagramDraft}
                       onSchedule={scheduleInstagramDraft}
+                      onBackToImages={() => setActiveTab('images')}
                     />
                   ) : activeTab === 'tiktok-drafts' ? (
                     <TikTokDraftsTab
@@ -1213,6 +1214,7 @@ export default function LibraryPage() {
                       onEdit={editTikTokDraft}
                       onDelete={deleteTikTokDraft}
                       onSchedule={scheduleTikTokDraft}
+                      onBackToImages={() => setActiveTab('images')}
                     />
                   ) : activeTab === 'calendar' ? (
                     <CalendarTab
@@ -1254,6 +1256,7 @@ export default function LibraryPage() {
                 onEdit={editInstagramDraft}
                 onDelete={deleteInstagramDraft}
                 onSchedule={scheduleInstagramDraft}
+                onBackToImages={() => setActiveTab('images')}
               />
             ) : activeTab === 'tiktok-drafts' ? (
               <TikTokDraftsTab
@@ -1261,6 +1264,7 @@ export default function LibraryPage() {
                 onEdit={editTikTokDraft}
                 onDelete={deleteTikTokDraft}
                 onSchedule={scheduleTikTokDraft}
+                onBackToImages={() => setActiveTab('images')}
               />
             ) : activeTab === 'calendar' ? (
               <CalendarTab
