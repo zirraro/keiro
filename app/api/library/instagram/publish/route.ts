@@ -115,6 +115,22 @@ export async function POST(req: NextRequest) {
 
     console.log('[PublishInstagram] Caption length:', finalCaption.length);
 
+    // Validation de la caption (Instagram limite à 2200 caractères)
+    if (finalCaption.length > 2200) {
+      return NextResponse.json(
+        { ok: false, error: 'Description trop longue. Instagram limite les descriptions à 2200 caractères maximum.' },
+        { status: 400 }
+      );
+    }
+
+    // Validation de l'URL de l'image
+    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      return NextResponse.json(
+        { ok: false, error: 'URL de l\'image invalide. L\'image doit être accessible via HTTP/HTTPS.' },
+        { status: 400 }
+      );
+    }
+
     // Publier sur Instagram
     const result = await publishImageToInstagram(
       profile.instagram_business_account_id,
@@ -153,8 +169,32 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[PublishInstagram] ❌ Unexpected error:', error);
+
+    // Parser les erreurs Meta Graph API
+    let errorMessage = error.message || 'Erreur lors de la publication';
+
+    try {
+      const errorData = JSON.parse(error.message);
+      if (errorData.error?.message) {
+        errorMessage = errorData.error.message;
+
+        // Messages d'erreur plus clairs pour l'utilisateur
+        if (errorMessage.includes('Invalid image')) {
+          errorMessage = 'Image invalide. Assurez-vous que l\'image est accessible publiquement et au format JPG/PNG.';
+        } else if (errorMessage.includes('expired')) {
+          errorMessage = 'Token Instagram expiré. Reconnectez votre compte Instagram.';
+        } else if (errorMessage.includes('permission')) {
+          errorMessage = 'Permissions insuffisantes. Reconnectez votre compte Instagram avec toutes les permissions nécessaires.';
+        } else if (errorMessage.includes('too many')) {
+          errorMessage = 'Trop de publications en peu de temps. Instagram limite le nombre de posts. Réessayez dans quelques minutes.';
+        }
+      }
+    } catch {
+      // L'erreur n'est pas un JSON, utiliser le message tel quel
+    }
+
     return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur lors de la publication' },
+      { ok: false, error: errorMessage },
       { status: 500 }
     );
   }

@@ -84,6 +84,14 @@ export async function POST(req: NextRequest) {
       imageUrl: imageUrl.substring(0, 50)
     });
 
+    // Validation de l'URL de l'image
+    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      return NextResponse.json(
+        { ok: false, error: 'URL de l\'image invalide. L\'image doit être accessible via HTTP/HTTPS.' },
+        { status: 400 }
+      );
+    }
+
     // Récupérer les informations Instagram de l'utilisateur
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -126,12 +134,25 @@ export async function POST(req: NextRequest) {
     console.error('[PublishInstagramStory] ❌ Error:', error);
 
     // Parser les erreurs Meta Graph API
-    let errorMessage = error.message || 'Erreur lors de la publication';
+    let errorMessage = error.message || 'Erreur lors de la publication de la story';
 
     try {
       const errorData = JSON.parse(error.message);
       if (errorData.error?.message) {
         errorMessage = errorData.error.message;
+
+        // Messages d'erreur plus clairs pour l'utilisateur
+        if (errorMessage.includes('Invalid image') || errorMessage.includes('invalid_url')) {
+          errorMessage = 'Image invalide pour story. Assurez-vous que l\'image est accessible publiquement, au format JPG/PNG, et avec un ratio 9:16 (vertical).';
+        } else if (errorMessage.includes('expired')) {
+          errorMessage = 'Token Instagram expiré. Reconnectez votre compte Instagram.';
+        } else if (errorMessage.includes('permission') || errorMessage.includes('stories')) {
+          errorMessage = 'Permissions insuffisantes pour publier des stories. Reconnectez votre compte Instagram et autorisez la publication de stories.';
+        } else if (errorMessage.includes('too many')) {
+          errorMessage = 'Trop de stories publiées récemment. Instagram limite le nombre de stories. Réessayez dans quelques minutes.';
+        } else if (errorMessage.includes('media_type') || errorMessage.includes('unsupported')) {
+          errorMessage = 'Format d\'image non supporté pour les stories Instagram. Utilisez JPG ou PNG avec ratio vertical (9:16).';
+        }
       }
     } catch {
       // L'erreur n'est pas un JSON, utiliser le message tel quel

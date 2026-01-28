@@ -7,7 +7,11 @@ const GRAPH = "https://graph.facebook.com/v20.0";
 export async function graphGET<T>(path: string, accessToken: string, params: Record<string,string|number|boolean> = {}): Promise<T> {
   const usp = new URLSearchParams({ access_token: accessToken, ...Object.fromEntries(Object.entries(params).map(([k,v])=>[k,String(v)])) });
   const res = await fetch(`${GRAPH}${path}?${usp.toString()}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('[graphGET] Error response:', errorText);
+    throw new Error(errorText);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -18,7 +22,11 @@ export async function graphPOST<T>(path: string, accessToken: string, body: Reco
     body: new URLSearchParams({ access_token: accessToken, ...Object.fromEntries(Object.entries(body).map(([k,v])=>[k,String(v)])) }),
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('[graphPOST] Error response:', errorText);
+    throw new Error(errorText);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -46,43 +54,62 @@ export async function publishToFacebookPage(pageId: string, pageAccessToken: str
 }
 
 export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string): Promise<{ id: string; permalink?: string }> {
-  // 1) Créer un "container"
-  const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
-    image_url: imageUrl,
-    caption: caption || "",
-  });
-  // 2) Publier
-  const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
-    creation_id: container.id,
-  });
-
-  // 3) Récupérer le permalink du post publié
   try {
-    const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
-      fields: "permalink"
+    console.log('[publishImageToInstagram] Step 1: Creating media container...');
+    // 1) Créer un "container"
+    const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+      image_url: imageUrl,
+      caption: caption || "",
     });
-    return { id: publish.id, permalink: postInfo.permalink };
-  } catch (error) {
-    console.error('[publishImageToInstagram] Error fetching permalink:', error);
-    return { id: publish.id };
+    console.log('[publishImageToInstagram] Container created:', container.id);
+
+    console.log('[publishImageToInstagram] Step 2: Publishing media...');
+    // 2) Publier
+    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+      creation_id: container.id,
+    });
+    console.log('[publishImageToInstagram] Media published:', publish.id);
+
+    // 3) Récupérer le permalink du post publié
+    try {
+      console.log('[publishImageToInstagram] Step 3: Fetching permalink...');
+      const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
+        fields: "permalink"
+      });
+      return { id: publish.id, permalink: postInfo.permalink };
+    } catch (error) {
+      console.error('[publishImageToInstagram] Error fetching permalink:', error);
+      return { id: publish.id };
+    }
+  } catch (error: any) {
+    console.error('[publishImageToInstagram] Error during publication:', error);
+    throw error; // Re-throw pour que l'endpoint puisse le gérer
   }
 }
 
 export async function publishStoryToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string): Promise<{ id: string }> {
-  // 1) Créer un "container" pour une story
-  const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
-    image_url: imageUrl,
-    media_type: "STORIES",
-  });
+  try {
+    console.log('[publishStoryToInstagram] Step 1: Creating story media container...');
+    // 1) Créer un "container" pour une story
+    const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+      image_url: imageUrl,
+      media_type: "STORIES",
+    });
 
-  // 2) Attendre que le media soit prêt (Instagram nécessite quelques secondes)
-  console.log('[Story] Container created:', container.id, '- Waiting for media to be ready...');
-  await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
+    // 2) Attendre que le media soit prêt (Instagram nécessite quelques secondes)
+    console.log('[publishStoryToInstagram] Container created:', container.id, '- Waiting for media to be ready...');
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Attendre 3 secondes
 
-  // 3) Publier la story
-  const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
-    creation_id: container.id,
-  });
+    console.log('[publishStoryToInstagram] Step 2: Publishing story...');
+    // 3) Publier la story
+    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+      creation_id: container.id,
+    });
 
-  return { id: publish.id };
+    console.log('[publishStoryToInstagram] Story published:', publish.id);
+    return { id: publish.id };
+  } catch (error: any) {
+    console.error('[publishStoryToInstagram] Error during story publication:', error);
+    throw error; // Re-throw pour que l'endpoint puisse le gérer
+  }
 }
