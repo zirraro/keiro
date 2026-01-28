@@ -484,6 +484,95 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* Section Support */}
+        <div className="mt-16 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full mb-4">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-neutral-900 mb-3">
+              Une question ? Besoin d'aide ?
+            </h2>
+            <p className="text-neutral-600 max-w-2xl mx-auto">
+              Notre équipe est là pour vous accompagner dans votre choix et répondre à toutes vos questions. Contactez-nous gratuitement.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Appel Calendly */}
+            <div className="bg-white rounded-xl border-2 border-purple-200 p-6 hover:shadow-xl transition-all">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-neutral-900 mb-2">Appel téléphonique</h3>
+                  <p className="text-sm text-neutral-600 mb-3">
+                    Bookez un appel gratuit de 15-30 minutes pour discuter de vos besoins et découvrir comment Keiro peut vous aider.
+                  </p>
+                  <a
+                    href="https://calendly.com/contact-keiroai/30min"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Prendre rendez-vous
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="bg-white rounded-xl border-2 border-blue-200 p-6 hover:shadow-xl transition-all">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-neutral-900 mb-2">Email</h3>
+                  <p className="text-sm text-neutral-600 mb-3">
+                    Envoyez-nous vos questions par email. Nous vous répondons généralement sous 24h.
+                  </p>
+                  <a
+                    href="mailto:contact@keiroai.com"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition-all text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                    contact@keiroai.com
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats support */}
+          <div className="mt-8 grid grid-cols-3 gap-4 max-w-2xl mx-auto text-center">
+            <div>
+              <p className="text-2xl font-bold text-purple-600">< 2h</p>
+              <p className="text-xs text-neutral-600">Réponse moyenne</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-blue-600">98%</p>
+              <p className="text-xs text-neutral-600">Satisfaction client</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-cyan-600">7j/7</p>
+              <p className="text-xs text-neutral-600">Disponibilité</p>
+            </div>
+          </div>
+        </div>
+
         {/* CTA Final */}
         <div className="mt-20 text-center bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl p-12">
           <h2 className="text-4xl font-bold text-white mb-4">
