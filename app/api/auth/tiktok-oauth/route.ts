@@ -17,12 +17,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Required scopes for TikTok integration
+    // Note: video.* scopes require Content Posting API to be enabled
     const scopes = [
       'user.info.basic',      // Get user info (username, avatar)
       'video.list',           // List published videos
       'video.publish',        // Publish videos
       'video.upload',         // Upload video files
     ].join(',');
+
+    // TEMPORARY: If Content Posting API not yet approved, use only:
+    // const scopes = 'user.info.basic';
 
     // Build TikTok authorization URL
     const authUrl = new URL('https://www.tiktok.com/v2/auth/authorize/');

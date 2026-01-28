@@ -14,24 +14,36 @@ export async function GET(req: NextRequest) {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
+    // Get base URL from request or env
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+
+    console.log('[TikTokCallback] Starting callback with base URL:', baseUrl);
+
     // Check for OAuth errors
     if (error) {
       console.error('[TikTokCallback] OAuth error:', error, errorDescription);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?error=${encodeURIComponent(errorDescription || error)}`
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent(errorDescription || error)}`
       );
     }
 
     if (!code) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?error=${encodeURIComponent('No authorization code received')}`
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('No authorization code received')}`
       );
     }
 
     // Get environment variables
-    const clientKey = process.env.TIKTOK_CLIENT_KEY!;
-    const clientSecret = process.env.TIKTOK_CLIENT_SECRET!;
-    const redirectUri = process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI!;
+    const clientKey = process.env.TIKTOK_CLIENT_KEY;
+    const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
+    const redirectUri = process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI;
+
+    if (!clientKey || !clientSecret || !redirectUri) {
+      console.error('[TikTokCallback] Missing TikTok credentials');
+      return NextResponse.redirect(
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('TikTok credentials not configured')}`
+      );
+    }
 
     console.log('[TikTokCallback] Exchanging code for tokens...');
 
@@ -64,13 +76,23 @@ export async function GET(req: NextRequest) {
     }
 
     // Save to Supabase profiles
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[TikTokCallback] Missing Supabase credentials');
+      return NextResponse.redirect(
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('Database configuration error')}`
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Calculate token expiry
     const tokenExpiry = new Date();
     tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokenData.expires_in);
+
+    console.log('[TikTokCallback] Saving tokens to database...');
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -85,9 +107,14 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('[TikTokCallback] Error saving to database:', updateError);
+      console.error('[TikTokCallback] Database error:', {
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint
+      });
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?error=${encodeURIComponent('Failed to save TikTok connection')}`
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent(`Database error: ${updateError.message}`)}`
       );
     }
 
@@ -95,13 +122,13 @@ export async function GET(req: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?success=true&username=${encodeURIComponent(userInfo.display_name)}`
+      `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(userInfo.display_name)}`
     );
 
   } catch (error: any) {
-    console.error('[TikTokCallback] Error:', error);
+    console.error('[TikTokCallback] Unexpected error:', error);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?error=${encodeURIComponent(error.message || 'Connection failed')}`
+      `${baseUrl || 'https://keiroai.com'}/tiktok-callback?error=${encodeURIComponent(error.message || 'Connection failed')}`
     );
   }
 }
