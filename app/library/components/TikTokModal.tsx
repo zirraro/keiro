@@ -381,21 +381,21 @@ export default function TikTokModal({ image, images, onClose, onSave }: TikTokMo
           {/* APERÇU IMAGE - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
             {selectedImage && (
-              <div className="max-w-[280px] mx-auto">
-                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-4 bg-black max-h-[500px]">
+              <div className="max-w-[200px] mx-auto">
+                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black max-h-[320px]">
                   <img
                     src={selectedImage.image_url}
                     alt={selectedImage.title || 'Selected'}
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="bg-cyan-100 border border-cyan-200 rounded-lg p-3">
-                  <p className="text-xs text-cyan-900 flex items-start gap-2">
-                    <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <div className="bg-cyan-100 border border-cyan-200 rounded-lg p-2">
+                  <p className="text-[10px] text-cyan-900 flex items-start gap-1.5">
+                    <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span>
-                      📹 Votre image sera automatiquement convertie en vidéo de 5 secondes au format TikTok (9:16)
+                      📹 Conversion auto en vidéo 5s (9:16)
                     </span>
                   </p>
                 </div>

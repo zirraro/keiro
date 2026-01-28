@@ -460,7 +460,7 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
             {selectedImage && (
               <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
                 <div className="md:sticky md:top-0">
-                  <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg">
+                  <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg max-h-[380px] mx-auto">
                     <img
                       src={selectedImage.image_url}
                       alt={selectedImage.title || selectedImage.news_title || 'Preview'}
@@ -468,7 +468,7 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
                     />
                   </div>
                   {selectedImage.title && (
-                    <p className="mt-3 text-sm font-medium text-neutral-700 text-center">
+                    <p className="mt-2 text-sm font-medium text-neutral-700 text-center">
                       {selectedImage.title}
                     </p>
                   )}
