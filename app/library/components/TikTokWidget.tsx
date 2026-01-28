@@ -110,7 +110,7 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
               </button>
               <span className="text-xl">🎵</span>
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Vos vidéos TikTok</h3>
+                <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
                 <p className="text-xs text-neutral-500">Non connecté</p>
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
             </button>
             <span className="text-xl">🎵</span>
             <div>
-              <h3 className="text-sm font-bold text-neutral-900">Vos vidéos TikTok</h3>
+              <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
               <div className="flex items-center gap-2">
                 {tiktokUsername && (
                   <span className="text-xs text-neutral-600">

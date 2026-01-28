@@ -279,11 +279,19 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
           if (uploadError) throw uploadError;
 
           // Get public URL
-          const { data: { publicUrl } } = supabase.storage
+          const publicUrlData = supabase.storage
             .from('generated-images')
             .getPublicUrl(fileName);
 
+          const publicUrl = publicUrlData.data.publicUrl;
+
           console.log('[TikTokModal] Video uploaded to Supabase:', publicUrl);
+          console.log('[TikTokModal] Full public URL data:', publicUrlData);
+
+          // Validate URL format
+          if (!publicUrl || !publicUrl.startsWith('http')) {
+            throw new Error(`Invalid Supabase URL: ${publicUrl}`);
+          }
 
           // Save to saved_images table
           const { error: insertError } = await supabase
@@ -305,6 +313,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
           // Use the Supabase URL as preview
           setVideoPreview(publicUrl);
+          console.log('[TikTokModal] Video preview URL set:', publicUrl);
 
         } catch (uploadError: any) {
           console.error('[TikTokModal] Error uploading video:', uploadError);

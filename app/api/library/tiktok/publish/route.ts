@@ -37,7 +37,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[TikTokPublish] Starting TikTok publication with video:', videoUrl.substring(0, 100));
+    console.log('[TikTokPublish] Starting TikTok publication');
+    console.log('[TikTokPublish] Video URL type:', typeof videoUrl);
+    console.log('[TikTokPublish] Video URL length:', videoUrl?.length);
+    console.log('[TikTokPublish] Video URL (full):', videoUrl);
+
+    // Validate video URL format
+    if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+      console.error('[TikTokPublish] Invalid video URL format:', videoUrl);
+      return NextResponse.json(
+        { ok: false, error: 'URL de vidéo invalide. L\'URL doit commencer par http:// ou https://' },
+        { status: 400 }
+      );
+    }
 
     // Initialize Supabase
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
