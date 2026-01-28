@@ -220,7 +220,12 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
   // Réinitialiser la prévisualisation quand l'image sélectionnée change
   useEffect(() => {
-    setVideoPreview(null);
+    if (selectedImage && isVideo(selectedImage.image_url)) {
+      // If it's already a video, set it as preview automatically
+      setVideoPreview(selectedImage.image_url);
+    } else {
+      setVideoPreview(null);
+    }
     setVideoTaskId(null);
     // Clear any existing polling interval
     if (pollingInterval) {
@@ -346,11 +351,15 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       return;
     }
 
+    // If it's an image and no video preview yet, generate one first
+    if (!isVideo(selectedImage.image_url) && !videoPreview) {
+      alert('⚠️ Veuillez d\'abord générer la vidéo avec IA avant de publier.\n\nCliquez sur "✨ Générer vidéo avec IA" pour créer votre vidéo.');
+      return;
+    }
+
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      (videoPreview
-        ? '✅ Votre vidéo est prête (5 secondes)\n'
-        : '📸 Votre image sera convertie en vidéo de 5 secondes\n') +
+      '✅ Votre vidéo est prête\n' +
       '🚀 La vidéo sera publiée immédiatement sur TikTok\n\n' +
       'Continuer ?'
     );
@@ -359,6 +368,9 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
     setPublishing(true);
     try {
+      // Use video preview if available, otherwise use the original URL (if it's already a video)
+      const videoUrlToPublish = videoPreview || selectedImage.image_url;
+
       const response = await fetch('/api/library/tiktok/publish', {
         method: 'POST',
         headers: {
@@ -366,7 +378,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: selectedImage.image_url,
+          videoUrl: videoUrlToPublish,
           caption,
           hashtags
         })
@@ -375,13 +387,13 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = `🎉 Vidéo publiée avec succès sur TikTok !\n\n✅ Votre contenu est maintenant visible\n📹 Conversion image → vidéo réussie\n💬 Les interactions commenceront bientôt\n\nFélicitations ! 🚀`;
+        const successMessage = `🎉 Vidéo publiée avec succès sur TikTok !\n\n✅ Votre contenu est maintenant visible\n🚀 Publication réussie\n💬 Les interactions commenceront bientôt\n\nFélicitations !`;
         alert(successMessage);
 
-        if (data.share_url) {
+        if (data.post?.share_url) {
           const openPost = window.confirm('Voulez-vous ouvrir TikTok pour voir votre vidéo ?');
           if (openPost) {
-            window.open(data.share_url, '_blank');
+            window.open(data.post.share_url, '_blank');
           }
         }
 
@@ -779,12 +791,13 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
               <>
                 <button
                   onClick={handlePublishNow}
-                  disabled={publishing || !caption.trim()}
+                  disabled={publishing || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)}
                   className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                    publishing || !caption.trim()
+                    publishing || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
                   }`}
+                  title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? 'Générez d\'abord la vidéo avec IA' : ''}
                 >
                   {publishing ? (
                     <>
