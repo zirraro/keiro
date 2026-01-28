@@ -134,6 +134,8 @@ export async function refreshTikTokToken(
  * Get user info (username, avatar, etc.)
  */
 export async function getTikTokUserInfo(accessToken: string): Promise<TikTokUser> {
+  console.log('[TikTok] Fetching user info...');
+
   const response = await fetch(
     `${TIKTOK_API_BASE}/v2/user/info/?fields=open_id,union_id,avatar_url,avatar_url_100,avatar_url_200,avatar_large_url,display_name`,
     {
@@ -143,21 +145,35 @@ export async function getTikTokUserInfo(accessToken: string): Promise<TikTokUser
     }
   );
 
+  console.log('[TikTok] User info response status:', response.status);
+
   const data = await response.json();
 
-  console.log('[TikTok] User info response:', {
+  console.log('[TikTok] User info response data:', {
     hasError: !!data.error,
     hasData: !!data.data,
-    hasUser: !!(data.data?.user)
+    hasUser: !!(data.data?.user),
+    errorMessage: data.error?.message,
+    errorCode: data.error?.code || data.error_code,
+    message: data.message,
+    fullResponse: JSON.stringify(data)
   });
 
-  if (data.error) {
-    throw new Error(data.error.message || 'Failed to get TikTok user info');
+  if (!response.ok || data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || data.description || `HTTP ${response.status}: ${response.statusText}`;
+    console.error('[TikTok] User info failed:', errorMsg);
+    throw new Error(`Failed to get TikTok user info: ${errorMsg}`);
   }
 
   if (!data.data?.user) {
+    console.error('[TikTok] No user in response:', data);
     throw new Error('TikTok user info returned no user data');
   }
+
+  console.log('[TikTok] User info successful:', {
+    open_id: data.data.user.open_id,
+    display_name: data.data.user.display_name
+  });
 
   return data.data.user;
 }
