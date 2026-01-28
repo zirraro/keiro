@@ -12,12 +12,18 @@ export async function GET(req: NextRequest) {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
   try {
+    const startTime = Date.now();
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    console.log('[TikTokCallback] Starting callback with base URL:', baseUrl);
+    console.log('[TikTokCallback] 🚀 Starting callback', {
+      baseUrl,
+      hasCode: !!code,
+      hasError: !!error,
+      timestamp: new Date().toISOString()
+    });
 
     // Check for OAuth errors
     if (error) {
@@ -45,35 +51,52 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('[TikTokCallback] Exchanging code for tokens...');
+    console.log('[TikTokCallback] ⏳ Step 1/5: Exchanging code for tokens...', {
+      elapsedMs: Date.now() - startTime
+    });
 
     // Exchange code for tokens
     const tokenData = await exchangeTikTokCode(code, clientKey, clientSecret, redirectUri);
 
-    console.log('[TikTokCallback] ✅ Tokens received:', {
+    console.log('[TikTokCallback] ✅ Step 1/5 complete: Tokens received', {
       open_id: tokenData.open_id,
       expires_in: tokenData.expires_in,
-      scope: tokenData.scope
+      scope: tokenData.scope,
+      elapsedMs: Date.now() - startTime
     });
 
     // Get user info
-    console.log('[TikTokCallback] Fetching user info...');
+    console.log('[TikTokCallback] ⏳ Step 2/5: Fetching user info...', {
+      elapsedMs: Date.now() - startTime
+    });
     const userInfo = await getTikTokUserInfo(tokenData.access_token);
 
-    console.log('[TikTokCallback] ✅ User info:', {
+    console.log('[TikTokCallback] ✅ Step 2/5 complete: User info received', {
       open_id: userInfo.open_id,
-      display_name: userInfo.display_name
+      display_name: userInfo.display_name,
+      elapsedMs: Date.now() - startTime
     });
 
     // Get authenticated user
+    console.log('[TikTokCallback] ⏳ Step 3/5: Verifying authenticated user...', {
+      elapsedMs: Date.now() - startTime
+    });
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
-      console.error('[TikTokCallback] User not authenticated:', authError);
+      console.error('[TikTokCallback] ❌ Step 3/5 failed: User not authenticated', {
+        error: authError,
+        elapsedMs: Date.now() - startTime
+      });
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/tiktok-callback?error=${encodeURIComponent('User not authenticated')}`
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('User not authenticated')}`
       );
     }
+
+    console.log('[TikTokCallback] ✅ Step 3/5 complete: User authenticated', {
+      userId: user.id,
+      elapsedMs: Date.now() - startTime
+    });
 
     // Save to Supabase profiles
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -92,7 +115,11 @@ export async function GET(req: NextRequest) {
     const tokenExpiry = new Date();
     tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokenData.expires_in);
 
-    console.log('[TikTokCallback] Saving tokens to database...');
+    console.log('[TikTokCallback] ⏳ Step 4/5: Saving tokens to database...', {
+      userId: user.id,
+      tiktokUserId: tokenData.open_id,
+      elapsedMs: Date.now() - startTime
+    });
 
     const { error: updateError } = await supabase
       .from('profiles')
@@ -107,28 +134,51 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('[TikTokCallback] Database error:', {
+      console.error('[TikTokCallback] ❌ Step 4/5 failed: Database error', {
         code: updateError.code,
         message: updateError.message,
         details: updateError.details,
-        hint: updateError.hint
+        hint: updateError.hint,
+        elapsedMs: Date.now() - startTime
       });
       return NextResponse.redirect(
         `${baseUrl}/tiktok-callback?error=${encodeURIComponent(`Database error: ${updateError.message}`)}`
       );
     }
 
-    console.log('[TikTokCallback] ✅ TikTok account connected successfully');
+    console.log('[TikTokCallback] ✅ Step 4/5 complete: Database updated successfully', {
+      elapsedMs: Date.now() - startTime
+    });
+
+    console.log('[TikTokCallback] ⏳ Step 5/5: Redirecting to success page...', {
+      username: userInfo.display_name,
+      elapsedMs: Date.now() - startTime
+    });
 
     // Redirect to success page
-    return NextResponse.redirect(
-      `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(userInfo.display_name)}`
-    );
+    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(userInfo.display_name)}`;
+    console.log('[TikTokCallback] ✅ Step 5/5 complete: Success!', {
+      redirectUrl,
+      totalElapsedMs: Date.now() - startTime
+    });
+
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('[TikTokCallback] Unexpected error:', error);
+    console.error('[TikTokCallback] ❌ FATAL ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
+
+    // More detailed error message for debugging
+    const errorMsg = error.message
+      ? `Error: ${error.message}`
+      : 'Connection failed - check Vercel logs for details';
+
     return NextResponse.redirect(
-      `${baseUrl || 'https://keiroai.com'}/tiktok-callback?error=${encodeURIComponent(error.message || 'Connection failed')}`
+      `${baseUrl || 'https://keiroai.com'}/tiktok-callback?error=${encodeURIComponent(errorMsg)}`
     );
   }
 }
