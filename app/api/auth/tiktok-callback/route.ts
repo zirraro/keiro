@@ -65,26 +65,14 @@ export async function GET(req: NextRequest) {
       elapsedMs: Date.now() - startTime
     });
 
-    // Get user info
-    console.log('[TikTokCallback] ⏳ Step 2/5: Fetching user info...', {
-      elapsedMs: Date.now() - startTime
-    });
-    const userInfo = await getTikTokUserInfo(tokenData.access_token);
-
-    console.log('[TikTokCallback] ✅ Step 2/5 complete: User info received', {
-      open_id: userInfo.open_id,
-      display_name: userInfo.display_name,
-      elapsedMs: Date.now() - startTime
-    });
-
-    // Get authenticated user
-    console.log('[TikTokCallback] ⏳ Step 3/5: Verifying authenticated user...', {
+    // Get authenticated user EARLY so we can save tokens immediately
+    console.log('[TikTokCallback] ⏳ Step 2/5: Verifying authenticated user...', {
       elapsedMs: Date.now() - startTime
     });
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
-      console.error('[TikTokCallback] ❌ Step 3/5 failed: User not authenticated', {
+      console.error('[TikTokCallback] ❌ Step 2/5 failed: User not authenticated', {
         error: authError,
         elapsedMs: Date.now() - startTime
       });
@@ -93,12 +81,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('[TikTokCallback] ✅ Step 3/5 complete: User authenticated', {
+    console.log('[TikTokCallback] ✅ Step 2/5 complete: User authenticated', {
       userId: user.id,
       elapsedMs: Date.now() - startTime
     });
 
-    // Save to Supabase profiles
+    // Save tokens to database IMMEDIATELY (before fetching user info)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -115,7 +103,7 @@ export async function GET(req: NextRequest) {
     const tokenExpiry = new Date();
     tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokenData.expires_in);
 
-    console.log('[TikTokCallback] ⏳ Step 4/5: Saving tokens to database...', {
+    console.log('[TikTokCallback] ⏳ Step 3/5: Saving tokens to database (without username yet)...', {
       userId: user.id,
       tiktokUserId: tokenData.open_id,
       elapsedMs: Date.now() - startTime
@@ -125,7 +113,6 @@ export async function GET(req: NextRequest) {
       .from('profiles')
       .update({
         tiktok_user_id: tokenData.open_id,
-        tiktok_username: userInfo.display_name,
         tiktok_access_token: tokenData.access_token,
         tiktok_refresh_token: tokenData.refresh_token,
         tiktok_token_expiry: tokenExpiry.toISOString(),
@@ -134,7 +121,7 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('[TikTokCallback] ❌ Step 4/5 failed: Database error', {
+      console.error('[TikTokCallback] ❌ Step 3/5 failed: Database error', {
         code: updateError.code,
         message: updateError.message,
         details: updateError.details,
@@ -146,17 +133,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('[TikTokCallback] ✅ Step 4/5 complete: Database updated successfully', {
+    console.log('[TikTokCallback] ✅ Step 3/5 complete: Tokens saved to database', {
       elapsedMs: Date.now() - startTime
     });
 
+    // Now try to get user info (this might fail, but tokens are already saved)
+    console.log('[TikTokCallback] ⏳ Step 4/5: Fetching user info...', {
+      elapsedMs: Date.now() - startTime
+    });
+
+    let displayName = 'TikTok User';
+    try {
+      const userInfo = await getTikTokUserInfo(tokenData.access_token);
+      displayName = userInfo.display_name;
+
+      console.log('[TikTokCallback] ✅ Step 4/5 complete: User info received', {
+        open_id: userInfo.open_id,
+        display_name: userInfo.display_name,
+        elapsedMs: Date.now() - startTime
+      });
+
+      // Update username in database
+      await supabase
+        .from('profiles')
+        .update({ tiktok_username: displayName })
+        .eq('id', user.id);
+
+    } catch (userInfoError: any) {
+      console.error('[TikTokCallback] ⚠️ Step 4/5 warning: Could not fetch user info (but tokens are saved)', {
+        error: userInfoError.message,
+        elapsedMs: Date.now() - startTime
+      });
+      // Don't fail - tokens are already saved, user info is optional
+    }
+
     console.log('[TikTokCallback] ⏳ Step 5/5: Redirecting to success page...', {
-      username: userInfo.display_name,
+      username: displayName,
       elapsedMs: Date.now() - startTime
     });
 
     // Redirect to success page
-    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(userInfo.display_name)}`;
+    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(displayName)}`;
     console.log('[TikTokCallback] ✅ Step 5/5 complete: Success!', {
       redirectUrl,
       totalElapsedMs: Date.now() - startTime
