@@ -26,6 +26,10 @@ export type TikTokVideo = {
   share_url: string;
   embed_link: string;
   create_time: number;
+  view_count?: number;
+  like_count?: number;
+  comment_count?: number;
+  share_count?: number;
 };
 
 export type TikTokTokenResponse = {

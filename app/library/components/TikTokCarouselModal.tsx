@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { convertImageToVideoClient, isFFmpegSupported } from '@/lib/video-converter-client';
 
 type SavedImage = {
   id: string;
@@ -43,6 +42,8 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
   // États pour la prévisualisation vidéo
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Vérifier si l'utilisateur a connecté son compte TikTok
   useEffect(() => {
@@ -178,10 +179,68 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
     }
   };
 
+  // Déterminer si l'image sélectionnée est déjà une vidéo
+  const isVideo = (url: string) => {
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
+
   // Réinitialiser la prévisualisation quand les images sélectionnées changent
   useEffect(() => {
     setVideoPreview(null);
+    setVideoTaskId(null);
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
   }, [selectedImages]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  const pollVideoStatus = async (taskId: string) => {
+    try {
+      const response = await fetch('/api/seedream/i2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'completed' && data.videoUrl) {
+        setVideoPreview(data.videoUrl);
+        setGeneratingPreview(false);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        console.log('[TikTokCarouselModal] Video generated successfully:', data.videoUrl);
+      } else if (data.status === 'failed' || !data.ok) {
+        setGeneratingPreview(false);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        alert(`❌ Erreur lors de la génération de la vidéo:\n${data.error || 'Une erreur est survenue'}`);
+      } else {
+        console.log('[TikTokCarouselModal] Video still processing...', data.status, data.progress);
+      }
+    } catch (error: any) {
+      console.error('[TikTokCarouselModal] Error polling video status:', error);
+      setGeneratingPreview(false);
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+    }
+  };
 
   const handleGeneratePreview = async () => {
     if (selectedImages.length === 0) {
@@ -189,26 +248,46 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
       return;
     }
 
-    // Check if browser supports FFmpeg.wasm
-    if (!isFFmpegSupported()) {
-      alert('❌ Votre navigateur ne supporte pas la conversion vidéo.\n\nVeuillez utiliser un navigateur récent (Chrome, Firefox, Edge).');
+    // If first image is already a video, use it directly
+    if (isVideo(selectedImages[0].image_url)) {
+      setVideoPreview(selectedImages[0].image_url);
+      alert('✅ Ce fichier est déjà une vidéo, pas de conversion nécessaire.');
       return;
     }
 
     setGeneratingPreview(true);
     try {
-      console.log('[TikTokCarouselModal] Starting client-side video conversion...');
+      console.log('[TikTokCarouselModal] Starting Seedream I2V conversion...');
 
-      // Convert first image to video (client-side with FFmpeg.wasm)
-      const videoBlobUrl = await convertImageToVideoClient(selectedImages[0].image_url, 5);
+      const response = await fetch('/api/seedream/i2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: selectedImages[0].image_url,
+          prompt: 'Create a smooth cinematic video from this image with subtle camera movement',
+          duration: 5,
+          resolution: '1080p'
+        })
+      });
 
-      setVideoPreview(videoBlobUrl);
-      console.log('[TikTokCarouselModal] Video preview generated successfully');
+      const data = await response.json();
+
+      if (!data.ok || !data.taskId) {
+        throw new Error(data.error || 'Failed to start video generation');
+      }
+
+      console.log('[TikTokCarouselModal] Video task created:', data.taskId);
+      setVideoTaskId(data.taskId);
+
+      const interval = setInterval(() => {
+        pollVideoStatus(data.taskId);
+      }, 3000);
+
+      setPollingInterval(interval);
 
     } catch (error: any) {
       console.error('[TikTokCarouselModal] Error generating preview:', error);
-      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}\n\nNote: La première conversion peut prendre quelques secondes (chargement de FFmpeg).`);
-    } finally {
+      alert(`❌ Erreur lors de la génération de la vidéo:\n${error.message || 'Une erreur est survenue'}`);
       setGeneratingPreview(false);
     }
   };

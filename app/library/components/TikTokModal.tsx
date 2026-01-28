@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
-import { convertImageToVideoClient, isFFmpegSupported } from '@/lib/video-converter-client';
 
 type SavedImage = {
   id: string;
@@ -41,6 +40,8 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   // États pour la prévisualisation vidéo
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
@@ -211,10 +212,71 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
     }
   };
 
+  // Déterminer si l'image sélectionnée est déjà une vidéo
+  const isVideo = (url: string) => {
+    const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
+
   // Réinitialiser la prévisualisation quand l'image sélectionnée change
   useEffect(() => {
     setVideoPreview(null);
+    setVideoTaskId(null);
+    // Clear any existing polling interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
   }, [selectedImage]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  const pollVideoStatus = async (taskId: string) => {
+    try {
+      const response = await fetch('/api/seedream/i2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'completed' && data.videoUrl) {
+        // Video ready!
+        setVideoPreview(data.videoUrl);
+        setGeneratingPreview(false);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        console.log('[TikTokModal] Video generated successfully:', data.videoUrl);
+      } else if (data.status === 'failed' || !data.ok) {
+        setGeneratingPreview(false);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        alert(`❌ Erreur lors de la génération de la vidéo:\n${data.error || 'Une erreur est survenue'}`);
+      } else {
+        // Still processing
+        console.log('[TikTokModal] Video still processing...', data.status, data.progress);
+      }
+    } catch (error: any) {
+      console.error('[TikTokModal] Error polling video status:', error);
+      setGeneratingPreview(false);
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+    }
+  };
 
   const handleGeneratePreview = async () => {
     if (!selectedImage) {
@@ -222,26 +284,48 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       return;
     }
 
-    // Check if browser supports FFmpeg.wasm
-    if (!isFFmpegSupported()) {
-      alert('❌ Votre navigateur ne supporte pas la conversion vidéo.\n\nVeuillez utiliser un navigateur récent (Chrome, Firefox, Edge).');
+    // If already a video, use it directly
+    if (isVideo(selectedImage.image_url)) {
+      setVideoPreview(selectedImage.image_url);
+      alert('✅ Ce fichier est déjà une vidéo, pas de conversion nécessaire.');
       return;
     }
 
     setGeneratingPreview(true);
     try {
-      console.log('[TikTokModal] Starting client-side video conversion...');
+      console.log('[TikTokModal] Starting Seedream I2V conversion...');
 
-      // Convert image to video (client-side with FFmpeg.wasm)
-      const videoBlobUrl = await convertImageToVideoClient(selectedImage.image_url, 5);
+      // Call Seedream I2V API
+      const response = await fetch('/api/seedream/i2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: selectedImage.image_url,
+          prompt: 'Create a smooth cinematic video from this image with subtle camera movement',
+          duration: 5,
+          resolution: '1080p'
+        })
+      });
 
-      setVideoPreview(videoBlobUrl);
-      console.log('[TikTokModal] Video preview generated successfully');
+      const data = await response.json();
+
+      if (!data.ok || !data.taskId) {
+        throw new Error(data.error || 'Failed to start video generation');
+      }
+
+      console.log('[TikTokModal] Video task created:', data.taskId);
+      setVideoTaskId(data.taskId);
+
+      // Start polling for status
+      const interval = setInterval(() => {
+        pollVideoStatus(data.taskId);
+      }, 3000); // Poll every 3 seconds
+
+      setPollingInterval(interval);
 
     } catch (error: any) {
       console.error('[TikTokModal] Error generating preview:', error);
-      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}\n\nNote: La première conversion peut prendre quelques secondes (chargement de FFmpeg).`);
-    } finally {
+      alert(`❌ Erreur lors de la génération de la vidéo:\n${error.message || 'Une erreur est survenue'}`);
       setGeneratingPreview(false);
     }
   };
@@ -459,48 +543,52 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                 </div>
 
                 {/* Bouton de prévisualisation */}
-                <button
-                  onClick={handleGeneratePreview}
-                  disabled={generatingPreview}
-                  className={`w-full mb-2 px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm ${
-                    generatingPreview
-                      ? 'bg-neutral-400 cursor-not-allowed'
-                      : videoPreview
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg'
-                  }`}
-                >
-                  {generatingPreview ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Conversion en cours...</span>
-                    </>
-                  ) : videoPreview ? (
-                    <>
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Vidéo convertie ✓</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                      </svg>
-                      <span>Prévisualiser la vidéo (5s)</span>
-                    </>
-                  )}
-                </button>
+                {!isVideo(selectedImage.image_url) && (
+                  <button
+                    onClick={handleGeneratePreview}
+                    disabled={generatingPreview}
+                    className={`w-full mb-2 px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm ${
+                      generatingPreview
+                        ? 'bg-neutral-400 cursor-not-allowed'
+                        : videoPreview
+                          ? 'bg-green-500 hover:bg-green-600'
+                          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg'
+                    }`}
+                  >
+                    {generatingPreview ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Génération vidéo IA...</span>
+                      </>
+                    ) : videoPreview ? (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Vidéo générée ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                        <span>✨ Générer vidéo avec IA</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
-                <div className="bg-cyan-100 border border-cyan-200 rounded-lg p-2">
-                  <p className="text-[10px] text-cyan-900 flex items-start gap-1.5">
+                <div className={`${isVideo(selectedImage.image_url) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
+                  <p className={`text-[10px] ${isVideo(selectedImage.image_url) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
                     <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span>
-                      {videoPreview
-                        ? '✅ Vidéo prête pour publication (9:16, 5s)'
-                        : '📹 Conversion auto en vidéo 5s (9:16)'
+                      {isVideo(selectedImage.image_url)
+                        ? '✅ Vidéo détectée - Prête pour publication'
+                        : videoPreview
+                          ? '✅ Vidéo animée générée par IA (9:16, 5s)'
+                          : '🤖 L\'IA convertira votre image en vidéo animée'
                       }
                     </span>
                   </p>
