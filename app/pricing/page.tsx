@@ -115,22 +115,22 @@ export default function PricingPage() {
                 <span className="text-sm text-neutral-700"><strong>Toutes les fonctionnalités</strong> Fondateurs</span>
               </li>
               <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">20 visuels + 3 vidéos inclus</span>
+                <span className="text-sm text-neutral-700"><strong>TikTok débloqué</strong> 🎵 (Instagram + TikTok)</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">Assistant IA + Analytics</span>
+                <span className="text-sm text-neutral-700">20 visuels + 3 vidéos pour tester</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">Calendrier + Planification auto</span>
+                <span className="text-sm text-neutral-700">Assistant IA + Analytics 2 plateformes</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,24 +149,64 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Multi-platform Highlight */}
-        <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-purple-200 p-8 mb-10 text-center">
-          <h3 className="text-2xl font-bold mb-3 flex items-center justify-center gap-2">
-            <span>🚀</span> Publication Multi-Plateforme Incluse
-          </h3>
-          <p className="text-neutral-700 mb-4 max-w-3xl mx-auto">
-            <strong>Nouveauté :</strong> Tous les plans avec vidéos incluent maintenant la publication automatique sur <strong>Instagram (Post & Story)</strong> et <strong>TikTok (Vidéo 9:16)</strong>.
-            Les vidéos sont essentielles pour maximiser votre visibilité sur TikTok et Reels Instagram.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 text-sm">
-            <div className="bg-white rounded-lg px-4 py-2 border border-purple-200">
-              <span className="font-semibold text-purple-600">📱 Instagram</span> • Post & Story
+        {/* TikTok Unlock Highlight */}
+        <div className="bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h3 className="text-3xl font-bold mb-3 flex items-center justify-center gap-3">
+                <span className="text-4xl">🎵</span> Débloquez TikTok : La Croissance Virale
+              </h3>
+              <p className="text-xl text-cyan-100 font-medium">
+                Exclusif à partir du plan Fondateurs
+              </p>
             </div>
-            <div className="bg-white rounded-lg px-4 py-2 border border-cyan-200">
-              <span className="font-semibold text-cyan-600">🎵 TikTok</span> • Vidéos 9:16
+
+            <div className="grid md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+                <div className="text-3xl font-bold mb-1">10x</div>
+                <div className="text-sm text-cyan-100">Plus de reach organique qu'Instagram</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+                <div className="text-3xl font-bold mb-1">100k+</div>
+                <div className="text-sm text-cyan-100">Vues gratuites sur 1 vidéo virale</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+                <div className="text-3xl font-bold mb-1">2x</div>
+                <div className="text-sm text-cyan-100">Visibilité totale (Instagram + TikTok)</div>
+              </div>
             </div>
-            <div className="bg-white rounded-lg px-4 py-2 border border-blue-200">
-              <span className="font-semibold text-blue-600">✨ IA</span> • Captions adaptées
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/30">
+              <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                <span>💎</span> Pourquoi TikTok change tout :
+              </h4>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-300">✓</span>
+                  <span><strong>Algorithme favorise les nouveaux créateurs</strong> - Tu pars sur un pied d'égalité</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-300">✓</span>
+                  <span><strong>Public jeune + engagé + acheteur</strong> - Taux de conversion supérieur</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-300">✓</span>
+                  <span><strong>1 client via TikTok = abonnement remboursé</strong> - ROI immédiat</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-300">✓</span>
+                  <span><strong>Conversion image → vidéo automatique</strong> - Aucune compétence technique requise</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="text-center mt-6">
+              <p className="text-sm text-cyan-100">
+                🔥 Prix Fondateurs verrouillé à vie - TikTok inclus maintenant <strong>ET</strong> dans le futur
+              </p>
             </div>
           </div>
         </div>
@@ -186,26 +226,33 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">49€</span>
                 <span className="text-neutral-500">/mois</span>
               </div>
-              <p className="text-neutral-600 text-sm">Pour créateurs</p>
+              <p className="text-neutral-600 text-sm">Instagram seulement</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>5 vidéos/mois</strong> (TikTok)</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram (Post & Story)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> 3 vidéos/mois (test Reels)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram Post</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
+              <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> <span className="line-through">TikTok (Fondateurs+)</span></li>
+              <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> <span className="line-through">Stories Instagram</span></li>
             </ul>
-            <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all mt-auto">
-              Choisir Solo
-            </Link>
+            <div className="mt-auto space-y-2">
+              <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+                Choisir Solo
+              </Link>
+              <p className="text-xs text-center text-neutral-500">
+                Besoin de TikTok ? <a href="#fondateurs" className="text-cyan-600 hover:underline font-semibold">Upgrade →</a>
+              </p>
+            </div>
           </div>
 
           {/* Fondateurs 149€ - HIGHLIGHT */}
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                50 places à 149€ à vie
+                🔥 Le plus populaire
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -216,29 +263,35 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">149€</span>
                 <span className="text-amber-100">/mois</span>
               </div>
-              <p className="text-amber-100 text-sm font-medium">Prix verrouillé à vie • Puis 199€</p>
+              <p className="text-amber-100 text-sm font-medium">Multi-plateforme + TikTok débloqué</p>
             </div>
+
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
+              <p className="text-xs font-semibold mb-1">💰 ROI : 1 client TikTok = plan payé</p>
+              <p className="text-xs text-amber-100">149€ pour 2 plateformes = 2x plus de visibilité</p>
+            </div>
+
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 80 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>15 vidéos/mois</strong> (Multi-plateforme)</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Publication Instagram + TikTok</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Assistant IA Marketing complet</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics avancé (Instagram & TikTok)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>12 vidéos TikTok/mois</strong> (2-3/semaine)</li>
+              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok</strong> 🎵 (Croissance virale 10x)</span></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Assistant IA Marketing (compare tes 2 plateformes)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics Instagram & TikTok</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Kit style personnalisé</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Support prioritaire + Démo</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Prix verrouillé à vie (50 places)</strong></li>
             </ul>
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              Devenir Fondateur
+              Débloquer TikTok + IA
             </Link>
-            <p className="text-center text-amber-100 text-xs mt-2">🔥 Seulement 50 places à ce prix</p>
+            <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
           </div>
 
           {/* Business 349€ */}
           <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-blue-900 text-blue-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                Pour agences
+                Agences & Teams
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -249,11 +302,17 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">349€</span>
                 <span className="text-blue-100">/mois</span>
               </div>
-              <p className="text-blue-100 text-sm">Pour agences</p>
+              <p className="text-blue-100 text-sm">Gérez 5 clients avec TikTok</p>
             </div>
+
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
+              <p className="text-xs font-semibold mb-1">💼 ROI Agence : 150€/client = 750€ revenus</p>
+              <p className="text-xs text-blue-100">Facturez TikTok + Instagram = Valeur premium</p>
+            </div>
+
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 180 visuels/mois</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>40 vidéos/mois</strong> (Multi-plateforme)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>30 vidéos TikTok/mois</strong></li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Calendrier collaboratif</li>
@@ -261,9 +320,9 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
-              Contacter
+              Contacter Business
             </Link>
-            <p className="text-center text-blue-100 text-xs mt-2">Sans engagement</p>
+            <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
           </div>
 
           {/* Elite 999€ */}
@@ -318,20 +377,28 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2">500/mois</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Vidéos (TikTok)</td>
+                  <td className="py-3 px-2 font-medium">Vidéos</td>
                   <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">5/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>15/mois</strong></td>
-                  <td className="text-center py-3 px-2">40/mois</td>
-                  <td className="text-center py-3 px-2">100/mois</td>
+                  <td className="text-center py-3 px-2">3 (Reels test)</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>12 (TikTok + Reels)</strong></td>
+                  <td className="text-center py-3 px-2">30</td>
+                  <td className="text-center py-3 px-2">100</td>
+                </tr>
+                <tr className="border-b bg-cyan-50/50">
+                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
+                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
+                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Multi-plateforme</td>
+                  <td className="py-3 px-2 font-medium">Instagram</td>
                   <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">Instagram</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Instagram + TikTok</strong></td>
-                  <td className="text-center py-3 px-2">Instagram + TikTok</td>
-                  <td className="text-center py-3 px-2">Tous réseaux</td>
+                  <td className="text-center py-3 px-2">Post uniquement</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Post + Story</strong></td>
+                  <td className="text-center py-3 px-2">Post + Story</td>
+                  <td className="text-center py-3 px-2">Post + Story</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Assistant IA</td>
