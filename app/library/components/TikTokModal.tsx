@@ -36,6 +36,10 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   const [tiktokUsername, setTikTokUsername] = useState<string | null>(null);
   const [checkingConnection, setCheckingConnection] = useState(true);
 
+  // États pour la prévisualisation vidéo
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+
   // États pour la galerie
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
@@ -202,6 +206,48 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
     }
   };
 
+  // Réinitialiser la prévisualisation quand l'image sélectionnée change
+  useEffect(() => {
+    setVideoPreview(null);
+  }, [selectedImage]);
+
+  const handleGeneratePreview = async () => {
+    if (!selectedImage) {
+      alert('Veuillez sélectionner une image');
+      return;
+    }
+
+    setGeneratingPreview(true);
+    try {
+      const response = await fetch('/api/tiktok/preview-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageUrl: selectedImage.image_url
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Convert base64 to blob URL
+        const videoBlob = await fetch(`data:video/mp4;base64,${data.videoBase64}`).then(r => r.blob());
+        const videoBlobUrl = URL.createObjectURL(videoBlob);
+        setVideoPreview(videoBlobUrl);
+      } else {
+        alert(`❌ Erreur : ${data.error}`);
+      }
+    } catch (error: any) {
+      console.error('[TikTokModal] Error generating preview:', error);
+      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}`);
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
   const handlePublishNow = async () => {
     if (!selectedImage) {
       alert('Veuillez sélectionner une image');
@@ -220,7 +266,9 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '📸 Votre image sera convertie en vidéo de 5 secondes\n' +
+      (videoPreview
+        ? '✅ Votre vidéo est prête (5 secondes)\n'
+        : '📸 Votre image sera convertie en vidéo de 5 secondes\n') +
       '🚀 La vidéo sera publiée immédiatement sur TikTok\n\n' +
       'Continuer ?'
     );
@@ -390,24 +438,72 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
             </div>
           </div>
 
-          {/* APERÇU IMAGE - COLONNE CENTRALE */}
+          {/* APERÇU IMAGE/VIDÉO - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
             {selectedImage && (
               <div className="max-w-[200px] mx-auto">
                 <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black max-h-[320px]">
-                  <img
-                    src={selectedImage.image_url}
-                    alt={selectedImage.title || 'Selected'}
-                    className="w-full h-full object-contain"
-                  />
+                  {videoPreview ? (
+                    <video
+                      src={videoPreview}
+                      controls
+                      autoPlay
+                      loop
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={selectedImage.image_url}
+                      alt={selectedImage.title || 'Selected'}
+                      className="w-full h-full object-contain"
+                    />
+                  )}
                 </div>
+
+                {/* Bouton de prévisualisation */}
+                <button
+                  onClick={handleGeneratePreview}
+                  disabled={generatingPreview}
+                  className={`w-full mb-2 px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm ${
+                    generatingPreview
+                      ? 'bg-neutral-400 cursor-not-allowed'
+                      : videoPreview
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg'
+                  }`}
+                >
+                  {generatingPreview ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Conversion en cours...</span>
+                    </>
+                  ) : videoPreview ? (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Vidéo convertie ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                      </svg>
+                      <span>Prévisualiser la vidéo (5s)</span>
+                    </>
+                  )}
+                </button>
+
                 <div className="bg-cyan-100 border border-cyan-200 rounded-lg p-2">
                   <p className="text-[10px] text-cyan-900 flex items-start gap-1.5">
                     <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span>
-                      📹 Conversion auto en vidéo 5s (9:16)
+                      {videoPreview
+                        ? '✅ Vidéo prête pour publication (9:16, 5s)'
+                        : '📹 Conversion auto en vidéo 5s (9:16)'
+                      }
                     </span>
                   </p>
                 </div>
@@ -614,20 +710,23 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                       </svg>
-                      <span>Vidéo</span>
+                      <span className="hidden sm:inline">Publier vidéo</span>
+                      <span className="sm:hidden">Vidéo</span>
                     </>
                   )}
                 </button>
                 <button
-                  disabled={true}
-                  title="Fonctionnalité bientôt disponible - Publiez plusieurs images en carrousel TikTok"
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-neutral-400 cursor-not-allowed opacity-60"
+                  onClick={() => {
+                    alert('🎵 Carrousel TikTok\n\n📸 Fonctionnalité en préparation\n\n✨ Bientôt disponible : Publiez jusqu\'à 35 images en carrousel sur TikTok !\n\nVous serez notifié(e) dès que cette fonctionnalité sera activée.');
+                  }}
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-pink-400 to-orange-400 hover:from-pink-500 hover:to-orange-500 opacity-75 hover:opacity-90"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                   </svg>
-                  <span>Carrousel</span>
-                  <span className="hidden sm:inline text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded-full ml-1">Bientôt</span>
+                  <span className="hidden sm:inline">Préparer carrousel</span>
+                  <span className="sm:hidden">Carrousel</span>
+                  <span className="text-[10px] bg-white/30 px-1.5 py-0.5 rounded-full ml-1">Bientôt</span>
                 </button>
               </>
             ) : (
