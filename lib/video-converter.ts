@@ -6,14 +6,23 @@ import * as os from 'os';
 
 const execPromise = promisify(exec);
 
-// Try to use @ffmpeg-installer/ffmpeg for Vercel, fallback to system ffmpeg
+// Try multiple ffmpeg sources for best Vercel compatibility
 let ffmpegPath = 'ffmpeg';
+
+// 1. Try ffmpeg-static (best for Vercel)
 try {
-  const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-  ffmpegPath = ffmpegInstaller.path;
-  console.log('[VideoConverter] Using ffmpeg from @ffmpeg-installer/ffmpeg:', ffmpegPath);
+  ffmpegPath = require('ffmpeg-static');
+  console.log('[VideoConverter] Using ffmpeg from ffmpeg-static:', ffmpegPath);
 } catch (e) {
-  console.log('[VideoConverter] Using system ffmpeg');
+  // 2. Try @ffmpeg-installer/ffmpeg
+  try {
+    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+    ffmpegPath = ffmpegInstaller.path;
+    console.log('[VideoConverter] Using ffmpeg from @ffmpeg-installer/ffmpeg:', ffmpegPath);
+  } catch (e2) {
+    // 3. Fallback to system ffmpeg
+    console.log('[VideoConverter] Using system ffmpeg');
+  }
 }
 
 export interface VideoOptions {
