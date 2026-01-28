@@ -74,25 +74,28 @@ export async function exchangeTikTokCode(
 
   console.log('[TikTok] Token exchange response data:', {
     hasError: !!data.error,
-    hasData: !!data.data,
+    hasAccessToken: !!data.access_token,
     errorMessage: data.error?.message,
-    errorCode: data.error?.code,
+    errorCode: data.error?.code || data.error_code,
+    message: data.message,
     fullResponse: JSON.stringify(data)
   });
 
-  if (!response.ok || data.error) {
-    const errorMsg = data.error?.message || data.message || `HTTP ${response.status}: ${response.statusText}`;
+  // Check for TikTok API errors (error_code !== 0 or error exists)
+  if (!response.ok || data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || data.description || `HTTP ${response.status}: ${response.statusText}`;
     console.error('[TikTok] Token exchange failed:', errorMsg);
     throw new Error(`TikTok token exchange failed: ${errorMsg}`);
   }
 
-  if (!data.data) {
-    console.error('[TikTok] No data in response:', data);
-    throw new Error('TikTok token exchange returned no data');
+  // TikTok OAuth response is at root level, not in data.data
+  if (!data.access_token) {
+    console.error('[TikTok] No access_token in response:', data);
+    throw new Error('TikTok token exchange returned no access_token');
   }
 
   console.log('[TikTok] Token exchange successful');
-  return data.data;
+  return data;
 }
 
 /**
@@ -116,11 +119,15 @@ export async function refreshTikTokToken(
 
   const data = await response.json();
 
-  if (data.error) {
-    throw new Error(data.error.message || 'TikTok token refresh failed');
+  if (data.error || (data.error_code && data.error_code !== 0)) {
+    throw new Error(data.error?.message || data.message || 'TikTok token refresh failed');
   }
 
-  return data.data;
+  if (!data.access_token) {
+    throw new Error('TikTok token refresh returned no access_token');
+  }
+
+  return data;
 }
 
 /**
@@ -138,8 +145,18 @@ export async function getTikTokUserInfo(accessToken: string): Promise<TikTokUser
 
   const data = await response.json();
 
+  console.log('[TikTok] User info response:', {
+    hasError: !!data.error,
+    hasData: !!data.data,
+    hasUser: !!(data.data?.user)
+  });
+
   if (data.error) {
     throw new Error(data.error.message || 'Failed to get TikTok user info');
+  }
+
+  if (!data.data?.user) {
+    throw new Error('TikTok user info returned no user data');
   }
 
   return data.data.user;
