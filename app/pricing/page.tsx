@@ -252,7 +252,7 @@ export default function PricingPage() {
           <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                🔥 Le plus populaire
+                ⭐ #1
               </span>
             </div>
             <div className="mb-4 pt-2">
