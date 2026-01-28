@@ -8,14 +8,14 @@ import { exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
  * Handle TikTok OAuth callback
  */
 export async function GET(req: NextRequest) {
+  // Get base URL from request or env (declare at top level for catch block access)
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
-
-    // Get base URL from request or env
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
     console.log('[TikTokCallback] Starting callback with base URL:', baseUrl);
 
