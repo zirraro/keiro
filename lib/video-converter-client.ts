@@ -100,7 +100,8 @@ export async function convertImageToVideoClient(
     const data = await ffmpeg.readFile('output.mp4');
 
     // Create blob URL
-    const videoBlob = new Blob([data], { type: 'video/mp4' });
+    // TypeScript workaround: FFmpeg returns Uint8Array with ArrayBufferLike, but Blob needs standard ArrayBuffer
+    const videoBlob = new Blob([data as any], { type: 'video/mp4' });
     const videoBlobUrl = URL.createObjectURL(videoBlob);
 
     console.log('[VideoConverterClient] Conversion successful', {
