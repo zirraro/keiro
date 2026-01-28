@@ -71,9 +71,40 @@ export async function POST(req: NextRequest) {
     console.log('[TikTokSync] Fetching TikTok videos...');
 
     // Fetch videos from TikTok API (last 20)
-    const videos = await getTikTokVideos(accessToken, 20);
+    let videos;
+    try {
+      videos = await getTikTokVideos(accessToken, 20);
+      console.log('[TikTokSync] Fetched', videos.length, 'videos');
+    } catch (videoError: any) {
+      console.error('[TikTokSync] TikTok API error:', videoError.message);
 
-    console.log('[TikTokSync] Fetched', videos.length, 'videos');
+      // Check if it's a scope/permission error
+      if (videoError.message.includes('scope') ||
+          videoError.message.includes('permission') ||
+          videoError.message.includes('not authorized') ||
+          videoError.message.includes('access_token_invalid')) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Permissions TikTok insuffisantes. Reconnectez votre compte avec toutes les autorisations.',
+          needsReconnect: true
+        }, { status: 403 });
+      }
+
+      // Other errors
+      return NextResponse.json({
+        ok: false,
+        error: `Erreur TikTok API: ${videoError.message}`
+      }, { status: 500 });
+    }
+
+    if (!videos || videos.length === 0) {
+      console.log('[TikTokSync] No videos to sync');
+      return NextResponse.json({
+        ok: true,
+        synced: 0,
+        message: 'Aucune vidéo TikTok trouvée sur votre compte'
+      });
+    }
 
     // Upsert videos to database
     for (const video of videos) {

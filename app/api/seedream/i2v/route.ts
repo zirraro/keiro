@@ -38,12 +38,44 @@ export async function POST(request: Request) {
       console.log('[Seedream I2V] With prompt:', prompt);
     }
 
+    // Télécharger l'image et la convertir en base64 pour éviter les problèmes d'accès
+    let finalImageUrl = imageUrl;
+
+    // Si c'est une URL Supabase, télécharger et convertir en base64
+    if (imageUrl.includes('supabase.co') || imageUrl.includes('supabase')) {
+      console.log('[Seedream I2V] Supabase URL detected, converting to base64...');
+
+      try {
+        const imageResponse = await fetch(imageUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+        }
+
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const base64 = Buffer.from(imageBuffer).toString('base64');
+        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+        // Créer un data URI
+        finalImageUrl = `data:${contentType};base64,${base64}`;
+
+        console.log('[Seedream I2V] Converted to base64, size:', (base64.length / 1024).toFixed(2), 'KB');
+      } catch (conversionError: any) {
+        console.error('[Seedream I2V] Failed to convert to base64:', conversionError.message);
+        // Continuer avec l'URL originale en fallback
+      }
+    }
+
     // Construire le contenu avec l'image + prompt optionnel
     const content: any[] = [
       {
         type: 'image_url',
         image_url: {
-          url: imageUrl
+          url: finalImageUrl
         }
       }
     ];

@@ -40,13 +40,43 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
         console.log('[TikTokWidget] Synced', data.synced, 'videos');
         // Reload status after sync
         await loadTikTokStatus();
-        alert(`✅ ${data.synced} vidéo(s) synchronisée(s) depuis TikTok`);
+
+        if (data.synced === 0) {
+          alert(
+            `ℹ️ Synchronisation terminée\n\n` +
+            `${data.message || 'Aucune vidéo trouvée sur votre compte TikTok.'}\n\n` +
+            `Si vous venez de publier, attendez quelques minutes et réessayez.`
+          );
+        } else {
+          alert(`✅ ${data.synced} vidéo(s) synchronisée(s) depuis TikTok`);
+        }
       } else {
+        // Check if needs reconnection
+        if (data.needsReconnect) {
+          const reconnect = confirm(
+            `⚠️ Permissions insuffisantes\n\n` +
+            `${data.error}\n\n` +
+            `Voulez-vous reconnecter votre compte TikTok ?`
+          );
+
+          if (reconnect) {
+            window.location.href = '/api/auth/tiktok-oauth';
+            return;
+          }
+        }
+
         throw new Error(data.error || 'Failed to sync');
       }
     } catch (error: any) {
       console.error('[TikTokWidget] Error syncing:', error);
-      alert(`❌ Erreur lors de la synchronisation: ${error.message}`);
+      alert(
+        `❌ Erreur de synchronisation\n\n` +
+        `${error.message}\n\n` +
+        `Solutions:\n` +
+        `• Reconnectez votre compte TikTok\n` +
+        `• Vérifiez vos autorisations\n` +
+        `• Contactez le support si cela persiste`
+      );
     } finally {
       setSyncing(false);
     }

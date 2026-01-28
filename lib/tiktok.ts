@@ -189,6 +189,8 @@ export async function getTikTokVideos(
   accessToken: string,
   maxCount: number = 20
 ): Promise<TikTokVideo[]> {
+  console.log('[TikTok] Fetching videos, max_count:', maxCount);
+
   const response = await fetch(
     `${TIKTOK_API_BASE}/v2/video/list/?fields=id,title,video_description,duration,cover_image_url,share_url,embed_link,create_time&max_count=${maxCount}`,
     {
@@ -201,13 +203,34 @@ export async function getTikTokVideos(
     }
   );
 
+  console.log('[TikTok] Video list response status:', response.status);
+
   const data = await response.json();
 
-  if (data.error) {
-    throw new Error(data.error.message || 'Failed to fetch TikTok videos');
+  console.log('[TikTok] Video list response:', {
+    hasError: !!data.error,
+    errorCode: data.error?.code || data.error_code,
+    message: data.error?.message || data.message,
+    hasData: !!data.data,
+    videoCount: data.data?.videos?.length || 0
+  });
+
+  // Check for errors
+  if (data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || 'Failed to fetch TikTok videos';
+    console.error('[TikTok] Video list error:', errorMsg);
+    throw new Error(errorMsg);
   }
 
-  return data.data.videos || [];
+  if (!response.ok) {
+    console.error('[TikTok] Video list HTTP error:', response.status, response.statusText);
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const videos = data.data?.videos || [];
+  console.log('[TikTok] Successfully fetched', videos.length, 'videos');
+
+  return videos;
 }
 
 /**
