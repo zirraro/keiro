@@ -21,11 +21,13 @@ interface InstagramModalProps {
   images?: SavedImage[];
   onClose: () => void;
   onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
+  draftCaption?: string;
+  draftHashtags?: string[];
 }
 
-export default function InstagramModal({ image, images, onClose, onSave }: InstagramModalProps) {
-  const [caption, setCaption] = useState('');
-  const [hashtags, setHashtags] = useState<string[]>([]);
+export default function InstagramModal({ image, images, onClose, onSave, draftCaption, draftHashtags }: InstagramModalProps) {
+  const [caption, setCaption] = useState(draftCaption || '');
+  const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
@@ -47,6 +49,16 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
+
+  // Pré-remplir caption et hashtags depuis le brouillon
+  useEffect(() => {
+    if (draftCaption !== undefined) {
+      setCaption(draftCaption);
+    }
+    if (draftHashtags !== undefined) {
+      setHashtags(draftHashtags);
+    }
+  }, [draftCaption, draftHashtags]);
 
   // Vérifier si l'utilisateur a connecté son compte Instagram
   useEffect(() => {

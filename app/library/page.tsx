@@ -161,10 +161,15 @@ export default function LibraryPage() {
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [draftCaptionToEdit, setDraftCaptionToEdit] = useState<string | undefined>(undefined);
+  const [draftHashtagsToEdit, setDraftHashtagsToEdit] = useState<string[] | undefined>(undefined);
 
   // États pour TikTok
   const [showTikTokConnectionModal, setShowTikTokConnectionModal] = useState(false);
   const [showTikTokModal, setShowTikTokModal] = useState(false);
+  const [selectedImageForTikTok, setSelectedImageForTikTok] = useState<SavedImage | null>(null);
+  const [draftTikTokCaptionToEdit, setDraftTikTokCaptionToEdit] = useState<string | undefined>(undefined);
+  const [draftTikTokHashtagsToEdit, setDraftTikTokHashtagsToEdit] = useState<string[] | undefined>(undefined);
 
   // États pour le choix de plateforme (galerie)
   const [showPlatformChoiceModal, setShowPlatformChoiceModal] = useState(false);
@@ -443,6 +448,8 @@ export default function LibraryPage() {
   // Ouvrir le modal Instagram pour une image
   const openInstagramModal = (image: SavedImage) => {
     setSelectedImageForInsta(image);
+    setDraftCaptionToEdit(undefined);
+    setDraftHashtagsToEdit(undefined);
     setShowInstagramModal(true);
   };
 
@@ -579,8 +586,6 @@ export default function LibraryPage() {
 
   // Modifier un brouillon Instagram
   const editInstagramDraft = (draft: InstagramDraft) => {
-    // Pour l'instant, ouvrir le modal avec l'image correspondante
-    // TODO: Préremplir le modal avec les données du brouillon
     const image: SavedImage = {
       id: draft.saved_image_id,
       image_url: draft.image_url,
@@ -588,6 +593,8 @@ export default function LibraryPage() {
       created_at: draft.created_at
     };
     setSelectedImageForInsta(image);
+    setDraftCaptionToEdit(draft.caption || '');
+    setDraftHashtagsToEdit(draft.hashtags || []);
     setShowInstagramModal(true);
   };
 
@@ -621,15 +628,15 @@ export default function LibraryPage() {
 
   // Modifier un brouillon TikTok
   const editTikTokDraft = (draft: TikTokDraft) => {
-    // Pour l'instant, ouvrir le modal TikTok avec l'image correspondante
-    // TODO: Préremplir le modal avec les données du brouillon
     const image: SavedImage = {
       id: draft.saved_image_id,
       image_url: draft.image_url,
       is_favorite: false,
       created_at: draft.created_at
     };
-    // Ouvrir le modal TikTok (à implémenter plus tard avec pre-fill)
+    setSelectedImageForTikTok(image);
+    setDraftTikTokCaptionToEdit(draft.caption || '');
+    setDraftTikTokHashtagsToEdit(draft.hashtags || []);
     setShowTikTokModal(true);
   };
 
@@ -1279,17 +1286,30 @@ export default function LibraryPage() {
         <InstagramModal
           image={selectedImageForInsta || undefined}
           images={images}
-          onClose={() => setShowInstagramModal(false)}
+          onClose={() => {
+            setShowInstagramModal(false);
+            setDraftCaptionToEdit(undefined);
+            setDraftHashtagsToEdit(undefined);
+          }}
           onSave={saveInstagramDraft}
+          draftCaption={draftCaptionToEdit}
+          draftHashtags={draftHashtagsToEdit}
         />
       )}
 
       {/* Modal TikTok */}
       {showTikTokModal && (
         <TikTokModal
+          image={selectedImageForTikTok || undefined}
           images={images}
-          onClose={() => setShowTikTokModal(false)}
+          onClose={() => {
+            setShowTikTokModal(false);
+            setDraftTikTokCaptionToEdit(undefined);
+            setDraftTikTokHashtagsToEdit(undefined);
+          }}
           onSave={saveTikTokDraft}
+          draftCaption={draftTikTokCaptionToEdit}
+          draftHashtags={draftTikTokHashtagsToEdit}
         />
       )}
 
