@@ -85,9 +85,9 @@ export async function POST(req: NextRequest) {
           video_description: video.video_description || video.title,
           duration: video.duration,
           cover_image_url: video.cover_image_url,
+          cached_thumbnail_url: video.cover_image_url, // Use cover as thumbnail
           permalink: video.share_url,
           posted_at: new Date(video.create_time * 1000).toISOString(),
-          cached_video_url: video.cover_image_url, // Use cover as cached URL
           synced_at: new Date().toISOString()
         }, {
           onConflict: 'id'

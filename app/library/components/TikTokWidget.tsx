@@ -11,6 +11,7 @@ interface TikTokWidgetProps {
 export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [tiktokUsername, setTiktokUsername] = useState<string | null>(null);
   const [stats, setStats] = useState<{
     totalVideos: number;
     totalViews: number;
@@ -43,6 +44,7 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
 
       if (profile?.tiktok_user_id) {
         setConnected(true);
+        setTiktokUsername(profile.tiktok_username);
 
         // Load TikTok posts stats
         const { data: tiktokPosts } = await supabase
@@ -163,9 +165,16 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
             <span className="text-xl">🎵</span>
             <div>
               <h3 className="text-sm font-bold text-neutral-900">Vos vidéos TikTok</h3>
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                Connecté
-              </span>
+              <div className="flex items-center gap-2">
+                {tiktokUsername && (
+                  <span className="text-xs text-neutral-600">
+                    @{tiktokUsername}
+                  </span>
+                )}
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                  Connecté
+                </span>
+              </div>
             </div>
           </div>
           <button
