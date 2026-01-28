@@ -47,6 +47,13 @@ export async function exchangeTikTokCode(
   clientSecret: string,
   redirectUri: string
 ): Promise<TikTokTokenResponse> {
+  console.log('[TikTok] Exchanging code for tokens...', {
+    hasCode: !!code,
+    hasClientKey: !!clientKey,
+    hasClientSecret: !!clientSecret,
+    redirectUri
+  });
+
   const response = await fetch(`${TIKTOK_API_BASE}/v2/oauth/token/`, {
     method: 'POST',
     headers: {
@@ -61,12 +68,30 @@ export async function exchangeTikTokCode(
     }),
   });
 
+  console.log('[TikTok] Token exchange response status:', response.status);
+
   const data = await response.json();
 
-  if (data.error) {
-    throw new Error(data.error.message || 'TikTok token exchange failed');
+  console.log('[TikTok] Token exchange response data:', {
+    hasError: !!data.error,
+    hasData: !!data.data,
+    errorMessage: data.error?.message,
+    errorCode: data.error?.code,
+    fullResponse: JSON.stringify(data)
+  });
+
+  if (!response.ok || data.error) {
+    const errorMsg = data.error?.message || data.message || `HTTP ${response.status}: ${response.statusText}`;
+    console.error('[TikTok] Token exchange failed:', errorMsg);
+    throw new Error(`TikTok token exchange failed: ${errorMsg}`);
   }
 
+  if (!data.data) {
+    console.error('[TikTok] No data in response:', data);
+    throw new Error('TikTok token exchange returned no data');
+  }
+
+  console.log('[TikTok] Token exchange successful');
   return data.data;
 }
 
