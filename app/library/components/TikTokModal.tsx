@@ -220,12 +220,23 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
   // Réinitialiser la prévisualisation quand l'image sélectionnée change
   useEffect(() => {
-    if (selectedImage && isVideo(selectedImage.image_url)) {
-      // If it's already a video, set it as preview automatically
-      setVideoPreview(selectedImage.image_url);
+    if (selectedImage) {
+      // Check if it's a video file OR a TikTok video from our gallery
+      const isTikTokVideo = selectedImage.title?.includes('Vidéo TikTok') ||
+                           selectedImage.title?.includes('TikTok') ||
+                           isVideo(selectedImage.image_url);
+
+      if (isTikTokVideo) {
+        // If it's already a video or TikTok video, set it as preview automatically
+        setVideoPreview(selectedImage.image_url);
+        console.log('[TikTokModal] Auto-detected TikTok video:', selectedImage.title);
+      } else {
+        setVideoPreview(null);
+      }
     } else {
       setVideoPreview(null);
     }
+
     setVideoTaskId(null);
     // Clear any existing polling interval
     if (pollingInterval) {
@@ -622,7 +633,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                 </div>
 
                 {/* Bouton de prévisualisation */}
-                {!isVideo(selectedImage.image_url) && (
+                {!isVideo(selectedImage.image_url) && !selectedImage.title?.includes('Vidéo TikTok') && (
                   <button
                     onClick={handleGeneratePreview}
                     disabled={generatingPreview}
@@ -657,14 +668,14 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                   </button>
                 )}
 
-                <div className={`${isVideo(selectedImage.image_url) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
-                  <p className={`text-[10px] ${isVideo(selectedImage.image_url) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
+                <div className={`${(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok')) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
+                  <p className={`text-[10px] ${(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok')) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
                     <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span>
-                      {isVideo(selectedImage.image_url)
-                        ? '✅ Vidéo détectée - Prête pour publication'
+                      {(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))
+                        ? '✅ Vidéo prête pour publication TikTok'
                         : videoPreview
                           ? '✅ Vidéo animée générée par IA (9:16, 5s)'
                           : '🤖 L\'IA convertira votre image en vidéo animée'
