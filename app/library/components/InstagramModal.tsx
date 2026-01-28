@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { InstagramIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import ErrorSupportModal from './ErrorSupportModal';
 
 type SavedImage = {
   id: string;
@@ -32,6 +33,12 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
   const [checkingConnection, setCheckingConnection] = useState(true);
+
+  // États pour le modal d'erreur avec support
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorTitle, setErrorTitle] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorTechnical, setErrorTechnical] = useState('');
 
   // Nouveaux états pour la galerie
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -247,7 +254,17 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
       }
     } catch (error: any) {
       console.error('[InstagramModal] Error publishing:', error);
-      alert(`❌ Erreur lors de la publication:\n${error.message || 'Une erreur est survenue'}`);
+
+      // Afficher le modal d'erreur avec support
+      setErrorTitle('Erreur de publication Instagram');
+      setErrorMessage(error.message || 'Une erreur est survenue lors de la publication sur Instagram');
+      setErrorTechnical(JSON.stringify({
+        error: error.message,
+        imageUrl: selectedImage?.image_url,
+        captionLength: caption.length,
+        hashtagCount: hashtags.length
+      }, null, 2));
+      setShowErrorModal(true);
     } finally {
       setPublishing(false);
     }
@@ -302,7 +319,15 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
       }
     } catch (error: any) {
       console.error('[InstagramModal] Error publishing story:', error);
-      alert(`❌ Erreur lors de la publication de la story:\n${error.message || 'Une erreur est survenue'}`);
+
+      // Afficher le modal d'erreur avec support
+      setErrorTitle('Erreur de publication Instagram Story');
+      setErrorMessage(error.message || 'Une erreur est survenue lors de la publication de la story sur Instagram');
+      setErrorTechnical(JSON.stringify({
+        error: error.message,
+        imageUrl: selectedImage?.image_url
+      }, null, 2));
+      setShowErrorModal(true);
     } finally {
       setPublishing(false);
     }
@@ -751,6 +776,15 @@ export default function InstagramModal({ image, images, onClose, onSave }: Insta
           </div>
         </div>
       </div>
+
+      {/* Modal d'erreur avec support */}
+      <ErrorSupportModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorTitle}
+        errorMessage={errorMessage}
+        technicalError={errorTechnical}
+      />
     </div>
   );
 }

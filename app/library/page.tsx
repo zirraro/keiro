@@ -285,7 +285,7 @@ export default function LibraryPage() {
   // Fonction pour charger les brouillons Instagram
   const loadInstagramDrafts = async () => {
     try {
-      const res = await fetch('/api/library/instagram');
+      const res = await fetch('/api/library/instagram-drafts');
       const data = await res.json();
       if (data.ok) {
         setInstagramDrafts(data.posts || []);
@@ -505,7 +505,7 @@ export default function LibraryPage() {
       }
 
       // MODE USER : Appel API normal
-      const response = await fetch('/api/library/instagram', {
+      const response = await fetch('/api/library/instagram-drafts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -596,7 +596,7 @@ export default function LibraryPage() {
     if (!confirm('Supprimer ce brouillon Instagram ?')) return;
 
     try {
-      const res = await fetch(`/api/library/instagram?id=${draftId}`, {
+      const res = await fetch(`/api/library/instagram-drafts?id=${draftId}`, {
         method: 'DELETE'
       });
 
