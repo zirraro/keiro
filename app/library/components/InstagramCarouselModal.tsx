@@ -35,6 +35,10 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
   const [selectedImages, setSelectedImages] = useState<SavedImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(!images);
 
+  // Angle/ton de la description
+  const [contentAngle, setContentAngle] = useState('informatif');
+  const [suggesting, setSuggesting] = useState(false);
+
   // Vérifier si l'utilisateur a connecté son compte Instagram
   useEffect(() => {
     const checkInstagramConnection = async () => {
@@ -125,6 +129,47 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
     const fullTag = tag.startsWith('#') ? tag : `#${tag}`;
     if (!hashtags.includes(fullTag)) {
       setHashtags([...hashtags, fullTag]);
+    }
+  };
+
+  const handleSuggest = async () => {
+    if (selectedImages.length === 0) {
+      alert('Veuillez sélectionner au moins une image');
+      return;
+    }
+
+    setSuggesting(true);
+    try {
+      const response = await fetch('/api/instagram/suggest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageUrl: selectedImages[0].image_url,
+          imageTitle: selectedImages[0].title || selectedImages[0].news_title,
+          newsTitle: selectedImages[0].news_title,
+          newsCategory: selectedImages[0].news_category,
+          contentAngle: contentAngle,
+          isCarousel: true,
+          imageCount: selectedImages.length
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        setCaption(data.caption);
+        setHashtags(data.hashtags);
+      } else {
+        alert(data.error || 'Erreur lors de la génération des suggestions');
+      }
+    } catch (error) {
+      console.error('[InstagramCarouselModal] Error suggesting:', error);
+      alert('Erreur lors de la génération des suggestions');
+    } finally {
+      setSuggesting(false);
     }
   };
 
@@ -306,6 +351,48 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
                   </div>
                 </div>
               )}
+
+              {/* Angle du contenu */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                  Ton du carrousel
+                </label>
+                <select
+                  value={contentAngle}
+                  onChange={(e) => setContentAngle(e.target.value)}
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                >
+                  <option value="informatif">📚 Informatif</option>
+                  <option value="emotionnel">❤️ Émotionnel</option>
+                  <option value="inspirant">✨ Inspirant</option>
+                  <option value="humoristique">😄 Humoristique</option>
+                  <option value="professionnel">💼 Professionnel</option>
+                  <option value="storytelling">📖 Storytelling</option>
+                  <option value="educatif">🎓 Éducatif</option>
+                  <option value="provocateur">🔥 Provocateur</option>
+                </select>
+              </div>
+
+              {/* Bouton suggérer IA */}
+              <div>
+                <button
+                  onClick={handleSuggest}
+                  disabled={suggesting || selectedImages.length === 0}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {suggesting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Suggestion en cours...
+                    </span>
+                  ) : (
+                    '✨ Suggérer description et hashtags'
+                  )}
+                </button>
+              </div>
 
               {/* Description */}
               <div>

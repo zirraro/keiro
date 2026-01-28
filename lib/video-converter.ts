@@ -6,23 +6,37 @@ import * as os from 'os';
 
 const execPromise = promisify(exec);
 
-// Try multiple ffmpeg sources for best Vercel compatibility
-let ffmpegPath = 'ffmpeg';
+/**
+ * Get FFmpeg path with multiple fallback options
+ */
+function getFfmpegPath(): string {
+  // 1. Try ffmpeg-static (best for Vercel)
+  try {
+    const ffmpegStatic = require('ffmpeg-static');
+    if (ffmpegStatic && typeof ffmpegStatic === 'string') {
+      console.log('[VideoConverter] Using ffmpeg from ffmpeg-static:', ffmpegStatic);
+      return ffmpegStatic;
+    }
+    console.warn('[VideoConverter] ffmpeg-static returned invalid path:', ffmpegStatic);
+  } catch (e: any) {
+    console.warn('[VideoConverter] ffmpeg-static not available:', e.message);
+  }
 
-// 1. Try ffmpeg-static (best for Vercel)
-try {
-  ffmpegPath = require('ffmpeg-static');
-  console.log('[VideoConverter] Using ffmpeg from ffmpeg-static:', ffmpegPath);
-} catch (e) {
   // 2. Try @ffmpeg-installer/ffmpeg
   try {
     const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-    ffmpegPath = ffmpegInstaller.path;
-    console.log('[VideoConverter] Using ffmpeg from @ffmpeg-installer/ffmpeg:', ffmpegPath);
-  } catch (e2) {
-    // 3. Fallback to system ffmpeg
-    console.log('[VideoConverter] Using system ffmpeg');
+    if (ffmpegInstaller?.path && typeof ffmpegInstaller.path === 'string') {
+      console.log('[VideoConverter] Using ffmpeg from @ffmpeg-installer:', ffmpegInstaller.path);
+      return ffmpegInstaller.path;
+    }
+    console.warn('[VideoConverter] @ffmpeg-installer returned invalid path:', ffmpegInstaller);
+  } catch (e: any) {
+    console.warn('[VideoConverter] @ffmpeg-installer not available:', e.message);
   }
+
+  // 3. Fallback to system ffmpeg (will fail on Vercel)
+  console.log('[VideoConverter] Falling back to system ffmpeg (may not work on Vercel)');
+  return 'ffmpeg';
 }
 
 export interface VideoOptions {
@@ -50,6 +64,9 @@ export async function convertImageToVideo(
     fps = 30
   } = options;
 
+  // Get FFmpeg path
+  const ffmpegPath = getFfmpegPath();
+
   // Create temporary files
   const tempDir = os.tmpdir();
   const inputPath = path.join(tempDir, 'input-' + Date.now() + '.jpg');
@@ -60,6 +77,7 @@ export async function convertImageToVideo(
     await fs.writeFile(inputPath, imageBuffer);
 
     console.log('[VideoConverter] Converting image to video...', {
+      ffmpegPath,
       width,
       height,
       duration,
@@ -117,10 +135,18 @@ export async function convertImageToVideo(
  */
 export async function checkFfmpegAvailable(): Promise<boolean> {
   try {
-    await execPromise(`"${ffmpegPath}" -version`);
+    const ffmpegPath = getFfmpegPath();
+    console.log('[VideoConverter] Checking FFmpeg availability at:', ffmpegPath);
+
+    const { stdout, stderr } = await execPromise(`"${ffmpegPath}" -version`);
+    console.log('[VideoConverter] FFmpeg is available:', stdout.split('\n')[0]);
     return true;
-  } catch (error) {
-    console.error('[VideoConverter] FFmpeg not available:', error);
+  } catch (error: any) {
+    console.error('[VideoConverter] FFmpeg not available:', {
+      message: error.message,
+      code: error.code,
+      stderr: error.stderr
+    });
     return false;
   }
 }

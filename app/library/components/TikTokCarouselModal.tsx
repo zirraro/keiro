@@ -39,6 +39,10 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
   const [contentAngle, setContentAngle] = useState('viral');
   const [suggesting, setSuggesting] = useState(false);
 
+  // États pour la prévisualisation vidéo
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+
   // Vérifier si l'utilisateur a connecté son compte TikTok
   useEffect(() => {
     const checkTikTokConnection = async () => {
@@ -170,6 +174,48 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
       alert('Erreur lors de la génération des suggestions');
     } finally {
       setSuggesting(false);
+    }
+  };
+
+  // Réinitialiser la prévisualisation quand les images sélectionnées changent
+  useEffect(() => {
+    setVideoPreview(null);
+  }, [selectedImages]);
+
+  const handleGeneratePreview = async () => {
+    if (selectedImages.length === 0) {
+      alert('Veuillez sélectionner au moins une image');
+      return;
+    }
+
+    setGeneratingPreview(true);
+    try {
+      const response = await fetch('/api/tiktok/preview-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          imageUrl: selectedImages[0].image_url
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Convert base64 to blob URL
+        const videoBlob = await fetch(`data:video/mp4;base64,${data.videoBase64}`).then(r => r.blob());
+        const videoBlobUrl = URL.createObjectURL(videoBlob);
+        setVideoPreview(videoBlobUrl);
+      } else {
+        alert(`❌ Erreur : ${data.error}`);
+      }
+    } catch (error: any) {
+      console.error('[TikTokCarouselModal] Error generating preview:', error);
+      alert(`❌ Erreur lors de la génération de la prévisualisation:\n${error.message || 'Une erreur est survenue'}`);
+    } finally {
+      setGeneratingPreview(false);
     }
   };
 
@@ -346,6 +392,58 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Prévisualisation vidéo */}
+              {selectedImages.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                    Aperçu de la 1ère image en vidéo (5s)
+                  </label>
+                  <div className="aspect-[9/16] rounded-lg overflow-hidden shadow-lg mb-3 bg-black max-h-[280px] mx-auto max-w-[160px]">
+                    {videoPreview ? (
+                      <video
+                        src={videoPreview}
+                        controls
+                        autoPlay
+                        loop
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={selectedImages[0].thumbnail_url || selectedImages[0].image_url}
+                        alt="Aperçu"
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
+                  <button
+                    onClick={handleGeneratePreview}
+                    disabled={generatingPreview}
+                    className="w-full px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {generatingPreview ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Conversion en cours...</span>
+                      </>
+                    ) : videoPreview ? (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Vidéo convertie ✓</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
+                        </svg>
+                        <span>Prévisualiser la vidéo (5s)</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 

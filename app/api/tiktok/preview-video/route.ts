@@ -27,13 +27,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Check FFmpeg availability
+    console.log('[TikTokPreview] Checking FFmpeg availability...');
     const ffmpegAvailable = await checkFfmpegAvailable();
     if (!ffmpegAvailable) {
+      console.error('[TikTokPreview] FFmpeg check failed - video conversion unavailable');
       return NextResponse.json(
-        { ok: false, error: 'FFmpeg non disponible sur le serveur. Impossible de convertir les images en vidéos.' },
+        {
+          ok: false,
+          error: 'Ffmpeg non disponible sur le serveur. Impossible de convertir les images en vidéo. Consultez les logs du serveur pour plus de détails.',
+          details: 'FFmpeg binary could not be found or executed. Check server logs for specific error.'
+        },
         { status: 500 }
       );
     }
+    console.log('[TikTokPreview] FFmpeg is available');
 
     console.log('[TikTokPreview] Downloading image...');
 
