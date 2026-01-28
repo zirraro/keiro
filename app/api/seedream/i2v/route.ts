@@ -228,12 +228,27 @@ async function checkTaskStatus(taskId: string) {
     }
 
     if (status === 'failed' || status === 'error' || status === 'cancelled') {
-      const errorMsg = data.error || data.message || data.error_message || data.data?.error || 'Video generation failed';
-      console.error('[Seedream I2V] Task failed:', errorMsg);
+      // Extract detailed error message
+      const errorMsg = data.error ||
+                      data.message ||
+                      data.error_message ||
+                      data.data?.error ||
+                      data.data?.message ||
+                      data.error_description ||
+                      'Génération vidéo échouée';
+
+      const errorCode = data.error_code || data.code || data.data?.error_code;
+
+      console.error('[Seedream I2V] Task failed:', {
+        code: errorCode,
+        message: errorMsg,
+        fullData: JSON.stringify(data, null, 2)
+      });
+
       return Response.json({
         ok: false,
         status: 'failed',
-        error: errorMsg
+        error: errorCode ? `Erreur ${errorCode}: ${errorMsg}` : errorMsg
       });
     }
 

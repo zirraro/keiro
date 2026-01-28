@@ -153,10 +153,13 @@ export async function GET(req: NextRequest) {
         elapsedMs: Date.now() - startTime
       });
 
-      // Update username in database
+      // Update display name and username in database
       await supabase
         .from('profiles')
-        .update({ tiktok_username: displayName })
+        .update({
+          tiktok_username: displayName,
+          tiktok_display_name: displayName
+        })
         .eq('id', user.id);
 
     } catch (userInfoError: any) {

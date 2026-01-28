@@ -308,10 +308,21 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
           }
 
         } catch (uploadError: any) {
-          console.error('[TikTokModal] Error downloading and storing video:', uploadError);
-          // Fallback: use Seedream URL as preview (temporary, may have CORS issues)
+          console.error('[TikTokModal] Error downloading and storing video:', {
+            error: uploadError.message,
+            stack: uploadError.stack
+          });
+
+          // Try to use Seedream URL as temporary fallback
           setVideoPreview(data.videoUrl);
-          alert('⚠️ Vidéo générée mais non sauvegardée dans la galerie. Vous pourrez quand même la publier.');
+
+          alert(
+            `⚠️ Vidéo générée mais sauvegarde échouée\n\n` +
+            `Erreur: ${uploadError.message || 'Échec du téléchargement'}\n\n` +
+            `La vidéo est disponible temporairement pour publication,\n` +
+            `mais ne sera pas sauvegardée dans votre galerie.\n\n` +
+            `Conseil: Publiez maintenant ou régénérez la vidéo.`
+          );
         }
 
         setGeneratingPreview(false);
@@ -326,7 +337,22 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
           clearInterval(pollingInterval);
           setPollingInterval(null);
         }
-        alert(`❌ Erreur lors de la génération de la vidéo:\n${data.error || 'Une erreur est survenue'}`);
+
+        const errorMessage = data.error || 'Une erreur est survenue lors de la génération';
+        console.error('[TikTokModal] Video generation failed:', {
+          error: data.error,
+          status: data.status,
+          fullResponse: data
+        });
+
+        alert(
+          `❌ Échec de la génération vidéo\n\n` +
+          `${errorMessage}\n\n` +
+          `Suggestions:\n` +
+          `• Réessayez avec une autre image\n` +
+          `• Vérifiez que l'image est accessible\n` +
+          `• Contactez le support si le problème persiste`
+        );
       } else {
         // Still processing
         console.log('[TikTokModal] Video still processing...', data.status, data.progress);

@@ -34,20 +34,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[DownloadAndStore] Downloading video from Seedream:', videoUrl.substring(0, 100));
+    console.log('[DownloadAndStore] Downloading video from:', videoUrl);
+
+    // Validate URL format
+    if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+      console.error('[DownloadAndStore] Invalid URL format');
+      return NextResponse.json({ ok: false, error: 'URL invalide' }, { status: 400 });
+    }
 
     // Download video from Seedream (server-side, no CORS issue)
-    const videoResponse = await fetch(videoUrl);
+    const videoResponse = await fetch(videoUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    console.log('[DownloadAndStore] Response:', videoResponse.status, videoResponse.statusText);
+    console.log('[DownloadAndStore] Content-Type:', videoResponse.headers.get('content-type'));
 
     if (!videoResponse.ok) {
-      console.error('[DownloadAndStore] Failed to fetch video:', videoResponse.status, videoResponse.statusText);
+      const errorText = await videoResponse.text();
+      console.error('[DownloadAndStore] Download failed:', {
+        status: videoResponse.status,
+        error: errorText.substring(0, 300)
+      });
       return NextResponse.json(
-        { ok: false, error: `Impossible de télécharger la vidéo: ${videoResponse.statusText}` },
+        { ok: false, error: `Téléchargement vidéo échoué (${videoResponse.status})` },
         { status: videoResponse.status }
       );
     }
 
+    const contentType = videoResponse.headers.get('content-type');
+    if (!contentType || (!contentType.includes('video') && !contentType.includes('octet-stream'))) {
+      console.error('[DownloadAndStore] Invalid content type:', contentType);
+      const preview = await videoResponse.text();
+      console.error('[DownloadAndStore] Response preview:', preview.substring(0, 300));
+      return NextResponse.json(
+        { ok: false, error: `Type de fichier invalide: ${contentType}` },
+        { status: 400 }
+      );
+    }
+
     const videoBuffer = await videoResponse.arrayBuffer();
+
+    if (videoBuffer.byteLength === 0) {
+      console.error('[DownloadAndStore] Empty video buffer');
+      return NextResponse.json(
+        { ok: false, error: 'Vidéo vide reçue' },
+        { status: 400 }
+      );
+    }
+
     const videoBlob = new Blob([videoBuffer], { type: 'video/mp4' });
 
     console.log('[DownloadAndStore] Video downloaded:', {
