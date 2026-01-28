@@ -49,10 +49,10 @@ function TikTokCallbackContent() {
           <>
             <div className="text-6xl mb-4">✅</div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              Connexion réussie !
+              TikTok connecté !
             </h2>
             <p className="text-gray-300 mb-4">
-              Votre compte TikTok {username && `@${username}`} a été connecté avec succès.
+              Votre compte a été connecté avec succès.
             </p>
             <p className="text-sm text-gray-400">
               Redirection vers votre galerie...
