@@ -85,8 +85,14 @@ export async function POST(req: NextRequest) {
           video_description: video.video_description || video.title,
           duration: video.duration,
           cover_image_url: video.cover_image_url,
-          cached_thumbnail_url: video.cover_image_url, // Use cover as thumbnail
+          cached_thumbnail_url: video.cover_image_url, // Use cover as cached thumbnail
+          share_url: video.share_url,
           permalink: video.share_url,
+          view_count: video.view_count || 0,
+          like_count: video.like_count || 0,
+          comment_count: video.comment_count || 0,
+          share_count: video.share_count || 0,
+          cached_video_url: video.cover_image_url, // Use cover as fallback
           posted_at: new Date(video.create_time * 1000).toISOString(),
           synced_at: new Date().toISOString()
         }, {
