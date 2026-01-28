@@ -6,6 +6,16 @@ import * as os from 'os';
 
 const execPromise = promisify(exec);
 
+// Try to use @ffmpeg-installer/ffmpeg for Vercel, fallback to system ffmpeg
+let ffmpegPath = 'ffmpeg';
+try {
+  const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+  ffmpegPath = ffmpegInstaller.path;
+  console.log('[VideoConverter] Using ffmpeg from @ffmpeg-installer/ffmpeg:', ffmpegPath);
+} catch (e) {
+  console.log('[VideoConverter] Using system ffmpeg');
+}
+
 export interface VideoOptions {
   width?: number;      // Default: 1080
   height?: number;     // Default: 1920 (9:16 for TikTok)
@@ -49,7 +59,7 @@ export async function convertImageToVideo(
 
     // FFmpeg command to convert image to video
     const command = [
-      'ffmpeg',
+      `"${ffmpegPath}"`,
       '-loop 1',
       '-i "' + inputPath + '"',
       '-t ' + duration,
@@ -98,7 +108,7 @@ export async function convertImageToVideo(
  */
 export async function checkFfmpegAvailable(): Promise<boolean> {
   try {
-    await execPromise('ffmpeg -version');
+    await execPromise(`"${ffmpegPath}" -version`);
     return true;
   } catch (error) {
     console.error('[VideoConverter] FFmpeg not available:', error);
