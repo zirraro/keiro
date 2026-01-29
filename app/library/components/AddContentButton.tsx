@@ -54,56 +54,12 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
         throw new Error(`Fichier trop volumineux. Taille max: ${maxSizeMB}`);
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', file.name);
-      formData.append('saveToLibrary', 'true');
-
-      const endpoint = type === 'image' ? '/api/upload' : '/api/upload-video';
-
-      // Simulate progress (XMLHttpRequest for real progress tracking)
-      const xhr = new XMLHttpRequest();
-
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          setProgress(Math.round(percentComplete));
-        }
-      });
-
-      const response = await new Promise<Response>((resolve, reject) => {
-        xhr.addEventListener('load', () => {
-          resolve(new Response(xhr.responseText, {
-            status: xhr.status,
-            statusText: xhr.statusText
-          }));
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
-
-        xhr.open('POST', endpoint);
-        xhr.send(formData);
-      });
-
-      // Gérer les erreurs HTTP (413, 500, etc.)
-      if (!response.ok) {
-        if (response.status === 413) {
-          throw new Error('Fichier trop volumineux pour le serveur');
-        }
-        // Tenter de parser le JSON d'erreur
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Erreur serveur');
-        } catch (jsonError) {
-          throw new Error(`Erreur serveur (${response.status})`);
-        }
-      }
-
-      const data = await response.json();
-
-      if (!data.ok) {
-        throw new Error(data.error || 'Upload failed');
+      // Pour les vidéos, utiliser l'upload direct vers Supabase (bypass Vercel)
+      if (type === 'video') {
+        await uploadVideoDirectly(file);
+      } else {
+        // Pour les images, upload via l'API classique (< 8MB OK)
+        await uploadImageViaAPI(file);
       }
 
       // Success
@@ -122,6 +78,131 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
       setProgress(0);
       setUploadType(null);
     }
+  };
+
+  const uploadImageViaAPI = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', file.name);
+    formData.append('saveToLibrary', 'true');
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percentComplete = (e.loaded / e.total) * 100;
+        setProgress(Math.round(percentComplete));
+      }
+    });
+
+    const response = await new Promise<Response>((resolve, reject) => {
+      xhr.addEventListener('load', () => {
+        resolve(new Response(xhr.responseText, {
+          status: xhr.status,
+          statusText: xhr.statusText
+        }));
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+
+      xhr.open('POST', '/api/upload');
+      xhr.send(formData);
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erreur serveur (${response.status})`);
+    }
+
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(data.error || 'Upload failed');
+    }
+  };
+
+  const uploadVideoDirectly = async (file: File) => {
+    // Étape 1: Obtenir une signed URL depuis l'API
+    setProgress(5);
+    const signedUrlResponse = await fetch('/api/get-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      })
+    });
+
+    if (!signedUrlResponse.ok) {
+      const errorData = await signedUrlResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Impossible d\'obtenir l\'URL d\'upload');
+    }
+
+    const { signedUrl, token, path } = await signedUrlResponse.json();
+    console.log('[AddContentButton] Got signed URL for:', path);
+
+    // Étape 2: Upload direct vers Supabase Storage avec progress tracking
+    setProgress(10);
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        // Progress de 10% à 90% pour l'upload
+        const percentComplete = 10 + (e.loaded / e.total) * 80;
+        setProgress(Math.round(percentComplete));
+      }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+
+      xhr.open('PUT', signedUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.setRequestHeader('x-upsert', 'false');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      xhr.send(file);
+    });
+
+    console.log('[AddContentButton] Video uploaded to Supabase Storage');
+
+    // Étape 3: Sauvegarder les métadonnées en DB
+    setProgress(95);
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const metadataResponse = await fetch('/api/save-video-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storagePath: path,
+        title: file.name.replace(`.${ext}`, ''),
+        fileSize: file.size,
+        format: ext,
+        folderId: null
+      })
+    });
+
+    if (!metadataResponse.ok) {
+      const errorData = await metadataResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erreur lors de la sauvegarde des métadonnées');
+    }
+
+    const metadataData = await metadataResponse.json();
+    if (!metadataData.ok) {
+      throw new Error(metadataData.error || 'Failed to save metadata');
+    }
+
+    console.log('[AddContentButton] Video metadata saved:', metadataData.video.id);
   };
 
   // Close dropdown when clicking outside
