@@ -206,24 +206,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Step 11: Save to saved_images table
+    // Step 11: Save to my_videos table (NEW - dedicated videos table)
     const videoTitle = title || 'Vidéo TikTok';
-    console.log('[DownloadAndStore] Saving to gallery:', videoTitle);
+    console.log('[DownloadAndStore] Saving video to my_videos table:', videoTitle);
 
-    const { data: insertedImage, error: insertError } = await supabase
-      .from('saved_images')
+    const { data: insertedVideo, error: insertError } = await supabase
+      .from('my_videos')
       .insert({
         user_id: user.id,
-        image_url: publicUrl,
+        video_url: publicUrl,
         thumbnail_url: thumbnailUrl,
         title: videoTitle,
+        source_type: 'seedream_i2v',
+        original_image_id: originalImageId || null,
+        file_size: videoBuffer.byteLength,
+        format: 'mp4',
+        duration: 5, // Seedream I2V default duration
         is_favorite: false
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error('[DownloadAndStore] Gallery insert error:', {
+      console.error('[DownloadAndStore] Video insert error:', {
         code: insertError.code,
         message: insertError.message,
         details: insertError.details
@@ -235,13 +240,13 @@ export async function POST(req: NextRequest) {
     }
 
     const elapsed = Date.now() - startTime;
-    console.log('[DownloadAndStore] ✓ SUCCESS! Saved to gallery:', insertedImage.id);
+    console.log('[DownloadAndStore] ✓ SUCCESS! Saved to my_videos:', insertedVideo.id);
     console.log('[DownloadAndStore] ===== TERMINÉ en', elapsed, 'ms =====');
 
     return NextResponse.json({
       ok: true,
       videoUrl: publicUrl,
-      imageId: insertedImage.id,
+      videoId: insertedVideo.id, // Changed from imageId to videoId
       size: sizeInMB + ' MB',
       elapsed: elapsed + ' ms'
     });

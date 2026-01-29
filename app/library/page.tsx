@@ -27,6 +27,7 @@ import TikTokWidget from './components/TikTokWidget';
 import TikTokConnectionModal from './components/TikTokConnectionModal';
 import TikTokModal from './components/TikTokModal';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
+import MyVideosTab from './components/MyVideosTab';
 
 type SavedImage = {
   id: string;
@@ -69,6 +70,21 @@ type TikTokDraft = {
   status: 'draft' | 'ready' | 'published';
   created_at: string;
   scheduled_for?: string;
+};
+
+type MyVideo = {
+  id: string;
+  video_url: string;
+  thumbnail_url?: string;
+  title?: string;
+  duration?: number;
+  source_type: string;
+  is_favorite: boolean;
+  created_at: string;
+  published_to_tiktok: boolean;
+  tiktok_published_at?: string;
+  file_size?: number;
+  folder_id?: string | null;
 };
 
 // Données de démonstration pour le mode visiteur
@@ -183,6 +199,7 @@ export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<Tab>('images');
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
   const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
+  const [myVideos, setMyVideos] = useState<MyVideo[]>([]);
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
 
   // États pour les dossiers
@@ -393,12 +410,36 @@ export default function LibraryPage() {
     }
   }, [selectedFolder, searchQuery, showFavoritesOnly]);
 
+  const loadMyVideos = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedFolder) params.append('folderId', selectedFolder);
+      if (searchQuery) params.append('search', searchQuery);
+      if (showFavoritesOnly) params.append('favoritesOnly', 'true');
+
+      const res = await fetch(`/api/library/videos?${params}`, {
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setMyVideos(data.videos);
+      } else {
+        console.error('[Library] API error loading videos:', data.error);
+      }
+    } catch (error) {
+      console.error('[Library] Error loading videos:', error);
+    }
+  }, [selectedFolder, searchQuery, showFavoritesOnly]);
+
   // Recharger quand les filtres changent
   useEffect(() => {
     if (user) {
       loadImages();
+      loadMyVideos();
     }
-  }, [loadImages, user]);
+  }, [loadImages, loadMyVideos, user]);
 
   // Memoize filtered images for performance
   const filteredImages = useMemo(() => {
@@ -822,6 +863,95 @@ export default function LibraryPage() {
     }
   };
 
+  // === HANDLERS POUR VIDÉOS ===
+
+  const handleDeleteVideo = async (videoId: string) => {
+    try {
+      const res = await fetch(`/api/library/videos/${videoId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setMyVideos(prev => prev.filter(v => v.id !== videoId));
+      } else {
+        alert('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('[Library] Error deleting video:', error);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
+  const handleToggleVideoFavorite = async (videoId: string, isFavorite: boolean) => {
+    try {
+      const res = await fetch(`/api/library/videos/${videoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_favorite: isFavorite })
+      });
+
+      if (res.ok) {
+        setMyVideos(prev => prev.map(v =>
+          v.id === videoId ? { ...v, is_favorite: isFavorite } : v
+        ));
+      }
+    } catch (error) {
+      console.error('[Library] Error toggling favorite:', error);
+    }
+  };
+
+  const handlePublishVideoToTikTok = async (video: MyVideo) => {
+    try {
+      const res = await fetch('/api/library/tiktok/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoUrl: video.video_url,
+          caption: video.title || 'Vidéo TikTok',
+          hashtags: []
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        alert('✅ Vidéo publiée sur TikTok !');
+        // Mettre à jour le statut local
+        setMyVideos(prev => prev.map(v =>
+          v.id === video.id ? {
+            ...v,
+            published_to_tiktok: true,
+            tiktok_published_at: new Date().toISOString()
+          } : v
+        ));
+      } else {
+        alert(`❌ Erreur: ${data.error}`);
+      }
+    } catch (error: any) {
+      console.error('[Library] Error publishing to TikTok:', error);
+      alert(`❌ Erreur: ${error.message}`);
+    }
+  };
+
+  const handleVideoTitleEdit = async (videoId: string, newTitle: string) => {
+    try {
+      const res = await fetch(`/api/library/videos/${videoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+
+      if (res.ok) {
+        setMyVideos(prev => prev.map(v =>
+          v.id === videoId ? { ...v, title: newTitle } : v
+        ));
+      }
+    } catch (error) {
+      console.error('[Library] Error updating video title:', error);
+    }
+  };
+
   // Télécharger une image
   const downloadImage = async (imageUrl: string, title?: string) => {
     try {
@@ -1141,6 +1271,7 @@ export default function LibraryPage() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             imageCount={stats.total_images}
+            videoCount={myVideos.length}
             draftCount={stats.total_instagram_drafts}
             tiktokDraftCount={stats.total_tiktok_drafts}
             scheduledCount={scheduledPosts.length}
@@ -1200,6 +1331,15 @@ export default function LibraryPage() {
                         onTitleEdit={handleTitleEdit}
                       />
                     )
+                  ) : activeTab === 'videos' ? (
+                    <MyVideosTab
+                      videos={myVideos}
+                      onRefresh={loadMyVideos}
+                      onDelete={handleDeleteVideo}
+                      onToggleFavorite={handleToggleVideoFavorite}
+                      onPublishToTikTok={handlePublishVideoToTikTok}
+                      onTitleEdit={handleVideoTitleEdit}
+                    />
                   ) : activeTab === 'drafts' ? (
                     <InstagramDraftsTab
                       drafts={instagramDrafts}
@@ -1250,6 +1390,15 @@ export default function LibraryPage() {
                   onTitleEdit={handleTitleEdit}
                 />
               )
+            ) : activeTab === 'videos' ? (
+              <MyVideosTab
+                videos={[]}
+                onRefresh={() => {}}
+                onDelete={() => {}}
+                onToggleFavorite={() => {}}
+                onPublishToTikTok={() => {}}
+                onTitleEdit={() => {}}
+              />
             ) : activeTab === 'drafts' ? (
               <InstagramDraftsTab
                 drafts={[]}

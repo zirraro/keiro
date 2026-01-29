@@ -1,15 +1,16 @@
-export type Tab = 'images' | 'drafts' | 'tiktok-drafts' | 'calendar';
+export type Tab = 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   imageCount: number;
+  videoCount: number;
   draftCount: number;
   tiktokDraftCount: number;
   scheduledCount: number;
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, draftCount, tiktokDraftCount, scheduledCount }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, scheduledCount }: TabNavigationProps) {
   return (
     <div className="border-b border-neutral-200 mb-6">
       <div className="flex gap-8 overflow-x-auto">
@@ -21,7 +22,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, draf
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          Mes images
+          📸 Mes images
           {imageCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'images'
@@ -29,6 +30,26 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, draf
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {imageCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('videos')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'videos'
+              ? 'text-pink-600 border-b-2 border-pink-600'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          🎬 Mes vidéos
+          {videoCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'videos'
+                ? 'bg-pink-100 text-pink-700'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {videoCount}
             </span>
           )}
         </button>
