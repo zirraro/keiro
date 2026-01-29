@@ -1,4 +1,5 @@
 import BookDemoButton from '@/components/BookDemoButton';
+import AddContentButton from './AddContentButton';
 
 interface GalleryHeaderProps {
   user: any;
@@ -10,9 +11,10 @@ interface GalleryHeaderProps {
   };
   isGuest?: boolean;
   onUpload?: (files: FileList) => void;
+  onUploadComplete?: () => void;
 }
 
-export default function GalleryHeader({ user, stats, isGuest, onUpload }: GalleryHeaderProps) {
+export default function GalleryHeader({ user, stats, isGuest, onUpload, onUploadComplete }: GalleryHeaderProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0 && onUpload) {
@@ -38,21 +40,9 @@ export default function GalleryHeader({ user, stats, isGuest, onUpload }: Galler
 
         {/* Boutons d'action */}
         <div className="flex items-center gap-3">
-          {/* Bouton Upload (pour guests et users) */}
-          {(user || isGuest) && onUpload && (
-            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Ajouter des images</span>
-            </label>
+          {/* Bouton Ajouter du contenu (Images/Vidéos) */}
+          {(user || isGuest) && onUploadComplete && (
+            <AddContentButton onUploadComplete={onUploadComplete} />
           )}
 
           {/* Bouton Démo */}

@@ -3,8 +3,6 @@
  * Mirrors lib/meta.ts structure for Instagram
  */
 
-import { getVideoDurationInSeconds } from 'get-video-duration';
-
 const TIKTOK_API_BASE = 'https://open.tiktokapis.com';
 const TIKTOK_AUTH_BASE = 'https://www.tiktok.com';
 
@@ -603,29 +601,8 @@ export async function publishTikTokVideoViaFileUpload(
 
   console.log('[TikTok] Video downloaded, size:', videoSize, 'bytes');
   console.log('[TikTok] Video size (MB):', (videoSize / (1024 * 1024)).toFixed(2), 'MB');
-
-  // Step 1.5: Validate video duration (REQUIRED by TikTok guidelines)
-  console.log('[TikTok] === STEP 1.5: VALIDATE VIDEO DURATION ===');
-  try {
-    const videoDuration = await getVideoDurationInSeconds(videoBuffer);
-    console.log('[TikTok] Video duration:', videoDuration.toFixed(2), 'seconds');
-    console.log('[TikTok] Max allowed duration:', maxVideoDuration, 'seconds');
-
-    if (videoDuration > maxVideoDuration) {
-      console.error('[TikTok] ❌ Video duration exceeds maximum allowed');
-      throw new Error(
-        `Video duration (${videoDuration.toFixed(1)}s) exceeds TikTok's maximum of ${maxVideoDuration}s. Please use a shorter video.`
-      );
-    }
-
-    console.log('[TikTok] ✓ Video duration is within limits');
-  } catch (error: any) {
-    // If duration check fails (not a duration limit error), log but continue
-    if (error.message.includes('exceeds')) {
-      throw error; // Re-throw duration limit errors
-    }
-    console.warn('[TikTok] ⚠ Could not validate video duration, continuing anyway:', error.message);
-  }
+  console.log('[TikTok] ⚠ Duration validation skipped (requires native binaries incompatible with serverless)');
+  console.log('[TikTok] Max allowed duration from creator_info:', maxVideoDuration, 'seconds - TikTok will reject if exceeded');
 
   // Step 2: ADAPTIVE CHUNK CONFIGURATION
   // TikTok Requirements:

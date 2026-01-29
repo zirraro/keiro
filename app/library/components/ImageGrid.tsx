@@ -1,6 +1,7 @@
 import ImageCard from './ImageCard';
 import { PhotoIcon } from './Icons';
 import LoadingSkeleton from './LoadingSkeleton';
+import UploadZone from './UploadZone';
 
 type SavedImage = {
   id: string;
@@ -28,6 +29,7 @@ interface ImageGridProps {
   onOpenInstagram: (image: SavedImage) => void;
   onSchedule?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
+  onRefresh?: () => void;
 }
 
 export default function ImageGrid({
@@ -42,8 +44,32 @@ export default function ImageGrid({
   onDelete,
   onOpenInstagram,
   onSchedule,
-  onTitleEdit
+  onTitleEdit,
+  onRefresh
 }: ImageGridProps) {
+  const handleUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', file.name);
+    formData.append('saveToLibrary', 'true');
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || 'Upload failed');
+    }
+
+    // Refresh images list
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
   if (images.length === 0) {
     const isFiltering = searchQuery || selectedFolder || showFavoritesOnly;
 
@@ -90,8 +116,12 @@ export default function ImageGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {images.map((image) => (
+    <div className="space-y-4">
+      {/* Upload Zone */}
+      {user && <UploadZone type="image" onUpload={handleUpload} />}
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {images.map((image) => (
         <ImageCard
           key={image.id}
           image={image}
@@ -105,6 +135,7 @@ export default function ImageGrid({
           onTitleEdit={onTitleEdit}
         />
       ))}
+      </div>
     </div>
   );
 }

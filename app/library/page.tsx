@@ -29,7 +29,6 @@ import TikTokModal from './components/TikTokModal';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
 import MyVideosTab from './components/MyVideosTab';
 import AllCreationsTab from './components/AllCreationsTab';
-import AddContentButton from './components/AddContentButton';
 
 type SavedImage = {
   id: string;
@@ -1216,20 +1215,14 @@ export default function LibraryPage() {
         )}
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div className="flex-1">
-            <GalleryHeader
-              user={user}
-              stats={stats}
-              isGuest={isGuest}
-              onUpload={handleUpload}
-            />
-          </div>
-          {user && (
-            <div className="flex-shrink-0 pt-2">
-              <AddContentButton onUploadComplete={handleRefreshAll} />
-            </div>
-          )}
+        <div className="mb-6">
+          <GalleryHeader
+            user={user}
+            stats={stats}
+            isGuest={isGuest}
+            onUpload={handleUpload}
+            onUploadComplete={handleRefreshAll}
+          />
         </div>
 
         {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
@@ -1393,6 +1386,7 @@ export default function LibraryPage() {
                         onOpenInstagram={openPlatformChoiceModal}
                         onSchedule={openScheduleModal}
                         onTitleEdit={handleTitleEdit}
+                        onRefresh={loadImages}
                       />
                     )
                   ) : activeTab === 'videos' ? (
@@ -1468,6 +1462,7 @@ export default function LibraryPage() {
                   onOpenInstagram={openPlatformChoiceModal}
                   onSchedule={openScheduleModal}
                   onTitleEdit={handleTitleEdit}
+                  onRefresh={loadImages}
                 />
               )
             ) : activeTab === 'videos' ? (
