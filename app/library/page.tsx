@@ -1457,9 +1457,9 @@ export default function LibraryPage() {
                 videos={[]}
                 folders={[]}
                 onRefresh={() => {}}
-                onToggleFavorite={toggleFavorite}
-                onTitleEdit={handleTitleEdit}
-                onDelete={deleteImage}
+                onToggleFavorite={(id, type, isFavorite) => toggleFavorite(id, !isFavorite)}
+                onTitleEdit={(id, type, newTitle) => handleTitleEdit(id, newTitle)}
+                onDelete={(id, type) => deleteImage(id)}
                 onPublish={(item, platform) => {
                   if (item.type === 'image') {
                     openPlatformChoiceModal(images.find(img => img.id === item.id)!);
