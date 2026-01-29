@@ -62,8 +62,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
 
-  // NEW: Tab switching state (Images/Videos)
-  const [activeTab, setActiveTab] = useState<'images' | 'videos'>(video ? 'videos' : 'images');
+  // NEW: Tab switching state (Images/Videos) - Default to videos
+  const [activeTab, setActiveTab] = useState<'images' | 'videos'>('videos');
 
   // États pour la galerie IMAGES
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -587,16 +587,17 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
     window.location.href = '/api/auth/tiktok-oauth';
   };
 
-  if (!selectedImage && !loadingImages) {
+  // Only show "no content" error if no images AND no videos AND loading finished
+  if (!selectedImage && !selectedVideo && !loadingImages && !loadingVideos) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
             <span className="text-3xl">🎵</span>
           </div>
-          <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucune image disponible</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">Aucun contenu disponible</h3>
           <p className="text-neutral-600 text-sm mb-6">
-            Ajoutez des images à votre galerie pour créer des posts TikTok
+            Ajoutez des images ou vidéos à votre galerie pour créer des posts TikTok
           </p>
           <button
             onClick={onClose}
@@ -631,19 +632,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
           </button>
         </div>
 
-        {/* TAB SWITCHER - Images/Videos */}
+        {/* TAB SWITCHER - Videos/Images (Videos first) */}
         <div className="border-b border-neutral-200 bg-neutral-50 px-4 sm:px-6 py-2">
           <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('images')}
-              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                activeTab === 'images'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
-                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
-              }`}
-            >
-              📸 Images ({availableImages.length})
-            </button>
             <button
               onClick={() => setActiveTab('videos')}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
@@ -653,6 +644,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
               }`}
             >
               🎬 Vidéos ({availableVideos.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('images')}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'images'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              📸 Images ({availableImages.length})
             </button>
           </div>
         </div>

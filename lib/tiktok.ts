@@ -534,8 +534,18 @@ export async function publishTikTokVideoViaFileUpload(
       // Perfect division, no remainder
       totalChunkCount = completeChunks;
     } else if (remainder < MIN_CHUNK_SIZE) {
-      // Remainder < 5MB: merge with last chunk (TikTok requirement)
-      // So we have completeChunks total, with the last one being larger
+      // Remainder < 5MB: merge with last chunk
+      // CRITICAL: Adjust chunkSize so last chunk doesn't exceed declared chunk_size
+      // TikTok requires all chunks except last to be exactly chunk_size
+      // and last chunk must be <= chunk_size
+      const adjustedChunkSize = Math.ceil(videoSize / completeChunks);
+
+      // Ensure adjusted chunk size doesn't exceed maximum
+      if (adjustedChunkSize > MAX_CHUNK_SIZE) {
+        throw new Error(`Adjusted chunk size ${adjustedChunkSize} exceeds maximum ${MAX_CHUNK_SIZE}`);
+      }
+
+      chunkSize = adjustedChunkSize;
       totalChunkCount = completeChunks;
     } else {
       // Remainder >= 5MB: it becomes its own chunk
