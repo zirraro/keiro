@@ -338,7 +338,7 @@ export default function Header() {
 
                     {/* TikTok Connection Status */}
                     <div className="px-4 py-2 text-sm">
-                      {profile.tiktok_username ? (
+                      {profile.tiktok_user_id ? (
                         <div>
                           <Link
                             href="/library"
@@ -350,7 +350,9 @@ export default function Header() {
                             </svg>
                             <div className="flex flex-col">
                               <span className="font-medium">TikTok connecté</span>
-                              <span className="text-xs text-neutral-500">@{profile.tiktok_username} • Voir aperçu</span>
+                              <span className="text-xs text-neutral-500">
+                                {profile.tiktok_username ? `@${profile.tiktok_username}` : 'Compte connecté'} • Voir aperçu
+                              </span>
                             </div>
                           </Link>
                           <button

@@ -31,6 +31,7 @@ export async function POST() {
       .update({
         tiktok_user_id: null,
         tiktok_username: null,
+        tiktok_display_name: null,
         tiktok_access_token: null,
         tiktok_refresh_token: null,
         tiktok_token_expiry: null,
