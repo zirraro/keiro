@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
 import TikTokRequirementsInfo from './TikTokRequirementsInfo';
+import { convertVideoForTikTok, isFFmpegSupported } from '@/lib/ffmpegConverter';
 
 type SavedImage = {
   id: string;
@@ -65,6 +66,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
 
   // NEW: Tab switching state (Images/Videos) - Default to videos
   const [activeTab, setActiveTab] = useState<'images' | 'videos'>('videos');
+
+  // États pour la conversion vidéo
+  const [converting, setConverting] = useState(false);
+  const [conversionProgress, setConversionProgress] = useState(0);
+  const [conversionStage, setConversionStage] = useState('');
 
   // États pour la galerie IMAGES
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -590,10 +596,106 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
-    // STEP 2: Confirm with user
+    // STEP 2: Convert video to TikTok-compatible format (CLIENT-SIDE with FFmpeg.wasm)
+    console.log('[TikTokModal] Converting video to TikTok format using FFmpeg.wasm...');
+    let tiktokReadyVideoUrl = videoUrlToPublish;
+
+    // Check if FFmpeg.wasm is supported
+    if (!isFFmpegSupported()) {
+      const proceed = window.confirm(
+        '⚠️ Conversion automatique non disponible\n\n' +
+        'Votre navigateur ne supporte pas FFmpeg.wasm (SharedArrayBuffer requis).\n\n' +
+        'Votre vidéo pourrait ne pas être compatible TikTok.\n\n' +
+        'Voulez-vous continuer quand même ?'
+      );
+
+      if (!proceed) {
+        setPublishing(false);
+        return;
+      }
+    } else {
+      // Convert video using FFmpeg.wasm
+      try {
+        setConverting(true);
+        setConversionProgress(0);
+        setConversionStage('Initialisation...');
+
+        console.log('[TikTokModal] Starting client-side conversion...');
+
+        const convertedBlobUrl = await convertVideoForTikTok(
+          videoUrlToPublish,
+          (progress, stage) => {
+            setConversionProgress(Math.round(progress * 100));
+            setConversionStage(stage);
+          }
+        );
+
+        console.log('[TikTokModal] ✅ Conversion completed, blob URL:', convertedBlobUrl);
+
+        // Upload converted blob to Supabase Storage for stable URL
+        setConversionStage('Upload vers Supabase...');
+
+        const blobResponse = await fetch(convertedBlobUrl);
+        const blob = await blobResponse.blob();
+
+        const fileName = `tiktok-converted-${Date.now()}.mp4`;
+        const filePath = `tiktok-converted/${fileName}`;
+
+        const supabase = supabaseBrowser();
+
+        const { data: uploadData, error: uploadError } = await supabase
+          .storage
+          .from('generated-images')
+          .upload(filePath, blob, {
+            contentType: 'video/mp4',
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw new Error(`Upload échoué: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = supabase
+          .storage
+          .from('generated-images')
+          .getPublicUrl(filePath);
+
+        tiktokReadyVideoUrl = urlData.publicUrl;
+
+        console.log('[TikTokModal] ✅ Converted video uploaded to Supabase:', tiktokReadyVideoUrl);
+
+        // Cleanup blob URL
+        URL.revokeObjectURL(convertedBlobUrl);
+
+        setConverting(false);
+        setConversionProgress(100);
+        setConversionStage('Conversion terminée!');
+
+      } catch (conversionError: any) {
+        console.error('[TikTokModal] Conversion error:', conversionError);
+        setConverting(false);
+
+        const proceed = window.confirm(
+          '⚠️ Échec de la conversion automatique\n\n' +
+          `Erreur: ${conversionError.message}\n\n` +
+          'Voulez-vous tenter la publication avec la vidéo originale ?\n' +
+          '(Peut échouer si format incompatible)'
+        );
+
+        if (!proceed) {
+          setPublishing(false);
+          return;
+        }
+
+        console.log('[TikTokModal] Proceeding with original video URL');
+      }
+    }
+
+    // STEP 3: Confirm with user
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '✅ Vidéo validée et prête\n' +
+      '✅ Vidéo validée et convertie\n' +
       '🚀 La vidéo sera publiée immédiatement\n\n' +
       'Continuer ?'
     );
@@ -603,9 +705,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
-    // STEP 3: Publish to TikTok
+    // STEP 4: Publish to TikTok
     try {
-      console.log('[TikTokModal] Publishing to TikTok with URL:', videoUrlToPublish);
+      console.log('[TikTokModal] Publishing to TikTok with URL:', tiktokReadyVideoUrl);
 
       const response = await fetch('/api/library/tiktok/publish', {
         method: 'POST',
@@ -614,7 +716,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
         },
         credentials: 'include',
         body: JSON.stringify({
-          videoUrl: videoUrlToPublish,
+          videoUrl: tiktokReadyVideoUrl,
           caption,
           hashtags
         })
@@ -1152,15 +1254,21 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
               <>
                 <button
                   onClick={handlePublishNow}
-                  disabled={publishing || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)}
+                  disabled={publishing || converting || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)}
                   className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                    publishing || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)
+                    publishing || converting || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
                   }`}
                   title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? 'Générez d\'abord la vidéo avec IA' : ''}
                 >
-                  {publishing ? (
+                  {converting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="hidden sm:inline">Conversion {conversionProgress}%</span>
+                      <span className="sm:hidden">{conversionProgress}%</span>
+                    </>
+                  ) : publishing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>Publication...</span>
@@ -1210,6 +1318,29 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                   </>
                 )}
               </button>
+            )}
+
+            {/* Barre de progression de conversion */}
+            {converting && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">
+                    🎬 {conversionStage}
+                  </span>
+                  <span className="text-sm font-bold text-blue-900">
+                    {conversionProgress}%
+                  </span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${conversionProgress}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-xs text-blue-700">
+                  💡 La conversion peut prendre 10-30 secondes selon la taille de la vidéo
+                </p>
+              </div>
             )}
           </div>
         </div>

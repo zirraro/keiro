@@ -241,11 +241,58 @@ async function checkTaskStatus(taskId: string) {
 
       if (videoUrl) {
         console.log('[Seedream I2V] Video ready:', videoUrl);
-        return Response.json({
-          ok: true,
-          status: 'completed',
-          videoUrl: videoUrl
-        });
+
+        // CONVERSION AUTOMATIQUE POUR TIKTOK
+        // Convertir la vidéo en format TikTok-compatible (H.264 + AAC)
+        console.log('[Seedream I2V] Starting automatic TikTok conversion...');
+
+        try {
+          const conversionResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/convert-video-tiktok`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ videoUrl })
+          });
+
+          const conversionData = await conversionResponse.json();
+
+          if (conversionData.ok && conversionData.convertedUrl) {
+            console.log('[Seedream I2V] Conversion successful, TikTok-ready URL:', conversionData.convertedUrl);
+
+            return Response.json({
+              ok: true,
+              status: 'completed',
+              videoUrl: conversionData.convertedUrl,
+              originalVideoUrl: videoUrl,
+              tiktokReady: true,
+              conversionMethod: conversionData.method
+            });
+          } else {
+            console.warn('[Seedream I2V] Conversion failed or not available:', conversionData.error);
+            console.log('[Seedream I2V] Returning original video URL (may not be TikTok-compatible)');
+
+            // Fallback: retourner la vidéo originale avec un avertissement
+            return Response.json({
+              ok: true,
+              status: 'completed',
+              videoUrl: videoUrl,
+              tiktokReady: false,
+              conversionWarning: conversionData.error || 'Conversion automatique non disponible',
+              conversionInstructions: conversionData.instructions
+            });
+          }
+        } catch (conversionError: any) {
+          console.error('[Seedream I2V] Conversion error:', conversionError.message);
+          console.log('[Seedream I2V] Returning original video URL');
+
+          // En cas d'erreur, retourner la vidéo originale
+          return Response.json({
+            ok: true,
+            status: 'completed',
+            videoUrl: videoUrl,
+            tiktokReady: false,
+            conversionError: 'Conversion automatique échouée - utilisez FFmpeg manuellement'
+          });
+        }
       } else {
         console.log('[Seedream I2V] ====== DEBUG: Status completed but no video URL ======');
         console.log('[Seedream I2V] Full data:', JSON.stringify(data, null, 2));
