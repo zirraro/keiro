@@ -47,6 +47,13 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
     setProgress(0);
 
     try {
+      // Validation côté client AVANT l'upload
+      const maxSize = type === 'image' ? 8 * 1024 * 1024 : 50 * 1024 * 1024; // 8MB images, 50MB videos
+      if (file.size > maxSize) {
+        const maxSizeMB = type === 'image' ? '8MB' : '50MB';
+        throw new Error(`Fichier trop volumineux. Taille max: ${maxSizeMB}`);
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('title', file.name);
@@ -72,12 +79,26 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
           }));
         });
 
-        xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+        xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
 
         xhr.open('POST', endpoint);
         xhr.send(formData);
       });
+
+      // Gérer les erreurs HTTP (413, 500, etc.)
+      if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error('Fichier trop volumineux pour le serveur');
+        }
+        // Tenter de parser le JSON d'erreur
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Erreur serveur');
+        } catch (jsonError) {
+          throw new Error(`Erreur serveur (${response.status})`);
+        }
+      }
 
       const data = await response.json();
 
@@ -162,7 +183,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
             <span className="text-2xl">🎬</span>
             <div>
               <div className="text-sm font-semibold text-neutral-900">Ajouter une vidéo</div>
-              <div className="text-xs text-neutral-500">MP4, MOV, WebM (max 100MB)</div>
+              <div className="text-xs text-neutral-500">MP4, MOV, WebM (max 50MB)</div>
             </div>
           </button>
         </div>

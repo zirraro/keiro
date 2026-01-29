@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+// Configuration pour augmenter la limite de body size (Vercel Pro max: 50MB)
+export const maxDuration = 60; // 60 secondes max pour l'upload
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/upload-video
  * Upload user videos to Supabase Storage and save metadata to my_videos
@@ -32,11 +36,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Validate file type and size
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    const maxSize = 50 * 1024 * 1024; // 50MB (limite Vercel)
     if (file.size > maxSize) {
       return NextResponse.json(
-        { ok: false, error: `Fichier trop volumineux (max 100MB)` },
-        { status: 400 }
+        { ok: false, error: `Fichier trop volumineux (max 50MB)` },
+        { status: 413 }
       );
     }
 
