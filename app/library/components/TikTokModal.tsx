@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
+import TikTokRequirementsInfo from './TikTokRequirementsInfo';
 
 type SavedImage = {
   id: string;
@@ -520,29 +521,90 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
+    // Determine video URL based on active tab
+    let videoUrlToPublish: string;
+    if (activeTab === 'videos' && selectedVideo) {
+      videoUrlToPublish = selectedVideo.video_url;
+    } else if (activeTab === 'images' && selectedImage) {
+      videoUrlToPublish = videoPreview || selectedImage.image_url;
+    } else {
+      throw new Error('No video selected');
+    }
+
+    // STEP 1: Validate video before attempting publish
+    console.log('[TikTokModal] Validating video before publish:', videoUrlToPublish);
+    setPublishing(true);
+
+    try {
+      const validateResponse = await fetch('/api/library/tiktok/validate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: videoUrlToPublish })
+      });
+
+      const validateData = await validateResponse.json();
+
+      if (!validateData.ok) {
+        setPublishing(false);
+        alert(
+          '❌ Erreur de validation vidéo\n\n' +
+          `${validateData.error}\n\n` +
+          'Veuillez réessayer avec une autre vidéo.'
+        );
+        return;
+      }
+
+      // Check validation results
+      if (!validateData.isValid) {
+        setPublishing(false);
+        const errorMessage = validateData.errors.join('\n• ');
+        alert(
+          '⚠️ Vidéo non conforme aux exigences TikTok\n\n' +
+          `Problèmes détectés:\n• ${errorMessage}\n\n` +
+          'TikTok exige:\n' +
+          '• Format: MP4, MOV, WebM ou AVI\n' +
+          '• Taille: 100KB - 100MB\n' +
+          '• Durée: 3 secondes minimum\n' +
+          '• Codec: H.264 + AAC (audio obligatoire)\n' +
+          '• Résolution: 540p - 1080p\n\n' +
+          'Veuillez utiliser une vidéo conforme ou contactez le support.'
+        );
+        return;
+      }
+
+      // Show warnings if any
+      if (validateData.warnings && validateData.warnings.length > 0) {
+        console.warn('[TikTokModal] Validation warnings:', validateData.warnings);
+      }
+
+      console.log('[TikTokModal] ✅ Video validation passed');
+
+    } catch (validationError: any) {
+      console.error('[TikTokModal] Validation error:', validationError);
+      setPublishing(false);
+      alert(
+        '❌ Impossible de valider la vidéo\n\n' +
+        `${validationError.message}\n\n` +
+        'Veuillez réessayer ou contacter le support.'
+      );
+      return;
+    }
+
+    // STEP 2: Confirm with user
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '✅ Votre vidéo est prête\n' +
-      '🚀 La vidéo sera publiée immédiatement sur TikTok\n\n' +
+      '✅ Vidéo validée et prête\n' +
+      '🚀 La vidéo sera publiée immédiatement\n\n' +
       'Continuer ?'
     );
 
-    if (!confirm) return;
+    if (!confirm) {
+      setPublishing(false);
+      return;
+    }
 
-    setPublishing(true);
+    // STEP 3: Publish to TikTok
     try {
-      // Determine video URL based on active tab
-      let videoUrlToPublish: string;
-      if (activeTab === 'videos' && selectedVideo) {
-        // Using a video from my_videos table
-        videoUrlToPublish = selectedVideo.video_url;
-      } else if (activeTab === 'images' && selectedImage) {
-        // Using an image (with or without generated video)
-        videoUrlToPublish = videoPreview || selectedImage.image_url;
-      } else {
-        throw new Error('No video selected');
-      }
-
       console.log('[TikTokModal] Publishing to TikTok with URL:', videoUrlToPublish);
 
       const response = await fetch('/api/library/tiktok/publish', {
@@ -1079,6 +1141,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                 <span>Brouillon</span>
               )}
             </button>
+
+            {/* Info TikTok Requirements */}
+            <div className="col-span-2 flex justify-center">
+              <TikTokRequirementsInfo />
+            </div>
 
             {/* Boutons de publication TikTok (seulement si connecté) - Format aligné avec Instagram */}
             {isTikTokConnected ? (

@@ -108,24 +108,75 @@ export async function POST(req: NextRequest) {
       ? caption + '\n\n' + (hashtags || []).map((tag: string) => '#' + tag).join(' ')
       : (hashtags || []).map((tag: string) => '#' + tag).join(' ') || 'Video TikTok';
 
-    console.log('[TikTokPublish] Using FILE_UPLOAD method (required for Supabase URLs)');
+    console.log('[TikTokPublish] ===== STARTING TIKTOK PUBLICATION =====');
+    console.log('[TikTokPublish] Method: FILE_UPLOAD (required for Supabase URLs)');
     console.log('[TikTokPublish] Video URL:', videoUrl);
-    console.log('[TikTokPublish] Caption:', finalCaption.substring(0, 100));
+    console.log('[TikTokPublish] Video URL domain:', new URL(videoUrl).hostname);
+    console.log('[TikTokPublish] Caption length:', finalCaption.length, 'chars');
+    console.log('[TikTokPublish] Caption preview:', finalCaption.substring(0, 100));
+    console.log('[TikTokPublish] Hashtags:', hashtags);
 
     // Use FILE_UPLOAD method instead of PULL_FROM_URL
     // Required because Supabase Storage domain cannot be verified with TikTok
     // This method downloads the video and uploads it directly to TikTok servers
-    const publishResult = await publishTikTokVideoViaFileUpload(
-      accessToken,
-      videoUrl,
-      finalCaption,
-      {
-        disable_duet: false,
-        disable_comment: false,
-        disable_stitch: false,
-        video_cover_timestamp_ms: 1000
+    let publishResult;
+    try {
+      publishResult = await publishTikTokVideoViaFileUpload(
+        accessToken,
+        videoUrl,
+        finalCaption,
+        {
+          disable_duet: false,
+          disable_comment: false,
+          disable_stitch: false,
+          video_cover_timestamp_ms: 1000
+        }
+      );
+    } catch (publishError: any) {
+      console.error('[TikTokPublish] ❌ PUBLICATION FAILED');
+      console.error('[TikTokPublish] Error type:', publishError.constructor.name);
+      console.error('[TikTokPublish] Error message:', publishError.message);
+      console.error('[TikTokPublish] Error stack:', publishError.stack);
+
+      // Enhanced error messages for common issues
+      let userMessage = publishError.message;
+
+      if (publishError.message.includes('chunk') || publishError.message.includes('size')) {
+        userMessage =
+          '❌ Erreur de taille de vidéo\n\n' +
+          'La vidéo ne respecte pas les contraintes de taille TikTok.\n\n' +
+          'Solutions:\n' +
+          '• Réduisez la taille de votre vidéo (< 100MB)\n' +
+          '• Compressez la vidéo avec un outil comme HandBrake\n' +
+          '• Consultez TIKTOK_REQUIREMENTS.md';
+      } else if (publishError.message.includes('Content Sharing') || publishError.message.includes('guidelines')) {
+        userMessage =
+          '❌ Vidéo non conforme aux exigences TikTok\n\n' +
+          'TikTok a rejeté votre vidéo. Causes possibles:\n' +
+          '• Codec vidéo incorrect (doit être H.264)\n' +
+          '• Audio manquant ou codec incorrect (doit être AAC)\n' +
+          '• Format non supporté\n' +
+          '• Durée < 3 secondes\n' +
+          '• Résolution non supportée\n\n' +
+          'Solution: Réencodez votre vidéo avec FFmpeg:\n' +
+          'ffmpeg -i input.mp4 -c:v libx264 -c:a aac -b:a 128k output.mp4\n\n' +
+          'Consultez TIKTOK_REQUIREMENTS.md pour le guide complet';
+      } else if (publishError.message.includes('daily limit') || publishError.message.includes('quota')) {
+        userMessage =
+          '❌ Limite quotidienne atteinte\n\n' +
+          'Vous avez atteint la limite de publications TikTok pour aujourd\'hui (environ 15 posts).\n\n' +
+          'Réessayez demain.';
+      } else if (publishError.message.includes('duration') || publishError.message.includes('too long') || publishError.message.includes('too short')) {
+        userMessage =
+          '❌ Durée de vidéo non valide\n\n' +
+          'TikTok exige:\n' +
+          '• Durée minimum: 3 secondes\n' +
+          '• Durée maximum: variable selon compte (typiquement 10 minutes)\n\n' +
+          'Vérifiez la durée de votre vidéo.';
       }
-    );
+
+      throw new Error(userMessage);
+    }
 
     console.log('[TikTokPublish] Video published:', {
       publish_id: publishResult.publish_id
