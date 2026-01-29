@@ -1,6 +1,8 @@
 export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { uploadPublicBlob } from "@/lib/blob";
+import { createClient } from '@supabase/supabase-js';
+import { getAuthUser } from '@/lib/auth-server';
 
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
 const ALLOWED = ["image/jpeg","image/jpg","image/png","image/webp","image/gif","image/svg+xml"];
@@ -28,6 +30,31 @@ export async function POST(req: NextRequest) {
     const filename = `upload-${Date.now()}.${ext}`;
 
     const url = await uploadPublicBlob({ filename, content: buf, contentType: type });
+
+    // Optional: Save to library if requested
+    const saveToLibrary = form.get("saveToLibrary") === "true";
+    const title = form.get("title") as string | null;
+    const folderId = form.get("folderId") as string | null;
+
+    if (saveToLibrary) {
+      // Get authenticated user
+      const { user, error: authError } = await getAuthUser();
+
+      if (!authError && user) {
+        // Initialize Supabase
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Insert into saved_images
+        await supabase.from('saved_images').insert({
+          user_id: user.id,
+          image_url: url,
+          title: title || file.name,
+          folder_id: folderId || null
+        });
+      }
+    }
 
     return new Response(JSON.stringify({ ok:true, url }), {
       status: 200, headers: { "content-type":"application/json" }

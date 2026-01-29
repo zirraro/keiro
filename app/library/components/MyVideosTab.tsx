@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import UploadZone from './UploadZone';
 
 type MyVideo = {
   id: string;
@@ -91,8 +92,32 @@ export default function MyVideosTab({
     return date.toLocaleDateString('fr-FR');
   };
 
+  const handleUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', file.name);
+
+    const response = await fetch('/api/upload-video', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || 'Upload failed');
+    }
+
+    // Refresh videos list
+    onRefresh();
+  };
+
   return (
     <div className="space-y-4">
+      {/* Upload Zone */}
+      <UploadZone type="video" onUpload={handleUpload} />
+
       {/* Header avec recherche et filtres */}
       <div className="bg-white rounded-xl border border-neutral-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">

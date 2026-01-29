@@ -1,4 +1,4 @@
-export type Tab = 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'calendar';
+export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
@@ -11,9 +11,31 @@ interface TabNavigationProps {
 }
 
 export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, scheduledCount }: TabNavigationProps) {
+  const totalCount = imageCount + videoCount;
+
   return (
     <div className="border-b border-neutral-200 mb-6">
       <div className="flex gap-8 overflow-x-auto">
+        <button
+          onClick={() => onTabChange('all-creations')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'all-creations'
+              ? 'text-orange-600 border-b-2 border-orange-600'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          🎨 Toutes mes créations
+          {totalCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'all-creations'
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {totalCount}
+            </span>
+          )}
+        </button>
+
         <button
           onClick={() => onTabChange('images')}
           className={`pb-4 px-2 font-semibold transition-all relative ${
