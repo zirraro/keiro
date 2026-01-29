@@ -28,6 +28,8 @@ import TikTokConnectionModal from './components/TikTokConnectionModal';
 import TikTokModal from './components/TikTokModal';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
 import MyVideosTab from './components/MyVideosTab';
+import AllCreationsTab from './components/AllCreationsTab';
+import AddContentButton from './components/AddContentButton';
 
 type SavedImage = {
   id: string;
@@ -970,6 +972,63 @@ export default function LibraryPage() {
     }
   };
 
+  // === HANDLERS UNIFIÉS POUR ALLCREATIONSTAB ===
+
+  const handleUnifiedToggleFavorite = async (id: string, type: 'image' | 'video', isFavorite: boolean) => {
+    if (type === 'image') {
+      await toggleFavorite(id, !isFavorite);
+    } else {
+      await handleToggleVideoFavorite(id, isFavorite);
+    }
+  };
+
+  const handleUnifiedTitleEdit = async (id: string, type: 'image' | 'video', newTitle: string) => {
+    if (type === 'image') {
+      await handleTitleEdit(id, newTitle);
+    } else {
+      await handleVideoTitleEdit(id, newTitle);
+    }
+  };
+
+  const handleUnifiedDelete = async (id: string, type: 'image' | 'video') => {
+    if (type === 'image') {
+      await deleteImage(id);
+    } else {
+      await handleDeleteVideo(id);
+    }
+  };
+
+  const handleUnifiedPublish = async (item: any, platform: 'instagram' | 'tiktok') => {
+    if (platform === 'instagram' && item.type === 'image') {
+      // Publier image sur Instagram
+      const image: SavedImage = images.find(img => img.id === item.id)!;
+      openInstagramModal(image);
+    } else if (platform === 'tiktok') {
+      // Publier sur TikTok (image ou vidéo)
+      if (item.type === 'image') {
+        const image: SavedImage = images.find(img => img.id === item.id)!;
+        setSelectedImageForInsta(image);
+        setShowTikTokModal(true);
+      } else {
+        const video: MyVideo = myVideos.find(v => v.id === item.id)!;
+        await handlePublishVideoToTikTok(video);
+      }
+    }
+  };
+
+  const handleUnifiedDownload = async (item: any) => {
+    const filename = item.type === 'image'
+      ? `${item.title || 'keiro-image'}.png`
+      : `${item.title || 'keiro-video'}.mp4`;
+
+    await downloadImage(item.url, filename);
+  };
+
+  const handleRefreshAll = async () => {
+    await loadImages();
+    await loadMyVideos();
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center">
@@ -1146,12 +1205,21 @@ export default function LibraryPage() {
         )}
 
         {/* Header */}
-        <GalleryHeader
-          user={user}
-          stats={stats}
-          isGuest={isGuest}
-          onUpload={handleUpload}
-        />
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="flex-1">
+            <GalleryHeader
+              user={user}
+              stats={stats}
+              isGuest={isGuest}
+              onUpload={handleUpload}
+            />
+          </div>
+          {user && (
+            <div className="flex-shrink-0 pt-2">
+              <AddContentButton onUploadComplete={handleRefreshAll} />
+            </div>
+          )}
+        </div>
 
         {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
         {user && activeTab === 'images' && (
@@ -1312,7 +1380,19 @@ export default function LibraryPage() {
               {/* Contenu principal */}
               <div className="flex-1 min-w-0">
                 <ErrorBoundary>
-                  {activeTab === 'images' ? (
+                  {activeTab === 'all-creations' ? (
+                    <AllCreationsTab
+                      images={images}
+                      videos={myVideos}
+                      folders={folders}
+                      onRefresh={handleRefreshAll}
+                      onToggleFavorite={handleUnifiedToggleFavorite}
+                      onTitleEdit={handleUnifiedTitleEdit}
+                      onDelete={handleUnifiedDelete}
+                      onPublish={handleUnifiedPublish}
+                      onDownload={handleUnifiedDownload}
+                    />
+                  ) : activeTab === 'images' ? (
                     loadingImages ? (
                       <LoadingSkeleton />
                     ) : (
@@ -1371,7 +1451,23 @@ export default function LibraryPage() {
         ) : (
           /* Mode visiteur - pas de drag & drop */
           <ErrorBoundary>
-            {activeTab === 'images' ? (
+            {activeTab === 'all-creations' ? (
+              <AllCreationsTab
+                images={images}
+                videos={[]}
+                folders={[]}
+                onRefresh={() => {}}
+                onToggleFavorite={toggleFavorite}
+                onTitleEdit={handleTitleEdit}
+                onDelete={deleteImage}
+                onPublish={(item, platform) => {
+                  if (item.type === 'image') {
+                    openPlatformChoiceModal(images.find(img => img.id === item.id)!);
+                  }
+                }}
+                onDownload={handleUnifiedDownload}
+              />
+            ) : activeTab === 'images' ? (
               loadingImages ? (
                 <LoadingSkeleton />
               ) : (

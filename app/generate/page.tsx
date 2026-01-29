@@ -238,6 +238,7 @@ export default function GeneratePage() {
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
   const [videoProgress, setVideoProgress] = useState<string>('');
+  const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
@@ -1379,6 +1380,107 @@ export default function GeneratePage() {
     }
   }
 
+  async function saveVideoToLibrary() {
+    if (!generatedVideoUrl) {
+      console.error('[SaveVideoToLibrary] Missing video URL');
+      return;
+    }
+
+    setSavingToLibrary(true);
+
+    try {
+      // Utiliser supabaseBrowser pour avoir accès à la session
+      const supabaseClient = supabaseBrowser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      if (!user) {
+        alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+        setSavingToLibrary(false);
+        return;
+      }
+
+      console.log('[SaveVideoToLibrary] Saving video to library...');
+
+      // Payload pour la vidéo (déjà uploadée par Seedream)
+      const payload = {
+        videoUrl: generatedVideoUrl,
+        title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
+        sourceType: 'seedream_i2v',
+        duration: 5,
+        thumbnailUrl: generatedImageUrl || null,
+        originalImageId: null,
+        folderId: null
+      };
+
+      console.log('[SaveVideoToLibrary] Payload:', payload);
+
+      // Obtenir le token de session pour l'authentification
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+        console.log('[SaveVideoToLibrary] Sending with auth token');
+      } else {
+        console.warn('[SaveVideoToLibrary] No session token available');
+      }
+
+      const response = await fetch('/api/library/save-video', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+
+      let data;
+      try {
+        console.log('[SaveVideoToLibrary] Response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[SaveVideoToLibrary] Server error:', errorText);
+          throw new Error(`Erreur serveur (${response.status}): ${errorText.substring(0, 100)}`);
+        }
+
+        data = await response.json();
+      } catch (jsonError: any) {
+        console.error('[SaveVideoToLibrary] Error:', jsonError);
+        throw new Error(jsonError.message || 'Erreur lors de la sauvegarde');
+      }
+
+      if (data.ok) {
+        setVideoSavedToLibrary(true);
+        console.log('[SaveVideoToLibrary] ✅ Video saved to library:', data.video.id);
+
+        // Afficher notification de succès (toast simple)
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+        toast.innerHTML = `
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Vidéo sauvegardée dans votre galerie !</span>
+          </div>
+        `;
+        document.body.appendChild(toast);
+
+        // Supprimer le toast après 3 secondes
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    } catch (error: any) {
+      console.error('[SaveVideoToLibrary] ❌ Error:', error);
+      alert(error.message || 'Erreur lors de la sauvegarde de la vidéo dans la galerie');
+    } finally {
+      setSavingToLibrary(false);
+    }
+  }
+
   // Génération de vidéo avec Seedream/SeedDance
   async function handleGenerateVideo() {
     if (!selectedNews || !businessType.trim()) return;
@@ -2366,10 +2468,15 @@ export default function GeneratePage() {
                     Télécharger
                   </a>
                   <button
-                    onClick={() => setShowSubscriptionModal(true)}
-                    className="flex-1 py-2 text-xs bg-cyan-600 text-white text-center rounded hover:bg-cyan-700 transition-colors"
+                    onClick={saveVideoToLibrary}
+                    disabled={videoSavedToLibrary || savingToLibrary}
+                    className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
+                      videoSavedToLibrary
+                        ? 'bg-green-600 cursor-default'
+                        : 'bg-cyan-600 hover:bg-cyan-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    Enregistrer dans ma galerie (pro)
+                    {savingToLibrary ? 'Sauvegarde...' : videoSavedToLibrary ? '✓ Sauvegardé' : '📁 Enregistrer dans ma galerie'}
                   </button>
                   <button
                     onClick={() => setGeneratedVideoUrl(null)}
