@@ -1088,7 +1088,7 @@ export default function GeneratePage() {
               }
 
               // WATERMARK en bas à droite
-              if (isUserFreemium || true) {
+              if (isUserFreemium) {
                 const watermarkText = 'KeiroAI';
                 const fontSize = Math.max(36, Math.floor(img.width * 0.03)); // Réduit à 3%
                 const padding = Math.floor(img.width * 0.02);
@@ -1407,7 +1407,7 @@ export default function GeneratePage() {
         title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
         sourceType: 'seedream_i2v',
         duration: 5,
-        thumbnailUrl: generatedImageUrl || null,
+        thumbnailUrl: null, // Ne pas envoyer base64 data URL (payload trop large)
         originalImageId: null,
         folderId: null
       };
