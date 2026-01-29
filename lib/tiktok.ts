@@ -510,7 +510,7 @@ export async function publishTikTokVideoViaFileUpload(
 
   console.log('[TikTok] Video downloaded, size:', videoSize, 'bytes');
 
-  // Step 2: Determine chunk configuration
+  // Step 2: Determine chunk configuration (following TikTok rules)
   const MIN_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB minimum
   const MAX_CHUNK_SIZE = 64 * 1024 * 1024; // 64MB maximum
   const PREFERRED_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB preferred
@@ -523,20 +523,31 @@ export async function publishTikTokVideoViaFileUpload(
     chunkSize = videoSize;
     totalChunkCount = 1;
   } else {
-    // Use preferred chunk size, adjust if needed
+    // Use preferred chunk size
     chunkSize = PREFERRED_CHUNK_SIZE;
-    totalChunkCount = Math.floor(videoSize / chunkSize);
 
-    // If there's a remainder, it becomes the last chunk
-    if (videoSize % chunkSize !== 0) {
-      totalChunkCount++;
+    // Calculate how many complete chunks we can make
+    const completeChunks = Math.floor(videoSize / chunkSize);
+    const remainder = videoSize % chunkSize;
+
+    if (remainder === 0) {
+      // Perfect division, no remainder
+      totalChunkCount = completeChunks;
+    } else if (remainder < MIN_CHUNK_SIZE) {
+      // Remainder < 5MB: merge with last chunk (TikTok requirement)
+      // So we have completeChunks total, with the last one being larger
+      totalChunkCount = completeChunks;
+    } else {
+      // Remainder >= 5MB: it becomes its own chunk
+      totalChunkCount = completeChunks + 1;
     }
   }
 
   console.log('[TikTok] Upload configuration:', {
     videoSize,
     chunkSize,
-    totalChunkCount
+    totalChunkCount,
+    remainder: videoSize % chunkSize
   });
 
   // Step 3: Initialize upload with TikTok

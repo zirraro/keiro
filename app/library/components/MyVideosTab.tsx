@@ -241,7 +241,6 @@ function VideoCard({
   formatFileSize,
   formatDate
 }: VideoCardProps) {
-  const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(video.title || '');
 
@@ -284,72 +283,6 @@ function VideoCard({
           </div>
         )}
 
-        {/* Actions menu */}
-        <div className="absolute top-2 right-2">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-          >
-            •••
-          </button>
-
-          {showMenu && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-neutral-200 py-1 z-10">
-              <button
-                onClick={() => {
-                  onToggleFavorite(video.id, !video.is_favorite);
-                  setShowMenu(false);
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-neutral-50 transition-colors text-sm"
-              >
-                {video.is_favorite ? '💔 Retirer des favoris' : '⭐ Ajouter aux favoris'}
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setShowMenu(false);
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-neutral-50 transition-colors text-sm"
-              >
-                ✏️ Modifier le titre
-              </button>
-
-              {!video.published_to_tiktok && (
-                <button
-                  onClick={() => {
-                    onPublishToTikTok(video);
-                    setShowMenu(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-neutral-50 transition-colors text-sm"
-                >
-                  🎵 Publier sur TikTok
-                </button>
-              )}
-
-              <a
-                href={video.video_url}
-                download
-                className="block w-full text-left px-4 py-2 hover:bg-neutral-50 transition-colors text-sm"
-                onClick={() => setShowMenu(false)}
-              >
-                📥 Télécharger
-              </a>
-
-              <button
-                onClick={() => {
-                  if (confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?')) {
-                    onDelete(video.id);
-                  }
-                  setShowMenu(false);
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 transition-colors text-sm"
-              >
-                🗑️ Supprimer
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Video info */}
@@ -408,6 +341,66 @@ function VideoCard({
               🎵 TikTok
             </span>
           )}
+        </div>
+
+        {/* Actions visibles */}
+        <div className="pt-3 border-t border-neutral-200">
+          <div className="grid grid-cols-2 gap-2">
+            {/* Publier sur TikTok */}
+            {!video.published_to_tiktok && (
+              <button
+                onClick={() => onPublishToTikTok(video)}
+                className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+                Post TikTok
+              </button>
+            )}
+
+            {/* Favoris */}
+            <button
+              onClick={() => onToggleFavorite(video.id, !video.is_favorite)}
+              className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all shadow-sm ${
+                video.is_favorite
+                  ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              <svg className="w-4 h-4" fill={video.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {video.is_favorite ? 'Favori' : 'Favoris'}
+            </button>
+
+            {/* Télécharger */}
+            <a
+              href={video.video_url}
+              download
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Télécharger
+            </button>
+
+            {/* Supprimer */}
+            <button
+              onClick={() => {
+                if (confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?')) {
+                  onDelete(video.id);
+                }
+              }}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-200 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Supprimer
+            </button>
+          </div>
         </div>
       </div>
     </div>
