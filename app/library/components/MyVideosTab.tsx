@@ -164,28 +164,6 @@ export default function MyVideosTab({
         </div>
       </div>
 
-      {/* Stats rapides */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-purple-600">{videos.length}</div>
-          <div className="text-sm text-neutral-500">Vidéos totales</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-pink-600">{videos.filter(v => v.is_favorite).length}</div>
-          <div className="text-sm text-neutral-500">Favorites</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-green-600">{videos.filter(v => v.published_to_tiktok).length}</div>
-          <div className="text-sm text-neutral-500">Publiées TikTok</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-blue-600">
-            {Math.floor(videos.reduce((sum, v) => sum + (v.duration || 0), 0) / 60)}m
-          </div>
-          <div className="text-sm text-neutral-500">Durée totale</div>
-        </div>
-      </div>
-
       {/* Grille de vidéos */}
       {filteredVideos.length === 0 ? (
         <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
