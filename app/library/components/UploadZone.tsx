@@ -115,7 +115,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
       onDrop={handleDrop}
       onClick={handleClick}
       className={`
-        relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
+        relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all
         ${isDragging
           ? 'border-blue-500 bg-blue-50'
           : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'
@@ -133,8 +133,8 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
         disabled={uploading}
       />
 
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-4xl">{currentConfig.icon}</span>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-2xl">{currentConfig.icon}</span>
 
         {uploading ? (
           <>
