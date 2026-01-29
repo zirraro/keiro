@@ -6,6 +6,7 @@ import {
   uploadTikTokVideoBytes,
   publishTikTokVideo,
   publishTikTokVideoFromUrl,
+  publishTikTokVideoViaFileUpload,
   refreshTikTokToken
 } from '@/lib/tiktok';
 
@@ -107,13 +108,14 @@ export async function POST(req: NextRequest) {
       ? caption + '\n\n' + (hashtags || []).map((tag: string) => '#' + tag).join(' ')
       : (hashtags || []).map((tag: string) => '#' + tag).join(' ') || 'Video TikTok';
 
-    console.log('[TikTokPublish] Using PULL_FROM_URL method (recommended for server-side)');
+    console.log('[TikTokPublish] Using FILE_UPLOAD method (required for Supabase URLs)');
     console.log('[TikTokPublish] Video URL:', videoUrl);
     console.log('[TikTokPublish] Caption:', finalCaption.substring(0, 100));
 
-    // Use PULL_FROM_URL method (much simpler - TikTok downloads the video itself)
-    // This is the recommended method for server-side content generation
-    const publishResult = await publishTikTokVideoFromUrl(
+    // Use FILE_UPLOAD method instead of PULL_FROM_URL
+    // Required because Supabase Storage domain cannot be verified with TikTok
+    // This method downloads the video and uploads it directly to TikTok servers
+    const publishResult = await publishTikTokVideoViaFileUpload(
       accessToken,
       videoUrl,
       finalCaption,

@@ -469,3 +469,175 @@ export async function initTikTokPhotoUpload(
 
   return data.data;
 }
+
+/**
+ * Publish video using FILE_UPLOAD method
+ * Downloads video from URL and uploads bytes directly to TikTok
+ * Use this method when the video URL domain cannot be verified (e.g., Supabase Storage)
+ *
+ * @param accessToken - TikTok access token
+ * @param videoUrl - Public URL where to download the video
+ * @param caption - Video caption/description
+ * @param options - Additional options for the post
+ * @returns Publish ID for tracking
+ */
+export async function publishTikTokVideoViaFileUpload(
+  accessToken: string,
+  videoUrl: string,
+  caption: string = '',
+  options?: {
+    disable_duet?: boolean;
+    disable_comment?: boolean;
+    disable_stitch?: boolean;
+    video_cover_timestamp_ms?: number;
+  }
+): Promise<{ publish_id: string }> {
+  console.log('[TikTok] Publishing video via FILE_UPLOAD method');
+  console.log('[TikTok] Video URL:', videoUrl);
+  console.log('[TikTok] Caption:', caption.substring(0, 100));
+
+  // Step 1: Download video from URL
+  console.log('[TikTok] Downloading video...');
+  const videoResponse = await fetch(videoUrl);
+
+  if (!videoResponse.ok) {
+    throw new Error(`Failed to download video: ${videoResponse.statusText}`);
+  }
+
+  const videoArrayBuffer = await videoResponse.arrayBuffer();
+  const videoBuffer = Buffer.from(videoArrayBuffer);
+  const videoSize = videoBuffer.length;
+
+  console.log('[TikTok] Video downloaded, size:', videoSize, 'bytes');
+
+  // Step 2: Determine chunk configuration
+  const MIN_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB minimum
+  const MAX_CHUNK_SIZE = 64 * 1024 * 1024; // 64MB maximum
+  const PREFERRED_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB preferred
+
+  let chunkSize: number;
+  let totalChunkCount: number;
+
+  if (videoSize < MIN_CHUNK_SIZE) {
+    // Videos < 5MB must be uploaded as whole
+    chunkSize = videoSize;
+    totalChunkCount = 1;
+  } else {
+    // Use preferred chunk size, adjust if needed
+    chunkSize = PREFERRED_CHUNK_SIZE;
+    totalChunkCount = Math.floor(videoSize / chunkSize);
+
+    // If there's a remainder, it becomes the last chunk
+    if (videoSize % chunkSize !== 0) {
+      totalChunkCount++;
+    }
+  }
+
+  console.log('[TikTok] Upload configuration:', {
+    videoSize,
+    chunkSize,
+    totalChunkCount
+  });
+
+  // Step 3: Initialize upload with TikTok
+  console.log('[TikTok] Initializing TikTok upload...');
+  const initResponse = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      post_info: {
+        title: caption.substring(0, 150), // TikTok max title length
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        disable_duet: options?.disable_duet ?? false,
+        disable_comment: options?.disable_comment ?? false,
+        disable_stitch: options?.disable_stitch ?? false,
+        video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+      },
+      source_info: {
+        source: 'FILE_UPLOAD',
+        video_size: videoSize,
+        chunk_size: chunkSize,
+        total_chunk_count: totalChunkCount,
+      },
+    }),
+  });
+
+  console.log('[TikTok] Init response status:', initResponse.status);
+
+  const initData = await initResponse.json();
+
+  console.log('[TikTok] Init response:', {
+    hasError: !!initData.error,
+    hasData: !!initData.data,
+    errorCode: initData.error?.code || initData.error_code,
+    message: initData.error?.message || initData.message
+  });
+
+  if (initData.error || (initData.error_code && initData.error_code !== 0)) {
+    const errorMsg = initData.error?.message || initData.message || 'Failed to initialize TikTok upload';
+    console.error('[TikTok] Init error:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (!initResponse.ok) {
+    throw new Error(`HTTP ${initResponse.status}: ${initResponse.statusText}`);
+  }
+
+  const uploadUrl = initData.data?.upload_url;
+  const publishId = initData.data?.publish_id;
+
+  if (!uploadUrl || !publishId) {
+    console.error('[TikTok] Missing upload_url or publish_id in response:', initData);
+    throw new Error('No upload_url or publish_id returned from TikTok');
+  }
+
+  console.log('[TikTok] Upload initialized, publish_id:', publishId);
+
+  // Step 4: Upload video chunks
+  console.log('[TikTok] Uploading video chunks...');
+
+  for (let chunkIndex = 0; chunkIndex < totalChunkCount; chunkIndex++) {
+    const firstByte = chunkIndex * chunkSize;
+    const lastByte = Math.min(firstByte + chunkSize - 1, videoSize - 1);
+    const chunkBuffer = videoBuffer.slice(firstByte, lastByte + 1);
+    const chunkActualSize = chunkBuffer.length;
+
+    console.log(`[TikTok] Uploading chunk ${chunkIndex + 1}/${totalChunkCount}`, {
+      firstByte,
+      lastByte,
+      chunkSize: chunkActualSize
+    });
+
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Length': chunkActualSize.toString(),
+        'Content-Range': `bytes ${firstByte}-${lastByte}/${videoSize}`,
+      },
+      body: chunkBuffer,
+    });
+
+    console.log(`[TikTok] Chunk ${chunkIndex + 1} response status:`, uploadResponse.status);
+
+    // Expected responses: 206 (Partial Content) for intermediate chunks, 201 (Created) for last chunk
+    if (uploadResponse.status !== 206 && uploadResponse.status !== 201) {
+      const errorText = await uploadResponse.text().catch(() => 'Unknown error');
+      console.error('[TikTok] Chunk upload failed:', errorText);
+      throw new Error(`Failed to upload chunk ${chunkIndex + 1}: ${uploadResponse.status} ${errorText}`);
+    }
+
+    // For last chunk, expect 201
+    if (chunkIndex === totalChunkCount - 1 && uploadResponse.status !== 201) {
+      console.warn('[TikTok] Warning: Last chunk did not return 201 Created');
+    }
+  }
+
+  console.log('[TikTok] All chunks uploaded successfully');
+  console.log('[TikTok] Video published successfully via FILE_UPLOAD:', publishId);
+
+  return { publish_id: publishId };
+}
