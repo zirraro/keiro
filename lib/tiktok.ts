@@ -511,108 +511,118 @@ export async function publishTikTokVideoViaFileUpload(
   console.log('[TikTok] Video downloaded, size:', videoSize, 'bytes');
   console.log('[TikTok] Video size (MB):', (videoSize / (1024 * 1024)).toFixed(2), 'MB');
 
-  // Step 2: Determine chunk configuration (following TikTok rules)
+  // Step 2: ADAPTIVE CHUNK CONFIGURATION
   // TikTok Requirements:
-  // 1. Min chunk size: 5MB
-  // 2. Max chunk size: 64MB
+  // 1. Min chunk size: 5MB (strictly enforced)
+  // 2. Max chunk size: 64MB (hard limit)
   // 3. All chunks EXCEPT last must be EXACTLY chunk_size
   // 4. Last chunk must be >= 5MB AND <= chunk_size
+  // 5. chunk_size declared to TikTok MUST match the actual chunk sizes sent
+
   const MIN_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB minimum
   const MAX_CHUNK_SIZE = 64 * 1024 * 1024; // 64MB maximum
-  const PREFERRED_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB preferred
+  const PREFERRED_CHUNK_SIZE = 10 * 1024 * 1024; // 10MB preferred (adaptive)
 
-  console.log('[TikTok] Chunk size constraints:', {
-    MIN_MB: (MIN_CHUNK_SIZE / (1024 * 1024)).toFixed(2) + 'MB',
-    MAX_MB: (MAX_CHUNK_SIZE / (1024 * 1024)).toFixed(2) + 'MB',
-    PREFERRED_MB: (PREFERRED_CHUNK_SIZE / (1024 * 1024)).toFixed(2) + 'MB'
-  });
+  console.log('[TikTok] === ADAPTIVE CHUNK CALCULATION ===');
+  console.log('[TikTok] Video size:', videoSize, 'bytes', `(${(videoSize / (1024 * 1024)).toFixed(2)} MB)`);
+  console.log('[TikTok] Constraints: min=5MB, max=64MB, preferred=10MB');
 
   let chunkSize: number;
   let totalChunkCount: number;
 
+  // UNIVERSAL ALGORITHM - Works for ANY video size
   if (videoSize < MIN_CHUNK_SIZE) {
-    // Videos < 5MB must be uploaded as whole
-    console.log('[TikTok] Video smaller than 5MB, uploading as single chunk');
+    // Case 1: Video < 5MB
+    // Must upload as single chunk (can't split below minimum)
+    console.log('[TikTok] Case 1: Video < 5MB → single chunk = videoSize');
     chunkSize = videoSize;
     totalChunkCount = 1;
-  } else {
-    // Start with preferred chunk size
-    const initialChunkSize = PREFERRED_CHUNK_SIZE;
-    const completeChunks = Math.floor(videoSize / initialChunkSize);
-    const remainder = videoSize % initialChunkSize;
 
-    console.log('[TikTok] Initial calculation with preferred chunk size:', {
-      initialChunkSize_MB: (initialChunkSize / (1024 * 1024)).toFixed(2) + 'MB',
-      completeChunks,
+  } else if (videoSize <= PREFERRED_CHUNK_SIZE) {
+    // Case 2: Video 5MB - 10MB
+    // Upload as single chunk (more efficient than splitting)
+    console.log('[TikTok] Case 2: Video 5-10MB → single chunk = videoSize');
+    chunkSize = videoSize;
+    totalChunkCount = 1;
+
+  } else {
+    // Case 3: Video > 10MB
+    // Need to calculate optimal chunking strategy
+    console.log('[TikTok] Case 3: Video > 10MB → calculating optimal chunks');
+
+    const completeChunks = Math.floor(videoSize / PREFERRED_CHUNK_SIZE);
+    const remainder = videoSize % PREFERRED_CHUNK_SIZE;
+
+    console.log('[TikTok] Division analysis:', {
+      completeChunks: completeChunks,
       remainder_bytes: remainder,
       remainder_MB: (remainder / (1024 * 1024)).toFixed(2) + 'MB'
     });
 
     if (remainder === 0) {
-      // Perfect division - all chunks are exactly PREFERRED_CHUNK_SIZE
-      console.log('[TikTok] ✓ Perfect division, no remainder');
-      chunkSize = initialChunkSize;
+      // Case 3a: Perfect division (e.g., 20MB, 30MB, 40MB...)
+      // All chunks are exactly PREFERRED_CHUNK_SIZE
+      console.log('[TikTok] ✓ Perfect division: all chunks = 10MB');
+      chunkSize = PREFERRED_CHUNK_SIZE;
       totalChunkCount = completeChunks;
+
     } else if (remainder >= MIN_CHUNK_SIZE) {
-      // Remainder is large enough to be its own chunk
-      console.log('[TikTok] ✓ Remainder >= 5MB, will be separate chunk');
+      // Case 3b: Remainder is large enough (>= 5MB)
+      // Can use remainder as final chunk
+      console.log('[TikTok] ✓ Remainder >= 5MB: can be final chunk');
+      chunkSize = PREFERRED_CHUNK_SIZE;
+      totalChunkCount = completeChunks + 1;
 
-      // CRITICAL FIX: If video is smaller than PREFERRED_CHUNK_SIZE (completeChunks = 0),
-      // we must use videoSize as chunk_size, not PREFERRED_CHUNK_SIZE!
-      // TikTok rejects when declared chunk_size > video_size
-      if (completeChunks === 0) {
-        console.log('[TikTok] ⚠ Video smaller than preferred chunk size (completeChunks = 0)');
-        console.log('[TikTok] Using videoSize as chunk_size to match TikTok requirements');
-        chunkSize = videoSize;
-        totalChunkCount = 1;
-      } else {
-        chunkSize = initialChunkSize;
-        totalChunkCount = completeChunks + 1;
-      }
     } else {
-      // Remainder < 5MB - CRITICAL CASE
-      // We need to redistribute bytes so last chunk is >= 5MB
-      console.log('[TikTok] ⚠ Remainder < 5MB, redistribution required');
-      console.log('[TikTok] Redistribution: will use', completeChunks, 'chunks total (merge remainder with chunks)');
+      // Case 3c: Remainder < 5MB (CRITICAL CASE)
+      // Must redistribute to ensure last chunk >= 5MB
+      console.log('[TikTok] ⚠ Remainder < 5MB: redistribution required');
+      console.log('[TikTok] Strategy: distribute across', completeChunks, 'chunks (no separate remainder)');
 
-      // Calculate adjusted chunk size that evenly distributes the video
-      // This ensures last chunk will be >= 5MB
+      // Redistribute video across completeChunks (NOT completeChunks+1)
+      // This merges the remainder into the chunks
       const adjustedChunkSize = Math.ceil(videoSize / completeChunks);
 
-      console.log('[TikTok] Adjusted chunk size calculated:', {
-        adjustedChunkSize_bytes: adjustedChunkSize,
-        adjustedChunkSize_MB: (adjustedChunkSize / (1024 * 1024)).toFixed(2) + 'MB'
-      });
+      console.log('[TikTok] Adjusted chunk_size:', adjustedChunkSize, 'bytes', `(${(adjustedChunkSize / (1024 * 1024)).toFixed(2)} MB)`);
 
-      // Verify adjusted chunk size is within TikTok limits
+      // Safety checks
       if (adjustedChunkSize > MAX_CHUNK_SIZE) {
-        console.error('[TikTok] ❌ Adjusted chunk size exceeds maximum!');
-        throw new Error(`Adjusted chunk size ${(adjustedChunkSize / (1024 * 1024)).toFixed(2)}MB exceeds maximum ${(MAX_CHUNK_SIZE / (1024 * 1024)).toFixed(2)}MB`);
+        console.error('[TikTok] ❌ Adjusted chunk_size exceeds 64MB limit!');
+        throw new Error(`Adjusted chunk size ${(adjustedChunkSize / (1024 * 1024)).toFixed(2)}MB exceeds TikTok maximum of 64MB`);
       }
 
-      // CRITICAL: Verify that last chunk will actually be >= 5MB
+      // Verify last chunk will meet requirements
       const lastChunkSize = videoSize - (completeChunks - 1) * adjustedChunkSize;
-      console.log('[TikTok] Last chunk size verification:', {
-        lastChunkSize_bytes: lastChunkSize,
-        lastChunkSize_MB: (lastChunkSize / (1024 * 1024)).toFixed(2) + 'MB',
-        meets_minimum: lastChunkSize >= MIN_CHUNK_SIZE ? '✓' : '❌'
+      console.log('[TikTok] Last chunk verification:', {
+        size_bytes: lastChunkSize,
+        size_MB: (lastChunkSize / (1024 * 1024)).toFixed(2) + 'MB',
+        meets_5MB_min: lastChunkSize >= MIN_CHUNK_SIZE ? '✓ YES' : '❌ NO',
+        within_chunk_size: lastChunkSize <= adjustedChunkSize ? '✓ YES' : '❌ NO'
       });
 
       if (lastChunkSize < MIN_CHUNK_SIZE) {
-        console.error('[TikTok] ❌ ALGORITHM ERROR: Last chunk would be < 5MB!');
-        throw new Error(`Algorithm error: Last chunk size ${(lastChunkSize / (1024 * 1024)).toFixed(2)}MB is below 5MB minimum`);
+        console.error('[TikTok] ❌ ALGORITHM ERROR: Last chunk < 5MB!');
+        throw new Error(`Last chunk ${(lastChunkSize / (1024 * 1024)).toFixed(2)}MB is below 5MB minimum`);
       }
 
       if (lastChunkSize > adjustedChunkSize) {
-        console.error('[TikTok] ❌ ALGORITHM ERROR: Last chunk exceeds declared chunk_size!');
-        throw new Error(`Algorithm error: Last chunk size ${lastChunkSize} exceeds declared chunk_size ${adjustedChunkSize}`);
+        console.error('[TikTok] ❌ ALGORITHM ERROR: Last chunk > declared chunk_size!');
+        throw new Error(`Last chunk ${lastChunkSize} bytes exceeds declared chunk_size ${adjustedChunkSize} bytes`);
       }
 
       chunkSize = adjustedChunkSize;
       totalChunkCount = completeChunks;
-      console.log('[TikTok] ✓ Redistribution validated successfully');
+      console.log('[TikTok] ✓ Redistribution strategy validated');
     }
   }
+
+  console.log('[TikTok] === FINAL ADAPTIVE CONFIGURATION ===');
+  console.log('[TikTok] Strategy:',
+    videoSize < MIN_CHUNK_SIZE ? 'Single chunk (< 5MB)' :
+    videoSize <= PREFERRED_CHUNK_SIZE ? 'Single chunk (5-10MB)' :
+    totalChunkCount === Math.floor(videoSize / PREFERRED_CHUNK_SIZE) ? 'Redistributed chunks' :
+    'Standard chunks with remainder'
+  );
 
   // FINAL VERIFICATION: Calculate and verify each chunk size BEFORE sending to TikTok
   console.log('[TikTok] === FINAL CHUNK CONFIGURATION VERIFICATION ===');
