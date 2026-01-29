@@ -139,12 +139,12 @@ export default function AllCreationsTab({
     };
   };
 
-  // Masonry breakpoints
+  // Masonry breakpoints - Augmented column count for smaller items
   const breakpointColumns = {
-    default: 4,
-    1536: 3,
-    1024: 2,
-    640: 1
+    default: 5,  // 5 columns on very large screens (was 4)
+    1536: 4,     // 4 columns on large screens (was 3)
+    1024: 3,     // 3 columns on medium screens (was 2)
+    640: 2       // 2 columns on small screens (was 1)
   };
 
   const totalCount = filteredCreations.length;

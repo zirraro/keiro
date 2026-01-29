@@ -1361,33 +1361,6 @@ export default function LibraryPage() {
         {user ? (
           <DragProvider onDragEnd={handleImageDrop}>
             <div className="flex gap-6">
-              {/* Sidebar gauche avec dossiers - Desktop uniquement */}
-              {activeTab === 'images' && (
-                <div className="hidden lg:block w-64 flex-shrink-0">
-                  <div className="sticky top-6">
-                    <div className="bg-white rounded-xl border border-neutral-200 p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-neutral-900">Dossiers</h3>
-                        <button
-                          onClick={() => setShowCreateFolderModal(true)}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
-                          title="Nouveau dossier"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
-                      <FolderList
-                        folders={folders}
-                        selectedFolder={selectedFolder}
-                        onSelectFolder={setSelectedFolder}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Contenu principal */}
               <div className="flex-1 min-w-0">
                 <ErrorBoundary>
