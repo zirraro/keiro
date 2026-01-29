@@ -612,7 +612,13 @@ export async function publishTikTokVideoViaFileUpload(
 
   for (let chunkIndex = 0; chunkIndex < totalChunkCount; chunkIndex++) {
     const firstByte = chunkIndex * chunkSize;
-    const lastByte = Math.min(firstByte + chunkSize - 1, videoSize - 1);
+
+    // For the last chunk, always extend to the end of the video
+    // This handles both cases: remainder as separate chunk OR merged with last chunk
+    const lastByte = (chunkIndex === totalChunkCount - 1)
+      ? videoSize - 1
+      : firstByte + chunkSize - 1;
+
     const chunkBuffer = videoBuffer.slice(firstByte, lastByte + 1);
     const chunkActualSize = chunkBuffer.length;
 
