@@ -556,8 +556,19 @@ export async function publishTikTokVideoViaFileUpload(
     } else if (remainder >= MIN_CHUNK_SIZE) {
       // Remainder is large enough to be its own chunk
       console.log('[TikTok] ✓ Remainder >= 5MB, will be separate chunk');
-      chunkSize = initialChunkSize;
-      totalChunkCount = completeChunks + 1;
+
+      // CRITICAL FIX: If video is smaller than PREFERRED_CHUNK_SIZE (completeChunks = 0),
+      // we must use videoSize as chunk_size, not PREFERRED_CHUNK_SIZE!
+      // TikTok rejects when declared chunk_size > video_size
+      if (completeChunks === 0) {
+        console.log('[TikTok] ⚠ Video smaller than preferred chunk size (completeChunks = 0)');
+        console.log('[TikTok] Using videoSize as chunk_size to match TikTok requirements');
+        chunkSize = videoSize;
+        totalChunkCount = 1;
+      } else {
+        chunkSize = initialChunkSize;
+        totalChunkCount = completeChunks + 1;
+      }
     } else {
       // Remainder < 5MB - CRITICAL CASE
       // We need to redistribute bytes so last chunk is >= 5MB
