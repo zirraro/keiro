@@ -17,16 +17,32 @@ type SavedImage = {
   folder_id?: string | null;
 };
 
+type MyVideo = {
+  id: string;
+  video_url: string;
+  thumbnail_url?: string;
+  title?: string;
+  duration?: number;
+  source_type: string;
+  is_favorite: boolean;
+  created_at: string;
+  published_to_tiktok: boolean;
+  tiktok_published_at?: string;
+  file_size?: number;
+};
+
 interface TikTokModalProps {
   image?: SavedImage;
   images?: SavedImage[];
+  video?: MyVideo; // NEW: Support for video
+  videos?: MyVideo[]; // NEW: Support for videos array
   onClose: () => void;
   onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
 }
 
-export default function TikTokModal({ image, images, onClose, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
+export default function TikTokModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -46,10 +62,18 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
 
-  // États pour la galerie
+  // NEW: Tab switching state (Images/Videos)
+  const [activeTab, setActiveTab] = useState<'images' | 'videos'>(video ? 'videos' : 'images');
+
+  // États pour la galerie IMAGES
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
-  const [loadingImages, setLoadingImages] = useState(!images);
+  const [loadingImages, setLoadingImages] = useState(!images && !video);
+
+  // NEW: États pour la galerie VIDEOS
+  const [availableVideos, setAvailableVideos] = useState<MyVideo[]>(videos || []);
+  const [selectedVideo, setSelectedVideo] = useState<MyVideo | null>(video || null);
+  const [loadingVideos, setLoadingVideos] = useState(!videos && !!video);
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('viral');
@@ -96,6 +120,9 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   // Charger images si pas passées en props
   useEffect(() => {
     const loadImages = async () => {
+      // Ne charger que si on est sur le tab images
+      if (activeTab !== 'images') return;
+
       // Si les images sont déjà passées en props, ne pas les charger
       if (images && images.length > 0) {
         setLoadingImages(false);
@@ -139,7 +166,53 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
     };
 
     loadImages();
-  }, [image?.folder_id, images]);
+  }, [image?.folder_id, images, activeTab]);
+
+  // NEW: Charger vidéos si pas passées en props
+  useEffect(() => {
+    const loadVideos = async () => {
+      // Ne charger que si on est sur le tab videos
+      if (activeTab !== 'videos') return;
+
+      // Si les vidéos sont déjà passées en props, ne pas les charger
+      if (videos && videos.length > 0) {
+        setLoadingVideos(false);
+        if (!selectedVideo && videos.length > 0) {
+          setSelectedVideo(videos[0]);
+        }
+        return;
+      }
+
+      setLoadingVideos(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        // Récupérer vidéos
+        const { data: loadedVideos } = await supabase
+          .from('my_videos')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        setAvailableVideos(loadedVideos || []);
+
+        // Sélectionner la première vidéo si aucune n'est sélectionnée
+        if (!selectedVideo && loadedVideos && loadedVideos.length > 0) {
+          setSelectedVideo(loadedVideos[0]);
+        }
+      } catch (error) {
+        console.error('[TikTokModal] Error loading videos:', error);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    loadVideos();
+  }, [videos, activeTab]);
 
   const addHashtag = () => {
     const tag = hashtagInput.trim();
@@ -218,9 +291,9 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
     return videoExtensions.some(ext => url.toLowerCase().includes(ext));
   };
 
-  // Réinitialiser la prévisualisation quand l'image sélectionnée change
+  // Réinitialiser la prévisualisation quand l'image/vidéo sélectionnée change
   useEffect(() => {
-    if (selectedImage) {
+    if (activeTab === 'images' && selectedImage) {
       // Check if it's a video file OR a TikTok video from our gallery
       const isTikTokVideo = selectedImage.title?.includes('Vidéo TikTok') ||
                            selectedImage.title?.includes('TikTok') ||
@@ -233,6 +306,10 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       } else {
         setVideoPreview(null);
       }
+    } else if (activeTab === 'videos' && selectedVideo) {
+      // If we're on videos tab and have a selected video, use it directly
+      setVideoPreview(selectedVideo.video_url);
+      console.log('[TikTokModal] Selected video:', selectedVideo.title);
     } else {
       setVideoPreview(null);
     }
@@ -243,7 +320,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
       clearInterval(pollingInterval);
       setPollingInterval(null);
     }
-  }, [selectedImage]);
+  }, [selectedImage, selectedVideo, activeTab]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -420,8 +497,10 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
   };
 
   const handlePublishNow = async () => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+    // Check what's selected based on active tab
+    const hasSelectedItem = activeTab === 'images' ? selectedImage : selectedVideo;
+    if (!hasSelectedItem) {
+      alert(`Veuillez sélectionner une ${activeTab === 'images' ? 'image' : 'vidéo'}`);
       return;
     }
 
@@ -436,7 +515,7 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
     }
 
     // If it's an image and no video preview yet, generate one first
-    if (!isVideo(selectedImage.image_url) && !videoPreview) {
+    if (activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !videoPreview) {
       alert('⚠️ Veuillez d\'abord générer la vidéo avec IA avant de publier.\n\nCliquez sur "✨ Générer vidéo avec IA" pour créer votre vidéo.');
       return;
     }
@@ -452,8 +531,17 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
 
     setPublishing(true);
     try {
-      // Video URL is already uploaded to Supabase during generation
-      const videoUrlToPublish = videoPreview || selectedImage.image_url;
+      // Determine video URL based on active tab
+      let videoUrlToPublish: string;
+      if (activeTab === 'videos' && selectedVideo) {
+        // Using a video from my_videos table
+        videoUrlToPublish = selectedVideo.video_url;
+      } else if (activeTab === 'images' && selectedImage) {
+        // Using an image (with or without generated video)
+        videoUrlToPublish = videoPreview || selectedImage.image_url;
+      } else {
+        throw new Error('No video selected');
+      }
 
       console.log('[TikTokModal] Publishing to TikTok with URL:', videoUrlToPublish);
 
@@ -543,84 +631,201 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
           </button>
         </div>
 
+        {/* TAB SWITCHER - Images/Videos */}
+        <div className="border-b border-neutral-200 bg-neutral-50 px-4 sm:px-6 py-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('images')}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'images'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              📸 Images ({availableImages.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'videos'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              🎬 Vidéos ({availableVideos.length})
+            </button>
+          </div>
+        </div>
+
         {/* LAYOUT 3 COLONNES */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
-          {/* GALERIE D'IMAGES - SIDEBAR GAUCHE (Desktop seulement) */}
+          {/* GALERIE - SIDEBAR GAUCHE (Desktop seulement) */}
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">
               <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
-                Sélectionner une image
+                {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
               </p>
-              {loadingImages ? (
-                [1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
-                ))
-              ) : (
-                availableImages.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setSelectedImage(img)}
-                    className={`
-                      w-full aspect-square rounded-lg overflow-hidden transition-all
-                      ${selectedImage?.id === img.id
-                        ? 'ring-2 ring-cyan-500 scale-105 shadow-lg'
-                        : 'ring-1 ring-neutral-300 hover:ring-cyan-300 hover:scale-102'
-                      }
-                    `}
-                    title={img.title || img.news_title || 'Image'}
-                  >
-                    <img
-                      src={img.thumbnail_url || img.image_url}
-                      alt={img.title || 'Image'}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))
+
+              {/* IMAGES TAB */}
+              {activeTab === 'images' && (
+                <>
+                  {loadingImages ? (
+                    [1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setSelectedImage(img)}
+                        className={`
+                          w-full aspect-square rounded-lg overflow-hidden transition-all
+                          ${selectedImage?.id === img.id
+                            ? 'ring-2 ring-cyan-500 scale-105 shadow-lg'
+                            : 'ring-1 ring-neutral-300 hover:ring-cyan-300 hover:scale-102'
+                          }
+                        `}
+                        title={img.title || img.news_title || 'Image'}
+                      >
+                        <img
+                          src={img.thumbnail_url || img.image_url}
+                          alt={img.title || 'Image'}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))
+                  )}
+                  {!loadingImages && availableImages.length === 0 && (
+                    <p className="text-xs text-neutral-400 text-center py-4">
+                      Aucune image
+                    </p>
+                  )}
+                </>
               )}
-              {!loadingImages && availableImages.length === 0 && (
-                <p className="text-xs text-neutral-400 text-center py-4">
-                  Aucune autre image
-                </p>
+
+              {/* VIDEOS TAB */}
+              {activeTab === 'videos' && (
+                <>
+                  {loadingVideos ? (
+                    [1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableVideos.map((vid) => (
+                      <button
+                        key={vid.id}
+                        onClick={() => setSelectedVideo(vid)}
+                        className={`
+                          w-full aspect-square rounded-lg overflow-hidden transition-all relative
+                          ${selectedVideo?.id === vid.id
+                            ? 'ring-2 ring-cyan-500 scale-105 shadow-lg'
+                            : 'ring-1 ring-neutral-300 hover:ring-cyan-300 hover:scale-102'
+                          }
+                        `}
+                        title={vid.title || 'Vidéo'}
+                      >
+                        <video
+                          src={vid.video_url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                  {!loadingVideos && availableVideos.length === 0 && (
+                    <p className="text-xs text-neutral-400 text-center py-4">
+                      Aucune vidéo
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
 
           {/* CARROUSEL MOBILE - En haut sur mobile seulement */}
           <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
-            <p className="text-xs font-semibold text-neutral-600 mb-2">Sélectionner une image</p>
+            <p className="text-xs font-semibold text-neutral-600 mb-2">
+              {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+            </p>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
-              {loadingImages ? (
-                [1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
-                ))
-              ) : (
-                availableImages.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setSelectedImage(img)}
-                    className={`
-                      flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
-                      ${selectedImage?.id === img.id
-                        ? 'ring-2 ring-cyan-500 scale-105'
-                        : 'ring-1 ring-neutral-300'
-                      }
-                    `}
-                  >
-                    <img
-                      src={img.thumbnail_url || img.image_url}
-                      alt={img.title || 'Image'}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))
+              {/* IMAGES TAB */}
+              {activeTab === 'images' && (
+                <>
+                  {loadingImages ? (
+                    [1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setSelectedImage(img)}
+                        className={`
+                          flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
+                          ${selectedImage?.id === img.id
+                            ? 'ring-2 ring-cyan-500 scale-105'
+                            : 'ring-1 ring-neutral-300'
+                          }
+                        `}
+                      >
+                        <img
+                          src={img.thumbnail_url || img.image_url}
+                          alt={img.title || 'Image'}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))
+                  )}
+                </>
+              )}
+
+              {/* VIDEOS TAB */}
+              {activeTab === 'videos' && (
+                <>
+                  {loadingVideos ? (
+                    [1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableVideos.map((vid) => (
+                      <button
+                        key={vid.id}
+                        onClick={() => setSelectedVideo(vid)}
+                        className={`
+                          flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all relative
+                          ${selectedVideo?.id === vid.id
+                            ? 'ring-2 ring-cyan-500 scale-105'
+                            : 'ring-1 ring-neutral-300'
+                          }
+                        `}
+                      >
+                        <video
+                          src={vid.video_url}
+                          className="w-full h-full object-cover"
+                          muted
+                        />
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </>
               )}
             </div>
           </div>
 
           {/* APERÇU IMAGE/VIDÉO - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
-            {selectedImage && (
+            {(selectedImage || selectedVideo) && (
               <div className="max-w-[200px] mx-auto">
                 <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black max-h-[320px]">
                   {videoPreview ? (
@@ -631,17 +836,17 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                       loop
                       className="w-full h-full object-contain"
                     />
-                  ) : (
+                  ) : activeTab === 'images' && selectedImage ? (
                     <img
                       src={selectedImage.image_url}
                       alt={selectedImage.title || 'Selected'}
                       className="w-full h-full object-contain"
                     />
-                  )}
+                  ) : null}
                 </div>
 
-                {/* Bouton de prévisualisation */}
-                {!isVideo(selectedImage.image_url) && !selectedImage.title?.includes('Vidéo TikTok') && (
+                {/* Bouton de prévisualisation (only for images tab) */}
+                {activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !selectedImage.title?.includes('Vidéo TikTok') && (
                   <button
                     onClick={handleGeneratePreview}
                     disabled={generatingPreview}
@@ -676,17 +881,19 @@ export default function TikTokModal({ image, images, onClose, onSave, draftCapti
                   </button>
                 )}
 
-                <div className={`${(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok')) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
-                  <p className={`text-[10px] ${(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok')) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
+                <div className={`${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
+                  <p className={`text-[10px] ${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'text-green-900' : 'text-cyan-900'} flex items-start gap-1.5`}>
                     <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <span>
-                      {(isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))
+                      {activeTab === 'videos'
                         ? '✅ Vidéo prête pour publication TikTok'
-                        : videoPreview
-                          ? '✅ Vidéo animée générée par IA (9:16, 5s)'
-                          : '🤖 L\'IA convertira votre image en vidéo animée'
+                        : activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))
+                          ? '✅ Vidéo prête pour publication TikTok'
+                          : videoPreview
+                            ? '✅ Vidéo animée générée par IA (9:16, 5s)'
+                            : '🤖 L\'IA convertira votre image en vidéo animée'
                       }
                     </span>
                   </p>

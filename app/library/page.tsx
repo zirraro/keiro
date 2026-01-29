@@ -186,6 +186,7 @@ export default function LibraryPage() {
   const [showTikTokConnectionModal, setShowTikTokConnectionModal] = useState(false);
   const [showTikTokModal, setShowTikTokModal] = useState(false);
   const [selectedImageForTikTok, setSelectedImageForTikTok] = useState<SavedImage | null>(null);
+  const [selectedVideoForTikTok, setSelectedVideoForTikTok] = useState<MyVideo | null>(null); // NEW
   const [draftTikTokCaptionToEdit, setDraftTikTokCaptionToEdit] = useState<string | undefined>(undefined);
   const [draftTikTokHashtagsToEdit, setDraftTikTokHashtagsToEdit] = useState<string[] | undefined>(undefined);
 
@@ -904,6 +905,14 @@ export default function LibraryPage() {
   };
 
   const handlePublishVideoToTikTok = async (video: MyVideo) => {
+    // Open TikTok modal with selected video instead of publishing directly
+    setSelectedVideoForTikTok(video);
+    setSelectedImageForTikTok(null); // Clear image selection
+    setDraftTikTokCaptionToEdit(video.title || 'Vidéo TikTok'); // Pre-fill caption with video title
+    setDraftTikTokHashtagsToEdit([]); // Clear hashtags
+    setShowTikTokModal(true);
+
+    /* OLD CODE: Direct publication without modal
     try {
       const res = await fetch('/api/library/tiktok/publish', {
         method: 'POST',
@@ -934,6 +943,7 @@ export default function LibraryPage() {
       console.error('[Library] Error publishing to TikTok:', error);
       alert(`❌ Erreur: ${error.message}`);
     }
+    */
   };
 
   const handleVideoTitleEdit = async (videoId: string, newTitle: string) => {
@@ -1007,11 +1017,12 @@ export default function LibraryPage() {
       // Publier sur TikTok (image ou vidéo)
       if (item.type === 'image') {
         const image: SavedImage = images.find(img => img.id === item.id)!;
-        setSelectedImageForInsta(image);
+        setSelectedImageForTikTok(image); // Fixed: was selectedImageForInsta
+        setSelectedVideoForTikTok(null);
         setShowTikTokModal(true);
       } else {
         const video: MyVideo = myVideos.find(v => v.id === item.id)!;
-        await handlePublishVideoToTikTok(video);
+        await handlePublishVideoToTikTok(video); // This now opens modal
       }
     }
   };
@@ -1551,8 +1562,12 @@ export default function LibraryPage() {
         <TikTokModal
           image={selectedImageForTikTok || undefined}
           images={images}
+          video={selectedVideoForTikTok || undefined}
+          videos={myVideos}
           onClose={() => {
             setShowTikTokModal(false);
+            setSelectedImageForTikTok(null);
+            setSelectedVideoForTikTok(null);
             setDraftTikTokCaptionToEdit(undefined);
             setDraftTikTokHashtagsToEdit(undefined);
           }}
