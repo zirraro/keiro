@@ -78,15 +78,25 @@ export async function POST(req: NextRequest) {
     } catch (videoError: any) {
       console.error('[TikTokSync] TikTok API error:', videoError.message);
 
-      // Check if it's a scope/permission error
-      if (videoError.message.includes('scope') ||
-          videoError.message.includes('permission') ||
-          videoError.message.includes('not authorized') ||
-          videoError.message.includes('access_token_invalid')) {
+      // Enhanced scope/permission error detection
+      const errorMsg = videoError.message.toLowerCase();
+      const isScopeError =
+        errorMsg.includes('scope') ||
+        errorMsg.includes('permission') ||
+        errorMsg.includes('not authorized') ||
+        errorMsg.includes('access_token_invalid') ||
+        errorMsg.includes('insufficient') ||
+        errorMsg.includes('video.list') || // Specific scope missing
+        errorMsg.includes('forbidden') ||
+        errorMsg.includes('access denied');
+
+      if (isScopeError) {
+        console.error('[TikTokSync] Scope/permission error detected - user needs to reconnect');
         return NextResponse.json({
           ok: false,
-          error: 'Permissions TikTok insuffisantes. Reconnectez votre compte avec toutes les autorisations.',
-          needsReconnect: true
+          error: '⚠️ Permissions TikTok insuffisantes.\n\nVeuillez RECONNECTER votre compte TikTok pour accorder toutes les autorisations nécessaires:\n• user.info.basic\n• video.list\n• video.publish\n• video.upload',
+          needsReconnect: true,
+          requiredScopes: ['user.info.basic', 'video.list', 'video.publish', 'video.upload']
         }, { status: 403 });
       }
 

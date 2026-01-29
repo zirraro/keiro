@@ -251,7 +251,7 @@ export async function initTikTokVideoUpload(
     body: JSON.stringify({
       post_info: {
         title: '',
-        privacy_level: 'PUBLIC_TO_EVERYONE',
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps per TikTok guidelines
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -324,6 +324,86 @@ export async function publishTikTokVideo(
 }
 
 /**
+ * Publish video using PULL_FROM_URL (recommended for server-side content)
+ * This is simpler than FILE_UPLOAD as TikTok downloads the video directly
+ *
+ * @param accessToken - TikTok access token
+ * @param videoUrl - Public URL where TikTok can download the video
+ * @param caption - Video caption/description
+ * @param options - Additional options for the post
+ * @returns Publish ID for tracking
+ */
+export async function publishTikTokVideoFromUrl(
+  accessToken: string,
+  videoUrl: string,
+  caption: string = '',
+  options?: {
+    disable_duet?: boolean;
+    disable_comment?: boolean;
+    disable_stitch?: boolean;
+    video_cover_timestamp_ms?: number;
+  }
+): Promise<{ publish_id: string }> {
+  console.log('[TikTok] Publishing video from URL (PULL_FROM_URL method)');
+  console.log('[TikTok] Video URL:', videoUrl);
+  console.log('[TikTok] Caption:', caption.substring(0, 100));
+
+  const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      post_info: {
+        title: caption.substring(0, 150), // TikTok max title length
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        disable_duet: options?.disable_duet ?? false,
+        disable_comment: options?.disable_comment ?? false,
+        disable_stitch: options?.disable_stitch ?? false,
+        video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+      },
+      source_info: {
+        source: 'PULL_FROM_URL',
+        video_url: videoUrl, // TikTok downloads directly from this URL
+      },
+    }),
+  });
+
+  console.log('[TikTok] PULL_FROM_URL response status:', response.status);
+
+  const data = await response.json();
+
+  console.log('[TikTok] PULL_FROM_URL response:', {
+    hasError: !!data.error,
+    hasData: !!data.data,
+    errorCode: data.error?.code || data.error_code,
+    message: data.error?.message || data.message
+  });
+
+  if (data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok video';
+    console.error('[TikTok] PULL_FROM_URL error:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const publishId = data.data?.publish_id || data.publish_id;
+
+  if (!publishId) {
+    console.error('[TikTok] No publish_id in response:', data);
+    throw new Error('No publish_id returned from TikTok');
+  }
+
+  console.log('[TikTok] Video published successfully via PULL_FROM_URL:', publishId);
+
+  return { publish_id: publishId };
+}
+
+/**
  * Initialize photo post (carousel) upload
  */
 export async function initTikTokPhotoUpload(
@@ -346,7 +426,7 @@ export async function initTikTokPhotoUpload(
       post_info: {
         title: title || '',
         description: description || '',
-        privacy_level: 'PUBLIC_TO_EVERYONE',
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps per TikTok guidelines
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
