@@ -212,19 +212,40 @@ export async function getTikTokVideos(
     errorCode: data.error?.code || data.error_code,
     message: data.error?.message || data.message,
     hasData: !!data.data,
-    videoCount: data.data?.videos?.length || 0
+    videoCount: data.data?.videos?.length || 0,
+    fullResponse: JSON.stringify(data)
   });
 
-  // Check for errors
-  if (data.error || (data.error_code && data.error_code !== 0)) {
-    const errorMsg = data.error?.message || data.message || 'Failed to fetch TikTok videos';
-    console.error('[TikTok] Video list error:', errorMsg);
+  // Check for HTTP errors first
+  if (!response.ok) {
+    const errorMsg = data.error?.message || data.message || `HTTP ${response.status}: ${response.statusText}`;
+    console.error('[TikTok] Video list HTTP error:', response.status, errorMsg);
+
+    // Enhanced scope/permission error detection for video.list
+    if (response.status === 403 || response.status === 401) {
+      throw new Error('SCOPE_ERROR: Insufficient permissions. Please reconnect your TikTok account to grant video.list access.');
+    }
+
     throw new Error(errorMsg);
   }
 
-  if (!response.ok) {
-    console.error('[TikTok] Video list HTTP error:', response.status, response.statusText);
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  // Check for API-level errors
+  if (data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || 'Failed to fetch TikTok videos';
+    console.error('[TikTok] Video list API error:', {
+      code: data.error?.code || data.error_code,
+      message: errorMsg,
+      fullError: JSON.stringify(data.error || data)
+    });
+
+    // Detect scope/permission errors
+    const errorLower = errorMsg.toLowerCase();
+    if (errorLower.includes('scope') || errorLower.includes('permission') ||
+        errorLower.includes('forbidden') || errorLower.includes('unauthorized')) {
+      throw new Error('SCOPE_ERROR: ' + errorMsg);
+    }
+
+    throw new Error(errorMsg);
   }
 
   const videos = data.data?.videos || [];

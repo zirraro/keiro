@@ -236,13 +236,11 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
             <div>
               <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
               <div className="flex items-center gap-2">
-                {tiktokUsername && (
-                  <span className="text-xs text-neutral-600">
-                    @{tiktokUsername}
-                  </span>
-                )}
+                <span className="text-xs text-neutral-600 font-medium">
+                  {tiktokUsername ? `@${tiktokUsername}` : 'Compte TikTok'}
+                </span>
                 <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                  Connecté
+                  ✓
                 </span>
               </div>
             </div>

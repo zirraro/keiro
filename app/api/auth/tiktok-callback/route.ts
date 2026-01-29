@@ -143,9 +143,12 @@ export async function GET(req: NextRequest) {
     });
 
     let displayName = 'TikTok User';
+    let username = null;
+
     try {
       const userInfo = await getTikTokUserInfo(tokenData.access_token);
-      displayName = userInfo.display_name;
+      displayName = userInfo.display_name || 'TikTok User';
+      username = displayName; // TikTok API doesn't provide @handle, only display_name
 
       console.log('[TikTokCallback] ✅ Step 4/5 complete: User info received', {
         open_id: userInfo.open_id,
@@ -154,20 +157,35 @@ export async function GET(req: NextRequest) {
       });
 
       // Update display name and username in database
-      await supabase
+      const { error: updateUsernameError } = await supabase
         .from('profiles')
         .update({
-          tiktok_username: displayName,
+          tiktok_username: username,
           tiktok_display_name: displayName
         })
         .eq('id', user.id);
 
+      if (updateUsernameError) {
+        console.error('[TikTokCallback] Error updating username:', updateUsernameError);
+      } else {
+        console.log('[TikTokCallback] ✅ Username saved:', username);
+      }
+
     } catch (userInfoError: any) {
       console.error('[TikTokCallback] ⚠️ Step 4/5 warning: Could not fetch user info (but tokens are saved)', {
         error: userInfoError.message,
+        stack: userInfoError.stack,
         elapsedMs: Date.now() - startTime
       });
-      // Don't fail - tokens are already saved, user info is optional
+
+      // Save a default username so user can see they're connected
+      await supabase
+        .from('profiles')
+        .update({
+          tiktok_username: 'Utilisateur TikTok',
+          tiktok_display_name: 'Utilisateur TikTok'
+        })
+        .eq('id', user.id);
     }
 
     console.log('[TikTokCallback] ⏳ Step 5/5: Redirecting to success page...', {
