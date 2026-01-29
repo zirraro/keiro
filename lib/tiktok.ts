@@ -3,6 +3,8 @@
  * Mirrors lib/meta.ts structure for Instagram
  */
 
+import { getVideoDurationInSeconds } from 'get-video-duration';
+
 const TIKTOK_API_BASE = 'https://open.tiktokapis.com';
 const TIKTOK_AUTH_BASE = 'https://www.tiktok.com';
 
@@ -471,6 +473,71 @@ export async function initTikTokPhotoUpload(
 }
 
 /**
+ * Get creator info - REQUIRED before posting per TikTok guidelines
+ * Checks if creator can post and validates video duration limits
+ *
+ * @param accessToken - TikTok access token
+ * @returns Creator info including posting limits and capabilities
+ */
+export async function getCreatorInfo(accessToken: string): Promise<{
+  can_post: boolean;
+  max_video_post_duration_sec: number;
+  privacy_level_options: string[];
+  comment_disabled: boolean;
+  duet_disabled: boolean;
+  stitch_disabled: boolean;
+}> {
+  console.log('[TikTok] Fetching creator info...');
+
+  const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/creator_info/query/`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  console.log('[TikTok] Creator info response status:', response.status);
+
+  const data = await response.json();
+
+  console.log('[TikTok] Creator info response:', {
+    hasError: !!data.error,
+    hasData: !!data.data,
+    errorCode: data.error?.code || data.error_code,
+    message: data.error?.message || data.message
+  });
+
+  if (data.error || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || 'Failed to get creator info';
+    console.error('[TikTok] Creator info error:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const creatorInfo = data.data;
+  console.log('[TikTok] Creator info:', {
+    max_video_duration: creatorInfo.max_video_post_duration_sec,
+    privacy_options: creatorInfo.privacy_level_options,
+    comment_disabled: creatorInfo.comment_disabled,
+    duet_disabled: creatorInfo.duet_disabled,
+    stitch_disabled: creatorInfo.stitch_disabled
+  });
+
+  return {
+    can_post: true, // If we get here without errors, creator can post
+    max_video_post_duration_sec: creatorInfo.max_video_post_duration_sec || 600,
+    privacy_level_options: creatorInfo.privacy_level_options || ['SELF_ONLY'],
+    comment_disabled: creatorInfo.comment_disabled || false,
+    duet_disabled: creatorInfo.duet_disabled || false,
+    stitch_disabled: creatorInfo.stitch_disabled || false,
+  };
+}
+
+/**
  * Publish video using FILE_UPLOAD method
  * Downloads video from URL and uploads bytes directly to TikTok
  * Use this method when the video URL domain cannot be verified (e.g., Supabase Storage)
@@ -496,8 +563,34 @@ export async function publishTikTokVideoViaFileUpload(
   console.log('[TikTok] Video URL:', videoUrl);
   console.log('[TikTok] Caption:', caption.substring(0, 100));
 
+  // Step 0: Check creator info (REQUIRED by TikTok guidelines)
+  console.log('[TikTok] === STEP 0: VERIFY CREATOR CAN POST ===');
+  let maxVideoDuration = 600; // Default to 10 minutes if check fails
+
+  try {
+    const creatorInfo = await getCreatorInfo(accessToken);
+
+    if (!creatorInfo.can_post) {
+      console.error('[TikTok] ❌ Creator cannot post at this time (daily limit reached)');
+      throw new Error('You have reached the daily posting limit. Please try again later.');
+    }
+
+    console.log('[TikTok] ✓ Creator can post');
+    console.log('[TikTok] Max video duration:', creatorInfo.max_video_post_duration_sec, 'seconds');
+    console.log('[TikTok] Privacy options:', creatorInfo.privacy_level_options.join(', '));
+
+    maxVideoDuration = creatorInfo.max_video_post_duration_sec;
+  } catch (error: any) {
+    if (error.message.includes('daily limit') || error.message.includes('cannot post')) {
+      throw error; // Re-throw limit errors
+    }
+    // If creator_info fails, log but continue (might be API issue)
+    console.warn('[TikTok] ⚠ Creator info check failed, continuing with default max duration:', maxVideoDuration, 'seconds');
+  }
+
   // Step 1: Download video from URL
-  console.log('[TikTok] Downloading video...');
+  console.log('[TikTok] === STEP 1: DOWNLOAD VIDEO ===');
+  console.log('[TikTok] Downloading video from URL...');
   const videoResponse = await fetch(videoUrl);
 
   if (!videoResponse.ok) {
@@ -510,6 +603,29 @@ export async function publishTikTokVideoViaFileUpload(
 
   console.log('[TikTok] Video downloaded, size:', videoSize, 'bytes');
   console.log('[TikTok] Video size (MB):', (videoSize / (1024 * 1024)).toFixed(2), 'MB');
+
+  // Step 1.5: Validate video duration (REQUIRED by TikTok guidelines)
+  console.log('[TikTok] === STEP 1.5: VALIDATE VIDEO DURATION ===');
+  try {
+    const videoDuration = await getVideoDurationInSeconds(videoBuffer);
+    console.log('[TikTok] Video duration:', videoDuration.toFixed(2), 'seconds');
+    console.log('[TikTok] Max allowed duration:', maxVideoDuration, 'seconds');
+
+    if (videoDuration > maxVideoDuration) {
+      console.error('[TikTok] ❌ Video duration exceeds maximum allowed');
+      throw new Error(
+        `Video duration (${videoDuration.toFixed(1)}s) exceeds TikTok's maximum of ${maxVideoDuration}s. Please use a shorter video.`
+      );
+    }
+
+    console.log('[TikTok] ✓ Video duration is within limits');
+  } catch (error: any) {
+    // If duration check fails (not a duration limit error), log but continue
+    if (error.message.includes('exceeds')) {
+      throw error; // Re-throw duration limit errors
+    }
+    console.warn('[TikTok] ⚠ Could not validate video duration, continuing anyway:', error.message);
+  }
 
   // Step 2: ADAPTIVE CHUNK CONFIGURATION
   // TikTok Requirements:
