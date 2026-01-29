@@ -8,7 +8,7 @@ import { getAuthUser } from '@/lib/auth-server';
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user, error: authError } = await getAuthUser();
@@ -20,6 +20,7 @@ export async function PATCH(
       );
     }
 
+    const params = await context.params;
     const videoId = params.id;
     const body = await req.json();
 
@@ -65,7 +66,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user, error: authError } = await getAuthUser();
@@ -77,6 +78,7 @@ export async function DELETE(
       );
     }
 
+    const params = await context.params;
     const videoId = params.id;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
