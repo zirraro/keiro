@@ -596,16 +596,69 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
-    // STEP 2: Use video directly (no conversion for now)
-    // Note: FFmpeg.wasm disabled - requires headers that break external images
-    // TODO: Setup CloudConvert API for server-side conversion if needed
-    console.log('[TikTokModal] Using video directly without conversion');
-    let tiktokReadyVideoUrl = videoUrlToPublish;
+    // STEP 2: Convert video to TikTok format with CloudConvert
+    console.log('[TikTokModal] Starting CloudConvert conversion...');
+
+    let tiktokReadyVideoUrl: string;
+    try {
+      const conversionResponse = await fetch('/api/convert-video-tiktok', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: videoUrlToPublish })
+      });
+
+      const conversionData = await conversionResponse.json();
+
+      if (conversionData.ok && conversionData.convertedUrl) {
+        console.log('[TikTokModal] ✅ CloudConvert conversion successful');
+        tiktokReadyVideoUrl = conversionData.convertedUrl;
+      } else {
+        console.warn('[TikTokModal] ⚠️ CloudConvert conversion failed:', conversionData.error);
+
+        // Si CloudConvert n'est pas configuré, afficher erreur explicite
+        if (conversionData.requiresCloudConvertSetup) {
+          setPublishing(false);
+          alert(
+            '❌ Conversion automatique non disponible\n\n' +
+            'La conversion vidéo nécessite CloudConvert API.\n\n' +
+            'Configuration requise:\n' +
+            '1. Ajouter CLOUDCONVERT_API_KEY dans Vercel\n' +
+            '2. Redéployer l\'application\n\n' +
+            'Contactez l\'administrateur.'
+          );
+          return;
+        }
+
+        // Autre erreur de conversion - proposer de continuer quand même
+        const continueAnyway = window.confirm(
+          '⚠️ Conversion échouée\n\n' +
+          `Erreur: ${conversionData.error}\n\n` +
+          'La vidéo pourrait être rejetée par TikTok.\n\n' +
+          'Voulez-vous essayer de publier quand même ?'
+        );
+
+        if (!continueAnyway) {
+          setPublishing(false);
+          return;
+        }
+
+        tiktokReadyVideoUrl = videoUrlToPublish;
+      }
+    } catch (conversionError: any) {
+      console.error('[TikTokModal] ❌ Conversion request failed:', conversionError);
+      setPublishing(false);
+      alert(
+        '❌ Erreur de conversion\n\n' +
+        'Impossible de contacter le service de conversion.\n\n' +
+        'Vérifiez votre connexion et réessayez.'
+      );
+      return;
+    }
 
     // STEP 3: Confirm with user
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '✅ Vidéo validée et prête\n' +
+      '✅ Vidéo convertie au format TikTok (H.264 + AAC)\n' +
       '🚀 La vidéo sera publiée immédiatement\n\n' +
       'Continuer ?'
     );
