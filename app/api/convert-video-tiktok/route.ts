@@ -40,11 +40,15 @@ export async function POST(req: NextRequest) {
       } catch (error: any) {
         console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
         console.error('[ConvertVideo] Full error:', error);
-        // Fall through to client-side option
+
+        // Return the actual CloudConvert error instead of "key missing"
+        return NextResponse.json({
+          ok: false,
+          error: `Échec de la conversion CloudConvert: ${error.message}`,
+          details: error.toString(),
+          cloudconvertError: true
+        }, { status: 500 });
       }
-    } else {
-      console.warn('[ConvertVideo] ⚠️ CloudConvert API key not configured in environment variables');
-      console.warn('[ConvertVideo] Set CLOUDCONVERT_API_KEY in Vercel environment to enable automatic conversion');
     }
 
     // OPTION 2: Return error - CloudConvert API key not configured
