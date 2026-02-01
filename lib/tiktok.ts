@@ -748,7 +748,7 @@ export async function publishTikTokVideoViaFileUpload(
       throw new Error(`Last chunk size ${actualChunkSize} exceeds declared chunk_size ${chunkSize}`);
     }
 
-    if (isLast && actualChunkSize < MIN_CHUNK_SIZE) {
+    if (isLast && actualChunkSize < MIN_CHUNK_SIZE && totalChunkCount > 1) {
       console.error('[TikTok] ❌ VERIFICATION FAILED: Last chunk below 5MB minimum!');
       throw new Error(`Last chunk size ${(actualChunkSize / (1024 * 1024)).toFixed(2)}MB is below 5MB minimum`);
     }
@@ -863,7 +863,7 @@ export async function publishTikTokVideoViaFileUpload(
       throw new Error(`Last chunk actual size ${chunkActualSize} exceeds declared ${chunkSize}`);
     }
 
-    if (isLastChunk && chunkActualSize < MIN_CHUNK_SIZE) {
+    if (isLastChunk && chunkActualSize < MIN_CHUNK_SIZE && totalChunkCount > 1) {
       console.error('[TikTok] ❌ CRITICAL: Last chunk below 5MB minimum!');
       throw new Error(`Last chunk size ${(chunkActualSize / (1024 * 1024)).toFixed(2)}MB is below 5MB minimum`);
     }
