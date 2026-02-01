@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
 
 /**
  * POST /api/generate-narration
@@ -12,7 +11,7 @@ import Anthropic from '@anthropic-ai/sdk';
  *
  * Returns:
  * - audioUrl: URL of generated audio file
- * - script: Condensed script text used for narration
+ * - script: Script text used for narration
  */
 export async function POST(req: NextRequest) {
   try {
@@ -29,39 +28,18 @@ export async function POST(req: NextRequest) {
     console.log('[GenerateNarration] Original text length:', text.length, 'chars');
     console.log('[GenerateNarration] Target duration:', duration, 'seconds');
 
-    // STEP 1: Condense text to fit duration using Claude API
+    // STEP 1: Auto-condense text to fit duration (simple word limit)
     // Average speaking rate: ~150 words/minute = 2.5 words/second
     const targetWordCount = Math.floor(duration * 2.5);
     console.log('[GenerateNarration] Target word count:', targetWordCount, 'words');
 
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
-    }
+    // Simple truncation to target word count
+    const words = text.split(/\s+/);
+    const scriptText = words.length > targetWordCount
+      ? words.slice(0, targetWordCount).join(' ') + '...'
+      : text;
 
-    const anthropic = new Anthropic({ apiKey: anthropicApiKey });
-
-    const condensedScript = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 200,
-      messages: [
-        {
-          role: 'user',
-          content: `Condense this news text into a ${targetWordCount}-word narration script for a ${duration}-second TikTok video. Keep it engaging and natural for voice narration. Output ONLY the script text, no commentary.
-
-Original text:
-${text}
-
-Script (${targetWordCount} words max):`
-        }
-      ]
-    });
-
-    const scriptText = condensedScript.content[0].type === 'text'
-      ? condensedScript.content[0].text.trim()
-      : text; // Fallback to original if API fails
-
-    console.log('[GenerateNarration] Condensed script:', scriptText);
+    console.log('[GenerateNarration] Script text:', scriptText);
     console.log('[GenerateNarration] Script word count:', scriptText.split(' ').length);
 
     // STEP 2: Generate audio with OpenAI TTS
