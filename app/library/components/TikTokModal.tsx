@@ -596,8 +596,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
-    // STEP 2: Convert video to TikTok format with CloudConvert
-    console.log('[TikTokModal] Starting CloudConvert conversion...');
+    // STEP 2: Convert video to TikTok format with CloudConvert [BUILD v2.1]
+    console.log('[TikTokModal] [BUILD v2.1] Starting CloudConvert conversion...');
 
     let tiktokReadyVideoUrl: string;
     try {
@@ -608,23 +608,29 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       });
 
       const conversionData = await conversionResponse.json();
+      console.log('[TikTokModal] Conversion response:', conversionData);
 
       if (conversionData.ok && conversionData.convertedUrl) {
         console.log('[TikTokModal] ✅ CloudConvert conversion successful');
+        console.log('[TikTokModal] Original URL:', videoUrlToPublish);
+        console.log('[TikTokModal] Converted URL:', conversionData.convertedUrl);
         tiktokReadyVideoUrl = conversionData.convertedUrl;
       } else {
         console.warn('[TikTokModal] ⚠️ CloudConvert conversion failed:', conversionData.error);
 
         // Si CloudConvert n'est pas configuré, afficher erreur explicite
         if (conversionData.requiresCloudConvertSetup) {
+          console.error('[TikTokModal] ❌ CloudConvert API key not detected by frontend!');
+          console.error('[TikTokModal] This might be a cache issue. Please hard refresh (Ctrl+Shift+R)');
           setPublishing(false);
           alert(
             '❌ Conversion automatique non disponible\n\n' +
             'La conversion vidéo nécessite CloudConvert API.\n\n' +
-            'Configuration requise:\n' +
-            '1. Ajouter CLOUDCONVERT_API_KEY dans Vercel\n' +
-            '2. Redéployer l\'application\n\n' +
-            'Contactez l\'administrateur.'
+            'Si vous venez de configurer la clé:\n' +
+            '1. Videz le cache du navigateur (Ctrl+Shift+R)\n' +
+            '2. Attendez que le déploiement Vercel soit terminé\n' +
+            '3. Réessayez\n\n' +
+            'Si le problème persiste, contactez l\'administrateur.'
           );
           return;
         }
