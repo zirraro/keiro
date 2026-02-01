@@ -171,7 +171,24 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
     }
 
     if (statusData.data.status === 'error') {
-      throw new Error('CloudConvert job failed');
+      console.error('[CloudConvert] Job failed, full status:', JSON.stringify(statusData, null, 2));
+
+      // Extract error details from failed tasks
+      const failedTasks = Object.values(statusData.data.tasks || {})
+        .filter((task: any) => task.status === 'error')
+        .map((task: any) => ({
+          name: task.name,
+          message: task.message || task.error || 'Unknown error',
+          code: task.code
+        }));
+
+      const errorDetails = failedTasks.length > 0
+        ? failedTasks.map(t => `${t.name}: ${t.message}`).join('; ')
+        : 'Unknown error from CloudConvert';
+
+      console.error('[CloudConvert] Failed tasks:', failedTasks);
+
+      throw new Error(`CloudConvert: ${errorDetails}`);
     }
 
     attempts++;
