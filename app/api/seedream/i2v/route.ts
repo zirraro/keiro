@@ -267,8 +267,14 @@ async function checkTaskStatus(taskId: string) {
               conversionMethod: conversionData.method
             });
           } else {
-            console.warn('[Seedream I2V] Conversion failed or not available:', conversionData.error);
+            console.warn('[Seedream I2V] ⚠️ Conversion failed or not available:', conversionData.error);
             console.log('[Seedream I2V] Returning original video URL (may not be TikTok-compatible)');
+
+            // Check if it's a CloudConvert setup issue
+            if (conversionData.requiresCloudConvertSetup) {
+              console.error('[Seedream I2V] ❌ CloudConvert API key not configured!');
+              console.error('[Seedream I2V] Videos will NOT be TikTok-compatible without conversion');
+            }
 
             // Fallback: retourner la vidéo originale avec un avertissement
             return Response.json({
@@ -277,11 +283,12 @@ async function checkTaskStatus(taskId: string) {
               videoUrl: videoUrl,
               tiktokReady: false,
               conversionWarning: conversionData.error || 'Conversion automatique non disponible',
-              conversionInstructions: conversionData.instructions
+              conversionMessage: conversionData.message,
+              requiresCloudConvertSetup: conversionData.requiresCloudConvertSetup || false
             });
           }
         } catch (conversionError: any) {
-          console.error('[Seedream I2V] Conversion error:', conversionError.message);
+          console.error('[Seedream I2V] ❌ Conversion request error:', conversionError.message);
           console.log('[Seedream I2V] Returning original video URL');
 
           // En cas d'erreur, retourner la vidéo originale
@@ -290,7 +297,7 @@ async function checkTaskStatus(taskId: string) {
             status: 'completed',
             videoUrl: videoUrl,
             tiktokReady: false,
-            conversionError: 'Conversion automatique échouée - utilisez FFmpeg manuellement'
+            conversionError: 'Échec de la conversion automatique - Configuration CloudConvert requise'
           });
         }
       } else {

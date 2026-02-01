@@ -30,35 +30,42 @@ export async function POST(req: NextRequest) {
     // OPTION 1: Use CloudConvert API (if API key is set)
     const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY;
 
+    console.log('[ConvertVideo] CloudConvert API key available:', cloudConvertApiKey ? 'YES ✅' : 'NO ❌');
+    console.log('[ConvertVideo] API key length:', cloudConvertApiKey?.length || 0, 'characters');
+
     if (cloudConvertApiKey) {
+      console.log('[ConvertVideo] Starting CloudConvert conversion...');
       try {
         return await convertViaCloudConvert(videoUrl, cloudConvertApiKey);
       } catch (error: any) {
-        console.error('[ConvertVideo] CloudConvert failed:', error.message);
+        console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
+        console.error('[ConvertVideo] Full error:', error);
         // Fall through to client-side option
       }
+    } else {
+      console.warn('[ConvertVideo] ⚠️ CloudConvert API key not configured in environment variables');
+      console.warn('[ConvertVideo] Set CLOUDCONVERT_API_KEY in Vercel environment to enable automatic conversion');
     }
 
-    // OPTION 2: Return instructions for client-side conversion with ffmpeg.wasm
-    console.log('[ConvertVideo] No cloud conversion available, instructing client-side conversion');
+    // OPTION 2: Return error - CloudConvert API key not configured
+    console.log('[ConvertVideo] ⚠️ Conversion automatique non disponible - clé API CloudConvert manquante');
 
-    const conversionInstructions =
-      'Votre vidéo doit être convertie au format TikTok (H.264 + AAC).\n\n' +
-      'Options:\n' +
-      '1. Téléchargez la vidéo et convertissez avec HandBrake ou FFmpeg\n' +
-      '2. Utilisez CloudConvert.com (en ligne, gratuit)\n\n' +
-      'Commande FFmpeg:\n' +
-      'ffmpeg -i input.mp4 -c:v libx264 -c:a aac -b:a 128k -movflags +faststart output.mp4\n\n' +
-      'Voir TIKTOK_REQUIREMENTS.md pour le guide complet';
+    const errorMessage =
+      '⚠️ Conversion automatique non configurée\n\n' +
+      'La conversion automatique CloudConvert nécessite une clé API.\n\n' +
+      '👉 Solution:\n' +
+      '1. Ajoutez CLOUDCONVERT_API_KEY dans les variables d\'environnement Vercel\n' +
+      '2. Redéployez l\'application\n\n' +
+      'Contactez l\'administrateur pour activer cette fonctionnalité.';
 
     return NextResponse.json({
       ok: false,
-      requiresClientSideConversion: true,
+      requiresCloudConvertSetup: true,
       videoUrl,
-      error: 'Conversion serveur non disponible',
-      instructions: conversionInstructions,
-      message: conversionInstructions
-    }, { status: 400 });
+      error: 'Conversion automatique non disponible - Clé API CloudConvert manquante',
+      message: errorMessage,
+      adminNote: 'Set CLOUDCONVERT_API_KEY environment variable in Vercel to enable automatic video conversion'
+    }, { status: 503 });
 
   } catch (error: any) {
     console.error('[ConvertVideo] Error:', error);

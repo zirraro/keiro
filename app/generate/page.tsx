@@ -1544,6 +1544,26 @@ export default function GeneratePage() {
           if (statusData.status === 'completed') {
             if (statusData.videoUrl) {
               console.log('[Video] Video ready:', statusData.videoUrl);
+
+              // Check CloudConvert conversion status
+              if (statusData.tiktokReady === false) {
+                console.warn('[Video] ⚠️ Video NOT TikTok-ready - CloudConvert conversion failed');
+
+                if (statusData.requiresCloudConvertSetup) {
+                  console.error('[Video] ❌ CloudConvert API key not configured!');
+                  alert(
+                    '⚠️ Conversion CloudConvert non configurée\n\n' +
+                    'La vidéo a été générée mais n\'est pas au format TikTok (H.264 + AAC).\n\n' +
+                    'Votre vidéo pourrait être rejetée par TikTok.\n\n' +
+                    'Contactez l\'administrateur pour activer la conversion automatique.'
+                  );
+                } else if (statusData.conversionWarning) {
+                  console.warn('[Video] Conversion warning:', statusData.conversionWarning);
+                }
+              } else if (statusData.tiktokReady === true) {
+                console.log('[Video] ✅ Video is TikTok-ready (converted via', statusData.conversionMethod + ')');
+              }
+
               setGeneratedVideoUrl(statusData.videoUrl);
               setVideoProgress('');
               setGeneratingVideo(false);

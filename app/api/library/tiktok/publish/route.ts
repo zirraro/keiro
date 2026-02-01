@@ -158,9 +158,9 @@ export async function POST(req: NextRequest) {
           '• Format non supporté\n' +
           '• Durée < 3 secondes\n' +
           '• Résolution non supportée\n\n' +
-          'Solution: Réencodez votre vidéo avec FFmpeg:\n' +
-          'ffmpeg -i input.mp4 -c:v libx264 -c:a aac -b:a 128k output.mp4\n\n' +
-          'Consultez TIKTOK_REQUIREMENTS.md pour le guide complet';
+          'ℹ️ La conversion automatique avec CloudConvert devrait normalement corriger ce problème.\n' +
+          'Si cette erreur persiste, contactez le support technique.\n\n' +
+          'Note: Les vidéos générées avec Seedream I2V sont automatiquement converties au format TikTok (H.264 + AAC).';
       } else if (publishError.message.includes('daily limit') || publishError.message.includes('quota')) {
         userMessage =
           '❌ Limite quotidienne atteinte\n\n' +
