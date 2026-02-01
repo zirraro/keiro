@@ -1,10 +1,11 @@
 -- ========================================
--- FIX: Autoriser vidéos MP4 dans bucket generated-images
+-- FIX: Autoriser vidéos MP4 ET audio MP3 dans bucket generated-images
 -- ========================================
 -- Exécuter ce script dans Supabase SQL Editor pour résoudre:
 -- "mime type video/mp4 is not supported"
+-- "mime type audio/mpeg is not supported"
 
--- Mettre à jour le bucket pour accepter les vidéos
+-- Mettre à jour le bucket pour accepter les vidéos ET audio
 UPDATE storage.buckets
 SET
   allowed_mime_types = ARRAY[
@@ -16,7 +17,10 @@ SET
     'video/mp4',
     'video/quicktime',
     'video/webm',
-    'video/x-msvideo'
+    'video/x-msvideo',
+    'audio/mpeg',
+    'audio/mp3',
+    'audio/wav'
   ],
   file_size_limit = 104857600  -- 100MB
 WHERE name = 'generated-images';

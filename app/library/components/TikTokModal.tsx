@@ -260,13 +260,25 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
   };
 
   const handleSuggest = async () => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+    // Check if any content is selected (image OR video)
+    const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
+
+    if (!hasContent) {
+      alert('Veuillez sélectionner un contenu (image ou vidéo)');
       return;
     }
 
     setSuggesting(true);
     try {
+      // Use image data if available, otherwise use video data
+      const contentUrl = activeTab === 'images'
+        ? selectedImage?.image_url
+        : selectedVideo?.thumbnail_url || selectedVideo?.video_url;
+
+      const contentTitle = activeTab === 'images'
+        ? (selectedImage?.title || selectedImage?.news_title)
+        : selectedVideo?.title;
+
       const response = await fetch('/api/tiktok/suggest', {
         method: 'POST',
         headers: {
@@ -274,11 +286,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: selectedImage.image_url,
-          imageTitle: selectedImage.title || selectedImage.news_title,
-          newsTitle: selectedImage.news_title,
-          newsCategory: selectedImage.news_category,
-          contentAngle: contentAngle
+          imageUrl: contentUrl,
+          imageTitle: contentTitle,
+          newsTitle: selectedImage?.news_title || contentTitle,
+          newsCategory: selectedImage?.news_category || 'general',
+          contentAngle: contentAngle,
+          contentType: activeTab === 'videos' ? 'video' : 'image'
         })
       });
 
@@ -1148,7 +1161,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
               <div>
                 <button
                   onClick={handleSuggest}
-                  disabled={suggesting || !selectedImage}
+                  disabled={suggesting || (activeTab === 'images' ? !selectedImage : !selectedVideo)}
                   className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {suggesting ? (
