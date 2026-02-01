@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { videoUrl } = await req.json();
+    const { videoUrl, videoId } = await req.json();
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[ConvertVideo] Converting video to TikTok format:', videoUrl);
+    console.log('[ConvertVideo] Video ID for update:', videoId || 'none (new video)');
 
     // OPTION 1: Use CloudConvert API (if API key is set)
     const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY;
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (cloudConvertApiKey) {
       console.log('[ConvertVideo] Starting CloudConvert conversion...');
       try {
-        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey);
+        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId);
       } catch (error: any) {
         console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
         console.error('[ConvertVideo] Full error:', error);
@@ -84,9 +85,12 @@ export async function POST(req: NextRequest) {
  * Convert video using CloudConvert API
  * Free tier: 25 conversions/day
  * https://cloudconvert.com/api/v2
+ *
+ * @param videoId - Optional: If provided, updates my_videos.video_url with converted URL
  */
-async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
+async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string) {
   console.log('[CloudConvert] Starting conversion...');
+  console.log('[CloudConvert] Will update video ID:', videoId || 'none');
 
   // Step 1: Create job
   const createJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
@@ -107,11 +111,11 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
           input: 'import-video',
           output_format: 'mp4',
           engine: 'ffmpeg',
-          // CRITICAL: Use raw FFmpeg command to handle videos WITHOUT audio
-          // TikTok REQUIRES audio track (even silence) - this generates silent AAC if missing
+          // CRITICAL: TikTok REQUIRES real audio track (not just silence)
+          // Generate soft sine wave tone at 440Hz (musical note A)
           command: [
             '-i', 'input.mp4',
-            '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+            '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=10',
             '-c:v', 'libx264',
             '-profile:v', 'high',
             '-level', '4.2',
@@ -123,6 +127,7 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
             '-b:a', '128k',
             '-ar', '44100',
             '-ac', '2',
+            '-filter:a', 'volume=0.1',
             '-shortest',
             '-movflags', '+faststart',
             'output.mp4'
@@ -217,13 +222,34 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
         const finalUrl = urlData.publicUrl;
         console.log('[CloudConvert] ✅ Video saved to Supabase:', finalUrl);
 
+        // Update my_videos table with converted URL if videoId provided
+        if (videoId) {
+          console.log('[CloudConvert] Updating my_videos with converted URL for video:', videoId);
+          const { error: updateError } = await supabase
+            .from('my_videos')
+            .update({
+              video_url: finalUrl,
+              tiktok_converted: true,
+              converted_at: new Date().toISOString()
+            })
+            .eq('id', videoId);
+
+          if (updateError) {
+            console.error('[CloudConvert] Failed to update my_videos:', updateError);
+            // Don't throw - conversion succeeded, just log the warning
+          } else {
+            console.log('[CloudConvert] ✅ Updated my_videos.video_url successfully');
+          }
+        }
+
         return NextResponse.json({
           ok: true,
           convertedUrl: finalUrl,
           originalUrl: videoUrl,
           method: 'cloudconvert',
           usedCloudConvert: true,
-          videoSize: videoSize
+          videoSize: videoSize,
+          videoUpdated: !!videoId
         });
       }
     }

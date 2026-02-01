@@ -527,12 +527,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       return;
     }
 
-    // Determine video URL based on active tab
+    // Determine video URL and ID based on active tab
     let videoUrlToPublish: string;
+    let videoIdToUpdate: string | null = null;
+
     if (activeTab === 'videos' && selectedVideo) {
       videoUrlToPublish = selectedVideo.video_url;
+      videoIdToUpdate = selectedVideo.id; // Will update my_videos with converted URL
     } else if (activeTab === 'images' && selectedImage) {
       videoUrlToPublish = videoPreview || selectedImage.image_url;
+      // No videoId for images (not in my_videos yet)
     } else {
       throw new Error('No video selected');
     }
@@ -604,7 +608,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
       const conversionResponse = await fetch('/api/convert-video-tiktok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl: videoUrlToPublish })
+        body: JSON.stringify({
+          videoUrl: videoUrlToPublish,
+          videoId: videoIdToUpdate // Update my_videos.video_url after conversion
+        })
       });
 
       const conversionData = await conversionResponse.json();
