@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { videoUrl, videoId } = await req.json();
+    const { videoUrl, videoId, audioUrl } = await req.json();
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[ConvertVideo] Converting video to TikTok format:', videoUrl);
     console.log('[ConvertVideo] Video ID for update:', videoId || 'none (new video)');
+    console.log('[ConvertVideo] Audio URL:', audioUrl || 'none (will use sine wave)');
 
     // OPTION 1: Use CloudConvert API (if API key is set)
     const cloudConvertApiKey = process.env.CLOUDCONVERT_API_KEY;
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (cloudConvertApiKey) {
       console.log('[ConvertVideo] Starting CloudConvert conversion...');
       try {
-        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId);
+        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId, audioUrl);
       } catch (error: any) {
         console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
         console.error('[ConvertVideo] Full error:', error);
@@ -87,58 +88,98 @@ export async function POST(req: NextRequest) {
  * https://cloudconvert.com/api/v2
  *
  * @param videoId - Optional: If provided, updates my_videos.video_url with converted URL
+ * @param audioUrl - Optional: Custom audio URL to merge (instead of sine wave)
  */
-async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string) {
+async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string) {
   console.log('[CloudConvert] Starting conversion...');
   console.log('[CloudConvert] Will update video ID:', videoId || 'none');
+  console.log('[CloudConvert] Custom audio:', audioUrl ? '✅ YES' : '❌ NO (sine wave)');
 
-  // Step 1: Create job
+  // Step 1: Create job with tasks
+  // If audioUrl provided: import audio + merge
+  // Otherwise: generate sine wave audio
+  const tasks: any = {
+    'import-video': {
+      operation: 'import/url',
+      url: videoUrl,
+      filename: 'input.mp4'
+    }
+  };
+
+  if (audioUrl) {
+    // Custom audio: import narration and merge
+    console.log('[CloudConvert] Using custom narration audio');
+    tasks['import-audio'] = {
+      operation: 'import/url',
+      url: audioUrl,
+      filename: 'narration.mp3'
+    };
+    tasks['convert-video'] = {
+      operation: 'convert',
+      input: ['import-video', 'import-audio'],
+      output_format: 'mp4',
+      engine: 'ffmpeg',
+      command: [
+        '-i', 'input.mp4',
+        '-i', 'narration.mp3',
+        '-c:v', 'libx264',
+        '-profile:v', 'high',
+        '-level', '4.2',
+        '-preset', 'medium',
+        '-pix_fmt', 'yuv420p',
+        '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease',
+        '-r', '30',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ar', '44100',
+        '-ac', '2',
+        '-shortest',
+        '-movflags', '+faststart',
+        'output.mp4'
+      ]
+    };
+  } else {
+    // No custom audio: use sine wave
+    console.log('[CloudConvert] Using default sine wave audio');
+    tasks['convert-video'] = {
+      operation: 'convert',
+      input: 'import-video',
+      output_format: 'mp4',
+      engine: 'ffmpeg',
+      command: [
+        '-i', 'input.mp4',
+        '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=10',
+        '-c:v', 'libx264',
+        '-profile:v', 'high',
+        '-level', '4.2',
+        '-preset', 'medium',
+        '-pix_fmt', 'yuv420p',
+        '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease',
+        '-r', '30',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ar', '44100',
+        '-ac', '2',
+        '-filter:a', 'volume=0.1',
+        '-shortest',
+        '-movflags', '+faststart',
+        'output.mp4'
+      ]
+    };
+  }
+
+  tasks['export-video'] = {
+    operation: 'export/url',
+    input: 'convert-video'
+  };
+
   const createJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      tasks: {
-        'import-video': {
-          operation: 'import/url',
-          url: videoUrl,
-          filename: 'input.mp4'
-        },
-        'convert-video': {
-          operation: 'convert',
-          input: 'import-video',
-          output_format: 'mp4',
-          engine: 'ffmpeg',
-          // CRITICAL: TikTok REQUIRES real audio track (not just silence)
-          // Generate soft sine wave tone at 440Hz (musical note A)
-          command: [
-            '-i', 'input.mp4',
-            '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=10',
-            '-c:v', 'libx264',
-            '-profile:v', 'high',
-            '-level', '4.2',
-            '-preset', 'medium',
-            '-pix_fmt', 'yuv420p',
-            '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease',
-            '-r', '30',
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-ac', '2',
-            '-filter:a', 'volume=0.1',
-            '-shortest',
-            '-movflags', '+faststart',
-            'output.mp4'
-          ]
-        },
-        'export-video': {
-          operation: 'export/url',
-          input: 'convert-video'
-        }
-      }
-    })
+    body: JSON.stringify({ tasks })
   });
 
   const jobData = await createJobResponse.json();
