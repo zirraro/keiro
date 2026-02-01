@@ -28,33 +28,47 @@ export async function POST(req: NextRequest) {
     console.log('[GenerateNarration] Original text length:', text.length, 'chars');
     console.log('[GenerateNarration] Target duration:', duration, 'seconds');
 
-    // STEP 1: Auto-condense text to fit duration (simple word limit)
+    const openAIKey = process.env.OPENAI_API_KEY;
+    if (!openAIKey) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+
+    // STEP 1: Condense text using OpenAI GPT-4
     // Average speaking rate: ~150 words/minute = 2.5 words/second
     const targetWordCount = Math.floor(duration * 2.5);
     console.log('[GenerateNarration] Target word count:', targetWordCount, 'words');
 
-    // Simple truncation to target word count
-    const words = text.split(/\s+/);
-    const scriptText = words.length > targetWordCount
-      ? words.slice(0, targetWordCount).join(' ') + '...'
-      : text;
+    console.log('[GenerateNarration] Condensing text with OpenAI GPT-4...');
+    const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', // Fast & cheap model
+        max_tokens: 150,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a TikTok video script writer. Condense text into engaging, natural narration scripts.'
+          },
+          {
+            role: 'user',
+            content: `Condense this text into a ${targetWordCount}-word narration script for a ${duration}-second TikTok video. Keep it engaging and natural for voice narration. Output ONLY the script text, no commentary.\n\nOriginal text:\n${text}\n\nScript (${targetWordCount} words max):`
+          }
+        ]
+      })
+    });
 
-    console.log('[GenerateNarration] Script text:', scriptText);
+    const gptData = await gptResponse.json();
+    console.log('[GenerateNarration] GPT response:', gptData);
+
+    const scriptText = gptData.choices?.[0]?.message?.content?.trim() || text.split(/\s+/).slice(0, targetWordCount).join(' ');
+    console.log('[GenerateNarration] Condensed script:', scriptText);
     console.log('[GenerateNarration] Script word count:', scriptText.split(' ').length);
 
     // STEP 2: Generate audio with OpenAI TTS
-    const openAIKey = process.env.OPENAI_API_KEY;
-    if (!openAIKey) {
-      console.warn('[GenerateNarration] OPENAI_API_KEY not configured, returning script only');
-      return NextResponse.json({
-        ok: true,
-        audioUrl: null,
-        script: scriptText,
-        requiresTTS: true,
-        message: 'OpenAI TTS not configured. Please set OPENAI_API_KEY environment variable.'
-      });
-    }
-
     console.log('[GenerateNarration] Generating TTS audio with OpenAI...');
     const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
