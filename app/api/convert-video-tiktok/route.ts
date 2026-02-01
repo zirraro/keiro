@@ -110,10 +110,17 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
           video_codec: 'x264',
           audio_codec: 'aac',
           audio_bitrate: 128,
+          audio_frequency: 44100,
+          audio_channels: 2,
           preset: 'medium',
+          profile: 'high',
+          level: '4.2',
+          pixel_format: 'yuv420p',
+          frame_rate: 30,
           fit: 'max',
           width: 1080,
-          height: 1920
+          height: 1920,
+          optimize: true
         },
         'export-video': {
           operation: 'export/url',
