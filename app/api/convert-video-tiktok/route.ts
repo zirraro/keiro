@@ -107,7 +107,7 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
           input: 'import-video',
           output_format: 'mp4',
           engine: 'ffmpeg',
-          video_codec: 'h264',
+          video_codec: 'x264',
           audio_codec: 'aac',
           audio_bitrate: 128,
           preset: 'medium',
