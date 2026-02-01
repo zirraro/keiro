@@ -148,7 +148,8 @@ export async function POST(req: NextRequest) {
           'Solutions:\n' +
           '• Réduisez la taille de votre vidéo (< 100MB)\n' +
           '• Compressez la vidéo avec un outil comme HandBrake\n' +
-          '• Consultez TIKTOK_REQUIREMENTS.md';
+          '• Consultez TIKTOK_REQUIREMENTS.md\n\n' +
+          `🔍 Erreur technique: ${publishError.message}`;
       } else if (publishError.message.includes('Content Sharing') || publishError.message.includes('guidelines')) {
         userMessage =
           '❌ Vidéo non conforme aux exigences TikTok\n\n' +
@@ -172,7 +173,13 @@ export async function POST(req: NextRequest) {
           'TikTok exige:\n' +
           '• Durée minimum: 3 secondes\n' +
           '• Durée maximum: variable selon compte (typiquement 10 minutes)\n\n' +
-          'Vérifiez la durée de votre vidéo.';
+          'Vérifiez la durée de votre vidéo.\n\n' +
+          `🔍 Erreur technique: ${publishError.message}`;
+      } else {
+        // Unknown error - show original message for debugging
+        userMessage =
+          '❌ Erreur lors de la publication TikTok\n\n' +
+          `🔍 Erreur technique: ${publishError.message}`;
       }
 
       throw new Error(userMessage);
