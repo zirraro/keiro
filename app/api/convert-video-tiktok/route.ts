@@ -160,12 +160,57 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string) {
         const convertedUrl = exportTask.result.files[0].url;
         console.log('[CloudConvert] ✅ Conversion completed:', convertedUrl);
 
+        // Download converted video and upload to Supabase Storage
+        // This ensures the URL is stable and accessible for TikTok
+        console.log('[CloudConvert] Downloading converted video...');
+        const videoResponse = await fetch(convertedUrl);
+
+        if (!videoResponse.ok) {
+          throw new Error(`Failed to download converted video: ${videoResponse.status}`);
+        }
+
+        const videoBuffer = await videoResponse.arrayBuffer();
+        const videoSize = videoBuffer.byteLength;
+        console.log('[CloudConvert] Video downloaded, size:', (videoSize / (1024 * 1024)).toFixed(2), 'MB');
+
+        // Upload to Supabase Storage
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const timestamp = Date.now();
+        const fileName = `tiktok-converted-${timestamp}.mp4`;
+        const storagePath = `tiktok-converted/${fileName}`;
+
+        console.log('[CloudConvert] Uploading to Supabase Storage:', storagePath);
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('generated-images')
+          .upload(storagePath, Buffer.from(videoBuffer), {
+            contentType: 'video/mp4',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('[CloudConvert] Supabase upload failed:', uploadError);
+          throw new Error(`Failed to upload to Supabase: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('generated-images')
+          .getPublicUrl(storagePath);
+
+        const finalUrl = urlData.publicUrl;
+        console.log('[CloudConvert] ✅ Video saved to Supabase:', finalUrl);
+
         return NextResponse.json({
           ok: true,
-          convertedUrl,
+          convertedUrl: finalUrl,
           originalUrl: videoUrl,
           method: 'cloudconvert',
-          usedCloudConvert: true
+          usedCloudConvert: true,
+          videoSize: videoSize
         });
       }
     }
