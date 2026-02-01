@@ -138,50 +138,16 @@ export async function POST(req: NextRequest) {
       console.error('[TikTokPublish] Error message:', publishError.message);
       console.error('[TikTokPublish] Error stack:', publishError.stack);
 
-      // Enhanced error messages for common issues
-      let userMessage = publishError.message;
+      // CRITICAL: ALWAYS show the exact TikTok error message
+      // Remove all filtering to see what TikTok really says
+      const userMessage = `❌ Erreur lors de la publication TikTok\n\n🔍 Message exact de TikTok:\n${publishError.message}`;
 
+      /* Commented out - we need to see the raw error first
       if (publishError.message.includes('chunk') || publishError.message.includes('size')) {
-        userMessage =
-          '❌ Erreur de taille de vidéo\n\n' +
-          'La vidéo ne respecte pas les contraintes de taille TikTok.\n\n' +
-          'Solutions:\n' +
-          '• Réduisez la taille de votre vidéo (< 100MB)\n' +
-          '• Compressez la vidéo avec un outil comme HandBrake\n' +
-          '• Consultez TIKTOK_REQUIREMENTS.md\n\n' +
-          `🔍 Erreur technique: ${publishError.message}`;
-      } else if (publishError.message.includes('Content Sharing') || publishError.message.includes('guidelines')) {
-        userMessage =
-          '❌ Vidéo non conforme aux exigences TikTok\n\n' +
-          'TikTok a rejeté votre vidéo. Causes possibles:\n' +
-          '• Codec vidéo incorrect (doit être H.264)\n' +
-          '• Audio manquant ou codec incorrect (doit être AAC)\n' +
-          '• Format non supporté\n' +
-          '• Durée < 3 secondes\n' +
-          '• Résolution non supportée\n\n' +
-          'ℹ️ La conversion automatique avec CloudConvert devrait normalement corriger ce problème.\n' +
-          'Si cette erreur persiste, contactez le support technique.\n\n' +
-          'Note: Les vidéos générées avec Seedream I2V sont automatiquement converties au format TikTok (H.264 + AAC).';
-      } else if (publishError.message.includes('daily limit') || publishError.message.includes('quota')) {
-        userMessage =
-          '❌ Limite quotidienne atteinte\n\n' +
-          'Vous avez atteint la limite de publications TikTok pour aujourd\'hui (environ 15 posts).\n\n' +
-          'Réessayez demain.';
-      } else if (publishError.message.includes('duration') || publishError.message.includes('too long') || publishError.message.includes('too short')) {
-        userMessage =
-          '❌ Durée de vidéo non valide\n\n' +
-          'TikTok exige:\n' +
-          '• Durée minimum: 3 secondes\n' +
-          '• Durée maximum: variable selon compte (typiquement 10 minutes)\n\n' +
-          'Vérifiez la durée de votre vidéo.\n\n' +
-          `🔍 Erreur technique: ${publishError.message}`;
-      } else {
-        // Unknown error - show original message for debugging
-        userMessage =
-          '❌ Erreur lors de la publication TikTok\n\n' +
-          `🔍 Erreur technique: ${publishError.message}`;
-      }
+        ...
+      */
 
+      // Throw the raw error to see what TikTok actually says
       throw new Error(userMessage);
     }
 
