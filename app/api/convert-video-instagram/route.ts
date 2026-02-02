@@ -127,58 +127,38 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     }
   };
 
-  // If custom audio is provided, import it and merge with video
+  // TODO: Audio merge not supported by CloudConvert with multiple inputs
+  // Need to implement 2-step conversion:
+  // 1. Convert video to Instagram Reels format
+  // 2. Merge audio in separate job (if audioUrl provided)
+  // For now, we ignore audioUrl and do simple video conversion
+
   if (audioUrl) {
-    console.log('[CloudConvert] ✅ Custom audio detected, will merge with video');
-    console.log('[CloudConvert] Audio URL:', audioUrl);
-
-    // Import audio
-    tasks['import-audio'] = {
-      operation: 'import/url',
-      url: audioUrl,
-      filename: 'narration.mp3'
-    };
-
-    // Convert video + merge audio (CloudConvert supports multiple inputs)
-    tasks['convert-video'] = {
-      operation: 'convert',
-      input: ['import-video', 'import-audio'], // Multiple inputs
-      output_format: 'mp4',
-      video_codec: 'h264',
-      video_codec_profile: 'baseline', // ⚠️ CRITICAL: Instagram requires baseline profile
-      audio_codec: 'aac',
-      audio_bitrate: 128,
-      audio_frequency: 44100,
-      preset: 'medium',
-      crf: 23,
-      width: 1080,
-      height: 1920,
-      fit: 'crop', // ⚠️ IMPORTANT: Crop to strict 9:16 (vs 'max' for TikTok)
-      fps: 30, // Instagram recommendation
-      strip_metadata: false
-    };
-  } else {
-    console.log('[CloudConvert] ℹ️ No custom audio, converting video only (will add silent audio)');
-
-    // Convert video only - CloudConvert will generate silent audio track
-    tasks['convert-video'] = {
-      operation: 'convert',
-      input: 'import-video',
-      output_format: 'mp4',
-      video_codec: 'h264',
-      video_codec_profile: 'baseline', // ⚠️ CRITICAL: Instagram requires baseline profile
-      audio_codec: 'aac',
-      audio_bitrate: 128,
-      audio_frequency: 44100,
-      preset: 'medium',
-      crf: 23,
-      width: 1080,
-      height: 1920,
-      fit: 'crop', // ⚠️ IMPORTANT: Crop to strict 9:16
-      fps: 30,
-      strip_metadata: false
-    };
+    console.log('[CloudConvert] ⚠️ Audio merge requested but not yet implemented');
+    console.log('[CloudConvert] Audio URL will be ignored:', audioUrl);
+    console.log('[CloudConvert] TODO: Implement 2-step audio merge');
   }
+
+  console.log('[CloudConvert] Converting video to Instagram Reels format (H.264 baseline + AAC)');
+
+  // Convert video to Instagram Reels format - CloudConvert will preserve/generate audio track
+  tasks['convert-video'] = {
+    operation: 'convert',
+    input: 'import-video',
+    output_format: 'mp4',
+    video_codec: 'h264',
+    video_codec_profile: 'baseline', // ⚠️ CRITICAL: Instagram requires baseline profile
+    audio_codec: 'aac',
+    audio_bitrate: 128,
+    audio_frequency: 44100,
+    preset: 'medium',
+    crf: 23,
+    width: 1080,
+    height: 1920,
+    fit: 'crop', // ⚠️ IMPORTANT: Crop to strict 9:16
+    fps: 30,
+    strip_metadata: false
+  };
 
   tasks['export-video'] = {
     operation: 'export/url',
