@@ -1257,13 +1257,13 @@ export default function LibraryPage() {
 
   // Auto-fermer l'overlay si pas de drop après 3 secondes
   useEffect(() => {
-    if (isDragging) {
-      const timer = setTimeout(() => {
-        setIsDragging(false);
-      }, 3000); // 3 secondes
+    if (!isDragging) return;
 
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => {
+      setIsDragging(false);
+    }, 3000); // 3 secondes
+
+    return () => clearTimeout(timer);
   }, [isDragging]);
 
   return (
