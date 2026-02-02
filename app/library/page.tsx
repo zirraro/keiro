@@ -1221,8 +1221,11 @@ export default function LibraryPage() {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Vérifier si on quitte vraiment la zone (pas un enfant)
-    if (e.currentTarget === e.target) {
+
+    // Ne fermer que si on quitte vraiment le conteneur principal (main)
+    // Vérifier avec relatedTarget pour éviter les faux positifs sur les enfants
+    const relatedTarget = e.relatedTarget as Node;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
       setIsDragging(false);
     }
   };
@@ -1240,6 +1243,29 @@ export default function LibraryPage() {
     }
   };
 
+  // Handler pour annuler le drag avec Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isDragging]);
+
+  // Auto-fermer l'overlay si pas de drop après 3 secondes
+  useEffect(() => {
+    if (isDragging) {
+      const timer = setTimeout(() => {
+        setIsDragging(false);
+      }, 3000); // 3 secondes
+
+      return () => clearTimeout(timer);
+    }
+  }, [isDragging]);
+
   return (
     <main
       className="min-h-screen bg-gradient-to-br from-neutral-50 to-white"
@@ -1248,7 +1274,7 @@ export default function LibraryPage() {
       onDrop={handleDrop}
     >
       {/* DropZone Overlay */}
-      <DropZone isDragging={isDragging} />
+      <DropZone isDragging={isDragging} onCancel={() => setIsDragging(false)} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Email Gate Modal */}
