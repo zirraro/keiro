@@ -515,7 +515,9 @@ export default function LibraryPage() {
         const guestDraft: InstagramDraft = {
           id: `guest-draft-${Date.now()}`,
           saved_image_id: image.id,
-          image_url: image.image_url,
+          media_url: image.image_url,
+          media_type: 'image',
+          category: 'draft',
           caption,
           hashtags,
           status,
@@ -609,7 +611,7 @@ export default function LibraryPage() {
   const editInstagramDraft = (draft: InstagramDraft) => {
     const image: SavedImage = {
       id: draft.saved_image_id,
-      image_url: draft.image_url,
+      image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
     };
@@ -640,7 +642,7 @@ export default function LibraryPage() {
   const scheduleInstagramDraft = (draft: InstagramDraft) => {
     const image: SavedImage = {
       id: draft.saved_image_id,
-      image_url: draft.image_url,
+      image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
     };
@@ -651,7 +653,7 @@ export default function LibraryPage() {
   const editTikTokDraft = (draft: TikTokDraft) => {
     const image: SavedImage = {
       id: draft.saved_image_id,
-      image_url: draft.image_url,
+      image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
     };
@@ -682,7 +684,7 @@ export default function LibraryPage() {
   const scheduleTikTokDraft = (draft: TikTokDraft) => {
     const image: SavedImage = {
       id: draft.saved_image_id,
-      image_url: draft.image_url,
+      image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
     };
