@@ -1046,80 +1046,167 @@ export default function LibraryPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
-      // Vérification de type
-      if (!file.type.startsWith('image/')) {
-        alert(`❌ ${file.name} n'est pas une image valide`);
+      // Déterminer le type de fichier
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+
+      if (!isImage && !isVideo) {
+        alert(`❌ ${file.name} n'est ni une image ni une vidéo valide`);
         continue;
       }
 
-      // Vérification de taille (max 5MB pour localStorage)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      // Vérification de taille selon le type
+      const maxSize = isImage ? 8 * 1024 * 1024 : 50 * 1024 * 1024; // 8MB images, 50MB videos
+      const maxSizeText = isImage ? '8MB' : '50MB';
       if (file.size > maxSize) {
-        alert(`❌ ${file.name} est trop volumineux (max 5MB)`);
+        alert(`❌ ${file.name} est trop volumineux (max ${maxSizeText})`);
         continue;
       }
 
       try {
-        const reader = new FileReader();
-
-        await new Promise<void>((resolve, reject) => {
-          reader.onload = (e) => {
-            try {
-              const imageUrl = e.target?.result as string;
-              const newImage: SavedImage = {
-                id: `img-${Date.now()}-${i}`,
-                image_url: imageUrl,
-                title: file.name.replace(/\.[^/.]+$/, ''), // Nom sans extension
-                is_favorite: false,
-                created_at: new Date().toISOString()
-              };
-
-              if (isGuest) {
-                // Mode guest : sauvegarder dans localStorage
-                setImages(prev => {
-                  const updated = [newImage, ...prev];
-                  try {
-                    localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
-                  } catch (storageError) {
-                    console.error('[Library] localStorage error:', storageError);
-                    alert('❌ Erreur: Espace de stockage insuffisant. Supprimez des images anciennes.');
-                    return prev;
-                  }
-                  return updated;
-                });
-                setStats(prev => ({
-                  ...prev,
-                  total_images: prev.total_images + 1
-                }));
-                console.log('[Library] Image saved to guest localStorage');
-              } else if (user) {
-                // User authentifié : TODO - sauvegarder via Supabase
-                setImages(prev => [newImage, ...prev]);
-                setStats(prev => ({
-                  ...prev,
-                  total_images: prev.total_images + 1
-                }));
-                console.log('[Library] Image uploaded (TODO: save to Supabase)');
-              }
-              resolve();
-            } catch (error) {
-              console.error('[Library] Error processing image:', error);
-              reject(error);
-            }
-          };
-
-          reader.onerror = (error) => {
-            console.error('[Library] FileReader error:', error);
-            reject(error);
-          };
-
-          reader.readAsDataURL(file);
-        });
+        if (isVideo) {
+          // Upload vidéo (uniquement pour utilisateurs authentifiés)
+          if (!user) {
+            alert('❌ L\'upload de vidéos nécessite un compte. Créez un compte gratuit !');
+            continue;
+          }
+          await uploadVideoFile(file);
+        } else {
+          // Upload image (existant)
+          await uploadImageFile(file, i);
+        }
       } catch (error) {
         console.error('[Library] Upload error for', file.name, ':', error);
         alert(`❌ Erreur lors du téléchargement de ${file.name}`);
       }
     }
+  };
+
+  const uploadImageFile = async (file: File, index: number) => {
+    const reader = new FileReader();
+
+    await new Promise<void>((resolve, reject) => {
+      reader.onload = (e) => {
+        try {
+          const imageUrl = e.target?.result as string;
+          const newImage: SavedImage = {
+            id: `img-${Date.now()}-${index}`,
+            image_url: imageUrl,
+            title: file.name.replace(/\.[^/.]+$/, ''), // Nom sans extension
+            is_favorite: false,
+            created_at: new Date().toISOString()
+          };
+
+          if (isGuest) {
+            // Mode guest : sauvegarder dans localStorage
+            setImages(prev => {
+              const updated = [newImage, ...prev];
+              try {
+                localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
+              } catch (storageError) {
+                console.error('[Library] localStorage error:', storageError);
+                alert('❌ Erreur: Espace de stockage insuffisant. Supprimez des images anciennes.');
+                return prev;
+              }
+              return updated;
+            });
+            setStats(prev => ({
+              ...prev,
+              total_images: prev.total_images + 1
+            }));
+            console.log('[Library] Image saved to guest localStorage');
+          } else if (user) {
+            // User authentifié : TODO - sauvegarder via Supabase
+            setImages(prev => [newImage, ...prev]);
+            setStats(prev => ({
+              ...prev,
+              total_images: prev.total_images + 1
+            }));
+            console.log('[Library] Image uploaded (TODO: save to Supabase)');
+          }
+          resolve();
+        } catch (error) {
+          console.error('[Library] Error processing image:', error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error('[Library] FileReader error:', error);
+        reject(error);
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const uploadVideoFile = async (file: File) => {
+    console.log('[Library] Uploading video:', file.name);
+
+    // Étape 1: Obtenir une signed URL depuis l'API
+    const signedUrlResponse = await fetch('/api/get-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        fileType: file.type,
+        fileSize: file.size
+      })
+    });
+
+    if (!signedUrlResponse.ok) {
+      const errorData = await signedUrlResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Impossible d\'obtenir l\'URL d\'upload');
+    }
+
+    const { signedUrl, token, path } = await signedUrlResponse.json();
+    console.log('[Library] Got signed URL for:', path);
+
+    // Étape 2: Upload direct vers Supabase Storage
+    const uploadResponse = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+        'x-upsert': 'false',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      body: file
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Upload failed: ${uploadResponse.status}`);
+    }
+
+    console.log('[Library] Video uploaded to Supabase Storage');
+
+    // Étape 3: Sauvegarder les métadonnées en DB
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const metadataResponse = await fetch('/api/save-video-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storagePath: path,
+        title: file.name.replace(`.${ext}`, ''),
+        fileSize: file.size,
+        format: ext,
+        folderId: null
+      })
+    });
+
+    if (!metadataResponse.ok) {
+      const errorData = await metadataResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erreur lors de la sauvegarde des métadonnées');
+    }
+
+    const metadataData = await metadataResponse.json();
+    if (!metadataData.ok) {
+      throw new Error(metadataData.error || 'Failed to save metadata');
+    }
+
+    console.log('[Library] Video metadata saved:', metadataData.video.id);
+
+    // Recharger les vidéos
+    await loadMyVideos();
   };
 
   // Handlers pour le drag & drop

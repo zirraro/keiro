@@ -18,11 +18,11 @@ export default function DropZone({ isDragging }: DropZoneProps) {
             </svg>
           </div>
           <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-            Déposez vos images ici
+            Déposez vos fichiers ici
           </h3>
           <p className="text-neutral-600 text-sm">
-            Formats supportés : JPG, PNG, GIF, WebP<br />
-            Taille maximale : 5MB par image
+            <strong>Images :</strong> JPG, PNG, GIF, WebP (max 8MB)<br />
+            <strong>Vidéos :</strong> MP4, MOV, WebM (max 50MB)
           </p>
         </div>
       </div>
