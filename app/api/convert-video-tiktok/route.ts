@@ -106,67 +106,31 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     }
   };
 
+  // NOTE: CloudConvert doesn't support custom FFmpeg commands with multiple inputs
+  // For now, just convert the video to H.264 + AAC
+  // TODO: Add audio merging in separate step if needed
+
+  console.log('[CloudConvert] Converting video to H.264 + AAC (TikTok compatible)');
   if (audioUrl) {
-    // Custom audio: import narration and merge
-    console.log('[CloudConvert] Using custom narration audio');
-    tasks['import-audio'] = {
-      operation: 'import/url',
-      url: audioUrl,
-      filename: 'narration.mp3'
-    };
-    tasks['convert-video'] = {
-      operation: 'convert',
-      input: ['import-video', 'import-audio'],
-      output_format: 'mp4',
-      engine: 'ffmpeg',
-      command: [
-        '-i', 'input.mp4',
-        '-i', 'narration.mp3',
-        '-c:v', 'libx264',
-        '-profile:v', 'high',
-        '-level', '4.2',
-        '-preset', 'medium',
-        '-pix_fmt', 'yuv420p',
-        '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease',
-        '-r', '30',
-        '-c:a', 'aac',
-        '-b:a', '128k',
-        '-ar', '44100',
-        '-ac', '2',
-        '-shortest',
-        '-movflags', '+faststart',
-        'output.mp4'
-      ]
-    };
-  } else {
-    // No custom audio: use sine wave
-    console.log('[CloudConvert] Using default sine wave audio');
-    tasks['convert-video'] = {
-      operation: 'convert',
-      input: 'import-video',
-      output_format: 'mp4',
-      engine: 'ffmpeg',
-      command: [
-        '-i', 'input.mp4',
-        '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=10',
-        '-c:v', 'libx264',
-        '-profile:v', 'high',
-        '-level', '4.2',
-        '-preset', 'medium',
-        '-pix_fmt', 'yuv420p',
-        '-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease',
-        '-r', '30',
-        '-c:a', 'aac',
-        '-b:a', '128k',
-        '-ar', '44100',
-        '-ac', '2',
-        '-filter:a', 'volume=0.1',
-        '-shortest',
-        '-movflags', '+faststart',
-        'output.mp4'
-      ]
-    };
+    console.log('[CloudConvert] ⚠️ Custom audio provided but merge not yet implemented');
+    console.log('[CloudConvert] Will convert video only, audio merge coming soon');
   }
+
+  tasks['convert-video'] = {
+    operation: 'convert',
+    input: 'import-video',
+    output_format: 'mp4',
+    video_codec: 'h264',
+    audio_codec: 'aac',
+    audio_bitrate: 128,
+    audio_frequency: 44100,
+    preset: 'medium',
+    crf: 23,
+    width: 1080,
+    height: 1920,
+    fit: 'max',
+    strip_metadata: false
+  };
 
   tasks['export-video'] = {
     operation: 'export/url',
