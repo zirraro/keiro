@@ -610,7 +610,7 @@ export default function LibraryPage() {
   // Modifier un brouillon Instagram
   const editInstagramDraft = (draft: InstagramDraft) => {
     const image: SavedImage = {
-      id: draft.saved_image_id,
+      id: draft.saved_image_id || draft.id,
       image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
@@ -641,7 +641,7 @@ export default function LibraryPage() {
   // Ajouter Instagram draft au planning
   const scheduleInstagramDraft = (draft: InstagramDraft) => {
     const image: SavedImage = {
-      id: draft.saved_image_id,
+      id: draft.saved_image_id || draft.id,
       image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
@@ -652,7 +652,7 @@ export default function LibraryPage() {
   // Modifier un brouillon TikTok
   const editTikTokDraft = (draft: TikTokDraft) => {
     const image: SavedImage = {
-      id: draft.saved_image_id,
+      id: draft.saved_image_id || draft.id,
       image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at
@@ -683,7 +683,7 @@ export default function LibraryPage() {
   // Ajouter TikTok draft au planning
   const scheduleTikTokDraft = (draft: TikTokDraft) => {
     const image: SavedImage = {
-      id: draft.saved_image_id,
+      id: draft.saved_image_id || draft.id,
       image_url: draft.media_url,
       is_favorite: false,
       created_at: draft.created_at

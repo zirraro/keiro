@@ -78,6 +78,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
 
+  // États pour la narration audio TTS
+  const [narrationScript, setNarrationScript] = useState('');
+  const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
+  const [generatingNarration, setGeneratingNarration] = useState(false);
+  const [showNarrationEditor, setShowNarrationEditor] = useState(false);
+
   // Pré-remplir caption et hashtags depuis le brouillon
   useEffect(() => {
     if (draftCaption !== undefined) {
@@ -303,6 +309,78 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       alert('Erreur lors de la génération des suggestions');
     } finally {
       setSuggesting(false);
+    }
+  };
+
+  // Generate audio narration from caption text
+  const handleGenerateNarration = async () => {
+    if (!caption) {
+      alert('❌ Veuillez d\'abord entrer une description pour générer la narration');
+      return;
+    }
+
+    setGeneratingNarration(true);
+    console.log('[InstagramModal] Generating audio narration from caption...');
+
+    try {
+      const response = await fetch('/api/generate-narration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: caption,
+          duration: 5 // Target 5 seconds for Instagram Reels
+        })
+      });
+
+      const data = await response.json();
+      console.log('[InstagramModal] Narration response:', data);
+
+      if (data.ok && data.condensedText && data.audioUrl) {
+        setNarrationScript(data.condensedText);
+        setNarrationAudioUrl(data.audioUrl);
+        setShowNarrationEditor(true);
+        console.log('[InstagramModal] ✅ Narration generated');
+      } else {
+        alert(data.error || '❌ Erreur lors de la génération de la narration');
+      }
+    } catch (error) {
+      console.error('[InstagramModal] Error generating narration:', error);
+      alert('❌ Erreur lors de la génération de la narration');
+    } finally {
+      setGeneratingNarration(false);
+    }
+  };
+
+  // Regenerate narration with edited script
+  const handleRegenerateNarration = async () => {
+    if (!narrationScript) return;
+
+    setGeneratingNarration(true);
+    console.log('[InstagramModal] Regenerating narration with edited script...');
+
+    try {
+      const response = await fetch('/api/generate-narration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: narrationScript,
+          duration: 5
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok && data.audioUrl) {
+        setNarrationAudioUrl(data.audioUrl);
+        console.log('[InstagramModal] ✅ Narration regenerated');
+      } else {
+        alert(data.error || '❌ Erreur lors de la régénération');
+      }
+    } catch (error) {
+      console.error('[InstagramModal] Error regenerating narration:', error);
+      alert('❌ Erreur lors de la régénération');
+    } finally {
+      setGeneratingNarration(false);
     }
   };
 
@@ -816,6 +894,97 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 <p className="mt-1 text-xs text-neutral-500 text-right">
                   {caption.length} / 2200 caractères
                 </p>
+              </div>
+
+              {/* Narration Audio TTS */}
+              <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-neutral-900">
+                    🎙️ Narration Audio (TTS)
+                  </label>
+                  {narrationAudioUrl && (
+                    <span className="text-xs text-green-600 font-medium">✅ Audio généré</span>
+                  )}
+                </div>
+
+                <p className="text-xs text-neutral-600 mb-3">
+                  Générez une narration audio de votre description pour un meilleur engagement sur Instagram Reels
+                </p>
+
+                {!showNarrationEditor ? (
+                  <button
+                    onClick={handleGenerateNarration}
+                    disabled={generatingNarration || !caption}
+                    className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
+                      generatingNarration
+                        ? 'bg-blue-300 text-white cursor-not-allowed'
+                        : caption
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {generatingNarration ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Génération audio...
+                      </span>
+                    ) : (
+                      '🎙️ Générer narration audio'
+                    )}
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Script Editor */}
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-700 mb-1">
+                        Script de narration
+                      </label>
+                      <textarea
+                        value={narrationScript}
+                        onChange={(e) => setNarrationScript(e.target.value)}
+                        rows={3}
+                        placeholder="Texte condensé pour la narration audio..."
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                      />
+                      <p className="text-xs text-neutral-500 mt-1">
+                        ~{narrationScript.split(' ').length} mots ({Math.ceil(narrationScript.split(' ').length / 2.5)}s)
+                      </p>
+                    </div>
+
+                    {/* Audio Player */}
+                    {narrationAudioUrl && (
+                      <div className="bg-white rounded-lg p-2">
+                        <audio
+                          src={narrationAudioUrl}
+                          controls
+                          className="w-full"
+                          style={{ height: '40px' }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleRegenerateNarration}
+                        disabled={generatingNarration}
+                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                      >
+                        {generatingNarration ? 'Génération...' : '🔄 Régénérer'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNarrationEditor(false);
+                          setNarrationAudioUrl(null);
+                          setNarrationScript('');
+                        }}
+                        className="px-3 py-2 bg-neutral-200 text-neutral-700 text-sm rounded-lg hover:bg-neutral-300 transition-colors"
+                      >
+                        ❌ Supprimer
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Hashtags section */}
