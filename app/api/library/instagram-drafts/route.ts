@@ -101,7 +101,9 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: user.id,
         saved_image_id: savedImageId,
-        image_url: image.image_url,
+        media_url: image.image_url, // Renamed from image_url
+        media_type: 'image',
+        category: 'draft',
         caption: caption || '',
         hashtags: hashtags || [],
         status: status || 'draft'
