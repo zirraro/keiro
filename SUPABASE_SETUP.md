@@ -93,20 +93,69 @@ CREATE INDEX IF NOT EXISTS idx_my_videos_tiktok_converted
 
 1. **Toujours dans SQL Editor** → **New query**
 
-2. **Copier-coller ce code SQL:**
+2. **Copier-coller TOUT le contenu du fichier ci-dessous:**
+
+📄 **Fichier**: `supabase/migrations/20260202_add_video_support_to_tiktok_drafts_SAFE.sql`
+
+**OU copiez directement ce code** (version sécurisée qui vérifie si les colonnes existent déjà):
 
 ```sql
--- Ajouter support vidéos et catégories dans tiktok_drafts
-ALTER TABLE public.tiktok_drafts
-  ADD COLUMN IF NOT EXISTS video_id UUID REFERENCES public.my_videos(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS media_type TEXT NOT NULL DEFAULT 'image' CHECK (media_type IN ('image', 'video')),
-  ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'draft' CHECK (category IN ('draft', 'converted', 'published'));
+-- Migration SAFE: Add video support and category to tiktok_drafts
+DO $$
+BEGIN
+  -- Add video_id if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'tiktok_drafts'
+      AND column_name = 'video_id'
+  ) THEN
+    ALTER TABLE public.tiktok_drafts
+      ADD COLUMN video_id UUID REFERENCES public.my_videos(id) ON DELETE SET NULL;
+  END IF;
 
--- Renommer image_url en media_url
-ALTER TABLE public.tiktok_drafts
-  RENAME COLUMN image_url TO media_url;
+  -- Add media_type if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'tiktok_drafts'
+      AND column_name = 'media_type'
+  ) THEN
+    ALTER TABLE public.tiktok_drafts
+      ADD COLUMN media_type TEXT NOT NULL DEFAULT 'image' CHECK (media_type IN ('image', 'video'));
+  END IF;
 
--- Ajouter index pour performance
+  -- Add category if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'tiktok_drafts'
+      AND column_name = 'category'
+  ) THEN
+    ALTER TABLE public.tiktok_drafts
+      ADD COLUMN category TEXT DEFAULT 'draft' CHECK (category IN ('draft', 'converted', 'published'));
+  END IF;
+END $$;
+
+-- Rename image_url to media_url (only if image_url exists)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'tiktok_drafts'
+      AND column_name = 'image_url'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'tiktok_drafts'
+      AND column_name = 'media_url'
+  ) THEN
+    ALTER TABLE public.tiktok_drafts RENAME COLUMN image_url TO media_url;
+  END IF;
+END $$;
+
+-- Add indexes
 CREATE INDEX IF NOT EXISTS idx_tiktok_drafts_video_id
   ON public.tiktok_drafts(video_id)
   WHERE video_id IS NOT NULL;
@@ -116,6 +165,8 @@ CREATE INDEX IF NOT EXISTS idx_tiktok_drafts_category
 ```
 
 3. **Cliquer sur "Run"**
+
+⚠️ **Si vous avez une erreur**: Ouvrez le fichier complet `20260202_add_video_support_to_tiktok_drafts_SAFE.sql` et copiez-collez TOUT le contenu.
 
 ---
 

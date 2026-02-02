@@ -109,8 +109,6 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
   console.log('[CloudConvert] Custom audio:', audioUrl ? '✅ YES' : '❌ NO (sine wave)');
 
   // Step 1: Create job with tasks
-  // If audioUrl provided: import audio + merge
-  // Otherwise: generate sine wave audio
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
@@ -119,31 +117,54 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     }
   };
 
-  // NOTE: CloudConvert doesn't support custom FFmpeg commands with multiple inputs
-  // For now, just convert the video to H.264 + AAC
-  // TODO: Add audio merging in separate step if needed
-
-  console.log('[CloudConvert] Converting video to H.264 + AAC (TikTok compatible)');
+  // If custom audio is provided, import it and merge with video
   if (audioUrl) {
-    console.log('[CloudConvert] ⚠️ Custom audio provided but merge not yet implemented');
-    console.log('[CloudConvert] Will convert video only, audio merge coming soon');
-  }
+    console.log('[CloudConvert] ✅ Custom audio detected, will merge with video');
+    console.log('[CloudConvert] Audio URL:', audioUrl);
 
-  tasks['convert-video'] = {
-    operation: 'convert',
-    input: 'import-video',
-    output_format: 'mp4',
-    video_codec: 'h264',
-    audio_codec: 'aac',
-    audio_bitrate: 128,
-    audio_frequency: 44100,
-    preset: 'medium',
-    crf: 23,
-    width: 1080,
-    height: 1920,
-    fit: 'max',
-    strip_metadata: false
-  };
+    // Import audio
+    tasks['import-audio'] = {
+      operation: 'import/url',
+      url: audioUrl,
+      filename: 'narration.mp3'
+    };
+
+    // Convert video + merge audio (CloudConvert supports multiple inputs)
+    tasks['convert-video'] = {
+      operation: 'convert',
+      input: ['import-video', 'import-audio'], // Multiple inputs
+      output_format: 'mp4',
+      video_codec: 'h264',
+      audio_codec: 'aac',
+      audio_bitrate: 128,
+      audio_frequency: 44100,
+      preset: 'medium',
+      crf: 23,
+      width: 1080,
+      height: 1920,
+      fit: 'max',
+      strip_metadata: false
+    };
+  } else {
+    console.log('[CloudConvert] ℹ️ No custom audio, converting video only (will add silent audio)');
+
+    // Convert video only - CloudConvert will generate silent audio track
+    tasks['convert-video'] = {
+      operation: 'convert',
+      input: 'import-video',
+      output_format: 'mp4',
+      video_codec: 'h264',
+      audio_codec: 'aac',
+      audio_bitrate: 128,
+      audio_frequency: 44100,
+      preset: 'medium',
+      crf: 23,
+      width: 1080,
+      height: 1920,
+      fit: 'max',
+      strip_metadata: false
+    };
+  }
 
   tasks['export-video'] = {
     operation: 'export/url',
