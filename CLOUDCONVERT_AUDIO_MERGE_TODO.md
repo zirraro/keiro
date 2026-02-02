@@ -1,8 +1,9 @@
-# CloudConvert Audio Merge - Implementation TODO
+# CloudConvert Audio Merge - Implementation Complete ✅
 
 ## Problème identifié
 
 **Date**: 2026-02-02
+**Status**: ✅ RÉSOLU (2026-02-02)
 
 CloudConvert **ne supporte PAS** les inputs multiples dans une seule conversion:
 
@@ -23,17 +24,29 @@ convert-video: The selected video codec is invalid
 export-video: Input task has failed
 ```
 
-## Solution temporaire actuelle (2026-02-02)
+## ✅ Solution implémentée (2026-02-02)
 
-Les endpoints suivants font **conversion simple SANS audio merge**:
-- `/api/convert-video-tiktok`
-- `/api/convert-video-instagram`
+**Option A: 2 jobs CloudConvert séquentiels** - IMPLÉMENTÉ
 
-La vidéo est convertie au bon format (H.264 + AAC) mais:
-- ✅ L'audio original de la vidéo est **préservé**
-- ❌ L'audio TTS généré n'est **pas fusionné**
+Les endpoints suivants utilisent maintenant la fusion audio en 2 étapes:
+- `/api/convert-video-tiktok` ✅
+- `/api/convert-video-instagram` ✅
 
-## Solution complète à implémenter
+### Fonctionnement:
+
+1. **Job 1**: Convertir vidéo au format TikTok/Instagram (H.264 + AAC)
+2. **Job 2** (si audioUrl fourni): Merger audio TTS avec FFmpeg
+   - Commande: `-i converted.mp4 -i narration.mp3 -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest output.mp4`
+3. **Fallback**: Si Job 2 échoue, utilise vidéo du Job 1 (sans audio custom)
+4. **Upload**: Télécharge vidéo finale vers Supabase Storage
+
+### Résultat:
+- ✅ L'audio TTS est **fusionné avec la vidéo**
+- ✅ Fallback automatique si merge échoue
+- ✅ Fonctionne pour TikTok et Instagram Reels
+- ⚠️ Coût: 2 conversions CloudConvert par vidéo avec audio (12-13 vidéos/jour au lieu de 25)
+
+## Solutions alternatives considérées
 
 ### Option A: 2 jobs CloudConvert séquentiels
 
