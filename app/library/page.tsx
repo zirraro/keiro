@@ -9,8 +9,8 @@ import ImageGrid from './components/ImageGrid';
 import InstagramModal from './components/InstagramModal';
 import ScheduleModal from './components/ScheduleModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
-import InstagramDraftsTab from './components/InstagramDraftsTab';
-import TikTokDraftsTab from './components/TikTokDraftsTab';
+import InstagramDraftsTab, { InstagramDraft } from './components/InstagramDraftsTab';
+import TikTokDraftsTab, { TikTokDraft } from './components/TikTokDraftsTab';
 import CalendarTab from './components/CalendarTab';
 import CreateFolderModal from './components/CreateFolderModal';
 import DragProvider from './components/DragProvider';
@@ -49,28 +49,6 @@ type Folder = {
   icon: string;
   color: string;
   image_count?: number;
-};
-
-type InstagramDraft = {
-  id: string;
-  saved_image_id: string;
-  image_url: string;
-  caption: string;
-  hashtags: string[];
-  status: 'draft' | 'ready' | 'published';
-  created_at: string;
-  scheduled_for?: string;
-};
-
-type TikTokDraft = {
-  id: string;
-  saved_image_id: string;
-  image_url: string;
-  caption: string;
-  hashtags: string[];
-  status: 'draft' | 'ready' | 'published';
-  created_at: string;
-  scheduled_for?: string;
 };
 
 type MyVideo = {

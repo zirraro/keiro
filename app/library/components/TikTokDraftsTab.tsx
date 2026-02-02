@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TrashIcon } from './Icons';
 
-type TikTokDraft = {
+export type TikTokDraft = {
   id: string;
   saved_image_id?: string;
   video_id?: string;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { InstagramIcon, TrashIcon } from './Icons';
 import InstagramHelpGuide from './InstagramHelpGuide';
 
-type InstagramDraft = {
+export type InstagramDraft = {
   id: string;
   saved_image_id?: string;
   video_id?: string;
