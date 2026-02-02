@@ -668,15 +668,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
         setPublishing(false);
         const errorMessage = validateData.errors.join('\n• ');
         alert(
-          '⚠️ Vidéo non conforme aux exigences TikTok\n\n' +
+          '⚠️ Vidéo non conforme\n\n' +
           `Problèmes détectés:\n• ${errorMessage}\n\n` +
-          'TikTok exige:\n' +
-          '• Format: MP4, MOV, WebM ou AVI\n' +
-          '• Taille: 100KB - 100MB\n' +
-          '• Durée: 3 secondes minimum\n' +
-          '• Codec: H.264 + AAC (audio obligatoire)\n' +
-          '• Résolution: 540p - 1080p\n\n' +
-          'Veuillez utiliser une vidéo conforme ou contactez le support.'
+          'La vidéo sera automatiquement convertie au bon format.'
         );
         return;
       }
@@ -771,8 +765,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
     // STEP 3: Confirm with user
     const confirm = window.confirm(
       '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '✅ Vidéo convertie au format TikTok (H.264 + AAC)\n' +
-      '🚀 La vidéo sera publiée immédiatement\n\n' +
+      '🚀 La vidéo sera publiée immédiatement sur votre compte\n\n' +
       'Continuer ?'
     );
 

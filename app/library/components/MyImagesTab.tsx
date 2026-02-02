@@ -163,26 +163,6 @@ export default function MyImagesTab({
         </div>
       </div>
 
-      {/* Stats rapides */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-blue-600">{images.length}</div>
-          <div className="text-sm text-neutral-500">Images totales</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-pink-600">{images.filter(i => i.is_favorite).length}</div>
-          <div className="text-sm text-neutral-500">Favorites</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-purple-600">{images.filter(i => i.published_to_instagram).length}</div>
-          <div className="text-sm text-neutral-500">Instagram</div>
-        </div>
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="text-2xl font-bold text-cyan-600">{images.filter(i => i.published_to_tiktok).length}</div>
-          <div className="text-sm text-neutral-500">TikTok</div>
-        </div>
-      </div>
-
       {/* Grille d'images */}
       {filteredImages.length === 0 ? (
         <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
