@@ -17,16 +17,32 @@ type SavedImage = {
   folder_id?: string | null;
 };
 
+type MyVideo = {
+  id: string;
+  video_url: string;
+  thumbnail_url?: string;
+  title?: string;
+  duration?: number;
+  source_type: string;
+  is_favorite: boolean;
+  created_at: string;
+  published_to_instagram: boolean;
+  instagram_published_at?: string;
+  file_size?: number;
+};
+
 interface InstagramModalProps {
   image?: SavedImage;
   images?: SavedImage[];
+  video?: MyVideo; // NEW: Support for video (Reel)
+  videos?: MyVideo[]; // NEW: Support for videos array
   onClose: () => void;
   onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
 }
 
-export default function InstagramModal({ image, images, onClose, onSave, draftCaption, draftHashtags }: InstagramModalProps) {
+export default function InstagramModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: InstagramModalProps) {
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -46,10 +62,18 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
 
-  // Nouveaux états pour la galerie
+  // NEW: Tab switching state (Images/Vidéos) - Default to images (post), but videos if video prop passed
+  const [activeTab, setActiveTab] = useState<'images' | 'videos'>(video ? 'videos' : 'images');
+
+  // États pour la galerie IMAGES
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
-  const [loadingImages, setLoadingImages] = useState(!images);
+  const [loadingImages, setLoadingImages] = useState(!images && !video);
+
+  // NEW: États pour la galerie VIDEOS (Reels)
+  const [availableVideos, setAvailableVideos] = useState<MyVideo[]>(videos || []);
+  const [selectedVideo, setSelectedVideo] = useState<MyVideo | null>(video || null);
+  const [loadingVideos, setLoadingVideos] = useState(!videos && !!video);
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
@@ -96,6 +120,9 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
   // Charger images si pas passées en props
   useEffect(() => {
     const loadImages = async () => {
+      // Ne charger que si on est sur le tab images
+      if (activeTab !== 'images') return;
+
       // Si les images sont déjà passées en props, ne pas les charger
       if (images && images.length > 0) {
         setLoadingImages(false);
@@ -139,7 +166,53 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
     };
 
     loadImages();
-  }, [image?.folder_id, images]);
+  }, [image?.folder_id, images, activeTab]);
+
+  // NEW: Charger vidéos si pas passées en props
+  useEffect(() => {
+    const loadVideos = async () => {
+      // Ne charger que si on est sur le tab vidéos
+      if (activeTab !== 'videos') return;
+
+      // Si les vidéos sont déjà passées en props, ne pas les charger
+      if (videos && videos.length > 0) {
+        setLoadingVideos(false);
+        if (!selectedVideo && videos.length > 0) {
+          setSelectedVideo(videos[0]);
+        }
+        return;
+      }
+
+      setLoadingVideos(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        // Récupérer vidéos
+        const { data: loadedVideos } = await supabase
+          .from('my_videos')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        setAvailableVideos(loadedVideos || []);
+
+        // Sélectionner la première vidéo si aucune n'est sélectionnée
+        if (!selectedVideo && loadedVideos && loadedVideos.length > 0) {
+          setSelectedVideo(loadedVideos[0]);
+        }
+      } catch (error) {
+        console.error('[InstagramModal] Error loading videos:', error);
+      } finally {
+        setLoadingVideos(false);
+      }
+    };
+
+    loadVideos();
+  }, [videos, activeTab]);
 
   const addHashtag = () => {
     const tag = hashtagInput.trim();
@@ -174,13 +247,34 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
   };
 
   const handleSuggest = async () => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+    // Check if any content is selected (image OR video)
+    const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
+
+    if (!hasContent) {
+      alert('Veuillez sélectionner un contenu (image ou vidéo)');
       return;
     }
 
     setSuggesting(true);
     try {
+      // For videos, ALWAYS use thumbnail (Claude Vision needs an image, not MP4)
+      let contentUrl: string;
+      if (activeTab === 'images') {
+        contentUrl = selectedImage?.image_url || '';
+      } else {
+        // For videos, thumbnail is REQUIRED for AI analysis
+        contentUrl = selectedVideo?.thumbnail_url || '';
+        if (!contentUrl) {
+          alert('Cette vidéo n\'a pas de miniature. La suggestion IA nécessite une image.');
+          setSuggesting(false);
+          return;
+        }
+      }
+
+      const contentTitle = activeTab === 'images'
+        ? (selectedImage?.title || selectedImage?.news_title)
+        : selectedVideo?.title;
+
       const response = await fetch('/api/instagram/suggest', {
         method: 'POST',
         headers: {
@@ -188,10 +282,10 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: selectedImage.image_url,
-          imageTitle: selectedImage.title || selectedImage.news_title,
-          newsTitle: selectedImage.news_title,
-          newsCategory: selectedImage.news_category,
+          imageUrl: contentUrl,
+          imageTitle: contentTitle,
+          newsTitle: selectedImage?.news_title || contentTitle,
+          newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle
         })
       });
@@ -417,78 +511,196 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
           </button>
         </div>
 
+        {/* TAB SWITCHER - Images / Vidéos (Reels) */}
+        <div className="border-b border-neutral-200 bg-neutral-50 px-4 sm:px-6 py-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('images')}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'images'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              📸 Images ({availableImages.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'videos'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              🎥 Reels ({availableVideos.length})
+            </button>
+          </div>
+        </div>
+
         {/* NOUVEAU LAYOUT 3 COLONNES */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
-          {/* GALERIE D'IMAGES - SIDEBAR GAUCHE (Desktop seulement) */}
+          {/* GALERIE - SIDEBAR GAUCHE (Desktop seulement) */}
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">
               <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
-                Sélectionner une image
+                {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
               </p>
-              {loadingImages ? (
-                // Skeleton loading
-                [1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
-                ))
-              ) : (
-                availableImages.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setSelectedImage(img)}
-                    className={`
-                      w-full aspect-square rounded-lg overflow-hidden transition-all
-                      ${selectedImage?.id === img.id
-                        ? 'ring-2 ring-pink-500 scale-105 shadow-lg'
-                        : 'ring-1 ring-neutral-300 hover:ring-pink-300 hover:scale-102'
-                      }
-                    `}
-                    title={img.title || img.news_title || 'Image'}
-                  >
-                    <img
-                      src={img.thumbnail_url || img.image_url}
-                      alt={img.title || 'Image'}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))
+
+              {/* IMAGES TAB */}
+              {activeTab === 'images' && (
+                <>
+                  {loadingImages ? (
+                    [1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setSelectedImage(img)}
+                        className={`
+                          w-full aspect-square rounded-lg overflow-hidden transition-all
+                          ${selectedImage?.id === img.id
+                            ? 'ring-2 ring-pink-500 scale-105 shadow-lg'
+                            : 'ring-1 ring-neutral-300 hover:ring-pink-300 hover:scale-102'
+                          }
+                        `}
+                        title={img.title || img.news_title || 'Image'}
+                      >
+                        <img
+                          src={img.thumbnail_url || img.image_url}
+                          alt={img.title || 'Image'}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))
+                  )}
+                  {!loadingImages && availableImages.length === 0 && (
+                    <p className="text-xs text-neutral-400 text-center py-4">
+                      Aucune image
+                    </p>
+                  )}
+                </>
               )}
-              {!loadingImages && availableImages.length === 0 && (
-                <p className="text-xs text-neutral-400 text-center py-4">
-                  Aucune autre image
-                </p>
+
+              {/* VIDEOS TAB */}
+              {activeTab === 'videos' && (
+                <>
+                  {loadingVideos ? (
+                    [1, 2, 3, 4, 5, 6].map(i => (
+                      <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableVideos.map((vid) => (
+                      <button
+                        key={vid.id}
+                        onClick={() => setSelectedVideo(vid)}
+                        className={`
+                          w-full aspect-square rounded-lg overflow-hidden transition-all relative
+                          ${selectedVideo?.id === vid.id
+                            ? 'ring-2 ring-pink-500 scale-105 shadow-lg'
+                            : 'ring-1 ring-neutral-300 hover:ring-pink-300 hover:scale-102'
+                          }
+                        `}
+                        title={vid.title || 'Vidéo'}
+                      >
+                        <img
+                          src={vid.thumbnail_url || vid.video_url}
+                          alt={vid.title || 'Vidéo'}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Play icon overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                          </svg>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                  {!loadingVideos && availableVideos.length === 0 && (
+                    <p className="text-xs text-neutral-400 text-center py-4">
+                      Aucune vidéo
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
 
           {/* CARROUSEL MOBILE - En haut sur mobile seulement */}
           <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
-            <p className="text-xs font-semibold text-neutral-600 mb-2">Sélectionner une image</p>
+            <p className="text-xs font-semibold text-neutral-600 mb-2">
+              {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+            </p>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
-              {loadingImages ? (
-                [1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
-                ))
-              ) : (
-                availableImages.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setSelectedImage(img)}
-                    className={`
-                      flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
-                      ${selectedImage?.id === img.id
-                        ? 'ring-2 ring-pink-500 shadow-lg'
-                        : 'ring-1 ring-neutral-300'
-                      }
-                    `}
-                  >
-                    <img
-                      src={img.thumbnail_url || img.image_url}
-                      alt={img.title || 'Image'}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))
+              {/* IMAGES TAB */}
+              {activeTab === 'images' && (
+                <>
+                  {loadingImages ? (
+                    [1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => setSelectedImage(img)}
+                        className={`
+                          flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all
+                          ${selectedImage?.id === img.id
+                            ? 'ring-2 ring-pink-500 shadow-lg'
+                            : 'ring-1 ring-neutral-300'
+                          }
+                        `}
+                      >
+                        <img
+                          src={img.thumbnail_url || img.image_url}
+                          alt={img.title || 'Image'}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))
+                  )}
+                </>
+              )}
+
+              {/* VIDEOS TAB */}
+              {activeTab === 'videos' && (
+                <>
+                  {loadingVideos ? (
+                    [1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex-shrink-0 w-20 h-20 bg-neutral-200 rounded-lg animate-pulse"></div>
+                    ))
+                  ) : (
+                    availableVideos.map((vid) => (
+                      <button
+                        key={vid.id}
+                        onClick={() => setSelectedVideo(vid)}
+                        className={`
+                          flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden transition-all relative
+                          ${selectedVideo?.id === vid.id
+                            ? 'ring-2 ring-pink-500 shadow-lg'
+                            : 'ring-1 ring-neutral-300'
+                          }
+                        `}
+                      >
+                        <img
+                          src={vid.thumbnail_url || vid.video_url}
+                          alt={vid.title || 'Vidéo'}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Play icon overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                          </svg>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -497,24 +709,44 @@ export default function InstagramModal({ image, images, onClose, onSave, draftCa
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
             {/* PREVIEW STICKY - Desktop seulement */}
-            {selectedImage && (
+            {(selectedImage || selectedVideo) && (
               <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
                 <div className="md:sticky md:top-0">
                   <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg max-h-[380px] mx-auto">
-                    <img
-                      src={selectedImage.image_url}
-                      alt={selectedImage.title || selectedImage.news_title || 'Preview'}
-                      className="w-full h-full object-cover"
-                    />
+                    {activeTab === 'videos' && selectedVideo ? (
+                      <video
+                        src={selectedVideo.video_url}
+                        controls
+                        autoPlay
+                        loop
+                        className="w-full h-full object-contain"
+                      />
+                    ) : activeTab === 'images' && selectedImage ? (
+                      <img
+                        src={selectedImage.image_url}
+                        alt={selectedImage.title || selectedImage.news_title || 'Preview'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : null}
                   </div>
-                  {selectedImage.title && (
+                  {activeTab === 'images' && selectedImage?.title && (
                     <p className="mt-2 text-sm font-medium text-neutral-700 text-center">
                       {selectedImage.title}
                     </p>
                   )}
-                  {selectedImage.news_category && (
+                  {activeTab === 'images' && selectedImage?.news_category && (
                     <p className="mt-1 text-xs text-neutral-500 text-center">
                       {selectedImage.news_category}
+                    </p>
+                  )}
+                  {activeTab === 'videos' && selectedVideo?.title && (
+                    <p className="mt-2 text-sm font-medium text-neutral-700 text-center">
+                      {selectedVideo.title}
+                    </p>
+                  )}
+                  {activeTab === 'videos' && selectedVideo?.duration && (
+                    <p className="mt-1 text-xs text-neutral-500 text-center">
+                      Durée: {Math.round(selectedVideo.duration)}s
                     </p>
                   )}
                 </div>
