@@ -117,21 +117,9 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     }
   };
 
-  // TODO: Audio merge not supported by CloudConvert with multiple inputs
-  // Need to implement 2-step conversion:
-  // 1. Convert video to TikTok format
-  // 2. Merge audio in separate job (if audioUrl provided)
-  // For now, we ignore audioUrl and do simple video conversion
-
-  if (audioUrl) {
-    console.log('[CloudConvert] ⚠️ Audio merge requested but not yet implemented');
-    console.log('[CloudConvert] Audio URL will be ignored:', audioUrl);
-    console.log('[CloudConvert] TODO: Implement 2-step audio merge');
-  }
-
-  console.log('[CloudConvert] Converting video to TikTok format (H.264 + AAC)');
-
   // Convert video to TikTok format - CloudConvert will preserve/generate audio track
+  console.log('[CloudConvert] Step 1/2: Converting video to TikTok format (H.264 + AAC)');
+
   tasks['convert-video'] = {
     operation: 'convert',
     input: 'import-video',
@@ -196,10 +184,103 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
       ) as any;
 
       if (exportTask?.result?.files?.[0]?.url) {
-        const convertedUrl = exportTask.result.files[0].url;
-        console.log('[CloudConvert] ✅ Conversion completed:', convertedUrl);
+        let convertedUrl = exportTask.result.files[0].url;
+        console.log('[CloudConvert] ✅ Step 1/2 completed:', convertedUrl);
 
-        // Download converted video and upload to Supabase Storage
+        // Step 2: Merge audio if provided
+        if (audioUrl) {
+          console.log('[CloudConvert] Step 2/2: Merging audio with video...');
+          console.log('[CloudConvert] Audio URL:', audioUrl);
+
+          // Create second job to merge audio
+          const mergeJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              tasks: {
+                'import-video': {
+                  operation: 'import/url',
+                  url: convertedUrl, // Use converted video from Step 1
+                  filename: 'converted.mp4'
+                },
+                'import-audio': {
+                  operation: 'import/url',
+                  url: audioUrl,
+                  filename: 'narration.mp3'
+                },
+                'merge': {
+                  operation: 'command',
+                  engine: 'ffmpeg',
+                  command: '-i converted.mp4 -i narration.mp3 -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest output.mp4',
+                  input: ['import-video', 'import-audio'],
+                  output_format: 'mp4'
+                },
+                'export-merged': {
+                  operation: 'export/url',
+                  input: 'merge'
+                }
+              }
+            })
+          });
+
+          const mergeJobData = await mergeJobResponse.json();
+
+          if (!mergeJobResponse.ok) {
+            console.error('[CloudConvert] Audio merge job creation failed:', mergeJobData);
+            console.log('[CloudConvert] ⚠️ Falling back to video without custom audio');
+          } else {
+            console.log('[CloudConvert] Audio merge job created:', mergeJobData.data.id);
+
+            // Wait for merge job completion
+            const mergeJobId = mergeJobData.data.id;
+            let mergeAttempts = 0;
+            const maxMergeAttempts = 30; // 60 seconds max
+
+            while (mergeAttempts < maxMergeAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+              const mergeStatusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${mergeJobId}`, {
+                headers: {
+                  'Authorization': `Bearer ${apiKey}`
+                }
+              });
+
+              const mergeStatusData = await mergeStatusResponse.json();
+              console.log('[CloudConvert] Audio merge job status:', mergeStatusData.data.status);
+
+              if (mergeStatusData.data.status === 'finished') {
+                const mergeExportTask = Object.values(mergeStatusData.data.tasks).find(
+                  (task: any) => task.name === 'export-merged'
+                ) as any;
+
+                if (mergeExportTask?.result?.files?.[0]?.url) {
+                  convertedUrl = mergeExportTask.result.files[0].url;
+                  console.log('[CloudConvert] ✅ Audio merge completed:', convertedUrl);
+                  break;
+                }
+              }
+
+              if (mergeStatusData.data.status === 'error') {
+                console.error('[CloudConvert] Audio merge job failed');
+                console.log('[CloudConvert] ⚠️ Using video without custom audio');
+                break;
+              }
+
+              mergeAttempts++;
+            }
+
+            if (mergeAttempts >= maxMergeAttempts) {
+              console.log('[CloudConvert] ⚠️ Audio merge timeout, using video without custom audio');
+            }
+          }
+        } else {
+          console.log('[CloudConvert] No custom audio provided, using video as-is');
+        }
+
+        // Download final video and upload to Supabase Storage
         // This ensures the URL is stable and accessible for TikTok
         console.log('[CloudConvert] Downloading converted video...');
         const videoResponse = await fetch(convertedUrl);
