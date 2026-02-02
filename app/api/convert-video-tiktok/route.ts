@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-server';
 
 /**
  * POST /api/convert-video-tiktok
@@ -9,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
  *
  * Body:
  * - videoUrl: URL of video to convert
+ * - videoId: Optional ID to update my_videos table
+ * - audioUrl: Optional audio URL to merge with video
  *
  * Returns:
  * - convertedUrl: URL of TikTok-ready video (H.264 + AAC)
@@ -16,6 +19,15 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Get authenticated user
+    const { user, error: authError } = await getAuthUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { ok: false, error: 'Non authentifié' },
+        { status: 401 }
+      );
+    }
+
     const { videoUrl, videoId, audioUrl } = await req.json();
 
     if (!videoUrl) {
@@ -25,6 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log('[ConvertVideo] User ID:', user.id);
     console.log('[ConvertVideo] Converting video to TikTok format:', videoUrl);
     console.log('[ConvertVideo] Video ID for update:', videoId || 'none (new video)');
     console.log('[ConvertVideo] Audio URL:', audioUrl || 'none (will use sine wave)');
@@ -38,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (cloudConvertApiKey) {
       console.log('[ConvertVideo] Starting CloudConvert conversion...');
       try {
-        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId, audioUrl);
+        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId, audioUrl, user.id);
       } catch (error: any) {
         console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
         console.error('[ConvertVideo] Full error:', error);
@@ -90,7 +103,7 @@ export async function POST(req: NextRequest) {
  * @param videoId - Optional: If provided, updates my_videos.video_url with converted URL
  * @param audioUrl - Optional: Custom audio URL to merge (instead of sine wave)
  */
-async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string) {
+async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string, userId?: string) {
   console.log('[CloudConvert] Starting conversion...');
   console.log('[CloudConvert] Will update video ID:', videoId || 'none');
   console.log('[CloudConvert] Custom audio:', audioUrl ? '✅ YES' : '❌ NO (sine wave)');
@@ -244,6 +257,37 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
             // Don't throw - conversion succeeded, just log the warning
           } else {
             console.log('[CloudConvert] ✅ Updated my_videos.video_url successfully');
+          }
+
+          // Create TikTok draft for converted video
+          if (userId) {
+            console.log('[CloudConvert] Creating TikTok draft for converted video...');
+
+            // Get video details for draft
+            const { data: videoData } = await supabase
+              .from('my_videos')
+              .select('title, thumbnail_url')
+              .eq('id', videoId)
+              .single();
+
+            const { error: draftError } = await supabase
+              .from('tiktok_drafts')
+              .insert({
+                user_id: userId,
+                video_id: videoId,
+                media_url: finalUrl,
+                media_type: 'video',
+                category: 'converted',
+                status: 'ready',
+                caption: videoData?.title || 'Vidéo convertie pour TikTok'
+              });
+
+            if (draftError) {
+              console.error('[CloudConvert] Failed to create draft:', draftError);
+              // Don't throw - conversion succeeded, draft creation is optional
+            } else {
+              console.log('[CloudConvert] ✅ Created TikTok draft for converted video');
+            }
           }
         }
 

@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { TrashIcon } from './Icons';
 
 type TikTokDraft = {
   id: string;
-  saved_image_id: string;
-  image_url: string;
+  saved_image_id?: string;
+  video_id?: string;
+  media_url: string; // Renamed from image_url
+  media_type: 'image' | 'video';
   caption: string;
   hashtags: string[];
   status: 'draft' | 'ready' | 'published';
+  category: 'draft' | 'converted' | 'published';
   created_at: string;
   scheduled_for?: string;
 };
@@ -21,6 +25,20 @@ interface TikTokDraftsTabProps {
 }
 
 export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages }: TikTokDraftsTabProps) {
+  const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'converted' | 'published'>('all');
+
+  // Filter drafts by category
+  const filteredDrafts = activeCategory === 'all'
+    ? drafts
+    : drafts.filter(d => d.category === activeCategory);
+
+  // Count drafts by category
+  const countByCategory = {
+    draft: drafts.filter(d => d.category === 'draft').length,
+    converted: drafts.filter(d => d.category === 'converted').length,
+    published: drafts.filter(d => d.category === 'published').length
+  };
+
   if (drafts.length === 0) {
     return (
       <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border border-cyan-200 p-12 text-center">
@@ -97,6 +115,33 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
     }
   };
 
+  const getCategoryBadge = (category: string, mediaType: string) => {
+    const mediaIcon = mediaType === 'video' ? '🎬' : '📸';
+
+    switch (category) {
+      case 'draft':
+        return (
+          <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+            {mediaIcon} Brouillon
+          </span>
+        );
+      case 'converted':
+        return (
+          <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
+            {mediaIcon} Convertie
+          </span>
+        );
+      case 'published':
+        return (
+          <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+            {mediaIcon} Publiée
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Info TikTok */}
@@ -111,27 +156,87 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         </p>
       </div>
 
+      {/* Category Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveCategory('all')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeCategory === 'all'
+              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+          }`}
+        >
+          🎯 Tous ({drafts.length})
+        </button>
+        <button
+          onClick={() => setActiveCategory('draft')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeCategory === 'draft'
+              ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-md'
+              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+          }`}
+        >
+          📝 Brouillons ({countByCategory.draft})
+        </button>
+        <button
+          onClick={() => setActiveCategory('converted')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeCategory === 'converted'
+              ? 'bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-md'
+              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+          }`}
+        >
+          🎬 Converties ({countByCategory.converted})
+        </button>
+        <button
+          onClick={() => setActiveCategory('published')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeCategory === 'published'
+              ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-md'
+              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+          }`}
+        >
+          ✅ Publiées ({countByCategory.published})
+        </button>
+      </div>
+
+      {/* Message si pas de résultats pour cette catégorie */}
+      {filteredDrafts.length === 0 && drafts.length > 0 && (
+        <div className="bg-neutral-50 rounded-lg border border-neutral-200 p-8 text-center">
+          <p className="text-neutral-600">
+            Aucun brouillon dans cette catégorie
+          </p>
+        </div>
+      )}
+
       {/* Grille de brouillons */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {drafts.map((draft) => (
+        {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
-          {/* Image - Format 9:16 pour TikTok */}
+          {/* Image/Video - Format 9:16 pour TikTok */}
           <div className="aspect-[9/16] bg-gradient-to-br from-cyan-50 to-blue-50 relative">
             <img
-              src={draft.image_url}
+              src={draft.media_url}
               alt="TikTok video preview"
               className="w-full h-full object-contain"
               loading="lazy"
             />
+            {/* Category Badge */}
             <div className="absolute top-2 right-2">
+              {getCategoryBadge(draft.category, draft.media_type)}
+            </div>
+            {/* Status Badge */}
+            <div className="absolute top-2 left-2">
               {getStatusBadge(draft.status)}
             </div>
-            {/* Indicateur vidéo */}
+            {/* Video indicator (always show since TikTok is video format) */}
             <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded flex items-center gap-1">
               <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
               </svg>
-              <span className="text-white text-xs font-medium">5s</span>
+              <span className="text-white text-xs font-medium">
+                {draft.media_type === 'video' ? 'Vidéo' : '5s'}
+              </span>
             </div>
           </div>
 

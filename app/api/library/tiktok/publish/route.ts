@@ -172,6 +172,24 @@ export async function POST(req: NextRequest) {
       // Don't fail the request, post was still published
     }
 
+    // Update any matching draft to 'published' category
+    console.log('[TikTokPublish] Updating draft category to published...');
+    const { error: draftUpdateError } = await supabase
+      .from('tiktok_drafts')
+      .update({
+        category: 'published',
+        status: 'published'
+      })
+      .eq('user_id', user.id)
+      .eq('media_url', videoUrl);
+
+    if (draftUpdateError) {
+      console.error('[TikTokPublish] Warning: Failed to update draft:', draftUpdateError);
+      // Don't fail the request, post was still published
+    } else {
+      console.log('[TikTokPublish] ✅ Draft category updated to published');
+    }
+
     console.log('[TikTokPublish] Post published successfully');
 
     return NextResponse.json({

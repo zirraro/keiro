@@ -2,7 +2,7 @@
 
 ## ⚠️ Étapes OBLIGATOIRES
 
-Vous devez exécuter ces 2 migrations SQL dans Supabase pour que l'application fonctionne correctement.
+Vous devez exécuter ces 3 migrations SQL dans Supabase pour que l'application fonctionne correctement.
 
 ---
 
@@ -79,7 +79,43 @@ CREATE INDEX IF NOT EXISTS idx_my_videos_tiktok_converted
   WHERE tiktok_converted = TRUE;
 ```
 
-3. **Cliquer on "Run"**
+3. **Cliquer sur "Run"**
+
+---
+
+## 3️⃣ Ajouter support vidéos dans brouillons TikTok
+
+### Problème résolu:
+- ❌ Impossible de sauvegarder les vidéos converties dans les brouillons
+- ❌ Pas de catégorie "TIKTOK PUBLIÉS"
+
+### Étapes:
+
+1. **Toujours dans SQL Editor** → **New query**
+
+2. **Copier-coller ce code SQL:**
+
+```sql
+-- Ajouter support vidéos et catégories dans tiktok_drafts
+ALTER TABLE public.tiktok_drafts
+  ADD COLUMN IF NOT EXISTS video_id UUID REFERENCES public.my_videos(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS media_type TEXT NOT NULL DEFAULT 'image' CHECK (media_type IN ('image', 'video')),
+  ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'draft' CHECK (category IN ('draft', 'converted', 'published'));
+
+-- Renommer image_url en media_url
+ALTER TABLE public.tiktok_drafts
+  RENAME COLUMN image_url TO media_url;
+
+-- Ajouter index pour performance
+CREATE INDEX IF NOT EXISTS idx_tiktok_drafts_video_id
+  ON public.tiktok_drafts(video_id)
+  WHERE video_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_tiktok_drafts_category
+  ON public.tiktok_drafts(user_id, category, created_at DESC);
+```
+
+3. **Cliquer sur "Run"**
 
 ---
 
