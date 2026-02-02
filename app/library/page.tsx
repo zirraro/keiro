@@ -1209,7 +1209,7 @@ export default function LibraryPage() {
     await loadMyVideos();
   };
 
-  // Handlers pour le drag & drop
+  // Handlers pour le drag & drop - VERSION SIMPLIFIÉE
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1221,13 +1221,8 @@ export default function LibraryPage() {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // Ne fermer que si on quitte vraiment le conteneur principal (main)
-    // Vérifier avec relatedTarget pour éviter les faux positifs sur les enfants
-    const relatedTarget = e.relatedTarget as Node;
-    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-      setIsDragging(false);
-    }
+    // Simplifié: ferme l'overlay quand on sort
+    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -1242,29 +1237,6 @@ export default function LibraryPage() {
       handleUpload(files);
     }
   };
-
-  // Handler pour annuler le drag avec Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isDragging) {
-        setIsDragging(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isDragging]);
-
-  // Auto-fermer l'overlay si pas de drop après 3 secondes
-  useEffect(() => {
-    if (!isDragging) return;
-
-    const timer = setTimeout(() => {
-      setIsDragging(false);
-    }, 3000); // 3 secondes
-
-    return () => clearTimeout(timer);
-  }, [isDragging]);
 
   return (
     <main

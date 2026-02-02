@@ -9,10 +9,21 @@ export default function DropZone({ isDragging, onCancel }: DropZoneProps) {
   if (!isDragging) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center"
-      onClick={onCancel}
-    >
+    <div className="fixed inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center">
+      {/* Bouton fermer - en haut à droite */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onCancel?.();
+        }}
+        className="fixed top-4 right-4 z-[60] w-10 h-10 rounded-full bg-white shadow-lg hover:bg-neutral-100 transition-colors flex items-center justify-center"
+        aria-label="Fermer"
+      >
+        <svg className="w-6 h-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
       <div className="bg-white rounded-2xl shadow-2xl p-12 border-4 border-dashed border-blue-500 max-w-md mx-4 pointer-events-none">
         <div className="text-center">
           <div className="w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
@@ -26,9 +37,6 @@ export default function DropZone({ isDragging, onCancel }: DropZoneProps) {
           <p className="text-neutral-600 text-sm">
             <strong>Images :</strong> JPG, PNG, GIF, WebP (max 8MB)<br />
             <strong>Vidéos :</strong> MP4, MOV, WebM (max 50MB)
-          </p>
-          <p className="text-neutral-400 text-xs mt-3 pointer-events-auto">
-            Cliquez n'importe où ou appuyez sur Échap pour annuler
           </p>
         </div>
       </div>
