@@ -740,7 +740,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
         const continueAnyway = window.confirm(
           '⚠️ Conversion échouée\n\n' +
           `Erreur: ${conversionData.error}\n\n` +
-          'La vidéo pourrait être rejetée par TikTok.\n\n' +
           'Voulez-vous essayer de publier quand même ?'
         );
 
@@ -959,10 +958,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                         `}
                         title={vid.title || 'Vidéo'}
                       >
-                        <video
-                          src={vid.video_url}
+                        <img
+                          src={vid.thumbnail_url || vid.video_url}
+                          alt={vid.title || 'Vidéo'}
                           className="w-full h-full object-cover"
-                          muted
                         />
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -1039,10 +1038,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                           }
                         `}
                       >
-                        <video
-                          src={vid.video_url}
+                        <img
+                          src={vid.thumbnail_url || vid.video_url}
+                          alt={vid.title || 'Vidéo'}
                           className="w-full h-full object-cover"
-                          muted
                         />
                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                           <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">

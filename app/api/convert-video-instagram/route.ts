@@ -114,43 +114,33 @@ export async function POST(req: NextRequest) {
  * @param audioUrl - Optional: Custom audio URL to merge (instead of sine wave)
  */
 async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string, userId?: string) {
-  console.log('[CloudConvert] Starting Instagram Reels conversion...');
+  console.log('[CloudConvert] Starting simple Instagram Reels conversion (no audio merge)...');
   console.log('[CloudConvert] Will update video ID:', videoId || 'none');
-  console.log('[CloudConvert] Custom audio:', audioUrl ? '✅ YES' : '❌ NO (sine wave)');
+  console.log('[CloudConvert] Note: Audio merge temporarily disabled due to FFmpeg issues');
 
-  // Step 1: Create job with tasks
+  // Simple 1-job conversion without audio merge
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
       url: videoUrl,
       filename: 'input.mp4'
+    },
+    'convert-video': {
+      operation: 'convert',
+      input: 'import-video',
+      output_format: 'mp4',
+      video_codec: 'h264',
+      video_codec_profile: 'baseline', // Instagram requires baseline profile
+      audio_codec: 'aac',
+      width: 1080,
+      height: 1920,
+      fit: 'crop', // Strict 9:16 aspect ratio
+      fps: 30
+    },
+    'export-video': {
+      operation: 'export/url',
+      input: 'convert-video'
     }
-  };
-
-  // Convert video to Instagram Reels format
-  console.log('[CloudConvert] Step 1/2: Converting video to Instagram Reels format (H.264 baseline + AAC)');
-
-  tasks['convert-video'] = {
-    operation: 'convert',
-    input: 'import-video',
-    output_format: 'mp4',
-    video_codec: 'h264',
-    video_codec_profile: 'baseline', // ⚠️ CRITICAL: Instagram requires baseline profile
-    audio_codec: 'aac',
-    audio_bitrate: 128,
-    audio_frequency: 44100,
-    preset: 'medium',
-    crf: 23,
-    width: 1080,
-    height: 1920,
-    fit: 'crop', // ⚠️ IMPORTANT: Crop to strict 9:16
-    fps: 30,
-    strip_metadata: false
-  };
-
-  tasks['export-video'] = {
-    operation: 'export/url',
-    input: 'convert-video'
   };
 
   const createJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
@@ -196,100 +186,12 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
       ) as any;
 
       if (exportTask?.result?.files?.[0]?.url) {
-        let convertedUrl = exportTask.result.files[0].url;
-        console.log('[CloudConvert] ✅ Step 1/2 completed:', convertedUrl);
+        const convertedUrl = exportTask.result.files[0].url;
+        console.log('[CloudConvert] ✅ Conversion completed:', convertedUrl);
 
-        // Step 2: Merge audio if provided
+        // Note: Audio merge temporarily disabled - using converted video as-is
         if (audioUrl) {
-          console.log('[CloudConvert] Step 2/2: Merging audio with video...');
-          console.log('[CloudConvert] Audio URL:', audioUrl);
-
-          // Create second job to merge audio
-          const mergeJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              tasks: {
-                'import-video': {
-                  operation: 'import/url',
-                  url: convertedUrl, // Use converted video from Step 1
-                  filename: 'converted.mp4'
-                },
-                'import-audio': {
-                  operation: 'import/url',
-                  url: audioUrl,
-                  filename: 'narration.mp3'
-                },
-                'merge': {
-                  operation: 'command',
-                  engine: 'ffmpeg',
-                  command: '-i converted.mp4 -i narration.mp3 -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest output.mp4',
-                  input: ['import-video', 'import-audio'],
-                  output_format: 'mp4'
-                },
-                'export-merged': {
-                  operation: 'export/url',
-                  input: 'merge'
-                }
-              }
-            })
-          });
-
-          const mergeJobData = await mergeJobResponse.json();
-
-          if (!mergeJobResponse.ok) {
-            console.error('[CloudConvert] Audio merge job creation failed:', mergeJobData);
-            console.log('[CloudConvert] ⚠️ Falling back to video without custom audio');
-          } else {
-            console.log('[CloudConvert] Audio merge job created:', mergeJobData.data.id);
-
-            // Wait for merge job completion
-            const mergeJobId = mergeJobData.data.id;
-            let mergeAttempts = 0;
-            const maxMergeAttempts = 30; // 60 seconds max
-
-            while (mergeAttempts < maxMergeAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-
-              const mergeStatusResponse = await fetch(`https://api.cloudconvert.com/v2/jobs/${mergeJobId}`, {
-                headers: {
-                  'Authorization': `Bearer ${apiKey}`
-                }
-              });
-
-              const mergeStatusData = await mergeStatusResponse.json();
-              console.log('[CloudConvert] Audio merge job status:', mergeStatusData.data.status);
-
-              if (mergeStatusData.data.status === 'finished') {
-                const mergeExportTask = Object.values(mergeStatusData.data.tasks).find(
-                  (task: any) => task.name === 'export-merged'
-                ) as any;
-
-                if (mergeExportTask?.result?.files?.[0]?.url) {
-                  convertedUrl = mergeExportTask.result.files[0].url;
-                  console.log('[CloudConvert] ✅ Audio merge completed:', convertedUrl);
-                  break;
-                }
-              }
-
-              if (mergeStatusData.data.status === 'error') {
-                console.error('[CloudConvert] Audio merge job failed');
-                console.log('[CloudConvert] ⚠️ Using video without custom audio');
-                break;
-              }
-
-              mergeAttempts++;
-            }
-
-            if (mergeAttempts >= maxMergeAttempts) {
-              console.log('[CloudConvert] ⚠️ Audio merge timeout, using video without custom audio');
-            }
-          }
-        } else {
-          console.log('[CloudConvert] No custom audio provided, using video as-is');
+          console.log('[CloudConvert] ⚠️ Audio TTS ignored (merge temporarily disabled)');
         }
 
         // Download final video and upload to Supabase Storage
