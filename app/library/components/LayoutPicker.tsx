@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 type LayoutOption = 'both-open' | 'instagram-open' | 'tiktok-open';
 
 interface LayoutPickerProps {
@@ -8,7 +10,7 @@ interface LayoutPickerProps {
 }
 
 export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPickerProps) {
-  const layouts: { id: LayoutOption; label: string; icon: JSX.Element }[] = [
+  const layouts: { id: LayoutOption; label: string; icon: React.ReactElement }[] = [
     {
       id: 'both-open',
       label: 'Les deux ouverts',
