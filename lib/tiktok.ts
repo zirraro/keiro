@@ -163,7 +163,11 @@ export async function getTikTokUserInfo(accessToken: string): Promise<TikTokUser
     fullResponse: JSON.stringify(data)
   });
 
-  if (!response.ok || data.error || (data.error_code && data.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  // Check error.code !== 'ok' to detect real errors
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
+  if (!response.ok || isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || data.description || `HTTP ${response.status}: ${response.statusText}`;
     console.error('[TikTok] User info failed:', errorMsg);
     throw new Error(`Failed to get TikTok user info: ${errorMsg}`);
