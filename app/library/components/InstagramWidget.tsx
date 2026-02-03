@@ -26,18 +26,20 @@ interface InstagramWidgetProps {
   onPreparePost?: () => void;
   onPrepareInstagram?: () => void;
   onPrepareTikTok?: () => void;
+  defaultCollapsed?: boolean;
 }
 
 export default function InstagramWidget({
   isGuest = false,
   onPreparePost,
   onPrepareInstagram,
-  onPrepareTikTok
+  onPrepareTikTok,
+  defaultCollapsed = false
 }: InstagramWidgetProps) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
 
   useEffect(() => {

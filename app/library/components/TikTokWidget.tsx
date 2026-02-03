@@ -6,9 +6,10 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 interface TikTokWidgetProps {
   onConnect?: () => void;
   onPreparePost?: () => void;
+  defaultCollapsed?: boolean;
 }
 
-export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetProps) {
+export default function TikTokWidget({ onConnect, onPreparePost, defaultCollapsed = false }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [tiktokUsername, setTiktokUsername] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
     avgEngagement: string;
   } | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {

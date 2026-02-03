@@ -1321,8 +1321,8 @@ export default function LibraryPage() {
           />
         </div>
 
-        {/* Section Réseaux Sociaux - Pour utilisateurs connectés */}
-        {(user || isGuest) && activeTab === 'images' && (
+        {/* Section Réseaux Sociaux - Pour utilisateurs connectés - TOUS LES ONGLETS */}
+        {(user || isGuest) && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
@@ -1346,6 +1346,7 @@ export default function LibraryPage() {
                   isGuest={!user}
                   onPrepareInstagram={() => setShowInstagramModal(true)}
                   onPrepareTikTok={() => setShowTikTokModal(true)}
+                  defaultCollapsed={activeTab !== 'images'}
                 />
               </div>
               <div className={
@@ -1356,6 +1357,7 @@ export default function LibraryPage() {
                 <TikTokWidget
                   onConnect={() => setShowTikTokConnectionModal(true)}
                   onPreparePost={() => setShowTikTokModal(true)}
+                  defaultCollapsed={activeTab !== 'images'}
                 />
               </div>
             </div>

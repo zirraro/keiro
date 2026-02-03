@@ -17,6 +17,7 @@ export interface CreationItem {
   duration?: number; // For videos
   published_to_instagram?: boolean; // For images
   published_to_tiktok?: boolean;
+  source_type?: string; // For videos
 }
 
 interface CreationCardProps {
@@ -36,28 +37,41 @@ export default function CreationCard({
   onPublish,
   onDownload
 }: CreationCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(item.title || '');
 
-  const handleTitleSave = () => {
-    if (editedTitle.trim() && editedTitle !== item.title) {
+  const handleSaveTitle = () => {
+    if (editedTitle.trim()) {
       onTitleEdit(item.id, editedTitle.trim());
     }
-    setIsEditingTitle(false);
+    setIsEditing(false);
   };
 
   const formatDuration = (seconds?: number) => {
-    if (!seconds) return '';
+    if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays < 7) return `Il y a ${diffDays}j`;
+    return date.toLocaleDateString('fr-FR');
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden group hover:shadow-md transition-shadow">
-      {/* Media Preview */}
-      <div className="relative aspect-square bg-neutral-100">
+    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
+      {/* Media preview - Format vidéo pour uniformité */}
+      <div className="relative aspect-video bg-neutral-900">
         {item.type === 'image' ? (
           <img
             src={item.url}
@@ -66,182 +80,164 @@ export default function CreationCard({
             loading="lazy"
           />
         ) : (
-          <div className="relative w-full h-full">
-            <video
-              src={item.url}
-              poster={item.thumbnailUrl}
-              className="w-full h-full object-cover"
-              preload="metadata"
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-              <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-              </svg>
-            </div>
-            {item.duration && (
-              <div className="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                {formatDuration(item.duration)}
-              </div>
-            )}
-          </div>
+          <video
+            src={item.url}
+            poster={item.thumbnailUrl}
+            controls
+            className="w-full h-full object-cover"
+          />
         )}
 
-        {/* Type Badge */}
-        <div className="absolute top-2 left-2 bg-white bg-opacity-90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold">
-          {item.type === 'image' ? '📸 Image' : '🎬 Vidéo'}
-        </div>
-
-        {/* Favorite Badge */}
-        {item.is_favorite && (
-          <div className="absolute top-2 right-10 bg-yellow-100 text-yellow-700 p-1.5 rounded-full">
-            ⭐
-          </div>
-        )}
-
-        {/* Menu Kebab */}
-        <div className="absolute top-2 right-2">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="bg-white bg-opacity-90 backdrop-blur-sm p-1.5 rounded-full hover:bg-opacity-100 transition-all"
-          >
-            <svg className="w-5 h-5 text-neutral-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </button>
-
-          {/* Dropdown Menu */}
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-neutral-200 z-10 overflow-hidden">
-              <button
-                onClick={() => {
-                  onToggleFavorite(item.id, !item.is_favorite);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
-              >
-                <span>{item.is_favorite ? '⭐' : '☆'}</span>
-                {item.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsEditingTitle(true);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
-              >
-                <span>✏️</span>
-                Éditer le titre
-              </button>
-
-              {item.type === 'image' && (
-                <button
-                  onClick={() => {
-                    onPublish(item, 'instagram');
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
-                >
-                  <span>📷</span>
-                  Publier sur Instagram
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  onPublish(item, 'tiktok');
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
-              >
-                <span>🎵</span>
-                Publier sur TikTok
-              </button>
-
-              <button
-                onClick={() => {
-                  onDownload(item);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
-              >
-                <span>⬇️</span>
-                Télécharger
-              </button>
-
-              <div className="border-t border-neutral-200"></div>
-
-              <button
-                onClick={() => {
-                  if (confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
-                    onDelete(item.id);
-                  }
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-              >
-                <span>🗑️</span>
-                Supprimer
-              </button>
-            </div>
+        {/* Badges */}
+        <div className="absolute top-2 left-2 flex gap-2">
+          {item.is_favorite && (
+            <span className="bg-pink-500 text-white text-xs px-2 py-1 rounded-full">
+              ⭐ Favorite
+            </span>
+          )}
+          {item.published_to_instagram && (
+            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+              ✓ Instagram
+            </span>
+          )}
+          {item.published_to_tiktok && (
+            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+              ✓ TikTok
+            </span>
           )}
         </div>
+
+        {/* Duration for videos */}
+        {item.type === 'video' && item.duration && (
+          <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            {formatDuration(item.duration)}
+          </div>
+        )}
       </div>
 
-      {/* Info Section */}
-      <div className="p-3">
-        {isEditingTitle ? (
-          <input
-            type="text"
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleTitleSave();
-              if (e.key === 'Escape') {
-                setEditedTitle(item.title || '');
-                setIsEditingTitle(false);
-              }
-            }}
-            autoFocus
-            className="w-full px-2 py-1 text-sm font-semibold border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+      {/* Info */}
+      <div className="p-4 space-y-2">
+        {/* Title */}
+        {isEditing ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSaveTitle()}
+              className="flex-1 px-2 py-1 border border-neutral-300 rounded text-sm"
+              placeholder={item.type === 'image' ? "Titre de l'image" : "Titre de la vidéo"}
+              autoFocus
+            />
+            <button
+              onClick={handleSaveTitle}
+              className="text-green-600 hover:text-green-700"
+            >
+              ✓
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="text-red-600 hover:text-red-700"
+            >
+              ✕
+            </button>
+          </div>
         ) : (
           <h4
-            className="text-sm font-semibold text-neutral-900 truncate cursor-pointer hover:text-blue-600"
-            onClick={() => setIsEditingTitle(true)}
-            title={item.title || 'Sans titre'}
+            onClick={() => setIsEditing(true)}
+            className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+            title="Cliquer pour modifier le titre"
           >
             {item.title || 'Sans titre'}
           </h4>
         )}
 
-        <p className="text-xs text-neutral-500 mt-1">
-          {new Date(item.created_at).toLocaleDateString('fr-FR')}
-        </p>
+        {/* Metadata */}
+        <div className="flex items-center justify-between text-xs text-neutral-500">
+          <span>{formatDate(item.created_at)}</span>
+          <span className="text-neutral-400">{item.type === 'image' ? '📸 Image' : '🎬 Vidéo'}</span>
+        </div>
 
-        {/* Publication Status */}
-        <div className="flex gap-1 mt-2">
-          {item.published_to_instagram && (
-            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-              📷 Instagram
-            </span>
-          )}
-          {item.published_to_tiktok && (
-            <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full">
-              🎵 TikTok
-            </span>
-          )}
+        {/* Source badge pour vidéos */}
+        {item.type === 'video' && item.source_type && (
+          <div className="flex items-center gap-2 text-xs">
+            {item.source_type === 'seedream_i2v' && (
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                ✨ Généré par Keiro
+              </span>
+            )}
+            {item.source_type === 'upload' && (
+              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                📤 Upload
+              </span>
+            )}
+            {item.source_type === 'tiktok_sync' && (
+              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                🎵 TikTok
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Actions visibles */}
+        <div className="pt-3 border-t border-neutral-200">
+          <div className="grid grid-cols-2 gap-2">
+            {/* Publier - Ne s'affiche que si non publié */}
+            {!item.published_to_instagram && !item.published_to_tiktok && (
+              <button
+                onClick={() => onPublish(item, item.type === 'image' ? 'instagram' : 'tiktok')}
+                className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Poster
+              </button>
+            )}
+
+            {/* Favoris */}
+            <button
+              onClick={() => onToggleFavorite(item.id, !item.is_favorite)}
+              className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all shadow-sm ${
+                item.is_favorite
+                  ? 'bg-pink-100 text-pink-700 hover:bg-pink-200'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              <svg className="w-4 h-4" fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {item.is_favorite ? 'Favori' : 'Favoris'}
+            </button>
+
+            {/* Télécharger */}
+            <button
+              onClick={() => onDownload(item)}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Télécharger
+            </button>
+
+            {/* Supprimer */}
+            <button
+              onClick={() => {
+                if (confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
+                  onDelete(item.id);
+                }
+              }}
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-red-100 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-200 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Supprimer
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Close menu when clicking outside */}
-      {isMenuOpen && (
-        <div
-          className="fixed inset-0 z-0"
-          onClick={() => setIsMenuOpen(false)}
-        ></div>
-      )}
     </div>
   );
 }
