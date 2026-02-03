@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         cover_image_url: video.cover_image_url || null,
         cached_thumbnail_url: video.cover_image_url || null,
         share_url: video.share_url || null,
-        permalink: video.share_url || null,
+        // Note: permalink column doesn't exist in production schema, using share_url instead
         view_count: video.view_count || 0,
         like_count: video.like_count || 0,
         comment_count: video.comment_count || 0,
