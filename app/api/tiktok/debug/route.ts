@@ -37,6 +37,31 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Test creator info to get scopes and permissions
+    let creatorInfo: any = null;
+    if (profile.tiktok_access_token) {
+      try {
+        const creatorResponse = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${profile.tiktok_access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({})
+        });
+
+        const creatorData = await creatorResponse.json();
+        creatorInfo = {
+          status: creatorResponse.status,
+          response: creatorData
+        };
+      } catch (err: any) {
+        creatorInfo = {
+          error: err.message
+        };
+      }
+    }
+
     const debugInfo: any = {
       connected: !!profile.tiktok_access_token,
       username: profile.tiktok_username,
@@ -44,6 +69,7 @@ export async function GET(req: NextRequest) {
       open_id: profile.tiktok_user_id,
       tokenExpiry: profile.tiktok_token_expiry,
       tokenExpired: profile.tiktok_token_expiry ? new Date(profile.tiktok_token_expiry) <= new Date() : null,
+      creatorInfo: creatorInfo
     };
 
     // Test video list API if connected

@@ -96,6 +96,45 @@ export default function TikTokDebugPage() {
           </div>
         </div>
 
+        {/* Creator Info Test */}
+        {debug.creatorInfo && (
+          <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
+            <h2 className="text-xl font-semibold mb-4">Creator Info & Permissions</h2>
+            {debug.creatorInfo.error ? (
+              <div className="bg-red-50 p-3 rounded">
+                <p className="text-red-700">❌ Error: {debug.creatorInfo.error}</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-neutral-600 mb-3">HTTP Status: {debug.creatorInfo.status}</p>
+                {debug.creatorInfo.response && (
+                  <div className="space-y-3">
+                    {debug.creatorInfo.response.data && (
+                      <div className="bg-green-50 p-3 rounded">
+                        <p className="font-semibold text-green-800 mb-2">✅ Creator Permissions:</p>
+                        <div className="space-y-1 text-sm">
+                          <p><span className="font-medium">Max Video Duration:</span> {debug.creatorInfo.response.data.max_video_duration}s</p>
+                          <p><span className="font-medium">Privacy Options:</span> {debug.creatorInfo.response.data.privacy_options?.join(', ')}</p>
+                          <p><span className="font-medium">Comment Disabled:</span> {debug.creatorInfo.response.data.comment_disabled ? 'Yes' : 'No'}</p>
+                          <p><span className="font-medium">Duet Disabled:</span> {debug.creatorInfo.response.data.duet_disabled ? 'Yes' : 'No'}</p>
+                          <p><span className="font-medium">Stitch Disabled:</span> {debug.creatorInfo.response.data.stitch_disabled ? 'Yes' : 'No'}</p>
+                        </div>
+                      </div>
+                    )}
+                    {debug.creatorInfo.response.error && (
+                      <div className="bg-red-50 p-3 rounded">
+                        <p className="font-semibold text-red-800 mb-2">❌ TikTok Error:</p>
+                        <p className="text-sm text-red-700">Code: {debug.creatorInfo.response.error.code}</p>
+                        <p className="text-sm text-red-700">Message: {debug.creatorInfo.response.error.message}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Video List API Test */}
         {debug.videoListTest && (
           <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
