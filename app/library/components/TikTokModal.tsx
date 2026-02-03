@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
-import TikTokRequirementsInfo from './TikTokRequirementsInfo';
 import AudioEditorWidget from './AudioEditorWidget';
 import { convertVideoForTikTok, isFFmpegSupported } from '@/lib/ffmpegConverter';
 
@@ -996,13 +995,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                       controls
                       autoPlay
                       loop
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : activeTab === 'images' && selectedImage ? (
                     <img
                       src={selectedImage.image_url}
                       alt={selectedImage.title || 'Selected'}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : null}
                 </div>
@@ -1284,11 +1283,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                 <span>Brouillon</span>
               )}
             </button>
-
-            {/* Info TikTok Requirements */}
-            <div className="col-span-2 flex justify-center">
-              <TikTokRequirementsInfo />
-            </div>
 
             {/* Boutons de publication TikTok (seulement si connecté) - Format aligné avec Instagram */}
             {isTikTokConnected ? (

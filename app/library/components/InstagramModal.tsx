@@ -726,7 +726,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         controls
                         autoPlay
                         loop
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                     ) : activeTab === 'images' && selectedImage ? (
                       <img

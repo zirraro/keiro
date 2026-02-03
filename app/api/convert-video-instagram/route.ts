@@ -118,13 +118,19 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
   console.log('[CloudConvert] Will update video ID:', videoId || 'none');
   console.log('[CloudConvert] Note: Audio merge temporarily disabled due to FFmpeg issues');
 
+  // Detect file extension from URL (supports .mp4, .mov, .webm, .avi, etc.)
+  const urlPath = new URL(videoUrl).pathname;
+  const detectedExt = urlPath.match(/\.(mp4|mov|webm|avi|mkv|flv|m4v)(\?|$)/i)?.[1] || 'mp4';
+  const inputFilename = `input-video.${detectedExt}`;
+  console.log('[CloudConvert] Detected file extension:', detectedExt, '→ filename:', inputFilename);
+
   // Simple 1-job conversion without audio merge
   // Instagram Reels requirements: MP4, H.264 baseline, AAC, 9:16, 30fps
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
       url: videoUrl,
-      filename: 'input-video'
+      filename: inputFilename // CloudConvert requires file extension for format detection
     },
     'convert-video': {
       operation: 'convert',
