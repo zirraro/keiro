@@ -1056,10 +1056,13 @@ export default function LibraryPage() {
       }
 
       // Vérification de taille selon le type
-      const maxSize = isImage ? 8 * 1024 * 1024 : 50 * 1024 * 1024; // 8MB images, 50MB videos
-      const maxSizeText = isImage ? '8MB' : '50MB';
+      const maxSize = isImage ? 8 * 1024 * 1024 : 287 * 1024 * 1024; // 8MB images, 287MB videos (TikTok limit)
+      const maxSizeText = isImage ? '8MB' : '287MB';
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      console.log(`[Library] File ${file.name}: ${fileSizeMB}MB (max: ${maxSizeText})`);
+
       if (file.size > maxSize) {
-        alert(`❌ ${file.name} est trop volumineux (max ${maxSizeText})`);
+        alert(`❌ ${file.name} est trop volumineux (${fileSizeMB}MB, max ${maxSizeText})`);
         continue;
       }
 

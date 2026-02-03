@@ -240,6 +240,13 @@ export default function GeneratePage() {
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
 
+  /* --- États pour la génération audio TTS --- */
+  const [addAudio, setAddAudio] = useState(false);
+  const [audioTextSource, setAudioTextSource] = useState<'ai' | 'manual'>('ai');
+  const [audioText, setAudioText] = useState('');
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [generatingAudio, setGeneratingAudio] = useState(false);
+
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
   const [editVersions, setEditVersions] = useState<string[]>([]);
@@ -1192,6 +1199,50 @@ export default function GeneratePage() {
 
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
+
+      // Génération audio TTS si demandée
+      if (addAudio) {
+        setGeneratingAudio(true);
+        try {
+          let textForAudio = '';
+
+          // Déterminer le texte à narrer
+          if (audioTextSource === 'ai') {
+            // Générer automatiquement le texte depuis l'actualité
+            textForAudio = `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`;
+          } else {
+            // Utiliser le texte manuel
+            textForAudio = audioText.trim();
+          }
+
+          if (textForAudio) {
+            console.log('[Generate] Generating audio TTS:', textForAudio);
+            const audioResponse = await fetch('/api/generate-audio-tts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                text: textForAudio,
+                targetDuration: 5,
+                voice: 'alloy',
+                speed: 1.0
+              })
+            });
+
+            const audioData = await audioResponse.json();
+            if (audioData.ok) {
+              setGeneratedAudioUrl(audioData.audioUrl);
+              console.log('[Generate] ✅ Audio generated:', audioData.audioUrl);
+            } else {
+              console.error('[Generate] Audio generation failed:', audioData.error);
+            }
+          }
+        } catch (audioError) {
+          console.error('[Generate] Audio generation error:', audioError);
+          // Ne pas bloquer la génération si l'audio échoue
+        } finally {
+          setGeneratingAudio(false);
+        }
+      }
 
       // Auto-save vers la galerie si l'utilisateur est connecté
       try {
@@ -2238,6 +2289,75 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
+                {/* Section Audio TTS (NOUVEAU) */}
+                <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addAudio}
+                      onChange={(e) => setAddAudio(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-xs font-semibold text-neutral-900">
+                      🎵 Ajouter de l'audio sur votre visuel/vidéo
+                    </span>
+                  </label>
+
+                  {addAudio && (
+                    <div className="space-y-2">
+                      {/* Choix: IA ou Manuel */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAudioTextSource('ai')}
+                          className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                            audioTextSource === 'ai'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ✨ Par IA
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAudioTextSource('manual')}
+                          className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                            audioTextSource === 'manual'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                          }`}
+                        >
+                          ✍️ Écrire votre texte
+                        </button>
+                      </div>
+
+                      {/* Champ texte manuel */}
+                      {audioTextSource === 'manual' && (
+                        <div>
+                          <textarea
+                            value={audioText}
+                            onChange={(e) => setAudioText(e.target.value)}
+                            placeholder="Entrez le texte à narrer (max ~15 mots pour 5 secondes)..."
+                            rows={2}
+                            maxLength={150}
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          />
+                          <p className="text-[10px] text-neutral-500 mt-1">
+                            ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} mots ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Info IA */}
+                      {audioTextSource === 'ai' && (
+                        <p className="text-[10px] text-neutral-600 italic">
+                          💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Boutons de génération */}
                 <div className="flex gap-2">
                   <button
@@ -2435,11 +2555,69 @@ export default function GeneratePage() {
                         setOriginalImageUrl(null);
                         setGeneratedPrompt(null);
                         setImageSavedToLibrary(false);
+                        setGeneratedAudioUrl(null); // Reset audio aussi
                       }}
                       className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                     >
                       Nouveau
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Audio généré (NOUVEAU) */}
+            {generatedAudioUrl && !showEditStudio && (
+              <div className="bg-white rounded-xl border border-blue-200 p-3">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  🎵 Audio généré
+                </h3>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-100">
+                  <audio
+                    src={generatedAudioUrl}
+                    controls
+                    className="w-full"
+                    style={{ height: '40px' }}
+                  />
+                  <p className="text-[10px] text-blue-600 mt-2 text-center">
+                    ✓ Narration audio prête pour TikTok/Instagram Reels
+                  </p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <a
+                    href={generatedAudioUrl}
+                    download
+                    className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
+                  >
+                    📥 Télécharger l'audio
+                  </a>
+                  <button
+                    onClick={() => {
+                      setGeneratedAudioUrl(null);
+                      setAddAudio(false);
+                    }}
+                    className="px-4 py-2 text-xs border border-neutral-300 rounded hover:bg-neutral-50 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Loader audio en cours */}
+            {generatingAudio && !generatedAudioUrl && (
+              <div className="bg-white rounded-xl border border-blue-200 p-3 animate-pulse">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                  🎵 Génération audio...
+                </h3>
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <span className="text-xs text-blue-700">
+                      L'IA crée votre narration audio...
+                    </span>
                   </div>
                 </div>
               </div>

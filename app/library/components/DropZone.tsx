@@ -36,7 +36,7 @@ export default function DropZone({ isDragging, onCancel }: DropZoneProps) {
           </h3>
           <p className="text-neutral-600 text-sm">
             <strong>Images :</strong> JPG, PNG, GIF, WebP (max 8MB)<br />
-            <strong>Vidéos :</strong> MP4, MOV, WebM (max 50MB)
+            <strong>Vidéos :</strong> MP4, MOV, WebM (max 287MB)
           </p>
         </div>
       </div>

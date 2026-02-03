@@ -48,9 +48,9 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
 
     try {
       // Validation côté client AVANT l'upload
-      const maxSize = type === 'image' ? 8 * 1024 * 1024 : 50 * 1024 * 1024; // 8MB images, 50MB videos
+      const maxSize = type === 'image' ? 8 * 1024 * 1024 : 287 * 1024 * 1024; // 8MB images, 287MB videos (TikTok limit)
       if (file.size > maxSize) {
-        const maxSizeMB = type === 'image' ? '8MB' : '50MB';
+        const maxSizeMB = type === 'image' ? '8MB' : '287MB';
         throw new Error(`Fichier trop volumineux. Taille max: ${maxSizeMB}`);
       }
 
@@ -264,7 +264,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
             <span className="text-2xl">🎬</span>
             <div>
               <div className="text-sm font-semibold text-neutral-900">Ajouter une vidéo</div>
-              <div className="text-xs text-neutral-500">MP4, MOV, WebM (max 50MB)</div>
+              <div className="text-xs text-neutral-500">MP4, MOV, WebM (max 287MB)</div>
             </div>
           </button>
         </div>
