@@ -26,6 +26,8 @@ interface TikTokDraftsTabProps {
 
 export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages }: TikTokDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'converted' | 'published'>('all');
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  const [editedCaption, setEditedCaption] = useState<string>('');
 
   // Filter drafts by category
   const filteredDrafts = activeCategory === 'all'
@@ -198,7 +200,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
       )}
 
       {/* Grille de brouillons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
@@ -229,11 +231,49 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           </div>
 
           {/* Contenu */}
-          <div className="p-4">
-            {/* Caption preview */}
-            <p className="text-sm text-neutral-700 line-clamp-3 mb-3">
-              {draft.caption || 'Pas de description'}
-            </p>
+          <div className="p-3">
+            {/* Caption preview - Cliquable pour édition */}
+            {editingDraftId === draft.id ? (
+              <div className="mb-3">
+                <textarea
+                  value={editedCaption}
+                  onChange={(e) => setEditedCaption(e.target.value)}
+                  onBlur={() => {
+                    if (editedCaption.trim() && editedCaption !== draft.caption) {
+                      // Mettre à jour le draft avec la nouvelle caption
+                      onEdit({ ...draft, caption: editedCaption.trim() });
+                    }
+                    setEditingDraftId(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      if (editedCaption.trim() && editedCaption !== draft.caption) {
+                        onEdit({ ...draft, caption: editedCaption.trim() });
+                      }
+                      setEditingDraftId(null);
+                    }
+                    if (e.key === 'Escape') {
+                      setEditingDraftId(null);
+                    }
+                  }}
+                  className="w-full text-sm text-neutral-700 border border-blue-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  rows={3}
+                  autoFocus
+                />
+                <p className="text-xs text-neutral-400 mt-1">Ctrl+Entrée pour sauvegarder, Échap pour annuler</p>
+              </div>
+            ) : (
+              <p
+                onClick={() => {
+                  setEditingDraftId(draft.id);
+                  setEditedCaption(draft.caption || '');
+                }}
+                className="text-sm text-neutral-700 line-clamp-3 mb-3 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors"
+                title="Cliquer pour modifier la description"
+              >
+                {draft.caption || 'Pas de description (cliquer pour ajouter)'}
+              </p>
+            )}
 
             {/* Hashtags preview */}
             {draft.hashtags && draft.hashtags.length > 0 && (
@@ -252,30 +292,31 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
             )}
 
             {/* Date */}
-            <p className="text-xs text-neutral-400 mb-4">
+            <p className="text-xs text-neutral-400 mb-3">
               Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}
             </p>
 
             {/* Actions */}
             <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onEdit(draft)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500"
-                  aria-label="Modifier le brouillon"
-                >
-                  Modifier
-                </button>
+              <button
+                onClick={() => onEdit(draft)}
+                className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 flex items-center justify-center gap-2"
+                aria-label="Continuer à publier"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+                Continuer
+              </button>
 
-                <button
-                  onClick={() => onDelete(draft.id)}
-                  className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                  title="Supprimer"
-                  aria-label="Supprimer le brouillon"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                </button>
-              </div>
+              <button
+                onClick={() => onDelete(draft.id)}
+                className="w-full px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                title="Supprimer"
+                aria-label="Supprimer le brouillon"
+              >
+                Supprimer
+              </button>
 
               {onSchedule && (
                 <button
