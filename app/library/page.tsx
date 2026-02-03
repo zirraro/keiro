@@ -28,6 +28,7 @@ import PlatformChoiceModal from './components/PlatformChoiceModal';
 import MyVideosTab from './components/MyVideosTab';
 import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
+import LayoutPicker from './components/LayoutPicker';
 
 type SavedImage = {
   id: string;
@@ -1364,6 +1365,27 @@ export default function LibraryPage() {
                 <span className="text-2xl">🚀</span>
                 Vos réseaux sociaux
               </h2>
+              <LayoutPicker
+                currentLayout={
+                  !isInstagramWidgetCollapsed && !isTikTokWidgetCollapsed
+                    ? 'both-open'
+                    : !isInstagramWidgetCollapsed && isTikTokWidgetCollapsed
+                    ? 'instagram-open'
+                    : 'tiktok-open'
+                }
+                onLayoutChange={(layout) => {
+                  if (layout === 'both-open') {
+                    setIsInstagramWidgetCollapsed(false);
+                    setIsTikTokWidgetCollapsed(false);
+                  } else if (layout === 'instagram-open') {
+                    setIsInstagramWidgetCollapsed(false);
+                    setIsTikTokWidgetCollapsed(true);
+                  } else if (layout === 'tiktok-open') {
+                    setIsInstagramWidgetCollapsed(true);
+                    setIsTikTokWidgetCollapsed(false);
+                  }
+                }}
+              />
             </div>
 
             {/* Widgets Instagram & TikTok côte à côte - Adaptatif selon collapse */}
