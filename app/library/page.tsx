@@ -1368,16 +1368,16 @@ export default function LibraryPage() {
 
             {/* Widgets Instagram & TikTok côte à côte - Adaptatif selon collapse */}
             <div className={`grid gap-6 ${
-              // Si un widget collapsed et l'autre expanded → grille 6 colonnes (1/6 vs 5/6)
+              // Si un widget collapsed et l'autre expanded → grille 10 colonnes (1/10 vs 9/10)
               (isInstagramWidgetCollapsed && !isTikTokWidgetCollapsed) || (!isInstagramWidgetCollapsed && isTikTokWidgetCollapsed)
-                ? 'md:grid-cols-6'
+                ? 'md:grid-cols-10'
                 : 'md:grid-cols-2' // Les deux expanded ou collapsed → grille 2 colonnes (50/50)
             }`}>
               <div className={
                 isInstagramWidgetCollapsed && !isTikTokWidgetCollapsed
-                  ? 'md:col-span-1' // Instagram collapsed = 1/6
+                  ? 'md:col-span-1' // Instagram collapsed = 1/10
                   : !isInstagramWidgetCollapsed && isTikTokWidgetCollapsed
-                  ? 'md:col-span-5' // Instagram expanded et TikTok collapsed = 5/6
+                  ? 'md:col-span-9' // Instagram expanded et TikTok collapsed = 9/10
                   : '' // Par défaut = 1 colonne (50%)
               }>
                 <InstagramWidget
@@ -1390,9 +1390,9 @@ export default function LibraryPage() {
               </div>
               <div className={
                 isTikTokWidgetCollapsed && !isInstagramWidgetCollapsed
-                  ? 'md:col-span-1' // TikTok collapsed = 1/6
+                  ? 'md:col-span-1' // TikTok collapsed = 1/10
                   : !isTikTokWidgetCollapsed && isInstagramWidgetCollapsed
-                  ? 'md:col-span-5' // TikTok expanded et Instagram collapsed = 5/6
+                  ? 'md:col-span-9' // TikTok expanded et Instagram collapsed = 9/10
                   : '' // Par défaut = 1 colonne (50%)
               }>
                 <TikTokWidget

@@ -162,9 +162,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
   if (!connected) {
     return (
       <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-        <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className={`border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+          <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'items-center justify-between'}`}>
+            <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
               <button
                 onClick={() => onToggleCollapse?.(!isCollapsed)}
                 className="p-1 hover:bg-white/50 rounded transition-colors"
@@ -179,17 +179,24 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-              <span className="text-xl">🎵</span>
-              <div>
-                <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
-                <p className="text-xs text-neutral-500">Non connecté</p>
-              </div>
+              <span className={`${isCollapsed ? 'text-2xl' : 'text-xl'}`}>🎵</span>
+              {!isCollapsed && (
+                <div>
+                  <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
+                  <p className="text-xs text-neutral-500">Non connecté</p>
+                </div>
+              )}
             </div>
             <button
-              onClick={onPreparePost}
-              className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
+              onClick={isCollapsed ? onConnect : onPreparePost}
+              className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+                isCollapsed
+                  ? 'w-full px-2 py-1.5 text-[10px]'
+                  : 'px-3 py-1.5 text-xs'
+              }`}
+              title={isCollapsed ? (onConnect ? "Se connecter" : "Préparer un post") : ""}
             >
-              Préparer un post
+              {isCollapsed ? 'Connecter' : 'Préparer un post'}
             </button>
           </div>
         </div>
@@ -216,9 +223,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className={`border-b border-neutral-200 bg-gradient-to-r from-pink-50 to-cyan-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+        <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'items-center justify-between'}`}>
+          <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
             <button
               onClick={() => onToggleCollapse?.(!isCollapsed)}
               className="p-1 hover:bg-white/50 rounded transition-colors"
@@ -233,24 +240,31 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <span className="text-xl">🎵</span>
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-neutral-600 font-medium">
-                  {tiktokUsername ? `@${tiktokUsername}` : 'Compte TikTok'}
-                </span>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                  ✓
-                </span>
+            <span className={`${isCollapsed ? 'text-2xl' : 'text-xl'}`}>🎵</span>
+            {!isCollapsed && (
+              <div>
+                <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-600 font-medium">
+                    {tiktokUsername ? `@${tiktokUsername}` : 'Compte TikTok'}
+                  </span>
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                    ✓
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <button
             onClick={onPreparePost}
-            className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
+            className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+              isCollapsed
+                ? 'w-full px-2 py-1.5 text-[10px]'
+                : 'px-3 py-1.5 text-xs'
+            }`}
+            title={isCollapsed ? "Préparer un post" : ""}
           >
-            Préparer un post
+            {isCollapsed ? '+ Post' : 'Préparer un post'}
           </button>
         </div>
       </div>
@@ -259,7 +273,8 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
         <>
           {/* Videos Grid - Same format as Instagram */}
           {posts.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 p-3">
+            <div className="max-w-6xl mx-auto p-3">
+              <div className="grid grid-cols-3 gap-2">
               {posts.map((post) => (
                 <a
                   key={post.id}
@@ -284,6 +299,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   </div>
                 </a>
               ))}
+              </div>
             </div>
       ) : (
         <div className="p-8 text-center">

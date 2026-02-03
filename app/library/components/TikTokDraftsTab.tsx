@@ -200,7 +200,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
       )}
 
       {/* Grille de brouillons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
