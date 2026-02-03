@@ -174,16 +174,26 @@ export async function GET(req: NextRequest) {
     } catch (userInfoError: any) {
       console.error('[TikTokCallback] ⚠️ Step 4/5 warning: Could not fetch user info (but tokens are saved)', {
         error: userInfoError.message,
+        errorString: String(userInfoError),
         stack: userInfoError.stack,
+        hasScope: tokenData.scope?.includes('user.info.basic'),
+        scopes: tokenData.scope,
         elapsedMs: Date.now() - startTime
       });
 
-      // Save a default username so user can see they're connected
+      // Use open_id as temporary username (always available from token exchange)
+      const tempUsername = `TikTok User (${tokenData.open_id.substring(0, 8)}...)`;
+      console.log('[TikTokCallback] Using open_id as temporary username:', tempUsername);
+
+      displayName = tempUsername;
+      username = tempUsername;
+
+      // Save temporary username so user can see they're connected
       await supabase
         .from('profiles')
         .update({
-          tiktok_username: 'Utilisateur TikTok',
-          tiktok_display_name: 'Utilisateur TikTok'
+          tiktok_username: tempUsername,
+          tiktok_display_name: tempUsername
         })
         .eq('id', user.id);
     }
