@@ -1646,6 +1646,10 @@ export default function LibraryPage() {
             setDraftTikTokCaptionToEdit(undefined);
             setDraftTikTokHashtagsToEdit(undefined);
           }}
+          onPublishSuccess={async () => {
+            // Rafraîchir les posts TikTok après publication réussie
+            await loadTikTokPosts();
+          }}
           onSave={saveTikTokDraft}
           draftCaption={draftTikTokCaptionToEdit}
           draftHashtags={draftTikTokHashtagsToEdit}

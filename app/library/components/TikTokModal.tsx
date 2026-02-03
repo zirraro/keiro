@@ -39,12 +39,13 @@ interface TikTokModalProps {
   video?: MyVideo; // NEW: Support for video
   videos?: MyVideo[]; // NEW: Support for videos array
   onClose: () => void;
+  onPublishSuccess?: () => void | Promise<void>; // NEW: Callback après publication réussie
   onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
 }
 
-export default function TikTokModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
+export default function TikTokModal({ image, images, video, videos, onClose, onPublishSuccess, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -751,6 +752,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
             window.open(data.post.share_url, '_blank');
           }
         }
+
+        // Rafraîchir le widget TikTok pour afficher la nouvelle publication
+        await onPublishSuccess?.();
 
         onClose();
       } else {
