@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
         videoUrl,
         finalCaption,
         {
+          privacy_level: 'SELF_ONLY', // Required for Sandbox mode
           disable_duet: false,
           disable_comment: false,
           disable_stitch: false,
