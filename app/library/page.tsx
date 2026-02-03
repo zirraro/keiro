@@ -59,6 +59,8 @@ type MyVideo = {
   source_type: string;
   is_favorite: boolean;
   created_at: string;
+  published_to_instagram?: boolean;
+  instagram_published_at?: string;
   published_to_tiktok: boolean;
   tiktok_published_at?: string;
   file_size?: number;
