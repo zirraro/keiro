@@ -285,7 +285,7 @@ export async function initTikTokVideoUpload(
     body: JSON.stringify({
       post_info: {
         title: '',
-        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox per TikTok guidelines
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -464,7 +464,7 @@ export async function initTikTokPhotoUpload(
       post_info: {
         title: title || '',
         description: description || '',
-        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox per TikTok guidelines
+        privacy_level: 'SELF_ONLY', // Required for unaudited apps
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
