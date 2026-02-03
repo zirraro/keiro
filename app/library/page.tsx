@@ -507,6 +507,15 @@ export default function LibraryPage() {
     setShowInstagramModal(true);
   };
 
+  // Ouvrir le modal TikTok pour une image
+  const openTikTokModalForImage = (image: SavedImage) => {
+    setSelectedImageForTikTok(image);
+    setSelectedVideoForTikTok(null); // Clear video selection
+    setDraftTikTokCaptionToEdit(undefined);
+    setDraftTikTokHashtagsToEdit(undefined);
+    setShowTikTokModal(true);
+  };
+
   // Ouvrir le modal de choix de plateforme (pour les images de la galerie)
   const openPlatformChoiceModal = (image: SavedImage) => {
     setSelectedImageForPlatform(image);
@@ -1496,7 +1505,7 @@ export default function LibraryPage() {
                         onDelete={deleteImage}
                         onToggleFavorite={toggleFavorite}
                         onPublishToInstagram={(image) => openPlatformChoiceModal(image)}
-                        onPublishToTikTok={(image) => openTikTokModal(image)}
+                        onPublishToTikTok={(image) => openTikTokModalForImage(image)}
                         onTitleEdit={handleTitleEdit}
                         onDownload={downloadImage}
                         onSchedule={openScheduleModal}
