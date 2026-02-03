@@ -20,7 +20,7 @@ interface AllCreationsTabProps {
   onToggleFavorite: (id: string, type: 'image' | 'video', isFavorite: boolean) => void;
   onTitleEdit: (id: string, type: 'image' | 'video', newTitle: string) => void;
   onDelete: (id: string, type: 'image' | 'video') => void;
-  onPublish: (item: CreationItem, platform: 'instagram' | 'tiktok') => void;
+  onPublish: (item: CreationItem) => void;
   onDownload: (item: CreationItem) => void;
 }
 

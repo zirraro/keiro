@@ -117,7 +117,7 @@ export default function MyImagesTab({
       {/* Upload Zone */}
       {user && <UploadZone type="image" onUpload={handleUpload} />}
 
-      {/* Header avec recherche et filtres */}
+      {/* Recherche, filtres et actualiser - EN DESSOUS de la zone upload */}
       <div className="bg-white rounded-xl border border-neutral-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Recherche */}

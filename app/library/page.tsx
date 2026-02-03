@@ -4,8 +4,6 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import VisitorBanner from './components/VisitorBanner';
 import GalleryHeader from './components/GalleryHeader';
-import FilterBar from './components/FilterBar';
-import ImageGrid from './components/ImageGrid';
 import InstagramModal from './components/InstagramModal';
 import ScheduleModal from './components/ScheduleModal';
 import TabNavigation, { Tab } from './components/TabNavigation';
@@ -28,6 +26,7 @@ import TikTokConnectionModal from './components/TikTokConnectionModal';
 import TikTokModal from './components/TikTokModal';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
 import MyVideosTab from './components/MyVideosTab';
+import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
 
 type SavedImage = {
@@ -152,6 +151,10 @@ export default function LibraryPage() {
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [isTikTokConnected, setIsTikTokConnected] = useState(false);
 
+  // États pour le collapse des widgets
+  const [isInstagramWidgetCollapsed, setIsInstagramWidgetCollapsed] = useState(false);
+  const [isTikTokWidgetCollapsed, setIsTikTokWidgetCollapsed] = useState(false);
+
   // États pour le workspace Instagram
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
@@ -170,6 +173,7 @@ export default function LibraryPage() {
   // États pour le choix de plateforme (galerie)
   const [showPlatformChoiceModal, setShowPlatformChoiceModal] = useState(false);
   const [selectedImageForPlatform, setSelectedImageForPlatform] = useState<SavedImage | null>(null);
+  const [selectedVideoForPlatform, setSelectedVideoForPlatform] = useState<MyVideo | null>(null);
 
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -504,24 +508,47 @@ export default function LibraryPage() {
   // Ouvrir le modal de choix de plateforme (pour les images de la galerie)
   const openPlatformChoiceModal = (image: SavedImage) => {
     setSelectedImageForPlatform(image);
+    setSelectedVideoForPlatform(null); // Clear video selection
+    setShowPlatformChoiceModal(true);
+  };
+
+  // Ouvrir le modal de choix de plateforme (pour les vidéos)
+  const openPlatformChoiceModalForVideo = (video: MyVideo) => {
+    setSelectedVideoForPlatform(video);
+    setSelectedImageForPlatform(null); // Clear image selection
     setShowPlatformChoiceModal(true);
   };
 
   // Gérer le choix de plateforme
   const handleSelectInstagram = () => {
+    setShowPlatformChoiceModal(false);
+
     if (selectedImageForPlatform) {
-      setShowPlatformChoiceModal(false);
       openInstagramModal(selectedImageForPlatform);
       setSelectedImageForPlatform(null);
+    } else if (selectedVideoForPlatform) {
+      // Open Instagram modal with video (for Reel)
+      setSelectedVideoForInsta(selectedVideoForPlatform);
+      setShowInstagramModal(true);
+      setSelectedVideoForPlatform(null);
     }
   };
 
   const handleSelectTikTok = () => {
+    setShowPlatformChoiceModal(false);
+
     if (selectedImageForPlatform) {
-      setShowPlatformChoiceModal(false);
       setSelectedImageForInsta(selectedImageForPlatform);
       setShowTikTokModal(true);
       setSelectedImageForPlatform(null);
+    } else if (selectedVideoForPlatform) {
+      // Open TikTok modal with video
+      setSelectedVideoForTikTok(selectedVideoForPlatform);
+      setSelectedImageForTikTok(null);
+      setDraftTikTokCaptionToEdit(selectedVideoForPlatform.title || 'Vidéo TikTok');
+      setDraftTikTokHashtagsToEdit([]);
+      setShowTikTokModal(true);
+      setSelectedVideoForPlatform(null);
     }
   };
 
@@ -1014,22 +1041,14 @@ export default function LibraryPage() {
     }
   };
 
-  const handleUnifiedPublish = async (item: any, platform: 'instagram' | 'tiktok') => {
-    if (platform === 'instagram' && item.type === 'image') {
-      // Publier image sur Instagram
+  const handleUnifiedPublish = (item: any) => {
+    // Ouvrir le modal de choix de plateforme (Instagram ou TikTok)
+    if (item.type === 'image') {
       const image: SavedImage = images.find(img => img.id === item.id)!;
-      openInstagramModal(image);
-    } else if (platform === 'tiktok') {
-      // Publier sur TikTok (image ou vidéo)
-      if (item.type === 'image') {
-        const image: SavedImage = images.find(img => img.id === item.id)!;
-        setSelectedImageForTikTok(image); // Fixed: was selectedImageForInsta
-        setSelectedVideoForTikTok(null);
-        setShowTikTokModal(true);
-      } else {
-        const video: MyVideo = myVideos.find(v => v.id === item.id)!;
-        await handlePublishVideoToTikTok(video); // This now opens modal
-      }
+      openPlatformChoiceModal(image);
+    } else if (item.type === 'video') {
+      const video: MyVideo = myVideos.find(v => v.id === item.id)!;
+      openPlatformChoiceModalForVideo(video);
     }
   };
 
@@ -1331,53 +1350,46 @@ export default function LibraryPage() {
               </h2>
             </div>
 
-            {/* Widgets Instagram & TikTok côte à côte */}
+            {/* Widgets Instagram & TikTok côte à côte - Adaptatif selon collapse */}
             <div className={`grid gap-6 ${
-              (isInstagramConnected && !isTikTokConnected) || (!isInstagramConnected && isTikTokConnected)
-                ? 'md:grid-cols-3' // Un seul connecté = grille 3 colonnes
-                : 'md:grid-cols-2' // Les deux ou aucun = grille 2 colonnes égales
+              // Si un widget collapsed et l'autre expanded → grille 3 colonnes
+              (isInstagramWidgetCollapsed && !isTikTokWidgetCollapsed) || (!isInstagramWidgetCollapsed && isTikTokWidgetCollapsed)
+                ? 'md:grid-cols-3'
+                : 'md:grid-cols-2' // Les deux expanded ou collapsed → grille 2 colonnes
             }`}>
               <div className={
-                isInstagramConnected && !isTikTokConnected
-                  ? 'md:col-span-2' // Instagram connecté seul = 2/3
-                  : '' // Par défaut = 1 colonne
+                isInstagramWidgetCollapsed && !isTikTokWidgetCollapsed
+                  ? 'md:col-span-1' // Instagram collapsed = 1/3
+                  : !isInstagramWidgetCollapsed && isTikTokWidgetCollapsed
+                  ? 'md:col-span-2' // Instagram expanded et TikTok collapsed = 2/3
+                  : '' // Par défaut = 1 colonne (50%)
               }>
                 <InstagramWidget
                   isGuest={!user}
                   onPrepareInstagram={() => setShowInstagramModal(true)}
                   onPrepareTikTok={() => setShowTikTokModal(true)}
-                  defaultCollapsed={activeTab !== 'images'}
+                  isCollapsed={isInstagramWidgetCollapsed}
+                  onToggleCollapse={setIsInstagramWidgetCollapsed}
                 />
               </div>
               <div className={
-                isTikTokConnected && !isInstagramConnected
-                  ? 'md:col-span-2' // TikTok connecté seul = 2/3
-                  : '' // Par défaut = 1 colonne
+                isTikTokWidgetCollapsed && !isInstagramWidgetCollapsed
+                  ? 'md:col-span-1' // TikTok collapsed = 1/3
+                  : !isTikTokWidgetCollapsed && isInstagramWidgetCollapsed
+                  ? 'md:col-span-2' // TikTok expanded et Instagram collapsed = 2/3
+                  : '' // Par défaut = 1 colonne (50%)
               }>
                 <TikTokWidget
                   onConnect={() => setShowTikTokConnectionModal(true)}
                   onPreparePost={() => setShowTikTokModal(true)}
-                  defaultCollapsed={activeTab !== 'images'}
+                  isCollapsed={isTikTokWidgetCollapsed}
+                  onToggleCollapse={setIsTikTokWidgetCollapsed}
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
-        {user && activeTab === 'images' && (
-          <FilterBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            selectedFolder={selectedFolder}
-            setSelectedFolder={setSelectedFolder}
-            folders={folders}
-            showFavoritesOnly={showFavoritesOnly}
-            setShowFavoritesOnly={setShowFavoritesOnly}
-            favoritesCount={stats.total_favorites}
-            onCreateFolder={() => setShowCreateFolderModal(true)}
-          />
-        )}
 
         {/* Studios Sociaux - Pour visiteurs uniquement */}
         {!user && !isGuest && (
@@ -1458,18 +1470,7 @@ export default function LibraryPage() {
                   {activeTab === 'all-creations' ? (
                     <AllCreationsTab
                       images={images}
-                      videos={[...myVideos, ...tiktokPosts.map(post => ({
-                        id: post.id,
-                        video_url: post.cached_video_url || post.share_url,
-                        thumbnail_url: post.cover_image_url || post.cached_thumbnail_url,
-                        title: post.video_description,
-                        duration: post.duration,
-                        source_type: 'tiktok_sync',
-                        is_favorite: false,
-                        created_at: post.posted_at,
-                        published_to_tiktok: true,
-                        folder_id: null
-                      }))]}
+                      videos={myVideos}
                       folders={folders}
                       onRefresh={handleRefreshAll}
                       onToggleFavorite={handleUnifiedToggleFavorite}
@@ -1482,20 +1483,18 @@ export default function LibraryPage() {
                     loadingImages ? (
                       <LoadingSkeleton />
                     ) : (
-                      <ImageGrid
+                      <MyImagesTab
                         images={images}
                         user={user}
                         isGuest={isGuest}
-                        searchQuery={searchQuery}
-                        selectedFolder={selectedFolder}
-                        showFavoritesOnly={showFavoritesOnly}
-                        onToggleFavorite={toggleFavorite}
-                        onDownload={downloadImage}
-                        onDelete={deleteImage}
-                        onOpenInstagram={openPlatformChoiceModal}
-                        onSchedule={openScheduleModal}
-                        onTitleEdit={handleTitleEdit}
                         onRefresh={loadImages}
+                        onDelete={deleteImage}
+                        onToggleFavorite={toggleFavorite}
+                        onPublishToInstagram={(image) => openPlatformChoiceModal(image)}
+                        onPublishToTikTok={(image) => openTikTokModal(image)}
+                        onTitleEdit={handleTitleEdit}
+                        onDownload={downloadImage}
+                        onSchedule={openScheduleModal}
                       />
                     )
                   ) : activeTab === 'videos' ? (
@@ -1504,7 +1503,7 @@ export default function LibraryPage() {
                       onRefresh={loadMyVideos}
                       onDelete={handleDeleteVideo}
                       onToggleFavorite={handleToggleVideoFavorite}
-                      onPublishToTikTok={handlePublishVideoToTikTok}
+                      onPublishToTikTok={openPlatformChoiceModalForVideo}
                       onTitleEdit={handleVideoTitleEdit}
                     />
                   ) : activeTab === 'drafts' ? (
@@ -1547,9 +1546,11 @@ export default function LibraryPage() {
                 onToggleFavorite={(id, type, isFavorite) => toggleFavorite(id, !isFavorite)}
                 onTitleEdit={(id, type, newTitle) => handleTitleEdit(id, newTitle)}
                 onDelete={(id, type) => deleteImage(id)}
-                onPublish={(item, platform) => {
+                onPublish={(item) => {
                   if (item.type === 'image') {
                     openPlatformChoiceModal(images.find(img => img.id === item.id)!);
+                  } else if (item.type === 'video') {
+                    openPlatformChoiceModalForVideo(myVideos.find(v => v.id === item.id)!);
                   }
                 }}
                 onDownload={handleUnifiedDownload}
@@ -1558,20 +1559,18 @@ export default function LibraryPage() {
               loadingImages ? (
                 <LoadingSkeleton />
               ) : (
-                <ImageGrid
+                <MyImagesTab
                   images={images}
                   user={user}
                   isGuest={isGuest}
-                  searchQuery={searchQuery}
-                  selectedFolder={selectedFolder}
-                  showFavoritesOnly={showFavoritesOnly}
-                  onToggleFavorite={toggleFavorite}
-                  onDownload={downloadImage}
-                  onDelete={deleteImage}
-                  onOpenInstagram={openPlatformChoiceModal}
-                  onSchedule={openScheduleModal}
-                  onTitleEdit={handleTitleEdit}
                   onRefresh={loadImages}
+                  onDelete={deleteImage}
+                  onToggleFavorite={toggleFavorite}
+                  onPublishToInstagram={(image) => openPlatformChoiceModal(image)}
+                  onPublishToTikTok={(image) => openTikTokModal(image)}
+                  onTitleEdit={handleTitleEdit}
+                  onDownload={downloadImage}
+                  onSchedule={openScheduleModal}
                 />
               )
             ) : activeTab === 'videos' ? (

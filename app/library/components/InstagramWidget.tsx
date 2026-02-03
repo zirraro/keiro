@@ -26,7 +26,8 @@ interface InstagramWidgetProps {
   onPreparePost?: () => void;
   onPrepareInstagram?: () => void;
   onPrepareTikTok?: () => void;
-  defaultCollapsed?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 export default function InstagramWidget({
@@ -34,12 +35,12 @@ export default function InstagramWidget({
   onPreparePost,
   onPrepareInstagram,
   onPrepareTikTok,
-  defaultCollapsed = false
+  isCollapsed = false,
+  onToggleCollapse
 }: InstagramWidgetProps) {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
 
   useEffect(() => {
@@ -217,7 +218,7 @@ export default function InstagramWidget({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => onToggleCollapse?.(!isCollapsed)}
               className="p-1 hover:bg-white/50 rounded transition-colors"
               title={isCollapsed ? "Développer" : "Réduire"}
             >

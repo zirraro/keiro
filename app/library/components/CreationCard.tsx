@@ -25,7 +25,7 @@ interface CreationCardProps {
   onToggleFavorite: (id: string, isFavorite: boolean) => void;
   onTitleEdit: (id: string, newTitle: string) => void;
   onDelete: (id: string) => void;
-  onPublish: (item: CreationItem, platform: 'instagram' | 'tiktok') => void;
+  onPublish: (item: CreationItem) => void;
   onDownload: (item: CreationItem) => void;
 }
 
@@ -185,7 +185,7 @@ export default function CreationCard({
             {/* Publier - Ne s'affiche que si non publié */}
             {!item.published_to_instagram && !item.published_to_tiktok && (
               <button
-                onClick={() => onPublish(item, item.type === 'image' ? 'instagram' : 'tiktok')}
+                onClick={() => onPublish(item)}
                 className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

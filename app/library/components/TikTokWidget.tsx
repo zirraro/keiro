@@ -6,10 +6,11 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 interface TikTokWidgetProps {
   onConnect?: () => void;
   onPreparePost?: () => void;
-  defaultCollapsed?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
-export default function TikTokWidget({ onConnect, onPreparePost, defaultCollapsed = false }: TikTokWidgetProps) {
+export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = false, onToggleCollapse }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [tiktokUsername, setTiktokUsername] = useState<string | null>(null);
@@ -20,7 +21,6 @@ export default function TikTokWidget({ onConnect, onPreparePost, defaultCollapse
     avgEngagement: string;
   } | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
@@ -166,7 +166,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, defaultCollapse
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={() => onToggleCollapse?.(!isCollapsed)}
                 className="p-1 hover:bg-white/50 rounded transition-colors"
                 title={isCollapsed ? "Développer" : "Réduire"}
               >
@@ -220,7 +220,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, defaultCollapse
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => onToggleCollapse?.(!isCollapsed)}
               className="p-1 hover:bg-white/50 rounded transition-colors"
               title={isCollapsed ? "Développer" : "Réduire"}
             >
