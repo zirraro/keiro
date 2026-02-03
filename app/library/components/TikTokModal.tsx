@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
 import TikTokRequirementsInfo from './TikTokRequirementsInfo';
+import AudioEditorWidget from './AudioEditorWidget';
 import { convertVideoForTikTok, isFFmpegSupported } from '@/lib/ffmpegConverter';
 
 type SavedImage = {
@@ -75,7 +76,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
   // États pour la narration audio TTS
   const [narrationScript, setNarrationScript] = useState('');
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
-  const [generatingNarration, setGeneratingNarration] = useState(false);
   const [showNarrationEditor, setShowNarrationEditor] = useState(false);
 
   // États pour la galerie IMAGES
@@ -530,77 +530,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
     }
   };
 
-  // Generate audio narration from caption text
-  const handleGenerateNarration = async () => {
-    if (!caption) {
-      alert('❌ Veuillez d\'abord entrer une description pour générer la narration');
-      return;
-    }
-
-    setGeneratingNarration(true);
-    console.log('[TikTokModal] Generating audio narration from caption...');
-
-    try {
-      const response = await fetch('/api/generate-narration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: caption,
-          duration: 5 // Target 5 seconds for TikTok videos
-        })
-      });
-
-      const data = await response.json();
-      console.log('[TikTokModal] Narration response:', data);
-
-      if (data.ok && data.audioUrl) {
-        setNarrationAudioUrl(data.audioUrl);
-        setNarrationScript(data.script);
-        setShowNarrationEditor(true);
-        console.log('[TikTokModal] ✅ Audio narration generated:', data.audioUrl);
-      } else {
-        throw new Error(data.error || 'Échec de la génération audio');
-      }
-    } catch (error: any) {
-      console.error('[TikTokModal] Narration generation error:', error);
-      alert(`❌ Erreur lors de la génération de la narration:\n${error.message}`);
-    } finally {
-      setGeneratingNarration(false);
-    }
-  };
-
-  // Regenerate narration with edited script
-  const handleRegenerateNarration = async () => {
-    if (!narrationScript) return;
-
-    setGeneratingNarration(true);
-    console.log('[TikTokModal] Regenerating narration with edited script...');
-
-    try {
-      const response = await fetch('/api/generate-narration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: narrationScript,
-          duration: 5
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.ok && data.audioUrl) {
-        setNarrationAudioUrl(data.audioUrl);
-        console.log('[TikTokModal] ✅ Narration regenerated');
-      } else {
-        throw new Error(data.error || 'Échec de la régénération');
-      }
-    } catch (error: any) {
-      console.error('[TikTokModal] Regeneration error:', error);
-      alert(`❌ Erreur lors de la régénération:\n${error.message}`);
-    } finally {
-      setGeneratingNarration(false);
-    }
-  };
 
   const handlePublishNow = async () => {
     // Check what's selected based on active tab
@@ -1194,7 +1123,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
                 <p className="text-xs text-neutral-500 mt-1">{caption.length} / 2200 caractères</p>
               </div>
 
-              {/* Narration Audio TTS */}
+              {/* Narration Audio TTS with AudioEditorWidget */}
               <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
@@ -1211,77 +1140,30 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
 
                 {!showNarrationEditor ? (
                   <button
-                    onClick={handleGenerateNarration}
-                    disabled={generatingNarration || !caption}
+                    onClick={() => setShowNarrationEditor(true)}
+                    disabled={!caption}
                     className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                      generatingNarration
-                        ? 'bg-blue-300 text-white cursor-not-allowed'
-                        : caption
+                      caption
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                   >
-                    {generatingNarration ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        Génération audio...
-                      </span>
-                    ) : (
-                      '🎙️ Générer narration audio'
-                    )}
+                    🎙️ Créer/éditer narration audio
                   </button>
                 ) : (
-                  <div className="space-y-3">
-                    {/* Script Editor */}
-                    <div>
-                      <label className="block text-xs font-medium text-neutral-700 mb-1">
-                        Script de narration
-                      </label>
-                      <textarea
-                        value={narrationScript}
-                        onChange={(e) => setNarrationScript(e.target.value)}
-                        rows={3}
-                        placeholder="Texte condensé pour la narration audio..."
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-                      />
-                      <p className="text-xs text-neutral-500 mt-1">
-                        ~{narrationScript.split(' ').length} mots ({Math.ceil(narrationScript.split(' ').length / 2.5)}s)
-                      </p>
-                    </div>
-
-                    {/* Audio Player */}
-                    {narrationAudioUrl && (
-                      <div className="bg-white rounded-lg p-2">
-                        <audio
-                          src={narrationAudioUrl}
-                          controls
-                          className="w-full"
-                          style={{ height: '40px' }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleRegenerateNarration}
-                        disabled={generatingNarration}
-                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-                      >
-                        {generatingNarration ? 'Génération...' : '🔄 Régénérer'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowNarrationEditor(false);
-                          setNarrationAudioUrl(null);
-                          setNarrationScript('');
-                        }}
-                        className="px-3 py-2 bg-neutral-200 text-neutral-700 text-sm rounded-lg hover:bg-neutral-300 transition-colors"
-                      >
-                        ❌ Supprimer
-                      </button>
-                    </div>
-                  </div>
+                  <AudioEditorWidget
+                    initialScript={narrationScript || caption}
+                    initialAudioUrl={narrationAudioUrl}
+                    caption={caption}
+                    onSave={(script, audioUrl) => {
+                      setNarrationScript(script);
+                      setNarrationAudioUrl(audioUrl);
+                      console.log('[TikTokModal] Audio saved:', { script, audioUrl });
+                    }}
+                    onCancel={() => {
+                      setShowNarrationEditor(false);
+                    }}
+                  />
                 )}
               </div>
 

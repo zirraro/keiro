@@ -119,22 +119,26 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
   console.log('[CloudConvert] Note: Audio merge temporarily disabled due to FFmpeg issues');
 
   // Simple 1-job conversion without audio merge
+  // Instagram Reels requirements: MP4, H.264 baseline, AAC, 9:16, 30fps
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
       url: videoUrl,
-      filename: 'input.mp4'
+      filename: 'input-video'
     },
     'convert-video': {
       operation: 'convert',
       input: 'import-video',
       output_format: 'mp4',
-      video_codec: 'h264',
-      video_codec_profile: 'baseline', // Instagram requires baseline profile
+      video_codec: 'x264', // CloudConvert uses 'x264' not 'h264'
+      profile: 'baseline', // Instagram requires baseline profile
       audio_codec: 'aac',
+      audio_bitrate: 128, // Instagram recommended
+      video_bitrate: 5000, // 5 Mbps for good quality
       width: 1080,
       height: 1920,
       fit: 'crop', // Strict 9:16 aspect ratio
+      pixel_format: 'yuv420p', // Required for mobile compatibility
       fps: 30
     },
     'export-video': {

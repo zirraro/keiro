@@ -109,21 +109,26 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
   console.log('[CloudConvert] Note: Audio merge temporarily disabled due to FFmpeg issues');
 
   // Simple 1-job conversion without audio merge
+  // TikTok requirements: MP4, H.264 (x264), AAC, 9:16 aspect ratio
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
       url: videoUrl,
-      filename: 'input.mp4'
+      filename: 'input-video'
     },
     'convert-video': {
       operation: 'convert',
       input: 'import-video',
       output_format: 'mp4',
-      video_codec: 'h264',
+      video_codec: 'x264', // CloudConvert uses 'x264' not 'h264'
       audio_codec: 'aac',
+      audio_bitrate: 128, // TikTok recommended
+      video_bitrate: 5000, // 5 Mbps for good quality
       width: 1080,
       height: 1920,
-      fit: 'max'
+      fit: 'crop', // Force 9:16 aspect ratio (crop if needed)
+      pixel_format: 'yuv420p', // Required for mobile compatibility
+      preset: 'medium' // Balance between speed and quality
     },
     'export-video': {
       operation: 'export/url',
