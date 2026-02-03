@@ -85,8 +85,11 @@ export async function exchangeTikTokCode(
     fullResponse: JSON.stringify(data)
   });
 
-  // Check for TikTok API errors (error_code !== 0 or error exists)
-  if (!response.ok || data.error || (data.error_code && data.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  // Check error.code !== 'ok' to detect real errors
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
+  if (!response.ok || isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || data.description || `HTTP ${response.status}: ${response.statusText}`;
     console.error('[TikTok] Token exchange failed:', errorMsg);
     throw new Error(`TikTok token exchange failed: ${errorMsg}`);
@@ -123,7 +126,10 @@ export async function refreshTikTokToken(
 
   const data = await response.json();
 
-  if (data.error || (data.error_code && data.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
+  if (isRealError || (data.error_code && data.error_code !== 0)) {
     throw new Error(data.error?.message || data.message || 'TikTok token refresh failed');
   }
 
@@ -233,8 +239,11 @@ export async function getTikTokVideos(
     throw new Error(errorMsg);
   }
 
+  // TikTok ALWAYS returns an error object, even on success
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
   // Check for API-level errors
-  if (data.error || (data.error_code && data.error_code !== 0)) {
+  if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to fetch TikTok videos';
     console.error('[TikTok] Video list API error:', {
       code: data.error?.code || data.error_code,
@@ -406,7 +415,10 @@ export async function publishTikTokVideoFromUrl(
     message: data.error?.message || data.message
   });
 
-  if (data.error || (data.error_code && data.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
+  if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok video';
     console.error('[TikTok] PULL_FROM_URL error:', errorMsg);
     throw new Error(errorMsg);
@@ -510,7 +522,10 @@ export async function getCreatorInfo(accessToken: string): Promise<{
     message: data.error?.message || data.message
   });
 
-  if (data.error || (data.error_code && data.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+
+  if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to get creator info';
     console.error('[TikTok] Creator info error:', errorMsg);
     throw new Error(errorMsg);
@@ -809,7 +824,11 @@ export async function publishTikTokVideoViaFileUpload(
     message: initData.error?.message || initData.message
   });
 
-  if (initData.error || (initData.error_code && initData.error_code !== 0)) {
+  // TikTok ALWAYS returns an error object, even on success
+  // Check error.code !== 'ok' to detect real errors
+  const isRealError = initData.error && initData.error.code && initData.error.code !== 'ok';
+
+  if (isRealError || (initData.error_code && initData.error_code !== 0)) {
     const errorMsg = initData.error?.message || initData.message || 'Failed to initialize TikTok upload';
     console.error('[TikTok] Init error:', errorMsg);
     throw new Error(errorMsg);
