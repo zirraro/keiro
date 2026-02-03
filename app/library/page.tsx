@@ -1321,23 +1321,8 @@ export default function LibraryPage() {
           />
         </div>
 
-        {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
-        {user && activeTab === 'images' && (
-          <FilterBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            selectedFolder={selectedFolder}
-            setSelectedFolder={setSelectedFolder}
-            folders={folders}
-            showFavoritesOnly={showFavoritesOnly}
-            setShowFavoritesOnly={setShowFavoritesOnly}
-            favoritesCount={stats.total_favorites}
-            onCreateFolder={() => setShowCreateFolderModal(true)}
-          />
-        )}
-
         {/* Section Réseaux Sociaux - Pour utilisateurs connectés */}
-        {(user || isGuest) && (
+        {(user || isGuest) && activeTab === 'images' && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
@@ -1375,6 +1360,21 @@ export default function LibraryPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Filtres et recherche - Afficher seulement pour l'onglet images */}
+        {user && activeTab === 'images' && (
+          <FilterBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            selectedFolder={selectedFolder}
+            setSelectedFolder={setSelectedFolder}
+            folders={folders}
+            showFavoritesOnly={showFavoritesOnly}
+            setShowFavoritesOnly={setShowFavoritesOnly}
+            favoritesCount={stats.total_favorites}
+            onCreateFolder={() => setShowCreateFolderModal(true)}
+          />
         )}
 
         {/* Studios Sociaux - Pour visiteurs uniquement */}

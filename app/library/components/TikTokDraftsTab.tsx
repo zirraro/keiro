@@ -201,8 +201,8 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
-          {/* Image/Video - Format 9:16 pour TikTok */}
-          <div className="aspect-[9/16] bg-gradient-to-br from-cyan-50 to-blue-50 relative">
+          {/* Image/Video - Format TikTok avec hauteur réduite */}
+          <div className="aspect-[9/16] max-h-[400px] bg-gradient-to-br from-cyan-50 to-blue-50 relative">
             <img
               src={draft.media_url}
               alt="TikTok video preview"
