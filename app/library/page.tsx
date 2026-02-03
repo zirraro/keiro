@@ -158,6 +158,7 @@ export default function LibraryPage() {
   // États pour le workspace Instagram
   const [showInstagramModal, setShowInstagramModal] = useState(false);
   const [selectedImageForInsta, setSelectedImageForInsta] = useState<SavedImage | null>(null);
+  const [selectedVideoForInsta, setSelectedVideoForInsta] = useState<MyVideo | null>(null);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [draftCaptionToEdit, setDraftCaptionToEdit] = useState<string | undefined>(undefined);
   const [draftHashtagsToEdit, setDraftHashtagsToEdit] = useState<string[] | undefined>(undefined);
@@ -500,6 +501,7 @@ export default function LibraryPage() {
   // Ouvrir le modal Instagram pour une image
   const openInstagramModal = (image: SavedImage) => {
     setSelectedImageForInsta(image);
+    setSelectedVideoForInsta(null); // Clear video selection
     setDraftCaptionToEdit(undefined);
     setDraftHashtagsToEdit(undefined);
     setShowInstagramModal(true);
@@ -529,6 +531,9 @@ export default function LibraryPage() {
     } else if (selectedVideoForPlatform) {
       // Open Instagram modal with video (for Reel)
       setSelectedVideoForInsta(selectedVideoForPlatform);
+      setSelectedImageForInsta(null); // Clear image selection
+      setDraftCaptionToEdit(undefined);
+      setDraftHashtagsToEdit(undefined);
       setShowInstagramModal(true);
       setSelectedVideoForPlatform(null);
     }
@@ -1622,8 +1627,11 @@ export default function LibraryPage() {
         <InstagramModal
           image={selectedImageForInsta || undefined}
           images={images}
+          video={selectedVideoForInsta || undefined}
           onClose={() => {
             setShowInstagramModal(false);
+            setSelectedImageForInsta(null);
+            setSelectedVideoForInsta(null);
             setDraftCaptionToEdit(undefined);
             setDraftHashtagsToEdit(undefined);
           }}
