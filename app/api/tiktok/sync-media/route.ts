@@ -120,39 +120,83 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert videos to database
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: any[] = [];
+
     for (const video of videos) {
+      console.log('[TikTokSync] Processing video:', {
+        id: video.id,
+        title: video.video_description || video.title,
+        create_time: video.create_time
+      });
+
+      const videoData = {
+        id: video.id,
+        user_id: user.id,
+        video_description: video.video_description || video.title || '',
+        duration: video.duration || 0,
+        cover_image_url: video.cover_image_url || null,
+        cached_thumbnail_url: video.cover_image_url || null,
+        share_url: video.share_url || null,
+        permalink: video.share_url || null,
+        view_count: video.view_count || 0,
+        like_count: video.like_count || 0,
+        comment_count: video.comment_count || 0,
+        share_count: video.share_count || 0,
+        cached_video_url: video.cover_image_url || null,
+        posted_at: video.create_time ? new Date(video.create_time * 1000).toISOString() : new Date().toISOString(),
+        synced_at: new Date().toISOString()
+      };
+
+      console.log('[TikTokSync] Upserting video data:', JSON.stringify(videoData, null, 2));
+
       const { error: upsertError } = await supabase
         .from('tiktok_posts')
-        .upsert({
-          id: video.id,
-          user_id: user.id,
-          video_description: video.video_description || video.title,
-          duration: video.duration,
-          cover_image_url: video.cover_image_url,
-          cached_thumbnail_url: video.cover_image_url, // Use cover as cached thumbnail
-          share_url: video.share_url,
-          permalink: video.share_url,
-          view_count: video.view_count || 0,
-          like_count: video.like_count || 0,
-          comment_count: video.comment_count || 0,
-          share_count: video.share_count || 0,
-          cached_video_url: video.cover_image_url, // Use cover as fallback
-          posted_at: new Date(video.create_time * 1000).toISOString(),
-          synced_at: new Date().toISOString()
-        }, {
+        .upsert(videoData, {
           onConflict: 'id'
         });
 
       if (upsertError) {
-        console.error('[TikTokSync] Error upserting video:', video.id, upsertError);
+        console.error('[TikTokSync] ❌ Error upserting video:', video.id);
+        console.error('[TikTokSync] Error details:', JSON.stringify(upsertError, null, 2));
+        errorCount++;
+        errors.push({
+          videoId: video.id,
+          error: upsertError.message,
+          details: upsertError
+        });
+      } else {
+        console.log('[TikTokSync] ✅ Successfully upserted video:', video.id);
+        successCount++;
       }
     }
 
-    console.log('[TikTokSync] Synced', videos.length, 'videos to database');
+    console.log('[TikTokSync] Sync summary:', {
+      total: videos.length,
+      success: successCount,
+      errors: errorCount
+    });
+
+    if (errorCount > 0) {
+      console.error('[TikTokSync] Errors occurred during sync:', errors);
+    }
+
+    console.log('[TikTokSync] Synced', successCount, 'out of', videos.length, 'videos to database');
+
+    if (errorCount > 0) {
+      return NextResponse.json({
+        ok: false,
+        error: `❌ Erreur lors de la synchronisation\n\n${successCount} vidéo(s) synchronisée(s)\n${errorCount} erreur(s)\n\nDétails: ${errors.map(e => e.error).join(', ')}`,
+        synced: successCount,
+        errors: errorCount,
+        errorDetails: errors
+      }, { status: 500 });
+    }
 
     return NextResponse.json({
       ok: true,
-      synced: videos.length
+      synced: successCount
     });
 
   } catch (error: any) {
