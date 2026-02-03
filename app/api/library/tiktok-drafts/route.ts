@@ -35,11 +35,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('[TikTokDrafts] ✅ Fetched', data?.length || 0, 'drafts');
+    // Normalize data: ensure media_url exists (fallback to image_url for backward compatibility)
+    const normalizedData = data?.map((draft: any) => ({
+      ...draft,
+      media_url: draft.media_url || draft.image_url,
+      media_type: draft.media_type || 'image',
+      category: draft.category || 'draft'
+    })) || [];
+
+    console.log('[TikTokDrafts] ✅ Fetched', normalizedData.length, 'drafts');
 
     return NextResponse.json({
       ok: true,
-      posts: data || []
+      posts: normalizedData
     });
 
   } catch (error: any) {

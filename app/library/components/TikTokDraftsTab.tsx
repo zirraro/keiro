@@ -206,10 +206,14 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
           <div className="aspect-video bg-gradient-to-br from-cyan-50 to-blue-50 relative">
             <img
-              src={draft.media_url}
+              src={draft.media_url || (draft as any).image_url}
               alt="TikTok video preview"
               className="w-full h-full object-cover"
               loading="lazy"
+              onError={(e) => {
+                console.error('[TikTokDrafts] Image failed to load:', draft.media_url || (draft as any).image_url);
+                e.currentTarget.style.display = 'none';
+              }}
             />
             {/* Category Badge */}
             <div className="absolute top-2 right-2">
