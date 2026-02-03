@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Get user's TikTok credentials
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_username')
+      .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_username, tiktok_user_id')
       .eq('id', user.id)
       .single();
 
@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Log TikTok user info for debugging Target Users issues
+    console.log('[TikTokPublish] TikTok user info:', {
+      username: profile.tiktok_username,
+      open_id: profile.tiktok_user_id,
+      message: 'Verify this open_id matches the one in TikTok Developer Dashboard > Sandbox > Target Users'
+    });
 
     // Check if token needs refresh
     let accessToken = profile.tiktok_access_token;
