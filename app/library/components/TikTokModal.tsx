@@ -202,19 +202,40 @@ export default function TikTokModal({ image, images, video, videos, onClose, onS
 
         if (!user) return;
 
-        // Récupérer vidéos
-        const { data: loadedVideos } = await supabase
+        // Récupérer vidéos depuis my_videos ET tiktok_posts
+        const { data: myVids } = await supabase
           .from('my_videos')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
 
-        setAvailableVideos(loadedVideos || []);
+        const { data: tiktokPosts } = await supabase
+          .from('tiktok_posts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('posted_at', { ascending: false })
+          .limit(20);
+
+        // Combiner les vidéos en format unifié
+        const allVideos = [
+          ...(myVids || []),
+          ...(tiktokPosts || []).map((post: any) => ({
+            id: post.id,
+            video_url: post.cached_video_url || post.share_url,
+            thumbnail_url: post.cover_image_url || post.cached_thumbnail_url,
+            title: post.video_description,
+            duration: post.duration,
+            source_type: 'tiktok_sync',
+            created_at: post.posted_at
+          }))
+        ];
+
+        setAvailableVideos(allVideos);
 
         // Sélectionner la première vidéo si aucune n'est sélectionnée
-        if (!selectedVideo && loadedVideos && loadedVideos.length > 0) {
-          setSelectedVideo(loadedVideos[0]);
+        if (!selectedVideo && allVideos && allVideos.length > 0) {
+          setSelectedVideo(allVideos[0]);
         }
       } catch (error) {
         console.error('[TikTokModal] Error loading videos:', error);

@@ -180,6 +180,7 @@ export default function LibraryPage() {
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
   const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
   const [myVideos, setMyVideos] = useState<MyVideo[]>([]);
+  const [tiktokPosts, setTiktokPosts] = useState<any[]>([]); // Vidéos TikTok synchronisées
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
 
   // États pour les dossiers
@@ -413,13 +414,39 @@ export default function LibraryPage() {
     }
   }, [selectedFolder, searchQuery, showFavoritesOnly]);
 
+  // Charger les vidéos TikTok synchronisées
+  const loadTikTokPosts = useCallback(async () => {
+    try {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: posts, error } = await supabase
+        .from('tiktok_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('posted_at', { ascending: false });
+
+      if (error) {
+        console.error('[Library] Error loading TikTok posts:', error);
+        return;
+      }
+
+      setTiktokPosts(posts || []);
+    } catch (error) {
+      console.error('[Library] Error loading TikTok posts:', error);
+    }
+  }, []);
+
   // Recharger quand les filtres changent
   useEffect(() => {
     if (user) {
       loadImages();
       loadMyVideos();
+      loadTikTokPosts();
     }
-  }, [loadImages, loadMyVideos, user]);
+  }, [loadImages, loadMyVideos, loadTikTokPosts, user]);
 
   // Memoize filtered images for performance
   const filteredImages = useMemo(() => {
@@ -1017,6 +1044,7 @@ export default function LibraryPage() {
   const handleRefreshAll = async () => {
     await loadImages();
     await loadMyVideos();
+    await loadTikTokPosts();
   };
 
   if (loading) {
@@ -1428,7 +1456,18 @@ export default function LibraryPage() {
                   {activeTab === 'all-creations' ? (
                     <AllCreationsTab
                       images={images}
-                      videos={myVideos}
+                      videos={[...myVideos, ...tiktokPosts.map(post => ({
+                        id: post.id,
+                        video_url: post.cached_video_url || post.share_url,
+                        thumbnail_url: post.cover_image_url || post.cached_thumbnail_url,
+                        title: post.video_description,
+                        duration: post.duration,
+                        source_type: 'tiktok_sync',
+                        is_favorite: false,
+                        created_at: post.posted_at,
+                        published_to_tiktok: true,
+                        folder_id: null
+                      }))]}
                       folders={folders}
                       onRefresh={handleRefreshAll}
                       onToggleFavorite={handleUnifiedToggleFavorite}
