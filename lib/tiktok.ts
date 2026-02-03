@@ -285,7 +285,7 @@ export async function initTikTokVideoUpload(
     body: JSON.stringify({
       post_info: {
         title: '',
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps per TikTok guidelines
+        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox per TikTok guidelines
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -372,6 +372,7 @@ export async function publishTikTokVideoFromUrl(
   videoUrl: string,
   caption: string = '',
   options?: {
+    privacy_level?: 'PUBLIC_TO_EVERYONE' | 'MUTUAL_FOLLOW_FRIENDS' | 'SELF_ONLY';
     disable_duet?: boolean;
     disable_comment?: boolean;
     disable_stitch?: boolean;
@@ -391,7 +392,7 @@ export async function publishTikTokVideoFromUrl(
     body: JSON.stringify({
       post_info: {
         title: caption.substring(0, 150), // TikTok max title length
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
         disable_duet: options?.disable_duet ?? false,
         disable_comment: options?.disable_comment ?? false,
         disable_stitch: options?.disable_stitch ?? false,
@@ -463,7 +464,7 @@ export async function initTikTokPhotoUpload(
       post_info: {
         title: title || '',
         description: description || '',
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps per TikTok guidelines
+        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox per TikTok guidelines
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -570,6 +571,7 @@ export async function publishTikTokVideoViaFileUpload(
   videoUrl: string,
   caption: string = '',
   options?: {
+    privacy_level?: 'PUBLIC_TO_EVERYONE' | 'MUTUAL_FOLLOW_FRIENDS' | 'SELF_ONLY';
     disable_duet?: boolean;
     disable_comment?: boolean;
     disable_stitch?: boolean;
@@ -798,7 +800,7 @@ export async function publishTikTokVideoViaFileUpload(
     body: JSON.stringify({
       post_info: {
         title: caption.substring(0, 150), // TikTok max title length
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
         disable_duet: options?.disable_duet ?? false,
         disable_comment: options?.disable_comment ?? false,
         disable_stitch: options?.disable_stitch ?? false,
