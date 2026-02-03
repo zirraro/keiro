@@ -791,35 +791,41 @@ export async function publishTikTokVideoViaFileUpload(
 
   // Step 3: Initialize upload with TikTok
   console.log('[TikTok] Initializing TikTok upload...');
+
+  const requestBody = {
+    post_info: {
+      title: caption.substring(0, 150), // TikTok max title length
+      privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
+      disable_duet: options?.disable_duet ?? false,
+      disable_comment: options?.disable_comment ?? false,
+      disable_stitch: options?.disable_stitch ?? false,
+      video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+    },
+    source_info: {
+      source: 'FILE_UPLOAD',
+      video_size: videoSize,
+      chunk_size: chunkSize,
+      total_chunk_count: totalChunkCount,
+    },
+  };
+
+  console.log('[TikTok] Request body:', JSON.stringify(requestBody, null, 2));
+
   const initResponse = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      post_info: {
-        title: caption.substring(0, 150), // TikTok max title length
-        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
-        disable_duet: options?.disable_duet ?? false,
-        disable_comment: options?.disable_comment ?? false,
-        disable_stitch: options?.disable_stitch ?? false,
-        video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
-      },
-      source_info: {
-        source: 'FILE_UPLOAD',
-        video_size: videoSize,
-        chunk_size: chunkSize,
-        total_chunk_count: totalChunkCount,
-      },
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   console.log('[TikTok] Init response status:', initResponse.status);
 
   const initData = await initResponse.json();
 
-  console.log('[TikTok] Init response:', {
+  console.log('[TikTok] Init response (FULL):', JSON.stringify(initData, null, 2));
+  console.log('[TikTok] Init response summary:', {
     hasError: !!initData.error,
     hasData: !!initData.data,
     errorCode: initData.error?.code || initData.error_code,
@@ -831,8 +837,25 @@ export async function publishTikTokVideoViaFileUpload(
   const isRealError = initData.error && initData.error.code && initData.error.code !== 'ok';
 
   if (isRealError || (initData.error_code && initData.error_code !== 0)) {
+    const errorCode = initData.error?.code || initData.error_code;
     const errorMsg = initData.error?.message || initData.message || 'Failed to initialize TikTok upload';
+
     console.error('[TikTok] Init error:', errorMsg);
+    console.error('[TikTok] Error code:', errorCode);
+
+    // Provide helpful error messages
+    if (errorCode === 'unaudited_client_can_only_post_to_private_accounts') {
+      throw new Error(
+        `❌ Erreur TikTok: unaudited_client_can_only_post_to_private_accounts\n\n` +
+        `Cette erreur signifie que votre app TikTok est en mode "In Review" (pas Sandbox).\n\n` +
+        `Solutions:\n` +
+        `1. Vérifier dans TikTok Developer Dashboard → App Status → Doit être "Sandbox"\n` +
+        `2. OU rendre votre compte TikTok privé temporairement\n` +
+        `3. Vérifier que mushu1330 est bien dans Target Users\n\n` +
+        `privacy_level envoyé: ${requestBody.post_info.privacy_level}`
+      );
+    }
+
     throw new Error(errorMsg);
   }
 
