@@ -139,12 +139,14 @@ export async function POST(req: NextRequest) {
         cover_image_url: video.cover_image_url || null,
         cached_thumbnail_url: video.cover_image_url || null,
         share_url: video.share_url || null,
-        // Note: permalink column doesn't exist in production schema, using share_url instead
+        // Note: TikTok API doesn't provide direct video download URL in video.list
+        // Only provides cover_image_url for thumbnails
+        // cached_video_url should remain null for synced videos (only used for videos uploaded via our app)
         view_count: video.view_count || 0,
         like_count: video.like_count || 0,
         comment_count: video.comment_count || 0,
         share_count: video.share_count || 0,
-        cached_video_url: video.cover_image_url || null,
+        cached_video_url: null, // Don't put cover image here - it causes black video previews
         posted_at: video.create_time ? new Date(video.create_time * 1000).toISOString() : new Date().toISOString(),
         synced_at: new Date().toISOString()
       };

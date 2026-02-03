@@ -256,81 +256,34 @@ export default function TikTokWidget({ onConnect, onPreparePost }: TikTokWidgetP
 
       {!isCollapsed && (
         <>
-          {/* Stats */}
-          {stats && (
-        <div className="p-4 bg-gradient-to-r from-pink-50 to-cyan-50 border-b border-neutral-200">
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div>
-              <p className="text-xl font-bold text-neutral-900">{stats.totalVideos}</p>
-              <p className="text-xs text-neutral-600">Vidéos</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-neutral-900">
-                {stats.totalViews > 1000
-                  ? `${(stats.totalViews / 1000).toFixed(1)}k`
-                  : stats.totalViews}
-              </p>
-              <p className="text-xs text-neutral-600">Vues</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-neutral-900">
-                {stats.totalLikes > 1000
-                  ? `${(stats.totalLikes / 1000).toFixed(1)}k`
-                  : stats.totalLikes}
-              </p>
-              <p className="text-xs text-neutral-600">Likes</p>
-            </div>
-            <div>
-              <p className="text-xl font-bold text-neutral-900">{stats.avgEngagement}</p>
-              <p className="text-xs text-neutral-600">Engagement</p>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Videos Grid - Same format as Instagram */}
+          {posts.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2 p-3">
+              {posts.map((post) => (
+                <a
+                  key={post.id}
+                  href={post.share_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-neutral-100"
+                >
+                  {/* Thumbnail - Use cover_image_url (NOT cached_video_url which is wrong) */}
+                  <img
+                    src={post.cover_image_url || post.cached_thumbnail_url}
+                    alt={post.video_description?.substring(0, 30) || 'TikTok video'}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
 
-      {/* Videos Grid */}
-      {posts.length > 0 ? (
-        <div className="grid grid-cols-3 gap-2 p-3">
-          {posts.map((post) => (
-            <a
-              key={post.id}
-              href={post.share_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative aspect-[9/16] rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-pink-50 to-cyan-50"
-            >
-              {/* Thumbnail */}
-              <img
-                src={post.cached_thumbnail_url || post.cover_image_url}
-                alt={post.title || 'TikTok video'}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-              />
-
-              {/* Overlay with stats */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                <div className="text-white text-xs font-medium">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                  {/* Simple overlay on hover - No stats */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                     </svg>
-                    {post.view_count > 1000
-                      ? `${(post.view_count / 1000).toFixed(1)}k`
-                      : post.view_count || 0}
                   </div>
-                </div>
-              </div>
-
-              {/* Play icon */}
-              <div className="absolute top-2 right-2 bg-black/50 rounded-full p-1">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                </svg>
-              </div>
-            </a>
-          ))}
-        </div>
+                </a>
+              ))}
+            </div>
       ) : (
         <div className="p-8 text-center">
           <svg className="w-12 h-12 mx-auto text-neutral-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
