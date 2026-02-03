@@ -1581,7 +1581,7 @@ export default function LibraryPage() {
                   onDelete={deleteImage}
                   onToggleFavorite={toggleFavorite}
                   onPublishToInstagram={(image) => openPlatformChoiceModal(image)}
-                  onPublishToTikTok={(image) => openTikTokModal(image)}
+                  onPublishToTikTok={(image) => openTikTokModalForImage(image)}
                   onTitleEdit={handleTitleEdit}
                   onDownload={downloadImage}
                   onSchedule={openScheduleModal}
