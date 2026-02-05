@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getAuthUser } from '@/lib/auth-server';
 import { exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
 
 /**
@@ -15,12 +14,14 @@ export async function GET(req: NextRequest) {
     const startTime = Date.now();
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
     console.log('[TikTokCallback] 🚀 Starting callback', {
       baseUrl,
       hasCode: !!code,
+      hasState: !!state,
       hasError: !!error,
       timestamp: new Date().toISOString()
     });
@@ -36,6 +37,28 @@ export async function GET(req: NextRequest) {
     if (!code) {
       return NextResponse.redirect(
         `${baseUrl}/tiktok-callback?error=${encodeURIComponent('No authorization code received')}`
+      );
+    }
+
+    // Extract user_id from state parameter (passed during OAuth initiation)
+    let userId: string;
+    try {
+      if (!state) {
+        throw new Error('Missing state parameter');
+      }
+      const stateDecoded = Buffer.from(state, 'base64').toString('utf-8');
+      const statePayload = JSON.parse(stateDecoded);
+      userId = statePayload.userId;
+
+      if (!userId) {
+        throw new Error('User ID not found in state');
+      }
+
+      console.log('[TikTokCallback] ✅ Extracted user ID from state:', userId);
+    } catch (stateError: any) {
+      console.error('[TikTokCallback] ❌ Failed to extract user ID from state:', stateError.message);
+      return NextResponse.redirect(
+        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('Invalid session state - please try reconnecting')}`
       );
     }
 
@@ -65,24 +88,8 @@ export async function GET(req: NextRequest) {
       elapsedMs: Date.now() - startTime
     });
 
-    // Get authenticated user EARLY so we can save tokens immediately
-    console.log('[TikTokCallback] ⏳ Step 2/5: Verifying authenticated user...', {
-      elapsedMs: Date.now() - startTime
-    });
-    const { user, error: authError } = await getAuthUser();
-
-    if (authError || !user) {
-      console.error('[TikTokCallback] ❌ Step 2/5 failed: User not authenticated', {
-        error: authError,
-        elapsedMs: Date.now() - startTime
-      });
-      return NextResponse.redirect(
-        `${baseUrl}/tiktok-callback?error=${encodeURIComponent('User not authenticated')}`
-      );
-    }
-
-    console.log('[TikTokCallback] ✅ Step 2/5 complete: User authenticated', {
-      userId: user.id,
+    console.log('[TikTokCallback] ✅ Step 2/5 complete: User ID available from state', {
+      userId: userId,
       elapsedMs: Date.now() - startTime
     });
 
@@ -104,7 +111,7 @@ export async function GET(req: NextRequest) {
     tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokenData.expires_in);
 
     console.log('[TikTokCallback] ⏳ Step 3/5: Saving tokens to database (without username yet)...', {
-      userId: user.id,
+      userId: userId,
       tiktokUserId: tokenData.open_id,
       elapsedMs: Date.now() - startTime
     });
@@ -118,7 +125,7 @@ export async function GET(req: NextRequest) {
         tiktok_token_expiry: tokenExpiry.toISOString(),
         tiktok_connected_at: new Date().toISOString()
       })
-      .eq('id', user.id);
+      .eq('id', userId);
 
     if (updateError) {
       console.error('[TikTokCallback] ❌ Step 3/5 failed: Database error', {
@@ -163,7 +170,7 @@ export async function GET(req: NextRequest) {
           tiktok_username: username,
           tiktok_display_name: displayName
         })
-        .eq('id', user.id);
+        .eq('id', userId);
 
       if (updateUsernameError) {
         console.error('[TikTokCallback] Error updating username:', updateUsernameError);
@@ -195,7 +202,7 @@ export async function GET(req: NextRequest) {
           tiktok_username: tempUsername,
           tiktok_display_name: tempUsername
         })
-        .eq('id', user.id);
+        .eq('id', userId);
     }
 
     console.log('[TikTokCallback] ⏳ Step 5/5: Redirecting to success page...', {

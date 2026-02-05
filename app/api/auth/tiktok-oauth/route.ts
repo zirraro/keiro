@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-server';
 
 /**
  * GET /api/auth/tiktok-oauth
@@ -6,6 +7,17 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(req: NextRequest) {
   try {
+    // Get authenticated user BEFORE redirecting to TikTok
+    const { user, error: authError } = await getAuthUser();
+
+    if (authError || !user) {
+      // Redirect to login page if user not authenticated
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+      return NextResponse.redirect(
+        `${baseUrl}/login?error=${encodeURIComponent('Vous devez être connecté pour lier votre compte TikTok')}`
+      );
+    }
+
     const clientKey = process.env.TIKTOK_CLIENT_KEY;
     const redirectUri = process.env.NEXT_PUBLIC_TIKTOK_REDIRECT_URI;
 
@@ -28,15 +40,22 @@ export async function GET(req: NextRequest) {
     // TEMPORARY: If Content Posting API not yet approved, use only:
     // const scopes = 'user.info.basic';
 
+    // Encode user_id in state parameter to maintain context during OAuth redirect
+    const statePayload = {
+      userId: user.id,
+      timestamp: Date.now()
+    };
+    const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString('base64');
+
     // Build TikTok authorization URL
     const authUrl = new URL('https://www.tiktok.com/v2/auth/authorize/');
     authUrl.searchParams.set('client_key', clientKey);
     authUrl.searchParams.set('scope', scopes);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', 'tiktok_oauth'); // CSRF protection
+    authUrl.searchParams.set('state', stateEncoded); // Pass user_id in state
 
-    console.log('[TikTokOAuth] Redirecting to TikTok authorization...');
+    console.log('[TikTokOAuth] Redirecting to TikTok authorization for user:', user.id);
 
     return NextResponse.redirect(authUrl.toString());
 
