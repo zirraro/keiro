@@ -39,6 +39,13 @@ export default function AllCreationsTab({
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'folder'>('folder');
 
+  // État pour le modal de création de dossier
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderIcon, setNewFolderIcon] = useState('📁');
+  const [newFolderColor, setNewFolderColor] = useState('#3B82F6');
+  const [creatingFolder, setCreatingFolder] = useState(false);
+
   // Combine images and videos into CreationItem[]
   const allCreations: CreationItem[] = useMemo(() => {
     const imageItems: CreationItem[] = images.map(img => ({
@@ -151,6 +158,65 @@ export default function AllCreationsTab({
   const imageCount = filteredCreations.filter(c => c.type === 'image').length;
   const videoCount = filteredCreations.filter(c => c.type === 'video').length;
 
+  // Créer un nouveau dossier
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert('Veuillez entrer un nom de dossier');
+      return;
+    }
+
+    setCreatingFolder(true);
+    try {
+      const response = await fetch('/api/library/folders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: newFolderName.trim(),
+          icon: newFolderIcon,
+          color: newFolderColor
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Rafraîchir la liste des créations pour inclure le nouveau dossier
+        await onRefresh();
+
+        // Réinitialiser le formulaire et fermer le modal
+        setNewFolderName('');
+        setNewFolderIcon('📁');
+        setNewFolderColor('#3B82F6');
+        setShowCreateFolderModal(false);
+      } else {
+        alert(data.error || 'Erreur lors de la création du dossier');
+      }
+    } catch (error: any) {
+      console.error('[AllCreationsTab] Error creating folder:', error);
+      alert('Erreur lors de la création du dossier');
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  // Icônes prédéfinies pour les dossiers
+  const folderIcons = ['📁', '📂', '🗂️', '📚', '🎨', '🎬', '📸', '💼', '🎯', '⭐', '🔥', '✨'];
+
+  // Couleurs prédéfinies pour les dossiers
+  const folderColors = [
+    { name: 'Bleu', value: '#3B82F6' },
+    { name: 'Vert', value: '#10B981' },
+    { name: 'Rouge', value: '#EF4444' },
+    { name: 'Jaune', value: '#F59E0B' },
+    { name: 'Violet', value: '#8B5CF6' },
+    { name: 'Rose', value: '#EC4899' },
+    { name: 'Cyan', value: '#06B6D4' },
+    { name: 'Gris', value: '#6B7280' }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header Stats & Filters */}
@@ -216,18 +282,141 @@ export default function AllCreationsTab({
             <option value="title">Trier par titre</option>
           </select>
 
-          {/* Refresh Button */}
+          {/* Create Folder Button */}
           <button
-            onClick={onRefresh}
-            className="ml-auto px-3 py-1.5 text-sm bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors flex items-center gap-2"
+            onClick={() => setShowCreateFolderModal(true)}
+            className="ml-auto px-3 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 rounded-lg transition-all flex items-center gap-2 font-semibold shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Actualiser
+            Nouveau dossier
           </button>
         </div>
       </div>
+
+      {/* Modal de création de dossier */}
+      {showCreateFolderModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-neutral-900">Créer un nouveau dossier</h3>
+              <button
+                onClick={() => {
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                  setNewFolderIcon('📁');
+                  setNewFolderColor('#3B82F6');
+                }}
+                className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                aria-label="Fermer"
+              >
+                <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Nom du dossier */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Nom du dossier
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="Ex: Mes projets"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
+
+              {/* Icône */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Icône
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {folderIcons.map((icon) => (
+                    <button
+                      key={icon}
+                      onClick={() => setNewFolderIcon(icon)}
+                      className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl transition-all ${
+                        newFolderIcon === icon
+                          ? 'bg-blue-100 ring-2 ring-blue-500 scale-110'
+                          : 'bg-neutral-100 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Couleur */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Couleur
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {folderColors.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => setNewFolderColor(color.value)}
+                      className={`w-10 h-10 rounded-lg transition-all ${
+                        newFolderColor === color.value
+                          ? 'ring-2 ring-offset-2 ring-neutral-900 scale-110'
+                          : 'hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Aperçu */}
+              <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+                <p className="text-xs text-neutral-500 mb-2">Aperçu:</p>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{newFolderIcon}</span>
+                  <div>
+                    <p className="font-semibold text-neutral-900" style={{ color: newFolderColor }}>
+                      {newFolderName || 'Nom du dossier'}
+                    </p>
+                    <p className="text-xs text-neutral-500">0 éléments</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                  setNewFolderIcon('📁');
+                  setNewFolderColor('#3B82F6');
+                }}
+                className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                disabled={creatingFolder}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                disabled={creatingFolder || !newFolderName.trim()}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creatingFolder ? 'Création...' : 'Créer le dossier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Masonry Grid Grouped by Folders */}
       {Object.entries(groupedByFolder).length === 0 ? (

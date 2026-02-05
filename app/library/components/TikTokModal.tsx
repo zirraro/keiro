@@ -920,14 +920,36 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                               alt={vid.title || 'Vidéo'}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                e.currentTarget.style.display = 'none';
+                                // Replace with video fallback
                                 const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center"><svg class="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+                                if (parent && vid.video_url) {
+                                  e.currentTarget.style.display = 'none';
+                                  const videoEl = document.createElement('video');
+                                  videoEl.src = vid.video_url;
+                                  videoEl.className = 'w-full h-full object-cover';
+                                  videoEl.muted = true;
+                                  videoEl.playsInline = true;
+                                  videoEl.preload = 'metadata';
+                                  parent.insertBefore(videoEl, parent.firstChild);
                                 }
                               }}
                             />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : vid.video_url ? (
+                          <>
+                            <video
+                              src={vid.video_url}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
                               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
                               </svg>
@@ -1018,14 +1040,36 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                               alt={vid.title || 'Vidéo'}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                e.currentTarget.style.display = 'none';
+                                // Replace with video fallback
                                 const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center"><svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+                                if (parent && vid.video_url) {
+                                  e.currentTarget.style.display = 'none';
+                                  const videoEl = document.createElement('video');
+                                  videoEl.src = vid.video_url;
+                                  videoEl.className = 'w-full h-full object-cover';
+                                  videoEl.muted = true;
+                                  videoEl.playsInline = true;
+                                  videoEl.preload = 'metadata';
+                                  parent.insertBefore(videoEl, parent.firstChild);
                                 }
                               }}
                             />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : vid.video_url ? (
+                          <>
+                            <video
+                              src={vid.video_url}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
                               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
                               </svg>

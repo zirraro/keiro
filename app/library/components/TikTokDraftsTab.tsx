@@ -148,19 +148,18 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
 
   return (
     <div className="space-y-6">
-      {/* Header with Category Filters and Refresh Button */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveCategory('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeCategory === 'all'
-                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
-                : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-            }`}
-          >
-            🎯 Tous ({drafts.length})
-          </button>
+      {/* Header with Category Filters */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveCategory('all')}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeCategory === 'all'
+              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+          }`}
+        >
+          🎯 Tous ({drafts.length})
+        </button>
         <button
           onClick={() => setActiveCategory('draft')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
@@ -191,21 +190,6 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         >
           ✅ Publiées ({countByCategory.published})
         </button>
-        </div>
-
-        {/* Refresh Button */}
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            className="px-4 py-2 bg-white border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all flex items-center gap-2"
-            title="Actualiser les brouillons"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Actualiser
-          </button>
-        )}
       </div>
 
       {/* Message si pas de résultats pour cette catégorie */}
@@ -223,39 +207,48 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
           <div className="aspect-video bg-gradient-to-br from-cyan-50 to-blue-50 relative">
-            {(() => {
-              const mediaUrl = draft.media_url || (draft as any).image_url;
-              console.log('[TikTokDrafts] Rendering draft:', {
-                id: draft.id.substring(0, 12),
-                media_url: draft.media_url ? 'YES' : 'NO',
-                image_url: (draft as any).image_url ? 'YES' : 'NO',
-                finalUrl: mediaUrl ? mediaUrl.substring(0, 60) + '...' : 'NULL',
-                hasFailed: failedImages.has(draft.id)
-              });
-              return null;
-            })()}
             {!failedImages.has(draft.id) && (draft.media_url || (draft as any).image_url) ? (
-              <img
-                src={draft.media_url || (draft as any).image_url}
-                alt="TikTok video preview"
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onLoad={() => {
-                  console.log('[TikTokDrafts] ✅ Image loaded successfully:', draft.id.substring(0, 12));
-                }}
-                onError={(e) => {
-                  console.error('[TikTokDrafts] ❌ Image failed to load:', {
-                    id: draft.id.substring(0, 12),
-                    url: draft.media_url || (draft as any).image_url
-                  });
-                  setFailedImages(prev => new Set(prev).add(draft.id));
-                }}
-              />
+              draft.media_type === 'video' || (draft.media_url || (draft as any).image_url)?.endsWith('.mp4') ? (
+                <video
+                  src={draft.media_url || (draft as any).image_url}
+                  className="w-full h-full object-cover"
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  onError={(e) => {
+                    console.error('[TikTokDrafts] ❌ Video failed to load:', {
+                      id: draft.id.substring(0, 12),
+                      url: draft.media_url || (draft as any).image_url
+                    });
+                    setFailedImages(prev => new Set(prev).add(draft.id));
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.play()}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.pause();
+                    e.currentTarget.currentTime = 0;
+                  }}
+                />
+              ) : (
+                <img
+                  src={draft.media_url || (draft as any).image_url}
+                  alt="TikTok preview"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.error('[TikTokDrafts] ❌ Image failed to load:', {
+                      id: draft.id.substring(0, 12),
+                      url: draft.media_url || (draft as any).image_url
+                    });
+                    setFailedImages(prev => new Set(prev).add(draft.id));
+                  }}
+                />
+              )
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">
                   <svg className="w-12 h-12 text-neutral-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <p className="text-xs text-neutral-400">Aperçu non disponible</p>
                 </div>
