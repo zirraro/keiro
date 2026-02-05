@@ -41,6 +41,7 @@ export default function AllCreationsTab({
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'folder'>('folder');
   const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid'); // Default: grid
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['uncategorized'])); // "Sans dossier" ouvert par défaut
 
   // État pour le modal de création de dossier
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -53,6 +54,19 @@ export default function AllCreationsTab({
   const [showMoveFolderModal, setShowMoveFolderModal] = useState(false);
   const [itemToMove, setItemToMove] = useState<CreationItem | null>(null);
   const [movingToFolder, setMovingToFolder] = useState(false);
+
+  // Toggle folder expansion
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
 
   // Combine images and videos into CreationItem[]
   const allCreations: CreationItem[] = useMemo(() => {
@@ -619,21 +633,48 @@ export default function AllCreationsTab({
           </p>
         </div>
       ) : (
-        <div className="space-y-8">
-          {Object.entries(groupedByFolder).map(([folderId, items]) => {
+        <div className="space-y-6">
+          {/* Trier pour mettre "Sans dossier" en premier */}
+          {[...Object.entries(groupedByFolder)].sort(([aId], [bId]) => {
+            if (aId === 'uncategorized') return -1;
+            if (bId === 'uncategorized') return 1;
+            return 0;
+          }).map(([folderId, items]) => {
             const folder = getFolderInfo(folderId);
+            const isExpanded = expandedFolders.has(folderId);
 
             return (
-              <div key={folderId} className="bg-white rounded-xl border border-neutral-200 p-6">
-                <FolderHeader
-                  icon={folder.icon}
-                  name={folder.name}
-                  color={folder.color}
-                  itemCount={items.length}
-                />
+              <div key={folderId} className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                {/* Folder Header - Clickable */}
+                <button
+                  onClick={() => toggleFolder(folderId)}
+                  className="w-full p-4 flex items-center gap-3 hover:bg-neutral-50 transition-colors text-left"
+                >
+                  <span className="text-3xl">{folder.icon}</span>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg" style={{ color: folder.color }}>
+                      {folder.name}
+                    </h3>
+                    <p className="text-sm text-neutral-500">
+                      {items.length} {items.length > 1 ? 'éléments' : 'élément'}
+                    </p>
+                  </div>
+                  {/* Chevron expand/collapse */}
+                  <svg
+                    className={`w-6 h-6 text-neutral-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-                {/* Grid View - Uniform squares */}
-                {viewMode === 'grid' && (
+                {/* Folder Content - Only show if expanded */}
+                {isExpanded && items.length > 0 && (
+                  <div className="p-6 pt-0">
+                    {/* Grid View - Uniform squares */}
+                    {viewMode === 'grid' && (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {items.map(item => (
                       <div key={`${item.type}-${item.id}`}>
@@ -747,6 +788,8 @@ export default function AllCreationsTab({
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
                   </div>
                 )}
               </div>
