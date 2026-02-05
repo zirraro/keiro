@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import VisitorBanner from './components/VisitorBanner';
@@ -133,7 +133,7 @@ const DEMO_IMAGES: SavedImage[] = [
   }
 ];
 
-export default function LibraryPage() {
+function LibraryContent() {
   const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
   const [user, setUser] = useState<any>(null);
@@ -1740,5 +1740,21 @@ export default function LibraryPage() {
         />
       )}
     </main>
+  );
+}
+
+// Wrapper avec Suspense pour Next.js 15
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <LibraryContent />
+    </Suspense>
   );
 }
