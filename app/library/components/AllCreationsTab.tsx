@@ -357,49 +357,72 @@ export default function AllCreationsTab({
     });
 
     if (viewMode === 'grid') {
-      // GRID MODE: Show folders as square cards in a grid
+      // GRID MODE: Show all folders AND their content in a unified grid view
       return (
-        <div className="space-y-8">
-          {sortedFolders.map(([folderId, items]) => {
-            const folder = getFolderInfo(folderId);
-            const isExpanded = expandedFolders.has(folderId);
+        <>
+          {/* Folders Grid */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold text-neutral-900 mb-4">📁 Dossiers</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {sortedFolders.map(([folderId, items]) => {
+                const folder = getFolderInfo(folderId);
+                const isExpanded = expandedFolders.has(folderId);
 
-            return (
-              <div key={folderId} className="space-y-4">
-                {/* Folder Card */}
-                <button
-                  onClick={() => toggleFolder(folderId)}
-                  className="w-full max-w-xs rounded-xl border-2 border-neutral-200 hover:border-blue-400 transition-all p-6 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white to-neutral-50 hover:shadow-lg aspect-square"
-                >
-                  <span className="text-5xl">{folder.icon}</span>
-                  <div className="text-center">
-                    <h3 className="font-bold text-lg truncate max-w-full" style={{ color: folder.color }}>
+                return (
+                  <button
+                    key={folderId}
+                    onClick={() => toggleFolder(folderId)}
+                    className="rounded-xl border-2 border-neutral-200 hover:border-blue-400 transition-all p-6 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white to-neutral-50 hover:shadow-lg aspect-square"
+                  >
+                    <span className="text-5xl">{folder.icon}</span>
+                    <div className="text-center w-full">
+                      <h3 className="font-bold text-base truncate" style={{ color: folder.color }}>
+                        {folder.name}
+                      </h3>
+                      <p className="text-xs text-neutral-500">
+                        {items.length} {items.length > 1 ? 'éléments' : 'élément'}
+                      </p>
+                    </div>
+                    {isExpanded && (
+                      <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Content for expanded folders */}
+          {sortedFolders
+            .filter(([folderId]) => expandedFolders.has(folderId))
+            .map(([folderId, items]) => {
+              const folder = getFolderInfo(folderId);
+
+              if (items.length === 0) return null;
+
+              return (
+                <div key={`content-${folderId}`} className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: folder.color }}>
+                      <span className="text-2xl">{folder.icon}</span>
                       {folder.name}
                     </h3>
-                    <p className="text-sm text-neutral-500">
-                      {items.length} {items.length > 1 ? 'éléments' : 'élément'}
-                    </p>
+                    <button
+                      onClick={() => toggleFolder(folderId)}
+                      className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+                    >
+                      Masquer
+                    </button>
                   </div>
-                  <svg
-                    className={`w-6 h-6 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Folder Content */}
-                {isExpanded && items.length > 0 && (
                   <div className="p-6 bg-white rounded-xl border border-neutral-200">
                     {renderFolderContent(items)}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+        </>
       );
     } else if (viewMode === 'list') {
       // LIST MODE: Show folders as rows
