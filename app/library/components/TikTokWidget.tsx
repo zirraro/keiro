@@ -274,7 +274,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
         <>
           {/* Videos Grid - Same format as Instagram */}
           {posts.length > 0 ? (
-            <div className="max-w-2xl mx-auto p-3">
+            <div className="p-3">
               <div className="grid grid-cols-3 gap-2">
               {posts.map((post) => {
                 const thumbnailUrl = post.cached_thumbnail_url || post.cover_image_url;

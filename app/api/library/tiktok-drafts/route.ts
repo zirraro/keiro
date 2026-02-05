@@ -95,6 +95,13 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
+    console.log('[TikTokDrafts] Fetched image:', {
+      savedImageId,
+      hasImage: !!image,
+      imageUrl: image?.image_url,
+      error: imageError
+    });
+
     if (imageError || !image) {
       console.error('[TikTokDrafts] Error fetching image:', imageError);
       return NextResponse.json(
@@ -103,7 +110,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!image.image_url) {
+      console.error('[TikTokDrafts] Image URL is empty for savedImageId:', savedImageId);
+      return NextResponse.json(
+        { ok: false, error: 'URL de l\'image manquante' },
+        { status: 400 }
+      );
+    }
+
     // Créer le brouillon
+    console.log('[TikTokDrafts] Creating draft with media_url:', image.image_url);
     const { data: draft, error: insertError } = await supabase
       .from('tiktok_drafts')
       .insert({

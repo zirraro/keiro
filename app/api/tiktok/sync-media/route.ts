@@ -132,14 +132,20 @@ export async function POST(req: NextRequest) {
       });
 
       // Download and cache thumbnail in Supabase Storage for stable display
+      // ALWAYS re-cache to ensure stable URLs (TikTok URLs expire)
       let cachedThumbnailUrl: string | null = null;
       if (video.cover_image_url) {
+        console.log('[TikTokSync] Caching thumbnail for video:', video.id);
         cachedThumbnailUrl = await cacheTikTokThumbnail(
           video.id,
           video.cover_image_url,
           user.id
         );
-        console.log('[TikTokSync] Cached thumbnail URL:', cachedThumbnailUrl || 'Failed');
+        if (cachedThumbnailUrl) {
+          console.log('[TikTokSync] ✅ Thumbnail cached:', cachedThumbnailUrl);
+        } else {
+          console.log('[TikTokSync] ⚠️ Thumbnail caching failed, using original URL');
+        }
       }
 
       const videoData = {
