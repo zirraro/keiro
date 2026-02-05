@@ -1619,6 +1619,9 @@ function LibraryContent() {
                   }
                 }}
                 onDownload={handleUnifiedDownload}
+                onMoveToFolder={async () => {
+                  alert('Connectez-vous pour organiser vos créations en dossiers');
+                }}
               />
             ) : activeTab === 'images' ? (
               loadingImages ? (
