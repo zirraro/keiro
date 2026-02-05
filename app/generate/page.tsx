@@ -239,8 +239,8 @@ export default function GeneratePage() {
   const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
-  const [addTextOverlay, setAddTextOverlay] = useState(false);
-  const [textOverlayStyle, setTextOverlayStyle] = useState('dynamic'); // dynamic, minimal, bold
+  const [enableAIText, setEnableAIText] = useState(false);
+  const [aiTextStyle, setAITextStyle] = useState('dynamic'); // dynamic, minimal, bold
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -1550,13 +1550,13 @@ export default function GeneratePage() {
       let videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
 
       // Ajouter l'instruction de texte si activée
-      if (addTextOverlay) {
+      if (enableAIText) {
         const textStyles = {
           dynamic: 'Add dynamic, animated text overlays that highlight key points throughout the video. Text should appear at strategic moments and enhance the message.',
           minimal: 'Add clean, minimalist text overlays with key information. Keep text simple and easy to read.',
           bold: 'Add bold, impactful text overlays with strong typography. Text should grab attention and emphasize important messages.'
         };
-        videoPrompt += ` ${textStyles[textOverlayStyle as keyof typeof textStyles]}`;
+        videoPrompt += ` ${textStyles[aiTextStyle as keyof typeof textStyles]}`;
       }
 
       console.log('[Video] Starting generation with prompt:', videoPrompt);
