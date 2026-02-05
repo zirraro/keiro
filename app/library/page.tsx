@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import VisitorBanner from './components/VisitorBanner';
 import GalleryHeader from './components/GalleryHeader';
@@ -133,6 +134,7 @@ const DEMO_IMAGES: SavedImage[] = [
 ];
 
 export default function LibraryPage() {
+  const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -184,7 +186,8 @@ export default function LibraryPage() {
   const [selectedImageForSchedule, setSelectedImageForSchedule] = useState<SavedImage | null>(null);
 
   // États pour les onglets
-  const [activeTab, setActiveTab] = useState<Tab>('images');
+  const tabParam = searchParams?.get('tab') as Tab | null;
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'images');
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
   const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
   const [myVideos, setMyVideos] = useState<MyVideo[]>([]);

@@ -22,6 +22,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
   } | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadTikTokStatus();
@@ -275,21 +276,40 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           {posts.length > 0 ? (
             <div className="max-w-2xl mx-auto p-3">
               <div className="grid grid-cols-3 gap-2">
-              {posts.map((post) => (
+              {posts.map((post) => {
+                const thumbnailUrl = post.cached_thumbnail_url || post.cover_image_url;
+                const hasError = failedThumbnails.has(post.id);
+
+                return (
                 <a
                   key={post.id}
                   href={post.share_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-neutral-100"
+                  className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-cyan-50 to-blue-50"
                 >
-                  {/* Thumbnail - Use cover_image_url (NOT cached_video_url which is wrong) */}
-                  <img
-                    src={post.cover_image_url || post.cached_thumbnail_url}
-                    alt={post.video_description?.substring(0, 30) || 'TikTok video'}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
+                  {/* Thumbnail - Prioritize cached_thumbnail_url */}
+                  {!hasError && thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt={post.video_description?.substring(0, 30) || 'TikTok video'}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error('[TikTokWidget] Thumbnail failed:', thumbnailUrl);
+                        setFailedThumbnails(prev => new Set(prev).add(post.id));
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center p-2">
+                        <svg className="w-8 h-8 text-cyan-400 mx-auto mb-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                        <p className="text-[10px] text-neutral-400 leading-tight">{post.video_description?.substring(0, 40) || 'Vidéo TikTok'}</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Simple overlay on hover - No stats */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">

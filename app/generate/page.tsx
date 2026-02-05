@@ -1512,15 +1512,16 @@ export default function GeneratePage() {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Vidéo sauvegardée dans votre galerie !</span>
+            <span>Vidéo sauvegardée ! Redirection vers la galerie...</span>
           </div>
         `;
         document.body.appendChild(toast);
 
-        // Supprimer le toast après 3 secondes
+        // Rediriger vers l'onglet Mes vidéos après 1.5 secondes
         setTimeout(() => {
           toast.remove();
-        }, 3000);
+          router.push('/library?tab=videos');
+        }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
