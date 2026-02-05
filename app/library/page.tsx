@@ -187,7 +187,7 @@ function LibraryContent() {
 
   // États pour les onglets
   const tabParam = searchParams?.get('tab') as Tab | null;
-  const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'images');
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'all-creations');
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
   const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
   const [myVideos, setMyVideos] = useState<MyVideo[]>([]);

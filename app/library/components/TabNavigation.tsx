@@ -24,7 +24,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          🎨 Toutes mes créations
+          🎨 Mes créations
           {totalCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'all-creations'
