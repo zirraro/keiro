@@ -320,7 +320,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           imageTitle: contentTitle,
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
-          contentAngle: contentAngle
+          contentAngle: contentAngle,
+          audioUrl: narrationAudioUrl, // Include audio for context
+          audioScript: narrationScript // Include audio script for context
         })
       });
 
@@ -911,16 +913,34 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         `}
                         title={vid.title || 'Vidéo'}
                       >
-                        <img
-                          src={vid.thumbnail_url || vid.video_url}
-                          alt={vid.title || 'Vidéo'}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        </div>
+                        {vid.thumbnail_url ? (
+                          <>
+                            <img
+                              src={vid.thumbnail_url}
+                              alt={vid.title || 'Vidéo'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center"><svg class="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex flex-col items-center justify-center gap-2">
+                            <svg className="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <span className="text-xs text-neutral-500">Vidéo</span>
+                          </div>
+                        )}
                       </button>
                     ))
                   )}
@@ -991,16 +1011,34 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           }
                         `}
                       >
-                        <img
-                          src={vid.thumbnail_url || vid.video_url}
-                          alt={vid.title || 'Vidéo'}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z"/>
-                          </svg>
-                        </div>
+                        {vid.thumbnail_url ? (
+                          <>
+                            <img
+                              src={vid.thumbnail_url}
+                              alt={vid.title || 'Vidéo'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex items-center justify-center"><svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>';
+                                }
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                              </svg>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex flex-col items-center justify-center gap-1">
+                            <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                            <span className="text-[10px] text-neutral-500">Vidéo</span>
+                          </div>
+                        )}
                       </button>
                     ))
                   )}

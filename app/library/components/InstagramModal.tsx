@@ -292,7 +292,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           imageTitle: contentTitle,
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
-          contentAngle: contentAngle
+          contentAngle: contentAngle,
+          audioUrl: narrationAudioUrl, // Include audio for AI context
+          audioScript: narrationScript // Include audio script for AI context
         })
       });
 

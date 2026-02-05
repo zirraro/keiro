@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { getAuthUser } from '@/lib/auth-server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('[TikTok Suggest] ANTHROPIC_API_KEY not configured');
+if (!process.env.OPENAI_API_KEY) {
+  console.error('[TikTok Suggest] OPENAI_API_KEY not configured');
 }
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || ''
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || ''
 });
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[TikTok Suggest] Starting...');
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
         { ok: false, error: 'API IA non configurée' },
         { status: 500 }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'viral' } = body;
+    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'viral', audioUrl, audioScript } = body;
 
     console.log('[TikTok Suggest] Image URL:', imageUrl);
     console.log('[TikTok Suggest] Content angle:', contentAngle);
@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
 
     const angleInstruction = angleInstructions[contentAngle as keyof typeof angleInstructions] || angleInstructions.viral;
 
+    // Ajouter contexte audio si disponible
+    const audioContext = audioScript ? `\n\n🎙️ CONTEXTE AUDIO:\nUne narration audio accompagne cette vidéo avec le script suivant:\n"${audioScript}"\n\nTiens compte de ce script audio dans ta suggestion pour créer une cohérence entre l'audio et le texte.` : '';
+
     const prompt = `Tu es un expert TikTok spécialisé dans les vidéos virales. Ta mission : créer du contenu qui EXPLOSE sur TikTok et attire des clients vers ${business}.
 
 🎯 OBJECTIF CRITIQUE:
@@ -74,7 +77,7 @@ Sur TikTok, les 3 premières secondes sont TOUT.
 - Sujet: ${title}
 - Catégorie: ${category}
 - ANGLE: ${contentAngle.toUpperCase()}
-  ${angleInstruction}
+  ${angleInstruction}${audioContext}
 
 🖼️ ANALYSE DE L'IMAGE:
 1. Repère ce qui attire l'œil IMMÉDIATEMENT
@@ -111,20 +114,20 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
   "hashtags": ["#fyp", "#pourtoi", "#viral", "#trending", "#foryou", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
 }`;
 
-    console.log('[TikTok Suggest] Calling Claude Vision...');
+    console.log('[TikTok Suggest] Calling GPT-4 Vision...');
 
-    const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 2000,
       temperature: 0.9, // Plus créatif pour TikTok
       messages: [{
         role: 'user',
         content: [
           {
-            type: 'image',
-            source: {
-              type: 'url',
-              url: imageUrl
+            type: 'image_url',
+            image_url: {
+              url: imageUrl,
+              detail: 'auto'
             }
           },
           {
@@ -132,10 +135,11 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
             text: prompt
           }
         ]
-      }]
+      }],
+      response_format: { type: 'json_object' }
     });
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const text = response.choices[0]?.message?.content || '';
     console.log('[TikTok Suggest] Response:', text.substring(0, 200));
 
     let suggestion: { caption: string; hashtags: string[] };
