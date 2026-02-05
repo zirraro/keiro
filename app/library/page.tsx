@@ -1080,6 +1080,28 @@ function LibraryContent() {
     await downloadImage(item.url, filename);
   };
 
+  const handleUnifiedMoveToFolder = async (id: string, type: 'image' | 'video', folderId: string | null) => {
+    try {
+      const table = type === 'image' ? 'saved_images' : 'my_videos';
+
+      const { error } = await supabase
+        .from(table)
+        .update({ folder_id: folderId })
+        .eq('id', id);
+
+      if (error) {
+        console.error('[Library] Error moving item to folder:', error);
+        throw error;
+      }
+
+      // Rafraîchir les données
+      await handleRefreshAll();
+    } catch (error: any) {
+      console.error('[Library] Failed to move item:', error);
+      throw error;
+    }
+  };
+
   const handleRefreshAll = async () => {
     await loadImages();
     await loadMyVideos();
@@ -1519,6 +1541,7 @@ function LibraryContent() {
                       onDelete={handleUnifiedDelete}
                       onPublish={handleUnifiedPublish}
                       onDownload={handleUnifiedDownload}
+                      onMoveToFolder={handleUnifiedMoveToFolder}
                     />
                   ) : activeTab === 'images' ? (
                     loadingImages ? (

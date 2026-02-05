@@ -27,6 +27,7 @@ interface CreationCardProps {
   onDelete: (id: string) => void;
   onPublish: (item: CreationItem) => void;
   onDownload: (item: CreationItem) => void;
+  onMoveToFolder?: (item: CreationItem) => void;
 }
 
 export default function CreationCard({
@@ -35,7 +36,8 @@ export default function CreationCard({
   onTitleEdit,
   onDelete,
   onPublish,
-  onDownload
+  onDownload,
+  onMoveToFolder
 }: CreationCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(item.title || '');
@@ -222,6 +224,19 @@ export default function CreationCard({
               <span className="hidden xs:inline">DL</span>
             </button>
 
+            {/* Ranger */}
+            {onMoveToFolder && (
+              <button
+                onClick={() => onMoveToFolder(item)}
+                className="flex items-center justify-center gap-1 px-2 py-2 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-200 transition-all"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span className="hidden xs:inline">Ranger</span>
+              </button>
+            )}
+
             {/* Supprimer */}
             <button
               onClick={() => {
@@ -278,6 +293,19 @@ export default function CreationCard({
               </svg>
               Télécharger
             </button>
+
+            {/* Ranger */}
+            {onMoveToFolder && (
+              <button
+                onClick={() => onMoveToFolder(item)}
+                className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 text-sm font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Ranger
+              </button>
+            )}
 
             {/* Supprimer */}
             <button

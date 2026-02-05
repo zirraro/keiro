@@ -22,6 +22,7 @@ interface AllCreationsTabProps {
   onDelete: (id: string, type: 'image' | 'video') => void;
   onPublish: (item: CreationItem) => void;
   onDownload: (item: CreationItem) => void;
+  onMoveToFolder: (id: string, type: 'image' | 'video', folderId: string | null) => Promise<void>;
 }
 
 export default function AllCreationsTab({
@@ -33,7 +34,8 @@ export default function AllCreationsTab({
   onTitleEdit,
   onDelete,
   onPublish,
-  onDownload
+  onDownload,
+  onMoveToFolder
 }: AllCreationsTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
@@ -45,6 +47,11 @@ export default function AllCreationsTab({
   const [newFolderIcon, setNewFolderIcon] = useState('📁');
   const [newFolderColor, setNewFolderColor] = useState('#3B82F6');
   const [creatingFolder, setCreatingFolder] = useState(false);
+
+  // État pour le modal de déplacement vers dossier
+  const [showMoveFolderModal, setShowMoveFolderModal] = useState(false);
+  const [itemToMove, setItemToMove] = useState<CreationItem | null>(null);
+  const [movingToFolder, setMovingToFolder] = useState(false);
 
   // Combine images and videos into CreationItem[]
   const allCreations: CreationItem[] = useMemo(() => {
@@ -99,10 +106,19 @@ export default function AllCreationsTab({
     return result;
   }, [allCreations, filterType, searchQuery]);
 
-  // Group by folder
+  // Group by folder - Include ALL folders even if empty
   const groupedByFolder = useMemo(() => {
     const groups: Record<string, CreationItem[]> = {};
 
+    // Initialize all existing folders with empty arrays
+    folders.forEach(folder => {
+      groups[folder.id] = [];
+    });
+
+    // Add uncategorized group
+    groups['uncategorized'] = [];
+
+    // Distribute items into folders
     filteredCreations.forEach(item => {
       const key = item.folderId || 'uncategorized';
       if (!groups[key]) {
@@ -124,7 +140,7 @@ export default function AllCreationsTab({
     });
 
     return groups;
-  }, [filteredCreations, sortBy]);
+  }, [filteredCreations, sortBy, folders]);
 
   // Get folder info
   const getFolderInfo = (folderId: string) => {
@@ -216,6 +232,23 @@ export default function AllCreationsTab({
     { name: 'Cyan', value: '#06B6D4' },
     { name: 'Gris', value: '#6B7280' }
   ];
+
+  // Déplacer un item vers un dossier
+  const handleMoveToFolder = async (folderId: string | null) => {
+    if (!itemToMove) return;
+
+    setMovingToFolder(true);
+    try {
+      await onMoveToFolder(itemToMove.id, itemToMove.type, folderId);
+      setShowMoveFolderModal(false);
+      setItemToMove(null);
+    } catch (error: any) {
+      console.error('[AllCreationsTab] Error moving item:', error);
+      alert('Erreur lors du déplacement');
+    } finally {
+      setMovingToFolder(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -418,6 +451,122 @@ export default function AllCreationsTab({
         </div>
       )}
 
+      {/* Modal de déplacement vers dossier */}
+      {showMoveFolderModal && itemToMove && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-neutral-900">Ranger dans un dossier</h3>
+              <button
+                onClick={() => {
+                  setShowMoveFolderModal(false);
+                  setItemToMove(null);
+                }}
+                className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                aria-label="Fermer"
+              >
+                <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-neutral-600 mb-4">
+                Sélectionnez un dossier pour ranger <span className="font-semibold">{itemToMove.title || 'cet élément'}</span>
+              </p>
+
+              {/* Current folder indicator */}
+              {itemToMove.folderId && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-600 font-medium mb-1">Dossier actuel:</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{getFolderInfo(itemToMove.folderId).icon}</span>
+                    <span className="text-sm font-semibold" style={{ color: getFolderInfo(itemToMove.folderId).color }}>
+                      {getFolderInfo(itemToMove.folderId).name}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Folder list */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {/* Option: Sans dossier */}
+                <button
+                  onClick={() => handleMoveToFolder(null)}
+                  disabled={movingToFolder}
+                  className={`w-full p-3 rounded-lg text-left transition-all ${
+                    !itemToMove.folderId
+                      ? 'bg-neutral-100 border-2 border-neutral-400'
+                      : 'bg-neutral-50 hover:bg-neutral-100 border border-neutral-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📂</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-neutral-900">Sans dossier</p>
+                      <p className="text-xs text-neutral-500">
+                        {groupedByFolder['uncategorized']?.length || 0} éléments
+                      </p>
+                    </div>
+                    {!itemToMove.folderId && (
+                      <svg className="w-5 h-5 text-neutral-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+
+                {/* All folders */}
+                {folders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => handleMoveToFolder(folder.id)}
+                    disabled={movingToFolder}
+                    className={`w-full p-3 rounded-lg text-left transition-all ${
+                      itemToMove.folderId === folder.id
+                        ? 'bg-blue-50 border-2 border-blue-400'
+                        : 'bg-white hover:bg-neutral-50 border border-neutral-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{folder.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-semibold" style={{ color: folder.color }}>
+                          {folder.name}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {groupedByFolder[folder.id]?.length || 0} éléments
+                        </p>
+                      </div>
+                      {itemToMove.folderId === folder.id && (
+                        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowMoveFolderModal(false);
+                  setItemToMove(null);
+                }}
+                className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                disabled={movingToFolder}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Masonry Grid Grouped by Folders */}
       {Object.entries(groupedByFolder).length === 0 ? (
         <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
@@ -453,6 +602,10 @@ export default function AllCreationsTab({
                         onDelete={(id) => onDelete(id, item.type)}
                         onPublish={onPublish}
                         onDownload={onDownload}
+                        onMoveToFolder={(item) => {
+                          setItemToMove(item);
+                          setShowMoveFolderModal(true);
+                        }}
                       />
                     </div>
                   ))}
