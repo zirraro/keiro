@@ -139,7 +139,11 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
 
           console.log('[TikTokWidget] Stats calculated:', { totalVideos, totalViews, totalLikes });
         } else {
-          console.log('[TikTokWidget] No TikTok posts found, you may need to sync');
+          console.log('[TikTokWidget] No TikTok posts found, auto-syncing...');
+          // Auto-sync if TikTok connected but no posts
+          setLoading(false);
+          await handleSyncMedia();
+          return;
         }
       } else {
         console.log('[TikTokWidget] TikTok not connected');

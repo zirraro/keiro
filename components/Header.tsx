@@ -123,15 +123,9 @@ export default function Header() {
       const data = await response.json();
 
       if (data.ok) {
-        // Recharger le profil
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        setProfile(profileData);
         alert('Instagram déconnecté avec succès');
+        // Recharger la page pour mettre à jour tous les composants
+        window.location.reload();
       } else {
         alert(`Erreur: ${data.error}`);
       }
@@ -157,15 +151,9 @@ export default function Header() {
       const data = await response.json();
 
       if (data.ok) {
-        // Recharger le profil
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        setProfile(profileData);
         alert('TikTok déconnecté avec succès');
+        // Recharger la page pour mettre à jour tous les composants
+        window.location.reload();
       } else {
         alert(`Erreur: ${data.error}`);
       }

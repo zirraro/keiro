@@ -153,13 +153,6 @@ export default function MyVideosTab({
               <option value="title">Titre A-Z</option>
               <option value="duration">Durée</option>
             </select>
-
-            <button
-              onClick={onRefresh}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              🔄 Actualiser
-            </button>
           </div>
         </div>
       </div>

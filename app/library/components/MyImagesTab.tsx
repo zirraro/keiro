@@ -152,13 +152,6 @@ export default function MyImagesTab({
               <option value="date">Plus récentes</option>
               <option value="title">Titre A-Z</option>
             </select>
-
-            <button
-              onClick={onRefresh}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              🔄 Actualiser
-            </button>
           </div>
         </div>
       </div>
