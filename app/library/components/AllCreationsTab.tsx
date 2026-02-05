@@ -40,6 +40,7 @@ export default function AllCreationsTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'folder'>('folder');
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid'); // Default: grid
 
   // État pour le modal de création de dossier
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
@@ -315,6 +316,49 @@ export default function AllCreationsTab({
             <option value="title">Trier par titre</option>
           </select>
 
+          {/* View Mode Selector */}
+          <div className="flex gap-1 border border-neutral-300 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+              title="Vue en grille"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('masonry')}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'masonry'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+              title="Vue en mosaïque"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 12a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-neutral-600 hover:bg-neutral-100'
+              }`}
+              title="Vue en liste"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+
           {/* Create Folder Button */}
           <button
             onClick={() => setShowCreateFolderModal(true)}
@@ -567,7 +611,7 @@ export default function AllCreationsTab({
         </div>
       )}
 
-      {/* Masonry Grid Grouped by Folders */}
+      {/* Content Display Grouped by Folders */}
       {Object.entries(groupedByFolder).length === 0 ? (
         <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
           <p className="text-neutral-500">
@@ -588,28 +632,123 @@ export default function AllCreationsTab({
                   itemCount={items.length}
                 />
 
-                <Masonry
-                  breakpointCols={breakpointColumns}
-                  className="masonry-grid"
-                  columnClassName="masonry-grid-column"
-                >
-                  {items.map(item => (
-                    <div key={`${item.type}-${item.id}`} className="mb-4">
-                      <CreationCard
-                        item={item}
-                        onToggleFavorite={(id, isFavorite) => onToggleFavorite(id, item.type, isFavorite)}
-                        onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
-                        onDelete={(id) => onDelete(id, item.type)}
-                        onPublish={onPublish}
-                        onDownload={onDownload}
-                        onMoveToFolder={(item) => {
-                          setItemToMove(item);
-                          setShowMoveFolderModal(true);
-                        }}
-                      />
-                    </div>
-                  ))}
-                </Masonry>
+                {/* Grid View - Uniform squares */}
+                {viewMode === 'grid' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {items.map(item => (
+                      <div key={`${item.type}-${item.id}`}>
+                        <CreationCard
+                          item={item}
+                          onToggleFavorite={(id, isFavorite) => onToggleFavorite(id, item.type, isFavorite)}
+                          onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
+                          onDelete={(id) => onDelete(id, item.type)}
+                          onPublish={onPublish}
+                          onDownload={onDownload}
+                          onMoveToFolder={(item) => {
+                            setItemToMove(item);
+                            setShowMoveFolderModal(true);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Masonry View - Pinterest-style */}
+                {viewMode === 'masonry' && (
+                  <Masonry
+                    breakpointCols={breakpointColumns}
+                    className="masonry-grid"
+                    columnClassName="masonry-grid-column"
+                  >
+                    {items.map(item => (
+                      <div key={`${item.type}-${item.id}`} className="mb-4">
+                        <CreationCard
+                          item={item}
+                          onToggleFavorite={(id, isFavorite) => onToggleFavorite(id, item.type, isFavorite)}
+                          onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
+                          onDelete={(id) => onDelete(id, item.type)}
+                          onPublish={onPublish}
+                          onDownload={onDownload}
+                          onMoveToFolder={(item) => {
+                            setItemToMove(item);
+                            setShowMoveFolderModal(true);
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </Masonry>
+                )}
+
+                {/* List View - Rows with more details */}
+                {viewMode === 'list' && (
+                  <div className="space-y-2">
+                    {items.map(item => (
+                      <div key={`${item.type}-${item.id}`} className="flex items-center gap-4 p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
+                        {/* Thumbnail */}
+                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                          {item.type === 'image' ? (
+                            <img src={item.url} alt={item.title || 'Image'} className="w-full h-full object-cover" />
+                          ) : (
+                            <video src={item.url} className="w-full h-full object-cover" />
+                          )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-neutral-900 truncate">{item.title || 'Sans titre'}</h4>
+                          <p className="text-sm text-neutral-500">
+                            {item.type === 'image' ? '📸 Image' : '🎬 Vidéo'} • {new Date(item.created_at).toLocaleDateString('fr-FR')}
+                          </p>
+                          {item.is_favorite && <span className="text-xs text-pink-600">⭐ Favori</span>}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => onToggleFavorite(item.id, item.type, !item.is_favorite)}
+                            className="p-2 rounded-lg hover:bg-white transition-colors"
+                            title={item.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                          >
+                            <svg className={`w-5 h-5 ${item.is_favorite ? 'text-pink-600' : 'text-neutral-400'}`} fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => onDownload(item)}
+                            className="p-2 rounded-lg hover:bg-white transition-colors"
+                            title="Télécharger"
+                          >
+                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setItemToMove(item);
+                              setShowMoveFolderModal(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-white transition-colors"
+                            title="Ranger"
+                          >
+                            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => onDelete(item.id, item.type)}
+                            className="p-2 rounded-lg hover:bg-white transition-colors"
+                            title="Supprimer"
+                          >
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
