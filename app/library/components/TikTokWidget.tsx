@@ -184,7 +184,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-              <span className={`${isCollapsed ? 'text-2xl' : 'text-xl'}`}>🎵</span>
+              <svg className={`${isCollapsed ? 'w-8 h-8' : 'w-6 h-6'} text-cyan-500`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+              </svg>
               {!isCollapsed && (
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
@@ -245,7 +247,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <span className={`${isCollapsed ? 'text-2xl' : 'text-xl'}`}>🎵</span>
+            <svg className={`${isCollapsed ? 'w-8 h-8' : 'w-6 h-6'} text-cyan-500`} fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+            </svg>
             {!isCollapsed && (
               <div>
                 <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
@@ -261,25 +265,23 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             )}
           </div>
           <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col w-full' : ''}`}>
-            {/* Bouton refresh/sync */}
-            <button
-              onClick={() => handleSyncMedia()}
-              disabled={syncing}
-              className={`bg-white border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                isCollapsed
-                  ? 'w-full px-2 py-1.5 flex items-center justify-center'
-                  : 'p-2'
-              }`}
-              title="Synchroniser les vidéos TikTok"
-            >
-              {syncing ? (
-                <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              )}
-            </button>
+            {/* Bouton refresh/sync - Seulement visible quand déplié */}
+            {!isCollapsed && (
+              <button
+                onClick={() => handleSyncMedia()}
+                disabled={syncing}
+                className="bg-white border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed p-2"
+                title="Synchroniser les vidéos TikTok"
+              >
+                {syncing ? (
+                  <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+              </button>
+            )}
             <button
               onClick={onPreparePost}
               className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${

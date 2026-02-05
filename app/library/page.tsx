@@ -1562,6 +1562,7 @@ function LibraryContent() {
                       onDelete={deleteTikTokDraft}
                       onSchedule={scheduleTikTokDraft}
                       onBackToImages={() => setActiveTab('images')}
+                      onRefresh={loadTikTokDrafts}
                     />
                   ) : activeTab === 'calendar' ? (
                     <CalendarTab

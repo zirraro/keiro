@@ -22,9 +22,10 @@ interface TikTokDraftsTabProps {
   onPublish?: (draftId: string) => void;
   onSchedule?: (draft: TikTokDraft) => void;
   onBackToImages?: () => void;
+  onRefresh?: () => void;
 }
 
-export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages }: TikTokDraftsTabProps) {
+export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onRefresh }: TikTokDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'converted' | 'published'>('all');
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editedCaption, setEditedCaption] = useState<string>('');
@@ -147,18 +148,19 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
 
   return (
     <div className="space-y-6">
-      {/* Category Filter Buttons */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setActiveCategory('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-            activeCategory === 'all'
-              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
-              : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
-          }`}
-        >
-          🎯 Tous ({drafts.length})
-        </button>
+      {/* Header with Category Filters and Refresh Button */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setActiveCategory('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeCategory === 'all'
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+                : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+            }`}
+          >
+            🎯 Tous ({drafts.length})
+          </button>
         <button
           onClick={() => setActiveCategory('draft')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
@@ -189,6 +191,21 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         >
           ✅ Publiées ({countByCategory.published})
         </button>
+        </div>
+
+        {/* Refresh Button */}
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="px-4 py-2 bg-white border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all flex items-center gap-2"
+            title="Actualiser les brouillons"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Actualiser
+          </button>
+        )}
       </div>
 
       {/* Message si pas de résultats pour cette catégorie */}
@@ -206,14 +223,31 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
           <div className="aspect-video bg-gradient-to-br from-cyan-50 to-blue-50 relative">
+            {(() => {
+              const mediaUrl = draft.media_url || (draft as any).image_url;
+              console.log('[TikTokDrafts] Rendering draft:', {
+                id: draft.id.substring(0, 12),
+                media_url: draft.media_url ? 'YES' : 'NO',
+                image_url: (draft as any).image_url ? 'YES' : 'NO',
+                finalUrl: mediaUrl ? mediaUrl.substring(0, 60) + '...' : 'NULL',
+                hasFailed: failedImages.has(draft.id)
+              });
+              return null;
+            })()}
             {!failedImages.has(draft.id) && (draft.media_url || (draft as any).image_url) ? (
               <img
                 src={draft.media_url || (draft as any).image_url}
                 alt="TikTok video preview"
                 className="w-full h-full object-cover"
                 loading="lazy"
+                onLoad={() => {
+                  console.log('[TikTokDrafts] ✅ Image loaded successfully:', draft.id.substring(0, 12));
+                }}
                 onError={(e) => {
-                  console.error('[TikTokDrafts] Image failed to load:', draft.media_url || (draft as any).image_url);
+                  console.error('[TikTokDrafts] ❌ Image failed to load:', {
+                    id: draft.id.substring(0, 12),
+                    url: draft.media_url || (draft as any).image_url
+                  });
                   setFailedImages(prev => new Set(prev).add(draft.id));
                 }}
               />
