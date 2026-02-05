@@ -239,6 +239,8 @@ export default function GeneratePage() {
   const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
+  const [addTextOverlay, setAddTextOverlay] = useState(false);
+  const [textOverlayStyle, setTextOverlayStyle] = useState('dynamic'); // dynamic, minimal, bold
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -1545,7 +1547,17 @@ export default function GeneratePage() {
 
     try {
       // Construire le prompt vidéo
-      const videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+      let videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+
+      // Ajouter l'instruction de texte si activée
+      if (addTextOverlay) {
+        const textStyles = {
+          dynamic: 'Add dynamic, animated text overlays that highlight key points throughout the video. Text should appear at strategic moments and enhance the message.',
+          minimal: 'Add clean, minimalist text overlays with key information. Keep text simple and easy to read.',
+          bold: 'Add bold, impactful text overlays with strong typography. Text should grab attention and emphasize important messages.'
+        };
+        videoPrompt += ` ${textStyles[textOverlayStyle as keyof typeof textStyles]}`;
+      }
 
       console.log('[Video] Starting generation with prompt:', videoPrompt);
 
@@ -2355,6 +2367,62 @@ export default function GeneratePage() {
                           💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
                         </p>
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Option texte IA pour les vidéos */}
+                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addTextOverlay}
+                      onChange={(e) => setAddTextOverlay(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-xs font-medium text-purple-900">
+                      ✨ Ajouter du texte animé IA dans la vidéo
+                    </span>
+                  </label>
+
+                  {addTextOverlay && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-[10px] text-purple-700">Style du texte:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          onClick={() => setTextOverlayStyle('dynamic')}
+                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
+                            textOverlayStyle === 'dynamic'
+                              ? 'bg-purple-600 text-white border-purple-600'
+                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                          }`}
+                        >
+                          🎬 Dynamique
+                        </button>
+                        <button
+                          onClick={() => setTextOverlayStyle('minimal')}
+                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
+                            textOverlayStyle === 'minimal'
+                              ? 'bg-purple-600 text-white border-purple-600'
+                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                          }`}
+                        >
+                          ✨ Minimaliste
+                        </button>
+                        <button
+                          onClick={() => setTextOverlayStyle('bold')}
+                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
+                            textOverlayStyle === 'bold'
+                              ? 'bg-purple-600 text-white border-purple-600'
+                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                          }`}
+                        >
+                          💥 Impactant
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-purple-600 italic">
+                        💡 L'IA génèrera automatiquement du texte qui s'intègre parfaitement à la vidéo
+                      </p>
                     </div>
                   )}
                 </div>
