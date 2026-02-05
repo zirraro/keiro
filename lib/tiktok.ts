@@ -954,3 +954,75 @@ export async function publishTikTokVideoViaFileUpload(
 
   return { publish_id: publishId };
 }
+
+/**
+ * Download and cache a TikTok video thumbnail in Supabase Storage
+ * Returns stable URL for display
+ */
+export async function cacheTikTokThumbnail(
+  videoId: string,
+  coverImageUrl: string,
+  userId: string
+): Promise<string | null> {
+  try {
+    if (!coverImageUrl) {
+      console.log('[TikTok] No cover image URL provided for video:', videoId);
+      return null;
+    }
+
+    // Import Supabase client (server-side)
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    console.log('[TikTok] Downloading thumbnail for video:', videoId);
+
+    // Download thumbnail from TikTok URL
+    const response = await fetch(coverImageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('[TikTok] Failed to download thumbnail:', response.status);
+      return null;
+    }
+
+    const buffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+
+    // Generate storage path
+    const extension = contentType.split('/')[1] || 'jpg';
+    const filename = `tiktok-thumbnails/${userId}/${videoId}.${extension}`;
+
+    console.log('[TikTok] Uploading thumbnail to Storage:', filename);
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('generated-images')
+      .upload(filename, buffer, {
+        contentType,
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('[TikTok] Failed to upload thumbnail:', uploadError);
+      return null;
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('generated-images')
+      .getPublicUrl(filename);
+
+    console.log('[TikTok] ✅ Thumbnail cached successfully:', publicUrlData.publicUrl);
+
+    return publicUrlData.publicUrl;
+
+  } catch (error: any) {
+    console.error('[TikTok] Error caching thumbnail:', error);
+    return null;
+  }
+}

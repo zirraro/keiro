@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
-import { getTikTokVideos, refreshTikTokToken } from '@/lib/tiktok';
+import { getTikTokVideos, refreshTikTokToken, cacheTikTokThumbnail } from '@/lib/tiktok';
 
 /**
  * POST /api/tiktok/sync-media
@@ -131,13 +131,24 @@ export async function POST(req: NextRequest) {
         create_time: video.create_time
       });
 
+      // Download and cache thumbnail in Supabase Storage for stable display
+      let cachedThumbnailUrl: string | null = null;
+      if (video.cover_image_url) {
+        cachedThumbnailUrl = await cacheTikTokThumbnail(
+          video.id,
+          video.cover_image_url,
+          user.id
+        );
+        console.log('[TikTokSync] Cached thumbnail URL:', cachedThumbnailUrl || 'Failed');
+      }
+
       const videoData = {
         id: video.id,
         user_id: user.id,
         video_description: video.video_description || video.title || '',
         duration: video.duration || 0,
         cover_image_url: video.cover_image_url || null,
-        cached_thumbnail_url: video.cover_image_url || null,
+        cached_thumbnail_url: cachedThumbnailUrl || video.cover_image_url || null,
         share_url: video.share_url || null,
         // Note: TikTok API doesn't provide direct video download URL in video.list
         // Only provides cover_image_url for thumbnails
