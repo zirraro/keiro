@@ -260,17 +260,38 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               </div>
             )}
           </div>
-          <button
-            onClick={onPreparePost}
-            className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
-              isCollapsed
-                ? 'w-full px-2 py-1.5 text-[10px]'
-                : 'px-3 py-1.5 text-xs'
-            }`}
-            title={isCollapsed ? "Préparer un post" : ""}
-          >
-            {isCollapsed ? '+ Post' : 'Préparer un post'}
-          </button>
+          <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col w-full' : ''}`}>
+            {/* Bouton refresh/sync */}
+            <button
+              onClick={() => handleSyncMedia()}
+              disabled={syncing}
+              className={`bg-white border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isCollapsed
+                  ? 'w-full px-2 py-1.5 flex items-center justify-center'
+                  : 'p-2'
+              }`}
+              title="Synchroniser les vidéos TikTok"
+            >
+              {syncing ? (
+                <div className="w-4 h-4 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={onPreparePost}
+              className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+                isCollapsed
+                  ? 'w-full px-2 py-1.5 text-[10px]'
+                  : 'px-3 py-1.5 text-xs'
+              }`}
+              title={isCollapsed ? "Préparer un post" : ""}
+            >
+              {isCollapsed ? '+ Post' : 'Préparer un post'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -279,10 +300,19 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           {/* Videos Grid - Same format as Instagram */}
           {posts.length > 0 ? (
             <div className="p-3">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
               {posts.map((post) => {
                 const thumbnailUrl = post.cached_thumbnail_url || post.cover_image_url;
                 const hasError = failedThumbnails.has(post.id);
+
+                // Debug logging
+                console.log('[TikTokWidget] Post thumbnail:', {
+                  id: post.id.substring(0, 12),
+                  cached: post.cached_thumbnail_url ? 'YES' : 'NO',
+                  cover: post.cover_image_url ? 'YES' : 'NO',
+                  thumbnailUrl: thumbnailUrl ? thumbnailUrl.substring(0, 60) + '...' : 'NULL',
+                  hasError
+                });
 
                 return (
                 <a
@@ -299,8 +329,16 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                       alt={post.video_description?.substring(0, 30) || 'TikTok video'}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
+                      onLoad={() => {
+                        console.log('[TikTokWidget] ✅ Thumbnail loaded successfully:', post.id.substring(0, 12));
+                      }}
                       onError={(e) => {
-                        console.error('[TikTokWidget] Thumbnail failed:', thumbnailUrl);
+                        console.error('[TikTokWidget] ❌ Thumbnail failed:', {
+                          id: post.id.substring(0, 12),
+                          url: thumbnailUrl,
+                          cached: post.cached_thumbnail_url,
+                          cover: post.cover_image_url
+                        });
                         setFailedThumbnails(prev => new Set(prev).add(post.id));
                       }}
                     />
