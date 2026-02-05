@@ -2376,8 +2376,8 @@ export default function GeneratePage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={addTextOverlay}
-                      onChange={(e) => setAddTextOverlay(e.target.checked)}
+                      checked={enableAIText}
+                      onChange={(e) => setEnableAIText(e.target.checked)}
                       className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                     />
                     <span className="text-xs font-medium text-purple-900">
@@ -2385,14 +2385,14 @@ export default function GeneratePage() {
                     </span>
                   </label>
 
-                  {addTextOverlay && (
+                  {enableAIText && (
                     <div className="mt-2 space-y-2">
                       <p className="text-[10px] text-purple-700">Style du texte:</p>
                       <div className="grid grid-cols-3 gap-2">
                         <button
-                          onClick={() => setTextOverlayStyle('dynamic')}
+                          onClick={() => setAITextStyle('dynamic')}
                           className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            textOverlayStyle === 'dynamic'
+                            aiTextStyle === 'dynamic'
                               ? 'bg-purple-600 text-white border-purple-600'
                               : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
                           }`}
@@ -2400,9 +2400,9 @@ export default function GeneratePage() {
                           🎬 Dynamique
                         </button>
                         <button
-                          onClick={() => setTextOverlayStyle('minimal')}
+                          onClick={() => setAITextStyle('minimal')}
                           className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            textOverlayStyle === 'minimal'
+                            aiTextStyle === 'minimal'
                               ? 'bg-purple-600 text-white border-purple-600'
                               : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
                           }`}
@@ -2410,9 +2410,9 @@ export default function GeneratePage() {
                           ✨ Minimaliste
                         </button>
                         <button
-                          onClick={() => setTextOverlayStyle('bold')}
+                          onClick={() => setAITextStyle('bold')}
                           className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            textOverlayStyle === 'bold'
+                            aiTextStyle === 'bold'
                               ? 'bg-purple-600 text-white border-purple-600'
                               : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
                           }`}
