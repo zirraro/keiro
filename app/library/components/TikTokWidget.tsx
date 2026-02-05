@@ -318,7 +318,8 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                     </svg>
                   </div>
                 </a>
-              ))}
+                );
+              })}
               </div>
             </div>
       ) : (
