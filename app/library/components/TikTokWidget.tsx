@@ -195,15 +195,15 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               )}
             </div>
             <button
-              onClick={isCollapsed ? onConnect : onPreparePost}
+              onClick={onPreparePost}
               className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? (onConnect ? "Se connecter" : "Préparer un post") : ""}
+              title={isCollapsed ? "Préparer un post" : ""}
             >
-              {isCollapsed ? 'Connecter' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : 'Préparer un post'}
             </button>
           </div>
         </div>

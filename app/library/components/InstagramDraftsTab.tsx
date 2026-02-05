@@ -180,11 +180,11 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
       )}
 
       {/* Grille de brouillons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
-        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow max-w-sm mx-auto">
+        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
           {/* Image/Video */}
-          <div className="aspect-square bg-neutral-100 relative max-h-80">
+          <div className="aspect-video bg-neutral-100 relative">
             <img
               src={draft.media_url}
               alt="Instagram post preview"
