@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import Masonry from 'react-masonry-css';
 import FolderHeader from './FolderHeader';
 import CreationCard, { CreationItem } from './CreationCard';
 
@@ -40,7 +39,7 @@ export default function AllCreationsTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'folder'>('folder');
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['uncategorized']));
 
   // États pour le modal de création de dossier
@@ -171,13 +170,6 @@ export default function AllCreationsTab({
     };
   };
 
-  const breakpointColumns = {
-    default: 5,
-    1536: 4,
-    1024: 3,
-    640: 2
-  };
-
   const totalCount = filteredCreations.length;
   const imageCount = filteredCreations.filter(c => c.type === 'image').length;
   const videoCount = filteredCreations.filter(c => c.type === 'video').length;
@@ -274,31 +266,6 @@ export default function AllCreationsTab({
             </div>
           ))}
         </div>
-      );
-    } else if (viewMode === 'masonry') {
-      return (
-        <Masonry
-          breakpointCols={breakpointColumns}
-          className="masonry-grid"
-          columnClassName="masonry-grid-column"
-        >
-          {items.map(item => (
-            <div key={`${item.type}-${item.id}`} className="mb-4">
-              <CreationCard
-                item={item}
-                onToggleFavorite={(id, isFavorite) => onToggleFavorite(id, item.type, isFavorite)}
-                onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
-                onDelete={(id) => onDelete(id, item.type)}
-                onPublish={onPublish}
-                onDownload={onDownload}
-                onMoveToFolder={(item) => {
-                  setItemToMove(item);
-                  setShowMoveFolderModal(true);
-                }}
-              />
-            </div>
-          ))}
-        </Masonry>
       );
     } else { // list
       return (
@@ -424,7 +391,7 @@ export default function AllCreationsTab({
             })}
         </>
       );
-    } else if (viewMode === 'list') {
+    } else {
       // LIST MODE: Show folders as rows
       return (
         <div className="space-y-3">
@@ -438,51 +405,6 @@ export default function AllCreationsTab({
                 <button
                   onClick={() => toggleFolder(folderId)}
                   className="w-full p-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors text-left"
-                >
-                  <span className="text-3xl">{folder.icon}</span>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg" style={{ color: folder.color }}>
-                      {folder.name}
-                    </h3>
-                    <p className="text-sm text-neutral-500">
-                      {items.length} {items.length > 1 ? 'éléments' : 'élément'}
-                    </p>
-                  </div>
-                  <svg
-                    className={`w-6 h-6 text-neutral-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Folder Content */}
-                {isExpanded && items.length > 0 && (
-                  <div className="p-6 pt-0">
-                    {renderFolderContent(items)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      );
-    } else {
-      // MASONRY MODE: Show folders with expandable headers
-      return (
-        <div className="space-y-6">
-          {sortedFolders.map(([folderId, items]) => {
-            const folder = getFolderInfo(folderId);
-            const isExpanded = expandedFolders.has(folderId);
-
-            return (
-              <div key={folderId} className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                {/* Folder Header */}
-                <button
-                  onClick={() => toggleFolder(folderId)}
-                  className="w-full p-4 flex items-center gap-3 hover:bg-neutral-50 transition-colors text-left"
                 >
                   <span className="text-3xl">{folder.icon}</span>
                   <div className="flex-1">
@@ -582,7 +504,7 @@ export default function AllCreationsTab({
             <option value="title">Trier par titre</option>
           </select>
 
-          {/* View Mode Selector */}
+          {/* View Mode Selector - 2 modes only */}
           <div className="flex gap-1 border border-neutral-300 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
@@ -591,23 +513,10 @@ export default function AllCreationsTab({
                   ? 'bg-blue-600 text-white'
                   : 'text-neutral-600 hover:bg-neutral-100'
               }`}
-              title="Vue en grille"
+              title="Vue en icônes"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewMode('masonry')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'masonry'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-neutral-600 hover:bg-neutral-100'
-              }`}
-              title="Vue en mosaïque"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 12a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
               </svg>
             </button>
             <button
@@ -617,7 +526,7 @@ export default function AllCreationsTab({
                   ? 'bg-blue-600 text-white'
                   : 'text-neutral-600 hover:bg-neutral-100'
               }`}
-              title="Vue en liste"
+              title="Vue en lignes"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -887,18 +796,6 @@ export default function AllCreationsTab({
       ) : (
         renderFolders()
       )}
-
-      <style jsx global>{`
-        .masonry-grid {
-          display: flex;
-          margin-left: -16px;
-          width: auto;
-        }
-        .masonry-grid-column {
-          padding-left: 16px;
-          background-clip: padding-box;
-        }
-      `}</style>
     </div>
   );
 }
