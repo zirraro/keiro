@@ -133,6 +133,53 @@ const DEMO_IMAGES: SavedImage[] = [
   }
 ];
 
+const DEMO_VIDEOS: MyVideo[] = [
+  {
+    id: 'demo-video-1',
+    video_url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+    thumbnail_url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=400&fit=crop',
+    title: 'Lancement produit - Teaser 5s',
+    duration: 5,
+    source_type: 'seedream_i2v',
+    is_favorite: false,
+    created_at: new Date().toISOString(),
+    published_to_tiktok: false
+  },
+  {
+    id: 'demo-video-2',
+    video_url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+    thumbnail_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=400&fit=crop',
+    title: 'Story Instagram - Marketing Digital',
+    duration: 5,
+    source_type: 'seedream_i2v',
+    is_favorite: true,
+    created_at: new Date().toISOString(),
+    published_to_tiktok: false
+  },
+  {
+    id: 'demo-video-3',
+    video_url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+    thumbnail_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=400&fit=crop',
+    title: 'Reel TikTok - Croissance Business',
+    duration: 5,
+    source_type: 'seedream_i2v',
+    is_favorite: false,
+    created_at: new Date().toISOString(),
+    published_to_tiktok: false
+  },
+  {
+    id: 'demo-video-4',
+    video_url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+    thumbnail_url: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&h=400&fit=crop',
+    title: 'Promo flash - Innovation Tech',
+    duration: 5,
+    source_type: 'seedream_i2v',
+    is_favorite: true,
+    created_at: new Date().toISOString(),
+    published_to_tiktok: false
+  }
+];
+
 function LibraryContent() {
   const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
@@ -257,6 +304,7 @@ function LibraryContent() {
         } else {
           // Visiteur sans email, charger les données de démo
           setImages(DEMO_IMAGES);
+          setMyVideos(DEMO_VIDEOS);
           setStats({
             total_images: DEMO_IMAGES.length,
             total_folders: 0,
@@ -1647,7 +1695,7 @@ function LibraryContent() {
               )
             ) : activeTab === 'videos' ? (
               <MyVideosTab
-                videos={[]}
+                videos={myVideos}
                 onRefresh={() => {}}
                 onDelete={() => {}}
                 onToggleFavorite={() => {}}
