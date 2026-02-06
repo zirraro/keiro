@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { InstagramIcon, TrashIcon } from './Icons';
 import InstagramHelpGuide from './InstagramHelpGuide';
+import PlatformChoiceModal from './PlatformChoiceModal';
 
 export type InstagramDraft = {
   id: string;
@@ -29,6 +30,7 @@ interface InstagramDraftsTabProps {
 
 export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onPrepareInstagram, onPrepareTikTok }: InstagramDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
+  const [showPlatformChoice, setShowPlatformChoice] = useState(false);
 
   // Filter drafts by category
   const filteredDrafts = activeCategory === 'all'
@@ -72,38 +74,22 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </li>
           </ol>
         </div>
-        <div className="relative inline-block group">
-          <button
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Préparer un post
-            <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div className="absolute left-1/2 -translate-x-1/2 mt-2 hidden group-hover:flex flex-col bg-white rounded-xl shadow-xl border border-neutral-200 overflow-hidden min-w-[220px] z-50">
-            <button
-              onClick={() => onPrepareInstagram?.()}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition-colors text-left"
-            >
-              <InstagramIcon className="w-5 h-5 text-purple-600" />
-              <span className="font-medium text-neutral-800">Post Instagram</span>
-            </button>
-            <div className="border-t border-neutral-100" />
-            <button
-              onClick={() => onPrepareTikTok?.()}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-cyan-50 transition-colors text-left"
-            >
-              <svg className="w-5 h-5 text-cyan-600" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
-              </svg>
-              <span className="font-medium text-neutral-800">Post TikTok</span>
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => setShowPlatformChoice(true)}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Préparer un post
+        </button>
+        {showPlatformChoice && (
+          <PlatformChoiceModal
+            onClose={() => setShowPlatformChoice(false)}
+            onSelectInstagram={() => { setShowPlatformChoice(false); onPrepareInstagram?.(); }}
+            onSelectTikTok={() => { setShowPlatformChoice(false); onPrepareTikTok?.(); }}
+          />
+        )}
       </div>
     );
   }
