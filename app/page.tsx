@@ -886,8 +886,8 @@ export default function HomeKeiro() {
               special
               highlight
               bullets={[
-                '30 visuels/mois (3 retouches incluses)',
-                '8 vidéos TikTok/mois (2/semaine !)',
+                '50 visuels/mois (3 retouches incluses)',
+                '12 vidéos TikTok/mois (3/semaine !)',
                 'Instagram + TikTok débloqué',
                 '50 messages Assistant IA Marketing',
                 '20 suggestions texte + 15 narrations audio',
@@ -903,8 +903,8 @@ export default function HomeKeiro() {
               price="349€ / mois"
               subtitle="Pour agences"
               bullets={[
-                '80 visuels/mois (3 retouches incluses)',
-                '18 vidéos TikTok/mois (4-5/semaine !)',
+                '100 visuels/mois (3 retouches incluses)',
+                '25 vidéos TikTok/mois (6/semaine !)',
                 '100 messages Assistant IA',
                 'Tout Fondateurs +',
                 'Multi-comptes (1+5 clients)',
@@ -927,7 +927,7 @@ export default function HomeKeiro() {
               <ul className="grid md:grid-cols-2 gap-3 mb-6">
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>200 visuels/mois + 55 vidéos/mois</span>
+                  <span>250 visuels/mois + 70 vidéos/mois</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>

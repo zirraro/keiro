@@ -273,8 +273,8 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>30 visuels/mois</strong> (3 retouches incluses)</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>8 vidéos TikTok/mois</strong> (2/semaine !)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>50 visuels/mois</strong> (3 retouches incluses)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>12 vidéos TikTok/mois</strong> (3/semaine !)</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
               <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok</strong> 🎵 (Croissance virale 10x)</span></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
@@ -313,8 +313,8 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>80 visuels/mois</strong> (3 retouches incluses)</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>18 vidéos TikTok/mois</strong> (4-5/semaine !)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>100 visuels/mois</strong> (3 retouches incluses)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>25 vidéos TikTok/mois</strong> (6/semaine !)</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 100 messages Assistant IA</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
@@ -341,7 +341,7 @@ export default function PricingPage() {
               <p className="text-neutral-600 text-sm">Service premium + consulting</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>200 visuels/mois + 55 vidéos</strong></li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>250 visuels/mois + 70 vidéos</strong></li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> 200 messages IA + 100 suggestions</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
@@ -376,17 +376,17 @@ export default function PricingPage() {
                   <td className="py-3 px-2 font-medium">Visuels</td>
                   <td className="text-center py-3 px-2">3 (watermark)</td>
                   <td className="text-center py-3 px-2">20/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">30/mois</td>
-                  <td className="text-center py-3 px-2">80/mois</td>
-                  <td className="text-center py-3 px-2">200/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>50/mois</strong></td>
+                  <td className="text-center py-3 px-2">100/mois</td>
+                  <td className="text-center py-3 px-2">250/mois</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Vidéos</td>
                   <td className="text-center py-3 px-2">-</td>
                   <td className="text-center py-3 px-2">1 (Reels test)</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>8 (TikTok + Reels)</strong></td>
-                  <td className="text-center py-3 px-2">18</td>
-                  <td className="text-center py-3 px-2">55</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>12 (TikTok + Reels)</strong></td>
+                  <td className="text-center py-3 px-2">25</td>
+                  <td className="text-center py-3 px-2">70</td>
                 </tr>
                 <tr className="border-b bg-cyan-50/50">
                   <td className="py-3 px-2 font-medium">🎵 TikTok</td>

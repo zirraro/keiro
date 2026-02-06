@@ -188,17 +188,19 @@ Multi-comptes (1+5 clients). 18 videos = ~4-5/semaine.
 
 ---
 
-## TABLEAU COMPARATIF FINAL
+## TABLEAU COMPARATIF FINAL (v4.1 - Quotas genereux)
 
 | Plan | Prix EUR | Visuels | Videos | Msgs IA | Suggestions | Audio | Cout API $ | Marge % |
 |------|----------|---------|--------|---------|-------------|-------|------------|---------|
 | **Solo** | 49 | 20 | 1 | 20 | 10 | 5 | $10.02 | **81%** ✅ |
-| **Fondateurs** | 149 | 30 | 8 | 50 | 20 | 15 | $31.22 | **81%** ✅ |
-| **Standard** | 199 | 40 | 11 | 60 | 25 | 20 | $42.29 | **81%** ✅ |
-| **Business** | 349 | 80 | 18 | 100 | 50 | 30 | $74.33 | **81%** ✅ |
-| **Elite** | 999 | 200 | 55 | 200 | 100 | 60 | $210.02 | **81%** ✅ |
+| **Fondateurs** | 149 | 50 | 12 | 50 | 20 | 15 | $47.98 | **71%** |
+| **Standard** | 199 | 60 | 15 | 60 | 25 | 20 | $59.10 | **73%** |
+| **Business** | 349 | 100 | 25 | 100 | 50 | 30 | $98.00 | **74%** |
+| **Elite** | 999 | 250 | 70 | 200 | 100 | 60 | $263.30 | **76%** |
 
-**TOUS les plans >= 80% marge meme en usage ultra-intensif** ✅
+**Marges 71-81% - Choix strategique : quotas genereux pour fideliser**
+Note : La marge est calculee sur usage ULTRA-INTENSIF (3 mods par element).
+En pratique, la plupart des clients n'utiliseront pas 100% du quota → marge reelle ~80-85%.
 
 ### Essai Sprint Fondateur : 4.99 EUR / 3 jours
 - Acces complet fonctionnalites Fondateurs
@@ -259,12 +261,12 @@ Multi-comptes (1+5 clients). 18 videos = ~4-5/semaine.
 
 ## CONCLUSION
 
-### Quotas valides pour chaque plan (avec vrais prix SeedAnce)
-- **Solo 49 EUR** : 20 visuels, 1 video, Instagram
-- **Fondateurs 149 EUR** : 30 visuels, 8 videos, Instagram + TikTok (prix bloque)
-- **Standard 199 EUR** : 40 visuels, 11 videos, Instagram + TikTok
-- **Business 349 EUR** : 80 visuels, 18 videos, Multi-comptes
-- **Elite 999 EUR** : 200 visuels, 55 videos, Premium + Consulting
+### Quotas valides pour chaque plan (v4.1 - genereux)
+- **Solo 49 EUR** : 20 visuels, 1 video, Instagram (81% marge)
+- **Fondateurs 149 EUR** : 50 visuels, 12 videos, Instagram + TikTok (71% marge)
+- **Standard 199 EUR** : 60 visuels, 15 videos, Instagram + TikTok (73% marge)
+- **Business 349 EUR** : 100 visuels, 25 videos, Multi-comptes (74% marge)
+- **Elite 999 EUR** : 250 visuels, 70 videos, Premium + Consulting (76% marge)
 
 ### Corrections appliquees (v4)
 1. ✅ Prix video corriges : SeedAnce 1.0 Pro ($0.61 au lieu de $2.47)
