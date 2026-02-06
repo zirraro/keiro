@@ -42,9 +42,13 @@ export async function GET(req: NextRequest) {
       'business_management',
     ].join(',');
 
-    // Encode user_id in state parameter to maintain context during OAuth redirect
+    // Capture the origin domain so the callback redirects to the correct domain
+    const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+
+    // Encode user_id + origin in state parameter to maintain context during OAuth redirect
     const statePayload = {
       userId: user.id,
+      origin,
       timestamp: Date.now()
     };
     const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString('base64');

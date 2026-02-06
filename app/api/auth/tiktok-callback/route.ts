@@ -7,8 +7,8 @@ import { exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
  * Handle TikTok OAuth callback
  */
 export async function GET(req: NextRequest) {
-  // Get base URL from request or env (declare at top level for catch block access)
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  // Fallback base URL (will be overridden by state.origin when available)
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
   try {
     const startTime = Date.now();
@@ -18,7 +18,17 @@ export async function GET(req: NextRequest) {
     const error = searchParams.get('error');
     const errorDescription = searchParams.get('error_description');
 
-    console.log('[TikTokCallback] 🚀 Starting callback', {
+    // Try to extract origin from state early (for error redirects too)
+    if (state) {
+      try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+        if (decoded.origin) {
+          baseUrl = decoded.origin;
+        }
+      } catch {}
+    }
+
+    console.log('[TikTokCallback] Starting callback', {
       baseUrl,
       hasCode: !!code,
       hasState: !!state,
@@ -40,7 +50,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Extract user_id from state parameter (passed during OAuth initiation)
+    // Extract user_id and origin from state parameter (passed during OAuth initiation)
     let userId: string;
     try {
       if (!state) {
@@ -50,13 +60,18 @@ export async function GET(req: NextRequest) {
       const statePayload = JSON.parse(stateDecoded);
       userId = statePayload.userId;
 
+      // Use origin from state to redirect back to the correct domain
+      if (statePayload.origin) {
+        baseUrl = statePayload.origin;
+      }
+
       if (!userId) {
         throw new Error('User ID not found in state');
       }
 
-      console.log('[TikTokCallback] ✅ Extracted user ID from state:', userId);
+      console.log('[TikTokCallback] Extracted from state - userId:', userId, 'origin:', baseUrl);
     } catch (stateError: any) {
-      console.error('[TikTokCallback] ❌ Failed to extract user ID from state:', stateError.message);
+      console.error('[TikTokCallback] Failed to extract user ID from state:', stateError.message);
       return NextResponse.redirect(
         `${baseUrl}/tiktok-callback?error=${encodeURIComponent('Invalid session state - please try reconnecting')}`
       );
