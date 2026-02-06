@@ -167,7 +167,7 @@ export default function MyVideosTab({
           <p className="text-neutral-500 mb-6">
             {searchQuery || filterBy !== 'all'
               ? 'Essayez de modifier vos filtres de recherche'
-              : 'Créez votre première vidéo avec Seedream I2V'}
+              : 'Créez votre première vidéo'}
           </p>
         </div>
       ) : (
