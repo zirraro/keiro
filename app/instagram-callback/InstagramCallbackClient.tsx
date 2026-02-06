@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 function InstagramCallbackContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Connexion à Instagram en cours...');
@@ -21,7 +21,7 @@ function InstagramCallbackContent() {
           console.error('[InstagramCallback] OAuth error:', error, errorDescription);
           setStatus('error');
           setMessage(errorDescription || 'Connexion refusée');
-          setTimeout(() => router.push('/library'), 3000);
+          setTimeout(() => { window.location.href = '/library'; }, 3000);
           return;
         }
 
@@ -29,8 +29,15 @@ function InstagramCallbackContent() {
         if (!code) {
           setStatus('error');
           setMessage('Code d\'autorisation manquant');
-          setTimeout(() => router.push('/library'), 3000);
+          setTimeout(() => { window.location.href = '/library'; }, 3000);
           return;
+        }
+
+        // Ensure Supabase session is still active after external redirect
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          await supabase.auth.refreshSession();
         }
 
         setMessage('Échange du code d\'autorisation...');
@@ -46,10 +53,10 @@ function InstagramCallbackContent() {
 
         if (data.ok) {
           setStatus('success');
-          setMessage('✅ Compte Instagram connecté avec succès !');
+          setMessage('Compte Instagram connecté avec succès !');
 
-          // Rediriger vers la galerie après 2 secondes
-          setTimeout(() => router.push('/library'), 2000);
+          // Full page reload to ensure session cookies are fresh
+          setTimeout(() => { window.location.href = '/library'; }, 2000);
         } else {
           throw new Error(data.error || 'Erreur lors de la connexion Instagram');
         }
@@ -58,12 +65,12 @@ function InstagramCallbackContent() {
         console.error('[InstagramCallback] Error:', error);
         setStatus('error');
         setMessage(error.message || 'Erreur lors de la connexion');
-        setTimeout(() => router.push('/library'), 3000);
+        setTimeout(() => { window.location.href = '/library'; }, 3000);
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center p-6">

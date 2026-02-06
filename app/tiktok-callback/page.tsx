@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/client';
 
 function TikTokCallbackContent() {
   const router = useRouter();
@@ -11,23 +12,39 @@ function TikTokCallbackContent() {
   const [username, setUsername] = useState<string>('');
 
   useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
-    const usernameParam = searchParams.get('username');
+    const handleCallback = async () => {
+      const success = searchParams.get('success');
+      const error = searchParams.get('error');
+      const usernameParam = searchParams.get('username');
 
-    if (success === 'true') {
-      setStatus('success');
-      if (usernameParam) {
-        setUsername(decodeURIComponent(usernameParam));
+      if (success === 'true') {
+        // Ensure Supabase session is still active after external redirect
+        const supabase = supabaseBrowser();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          // Try to refresh the session
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.warn('[TikTokCallback] Session lost, but TikTok connected. Redirecting to library.');
+          }
+        }
+
+        setStatus('success');
+        if (usernameParam) {
+          setUsername(decodeURIComponent(usernameParam));
+        }
+        // Redirect to library after 2 seconds
+        setTimeout(() => {
+          window.location.href = '/library';
+        }, 2000);
+      } else if (error) {
+        setStatus('error');
+        setErrorMessage(decodeURIComponent(error));
       }
-      // Redirect to library after 2 seconds
-      setTimeout(() => {
-        router.push('/library');
-      }, 2000);
-    } else if (error) {
-      setStatus('error');
-      setErrorMessage(decodeURIComponent(error));
-    }
+    };
+
+    handleCallback();
   }, [searchParams, router]);
 
   return (
