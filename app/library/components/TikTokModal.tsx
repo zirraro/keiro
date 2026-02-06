@@ -774,8 +774,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     window.location.href = '/api/auth/tiktok-oauth';
   };
 
-  // Only show "no content" error if no images AND no videos AND loading finished
-  if (!selectedImage && !selectedVideo && !loadingImages && !loadingVideos) {
+  // Only show "no content" error if no images AND no videos AND loading finished AND none available
+  if (!selectedImage && !selectedVideo && !loadingImages && !loadingVideos && availableImages.length === 0 && availableVideos.length === 0) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">

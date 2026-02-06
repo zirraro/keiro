@@ -1657,7 +1657,7 @@ function LibraryContent() {
             {activeTab === 'all-creations' ? (
               <AllCreationsTab
                 images={images}
-                videos={[]}
+                videos={myVideos}
                 folders={[]}
                 onRefresh={() => {}}
                 onToggleFavorite={(id, type, isFavorite) => toggleFavorite(id, !isFavorite)}
@@ -1699,7 +1699,7 @@ function LibraryContent() {
                 onRefresh={() => {}}
                 onDelete={() => {}}
                 onToggleFavorite={() => {}}
-                onPublishToTikTok={() => {}}
+                onPublishToTikTok={(video) => openPlatformChoiceModalForVideo(video)}
                 onTitleEdit={() => {}}
               />
             ) : activeTab === 'drafts' ? (
