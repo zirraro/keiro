@@ -8,9 +8,10 @@ interface TikTokWidgetProps {
   onPreparePost?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: (collapsed: boolean) => void;
+  refreshTrigger?: number;
 }
 
-export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = false, onToggleCollapse }: TikTokWidgetProps) {
+export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = false, onToggleCollapse, refreshTrigger }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [tiktokUsername, setTiktokUsername] = useState<string | null>(null);
@@ -27,6 +28,13 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
   useEffect(() => {
     loadTikTokStatus();
   }, []);
+
+  // Refresh when parent signals a publish success
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadTikTokStatus();
+    }
+  }, [refreshTrigger]);
 
   const handleSyncMedia = async () => {
     setSyncing(true);

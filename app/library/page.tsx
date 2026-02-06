@@ -206,6 +206,7 @@ function LibraryContent() {
   // États pour le collapse des widgets
   const [isInstagramWidgetCollapsed, setIsInstagramWidgetCollapsed] = useState(false);
   const [isTikTokWidgetCollapsed, setIsTikTokWidgetCollapsed] = useState(false);
+  const [tiktokWidgetRefreshTrigger, setTiktokWidgetRefreshTrigger] = useState(0);
 
   // États pour le workspace Instagram
   const [showInstagramModal, setShowInstagramModal] = useState(false);
@@ -1495,6 +1496,7 @@ function LibraryContent() {
                   onPreparePost={() => setShowTikTokModal(true)}
                   isCollapsed={isTikTokWidgetCollapsed}
                   onToggleCollapse={setIsTikTokWidgetCollapsed}
+                  refreshTrigger={tiktokWidgetRefreshTrigger}
                 />
               </div>
             </div>
@@ -1777,6 +1779,8 @@ function LibraryContent() {
           onPublishSuccess={async () => {
             // Rafraîchir les posts TikTok après publication réussie
             await loadTikTokPosts();
+            // Rafraîchir le widget TikTok pour afficher la nouvelle publication
+            setTiktokWidgetRefreshTrigger(prev => prev + 1);
           }}
           onSave={saveTikTokDraft}
           draftCaption={draftTikTokCaptionToEdit}
