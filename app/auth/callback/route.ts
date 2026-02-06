@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -11,9 +12,35 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL('/login', url))
   }
 
-  const supabase = await supabaseServer()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Exchange code for session
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[Auth Callback] Missing Supabase env vars')
+    return NextResponse.redirect(new URL('/login', url))
+  }
+
+  const cookieStore = await cookies()
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options)
+          })
+        } catch (error) {
+          // This can happen in some edge cases, we'll handle it below
+          console.warn('[Auth Callback] Cookie set warning:', error)
+        }
+      },
+    },
+  })
+
+  // Exchange code for session - this sets the auth cookies
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
@@ -29,44 +56,33 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL('/login', url))
   }
 
-  console.log('[Auth Callback] User authenticated:', user.id)
+  console.log('[Auth Callback] User authenticated:', user.id, user.email)
 
-  // Check if profile exists
+  // Check if profile exists, create if needed
   const { data: existingProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id')
     .eq('id', user.id)
     .single()
 
-  if (profileError && profileError.code !== 'PGRST116') {
-    // PGRST116 = not found, which is ok (we'll create it)
-    console.error('[Auth Callback] Profile lookup error:', profileError)
-  }
-
-  // Create profile if it doesn't exist
-  if (!existingProfile) {
+  if (profileError && profileError.code === 'PGRST116') {
+    // Profile not found, create it
     console.log('[Auth Callback] Creating profile for user:', user.id)
-
     const { error: insertError } = await supabase
       .from('profiles')
-      .insert([
-        {
-          id: user.id,
-          email: user.email || '',
-          first_name: user.user_metadata?.first_name || '',
-          last_name: user.user_metadata?.last_name || '',
-          business_type: user.user_metadata?.business_type || '',
-        },
-      ])
+      .insert([{
+        id: user.id,
+        email: user.email || '',
+        first_name: user.user_metadata?.first_name || '',
+        last_name: user.user_metadata?.last_name || '',
+        business_type: user.user_metadata?.business_type || '',
+      }])
 
     if (insertError) {
       console.error('[Auth Callback] Profile creation error:', insertError)
-      // Don't block login if profile creation fails
     } else {
       console.log('[Auth Callback] Profile created successfully')
     }
-  } else {
-    console.log('[Auth Callback] Profile already exists')
   }
 
   console.log('[Auth Callback] Redirecting to:', next)
