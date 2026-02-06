@@ -317,17 +317,13 @@ export default function LoginPage() {
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
                   Année de création
                 </label>
-                <select
+                <input
+                  type="text"
                   value={businessSince}
                   onChange={(e) => setBusinessSince(e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="">Sélectionnez...</option>
-                  <option value="2024-2025">2024-2025</option>
-                  <option value="2020-2023">2020-2023</option>
-                  <option value="2015-2019">2015-2019</option>
-                  <option value="before-2015">Avant 2015</option>
-                </select>
+                  className={inputClass}
+                  placeholder="Ex: 2020"
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">

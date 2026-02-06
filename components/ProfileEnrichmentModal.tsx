@@ -35,8 +35,6 @@ const ENRICHMENT_FIELDS: (keyof ProfileData)[] = [
   'main_products', 'competitors', 'content_themes', 'social_goals_monthly',
 ];
 
-const DISMISS_KEY = 'keiro-profile-enrichment-dismissed';
-
 function countFilledFields(profile: ProfileData | null): number {
   if (!profile) return 0;
   return ENRICHMENT_FIELDS.filter((field) => {
@@ -49,19 +47,7 @@ function countFilledFields(profile: ProfileData | null): number {
 export function shouldShowEnrichmentModal(profile: ProfileData | null): boolean {
   if (!profile) return false;
   const filled = countFilledFields(profile);
-  if (filled >= 8) return false; // >= 50% filled
-
-  // Check localStorage dismiss
-  if (typeof window !== 'undefined') {
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (dismissed) {
-      const dismissedAt = parseInt(dismissed, 10);
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      if (Date.now() - dismissedAt < sevenDays) return false;
-    }
-  }
-
-  return true;
+  return filled < 8; // < 50% filled → show modal every time
 }
 
 const CONTENT_THEME_OPTIONS = [
@@ -99,11 +85,6 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     setContentThemes(prev =>
       prev.includes(theme) ? prev.filter(t => t !== theme) : [...prev, theme]
     );
-  };
-
-  const handleDismiss = () => {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
-    onClose();
   };
 
   const handleSubmit = async () => {
@@ -253,17 +234,13 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
                 Année de création
               </label>
-              <select
+              <input
+                type="text"
                 value={businessSince}
                 onChange={(e) => setBusinessSince(e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Sélectionnez...</option>
-                <option value="2024-2025">2024-2025</option>
-                <option value="2020-2023">2020-2023</option>
-                <option value="2015-2019">2015-2019</option>
-                <option value="before-2015">Avant 2015</option>
-              </select>
+                className={inputClass}
+                placeholder="Ex: 2020"
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
@@ -479,7 +456,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         <div className="flex gap-3 p-6 pt-4 border-t border-neutral-100">
           <button
             type="button"
-            onClick={handleDismiss}
+            onClick={onClose}
             className="flex-1 py-3 border-2 border-neutral-200 text-neutral-600 font-semibold rounded-lg hover:bg-neutral-50 transition-all"
           >
             Passer
