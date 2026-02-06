@@ -30,3 +30,16 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS marketing_budget TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_audience TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS acquisition_source TEXT;
 ```
+
+## 4. Migration SQL - Champs enrichis supplémentaires
+
+Exécuter dans Supabase Dashboard > SQL Editor :
+
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS company_description TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS brand_tone TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS main_products TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS competitors TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS content_themes TEXT[];
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_goals_monthly TEXT;
+```

@@ -6,6 +6,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
 import AdminBadge from '@/components/AdminBadge';
+import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { supabase } from '@/lib/supabase';
@@ -267,6 +268,9 @@ export default function GeneratePage() {
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showEditEmailGate, setShowEditEmailGate] = useState(false);
   const [showEditSignupGate, setShowEditSignupGate] = useState(false);
+  const [enrichmentProfile, setEnrichmentProfile] = useState<any>(null);
+  const [enrichmentUserId, setEnrichmentUserId] = useState<string>('');
+  const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
 
   /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -282,6 +286,19 @@ export default function GeneratePage() {
         generationLimit.setHasAccount(true);
         editLimit.setHasAccount(true);
         console.log('[Generate] User authenticated:', user.email);
+
+        // Load profile for enrichment modal
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('company_name, website, business_since, team_size, social_networks, posting_frequency, main_goal, marketing_budget, target_audience, acquisition_source, company_description, brand_tone, main_products, competitors, content_themes, social_goals_monthly')
+          .eq('id', user.id)
+          .single();
+
+        if (profile && shouldShowEnrichmentModal(profile)) {
+          setEnrichmentProfile(profile);
+          setEnrichmentUserId(user.id);
+          setShowEnrichmentModal(true);
+        }
       } else {
         console.log('[Generate] No authenticated user');
       }
@@ -4419,6 +4436,15 @@ export default function GeneratePage() {
           isOpen={showEditSignupGate}
           onClose={() => setShowEditSignupGate(false)}
         />
+
+        {/* Modal enrichissement profil */}
+        {showEnrichmentModal && (
+          <ProfileEnrichmentModal
+            profile={enrichmentProfile}
+            userId={enrichmentUserId}
+            onClose={() => setShowEnrichmentModal(false)}
+          />
+        )}
 
       </div>
     </div>

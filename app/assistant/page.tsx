@@ -4,11 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ChatMarketingTab from './ChatMarketingTab';
+import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
 
 export default function AssistantPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('chat');
+  const [profile, setProfile] = useState<any>(null);
+  const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
 
   // Analytics data
   const [stats, setStats] = useState({
@@ -43,6 +46,19 @@ export default function AssistantPage() {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
     setLoading(false);
+
+    if (user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('company_name, website, business_since, team_size, social_networks, posting_frequency, main_goal, marketing_budget, target_audience, acquisition_source, company_description, brand_tone, main_products, competitors, content_themes, social_goals_monthly')
+        .eq('id', user.id)
+        .single();
+
+      if (profileData && shouldShowEnrichmentModal(profileData)) {
+        setProfile(profileData);
+        setShowEnrichmentModal(true);
+      }
+    }
   }
 
   async function loadStats() {
@@ -176,6 +192,15 @@ export default function AssistantPage() {
           <FormationTab />
         )}
       </div>
+
+      {/* Modal enrichissement profil */}
+      {showEnrichmentModal && user && (
+        <ProfileEnrichmentModal
+          profile={profile}
+          userId={user.id}
+          onClose={() => setShowEnrichmentModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [businessType, setBusinessType] = useState('');
+  const [customBusinessType, setCustomBusinessType] = useState('');
 
   // Form fields - Step 2 (optional enrichment)
   const [companyName, setCompanyName] = useState('');
@@ -32,6 +33,12 @@ export default function LoginPage() {
   const [marketingBudget, setMarketingBudget] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [acquisitionSource, setAcquisitionSource] = useState('');
+  const [companyDescription, setCompanyDescription] = useState('');
+  const [brandTone, setBrandTone] = useState('');
+  const [mainProducts, setMainProducts] = useState('');
+  const [competitors, setCompetitors] = useState('');
+  const [contentThemes, setContentThemes] = useState<string[]>([]);
+  const [socialGoalsMonthly, setSocialGoalsMonthly] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +94,8 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
+    const finalBusinessType = businessType === 'other' ? customBusinessType : businessType;
+
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -96,7 +105,7 @@ export default function LoginPage() {
           data: {
             first_name: firstName,
             last_name: lastName,
-            business_type: businessType,
+            business_type: finalBusinessType,
           },
         },
       });
@@ -121,7 +130,7 @@ export default function LoginPage() {
               email: email,
               first_name: firstName,
               last_name: lastName,
-              business_type: businessType,
+              business_type: finalBusinessType,
             },
           ]);
 
@@ -158,6 +167,14 @@ export default function LoginPage() {
     );
   };
 
+  const toggleContentTheme = (theme: string) => {
+    setContentThemes(prev =>
+      prev.includes(theme)
+        ? prev.filter(t => t !== theme)
+        : [...prev, theme]
+    );
+  };
+
   const handleStep2Submit = async () => {
     setLoading(true);
 
@@ -176,6 +193,12 @@ export default function LoginPage() {
         if (marketingBudget) updateData.marketing_budget = marketingBudget;
         if (targetAudience) updateData.target_audience = targetAudience;
         if (acquisitionSource) updateData.acquisition_source = acquisitionSource;
+        if (companyDescription) updateData.company_description = companyDescription;
+        if (brandTone) updateData.brand_tone = brandTone;
+        if (mainProducts) updateData.main_products = mainProducts;
+        if (competitors) updateData.competitors = competitors;
+        if (contentThemes.length > 0) updateData.content_themes = contentThemes;
+        if (socialGoalsMonthly) updateData.social_goals_monthly = socialGoalsMonthly;
 
         if (Object.keys(updateData).length > 0) {
           const { error } = await supabase
@@ -246,6 +269,20 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Description de l'entreprise - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Description de l{"'"}entreprise
+              </label>
+              <textarea
+                value={companyDescription}
+                onChange={(e) => setCompanyDescription(e.target.value)}
+                className={`${inputClass} resize-none`}
+                rows={3}
+                placeholder="Décrivez votre activité en quelques phrases..."
+              />
+            </div>
+
             {/* Site web */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
@@ -257,6 +294,20 @@ export default function LoginPage() {
                 onChange={(e) => setWebsite(e.target.value)}
                 className={inputClass}
                 placeholder="https://monsite.com"
+              />
+            </div>
+
+            {/* Produits/services principaux - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Produits / services principaux
+              </label>
+              <input
+                type="text"
+                value={mainProducts}
+                onChange={(e) => setMainProducts(e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Formation en ligne, coaching, SaaS..."
               />
             </div>
 
@@ -297,6 +348,25 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Ton de communication - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Ton de communication
+              </label>
+              <select
+                value={brandTone}
+                onChange={(e) => setBrandTone(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Sélectionnez...</option>
+                <option value="professionnel">Professionnel</option>
+                <option value="decontracte">Décontracté</option>
+                <option value="humoristique">Humoristique</option>
+                <option value="inspirant">Inspirant</option>
+                <option value="luxe-premium">Luxe / Premium</option>
+              </select>
+            </div>
+
             {/* Réseaux sociaux */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -315,6 +385,29 @@ export default function LoginPage() {
                     }`}
                   >
                     {network}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Thèmes de contenu préférés - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                Thèmes de contenu préférés
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {['Promotions', 'Éducatif', 'Coulisses', 'Témoignages', 'Actualité', 'Storytelling'].map((theme) => (
+                  <button
+                    key={theme}
+                    type="button"
+                    onClick={() => toggleContentTheme(theme)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      contentThemes.includes(theme)
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {theme}
                   </button>
                 ))}
               </div>
@@ -392,6 +485,38 @@ export default function LoginPage() {
                   <option value="both">Les deux</option>
                 </select>
               </div>
+            </div>
+
+            {/* Objectifs réseaux sociaux (mensuel) - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Objectifs réseaux sociaux (mensuel)
+              </label>
+              <select
+                value={socialGoalsMonthly}
+                onChange={(e) => setSocialGoalsMonthly(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Sélectionnez...</option>
+                <option value="debuter">Débuter</option>
+                <option value="10-posts">10 posts/mois</option>
+                <option value="20-posts">20 posts/mois</option>
+                <option value="30-plus">30+ posts/mois</option>
+              </select>
+            </div>
+
+            {/* Concurrents principaux - NEW */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Concurrents principaux
+              </label>
+              <input
+                type="text"
+                value={competitors}
+                onChange={(e) => setCompetitors(e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Canva, Buffer, Hootsuite..."
+              />
             </div>
 
             {/* Source d'acquisition */}
@@ -621,6 +746,16 @@ export default function LoginPage() {
                 <option value="freelance">Freelance</option>
                 <option value="other">Autre</option>
               </select>
+              {businessType === 'other' && (
+                <input
+                  type="text"
+                  required
+                  value={customBusinessType}
+                  onChange={(e) => setCustomBusinessType(e.target.value)}
+                  className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  placeholder="Précisez votre activité..."
+                />
+              )}
             </div>
 
             <button
