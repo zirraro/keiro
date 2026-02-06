@@ -1783,7 +1783,13 @@ export default function GeneratePage() {
                   {filteredNews.map((item) => (
                     <article
                       key={item.id}
-                      onClick={() => setSelectedNews(item)}
+                      onClick={() => {
+                        if (!useNewsMode && selectedNews?.id === item.id) {
+                          setSelectedNews(null);
+                        } else {
+                          setSelectedNews(item);
+                        }
+                      }}
                       className={`rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
                         selectedNews?.id === item.id
                           ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500'
@@ -1931,7 +1937,7 @@ export default function GeneratePage() {
                 <h3 className="text-sm font-semibold">Assistant Marketing IA</h3>
                 {/* Switch Actualité / Sans actualité */}
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>Sans actu</span>
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>Sans actualité</span>
                   <button
                     onClick={() => {
                       setUseNewsMode(!useNewsMode);
@@ -1950,7 +1956,18 @@ export default function GeneratePage() {
                       }`}
                     />
                   </button>
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>Avec actu</span>
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>Avec actualité</span>
+                  {/* Info tooltip */}
+                  <div className="relative group">
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold cursor-help hover:bg-blue-100 hover:text-blue-600 transition-colors">i</span>
+                    <div className="absolute right-0 top-6 z-50 hidden group-hover:block w-56 p-2.5 bg-neutral-900 text-white text-[10px] rounded-lg shadow-xl leading-relaxed">
+                      <p className="font-semibold mb-1">Avec actualité</p>
+                      <p className="mb-2">Génère du contenu en liant une actualité tendance à votre business. Idéal pour surfer sur le buzz et capter l'attention.</p>
+                      <p className="font-semibold mb-1">Sans actualité</p>
+                      <p>Génère du contenu basé uniquement sur votre business. Parfait pour des posts intemporels (offres, présentation, valeurs...).</p>
+                      <div className="absolute -top-1 right-3 w-2 h-2 bg-neutral-900 rotate-45"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
