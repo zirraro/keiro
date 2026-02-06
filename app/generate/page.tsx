@@ -57,6 +57,7 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(true); // TRUE au départ pour afficher "Chargement..."
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
+  const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -311,6 +312,7 @@ export default function GeneratePage() {
 
         // Restaurer tous les états
         if (state.selectedNews) setSelectedNews(state.selectedNews);
+        if (state.useNewsMode !== undefined) setUseNewsMode(state.useNewsMode);
         if (state.category) setCategory(state.category);
         if (state.communicationProfile) setCommunicationProfile(state.communicationProfile);
         if (state.businessType) setBusinessType(state.businessType);
@@ -344,6 +346,7 @@ export default function GeneratePage() {
     const timeoutId = setTimeout(() => {
       const state = {
         selectedNews,
+        useNewsMode,
         category,
         communicationProfile,
         businessType,
@@ -372,6 +375,7 @@ export default function GeneratePage() {
     return () => clearTimeout(timeoutId);
   }, [
     selectedNews,
+    useNewsMode,
     category,
     communicationProfile,
     businessType,
@@ -541,13 +545,18 @@ export default function GeneratePage() {
 
   /* --- Génération de suggestions de texte intelligentes --- */
   async function handleGenerateTextSuggestions() {
-    if (!selectedNews) {
-      alert('Veuillez d\'abord sélectionner une actualité');
+    if (useNewsMode && !selectedNews) {
+      alert('Veuillez d\'abord sélectionner une actualité (ou passez en mode "Sans actualité")');
       return;
     }
 
     if (!businessType.trim()) {
       alert('Veuillez d\'abord renseigner votre type de business');
+      return;
+    }
+
+    if (!useNewsMode && !businessDescription.trim()) {
+      alert('En mode sans actualité, décrivez votre business en détail pour de meilleures suggestions');
       return;
     }
 
@@ -557,8 +566,8 @@ export default function GeneratePage() {
       const { generateProblemSolvedSuggestion } = require('@/lib/text-suggestion');
 
       const problemSuggestion = generateProblemSolvedSuggestion({
-        newsTitle: selectedNews.title,
-        newsDescription: selectedNews.description,
+        newsTitle: selectedNews?.title || businessType,
+        newsDescription: selectedNews?.description || businessDescription,
         businessType,
         businessDescription,
         targetAudience,
@@ -580,12 +589,13 @@ export default function GeneratePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          newsTitle: selectedNews.title,
-          newsDescription: selectedNews.description,
+          newsTitle: selectedNews?.title || null,
+          newsDescription: selectedNews?.description || null,
           businessType,
           businessDescription,
           tone,
-          targetAudience
+          targetAudience,
+          mode: useNewsMode ? 'news' : 'free'
         })
       });
 
@@ -604,8 +614,8 @@ export default function GeneratePage() {
       // Fallback vers suggestions basiques
       const { generateTextSuggestions } = require('@/lib/text-suggestion');
       const suggestions = generateTextSuggestions({
-        newsTitle: selectedNews.title,
-        newsDescription: selectedNews.description,
+        newsTitle: selectedNews?.title || businessType,
+        newsDescription: selectedNews?.description || businessDescription,
         businessType,
         businessDescription,
         targetAudience,
@@ -667,12 +677,16 @@ export default function GeneratePage() {
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
-    if (!selectedNews) {
-      alert('Veuillez sélectionner une actualité');
+    if (useNewsMode && !selectedNews) {
+      alert('Veuillez sélectionner une actualité (ou passez en mode "Sans actualité")');
       return;
     }
     if (!businessType.trim()) {
       alert('Veuillez renseigner votre type de business');
+      return;
+    }
+    if (!useNewsMode && !businessDescription.trim()) {
+      alert('En mode sans actualité, veuillez décrire votre business en détail pour enrichir la génération');
       return;
     }
 
@@ -742,28 +756,46 @@ export default function GeneratePage() {
       );
 
       // 1. CONTEXTE & LANGUE
-      promptParts.push(
-        `\n\nYou are an expert social media content creator and community manager. ` +
-        `Create a professional visual for a French-speaking audience that connects current news with a specific business.`
-      );
+      if (useNewsMode && selectedNews) {
+        promptParts.push(
+          `\n\nYou are an expert social media content creator and community manager. ` +
+          `Create a professional visual for a French-speaking audience that connects current news with a specific business.`
+        );
 
-      // 2. ACTUALITÉ (Amélioré)
-      promptParts.push(
-        `\n\nNEWS STORY:\n` +
-        `Headline: "${selectedNews.title}"\n` +
-        (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 200)}\n` : '') +
-        `Source: ${selectedNews.source || 'Web'}\n\n` +
-        `Make this news story visually engaging and relevant to the target business.`
-      );
+        // 2. ACTUALITÉ
+        promptParts.push(
+          `\n\nNEWS STORY:\n` +
+          `Headline: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 200)}\n` : '') +
+          `Source: ${selectedNews.source || 'Web'}\n\n` +
+          `Make this news story visually engaging and relevant to the target business.`
+        );
 
-      // 3. BUSINESS & BRAND (Amélioré)
-      promptParts.push(
-        `BUSINESS PROFILE:\n` +
-        `Type: ${businessType}\n` +
-        (businessDescription ? `Details: ${businessDescription}\n` : '') +
-        `\nThe visual must clearly show how this business BENEFITS from or RELATES to this news. ` +
-        `Show a specific, tangible connection that makes immediate sense to viewers.`
-      );
+        // 3. BUSINESS & BRAND
+        promptParts.push(
+          `BUSINESS PROFILE:\n` +
+          `Type: ${businessType}\n` +
+          (businessDescription ? `Details: ${businessDescription}\n` : '') +
+          `\nThe visual must clearly show how this business BENEFITS from or RELATES to this news. ` +
+          `Show a specific, tangible connection that makes immediate sense to viewers.`
+        );
+      } else {
+        // MODE SANS ACTUALITÉ - Focus sur le business
+        promptParts.push(
+          `\n\nYou are an expert social media content creator and community manager. ` +
+          `Create a professional, eye-catching visual for a French-speaking audience that showcases a specific business and its unique value proposition.`
+        );
+
+        promptParts.push(
+          `\n\nBUSINESS PROFILE (DETAILED):\n` +
+          `Type: ${businessType}\n` +
+          `Description: ${businessDescription}\n` +
+          (targetAudience ? `Target Audience: ${targetAudience}\n` : '') +
+          `\nCreate a compelling visual that captures the ESSENCE of this business. ` +
+          `Highlight what makes it unique, its atmosphere, values, and the experience it offers. ` +
+          `The visual should make people want to discover and engage with this business immediately.`
+        );
+      }
 
       // 3.5 QUESTIONS EXPERTES - Lien ULTRA-FORT actualité/business (NOUVEAU)
       if (problemSolved || uniqueAdvantage || desiredVisualIdea) {
@@ -990,11 +1022,12 @@ export default function GeneratePage() {
         const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan, userEmail);
 
         // Préparer le texte overlay
+        const fallbackTitle = selectedNews?.title || businessType || 'Votre business';
         let textToApply = optionalText && optionalText.trim()
           ? optionalText.trim()
-          : selectedNews.title.length > 60
-            ? selectedNews.title.substring(0, 60) + '...'
-            : selectedNews.title;
+          : fallbackTitle.length > 60
+            ? fallbackTitle.substring(0, 60) + '...'
+            : fallbackTitle;
 
         // Sauvegarder pour l'édition
         setOverlayText(textToApply);
@@ -1210,8 +1243,10 @@ export default function GeneratePage() {
 
           // Déterminer le texte à narrer
           if (audioTextSource === 'ai') {
-            // Générer automatiquement le texte depuis l'actualité
-            textForAudio = `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`;
+            // Générer automatiquement le texte depuis l'actualité ou le business
+            textForAudio = selectedNews
+              ? `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
+              : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`;
           } else {
             // Utiliser le texte manuel
             textForAudio = audioText.trim();
@@ -1285,8 +1320,8 @@ export default function GeneratePage() {
 
   // Sauvegarder l'image dans la galerie
   async function saveToLibrary() {
-    if (!generatedImageUrl || !selectedNews) {
-      console.error('[SaveToLibrary] Missing image or news data');
+    if (!generatedImageUrl) {
+      console.error('[SaveToLibrary] Missing image data');
       return;
     }
 
@@ -1344,9 +1379,9 @@ export default function GeneratePage() {
       // ÉTAPE 2: PAYLOAD ULTRA-MINIMAL avec URL courte
       const payload = {
         imageUrl: finalImageUrl,
-        title: selectedNews.title ? selectedNews.title.substring(0, 50) : 'Image',
-        newsTitle: selectedNews.title ? selectedNews.title.substring(0, 50) : null,
-        newsCategory: selectedNews.category ? selectedNews.category.substring(0, 20) : null,
+        title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
+        newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+        newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
         newsDescription: null,
         newsSource: null,
         businessType: null,
@@ -1537,7 +1572,18 @@ export default function GeneratePage() {
 
   // Génération de vidéo avec Seedream/SeedDance
   async function handleGenerateVideo() {
-    if (!selectedNews || !businessType.trim()) return;
+    if (useNewsMode && !selectedNews) {
+      alert('Veuillez sélectionner une actualité (ou passez en mode "Sans actualité")');
+      return;
+    }
+    if (!businessType.trim()) {
+      alert('Veuillez renseigner votre type de business');
+      return;
+    }
+    if (!useNewsMode && !businessDescription.trim()) {
+      alert('En mode sans actualité, décrivez votre business en détail');
+      return;
+    }
 
     setGeneratingVideo(true);
     setGeneratedVideoUrl(null);
@@ -1547,7 +1593,12 @@ export default function GeneratePage() {
 
     try {
       // Construire le prompt vidéo
-      let videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+      let videoPrompt = '';
+      if (useNewsMode && selectedNews) {
+        videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+      } else {
+        videoPrompt = `Business: ${businessType}. Description: ${businessDescription}. ${targetAudience ? `Audience: ${targetAudience}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video showcasing this business identity and value proposition.`;
+      }
 
       // Ajouter l'instruction de texte si activée
       if (enableAIText) {
@@ -1657,12 +1708,31 @@ export default function GeneratePage() {
 
       <div className="max-w-7xl mx-auto">
         <p className="text-neutral-600 mb-6">
-          Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité
+          {useNewsMode
+            ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
+            : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-8">
+            {/* Banner mode sans actualité */}
+            {!useNewsMode && (
+              <div className="mb-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">🎨</div>
+                  <div>
+                    <h4 className="font-bold text-purple-900 text-sm mb-1">Mode Création Libre</h4>
+                    <p className="text-xs text-purple-700 mb-2">
+                      Vous générez sans actualité. Décrivez votre business en détail dans le panneau de droite pour obtenir un visuel percutant.
+                    </p>
+                    <p className="text-[10px] text-purple-600">
+                      Vous pouvez toujours parcourir et sélectionner une actualité ci-dessous si vous le souhaitez (optionnel).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Filtres : Catégories + Recherche (sans labels) */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               {/* Dropdown Catégories */}
@@ -1857,20 +1927,76 @@ export default function GeneratePage() {
 
             {/* Panel Assistant Prompt */}
             <div className="bg-white rounded-xl border p-3">
-              <h3 className="text-sm font-semibold mb-2">Assistant Marketing IA</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Assistant Marketing IA</h3>
+                {/* Switch Actualité / Sans actualité */}
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>Sans actu</span>
+                  <button
+                    onClick={() => {
+                      setUseNewsMode(!useNewsMode);
+                      if (useNewsMode) {
+                        // Passage en mode "sans actualité" - on ne force plus la sélection d'actu
+                        setSelectedNews(null);
+                      }
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      useNewsMode ? 'bg-blue-600' : 'bg-neutral-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                        useNewsMode ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                      }`}
+                    />
+                  </button>
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>Avec actu</span>
+                </div>
+              </div>
 
-              {/* Afficher la carte sélectionnée */}
+              {/* Afficher la carte sélectionnée (mode avec actualité ou sélection optionnelle) */}
               {selectedNews && (
                 <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
-                  <p className="text-[10px] font-medium text-blue-900 mb-1">✓ Actualité sélectionnée :</p>
+                  <p className="text-[10px] font-medium text-blue-900 mb-1">
+                    {useNewsMode ? '✓ Actualité sélectionnée :' : '📰 Actualité optionnelle sélectionnée :'}
+                  </p>
                   <p className="text-xs font-semibold line-clamp-2 text-blue-800">
                     {selectedNews.title}
                   </p>
+                  {!useNewsMode && (
+                    <button
+                      onClick={() => setSelectedNews(null)}
+                      className="text-[10px] text-red-500 hover:underline mt-1"
+                    >
+                      Retirer
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Section d'aide pour créer le lien actualité/business */}
-              {selectedNews && (
+              {/* Mode sans actualité : encouragement à décrire le business */}
+              {!useNewsMode && !selectedNews && (
+                <div className="mb-3 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                  <h4 className="text-xs font-bold text-purple-900 mb-2 flex items-center gap-1">
+                    🎯 Création libre - Décrivez votre business
+                  </h4>
+                  <div className="text-[10px] text-purple-800 space-y-1.5">
+                    <p className="font-medium">Pour un visuel percutant, renseignez :</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>Votre activité :</strong> Que faites-vous exactement ?</li>
+                      <li><strong>Votre spécialité :</strong> Qu'est-ce qui vous rend unique ?</li>
+                      <li><strong>Vos valeurs :</strong> Quelle image voulez-vous transmettre ?</li>
+                      <li><strong>Votre audience :</strong> À qui parlez-vous ?</li>
+                    </ul>
+                    <p className="mt-2 text-purple-600 italic">
+                      Plus votre description est détaillée, meilleur sera le résultat !
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Section d'aide pour créer le lien actualité/business (mode avec actualité) */}
+              {selectedNews && useNewsMode && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
                   <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
                     💡 Comment relier cette actu à votre business ?
@@ -1972,14 +2098,22 @@ export default function GeneratePage() {
                 {/* Description business */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Description
+                    Description {!useNewsMode && <span className="text-red-500">*</span>}
+                    {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">(détaillez au max !)</span>}
                   </label>
                   <textarea
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
-                    placeholder="Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
-                    rows={2}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    placeholder={useNewsMode
+                      ? "Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
+                      : "Décrivez en détail votre activité, spécialité, ambiance, valeurs, ce qui vous différencie... Ex: Boulangerie artisanale familiale depuis 1985, pain au levain naturel, farines bio locales, ambiance chaleureuse et authentique, livraison vélo dans le quartier"
+                    }
+                    rows={useNewsMode ? 2 : 4}
+                    className={`w-full text-xs rounded-lg border-2 px-3 py-2 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
+                      !useNewsMode
+                        ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
+                        : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
+                    }`}
                   />
                 </div>
 

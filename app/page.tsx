@@ -868,13 +868,13 @@ export default function HomeKeiro() {
               price="49€ / mois"
               subtitle="Pour créateurs"
               bullets={[
-                '20 visuels/mois',
-                '3 vidéos/mois',
+                '20 visuels/mois (3 retouches incluses)',
+                '1 vidéo/mois (test Reels)',
+                '20 messages Assistant IA',
+                '10 suggestions texte IA',
+                'Instagram Post',
                 'Toutes catégories d\'actualités',
-                'Tous styles visuels',
-                'Calendrier de publications',
-                'Brouillons Instagram',
-                'Export HD (1080px)'
+                'Calendrier de publications'
               ]}
               ctaLabel="Choisir Solo"
             />
@@ -886,14 +886,14 @@ export default function HomeKeiro() {
               special
               highlight
               bullets={[
-                '80 visuels/mois',
-                '12 vidéos/mois',
-                'Assistant IA Marketing complet',
-                'Analytics avancé',
+                '30 visuels/mois (3 retouches incluses)',
+                '8 vidéos TikTok/mois (2/semaine !)',
+                'Instagram + TikTok débloqué',
+                '50 messages Assistant IA Marketing',
+                '20 suggestions texte + 15 narrations audio',
+                'Analytics Instagram & TikTok',
                 'Calendrier + Planification auto',
-                'Kit de style personnalisé',
-                'Export 4K + multi-formats',
-                'Support prioritaire + Démo'
+                'Prix verrouillé à vie (50 places)'
               ]}
               ctaLabel="Devenir Fondateur"
             />
@@ -903,13 +903,13 @@ export default function HomeKeiro() {
               price="349€ / mois"
               subtitle="Pour agences"
               bullets={[
-                '180 visuels/mois',
-                '30 vidéos/mois',
+                '80 visuels/mois (3 retouches incluses)',
+                '18 vidéos TikTok/mois (4-5/semaine !)',
+                '100 messages Assistant IA',
                 'Tout Fondateurs +',
                 'Multi-comptes (1+5 clients)',
                 'Calendrier collaboratif',
-                'Workflow validation équipe',
-                'Reporting PDF brandé'
+                'Workflow validation + Reporting PDF'
               ]}
               ctaLabel="Contacter"
             />
@@ -927,7 +927,7 @@ export default function HomeKeiro() {
               <ul className="grid md:grid-cols-2 gap-3 mb-6">
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>500 visuels/mois + 100 vidéos/mois</span>
+                  <span>200 visuels/mois + 55 vidéos/mois</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>
@@ -974,7 +974,7 @@ export default function HomeKeiro() {
                 ⚡ Sprint Fondateur: 3 jours → 4.99€
               </p>
               <p className="text-sm text-blue-700 mb-4">
-                ✅ Accès complet (20 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
+                ✅ Accès complet (10 visuels, 2 vidéos) • Sans engagement • Annulation en 1 clic
               </p>
               <p className="text-xs text-blue-600 mb-4">
                 💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
