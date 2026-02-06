@@ -23,9 +23,11 @@ interface InstagramDraftsTabProps {
   onPublish?: (draftId: string) => void;
   onSchedule?: (draft: InstagramDraft) => void;
   onBackToImages?: () => void;
+  onPrepareInstagram?: () => void;
+  onPrepareTikTok?: () => void;
 }
 
-export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages }: InstagramDraftsTabProps) {
+export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onPrepareInstagram, onPrepareTikTok }: InstagramDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
 
   // Filter drafts by category
@@ -70,20 +72,25 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </li>
           </ol>
         </div>
-        <button
-          onClick={() => {
-            if (onBackToImages) {
-              onBackToImages();
-            }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Retour aux images
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            onClick={() => onPrepareInstagram?.()}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+          >
+            <InstagramIcon className="w-5 h-5" />
+            Préparer un post Instagram
+          </button>
+          <span className="text-neutral-400 text-sm font-medium">ou</span>
+          <button
+            onClick={() => onPrepareTikTok?.()}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+            </svg>
+            Préparer un post TikTok
+          </button>
+        </div>
       </div>
     );
   }

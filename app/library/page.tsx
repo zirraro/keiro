@@ -1577,6 +1577,8 @@ function LibraryContent() {
                       onDelete={deleteInstagramDraft}
                       onSchedule={scheduleInstagramDraft}
                       onBackToImages={() => setActiveTab('images')}
+                      onPrepareInstagram={() => setShowInstagramModal(true)}
+                      onPrepareTikTok={() => setShowTikTokModal(true)}
                     />
                   ) : activeTab === 'tiktok-drafts' ? (
                     <TikTokDraftsTab
@@ -1586,6 +1588,8 @@ function LibraryContent() {
                       onSchedule={scheduleTikTokDraft}
                       onBackToImages={() => setActiveTab('images')}
                       onRefresh={loadTikTokDrafts}
+                      onPrepareInstagram={() => setShowInstagramModal(true)}
+                      onPrepareTikTok={() => setShowTikTokModal(true)}
                     />
                   ) : activeTab === 'calendar' ? (
                     <CalendarTab
@@ -1657,6 +1661,8 @@ function LibraryContent() {
                 onDelete={deleteInstagramDraft}
                 onSchedule={scheduleInstagramDraft}
                 onBackToImages={() => setActiveTab('images')}
+                onPrepareInstagram={() => setShowInstagramModal(true)}
+                onPrepareTikTok={() => setShowTikTokModal(true)}
               />
             ) : activeTab === 'tiktok-drafts' ? (
               <TikTokDraftsTab
@@ -1665,6 +1671,8 @@ function LibraryContent() {
                 onDelete={deleteTikTokDraft}
                 onSchedule={scheduleTikTokDraft}
                 onBackToImages={() => setActiveTab('images')}
+                onPrepareInstagram={() => setShowInstagramModal(true)}
+                onPrepareTikTok={() => setShowTikTokModal(true)}
               />
             ) : activeTab === 'calendar' ? (
               <CalendarTab
