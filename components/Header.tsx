@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import ContactSupportModal from "@/components/ContactSupportModal";
 
 const navItems = [
   { href: "/", label: "Accueil" },
@@ -26,6 +27,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [disconnectingInstagram, setDisconnectingInstagram] = useState(false);
   const [disconnectingTikTok, setDisconnectingTikTok] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     // Charger l'utilisateur ET la session
@@ -218,6 +220,12 @@ export default function Header() {
               </Link>
             );
           })}
+          <button
+            onClick={() => setShowContactModal(true)}
+            className="text-sm text-neutral-600 hover:text-neutral-900 transition"
+          >
+            Contact
+          </button>
         </nav>
 
         {/* Bouton connexion/inscription OU Menu utilisateur */}
@@ -401,6 +409,11 @@ export default function Header() {
           )}
         </div>
       </div>
+
+      <ContactSupportModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+      />
     </header>
   );
 }

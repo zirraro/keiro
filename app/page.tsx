@@ -974,7 +974,7 @@ export default function HomeKeiro() {
                 ⚡ Sprint Fondateur: 3 jours → 4.99€
               </p>
               <p className="text-sm text-blue-700 mb-4">
-                ✅ Accès complet (10 visuels, 2 vidéos) • Sans engagement • Annulation en 1 clic
+                ✅ Accès complet (15 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
               </p>
               <p className="text-xs text-blue-600 mb-4">
                 💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)

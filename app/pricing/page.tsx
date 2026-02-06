@@ -1,6 +1,144 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+
+function ContactFormPricing() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+
+    try {
+      const response = await fetch('/api/support/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        setSent(true);
+        setName('');
+        setEmail('');
+        setSubject('');
+        setMessage('');
+      } else {
+        throw new Error(data.error || 'Erreur lors de l\'envoi');
+      }
+    } catch (error: any) {
+      alert(`Erreur lors de l'envoi: ${error.message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="bg-white rounded-xl border-2 border-green-200 p-6 text-center">
+        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="font-bold text-neutral-900 mb-1">Message envoyé !</h3>
+        <p className="text-sm text-neutral-600">Nous vous répondrons dans les 24h.</p>
+        <button
+          onClick={() => setSent(false)}
+          className="mt-3 text-sm text-blue-600 hover:underline"
+        >
+          Envoyer un autre message
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border-2 border-blue-200 p-6 hover:shadow-xl transition-all">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="font-bold text-neutral-900">Écrivez-nous</h3>
+          <p className="text-xs text-neutral-500">Réponse sous 24h</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Nom"
+          />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Email"
+          />
+        </div>
+
+        <select
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          required
+          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+        >
+          <option value="">Sujet de votre message...</option>
+          <option value="Question tarifs">Question sur les tarifs</option>
+          <option value="Démonstration">Demande de démonstration</option>
+          <option value="Partenariat">Partenariat</option>
+          <option value="Autre">Autre</option>
+        </select>
+
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          required
+          rows={3}
+          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          placeholder="Votre message..."
+        />
+
+        <button
+          type="submit"
+          disabled={sending}
+          className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {sending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Envoi...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Envoyer le message
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 export default function PricingPage() {
   return (
@@ -124,7 +262,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">10 visuels + 2 vidéos pour tester</span>
+                <span className="text-sm text-neutral-700">15 visuels + 3 vidéos pour tester</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -533,31 +671,8 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* Email */}
-            <div className="bg-white rounded-xl border-2 border-blue-200 p-6 hover:shadow-xl transition-all">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-neutral-900 mb-2">Email</h3>
-                  <p className="text-sm text-neutral-600 mb-3">
-                    Envoyez-nous vos questions par email. Nous vous répondons généralement sous 24h.
-                  </p>
-                  <a
-                    href="mailto:contact@keiroai.com"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-300 text-blue-700 rounded-lg font-semibold hover:bg-blue-50 transition-all text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                    </svg>
-                    contact@keiroai.com
-                  </a>
-                </div>
-              </div>
-            </div>
+            {/* Formulaire de contact */}
+            <ContactFormPricing />
           </div>
 
           {/* Stats support */}
