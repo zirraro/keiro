@@ -624,69 +624,18 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       throw new Error('No video selected');
     }
 
-    // STEP 1: Validate video before attempting publish
-    console.log('[TikTokModal] Validating video before publish:', videoUrlToPublish);
     setPublishing(true);
 
-    try {
-      const validateResponse = await fetch('/api/library/tiktok/validate-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrl: videoUrlToPublish })
-      });
-
-      const validateData = await validateResponse.json();
-
-      if (!validateData.ok) {
-        setPublishing(false);
-        alert(
-          '❌ Erreur de validation vidéo\n\n' +
-          `${validateData.error}\n\n` +
-          'Veuillez réessayer avec une autre vidéo.'
-        );
-        return;
-      }
-
-      // Check validation results
-      if (!validateData.isValid) {
-        setPublishing(false);
-        const errorMessage = validateData.errors.join('\n• ');
-        alert(
-          '⚠️ Vidéo non conforme\n\n' +
-          `Problèmes détectés:\n• ${errorMessage}\n\n` +
-          'La vidéo sera automatiquement convertie au bon format.'
-        );
-        return;
-      }
-
-      // Show warnings if any
-      if (validateData.warnings && validateData.warnings.length > 0) {
-        console.warn('[TikTokModal] Validation warnings:', validateData.warnings);
-      }
-
-      console.log('[TikTokModal] ✅ Video validation passed');
-
-    } catch (validationError: any) {
-      console.error('[TikTokModal] Validation error:', validationError);
-      setPublishing(false);
-      alert(
-        '❌ Impossible de valider la vidéo\n\n' +
-        `${validationError.message}\n\n` +
-        'Veuillez réessayer ou contacter le support.'
-      );
-      return;
-    }
-
-    // STEP 2: Ensure video is on Supabase (permanent URL for TikTok upload)
+    // STEP 1: Ensure video is on Supabase (permanent URL)
     let tiktokReadyVideoUrl: string;
     try {
       const isOnSupabase = videoUrlToPublish.includes('supabase.co') || videoUrlToPublish.includes('supabase.in');
 
       if (isOnSupabase) {
-        console.log('[TikTokModal] ✅ Video already on Supabase, using directly');
+        console.log('[TikTokModal] ✅ Video already on Supabase');
         tiktokReadyVideoUrl = videoUrlToPublish;
       } else {
-        console.log('[TikTokModal] Video is on temporary URL, storing to Supabase first...');
+        console.log('[TikTokModal] URL temporaire détectée, stockage Supabase...');
 
         const storeResponse = await fetch('/api/seedream/download-and-store', {
           method: 'POST',
@@ -700,32 +649,86 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         const storeData = await storeResponse.json();
 
         if (storeData.ok && storeData.videoUrl) {
-          console.log('[TikTokModal] ✅ Video stored to Supabase:', storeData.videoUrl);
+          console.log('[TikTokModal] ✅ Stocké sur Supabase:', storeData.videoUrl);
           tiktokReadyVideoUrl = storeData.videoUrl;
-          // Update the video ID if a new one was created
           if (storeData.videoId && !videoIdToUpdate) {
             videoIdToUpdate = storeData.videoId;
           }
         } else {
-          console.error('[TikTokModal] ❌ Failed to store video:', storeData.error);
           setPublishing(false);
-          alert(
-            '❌ Erreur de préparation\n\n' +
-            `Impossible de préparer la vidéo: ${storeData.error}\n\n` +
-            'Veuillez réessayer.'
-          );
+          alert(`❌ Erreur de préparation\n\n${storeData.error}\n\nVeuillez réessayer.`);
           return;
         }
       }
     } catch (storeError: any) {
-      console.error('[TikTokModal] ❌ Store request failed:', storeError);
+      console.error('[TikTokModal] ❌ Store failed:', storeError);
       setPublishing(false);
-      alert(
-        '❌ Erreur de préparation\n\n' +
-        'Impossible de préparer la vidéo pour TikTok.\n\n' +
-        'Vérifiez votre connexion et réessayez.'
-      );
+      alert('❌ Impossible de préparer la vidéo.\n\nVérifiez votre connexion et réessayez.');
       return;
+    }
+
+    // STEP 2: Validate video format
+    let needsConversion = false;
+    try {
+      console.log('[TikTokModal] Validation du format vidéo...');
+      const validateResponse = await fetch('/api/library/tiktok/validate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoUrl: tiktokReadyVideoUrl })
+      });
+
+      const validateData = await validateResponse.json();
+
+      if (validateData.ok && validateData.isValid) {
+        console.log('[TikTokModal] ✅ Format vidéo OK, publication directe');
+        if (validateData.warnings?.length > 0) {
+          console.warn('[TikTokModal] Warnings:', validateData.warnings);
+        }
+      } else if (validateData.ok && !validateData.isValid) {
+        console.warn('[TikTokModal] ⚠️ Format incompatible:', validateData.errors);
+        needsConversion = true;
+      } else {
+        // Erreur de validation non bloquante - on tente quand même
+        console.warn('[TikTokModal] Validation échouée, on tente la publication directe');
+      }
+    } catch (validationError: any) {
+      console.warn('[TikTokModal] Validation error (non bloquant):', validationError.message);
+    }
+
+    // STEP 2b: CloudConvert UNIQUEMENT si le format est incompatible
+    if (needsConversion) {
+      console.log('[TikTokModal] Conversion CloudConvert nécessaire (format incompatible)...');
+      try {
+        const conversionResponse = await fetch('/api/convert-video-tiktok', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl: tiktokReadyVideoUrl,
+            videoId: videoIdToUpdate
+          })
+        });
+
+        const conversionData = await conversionResponse.json();
+
+        if (conversionData.ok && conversionData.convertedUrl) {
+          console.log('[TikTokModal] ✅ CloudConvert: conversion réussie');
+          tiktokReadyVideoUrl = conversionData.convertedUrl;
+        } else {
+          console.warn('[TikTokModal] ⚠️ CloudConvert échoué:', conversionData.error);
+          const continueAnyway = window.confirm(
+            '⚠️ La conversion de format a échoué.\n\n' +
+            'Voulez-vous essayer de publier quand même ?\n' +
+            '(La vidéo est peut-être déjà compatible)'
+          );
+          if (!continueAnyway) {
+            setPublishing(false);
+            return;
+          }
+        }
+      } catch (convError: any) {
+        console.warn('[TikTokModal] CloudConvert request failed:', convError.message);
+        // Non bloquant - on tente la publication directe
+      }
     }
 
     // STEP 3: Confirm with user
