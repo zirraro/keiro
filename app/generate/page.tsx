@@ -242,7 +242,8 @@ export default function GeneratePage() {
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
   const [enableAIText, setEnableAIText] = useState(false);
-  const [aiTextStyle, setAITextStyle] = useState('dynamic'); // dynamic, minimal, bold
+  const [aiTextStyle, setAITextStyle] = useState('dynamic'); // dynamic, minimal, bold, cinematic, elegant
+  const [videoDuration, setVideoDuration] = useState(5);
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -1619,12 +1620,59 @@ export default function GeneratePage() {
 
       // Ajouter l'instruction de texte si activée
       if (enableAIText) {
-        const textStyles = {
-          dynamic: 'Add dynamic, animated text overlays that highlight key points throughout the video. Text should appear at strategic moments and enhance the message.',
-          minimal: 'Add clean, minimalist text overlays with key information. Keep text simple and easy to read.',
-          bold: 'Add bold, impactful text overlays with strong typography. Text should grab attention and emphasize important messages.'
+        // Déterminer le texte des sous-titres
+        let subtitleText = '';
+
+        // Si l'audio est activé, utiliser le même texte (sous-titres = narration)
+        if (addAudio && audioText.trim()) {
+          subtitleText = audioText.trim();
+        } else if (addAudio && audioTextSource === 'ai') {
+          // L'audio IA sera généré à partir du contenu - utiliser le contexte directement
+          subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
+        } else {
+          // Pas d'audio - générer un texte de sous-titres via l'IA
+          try {
+            setVideoProgress('Génération du texte...');
+            const targetWords = Math.ceil(videoDuration * 2.5); // ~2.5 mots/seconde
+            const context = useNewsMode && selectedNews
+              ? `${selectedNews.title}. Business: ${businessType}. ${businessDescription || ''}`
+              : `Business: ${businessType}. ${businessDescription}`;
+
+            const subtitleRes = await fetch('/api/suggest-narration-text', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ context, targetWords }),
+            });
+            const subtitleData = await subtitleRes.json();
+            if (subtitleData.ok && subtitleData.suggestions?.length > 0) {
+              // Choisir le style correspondant
+              const styleMap: Record<string, string> = {
+                dynamic: 'catchy', minimal: 'informative', bold: 'catchy',
+                cinematic: 'storytelling', elegant: 'informative'
+              };
+              const targetStyle = styleMap[aiTextStyle] || 'catchy';
+              const match = subtitleData.suggestions.find((s: any) => s.style === targetStyle);
+              subtitleText = match?.text || subtitleData.suggestions[0].text;
+            }
+          } catch (e) {
+            console.warn('[Video] Failed to generate subtitle text, continuing without:', e);
+          }
+        }
+
+        const textStyleInstructions: Record<string, string> = {
+          dynamic: 'with dynamic, animated typography that appears at key moments with motion effects',
+          minimal: 'with clean, minimalist typography, simple and easy to read',
+          bold: 'with bold, impactful large typography that grabs attention',
+          cinematic: 'with cinematic dramatic text reveals, elegant fades and transitions',
+          elegant: 'with elegant, refined serif typography and gentle animations'
         };
-        videoPrompt += ` ${textStyles[aiTextStyle as keyof typeof textStyles]}`;
+        const styleInstruction = textStyleInstructions[aiTextStyle] || textStyleInstructions.dynamic;
+
+        if (subtitleText) {
+          videoPrompt += ` Display the following French text as subtitles ${styleInstruction}: "${subtitleText}"`;
+        } else {
+          videoPrompt += ` Add French text overlays ${styleInstruction} that highlight the key message.`;
+        }
       }
 
       console.log('[Video] Starting generation with prompt:', videoPrompt);
@@ -1635,7 +1683,7 @@ export default function GeneratePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: videoPrompt,
-          duration: 5,
+          duration: videoDuration,
           resolution: '1080p'
         }),
       });
@@ -1654,7 +1702,8 @@ export default function GeneratePage() {
       console.log('[Video] Task created:', data.taskId);
 
       // Polling pour vérifier le statut avec gestion d'erreur améliorée
-      const maxAttempts = 60; // 5 minutes max (5s * 60)
+      // Longer videos need more polling time
+      const maxAttempts = videoDuration <= 10 ? 60 : 120; // 5-10 min max
 
       const pollWithRetry = async (attempt: number): Promise<void> => {
         if (attempt >= maxAttempts) {
@@ -2470,7 +2519,7 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Section Audio TTS (NOUVEAU) */}
+                {/* Section Audio */}
                 <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -2518,7 +2567,7 @@ export default function GeneratePage() {
                           <textarea
                             value={audioText}
                             onChange={(e) => setAudioText(e.target.value)}
-                            placeholder="Entrez le texte à narrer (max ~15 mots pour 5 secondes)..."
+                            placeholder={`Entrez le texte à narrer (max ~${Math.ceil(videoDuration * 2.5)} mots pour ${videoDuration}s)...`}
                             rows={2}
                             maxLength={150}
                             className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -2556,43 +2605,61 @@ export default function GeneratePage() {
                   {enableAIText && (
                     <div className="mt-2 space-y-2">
                       <p className="text-[10px] text-purple-700">Style du texte:</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => setAITextStyle('dynamic')}
-                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            aiTextStyle === 'dynamic'
-                              ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                          }`}
-                        >
-                          🎬 Dynamique
-                        </button>
-                        <button
-                          onClick={() => setAITextStyle('minimal')}
-                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            aiTextStyle === 'minimal'
-                              ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                          }`}
-                        >
-                          ✨ Minimaliste
-                        </button>
-                        <button
-                          onClick={() => setAITextStyle('bold')}
-                          className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                            aiTextStyle === 'bold'
-                              ? 'bg-purple-600 text-white border-purple-600'
-                              : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                          }`}
-                        >
-                          💥 Impactant
-                        </button>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { key: 'dynamic', label: '🎬 Dynamique' },
+                          { key: 'minimal', label: '✨ Minimaliste' },
+                          { key: 'bold', label: '💥 Impactant' },
+                          { key: 'cinematic', label: '🎥 Cinématique' },
+                          { key: 'elegant', label: '💎 Élégant' },
+                        ].map((style) => (
+                          <button
+                            key={style.key}
+                            onClick={() => setAITextStyle(style.key)}
+                            className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
+                              aiTextStyle === style.key
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                            }`}
+                          >
+                            {style.label}
+                          </button>
+                        ))}
                       </div>
                       <p className="text-[9px] text-purple-600 italic">
-                        💡 L'IA génèrera automatiquement du texte qui s'intègre parfaitement à la vidéo
+                        {addAudio
+                          ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
+                          : '💡 L\'IA génèrera automatiquement du texte adapté à la vidéo'}
                       </p>
                     </div>
                   )}
+                </div>
+
+                {/* Durée de la vidéo */}
+                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                  <label className="block text-xs font-semibold text-neutral-900 mb-2">
+                    ⏱️ Durée de la vidéo: <span className="text-indigo-600">{videoDuration}s</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={30}
+                    step={5}
+                    value={videoDuration}
+                    onChange={(e) => setVideoDuration(Number(e.target.value))}
+                    className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
+                    <span>5s</span>
+                    <span>10s</span>
+                    <span>15s</span>
+                    <span>20s</span>
+                    <span>25s</span>
+                    <span>30s</span>
+                  </div>
+                  <p className="text-[9px] text-indigo-600 mt-1 italic">
+                    💡 15-30s = idéal pour capter l'attention sur les réseaux sociaux
+                  </p>
                 </div>
 
                 {/* Boutons de génération */}

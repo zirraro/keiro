@@ -1246,11 +1246,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 <p className="text-xs text-neutral-500 mt-1">{caption.length} / 2200 caractères</p>
               </div>
 
-              {/* Narration Audio TTS with AudioEditorWidget */}
+              {/* Narration Audio */}
               <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
-                    🎙️ Narration Audio (TTS)
+                    🎙️ Narration Audio
                   </label>
                   {narrationAudioUrl && (
                     <span className="text-xs text-green-600 font-medium">✅ Audio généré</span>
@@ -1271,7 +1271,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                   >
-                    🎙️ Créer/éditer narration audio
+                    {narrationAudioUrl ? '🎙️ Modifier la narration audio' : '🎙️ Créer une narration audio'}
                   </button>
                 ) : (
                   <AudioEditorWidget

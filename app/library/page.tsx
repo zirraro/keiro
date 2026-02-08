@@ -607,7 +607,9 @@ function LibraryContent() {
     setShowPlatformChoiceModal(false);
 
     if (selectedImageForPlatform) {
-      setSelectedImageForInsta(selectedImageForPlatform);
+      setSelectedImageForTikTok(selectedImageForPlatform);
+      setDraftTikTokCaptionToEdit(undefined);
+      setDraftTikTokHashtagsToEdit(undefined);
       setShowTikTokModal(true);
       setSelectedImageForPlatform(null);
     } else if (selectedVideoForPlatform) {
@@ -1749,6 +1751,7 @@ function LibraryContent() {
           image={selectedImageForInsta || undefined}
           images={images}
           video={selectedVideoForInsta || undefined}
+          videos={myVideos}
           onClose={() => {
             setShowInstagramModal(false);
             setSelectedImageForInsta(null);

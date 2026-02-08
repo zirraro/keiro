@@ -59,7 +59,7 @@ Réponds UNIQUEMENT avec le texte condensé, sans introduction ni explication.`;
   console.log('[Condense] Calling Claude to condense text...');
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-3-haiku-20240307',
     max_tokens: 200,
     messages: [
       {
@@ -113,7 +113,7 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre.`;
   console.log('[Suggestions] Generating 3 narration suggestions...');
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-3-haiku-20240307',
     max_tokens: 500,
     messages: [
       {
