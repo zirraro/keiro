@@ -1400,10 +1400,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           setMergedVideoUrl(mergeData.mergedUrl);
                           console.log('[TikTokModal] ✅ Vidéo fusionnée:', mergeData.mergedUrl);
 
-                          setSuccessToast('✅ Audio intégré dans la vidéo ! Brouillon sauvegardé.');
+                          setSuccessToast('✅ Audio intégré dans la vidéo — Prêt à publier !');
                           setTimeout(() => setSuccessToast(null), 5000);
 
-                          // Auto-save brouillon avec la vidéo fusionnée
+                          // Auto-save brouillon "ready" (prêt à publier)
                           try {
                             const supabase = supabaseBrowser();
                             const { data: { user } } = await supabase.auth.getUser();
@@ -1416,9 +1416,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                                 category: 'draft',
                                 caption: caption || '',
                                 hashtags: hashtags || [],
-                                status: 'draft'
+                                status: 'ready'
                               });
-                              console.log('[TikTokModal] ✅ Brouillon auto-sauvegardé');
+                              console.log('[TikTokModal] ✅ Brouillon sauvé (prêt à publier)');
                             }
                           } catch (err) {
                             console.warn('[TikTokModal] Auto-save failed (non bloquant):', err);
@@ -1445,7 +1445,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
               {/* Options audio + sous-titres */}
               {narrationAudioUrl && (selectedVideo || videoPreview) && (
-                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-yellow-300 bg-yellow-50'}`}>
+                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
                       🎬 Audio + Vidéo
@@ -1456,18 +1456,63 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         Fusion en cours...
                       </span>
                     ) : mergedVideoUrl ? (
-                      <span className="text-xs text-green-600 font-medium">✅ Audio intégré dans la vidéo</span>
+                      <span className="text-xs text-green-600 font-medium">✅ Audio intégré — Prêt à publier</span>
                     ) : (
-                      <span className="text-xs text-yellow-600 font-medium">⏳ Audio en aperçu uniquement</span>
+                      <button
+                        onClick={async () => {
+                          const currentVideoUrl = activeTab === 'videos' && selectedVideo
+                            ? selectedVideo.video_url : videoPreview;
+                          if (!currentVideoUrl || !narrationAudioUrl) return;
+                          setMerging(true);
+                          setSuccessToast('🔄 Fusion audio + vidéo...');
+                          try {
+                            const mergeRes = await fetch('/api/merge-audio-video', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: narrationAudioUrl })
+                            });
+                            const mergeData = await mergeRes.json();
+                            if (mergeData.ok && mergeData.mergedUrl) {
+                              setMergedVideoUrl(mergeData.mergedUrl);
+                              setSuccessToast('✅ Audio intégré ! Prêt à publier.');
+                              setTimeout(() => setSuccessToast(null), 4000);
+                              // Auto-save brouillon ready
+                              const supabase = supabaseBrowser();
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (user) {
+                                await supabase.from('tiktok_drafts').insert({
+                                  user_id: user.id,
+                                  video_id: selectedVideo?.id || null,
+                                  media_url: mergeData.mergedUrl,
+                                  media_type: 'video',
+                                  category: 'draft',
+                                  caption: caption || '',
+                                  hashtags: hashtags || [],
+                                  status: 'ready'
+                                });
+                              }
+                            } else {
+                              setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                              setTimeout(() => setSuccessToast(null), 5000);
+                            }
+                          } catch (err: any) {
+                            setSuccessToast('❌ Erreur de fusion');
+                            setTimeout(() => setSuccessToast(null), 5000);
+                          } finally { setMerging(false); }
+                        }}
+                        className="text-xs text-red-600 font-medium hover:text-red-700 underline"
+                      >
+                        🔄 Relancer la fusion
+                      </button>
                     )}
                   </div>
 
                   <p className="text-[10px] text-neutral-600">
                     {mergedVideoUrl
-                      ? 'L\'audio est définitivement intégré dans le fichier vidéo. Il sera présent à la publication.'
+                      ? 'L\'audio est intégré dans la vidéo. La publication enverra cette vidéo avec le son.'
                       : merging
-                      ? 'Fusion du fichier audio dans la vidéo côté serveur...'
-                      : 'L\'audio se joue en aperçu. La fusion dans le fichier vidéo est en cours ou à relancer.'}
+                      ? 'Intégration de l\'audio dans le fichier vidéo...'
+                      : 'La fusion a échoué. Cliquez sur "Relancer la fusion" pour réessayer.'}
                   </p>
 
                   {/* Checkbox sous-titres */}
