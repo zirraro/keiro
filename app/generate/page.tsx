@@ -1732,7 +1732,62 @@ export default function GeneratePage() {
               console.log('[Video] Video ready:', statusData.videoUrl);
               console.log('[Video] Note: La conversion TikTok se fera automatiquement lors de la publication');
 
-              setGeneratedVideoUrl(statusData.videoUrl);
+              let finalVideoUrl = statusData.videoUrl;
+
+              // Si audio TTS demandé, générer l'audio puis fusionner dans la vidéo
+              if (addAudio) {
+                try {
+                  // Générer l'audio TTS
+                  let audioUrlForMerge = generatedAudioUrl;
+
+                  if (!audioUrlForMerge) {
+                    setVideoProgress('Génération audio TTS...');
+                    let textForAudio = '';
+                    if (audioTextSource === 'ai') {
+                      textForAudio = useNewsMode && selectedNews
+                        ? `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
+                        : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`;
+                    } else {
+                      textForAudio = audioText.trim();
+                    }
+
+                    if (textForAudio) {
+                      const audioRes = await fetch('/api/generate-audio-tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: textForAudio, targetDuration: videoDuration, voice: 'alloy', speed: 1.0 })
+                      });
+                      const audioData = await audioRes.json();
+                      if (audioData.ok && audioData.audioUrl) {
+                        audioUrlForMerge = audioData.audioUrl;
+                        setGeneratedAudioUrl(audioData.audioUrl);
+                        console.log('[Video] ✅ Audio TTS généré:', audioData.audioUrl);
+                      }
+                    }
+                  }
+
+                  // Fusionner audio dans la vidéo côté serveur
+                  if (audioUrlForMerge) {
+                    setVideoProgress('Fusion audio + vidéo...');
+                    const mergeRes = await fetch('/api/merge-audio-video', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ videoUrl: finalVideoUrl, audioUrl: audioUrlForMerge })
+                    });
+                    const mergeData = await mergeRes.json();
+                    if (mergeData.ok && mergeData.mergedUrl) {
+                      finalVideoUrl = mergeData.mergedUrl;
+                      console.log('[Video] ✅ Audio intégré dans la vidéo:', finalVideoUrl);
+                    } else {
+                      console.warn('[Video] Fusion échouée, vidéo sans audio:', mergeData.error);
+                    }
+                  }
+                } catch (audioErr) {
+                  console.warn('[Video] Audio/merge error (non bloquant):', audioErr);
+                }
+              }
+
+              setGeneratedVideoUrl(finalVideoUrl);
               setVideoProgress('');
               setGeneratingVideo(false);
               return;
