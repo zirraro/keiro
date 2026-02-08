@@ -199,6 +199,105 @@ export async function convertVideoFileForTikTok(
 }
 
 /**
+ * Merge video with audio narration using FFmpeg.wasm
+ * Optionally adds subtitle text overlay
+ */
+export async function mergeVideoWithAudio(
+  videoUrl: string,
+  audioUrl: string,
+  subtitleText?: string,
+  subtitleStyle?: 'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant',
+  onProgress?: (progress: number, stage: string) => void
+): Promise<string> {
+  try {
+    onProgress?.(0.05, 'Chargement de FFmpeg...');
+    const ffmpegInstance = await loadFFmpeg((ratio) => {
+      onProgress?.(0.05 + ratio * 0.1, 'Chargement de FFmpeg...');
+    });
+
+    onProgress?.(0.15, 'Téléchargement de la vidéo...');
+    const videoData = await fetchFile(videoUrl);
+
+    onProgress?.(0.25, 'Téléchargement de l\'audio...');
+    const audioData = await fetchFile(audioUrl);
+
+    onProgress?.(0.35, 'Préparation de la fusion...');
+    await ffmpegInstance.writeFile('video.mp4', videoData);
+    await ffmpegInstance.writeFile('audio.mp3', audioData);
+
+    onProgress?.(0.4, 'Fusion audio + vidéo...');
+
+    // Build FFmpeg command
+    const args = ['-i', 'video.mp4', '-i', 'audio.mp3'];
+
+    if (subtitleText) {
+      // Style-specific text formatting
+      const styles: Record<string, { fontsize: number; fontcolor: string; boxcolor: string; y: string }> = {
+        dynamic: { fontsize: 28, fontcolor: 'white', boxcolor: 'black@0.6', y: 'h-h/5' },
+        minimal: { fontsize: 22, fontcolor: 'white', boxcolor: 'black@0.4', y: 'h-h/6' },
+        bold: { fontsize: 34, fontcolor: 'yellow', boxcolor: 'black@0.7', y: 'h/2' },
+        cinematic: { fontsize: 26, fontcolor: 'white', boxcolor: 'black@0.3', y: 'h-h/4' },
+        elegant: { fontsize: 24, fontcolor: '#F0F0F0', boxcolor: 'black@0.5', y: 'h-h/5' },
+      };
+      const s = styles[subtitleStyle || 'dynamic'] || styles.dynamic;
+
+      // Escape special characters for FFmpeg drawtext
+      const escapedText = subtitleText
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "'\\\\\\''")
+        .replace(/:/g, '\\:')
+        .replace(/\n/g, '\\n');
+
+      const drawtext = `drawtext=text='${escapedText}':fontsize=${s.fontsize}:fontcolor=${s.fontcolor}:x=(w-text_w)/2:y=${s.y}:box=1:boxcolor=${s.boxcolor}:boxborderw=8`;
+
+      args.push('-vf', drawtext);
+      args.push('-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23');
+    } else {
+      args.push('-c:v', 'copy'); // No re-encoding if no text
+    }
+
+    args.push(
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-ar', '44100',
+      '-shortest',
+      '-movflags', '+faststart',
+      '-pix_fmt', 'yuv420p',
+      'output.mp4'
+    );
+
+    console.log('[FFmpeg] Merge command:', args.join(' '));
+    await ffmpegInstance.exec(args);
+
+    onProgress?.(0.9, 'Finalisation...');
+    const outputData = await ffmpegInstance.readFile('output.mp4');
+
+    await ffmpegInstance.deleteFile('video.mp4');
+    await ffmpegInstance.deleteFile('audio.mp3');
+    await ffmpegInstance.deleteFile('output.mp4');
+
+    if (!(outputData instanceof Uint8Array)) {
+      throw new Error('Invalid output data type from FFmpeg');
+    }
+    const blob = new Blob([new Uint8Array(outputData)], { type: 'video/mp4' });
+    const blobUrl = URL.createObjectURL(blob);
+
+    onProgress?.(1.0, 'Fusion terminée!');
+    console.log('[FFmpeg] ✅ Merge completed:', blobUrl);
+    return blobUrl;
+
+  } catch (error: any) {
+    console.error('[FFmpeg] Merge error:', error);
+    // If drawtext fails (font not available), try without subtitles
+    if (subtitleText && error.message?.includes('drawtext')) {
+      console.warn('[FFmpeg] drawtext failed, retrying without subtitles...');
+      return mergeVideoWithAudio(videoUrl, audioUrl, undefined, undefined, onProgress);
+    }
+    throw new Error(`Échec de la fusion: ${error.message}`);
+  }
+}
+
+/**
  * Check if FFmpeg.wasm is supported in this browser
  */
 export function isFFmpegSupported(): boolean {

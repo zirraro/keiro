@@ -244,6 +244,7 @@ export default function GeneratePage() {
   const [enableAIText, setEnableAIText] = useState(false);
   const [aiTextStyle, setAITextStyle] = useState('dynamic'); // dynamic, minimal, bold, cinematic, elegant
   const [videoDuration, setVideoDuration] = useState(5);
+  const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -2519,166 +2520,190 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
-                {/* Section Audio */}
-                <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={addAudio}
-                      onChange={(e) => setAddAudio(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-xs font-semibold text-neutral-900">
-                      🎵 Ajouter de l'audio sur votre visuel/vidéo
-                    </span>
-                  </label>
+                {/* Sélecteur mode de génération */}
+                <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setGenerationMode('image')}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                      generationMode === 'image'
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-700'
+                    }`}
+                  >
+                    🖼️ Visuel
+                  </button>
+                  <button
+                    onClick={() => setGenerationMode('video')}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
+                      generationMode === 'video'
+                        ? 'bg-white text-purple-700 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-700'
+                    }`}
+                  >
+                    🎬 Vidéo
+                  </button>
+                </div>
 
-                  {addAudio && (
-                    <div className="space-y-2">
-                      {/* Choix: IA ou Manuel */}
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAudioTextSource('ai')}
-                          className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                            audioTextSource === 'ai'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white text-neutral-700 hover:bg-neutral-50'
-                          }`}
-                        >
-                          ✨ Par IA
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setAudioTextSource('manual')}
-                          className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                            audioTextSource === 'manual'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-white text-neutral-700 hover:bg-neutral-50'
-                          }`}
-                        >
-                          ✍️ Écrire votre texte
-                        </button>
-                      </div>
+                {/* Options vidéo uniquement */}
+                {generationMode === 'video' && (
+                  <>
+                    {/* Section Audio */}
+                    <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={addAudio}
+                          onChange={(e) => setAddAudio(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-xs font-semibold text-neutral-900">
+                          🎵 Ajouter de l'audio sur votre vidéo
+                        </span>
+                      </label>
 
-                      {/* Champ texte manuel */}
-                      {audioTextSource === 'manual' && (
-                        <div>
-                          <textarea
-                            value={audioText}
-                            onChange={(e) => setAudioText(e.target.value)}
-                            placeholder={`Entrez le texte à narrer (max ~${Math.ceil(videoDuration * 2.5)} mots pour ${videoDuration}s)...`}
-                            rows={2}
-                            maxLength={150}
-                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          />
-                          <p className="text-[10px] text-neutral-500 mt-1">
-                            ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} mots ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
+                      {addAudio && (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAudioTextSource('ai')}
+                              className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                                audioTextSource === 'ai'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                              }`}
+                            >
+                              ✨ Par IA
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAudioTextSource('manual')}
+                              className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
+                                audioTextSource === 'manual'
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
+                              }`}
+                            >
+                              ✍️ Écrire votre texte
+                            </button>
+                          </div>
+
+                          {audioTextSource === 'manual' && (
+                            <div>
+                              <textarea
+                                value={audioText}
+                                onChange={(e) => setAudioText(e.target.value)}
+                                placeholder={`Entrez le texte à narrer (max ~${Math.ceil(videoDuration * 2.5)} mots pour ${videoDuration}s)...`}
+                                rows={2}
+                                maxLength={150}
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                              />
+                              <p className="text-[10px] text-neutral-500 mt-1">
+                                ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} mots ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
+                              </p>
+                            </div>
+                          )}
+
+                          {audioTextSource === 'ai' && (
+                            <p className="text-[10px] text-neutral-600 italic">
+                              💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Option texte animé dans la vidéo */}
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={enableAIText}
+                          onChange={(e) => setEnableAIText(e.target.checked)}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                        />
+                        <span className="text-xs font-medium text-purple-900">
+                          ✨ Ajouter du texte animé IA dans la vidéo
+                        </span>
+                      </label>
+
+                      {enableAIText && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-[10px] text-purple-700">Style du texte:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { key: 'dynamic', label: '🎬 Dynamique' },
+                              { key: 'minimal', label: '✨ Minimaliste' },
+                              { key: 'bold', label: '💥 Impactant' },
+                              { key: 'cinematic', label: '🎥 Cinématique' },
+                              { key: 'elegant', label: '💎 Élégant' },
+                            ].map((style) => (
+                              <button
+                                key={style.key}
+                                onClick={() => setAITextStyle(style.key)}
+                                className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
+                                  aiTextStyle === style.key
+                                    ? 'bg-purple-600 text-white border-purple-600'
+                                    : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                                }`}
+                              >
+                                {style.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[9px] text-purple-600 italic">
+                            {addAudio
+                              ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
+                              : '💡 L\'IA génèrera automatiquement du texte adapté à la vidéo'}
                           </p>
                         </div>
                       )}
-
-                      {/* Info IA */}
-                      {audioTextSource === 'ai' && (
-                        <p className="text-[10px] text-neutral-600 italic">
-                          💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
-                        </p>
-                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Option texte IA pour les vidéos */}
-                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enableAIText}
-                      onChange={(e) => setEnableAIText(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                    />
-                    <span className="text-xs font-medium text-purple-900">
-                      ✨ Ajouter du texte animé IA dans la vidéo
-                    </span>
-                  </label>
-
-                  {enableAIText && (
-                    <div className="mt-2 space-y-2">
-                      <p className="text-[10px] text-purple-700">Style du texte:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { key: 'dynamic', label: '🎬 Dynamique' },
-                          { key: 'minimal', label: '✨ Minimaliste' },
-                          { key: 'bold', label: '💥 Impactant' },
-                          { key: 'cinematic', label: '🎥 Cinématique' },
-                          { key: 'elegant', label: '💎 Élégant' },
-                        ].map((style) => (
-                          <button
-                            key={style.key}
-                            onClick={() => setAITextStyle(style.key)}
-                            className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                              aiTextStyle === style.key
-                                ? 'bg-purple-600 text-white border-purple-600'
-                                : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                            }`}
-                          >
-                            {style.label}
-                          </button>
-                        ))}
+                    {/* Durée de la vidéo */}
+                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                      <label className="block text-xs font-semibold text-neutral-900 mb-2">
+                        ⏱️ Durée de la vidéo: <span className="text-indigo-600">{videoDuration}s</span>
+                      </label>
+                      <input
+                        type="range"
+                        min={5}
+                        max={30}
+                        step={5}
+                        value={videoDuration}
+                        onChange={(e) => setVideoDuration(Number(e.target.value))}
+                        className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                      />
+                      <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
+                        <span>5s</span>
+                        <span>10s</span>
+                        <span>15s</span>
+                        <span>20s</span>
+                        <span>25s</span>
+                        <span>30s</span>
                       </div>
-                      <p className="text-[9px] text-purple-600 italic">
-                        {addAudio
-                          ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
-                          : '💡 L\'IA génèrera automatiquement du texte adapté à la vidéo'}
+                      <p className="text-[9px] text-indigo-600 mt-1 italic">
+                        💡 15-30s = idéal pour capter l'attention sur les réseaux sociaux
                       </p>
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
 
-                {/* Durée de la vidéo */}
-                <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                  <label className="block text-xs font-semibold text-neutral-900 mb-2">
-                    ⏱️ Durée de la vidéo: <span className="text-indigo-600">{videoDuration}s</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={5}
-                    max={30}
-                    step={5}
-                    value={videoDuration}
-                    onChange={(e) => setVideoDuration(Number(e.target.value))}
-                    className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                  />
-                  <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
-                    <span>5s</span>
-                    <span>10s</span>
-                    <span>15s</span>
-                    <span>20s</span>
-                    <span>25s</span>
-                    <span>30s</span>
-                  </div>
-                  <p className="text-[9px] text-indigo-600 mt-1 italic">
-                    💡 15-30s = idéal pour capter l'attention sur les réseaux sociaux
-                  </p>
-                </div>
-
-                {/* Boutons de génération */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleGenerate}
-                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
-                    className="flex-1 py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {generating ? 'Génération...' : 'Générer un visuel'}
-                  </button>
-                  <button
-                    onClick={handleGenerateVideo}
-                    disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
-                    className="flex-1 py-2 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
-                  >
-                    {generatingVideo ? videoProgress || 'Génération...' : 'Créer une vidéo'}
-                  </button>
-                </div>
+                {/* Bouton de génération */}
+                <button
+                  onClick={generationMode === 'video' ? handleGenerateVideo : handleGenerate}
+                  disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                  className={`w-full py-2.5 text-xs font-semibold rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    generationMode === 'video'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {generationMode === 'video'
+                    ? (generatingVideo ? videoProgress || 'Génération...' : `🎬 Créer une vidéo (${videoDuration}s)`)
+                    : (generating ? 'Génération...' : '🖼️ Générer un visuel')
+                  }
+                </button>
 
                 {!selectedNews && (
                   <p className="text-[10px] text-amber-600 text-center">

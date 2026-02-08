@@ -4,6 +4,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import ErrorSupportModal from './ErrorSupportModal';
 import InstagramCarouselModal from './InstagramCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
+import { mergeVideoWithAudio } from '@/lib/ffmpegConverter';
 
 type SavedImage = {
   id: string;
@@ -83,6 +84,13 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const [narrationScript, setNarrationScript] = useState('');
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
   const [showNarrationEditor, setShowNarrationEditor] = useState(false);
+
+  // États pour la fusion audio+vidéo et sous-titres
+  const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
+  const [mergeProgress, setMergeProgress] = useState('');
+  const [enableSubtitles, setEnableSubtitles] = useState(false);
+  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant'>('dynamic');
 
   // Pré-remplir caption et hashtags depuis le brouillon
   useEffect(() => {
@@ -887,6 +895,131 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   />
                 )}
               </div>
+
+              {/* Fusion audio + vidéo avec sous-titres */}
+              {narrationAudioUrl && activeTab === 'videos' && selectedVideo && (
+                <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-neutral-900">
+                      🎬 Aperçu vidéo + audio
+                    </label>
+                    {mergedVideoUrl && (
+                      <span className="text-xs text-green-600 font-medium">✅ Fusionné</span>
+                    )}
+                  </div>
+
+                  {/* Checkbox sous-titres */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableSubtitles}
+                      onChange={(e) => {
+                        setEnableSubtitles(e.target.checked);
+                        setMergedVideoUrl(null);
+                      }}
+                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                    />
+                    <span className="text-xs font-medium text-neutral-800">
+                      Intégrer les sous-titres dans la vidéo
+                    </span>
+                  </label>
+
+                  {/* Style de sous-titres */}
+                  {enableSubtitles && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          { key: 'dynamic' as const, label: '🎬 Dynamique' },
+                          { key: 'minimal' as const, label: '✨ Minimaliste' },
+                          { key: 'bold' as const, label: '💥 Impactant' },
+                          { key: 'cinematic' as const, label: '🎥 Cinématique' },
+                          { key: 'elegant' as const, label: '💎 Élégant' },
+                        ]).map((style) => (
+                          <button
+                            key={style.key}
+                            onClick={() => {
+                              setSubtitleStyle(style.key);
+                              setMergedVideoUrl(null);
+                            }}
+                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                              subtitleStyle === style.key
+                                ? 'bg-green-600 text-white border-green-600'
+                                : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                            }`}
+                          >
+                            {style.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bouton fusionner */}
+                  <button
+                    onClick={async () => {
+                      if (!selectedVideo?.video_url || !narrationAudioUrl) return;
+                      setMerging(true);
+                      setMergeProgress('Démarrage...');
+                      try {
+                        const url = await mergeVideoWithAudio(
+                          selectedVideo.video_url,
+                          narrationAudioUrl,
+                          enableSubtitles ? narrationScript : undefined,
+                          enableSubtitles ? subtitleStyle : undefined,
+                          (progress, stage) => setMergeProgress(`${stage} (${Math.round(progress * 100)}%)`)
+                        );
+                        setMergedVideoUrl(url);
+                      } catch (error: any) {
+                        console.error('[InstagramModal] Merge failed:', error);
+                        alert(`❌ Erreur de fusion: ${error.message}`);
+                      } finally {
+                        setMerging(false);
+                        setMergeProgress('');
+                      }
+                    }}
+                    disabled={merging}
+                    className={`w-full px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                      merging
+                        ? 'bg-green-300 text-white cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {merging ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        {mergeProgress}
+                      </span>
+                    ) : mergedVideoUrl ? (
+                      '🔄 Refusionner'
+                    ) : (
+                      '🎬 Fusionner audio + vidéo'
+                    )}
+                  </button>
+
+                  {/* Aperçu vidéo fusionnée */}
+                  {mergedVideoUrl && (
+                    <div className="rounded-lg overflow-hidden border border-green-300">
+                      <video
+                        src={mergedVideoUrl}
+                        controls
+                        autoPlay
+                        className="w-full max-h-[200px] object-contain bg-black"
+                      />
+                      <p className="text-[10px] text-green-700 text-center py-1 bg-green-100">
+                        ✅ Cette version sera utilisée pour la publication
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Hint */}
+                  {!mergedVideoUrl && !merging && (
+                    <p className="text-[9px] text-neutral-500 italic">
+                      💡 Cliquez sur "Fusionner" pour combiner l'audio et la vidéo en un seul fichier
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Hashtags section */}
               <div>

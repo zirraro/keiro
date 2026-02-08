@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import VisitorBanner from './components/VisitorBanner';
@@ -228,6 +228,9 @@ function LibraryContent() {
   const [showPlatformChoiceModal, setShowPlatformChoiceModal] = useState(false);
   const [selectedImageForPlatform, setSelectedImageForPlatform] = useState<SavedImage | null>(null);
   const [selectedVideoForPlatform, setSelectedVideoForPlatform] = useState<MyVideo | null>(null);
+  // Refs to avoid stale closure issues in platform choice handlers
+  const selectedImageForPlatformRef = useRef<SavedImage | null>(null);
+  const selectedVideoForPlatformRef = useRef<MyVideo | null>(null);
 
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -573,53 +576,63 @@ function LibraryContent() {
 
   // Ouvrir le modal de choix de plateforme (pour les images de la galerie)
   const openPlatformChoiceModal = (image: SavedImage) => {
+    selectedImageForPlatformRef.current = image;
+    selectedVideoForPlatformRef.current = null;
     setSelectedImageForPlatform(image);
-    setSelectedVideoForPlatform(null); // Clear video selection
+    setSelectedVideoForPlatform(null);
     setShowPlatformChoiceModal(true);
   };
 
   // Ouvrir le modal de choix de plateforme (pour les vidéos)
   const openPlatformChoiceModalForVideo = (video: MyVideo) => {
+    selectedVideoForPlatformRef.current = video;
+    selectedImageForPlatformRef.current = null;
     setSelectedVideoForPlatform(video);
-    setSelectedImageForPlatform(null); // Clear image selection
+    setSelectedImageForPlatform(null);
     setShowPlatformChoiceModal(true);
   };
 
-  // Gérer le choix de plateforme
+  // Gérer le choix de plateforme (use refs to avoid stale closure)
   const handleSelectInstagram = () => {
     setShowPlatformChoiceModal(false);
+    const image = selectedImageForPlatformRef.current;
+    const video = selectedVideoForPlatformRef.current;
 
-    if (selectedImageForPlatform) {
-      openInstagramModal(selectedImageForPlatform);
+    if (image) {
+      openInstagramModal(image);
       setSelectedImageForPlatform(null);
-    } else if (selectedVideoForPlatform) {
-      // Open Instagram modal with video (for Reel)
-      setSelectedVideoForInsta(selectedVideoForPlatform);
-      setSelectedImageForInsta(null); // Clear image selection
+      selectedImageForPlatformRef.current = null;
+    } else if (video) {
+      setSelectedVideoForInsta(video);
+      setSelectedImageForInsta(null);
       setDraftCaptionToEdit(undefined);
       setDraftHashtagsToEdit(undefined);
       setShowInstagramModal(true);
       setSelectedVideoForPlatform(null);
+      selectedVideoForPlatformRef.current = null;
     }
   };
 
   const handleSelectTikTok = () => {
     setShowPlatformChoiceModal(false);
+    const image = selectedImageForPlatformRef.current;
+    const video = selectedVideoForPlatformRef.current;
 
-    if (selectedImageForPlatform) {
-      setSelectedImageForTikTok(selectedImageForPlatform);
+    if (image) {
+      setSelectedImageForTikTok(image);
       setDraftTikTokCaptionToEdit(undefined);
       setDraftTikTokHashtagsToEdit(undefined);
       setShowTikTokModal(true);
       setSelectedImageForPlatform(null);
-    } else if (selectedVideoForPlatform) {
-      // Open TikTok modal with video
-      setSelectedVideoForTikTok(selectedVideoForPlatform);
+      selectedImageForPlatformRef.current = null;
+    } else if (video) {
+      setSelectedVideoForTikTok(video);
       setSelectedImageForTikTok(null);
-      setDraftTikTokCaptionToEdit(selectedVideoForPlatform.title || 'Vidéo TikTok');
+      setDraftTikTokCaptionToEdit(video.title || 'Vidéo TikTok');
       setDraftTikTokHashtagsToEdit([]);
       setShowTikTokModal(true);
       setSelectedVideoForPlatform(null);
+      selectedVideoForPlatformRef.current = null;
     }
   };
 
