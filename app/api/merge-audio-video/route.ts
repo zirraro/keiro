@@ -75,6 +75,16 @@ export async function POST(req: NextRequest) {
     // Merge with FFmpeg (server-side)
     console.log(`[MergeAV-${id}] Merging with FFmpeg...`);
     const ffmpegPath = require('ffmpeg-static') as string;
+    console.log(`[MergeAV-${id}] FFmpeg binary path: ${ffmpegPath}`);
+
+    // Vérifier que le binaire existe
+    const { existsSync } = require('fs');
+    if (!ffmpegPath || !existsSync(ffmpegPath)) {
+      console.error(`[MergeAV-${id}] FFmpeg binary NOT found at: ${ffmpegPath}`);
+      throw new Error('FFmpeg binary introuvable sur le serveur');
+    }
+    console.log(`[MergeAV-${id}] ✅ FFmpeg binary found`);
+
     const ffmpeg = require('fluent-ffmpeg') as typeof import('fluent-ffmpeg');
 
     await new Promise<void>((resolve, reject) => {
