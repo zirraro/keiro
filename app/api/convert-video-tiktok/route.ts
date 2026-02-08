@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { videoUrl, videoId, audioUrl } = await req.json();
+    const { videoUrl, videoId, audioUrl, subtitleText, subtitleStyle } = await req.json();
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (cloudConvertApiKey) {
       console.log('[ConvertVideo] Starting CloudConvert conversion...');
       try {
-        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId, audioUrl, user.id);
+        return await convertViaCloudConvert(videoUrl, cloudConvertApiKey, videoId, audioUrl, user.id, subtitleText, subtitleStyle);
       } catch (error: any) {
         console.error('[ConvertVideo] ❌ CloudConvert failed:', error.message);
         console.error('[ConvertVideo] Full error:', error);
@@ -103,10 +103,11 @@ export async function POST(req: NextRequest) {
  * @param videoId - Optional: If provided, updates my_videos.video_url with converted URL
  * @param audioUrl - Optional: Custom audio URL to merge (instead of sine wave)
  */
-async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string, userId?: string) {
-  console.log('[CloudConvert] Starting simple conversion (no audio merge)...');
+async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?: string, audioUrl?: string, userId?: string, subtitleText?: string, subtitleStyle?: string) {
+  console.log('[CloudConvert] Starting conversion...');
   console.log('[CloudConvert] Will update video ID:', videoId || 'none');
-  console.log('[CloudConvert] Note: Audio merge temporarily disabled due to FFmpeg issues');
+  console.log('[CloudConvert] Audio URL:', audioUrl ? 'YES' : 'none');
+  console.log('[CloudConvert] Subtitle text:', subtitleText ? `YES (${subtitleStyle})` : 'none');
 
   // Detect file extension from URL (supports .mp4, .mov, .webm, .avi, etc.)
   const urlPath = new URL(videoUrl).pathname;
@@ -114,33 +115,68 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
   const inputFilename = `input-video.${detectedExt}`;
   console.log('[CloudConvert] Detected file extension:', detectedExt, '→ filename:', inputFilename);
 
-  // Simple 1-job conversion without audio merge
   // TikTok requirements: MP4, H.264 (x264), AAC, 9:16 aspect ratio
   const tasks: any = {
     'import-video': {
       operation: 'import/url',
       url: videoUrl,
-      filename: inputFilename // CloudConvert requires file extension for format detection
+      filename: inputFilename
     },
     'convert-video': {
       operation: 'convert',
-      input: 'import-video',
+      input: audioUrl ? ['import-video', 'import-audio'] : 'import-video',
       output_format: 'mp4',
-      video_codec: 'x264', // CloudConvert uses 'x264' not 'h264'
+      video_codec: 'x264',
       audio_codec: 'aac',
-      audio_bitrate: 128, // TikTok recommended
-      video_bitrate: 5000, // 5 Mbps for good quality
+      audio_bitrate: 128,
+      video_bitrate: 5000,
       width: 1080,
       height: 1920,
-      fit: 'crop', // Force 9:16 aspect ratio (crop if needed)
-      pixel_format: 'yuv420p', // Required for mobile compatibility
-      preset: 'medium' // Balance between speed and quality
+      fit: 'crop',
+      pixel_format: 'yuv420p',
+      preset: 'medium'
     },
     'export-video': {
       operation: 'export/url',
       input: 'convert-video'
     }
   };
+
+  // Add audio import when audioUrl is provided
+  if (audioUrl) {
+    console.log('[CloudConvert] Adding audio merge task...');
+    tasks['import-audio'] = {
+      operation: 'import/url',
+      url: audioUrl,
+      filename: 'narration.mp3'
+    };
+    // Map: video from first input, audio from second input
+    tasks['convert-video'].map = ['0:v:0', '1:a:0'];
+  }
+
+  // Add subtitle text overlay via drawtext filter
+  if (subtitleText) {
+    console.log('[CloudConvert] Adding subtitle overlay...');
+    const styles: Record<string, { fontsize: number; fontcolor: string; boxcolor: string; y: string }> = {
+      dynamic: { fontsize: 28, fontcolor: 'white', boxcolor: 'black@0.6', y: 'h-h/5' },
+      minimal: { fontsize: 22, fontcolor: 'white', boxcolor: 'black@0.4', y: 'h-h/6' },
+      bold: { fontsize: 34, fontcolor: 'yellow', boxcolor: 'black@0.7', y: 'h/2' },
+      cinematic: { fontsize: 26, fontcolor: 'white', boxcolor: 'black@0.3', y: 'h-h/4' },
+      elegant: { fontsize: 24, fontcolor: '#F0F0F0', boxcolor: 'black@0.5', y: 'h-h/5' },
+    };
+    const s = styles[subtitleStyle || 'dynamic'] || styles.dynamic;
+
+    // Escape special characters for FFmpeg drawtext
+    const escapedText = subtitleText
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "'\\\\''")
+      .replace(/:/g, '\\:')
+      .replace(/\n/g, '\\n')
+      .substring(0, 200); // Limit length for drawtext
+
+    tasks['convert-video'].video_filter = `drawtext=text='${escapedText}':fontsize=${s.fontsize}:fontcolor=${s.fontcolor}:x=(w-text_w)/2:y=${s.y}:box=1:boxcolor=${s.boxcolor}:boxborderw=8`;
+    console.log('[CloudConvert] Video filter:', tasks['convert-video'].video_filter);
+  }
 
   const createJobResponse = await fetch('https://api.cloudconvert.com/v2/jobs', {
     method: 'POST',
@@ -188,9 +224,11 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
         const convertedUrl = exportTask.result.files[0].url;
         console.log('[CloudConvert] ✅ Conversion completed:', convertedUrl);
 
-        // Note: Audio merge temporarily disabled - using converted video as-is
         if (audioUrl) {
-          console.log('[CloudConvert] ⚠️ Audio TTS ignored (merge temporarily disabled)');
+          console.log('[CloudConvert] ✅ Audio narration merged into video');
+        }
+        if (subtitleText) {
+          console.log('[CloudConvert] ✅ Subtitle text embedded in video');
         }
 
         // Download final video and upload to Supabase Storage

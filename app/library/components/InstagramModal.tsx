@@ -298,18 +298,13 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
     setSuggesting(true);
     try {
-      // For videos, ALWAYS use thumbnail (Claude Vision needs an image, not MP4)
+      // Use thumbnail for videos, image URL for images
       let contentUrl: string;
       if (activeTab === 'images') {
         contentUrl = selectedImage?.image_url || '';
       } else {
-        // For videos, thumbnail is REQUIRED for AI analysis
+        // Use thumbnail if available, otherwise proceed without image (text-only suggestion)
         contentUrl = selectedVideo?.thumbnail_url || '';
-        if (!contentUrl) {
-          alert('Cette vidéo n\'a pas de miniature. La suggestion IA nécessite une image.');
-          setSuggesting(false);
-          return;
-        }
       }
 
       const contentTitle = activeTab === 'images'

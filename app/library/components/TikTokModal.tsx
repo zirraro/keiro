@@ -325,18 +325,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
     setSuggesting(true);
     try {
-      // For videos, ALWAYS use thumbnail (Claude Vision needs an image, not MP4)
+      // Use thumbnail for videos, image URL for images
       let contentUrl: string;
       if (activeTab === 'images') {
         contentUrl = selectedImage?.image_url || '';
       } else {
-        // For videos, thumbnail is REQUIRED for AI analysis
+        // Use thumbnail if available, otherwise proceed without image (text-only suggestion)
         contentUrl = selectedVideo?.thumbnail_url || '';
-        if (!contentUrl) {
-          alert('Cette vidéo n\'a pas de miniature. La suggestion IA nécessite une image.');
-          setSuggesting(false);
-          return;
-        }
       }
 
       const contentTitle = activeTab === 'images'
@@ -688,8 +683,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoUrl: videoUrlToPublish,
-          videoId: videoIdToUpdate, // Update my_videos.video_url after conversion
-          audioUrl: narrationAudioUrl // Custom narration audio (or null for sine wave)
+          videoId: videoIdToUpdate,
+          audioUrl: narrationAudioUrl,
+          subtitleText: enableSubtitles ? narrationScript : undefined,
+          subtitleStyle: enableSubtitles ? subtitleStyle : undefined
         })
       });
 

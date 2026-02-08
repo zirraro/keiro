@@ -114,28 +114,21 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
   "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
 }`;
 
-    console.log('[Suggest] Calling GPT-4 Vision...');
+    // Build message: with image if available, text-only otherwise
+    const messageContent: any[] = [];
+    if (imageUrl) {
+      console.log('[Suggest] Calling GPT-4o Vision (with image)...');
+      messageContent.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'auto' } });
+    } else {
+      console.log('[Suggest] Calling GPT-4o (text-only, no thumbnail)...');
+    }
+    messageContent.push({ type: 'text', text: prompt });
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2000,
       temperature: 0.8,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageUrl,
-              detail: 'auto'
-            }
-          },
-          {
-            type: 'text',
-            text: prompt
-          }
-        ]
-      }],
+      messages: [{ role: 'user', content: messageContent }],
       response_format: { type: 'json_object' }
     });
 

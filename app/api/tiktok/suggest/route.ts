@@ -114,28 +114,21 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
   "hashtags": ["#fyp", "#pourtoi", "#viral", "#trending", "#foryou", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
 }`;
 
-    console.log('[TikTok Suggest] Calling GPT-4 Vision...');
+    // Build message: with image if available, text-only otherwise
+    const messageContent: any[] = [];
+    if (imageUrl) {
+      console.log('[TikTok Suggest] Calling GPT-4o Vision (with image)...');
+      messageContent.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'auto' } });
+    } else {
+      console.log('[TikTok Suggest] Calling GPT-4o (text-only, no thumbnail)...');
+    }
+    messageContent.push({ type: 'text', text: prompt });
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2000,
-      temperature: 0.9, // Plus créatif pour TikTok
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageUrl,
-              detail: 'auto'
-            }
-          },
-          {
-            type: 'text',
-            text: prompt
-          }
-        ]
-      }],
+      temperature: 0.9,
+      messages: [{ role: 'user', content: messageContent }],
       response_format: { type: 'json_object' }
     });
 
