@@ -77,6 +77,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
   const [showNarrationEditor, setShowNarrationEditor] = useState(false);
 
+  // Toast de succès
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
   const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline'>('dynamic');
@@ -299,15 +302,49 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   };
 
   const handleSave = async (status: 'draft' | 'ready') => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
-      return;
-    }
-    setSaving(true);
-    try {
-      await onSave(selectedImage, caption, hashtags, status);
-    } finally {
-      setSaving(false);
+    // Support images ET vidéos
+    if (activeTab === 'images' && selectedImage) {
+      setSaving(true);
+      try {
+        await onSave(selectedImage, caption, hashtags, status);
+        setSuccessToast(status === 'draft' ? '✅ Brouillon sauvegardé !' : '✅ Prêt à publier !');
+        setTimeout(() => setSuccessToast(null), 3000);
+      } finally {
+        setSaving(false);
+      }
+    } else if (activeTab === 'videos' && selectedVideo) {
+      setSaving(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Non authentifié');
+
+        // Sauvegarder directement dans tiktok_drafts pour les vidéos
+        const { error: insertError } = await supabase
+          .from('tiktok_drafts')
+          .insert({
+            user_id: user.id,
+            video_id: selectedVideo.id,
+            media_url: selectedVideo.video_url,
+            media_type: 'video',
+            category: 'draft',
+            caption: caption || '',
+            hashtags: hashtags || [],
+            status: status
+          });
+
+        if (insertError) throw new Error(insertError.message);
+
+        setSuccessToast(status === 'draft' ? '✅ Brouillon vidéo sauvegardé !' : '✅ Vidéo prête à publier !');
+        setTimeout(() => setSuccessToast(null), 3000);
+      } catch (err: any) {
+        console.error('[TikTokModal] Save video draft error:', err);
+        alert(`❌ Erreur de sauvegarde: ${err.message}`);
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      alert('Veuillez sélectionner un contenu (image ou vidéo)');
     }
   };
 
@@ -854,6 +891,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           </button>
         </div>
 
+        {/* Toast de succès */}
+        {successToast && (
+          <div className="mx-4 sm:mx-6 mt-2 px-4 py-2.5 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800 font-medium flex items-center gap-2 animate-pulse">
+            {successToast}
+          </div>
+        )}
+
         {/* TAB SWITCHER - Videos/Images (Videos first) */}
         <div className="border-b border-neutral-200 bg-neutral-50 px-4 sm:px-6 py-2">
           <div className="flex gap-2">
@@ -1312,10 +1356,42 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     initialScript={narrationScript || caption}
                     initialAudioUrl={narrationAudioUrl}
                     caption={caption}
-                    onSave={(script, audioUrl) => {
+                    onSave={async (script, audioUrl) => {
                       setNarrationScript(script);
                       setNarrationAudioUrl(audioUrl);
-                      console.log('[TikTokModal] Audio saved:', { script, audioUrl });
+                      setShowNarrationEditor(false);
+                      setEnableSubtitles(true);
+                      console.log('[TikTokModal] Audio ajouté à la vidéo:', { script, audioUrl });
+
+                      // Message de succès explicite
+                      setSuccessToast('🎙️ Audio ajouté à la vidéo ! Brouillon auto-sauvegardé.');
+                      setTimeout(() => setSuccessToast(null), 4000);
+
+                      // Auto-save brouillon
+                      try {
+                        if (activeTab === 'videos' && selectedVideo) {
+                          const supabase = supabaseBrowser();
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (user) {
+                            await supabase.from('tiktok_drafts').insert({
+                              user_id: user.id,
+                              video_id: selectedVideo.id,
+                              media_url: selectedVideo.video_url,
+                              media_type: 'video',
+                              category: 'draft',
+                              caption: caption || '',
+                              hashtags: hashtags || [],
+                              status: 'draft'
+                            });
+                            console.log('[TikTokModal] ✅ Brouillon vidéo auto-sauvegardé');
+                          }
+                        } else if (activeTab === 'images' && selectedImage) {
+                          await onSave(selectedImage, caption, hashtags, 'draft');
+                          console.log('[TikTokModal] ✅ Brouillon image auto-sauvegardé');
+                        }
+                      } catch (err) {
+                        console.warn('[TikTokModal] Auto-save draft failed (non bloquant):', err);
+                      }
                     }}
                     onCancel={() => {
                       setShowNarrationEditor(false);

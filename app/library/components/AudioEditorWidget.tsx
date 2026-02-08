@@ -278,7 +278,7 @@ Max ~15 mots pour 5 secondes"
               : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
           }`}
         >
-          ✅ Valider
+          ✅ Ajouter l'audio à la vidéo
         </button>
 
         <button
