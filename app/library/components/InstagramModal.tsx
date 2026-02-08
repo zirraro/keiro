@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { InstagramIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import ErrorSupportModal from './ErrorSupportModal';
 import InstagramCarouselModal from './InstagramCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
-import { mergeVideoWithAudio } from '@/lib/ffmpegConverter';
 
 type SavedImage = {
   id: string;
@@ -85,12 +84,40 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
   const [showNarrationEditor, setShowNarrationEditor] = useState(false);
 
-  // États pour la fusion audio+vidéo et sous-titres
-  const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
-  const [merging, setMerging] = useState(false);
-  const [mergeProgress, setMergeProgress] = useState('');
+  // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
   const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant'>('dynamic');
+
+  // Refs pour synchronisation audio+vidéo
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // CSS des styles de sous-titres
+  const subtitleCSS: Record<string, string> = {
+    dynamic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
+    minimal: 'text-white text-[10px] font-medium bg-black/40 px-1.5 py-0.5 rounded',
+    bold: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
+    cinematic: 'text-white text-[10px] font-light bg-black/30 px-2 py-1 rounded tracking-wide',
+    elegant: 'text-gray-100 text-[10px] font-medium bg-black/50 px-2 py-1 rounded-lg italic',
+  };
+
+  // Synchronisation audio avec la vidéo
+  const handleVideoPlay = () => {
+    if (audioRef.current && narrationAudioUrl) {
+      audioRef.current.currentTime = videoRef.current?.currentTime || 0;
+      audioRef.current.play().catch(() => {});
+    }
+  };
+  const handleVideoPause = () => { audioRef.current?.pause(); };
+  const handleVideoSeeked = () => {
+    if (audioRef.current && videoRef.current) {
+      audioRef.current.currentTime = videoRef.current.currentTime;
+    }
+  };
+  const handleVideoEnded = () => {
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    if (videoRef.current) { videoRef.current.currentTime = 0; videoRef.current.play().catch(() => {}); }
+  };
 
   // Pré-remplir caption et hashtags depuis le brouillon
   useEffect(() => {
@@ -748,13 +775,29 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 <div className="md:sticky md:top-0">
                   <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg max-h-[380px] mx-auto">
                     {activeTab === 'videos' && selectedVideo ? (
-                      <video
-                        src={selectedVideo.video_url}
-                        controls
-                        autoPlay
-                        loop
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="relative w-full h-full">
+                        <video
+                          ref={videoRef}
+                          src={selectedVideo.video_url}
+                          controls
+                          autoPlay
+                          onPlay={handleVideoPlay}
+                          onPause={handleVideoPause}
+                          onSeeked={handleVideoSeeked}
+                          onEnded={handleVideoEnded}
+                          className="w-full h-full object-cover"
+                        />
+                        {narrationAudioUrl && (
+                          <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
+                        )}
+                        {enableSubtitles && narrationScript && narrationAudioUrl && (
+                          <div className="absolute bottom-8 left-1 right-1 text-center pointer-events-none">
+                            <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
+                              {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     ) : activeTab === 'images' && selectedImage ? (
                       <img
                         src={selectedImage.image_url}
@@ -896,31 +939,30 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 )}
               </div>
 
-              {/* Fusion audio + vidéo avec sous-titres */}
+              {/* Options audio + sous-titres */}
               {narrationAudioUrl && activeTab === 'videos' && selectedVideo && (
                 <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
-                      🎬 Aperçu vidéo + audio
+                      🎬 Audio + Vidéo
                     </label>
-                    {mergedVideoUrl && (
-                      <span className="text-xs text-green-600 font-medium">✅ Fusionné</span>
-                    )}
+                    <span className="text-xs text-green-600 font-medium">✅ Audio synchronisé</span>
                   </div>
+
+                  <p className="text-[10px] text-neutral-600">
+                    L'audio se joue avec la vidéo dans l'aperçu. Activez les sous-titres pour les voir en temps réel.
+                  </p>
 
                   {/* Checkbox sous-titres */}
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={enableSubtitles}
-                      onChange={(e) => {
-                        setEnableSubtitles(e.target.checked);
-                        setMergedVideoUrl(null);
-                      }}
+                      onChange={(e) => setEnableSubtitles(e.target.checked)}
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-xs font-medium text-neutral-800">
-                      Intégrer les sous-titres dans la vidéo
+                      Afficher les sous-titres sur la vidéo
                     </span>
                   </label>
 
@@ -938,10 +980,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         ]).map((style) => (
                           <button
                             key={style.key}
-                            onClick={() => {
-                              setSubtitleStyle(style.key);
-                              setMergedVideoUrl(null);
-                            }}
+                            onClick={() => setSubtitleStyle(style.key)}
                             className={`px-2 py-1 text-[10px] rounded border transition-all ${
                               subtitleStyle === style.key
                                 ? 'bg-green-600 text-white border-green-600'
@@ -953,70 +992,6 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {/* Bouton fusionner */}
-                  <button
-                    onClick={async () => {
-                      if (!selectedVideo?.video_url || !narrationAudioUrl) return;
-                      setMerging(true);
-                      setMergeProgress('Démarrage...');
-                      try {
-                        const url = await mergeVideoWithAudio(
-                          selectedVideo.video_url,
-                          narrationAudioUrl,
-                          enableSubtitles ? narrationScript : undefined,
-                          enableSubtitles ? subtitleStyle : undefined,
-                          (progress, stage) => setMergeProgress(`${stage} (${Math.round(progress * 100)}%)`)
-                        );
-                        setMergedVideoUrl(url);
-                      } catch (error: any) {
-                        console.error('[InstagramModal] Merge failed:', error);
-                        alert(`❌ Erreur de fusion: ${error.message}`);
-                      } finally {
-                        setMerging(false);
-                        setMergeProgress('');
-                      }
-                    }}
-                    disabled={merging}
-                    className={`w-full px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                      merging
-                        ? 'bg-green-300 text-white cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {merging ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        {mergeProgress}
-                      </span>
-                    ) : mergedVideoUrl ? (
-                      '🔄 Refusionner'
-                    ) : (
-                      '🎬 Fusionner audio + vidéo'
-                    )}
-                  </button>
-
-                  {/* Aperçu vidéo fusionnée */}
-                  {mergedVideoUrl && (
-                    <div className="rounded-lg overflow-hidden border border-green-300">
-                      <video
-                        src={mergedVideoUrl}
-                        controls
-                        autoPlay
-                        className="w-full max-h-[200px] object-contain bg-black"
-                      />
-                      <p className="text-[10px] text-green-700 text-center py-1 bg-green-100">
-                        ✅ Cette version sera utilisée pour la publication
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Hint */}
-                  {!mergedVideoUrl && !merging && (
-                    <p className="text-[9px] text-neutral-500 italic">
-                      💡 Cliquez sur "Fusionner" pour combiner l'audio et la vidéo en un seul fichier
-                    </p>
                   )}
                 </div>
               )}
