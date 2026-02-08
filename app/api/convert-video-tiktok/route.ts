@@ -124,7 +124,7 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     },
     'convert-video': {
       operation: 'convert',
-      input: audioUrl ? ['import-video', 'import-audio'] : 'import-video',
+      input: 'import-video',
       output_format: 'mp4',
       video_codec: 'x264',
       audio_codec: 'aac',
@@ -142,18 +142,6 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
     }
   };
 
-  // Add audio import when audioUrl is provided
-  if (audioUrl) {
-    console.log('[CloudConvert] Adding audio merge task...');
-    tasks['import-audio'] = {
-      operation: 'import/url',
-      url: audioUrl,
-      filename: 'narration.mp3'
-    };
-    // Map: video from first input, audio from second input
-    tasks['convert-video'].map = ['0:v:0', '1:a:0'];
-  }
-
   // Add subtitle text overlay via drawtext filter
   if (subtitleText) {
     console.log('[CloudConvert] Adding subtitle overlay...');
@@ -163,6 +151,10 @@ async function convertViaCloudConvert(videoUrl: string, apiKey: string, videoId?
       bold: { fontsize: 34, fontcolor: 'yellow', boxcolor: 'black@0.7', y: 'h/2' },
       cinematic: { fontsize: 26, fontcolor: 'white', boxcolor: 'black@0.3', y: 'h-h/4' },
       elegant: { fontsize: 24, fontcolor: '#F0F0F0', boxcolor: 'black@0.5', y: 'h-h/5' },
+      clean: { fontsize: 28, fontcolor: 'white', boxcolor: 'black@0.0', y: 'h-h/5' },
+      neon: { fontsize: 28, fontcolor: '#00FFFF', boxcolor: 'black@0.0', y: 'h-h/5' },
+      karaoke: { fontsize: 28, fontcolor: '#FF69B4', boxcolor: 'black@0.0', y: 'h-h/5' },
+      outline: { fontsize: 28, fontcolor: 'white', boxcolor: 'black@0.0', y: 'h-h/5' },
     };
     const s = styles[subtitleStyle || 'dynamic'] || styles.dynamic;
 

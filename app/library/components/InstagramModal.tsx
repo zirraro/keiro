@@ -86,7 +86,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant'>('dynamic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline'>('dynamic');
 
   // Refs pour synchronisation audio+vidéo
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,6 +99,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
     bold: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
     cinematic: 'text-white text-[10px] font-light bg-black/30 px-2 py-1 rounded tracking-wide',
     elegant: 'text-gray-100 text-[10px] font-medium bg-black/50 px-2 py-1 rounded-lg italic',
+    clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
+    neon: 'text-cyan-300 text-[11px] font-bold [text-shadow:_0_0_8px_rgb(0_255_255_/_70%),_0_0_16px_rgb(0_255_255_/_40%)]',
+    karaoke: 'text-white text-[11px] font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 bg-clip-text text-transparent [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)] [-webkit-text-stroke:_0.5px_white]',
+    outline: 'text-white text-[11px] font-extrabold [-webkit-text-stroke:_1px_black] [text-shadow:_2px_2px_0_black,_-2px_-2px_0_black,_2px_-2px_0_black,_-2px_2px_0_black]',
   };
 
   // Synchronisation audio avec la vidéo
@@ -972,6 +976,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                           { key: 'bold' as const, label: '💥 Impactant' },
                           { key: 'cinematic' as const, label: '🎥 Cinématique' },
                           { key: 'elegant' as const, label: '💎 Élégant' },
+                          { key: 'clean' as const, label: '🔤 Sans fond' },
+                          { key: 'neon' as const, label: '💜 Néon' },
+                          { key: 'karaoke' as const, label: '🎤 Karaoké' },
+                          { key: 'outline' as const, label: '🔲 Contour' },
                         ]).map((style) => (
                           <button
                             key={style.key}

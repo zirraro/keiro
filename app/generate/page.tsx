@@ -1665,7 +1665,11 @@ export default function GeneratePage() {
           minimal: 'with clean, minimalist typography, simple and easy to read',
           bold: 'with bold, impactful large typography that grabs attention',
           cinematic: 'with cinematic dramatic text reveals, elegant fades and transitions',
-          elegant: 'with elegant, refined serif typography and gentle animations'
+          elegant: 'with elegant, refined serif typography and gentle animations',
+          clean: 'with clean white text without any background, just text with subtle shadow for readability',
+          neon: 'with glowing neon-style text in cyan/electric blue with luminous glow effect',
+          karaoke: 'with colorful gradient text like karaoke subtitles, vibrant pink-to-yellow gradient',
+          outline: 'with bold outlined white text with strong black outline, high contrast and readable'
         };
         const styleInstruction = textStyleInstructions[aiTextStyle] || textStyleInstructions.dynamic;
 
@@ -2637,6 +2641,10 @@ export default function GeneratePage() {
                               { key: 'bold', label: '💥 Impactant' },
                               { key: 'cinematic', label: '🎥 Cinématique' },
                               { key: 'elegant', label: '💎 Élégant' },
+                              { key: 'clean', label: '🔤 Sans fond' },
+                              { key: 'neon', label: '💜 Néon' },
+                              { key: 'karaoke', label: '🎤 Karaoké' },
+                              { key: 'outline', label: '🔲 Contour' },
                             ].map((style) => (
                               <button
                                 key={style.key}

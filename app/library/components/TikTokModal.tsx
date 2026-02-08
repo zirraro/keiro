@@ -79,7 +79,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant'>('dynamic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline'>('dynamic');
 
   // Refs pour synchronisation audio+vidéo
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -92,6 +92,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     bold: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
     cinematic: 'text-white text-[10px] font-light bg-black/30 px-2 py-1 rounded tracking-wide',
     elegant: 'text-gray-100 text-[10px] font-medium bg-black/50 px-2 py-1 rounded-lg italic',
+    clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
+    neon: 'text-cyan-300 text-[11px] font-bold [text-shadow:_0_0_8px_rgb(0_255_255_/_70%),_0_0_16px_rgb(0_255_255_/_40%)]',
+    karaoke: 'text-white text-[11px] font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 bg-clip-text text-transparent [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)] [-webkit-text-stroke:_0.5px_white]',
+    outline: 'text-white text-[11px] font-extrabold [-webkit-text-stroke:_1px_black] [text-shadow:_2px_2px_0_black,_-2px_-2px_0_black,_2px_-2px_0_black,_-2px_2px_0_black]',
   };
 
   // Synchronisation audio avec la vidéo
@@ -673,71 +677,52 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       return;
     }
 
-    // STEP 2: Convert video to TikTok format with CloudConvert [BUILD v2.1]
-    console.log('[TikTokModal] [BUILD v2.1] Starting CloudConvert conversion...');
-
+    // STEP 2: Ensure video is on Supabase (permanent URL for TikTok upload)
     let tiktokReadyVideoUrl: string;
     try {
-      const conversionResponse = await fetch('/api/convert-video-tiktok', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoUrl: videoUrlToPublish,
-          videoId: videoIdToUpdate,
-          audioUrl: narrationAudioUrl,
-          subtitleText: enableSubtitles ? narrationScript : undefined,
-          subtitleStyle: enableSubtitles ? subtitleStyle : undefined
-        })
-      });
+      const isOnSupabase = videoUrlToPublish.includes('supabase.co') || videoUrlToPublish.includes('supabase.in');
 
-      const conversionData = await conversionResponse.json();
-      console.log('[TikTokModal] Conversion response:', conversionData);
-
-      if (conversionData.ok && conversionData.convertedUrl) {
-        console.log('[TikTokModal] ✅ CloudConvert conversion successful');
-        console.log('[TikTokModal] Original URL:', videoUrlToPublish);
-        console.log('[TikTokModal] Converted URL:', conversionData.convertedUrl);
-        tiktokReadyVideoUrl = conversionData.convertedUrl;
+      if (isOnSupabase) {
+        console.log('[TikTokModal] ✅ Video already on Supabase, using directly');
+        tiktokReadyVideoUrl = videoUrlToPublish;
       } else {
-        console.warn('[TikTokModal] ⚠️ CloudConvert conversion failed:', conversionData.error);
+        console.log('[TikTokModal] Video is on temporary URL, storing to Supabase first...');
 
-        // Si CloudConvert n'est pas configuré, afficher erreur explicite
-        if (conversionData.requiresCloudConvertSetup) {
-          console.error('[TikTokModal] ❌ CloudConvert API key not detected by frontend!');
-          console.error('[TikTokModal] This might be a cache issue. Please hard refresh (Ctrl+Shift+R)');
+        const storeResponse = await fetch('/api/seedream/download-and-store', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl: videoUrlToPublish,
+            title: caption.substring(0, 50) || 'Vidéo TikTok'
+          })
+        });
+
+        const storeData = await storeResponse.json();
+
+        if (storeData.ok && storeData.videoUrl) {
+          console.log('[TikTokModal] ✅ Video stored to Supabase:', storeData.videoUrl);
+          tiktokReadyVideoUrl = storeData.videoUrl;
+          // Update the video ID if a new one was created
+          if (storeData.videoId && !videoIdToUpdate) {
+            videoIdToUpdate = storeData.videoId;
+          }
+        } else {
+          console.error('[TikTokModal] ❌ Failed to store video:', storeData.error);
           setPublishing(false);
           alert(
-            '❌ Conversion automatique non disponible\n\n' +
-            'La conversion vidéo nécessite CloudConvert API.\n\n' +
-            'Si vous venez de configurer la clé:\n' +
-            '1. Videz le cache du navigateur (Ctrl+Shift+R)\n' +
-            '2. Attendez que le déploiement Vercel soit terminé\n' +
-            '3. Réessayez\n\n' +
-            'Si le problème persiste, contactez l\'administrateur.'
+            '❌ Erreur de préparation\n\n' +
+            `Impossible de préparer la vidéo: ${storeData.error}\n\n` +
+            'Veuillez réessayer.'
           );
           return;
         }
-
-        // Autre erreur de conversion - proposer de continuer quand même
-        const continueAnyway = window.confirm(
-          '⚠️ Conversion échouée\n\n' +
-          `Erreur: ${conversionData.error}\n\n` +
-          'Voulez-vous essayer de publier quand même ?'
-        );
-
-        if (!continueAnyway) {
-          setPublishing(false);
-          return;
-        }
-
-        tiktokReadyVideoUrl = videoUrlToPublish;
       }
-    } catch (conversionError: any) {
-      console.error('[TikTokModal] ❌ Conversion request failed:', conversionError);
+    } catch (storeError: any) {
+      console.error('[TikTokModal] ❌ Store request failed:', storeError);
       setPublishing(false);
       alert(
-        '❌ Erreur de conversion\n\n' +
-        'Impossible de contacter le service de conversion.\n\n' +
+        '❌ Erreur de préparation\n\n' +
+        'Impossible de préparer la vidéo pour TikTok.\n\n' +
         'Vérifiez votre connexion et réessayez.'
       );
       return;
@@ -1374,6 +1359,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           { key: 'bold' as const, label: '💥 Impactant' },
                           { key: 'cinematic' as const, label: '🎥 Cinématique' },
                           { key: 'elegant' as const, label: '💎 Élégant' },
+                          { key: 'clean' as const, label: '🔤 Sans fond' },
+                          { key: 'neon' as const, label: '💜 Néon' },
+                          { key: 'karaoke' as const, label: '🎤 Karaoké' },
+                          { key: 'outline' as const, label: '🔲 Contour' },
                         ]).map((style) => (
                           <button
                             key={style.key}
