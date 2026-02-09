@@ -858,7 +858,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                           onSeeked={handleVideoSeeked}
                           onEnded={handleVideoEnded}
                           onTimeUpdate={handleTimeUpdate}
-                          className="w-full h-full object-contain"
+                          className="w-full h-full object-cover"
                         />
                         {narrationAudioUrl && !mergedVideoUrl && (
                           <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
@@ -892,7 +892,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       <img
                         src={selectedImage.image_url}
                         alt={selectedImage.title || selectedImage.news_title || 'Preview'}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                     ) : null}
                   </div>

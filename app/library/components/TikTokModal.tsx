@@ -1206,7 +1206,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         onSeeked={handleVideoSeeked}
                         onEnded={handleVideoEnded}
                         onTimeUpdate={handleTimeUpdate}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                       />
                       {/* Audio séparé uniquement si pas encore fusionné */}
                       {narrationAudioUrl && !mergedVideoUrl && (
@@ -1241,7 +1241,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <img
                       src={selectedImage.image_url}
                       alt={selectedImage.title || 'Selected'}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : null}
                 </div>
