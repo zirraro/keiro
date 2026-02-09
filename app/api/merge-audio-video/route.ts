@@ -45,25 +45,52 @@ async function ensureFFmpeg(): Promise<string> {
   }
 
   // Dernier recours : télécharger le binaire statique dans /tmp
-  console.log('[MergeAV] Téléchargement FFmpeg statique...');
-  const url = 'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/linux-x64.gz';
+  // shaka-project fournit un binaire direct (pas d'archive)
+  const urls = [
+    'https://github.com/shaka-project/static-ffmpeg-binaries/releases/latest/download/ffmpeg-linux-x64',
+    'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/linux-x64',
+  ];
 
-  const res = await fetch(url, { redirect: 'follow' });
-  if (!res.ok) throw new Error(`Téléchargement FFmpeg échoué: ${res.status}`);
+  let downloaded = false;
+  for (const url of urls) {
+    console.log(`[MergeAV] Téléchargement FFmpeg: ${url}`);
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) {
+        console.warn(`[MergeAV] ${url} → ${res.status}, essai suivant...`);
+        continue;
+      }
 
-  const gzPath = FFMPEG_PATH + '.gz';
-  const buffer = Buffer.from(await res.arrayBuffer());
-  await writeFile(gzPath, buffer);
-
-  // Décompresser
-  execSync(`gunzip -f ${gzPath}`);
-  await chmod(FFMPEG_PATH, '755');
-
-  if (!existsSync(FFMPEG_PATH)) {
-    throw new Error('FFmpeg: décompression échouée');
+      const buffer = Buffer.from(await res.arrayBuffer());
+      console.log(`[MergeAV] Téléchargé: ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB`);
+      await writeFile(FFMPEG_PATH, buffer);
+      await chmod(FFMPEG_PATH, '755');
+      downloaded = true;
+      break;
+    } catch (err: any) {
+      console.warn(`[MergeAV] Erreur ${url}: ${err.message}`);
+    }
   }
 
-  console.log('[MergeAV] ✅ FFmpeg téléchargé et prêt');
+  if (!downloaded || !existsSync(FFMPEG_PATH)) {
+    throw new Error('Impossible de télécharger FFmpeg');
+  }
+
+  // Vérifier que le binaire fonctionne
+  try {
+    execSync(`"${FFMPEG_PATH}" -version`, { timeout: 5000 });
+    console.log('[MergeAV] ✅ FFmpeg téléchargé et vérifié');
+  } catch {
+    // Le binaire pourrait être gzippé, essayer de décompresser
+    console.log('[MergeAV] Binaire non exécutable, tentative gunzip...');
+    const gzPath = FFMPEG_PATH + '.gz';
+    const { renameSync } = require('fs');
+    renameSync(FFMPEG_PATH, gzPath);
+    execSync(`gunzip -f "${gzPath}"`);
+    await chmod(FFMPEG_PATH, '755');
+    execSync(`"${FFMPEG_PATH}" -version`, { timeout: 5000 });
+    console.log('[MergeAV] ✅ FFmpeg décompressé et vérifié');
+  }
   return FFMPEG_PATH;
 }
 
