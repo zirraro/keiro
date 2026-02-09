@@ -3022,8 +3022,8 @@ export default function GeneratePage() {
                       )}
                     </div>
 
-                    {/* Option texte animé dans la vidéo */}
-                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                    {/* Option sous-titres / texte animé dans la vidéo */}
+                    <div className="bg-purple-50 rounded-lg p-3 border-2 border-purple-300">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -3031,9 +3031,10 @@ export default function GeneratePage() {
                           onChange={(e) => setEnableAIText(e.target.checked)}
                           className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                         />
-                        <span className="text-xs font-medium text-purple-900">
-                          ✨ Ajouter du texte animé IA dans la vidéo
+                        <span className="text-xs font-semibold text-purple-900">
+                          ✨ Ajouter des sous-titres / texte animé
                         </span>
+                        <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">Recommandé</span>
                       </label>
 
                       {enableAIText && (

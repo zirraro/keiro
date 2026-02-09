@@ -1166,6 +1166,22 @@ function LibraryContent() {
     }
   };
 
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      const res = await fetch(`/api/library/folders?id=${folderId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      setFolders(prev => prev.filter(f => f.id !== folderId));
+      await handleRefreshAll();
+    } catch (error: any) {
+      console.error('[Library] Error deleting folder:', error);
+      alert('Erreur lors de la suppression du dossier');
+    }
+  };
+
   const handleRenameFolder = async (folderId: string, newName: string) => {
     try {
       const res = await fetch('/api/library/folders', {
@@ -1384,11 +1400,12 @@ function LibraryContent() {
     await loadMyVideos();
   };
 
-  // Handlers pour le drag & drop - VERSION SIMPLIFIÉE
+  // Handlers pour le drag & drop - seulement pour les fichiers externes (pas dnd-kit interne)
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (user || isGuest) {
+    // Ne montrer l'overlay que pour les fichiers glissés depuis l'extérieur (bureau)
+    if ((user || isGuest) && e.dataTransfer.types.includes('Files')) {
       setIsDragging(true);
     }
   };
@@ -1627,6 +1644,7 @@ function LibraryContent() {
                       onDownload={handleUnifiedDownload}
                       onMoveToFolder={handleUnifiedMoveToFolder}
                       onRenameFolder={handleRenameFolder}
+                      onDeleteFolder={handleDeleteFolder}
                     />
                   ) : activeTab === 'images' ? (
                     loadingImages ? (
