@@ -28,7 +28,40 @@ type NewsCard = {
   category?: string;
 };
 
+const POSITIVE_KEYWORDS = [
+  // Mots positifs généraux
+  'bonne nouvelle', 'bonnes nouvelles', 'bonne surprise', 'record', 'succès', 'succes', 'réussite', 'reussite',
+  'victoire', 'champion', 'médaille', 'medaille', 'exploit', 'triomphe', 'bravo', 'félicitations', 'felicitations',
+  'progrès', 'progres', 'avancée', 'avancee', 'percée', 'percee', 'découverte', 'decouverte', 'innovation',
+  'inauguration', 'lancement', 'ouverture', 'naissance', 'mariage', 'solidarité', 'solidarite', 'générosité',
+  'generosite', 'don', 'bénévole', 'benevole', 'sauvetage', 'guérison', 'guerison', 'rémission', 'remission',
+  'espoir', 'optimisme', 'croissance', 'hausse', 'augmentation', 'création d\'emploi', 'embauche', 'recrutement',
+  'solution', 'résolu', 'resolu', 'sauvé', 'sauve', 'héros', 'heros', 'héroïne', 'heroine',
+  // Environnement positif
+  'énergie renouvelable', 'energie renouvelable', 'transition écologique', 'biodiversité', 'biodiversite',
+  'reforestation', 'protection', 'préservation', 'preservation', 'espèce sauvée', 'recyclage', 'zéro déchet',
+  // Tech / Science positif
+  'avancée scientifique', 'traitement', 'vaccin', 'remède', 'remede', 'thérapie', 'therapie', 'levée de fonds',
+  'licorne', 'startup', 'french tech', 'intelligence artificielle au service',
+  // Sport positif
+  'titre', 'sacre', 'qualification', 'finale', 'or', 'argent', 'bronze', 'sélection', 'selection',
+  // Social positif
+  'gratuité', 'gratuite', 'gratuit', 'accessibilité', 'accessibilite', 'inclusion', 'égalité', 'egalite',
+  'entraide', 'communauté', 'communaute', 'ensemble', 'unis',
+];
+
+// Mots à exclure pour les bonnes nouvelles (négatifs)
+const NEGATIVE_KEYWORDS = [
+  'mort', 'décès', 'deces', 'tué', 'tue', 'meurtre', 'assassinat', 'attentat', 'guerre', 'conflit',
+  'crise', 'crash', 'effondrement', 'faillite', 'licenciement', 'fermeture', 'catastrophe', 'tragédie',
+  'tragedie', 'scandale', 'corruption', 'fraude', 'arnaque', 'escroquerie', 'agression', 'violence',
+  'accident mortel', 'incendie', 'inondation', 'séisme', 'ouragan', 'tempête', 'alerte', 'danger',
+  'pénurie', 'penurie', 'inflation', 'récession', 'recession', 'dette', 'déficit', 'deficit',
+  'condamné', 'condamne', 'prison', 'garde à vue', 'mise en examen', 'procès', 'proces',
+];
+
 const CATEGORIES = [
+  'Les bonnes nouvelles',
   'Dernières news',
   'À la une',
   'Tech',
@@ -55,7 +88,7 @@ export default function GeneratePage() {
   const router = useRouter();
 
   /* --- États pour les actualités --- */
-  const [category, setCategory] = useState<string>('Dernières news');
+  const [category, setCategory] = useState<string>('Les bonnes nouvelles');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
   const [loading, setLoading] = useState(true); // TRUE au départ pour afficher "Chargement..."
@@ -77,9 +110,9 @@ export default function GeneratePage() {
         categoriesWithNews.add(item.category);
       }
     });
-    // "Dernières news" est toujours disponible, puis filtrer les autres
+    // "Les bonnes nouvelles" et "Dernières news" sont toujours disponibles
     const filtered = CATEGORIES.filter((cat) =>
-      cat === 'Dernières news' || categoriesWithNews.has(cat)
+      cat === 'Les bonnes nouvelles' || cat === 'Dernières news' || categoriesWithNews.has(cat)
     );
     return filtered;
   }, [allNewsItems]);
@@ -88,10 +121,28 @@ export default function GeneratePage() {
   const filteredNews = useMemo(() => {
     let items = allNewsItems;
 
-    // Filtre spécial pour "Dernières news" : toutes les news triées par date
-    if (category === 'Dernières news') {
+    // Filtre spécial pour "Les bonnes nouvelles" : scoring positif
+    if (category === 'Les bonnes nouvelles') {
+      items = allNewsItems.filter((item) => {
+        const text = (item.title + ' ' + item.description).toLowerCase();
+        // Exclure les news négatives
+        const hasNegative = NEGATIVE_KEYWORDS.some(kw => text.includes(kw));
+        if (hasNegative) return false;
+        // Garder les news positives
+        const hasPositive = POSITIVE_KEYWORDS.some(kw => text.includes(kw));
+        return hasPositive;
+      }).sort((a, b) => {
+        // Scorer par nombre de mots positifs trouvés
+        const scoreA = POSITIVE_KEYWORDS.filter(kw => (a.title + ' ' + a.description).toLowerCase().includes(kw)).length;
+        const scoreB = POSITIVE_KEYWORDS.filter(kw => (b.title + ' ' + b.description).toLowerCase().includes(kw)).length;
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else if (category === 'Dernières news') {
+      // Filtre spécial pour "Dernières news" : toutes les news triées par date
       items = [...allNewsItems].sort((a, b) => {
-        // Trier par date décroissante (les plus récentes en premier)
         const dateA = a.date ? new Date(a.date).getTime() : 0;
         const dateB = b.date ? new Date(b.date).getTime() : 0;
         return dateB - dateA;

@@ -34,18 +34,25 @@ export default function DashboardPage() {
   }, [profile, user]);
 
   useEffect(() => {
-    loadUserData();
+    // Écouter l'état d'authentification pour éviter les redirections prématurées
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          loadUserData(session.user);
+        } else if (event === 'INITIAL_SESSION') {
+          // Pas de session initiale → rediriger
+          window.location.href = '/login';
+        }
+      } else if (event === 'SIGNED_OUT') {
+        window.location.href = '/login';
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const loadUserData = async () => {
+  const loadUserData = async (currentUser: any) => {
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-      if (!currentUser) {
-        window.location.href = '/login';
-        return;
-      }
-
       setUser(currentUser);
 
       const { data: profileData } = await supabase
