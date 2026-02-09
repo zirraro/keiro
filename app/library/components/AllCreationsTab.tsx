@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import FolderHeader from './FolderHeader';
 import CreationCard, { CreationItem } from './CreationCard';
 
@@ -22,6 +22,7 @@ interface AllCreationsTabProps {
   onPublish: (item: CreationItem) => void;
   onDownload: (item: CreationItem) => void;
   onMoveToFolder: (id: string, type: 'image' | 'video', folderId: string | null) => Promise<void>;
+  onRenameFolder?: (folderId: string, newName: string) => Promise<void>;
 }
 
 export default function AllCreationsTab({
@@ -34,7 +35,8 @@ export default function AllCreationsTab({
   onDelete,
   onPublish,
   onDownload,
-  onMoveToFolder
+  onMoveToFolder,
+  onRenameFolder
 }: AllCreationsTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
@@ -53,6 +55,59 @@ export default function AllCreationsTab({
   const [showMoveFolderModal, setShowMoveFolderModal] = useState(false);
   const [itemToMove, setItemToMove] = useState<CreationItem | null>(null);
   const [movingToFolder, setMovingToFolder] = useState(false);
+
+  // État pour le renommage inline de dossier
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [savingFolderName, setSavingFolderName] = useState(false);
+  const folderNameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingFolderId && folderNameInputRef.current) {
+      folderNameInputRef.current.focus();
+      folderNameInputRef.current.select();
+    }
+  }, [editingFolderId]);
+
+  const startRenamingFolder = (folderId: string, currentName: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (folderId === 'uncategorized') return;
+    setEditingFolderId(folderId);
+    setEditFolderName(currentName);
+  };
+
+  const saveRenameFolder = async () => {
+    if (!editingFolderId || !editFolderName.trim() || !onRenameFolder) {
+      setEditingFolderId(null);
+      return;
+    }
+    const folder = folders.find(f => f.id === editingFolderId);
+    if (folder && editFolderName.trim() === folder.name) {
+      setEditingFolderId(null);
+      return;
+    }
+    setSavingFolderName(true);
+    try {
+      await onRenameFolder(editingFolderId, editFolderName.trim());
+    } catch {
+      // error handled by parent
+    } finally {
+      setSavingFolderName(false);
+      setEditingFolderId(null);
+    }
+  };
+
+  const handleFolderNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveRenameFolder();
+    } else if (e.key === 'Escape') {
+      setEditingFolderId(null);
+    }
+  };
 
   // Toggle folder expansion
   const toggleFolder = (folderId: string) => {
@@ -334,19 +389,50 @@ export default function AllCreationsTab({
               {sortedFolders.map(([folderId, items]) => {
                 const folder = getFolderInfo(folderId);
                 const isExpanded = expandedFolders.has(folderId);
+                const isEditing = editingFolderId === folderId;
 
                 return (
-                  <button
+                  <div
                     key={folderId}
-                    onClick={() => toggleFolder(folderId)}
-                    className="rounded-xl border-2 border-neutral-200 hover:border-blue-400 transition-all p-6 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white to-neutral-50 hover:shadow-lg aspect-square"
+                    onClick={() => { if (!isEditing) toggleFolder(folderId); }}
+                    className="relative cursor-pointer rounded-xl border-2 border-neutral-200 hover:border-blue-400 transition-all p-6 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white to-neutral-50 hover:shadow-lg aspect-square"
                   >
                     <span className="text-5xl">{folder.icon}</span>
                     <div className="text-center w-full">
-                      <h3 className="font-bold text-base truncate" style={{ color: folder.color }}>
-                        {folder.name}
-                      </h3>
-                      <p className="text-xs text-neutral-500">
+                      {isEditing ? (
+                        <input
+                          ref={folderNameInputRef}
+                          value={editFolderName}
+                          onChange={(e) => setEditFolderName(e.target.value)}
+                          onBlur={saveRenameFolder}
+                          onKeyDown={handleFolderNameKeyDown}
+                          onClick={(e) => e.stopPropagation()}
+                          maxLength={50}
+                          disabled={savingFolderName}
+                          className="w-full text-center font-bold text-base bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          style={{ color: folder.color }}
+                        />
+                      ) : (
+                        <h3
+                          className="font-bold text-base truncate group"
+                          style={{ color: folder.color }}
+                          onDoubleClick={(e) => startRenamingFolder(folderId, folder.name, e)}
+                        >
+                          {folder.name}
+                          {folderId !== 'uncategorized' && onRenameFolder && (
+                            <button
+                              onClick={(e) => startRenamingFolder(folderId, folder.name, e)}
+                              className="ml-1 opacity-0 group-hover:opacity-100 inline-flex align-middle transition-opacity"
+                              title="Renommer"
+                            >
+                              <svg className="w-3.5 h-3.5 text-neutral-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          )}
+                        </h3>
+                      )}
+                      <p className="text-xs text-neutral-500 mt-1">
                         {items.length} {items.length > 1 ? 'éléments' : 'élément'}
                       </p>
                     </div>
@@ -355,7 +441,7 @@ export default function AllCreationsTab({
                         ✓
                       </div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -372,10 +458,39 @@ export default function AllCreationsTab({
               return (
                 <div key={`content-${folderId}`} className="mb-8">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: folder.color }}>
+                    <div className="flex items-center gap-2 group">
                       <span className="text-2xl">{folder.icon}</span>
-                      {folder.name}
-                    </h3>
+                      {editingFolderId === folderId ? (
+                        <input
+                          ref={folderNameInputRef}
+                          value={editFolderName}
+                          onChange={(e) => setEditFolderName(e.target.value)}
+                          onBlur={saveRenameFolder}
+                          onKeyDown={handleFolderNameKeyDown}
+                          maxLength={50}
+                          disabled={savingFolderName}
+                          className="font-bold text-lg bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          style={{ color: folder.color }}
+                        />
+                      ) : (
+                        <>
+                          <h3 className="text-lg font-bold" style={{ color: folder.color }}>
+                            {folder.name}
+                          </h3>
+                          {folderId !== 'uncategorized' && onRenameFolder && (
+                            <button
+                              onClick={(e) => startRenamingFolder(folderId, folder.name, e)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-neutral-200"
+                              title="Renommer"
+                            >
+                              <svg className="w-4 h-4 text-neutral-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                     <button
                       onClick={() => toggleFolder(folderId)}
                       className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
@@ -398,19 +513,48 @@ export default function AllCreationsTab({
           {sortedFolders.map(([folderId, items]) => {
             const folder = getFolderInfo(folderId);
             const isExpanded = expandedFolders.has(folderId);
+            const isEditing = editingFolderId === folderId;
 
             return (
               <div key={folderId} className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
                 {/* Folder Row */}
                 <button
-                  onClick={() => toggleFolder(folderId)}
+                  onClick={() => { if (!isEditing) toggleFolder(folderId); }}
                   className="w-full p-4 flex items-center gap-4 hover:bg-neutral-50 transition-colors text-left"
                 >
                   <span className="text-3xl">{folder.icon}</span>
                   <div className="flex-1">
-                    <h3 className="font-bold text-lg" style={{ color: folder.color }}>
-                      {folder.name}
-                    </h3>
+                    {isEditing ? (
+                      <input
+                        ref={folderNameInputRef}
+                        value={editFolderName}
+                        onChange={(e) => setEditFolderName(e.target.value)}
+                        onBlur={saveRenameFolder}
+                        onKeyDown={handleFolderNameKeyDown}
+                        onClick={(e) => e.stopPropagation()}
+                        maxLength={50}
+                        disabled={savingFolderName}
+                        className="font-bold text-lg bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs"
+                        style={{ color: folder.color }}
+                      />
+                    ) : (
+                      <div className="group flex items-center gap-2">
+                        <h3 className="font-bold text-lg" style={{ color: folder.color }}>
+                          {folder.name}
+                        </h3>
+                        {folderId !== 'uncategorized' && onRenameFolder && (
+                          <button
+                            onClick={(e) => startRenamingFolder(folderId, folder.name, e)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-neutral-200"
+                            title="Renommer"
+                          >
+                            <svg className="w-4 h-4 text-neutral-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <p className="text-sm text-neutral-500">
                       {items.length} {items.length > 1 ? 'éléments' : 'élément'}
                     </p>

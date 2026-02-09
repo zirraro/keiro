@@ -1166,6 +1166,25 @@ function LibraryContent() {
     }
   };
 
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    try {
+      const res = await fetch('/api/library/folders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id: folderId, name: newName })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      // Mettre à jour le state local
+      setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName } : f));
+    } catch (error: any) {
+      console.error('[Library] Error renaming folder:', error);
+      alert('Erreur lors du renommage du dossier');
+      throw error;
+    }
+  };
+
   const handleRefreshAll = async () => {
     await loadImages();
     await loadMyVideos();
@@ -1607,6 +1626,7 @@ function LibraryContent() {
                       onPublish={handleUnifiedPublish}
                       onDownload={handleUnifiedDownload}
                       onMoveToFolder={handleUnifiedMoveToFolder}
+                      onRenameFolder={handleRenameFolder}
                     />
                   ) : activeTab === 'images' ? (
                     loadingImages ? (
