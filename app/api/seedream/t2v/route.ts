@@ -8,7 +8,7 @@ const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/c
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, duration = 5, resolution = '1080p', taskId } = body;
+    const { prompt, duration = 5, resolution = '1080p', aspectRatio, taskId } = body;
 
     // Si taskId est fourni, on vérifie le statut
     if (taskId) {
@@ -24,9 +24,11 @@ export async function POST(request: Request) {
     }
 
     console.log('[Seedream T2V] Creating video task with prompt:', prompt.substring(0, 100) + '...');
+    console.log('[Seedream T2V] Aspect ratio:', aspectRatio || 'default (16:9)');
 
     // Construire le prompt avec les paramètres intégrés
-    const formattedPrompt = `${prompt} --resolution ${resolution} --duration ${duration} --camerafixed false`;
+    const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
+    const formattedPrompt = `${prompt} --resolution ${resolution} --duration ${duration}${ratioFlag} --camerafixed false`;
 
     const requestBody = {
       model: 'seedance-1-0-pro-250528',

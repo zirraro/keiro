@@ -105,11 +105,16 @@ export async function POST(request: NextRequest) {
 
     // 3. System prompt contextuel (optimisé pour être plus court)
     const businessType = profile?.business_description || profile?.business_type || 'entreprise';
-    const systemPrompt = `Tu es un expert marketing Instagram.
+    const systemPrompt = `Tu es un expert marketing réseaux sociaux (Instagram, TikTok, LinkedIn, Facebook).
 
-Contexte: ${businessType}
+Contexte business: ${businessType}
 
-Rôle: Conseils ACTIONNABLES pour Instagram (formats, hashtags, timing, engagement).
+Rôle: Conseils ACTIONNABLES pour les réseaux sociaux (formats, hashtags, timing, engagement, tendances).
+
+Quand l'utilisateur veut créer un visuel ou une vidéo, demande-lui TOUJOURS :
+- Sur quelle plateforme il compte publier (TikTok, Instagram, les deux ?)
+- Adapte tes conseils au format de la plateforme (TikTok = vertical 9:16, Instagram = carré 1:1 ou portrait 4:5)
+- Rappelle-lui de sélectionner la bonne plateforme dans la page Générer pour obtenir le bon format
 
 Style:
 - Concis (150-300 mots max)

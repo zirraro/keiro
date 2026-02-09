@@ -1671,13 +1671,19 @@ export default function GeneratePage() {
       console.log('[Video] Starting generation with prompt:', videoPrompt);
 
       // Créer la tâche de génération
+      // Déterminer le ratio selon la plateforme cible
+      const platformRatio = platform === 'TikTok' ? '9:16'
+        : platform === 'Instagram' ? '4:5'
+        : undefined; // défaut 16:9
+
       const res = await fetch('/api/seedream/t2v', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: videoPrompt,
           duration: videoDuration,
-          resolution: '1080p'
+          resolution: '1080p',
+          aspectRatio: platformRatio
         }),
       });
 
