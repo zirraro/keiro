@@ -103,3 +103,50 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+/**
+ * PATCH /api/library/save-video
+ * Mettre à jour une vidéo existante (remplacer URL après édition/merge audio)
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const { user, error: authError } = await getAuthUser();
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { id, videoUrl, title } = body;
+
+    if (!id) {
+      return NextResponse.json({ ok: false, error: 'id requis' }, { status: 400 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (videoUrl) updateData.video_url = videoUrl;
+    if (title) updateData.title = title;
+
+    const { data, error } = await supabase
+      .from('my_videos')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[SaveVideo PATCH] Error:', error);
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    console.log('[SaveVideo PATCH] ✅ Video updated:', id);
+    return NextResponse.json({ ok: true, video: data });
+  } catch (error: any) {
+    console.error('[SaveVideo PATCH] ❌ Error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
+  }
+}

@@ -14,6 +14,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { generateTextSuggestions } from '@/lib/text-suggestion';
 import { addTextOverlay } from '@/lib/canvas-text-overlay';
 import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
+import { computeSocialScore } from '@/lib/news/socialRanker';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -151,15 +152,23 @@ export default function GeneratePage() {
     return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
   }, []);
 
-  /* --- Trending news (3 plus récentes avec images) --- */
+  /* --- Trending news (3 plus tendance via scoring social) --- */
   const trendingNews = useMemo(() => {
     const withImages = allNewsItems.filter(item => item.image);
-    const sorted = [...withImages].sort((a, b) => {
-      const dateA = a.date ? new Date(a.date).getTime() : 0;
-      const dateB = b.date ? new Date(b.date).getTime() : 0;
-      return dateB - dateA;
-    });
-    return sorted.slice(0, 3);
+    const scored = withImages.map(item => ({
+      ...item,
+      _score: computeSocialScore({
+        id: item.id,
+        title: item.title,
+        summary: item.description,
+        url: item.url,
+        image: item.image,
+        source: item.source,
+        publishedAt: item.date,
+      })
+    }));
+    scored.sort((a, b) => b._score - a._score);
+    return scored.slice(0, 3);
   }, [allNewsItems]);
 
   /* --- États pour l'upload logo/photo --- */
@@ -271,6 +280,8 @@ export default function GeneratePage() {
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [imageSavedToLibrary, setImageSavedToLibrary] = useState(false);
+  const [lastSavedImageId, setLastSavedImageId] = useState<string | null>(null);
+  const [lastSavedVideoId, setLastSavedVideoId] = useState<string | null>(null);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
 
   /* --- États pour l'éditeur de texte overlay intégré --- */
@@ -796,6 +807,7 @@ export default function GeneratePage() {
 
     // Réinitialiser l'état de sauvegarde pour la nouvelle génération
     setImageSavedToLibrary(false);
+    setLastSavedImageId(null);
 
     // Vérifier si l'utilisateur est admin (whitelist) - UTILISER supabaseBrowser pour avoir la session
     const supabaseClient = supabaseBrowser();
@@ -1390,22 +1402,30 @@ export default function GeneratePage() {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
           console.log('[Generate] User logged in, auto-saving to library...');
-          const saveResponse = await fetch('/api/storage/upload', {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          const headers: HeadersInit = { 'Content-Type': 'application/json' };
+          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+          const saveResponse = await fetch('/api/library/save', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
-              url: finalImageUrl, // Utiliser l'URL finale (avec texte si appliqué)
-              type: 'image',
-              prompt: fullPrompt
+              imageUrl: finalImageUrl,
+              title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
+              newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+              newsCategory: selectedNews?.category || null,
+              aiModel: 'seedream',
+              tags: []
             })
           });
           const saveData = await saveResponse.json();
-          if (saveData.ok) {
-            console.log('[Generate] Auto-saved to library successfully');
+          if (saveData.ok && saveData.savedImage?.id) {
+            setLastSavedImageId(saveData.savedImage.id);
+            setMonthlyStats(prev => prev ? { ...prev, images: prev.images + 1 } : { images: 1, videos: 0 });
+            console.log('[Generate] Auto-saved to library:', saveData.savedImage.id);
           }
         }
       } catch (saveError) {
-        // Silently fail auto-save, don't interrupt user flow
         console.error('[Generate] Auto-save error:', saveError);
       }
     } catch (e: any) {
@@ -1517,16 +1537,17 @@ export default function GeneratePage() {
         console.warn('[SaveToLibrary] No session token available');
       }
 
+      // Si déjà auto-sauvé → PATCH (update), sinon → POST (insert)
+      const isUpdate = !!lastSavedImageId;
       const response = await fetch('/api/library/save', {
-        method: 'POST',
+        method: isUpdate ? 'PATCH' : 'POST',
         headers: headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(isUpdate ? { id: lastSavedImageId, imageUrl: finalImageUrl, title: payload.title } : payload)
       });
 
       let data;
       try {
-        // Vérifier d'abord le status
-        console.log('[SaveToLibrary] Response status:', response.status);
+        console.log('[SaveToLibrary] Response status:', response.status, isUpdate ? '(UPDATE)' : '(INSERT)');
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -1542,9 +1563,10 @@ export default function GeneratePage() {
 
       if (data.ok) {
         setImageSavedToLibrary(true);
-        console.log('[SaveToLibrary] ✅ Image saved to library:', data.savedImage.id);
+        if (data.savedImage?.id) setLastSavedImageId(data.savedImage.id);
+        console.log('[SaveToLibrary] ✅ Image saved:', data.savedImage?.id);
 
-        // Afficher notification de succès (toast simple)
+        // Toast succès
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
         toast.innerHTML = `
@@ -1552,15 +1574,11 @@ export default function GeneratePage() {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Sauvegardé dans votre galerie ! Redirection...</span>
+            <span>${isUpdate ? 'Galerie mise à jour !' : 'Sauvegardé dans votre galerie !'}</span>
           </div>
         `;
         document.body.appendChild(toast);
-
-        // Rediriger vers la galerie après 1.5 secondes
-        setTimeout(() => {
-          router.push('/library');
-        }, 1500);
+        setTimeout(() => toast.remove(), 3000);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -1619,15 +1637,17 @@ export default function GeneratePage() {
         console.warn('[SaveVideoToLibrary] No session token available');
       }
 
+      // Si déjà auto-sauvé → PATCH (update), sinon → POST (insert)
+      const isUpdate = !!lastSavedVideoId;
       const response = await fetch('/api/library/save-video', {
-        method: 'POST',
+        method: isUpdate ? 'PATCH' : 'POST',
         headers: headers,
-        body: JSON.stringify(payload)
+        body: JSON.stringify(isUpdate ? { id: lastSavedVideoId, videoUrl: generatedVideoUrl, title: payload.title } : payload)
       });
 
       let data;
       try {
-        console.log('[SaveVideoToLibrary] Response status:', response.status);
+        console.log('[SaveVideoToLibrary] Response status:', response.status, isUpdate ? '(UPDATE)' : '(INSERT)');
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -1643,9 +1663,9 @@ export default function GeneratePage() {
 
       if (data.ok) {
         setVideoSavedToLibrary(true);
-        console.log('[SaveVideoToLibrary] ✅ Video saved to library:', data.video.id);
+        if (data.video?.id) setLastSavedVideoId(data.video.id);
+        console.log('[SaveVideoToLibrary] ✅ Video saved:', data.video?.id);
 
-        // Afficher notification de succès (toast simple)
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
         toast.innerHTML = `
@@ -1653,16 +1673,11 @@ export default function GeneratePage() {
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>Vidéo sauvegardée ! Redirection vers la galerie...</span>
+            <span>${isUpdate ? 'Vidéo mise à jour dans la galerie !' : 'Vidéo sauvegardée !'}</span>
           </div>
         `;
         document.body.appendChild(toast);
-
-        // Rediriger vers l'onglet Mes vidéos après 1.5 secondes
-        setTimeout(() => {
-          toast.remove();
-          router.push('/library?tab=videos');
-        }, 1500);
+        setTimeout(() => toast.remove(), 3000);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -1694,6 +1709,8 @@ export default function GeneratePage() {
     setVideoTaskId(null);
     setVideoProgress('Création de la tâche vidéo...');
     setGenerationError(null);
+    setVideoSavedToLibrary(false);
+    setLastSavedVideoId(null);
 
     try {
       // Construire le prompt vidéo
@@ -1865,6 +1882,36 @@ export default function GeneratePage() {
               setGeneratedVideoUrl(finalVideoUrl);
               setVideoProgress('');
               setGeneratingVideo(false);
+
+              // Auto-save vidéo en galerie
+              try {
+                const sbClient = supabaseBrowser();
+                const { data: { user: vUser } } = await sbClient.auth.getUser();
+                if (vUser) {
+                  const { data: { session: vSession } } = await sbClient.auth.getSession();
+                  const vHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+                  if (vSession?.access_token) vHeaders['Authorization'] = `Bearer ${vSession.access_token}`;
+                  const vSaveRes = await fetch('/api/library/save-video', {
+                    method: 'POST',
+                    headers: vHeaders,
+                    body: JSON.stringify({
+                      videoUrl: finalVideoUrl,
+                      title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
+                      sourceType: 'seedream_i2v',
+                      duration: 5
+                    })
+                  });
+                  const vSaveData = await vSaveRes.json();
+                  if (vSaveData.ok && vSaveData.video?.id) {
+                    setLastSavedVideoId(vSaveData.video.id);
+                    setMonthlyStats(prev => prev ? { ...prev, videos: prev.videos + 1 } : { images: 0, videos: 1 });
+                    console.log('[Video] Auto-saved to library:', vSaveData.video.id);
+                  }
+                }
+              } catch (autoSaveErr) {
+                console.error('[Video] Auto-save error:', autoSaveErr);
+              }
+
               return;
             } else {
               // Statut completed mais pas d'URL - afficher debug
@@ -2038,81 +2085,104 @@ export default function GeneratePage() {
 
             {/* ===== WIDGETS SECTION ===== */}
             {!loading && allNewsItems.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                {/* Widget 1 : Astuce du jour */}
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0">{dailyTip.icon}</div>
-                    <div>
-                      <h4 className="text-xs font-bold text-amber-900 mb-1">Astuce du jour</h4>
-                      <p className="text-xs text-amber-800 leading-relaxed">{dailyTip.text}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Widget 2 : Quick Stats */}
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">📊</span>
-                    <h4 className="text-xs font-bold text-blue-900">Votre mois en chiffres</h4>
-                    <span className="text-[10px] text-blue-600 ml-auto">
-                      {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
+              <div className="space-y-3 mt-6">
+                {/* Widget 1 : Quick Stats GRAND (pleine largeur + barres de progression) */}
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">📊</span>
+                    <h4 className="text-sm font-bold text-blue-900">Votre activité ce mois</h4>
+                    <span className="text-xs text-blue-600 ml-auto capitalize">
+                      {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                     </span>
                   </div>
                   {monthlyStats ? (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-blue-800">Visuels créés</span>
-                        <span className="text-sm font-bold text-blue-900">{monthlyStats.images}</span>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-blue-800">Visuels créés</span>
+                          <span className="text-sm font-bold text-blue-900">{monthlyStats.images}</span>
+                        </div>
+                        <div className="w-full bg-blue-100 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, (monthlyStats.images / 40) * 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-blue-800">Vidéos créées</span>
-                        <span className="text-sm font-bold text-blue-900">{monthlyStats.videos}</span>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-blue-800">Vidéos créées</span>
+                          <span className="text-sm font-bold text-blue-900">{monthlyStats.videos}</span>
+                        </div>
+                        <div className="w-full bg-cyan-100 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-cyan-500 to-cyan-600 h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(100, (monthlyStats.videos / 11) * 100)}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-blue-600">Connectez-vous pour voir vos stats</p>
+                    <p className="text-xs text-blue-600">Connectez-vous pour voir vos stats</p>
                   )}
                 </div>
 
-                {/* Widget 3 : CTA Assistant (discret) */}
+                {/* Ligne 2 : Astuce du jour + Trending (grille 2 colonnes) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Widget 2 : Astuce du jour AGRANDI */}
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="text-3xl flex-shrink-0">{dailyTip.icon}</div>
+                      <div>
+                        <h4 className="text-sm font-bold text-amber-900 mb-1.5">Astuce du jour</h4>
+                        <p className="text-sm text-amber-800 leading-relaxed">{dailyTip.text}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Widget 3 : Trending réseaux sociaux */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xl">🔥</span>
+                      <h4 className="text-sm font-bold text-green-900">Tendances réseaux sociaux</h4>
+                    </div>
+                    {trendingNews.length > 0 ? (
+                      <div className="space-y-2">
+                        {trendingNews.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => setSelectedNews(item)}
+                            className="flex items-start gap-2.5 p-2 bg-white/60 rounded-lg cursor-pointer hover:bg-white transition-all border border-green-100"
+                          >
+                            {item.image && (
+                              <img src={item.image} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-green-900 line-clamp-2 font-medium leading-snug">{item.title}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
+                                <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-green-600">Chargement...</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Widget 4 : CTA Assistant PETIT (pleine largeur, discret) */}
                 <div
                   onClick={() => assistantPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all group"
+                  className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg px-4 py-2 cursor-pointer hover:shadow-sm transition-all group flex items-center gap-2"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">💡</span>
-                    <p className="text-xs text-purple-800">
-                      Besoin d&apos;idées de contenu ?{' '}
-                      <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant →</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Widget 4 : Trending cette semaine */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg">🔥</span>
-                    <h4 className="text-xs font-bold text-green-900">Tendances cette semaine</h4>
-                  </div>
-                  {trendingNews.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {trendingNews.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => setSelectedNews(item)}
-                          className="flex items-start gap-2 p-1.5 bg-white/60 rounded-lg cursor-pointer hover:bg-white transition-all border border-green-100"
-                        >
-                          {item.image && (
-                            <img src={item.image} alt="" className="w-10 h-10 object-cover rounded flex-shrink-0" />
-                          )}
-                          <p className="text-[10px] text-green-800 line-clamp-2 leading-relaxed">{item.title}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-green-600">Chargement...</p>
-                  )}
+                  <span className="text-sm">💡</span>
+                  <p className="text-[11px] text-purple-700">
+                    Besoin d&apos;idées ?{' '}
+                    <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant marketing →</span>
+                  </p>
                 </div>
               </div>
             )}
@@ -3287,6 +3357,14 @@ export default function GeneratePage() {
                             const mergeData = await mergeRes.json();
                             if (mergeData.ok && mergeData.mergedUrl) {
                               setGeneratedVideoUrl(mergeData.mergedUrl);
+                              // Mettre à jour la vidéo auto-sauvée
+                              if (lastSavedVideoId) {
+                                fetch('/api/library/save-video', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: lastSavedVideoId, videoUrl: mergeData.mergedUrl })
+                                }).catch(() => {});
+                              }
                             } else {
                               alert(`Erreur: ${mergeData.error}`);
                             }

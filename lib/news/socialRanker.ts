@@ -30,6 +30,13 @@ const KEY_HITS = [
   /ai|gpt|genai|openai|anthropic|llama|stable|image|video/i,
   /beats|record|all-time high|ATH|surge|spike/i,
   /leak|rumor|teaser|sneak peek/i,
+  // Patterns français
+  /lancement|annonce|partenariat|levée de fonds|acquisition/i,
+  /viral|tendance|buzz|polémique|scandale|clash|choc/i,
+  /tiktok|instagram|youtube|snapchat|influenceur|créateur/i,
+  /intelligence artificielle|ia générative|chatgpt|gemini/i,
+  /record|historique|explosion|flambée|chute|effondrement/i,
+  /exclusif|révélation|fuite|rumeur|inédit|breaking/i,
 ];
 
 const SOURCE_BONUS: Record<string, number> = {
@@ -39,6 +46,14 @@ const SOURCE_BONUS: Record<string, number> = {
   "Bloomberg": 0.06,
   "Reuters": 0.05,
   "The Guardian": 0.04,
+  // Sources françaises
+  "Le Monde": 0.07,
+  "Les Echos": 0.06,
+  "France 24": 0.06,
+  "BFM TV": 0.05,
+  "L'Équipe": 0.05,
+  "Numerama": 0.05,
+  "Konbini": 0.04,
 };
 
 function sigmoid(x: number) {

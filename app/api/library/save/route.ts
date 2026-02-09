@@ -205,3 +205,82 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+/**
+ * PATCH /api/library/save
+ * Mettre à jour une image existante (remplacer URL, titre, etc.)
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, imageUrl, title } = body;
+
+    if (!id) {
+      return NextResponse.json({ ok: false, error: 'id requis' }, { status: 400 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Auth via cookies ou Bearer
+    const cookieStore = await cookies();
+    let accessToken: string | undefined;
+    const allCookies = cookieStore.getAll();
+    for (const cookie of allCookies) {
+      if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
+        try {
+          let cookieValue = cookie.value;
+          if (cookieValue.startsWith('base64-')) {
+            cookieValue = Buffer.from(cookieValue.substring(7), 'base64').toString('utf-8');
+          }
+          const parsed = JSON.parse(cookieValue);
+          accessToken = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : undefined);
+          break;
+        } catch {}
+      }
+    }
+    if (!accessToken) {
+      accessToken = cookieStore.get('sb-access-token')?.value;
+    }
+
+    let userId: string | null = null;
+    if (accessToken) {
+      const { data: { user } } = await supabase.auth.getUser(accessToken);
+      if (user) userId = user.id;
+    }
+    if (!userId) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const { data: { user } } = await supabase.auth.getUser(authHeader.substring(7));
+        if (user) userId = user.id;
+      }
+    }
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+    }
+
+    const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+    if (imageUrl) updateData.image_url = imageUrl;
+    if (title) updateData.title = title;
+
+    const { data, error } = await supabase
+      .from('saved_images')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Library/Save PATCH] Error:', error);
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    console.log('[Library/Save PATCH] ✅ Image updated:', id);
+    return NextResponse.json({ ok: true, savedImage: data });
+  } catch (error: any) {
+    console.error('[Library/Save PATCH] ❌ Error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
+  }
+}
