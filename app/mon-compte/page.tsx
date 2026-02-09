@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Plan definitions
 const PLANS: Record<string, { name: string; price: string; visuals: number; videos: number; color: string }> = {
@@ -16,7 +17,8 @@ const PLANS: Record<string, { name: string; price: string; visuals: number; vide
   admin: { name: 'Fondateurs', price: '—', visuals: 30, videos: 8, color: '#10B981' },
 };
 
-export default function DashboardPage() {
+export default function MonComptePage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [instagramPosts, setInstagramPosts] = useState<any[]>([]);
@@ -34,21 +36,23 @@ export default function DashboardPage() {
   }, [profile, user]);
 
   useEffect(() => {
-    // Écouter l'état d'authentification pour éviter les redirections prématurées
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        if (session?.user) {
-          loadUserData(session.user);
-        } else if (event === 'INITIAL_SESSION') {
-          // Pas de session initiale → rediriger
-          window.location.href = '/login';
-        }
-      } else if (event === 'SIGNED_OUT') {
-        window.location.href = '/login';
-      }
-    });
+    const init = async () => {
+      try {
+        // getSession() lit les cookies locaux - rapide et fiable
+        const { data: { session } } = await supabase.auth.getSession();
 
-    return () => subscription.unsubscribe();
+        if (session?.user) {
+          await loadUserData(session.user);
+        } else {
+          // Pas de session → rediriger
+          router.replace('/login');
+        }
+      } catch (error) {
+        console.error('[MonCompte] Auth error:', error);
+        router.replace('/login');
+      }
+    };
+    init();
   }, []);
 
   const loadUserData = async (currentUser: any) => {
@@ -82,7 +86,7 @@ export default function DashboardPage() {
         loadInstagramPosts();
       }
     } catch (error) {
-      console.error('[Dashboard] Error loading user:', error);
+      console.error('[MonCompte] Error loading user:', error);
     } finally {
       setLoading(false);
     }
@@ -97,7 +101,7 @@ export default function DashboardPage() {
         setInstagramPosts(data.posts || []);
       }
     } catch (error) {
-      console.error('[Dashboard] Error loading Instagram posts:', error);
+      console.error('[MonCompte] Error loading Instagram posts:', error);
     } finally {
       setLoadingPosts(false);
     }
@@ -125,7 +129,7 @@ export default function DashboardPage() {
         window.location.reload();
       }
     } catch (error) {
-      console.error('[Dashboard] Error disconnecting Instagram:', error);
+      console.error('[MonCompte] Error disconnecting Instagram:', error);
       alert('Erreur lors de la déconnexion');
     }
   };

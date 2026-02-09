@@ -2248,13 +2248,13 @@ export default function GeneratePage() {
                         <p className="text-[11px] text-purple-700 mb-2">Ajoutez un pack extra pour ce mois :</p>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => router.push('/dashboard')}
+                            onClick={() => router.push('/mon-compte')}
                             className="flex-1 text-[10px] px-2 py-1.5 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center"
                           >
                             +10 visuels — 19€
                           </button>
                           <button
-                            onClick={() => router.push('/dashboard')}
+                            onClick={() => router.push('/mon-compte')}
                             className="flex-1 text-[10px] px-2 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold"
                           >
                             +5 vidéos — 29€

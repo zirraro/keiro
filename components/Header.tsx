@@ -275,7 +275,7 @@ export default function Header() {
                     </div>
 
                     <Link
-                      href="/dashboard"
+                      href="/mon-compte"
                       className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
                       onClick={() => setShowMenu(false)}
                     >

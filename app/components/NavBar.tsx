@@ -14,7 +14,7 @@ export default function NavBar() {
   const links = [
     { href: "/", label: "Accueil" },
     { href: "/generate", label: "Générer" },
-    { href: "/dashboard", label: "Dashboard" },
+    { href: "/mon-compte", label: "Mon Compte" },
     { href: "/library", label: "Galerie" },
   ];
 

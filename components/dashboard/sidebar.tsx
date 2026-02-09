@@ -44,7 +44,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1">
-        <NavItem href="/dashboard" icon={Home} label="Dashboard" />
+        <NavItem href="/mon-compte" icon={Home} label="Mon Compte" />
         <NavItem href="/generate" icon={Video} label="Générer (image/vidéo)" />
         <NavItem href="/templates" icon={LayoutTemplate} label="Templates" />
         <NavItem href="/support" icon={HelpCircle} label="Support" />
