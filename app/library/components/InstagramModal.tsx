@@ -845,7 +845,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
             {(selectedImage || selectedVideo) && (
               <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
                 <div className="md:sticky md:top-0">
-                  <div className="aspect-square bg-white rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg max-h-[380px] mx-auto">
+                  <div className={`${activeTab === 'videos' && selectedVideo ? 'aspect-[4/5]' : 'aspect-square'} bg-black rounded-xl overflow-hidden border-2 border-neutral-200 shadow-lg max-h-[420px] mx-auto`}>
                     {activeTab === 'videos' && selectedVideo ? (
                       <div className="relative w-full h-full">
                         <video
@@ -858,7 +858,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                           onSeeked={handleVideoSeeked}
                           onEnded={handleVideoEnded}
                           onTimeUpdate={handleTimeUpdate}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                         {narrationAudioUrl && !mergedVideoUrl && (
                           <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
@@ -892,7 +892,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       <img
                         src={selectedImage.image_url}
                         alt={selectedImage.title || selectedImage.news_title || 'Preview'}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : null}
                   </div>

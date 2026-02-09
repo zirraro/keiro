@@ -1025,22 +1025,63 @@ export default function HomeKeiro() {
         </div>
       </section>
 
-      {/* Footer avec liens légaux */}
-      <footer className="border-t border-neutral-200 bg-white mt-20">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Footer légal - Terms of Service & Privacy Policy */}
+      <footer className="bg-neutral-900 text-white mt-20">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Marque */}
+            <div>
+              <h3 className="text-lg font-bold mb-2">KeiroAI</h3>
+              <p className="text-sm text-neutral-400">
+                Plateforme IA de création de contenu marketing pour les réseaux sociaux.
+              </p>
+            </div>
+
+            {/* Liens légaux */}
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Legal</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="/legal/terms" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="/legal/privacy" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
+                    Privacy Policy
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Contact</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="mailto:contact@keiroai.com" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
+                    contact@keiroai.com
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:privacy@keiroai.com" className="text-sm text-neutral-400 hover:text-cyan-400 transition-colors">
+                    privacy@keiroai.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-neutral-700 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-neutral-500">
-              &copy; {new Date().getFullYear()} Keiro. Tous droits réservés.
+              &copy; {new Date().getFullYear()} KeiroAI. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
-              <a href="/legal/terms" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+              <a href="/legal/terms" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
                 Terms of Service
               </a>
-              <a href="/legal/privacy" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+              <a href="/legal/privacy" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
                 Privacy Policy
-              </a>
-              <a href="mailto:contact@keiroai.com" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
-                Contact
               </a>
             </div>
           </div>

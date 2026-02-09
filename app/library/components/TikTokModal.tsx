@@ -1192,8 +1192,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           {/* APERÇU IMAGE/VIDÉO - COLONNE CENTRALE */}
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
             {(selectedImage || selectedVideo) && (
-              <div className="max-w-[200px] mx-auto">
-                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black max-h-[320px]">
+              <div className="max-w-[280px] mx-auto">
+                <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black">
                   {(videoPreview || mergedVideoUrl) ? (
                     <div className="relative w-full h-full">
                       <video
@@ -1241,7 +1241,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <img
                       src={selectedImage.image_url}
                       alt={selectedImage.title || 'Selected'}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   ) : null}
                 </div>
