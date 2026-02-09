@@ -1024,6 +1024,28 @@ export default function HomeKeiro() {
           </a>
         </div>
       </section>
+
+      {/* Footer avec liens légaux */}
+      <footer className="border-t border-neutral-200 bg-white mt-20">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-neutral-500">
+              &copy; {new Date().getFullYear()} Keiro. Tous droits réservés.
+            </p>
+            <div className="flex items-center gap-6">
+              <a href="/legal/terms" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+                Terms of Service
+              </a>
+              <a href="/legal/privacy" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="mailto:contact@keiroai.com" className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors">
+                Contact
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

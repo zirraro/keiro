@@ -5,12 +5,12 @@ import { useState } from 'react';
 type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
 
 const VOICE_OPTIONS: { value: TTSVoice; label: string; description: string }[] = [
-  { value: 'nova', label: 'Nova', description: 'Féminine, chaleureuse' },
-  { value: 'alloy', label: 'Alloy', description: 'Neutre, polyvalent' },
-  { value: 'shimmer', label: 'Shimmer', description: 'Féminine, douce' },
-  { value: 'echo', label: 'Echo', description: 'Masculine, posée' },
-  { value: 'onyx', label: 'Onyx', description: 'Masculine, grave' },
-  { value: 'fable', label: 'Fable', description: 'Chaleureuse, narrative' },
+  { value: 'nova', label: 'Femme dynamique', description: 'Voix féminine énergique et naturelle' },
+  { value: 'shimmer', label: 'Femme douce', description: 'Voix féminine calme et posée' },
+  { value: 'alloy', label: 'Mixte neutre', description: 'Voix neutre et professionnelle' },
+  { value: 'echo', label: 'Homme posé', description: 'Voix masculine calme' },
+  { value: 'onyx', label: 'Homme grave', description: 'Voix masculine profonde et autoritaire' },
+  { value: 'fable', label: 'Conteur', description: 'Voix chaleureuse style narrateur' },
 ];
 
 interface AudioEditorWidgetProps {
@@ -224,7 +224,6 @@ Max ~15 mots pour 5 secondes"
               title={voice.description}
             >
               {voice.label}
-              <span className="ml-1 opacity-70">{voice.description.split(',')[0]}</span>
             </button>
           ))}
         </div>

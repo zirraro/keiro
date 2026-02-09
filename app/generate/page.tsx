@@ -242,7 +242,7 @@ export default function GeneratePage() {
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
   const [enableAIText, setEnableAIText] = useState(false);
-  const [aiTextStyle, setAITextStyle] = useState('dynamic'); // dynamic, minimal, bold, cinematic, elegant
+  const [aiTextStyle, setAITextStyle] = useState('classic'); // classic, minimal, impact, clean, wordstay, wordflash
   const [videoDuration, setVideoDuration] = useState(5);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
 
@@ -254,6 +254,8 @@ export default function GeneratePage() {
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
   const [generatedSubtitleText, setGeneratedSubtitleText] = useState('');
+  const [showVideoEditor, setShowVideoEditor] = useState(false);
+  const [videoEditorMerging, setVideoEditorMerging] = useState(false);
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
@@ -1631,7 +1633,7 @@ export default function GeneratePage() {
           subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
         } else {
           try {
-            setVideoProgress('Génération du texte...');
+            setVideoProgress('Préparation de la vidéo...');
             const targetWords = Math.ceil(videoDuration * 2.5);
             const context = useNewsMode && selectedNews
               ? `${selectedNews.title}. Business: ${businessType}. ${businessDescription || ''}`
@@ -1645,8 +1647,8 @@ export default function GeneratePage() {
             const subtitleData = await subtitleRes.json();
             if (subtitleData.ok && subtitleData.suggestions?.length > 0) {
               const styleMap: Record<string, string> = {
-                dynamic: 'catchy', minimal: 'informative', bold: 'catchy',
-                cinematic: 'storytelling', elegant: 'informative'
+                classic: 'catchy', minimal: 'informative', impact: 'catchy',
+                clean: 'informative', wordstay: 'catchy', wordflash: 'catchy'
               };
               const targetStyle = styleMap[aiTextStyle] || 'catchy';
               const match = subtitleData.suggestions.find((s: any) => s.style === targetStyle);
@@ -1727,7 +1729,7 @@ export default function GeneratePage() {
                   let audioUrlForMerge = generatedAudioUrl;
 
                   if (!audioUrlForMerge) {
-                    setVideoProgress('Génération audio TTS...');
+                    setVideoProgress('Finalisation de la vidéo...');
                     let textForAudio = '';
                     if (audioTextSource === 'ai') {
                       textForAudio = useNewsMode && selectedNews
@@ -1754,7 +1756,7 @@ export default function GeneratePage() {
 
                   // Fusionner audio dans la vidéo côté serveur
                   if (audioUrlForMerge) {
-                    setVideoProgress('Fusion audio + vidéo...');
+                    setVideoProgress('Finalisation de la vidéo...');
                     const mergeRes = await fetch('/api/merge-audio-video', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -2660,12 +2662,12 @@ export default function GeneratePage() {
                             <label className="block text-[10px] font-medium text-neutral-700 mb-1">Voix</label>
                             <div className="flex flex-wrap gap-1">
                               {([
-                                { value: 'nova' as const, label: 'Nova', desc: 'Fém.' },
-                                { value: 'alloy' as const, label: 'Alloy', desc: 'Neutre' },
-                                { value: 'shimmer' as const, label: 'Shimmer', desc: 'Douce' },
-                                { value: 'echo' as const, label: 'Echo', desc: 'Masc.' },
-                                { value: 'onyx' as const, label: 'Onyx', desc: 'Grave' },
-                                { value: 'fable' as const, label: 'Fable', desc: 'Narr.' },
+                                { value: 'nova' as const, label: 'Femme dynamique' },
+                                { value: 'shimmer' as const, label: 'Femme douce' },
+                                { value: 'alloy' as const, label: 'Mixte neutre' },
+                                { value: 'echo' as const, label: 'Homme posé' },
+                                { value: 'onyx' as const, label: 'Homme grave' },
+                                { value: 'fable' as const, label: 'Conteur' },
                               ]).map((v) => (
                                 <button
                                   key={v.value}
@@ -2677,7 +2679,7 @@ export default function GeneratePage() {
                                       : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
                                   }`}
                                 >
-                                  {v.label} <span className="opacity-70">{v.desc}</span>
+                                  {v.label}
                                 </button>
                               ))}
                             </div>
@@ -2705,16 +2707,12 @@ export default function GeneratePage() {
                           <p className="text-[10px] text-purple-700">Style du texte:</p>
                           <div className="flex flex-wrap gap-1.5">
                             {[
-                              { key: 'dynamic', label: '🎬 Dynamique' },
-                              { key: 'minimal', label: '✨ Minimaliste' },
-                              { key: 'bold', label: '💥 Impactant' },
-                              { key: 'cinematic', label: '🎥 Cinématique' },
-                              { key: 'elegant', label: '💎 Élégant' },
-                              { key: 'clean', label: '🔤 Sans fond' },
-                              { key: 'neon', label: '💜 Néon' },
-                              { key: 'karaoke', label: '🎤 Karaoké' },
-                              { key: 'outline', label: '🔲 Contour' },
-                              { key: 'wordbyword', label: '📝 Mot par mot' },
+                              { key: 'classic', label: 'Classique' },
+                              { key: 'minimal', label: 'Discret' },
+                              { key: 'impact', label: 'Impact' },
+                              { key: 'clean', label: 'Sans fond' },
+                              { key: 'wordstay', label: 'Mots progressifs' },
+                              { key: 'wordflash', label: 'Mot par mot' },
                             ].map((style) => (
                               <button
                                 key={style.key}
@@ -2992,32 +2990,154 @@ export default function GeneratePage() {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <a
-                    href={generatedVideoUrl}
-                    download="keiro-video.mp4"
-                    className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
-                  >
-                    Télécharger
-                  </a>
-                  <button
-                    onClick={saveVideoToLibrary}
-                    disabled={videoSavedToLibrary || savingToLibrary}
-                    className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
-                      videoSavedToLibrary
-                        ? 'bg-green-600 cursor-default'
-                        : 'bg-cyan-600 hover:bg-cyan-700'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {savingToLibrary ? 'Sauvegarde...' : videoSavedToLibrary ? '✓ Sauvegardé' : '📁 Enregistrer dans ma galerie'}
-                  </button>
-                  <button
-                    onClick={() => setGeneratedVideoUrl(null)}
-                    className="px-3 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
-                  >
-                    Nouveau
-                  </button>
+                <div className="mt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowVideoEditor(!showVideoEditor)}
+                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
+                        showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
+                    >
+                      {showVideoEditor ? '✕ Fermer l\'éditeur' : 'Éditer'}
+                    </button>
+                    <a
+                      href={generatedVideoUrl}
+                      download="keiro-video.mp4"
+                      className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
+                    >
+                      Télécharger
+                    </a>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveVideoToLibrary}
+                      disabled={videoSavedToLibrary || savingToLibrary}
+                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
+                        videoSavedToLibrary
+                          ? 'bg-green-600 cursor-default'
+                          : 'bg-cyan-600 hover:bg-cyan-700'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {savingToLibrary ? 'Sauvegarde...' : videoSavedToLibrary ? '✓ Sauvegardé' : '📁 Enregistrer dans ma galerie'}
+                    </button>
+                    <button
+                      onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); }}
+                      className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
+                    >
+                      Nouveau
+                    </button>
+                  </div>
                 </div>
+
+                {/* Panneau d'édition vidéo */}
+                {showVideoEditor && (
+                  <div className="mt-3 border-t pt-3 space-y-3">
+                    {/* Texte / Sous-titres */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-900">
+                        📝 Texte / Sous-titres
+                      </label>
+                      <textarea
+                        value={generatedSubtitleText}
+                        onChange={(e) => setGeneratedSubtitleText(e.target.value)}
+                        rows={2}
+                        className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                        placeholder="Texte à afficher sur la vidéo..."
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { key: 'classic', label: 'Classique' },
+                          { key: 'minimal', label: 'Discret' },
+                          { key: 'impact', label: 'Impact' },
+                          { key: 'clean', label: 'Sans fond' },
+                          { key: 'wordstay', label: 'Mots progressifs' },
+                          { key: 'wordflash', label: 'Mot par mot' },
+                        ].map((style) => (
+                          <button
+                            key={style.key}
+                            onClick={() => setAITextStyle(style.key)}
+                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                              aiTextStyle === style.key
+                                ? 'bg-green-600 text-white border-green-600'
+                                : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                            }`}
+                          >
+                            {style.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Audio */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-900">
+                        🎙️ Audio
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { value: 'nova' as const, label: 'Femme dynamique' },
+                          { value: 'shimmer' as const, label: 'Femme douce' },
+                          { value: 'alloy' as const, label: 'Mixte neutre' },
+                          { value: 'echo' as const, label: 'Homme posé' },
+                          { value: 'onyx' as const, label: 'Homme grave' },
+                          { value: 'fable' as const, label: 'Conteur' },
+                        ].map((voice) => (
+                          <button
+                            key={voice.value}
+                            onClick={() => setSelectedVoice(voice.value)}
+                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                              selectedVoice === voice.value
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
+                            }`}
+                          >
+                            {voice.label}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!generatedSubtitleText.trim() || !generatedVideoUrl) return;
+                          setVideoEditorMerging(true);
+                          try {
+                            // 1. Générer audio
+                            const audioRes = await fetch('/api/generate-audio-tts', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ text: generatedSubtitleText.trim(), targetDuration: 5, voice: selectedVoice, speed: 1.0 })
+                            });
+                            const audioData = await audioRes.json();
+                            if (!audioData.ok) throw new Error(audioData.error);
+                            setGeneratedSubtitleText(audioData.condensedText || generatedSubtitleText);
+
+                            // 2. Fusionner avec la vidéo
+                            const mergeRes = await fetch('/api/merge-audio-video', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ videoUrl: generatedVideoUrl, audioUrl: audioData.audioUrl })
+                            });
+                            const mergeData = await mergeRes.json();
+                            if (mergeData.ok && mergeData.mergedUrl) {
+                              setGeneratedVideoUrl(mergeData.mergedUrl);
+                            } else {
+                              alert(`Erreur: ${mergeData.error}`);
+                            }
+                          } catch (err: any) {
+                            alert(`Erreur: ${err.message}`);
+                          } finally { setVideoEditorMerging(false); }
+                        }}
+                        disabled={videoEditorMerging || !generatedSubtitleText.trim()}
+                        className={`w-full px-3 py-2 rounded text-xs font-medium transition-colors ${
+                          videoEditorMerging || !generatedSubtitleText.trim()
+                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {videoEditorMerging ? '⏳ Finalisation en cours...' : '🎙️ Générer/Modifier l\'audio'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

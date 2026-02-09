@@ -81,10 +81,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // Toast de succès
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string>('nova');
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline' | 'wordbyword'>('dynamic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'classic' | 'minimal' | 'impact' | 'clean' | 'wordstay' | 'wordflash'>('classic');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Refs pour synchronisation audio+vidéo
@@ -93,21 +94,18 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // CSS des styles de sous-titres
   const subtitleCSS: Record<string, string> = {
-    dynamic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
+    classic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
     minimal: 'text-white text-[10px] font-medium bg-black/40 px-1.5 py-0.5 rounded',
-    bold: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
-    cinematic: 'text-white text-[10px] font-light bg-black/30 px-2 py-1 rounded tracking-wide',
-    elegant: 'text-gray-100 text-[10px] font-medium bg-black/50 px-2 py-1 rounded-lg italic',
+    impact: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
     clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
-    neon: 'text-cyan-300 text-[11px] font-bold [text-shadow:_0_0_8px_rgb(0_255_255_/_70%),_0_0_16px_rgb(0_255_255_/_40%)]',
-    karaoke: 'text-white text-[11px] font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 bg-clip-text text-transparent [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)] [-webkit-text-stroke:_0.5px_white]',
-    outline: 'text-white text-[11px] font-extrabold [-webkit-text-stroke:_1px_black] [text-shadow:_2px_2px_0_black,_-2px_-2px_0_black,_2px_-2px_0_black,_-2px_2px_0_black]',
-    wordbyword: 'text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]',
+    wordstay: 'text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]',
+    wordflash: 'text-white text-lg font-extrabold [text-shadow:_2px_2px_6px_rgb(0_0_0_/_90%)]',
   };
 
-  // Calcul du mot courant pour le style word-by-word
+  // Calcul du mot courant pour les styles mot-par-mot
   const handleTimeUpdate = () => {
-    if (subtitleStyle !== 'wordbyword' || !narrationScript) return;
+    if (subtitleStyle !== 'wordstay' && subtitleStyle !== 'wordflash') return;
+    if (!narrationScript) return;
     const video = videoRef.current;
     if (!video || !video.duration) return;
     const words = narrationScript.trim().split(/\s+/);
@@ -1208,26 +1206,28 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         onSeeked={handleVideoSeeked}
                         onEnded={handleVideoEnded}
                         onTimeUpdate={handleTimeUpdate}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                       {/* Audio séparé uniquement si pas encore fusionné */}
                       {narrationAudioUrl && !mergedVideoUrl && (
                         <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
                       )}
-                      {enableSubtitles && narrationScript && narrationAudioUrl && (
+                      {enableSubtitles && narrationScript && (
                         <div className="absolute bottom-8 left-1 right-1 text-center pointer-events-none">
-                          {subtitleStyle === 'wordbyword' ? (
-                            <span className={`inline-block max-w-[95%] ${subtitleCSS.wordbyword}`}>
+                          {subtitleStyle === 'wordstay' ? (
+                            <span className={`inline-block max-w-[95%] ${subtitleCSS.wordstay}`}>
                               {(() => {
                                 const words = narrationScript.trim().split(/\s+/);
-                                const start = Math.max(0, currentWordIndex - 1);
-                                const end = Math.min(words.length, currentWordIndex + 2);
-                                return words.slice(start, end).map((word, i) => (
-                                  <span key={`${start + i}`} className={start + i === currentWordIndex ? 'text-yellow-400 scale-110 inline-block mx-0.5' : 'text-white/60 inline-block mx-0.5'}>
+                                return words.slice(0, currentWordIndex + 1).map((word, i) => (
+                                  <span key={i} className={i === currentWordIndex ? 'text-yellow-400 inline-block mx-0.5' : 'text-white inline-block mx-0.5'}>
                                     {word}
                                   </span>
                                 ));
                               })()}
+                            </span>
+                          ) : subtitleStyle === 'wordflash' ? (
+                            <span className={`inline-block ${subtitleCSS.wordflash}`}>
+                              {narrationScript.trim().split(/\s+/)[currentWordIndex] || ''}
                             </span>
                           ) : (
                             <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
@@ -1362,7 +1362,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 <p className="text-xs text-neutral-500 mt-1">{caption.length} / 2200 caractères</p>
               </div>
 
-              {/* Narration Audio */}
+              {/* Narration Audio (vidéos uniquement) */}
+              {(activeTab === 'videos' && selectedVideo) || videoPreview ? (
               <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
@@ -1382,7 +1383,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     onClick={() => setShowNarrationEditor(true)}
                     className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   >
-                    {narrationAudioUrl ? '🎙️ Modifier la narration audio' : '🎙️ Créer une narration audio'}
+                    {narrationAudioUrl ? '🎙️ Modifier l\'audio' : '🎙️ Générer l\'audio'}
                   </button>
                 ) : (
                   <AudioEditorWidget
@@ -1466,8 +1467,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   />
                 )}
               </div>
+              ) : null}
 
-              {/* Options audio + sous-titres */}
+              {/* Statut fusion audio + vidéo */}
               {narrationAudioUrl && (selectedVideo || videoPreview) && (
                 <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
@@ -1500,7 +1502,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                               setMergedVideoUrl(mergeData.mergedUrl);
                               setSuccessToast('✅ Audio intégré ! Prêt à publier.');
                               setTimeout(() => setSuccessToast(null), 4000);
-                              // Auto-save brouillon ready
                               const supabase = supabaseBrowser();
                               const { data: { user } } = await supabase.auth.getUser();
                               if (user) {
@@ -1538,6 +1539,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       ? 'Intégration de l\'audio dans le fichier vidéo...'
                       : 'La fusion a échoué. Cliquez sur "Relancer la fusion" pour réessayer.'}
                   </p>
+                </div>
+              )}
+
+              {/* Texte / Sous-titres (vidéos uniquement, indépendant de l'audio) */}
+              {((activeTab === 'videos' && selectedVideo) || videoPreview) && (
+                <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
+                  <label className="block text-sm font-semibold text-neutral-900">
+                    📝 Texte / Sous-titres
+                  </label>
 
                   {/* Checkbox sous-titres */}
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -1552,120 +1562,116 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     </span>
                   </label>
 
-                  {/* Style de sous-titres */}
                   {enableSubtitles && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {([
-                          { key: 'dynamic' as const, label: '🎬 Dynamique' },
-                          { key: 'minimal' as const, label: '✨ Minimaliste' },
-                          { key: 'bold' as const, label: '💥 Impactant' },
-                          { key: 'cinematic' as const, label: '🎥 Cinématique' },
-                          { key: 'elegant' as const, label: '💎 Élégant' },
-                          { key: 'clean' as const, label: '🔤 Sans fond' },
-                          { key: 'neon' as const, label: '💜 Néon' },
-                          { key: 'karaoke' as const, label: '🎤 Karaoké' },
-                          { key: 'outline' as const, label: '🔲 Contour' },
-                          { key: 'wordbyword' as const, label: '📝 Mot par mot' },
-                        ]).map((style) => (
+                    <>
+                      {/* Style de sous-titres */}
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {([
+                            { key: 'classic' as const, label: 'Classique' },
+                            { key: 'minimal' as const, label: 'Discret' },
+                            { key: 'impact' as const, label: 'Impact' },
+                            { key: 'clean' as const, label: 'Sans fond' },
+                            { key: 'wordstay' as const, label: 'Mots progressifs' },
+                            { key: 'wordflash' as const, label: 'Mot par mot' },
+                          ]).map((style) => (
+                            <button
+                              key={style.key}
+                              onClick={() => setSubtitleStyle(style.key)}
+                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                subtitleStyle === style.key
+                                  ? 'bg-green-600 text-white border-green-600'
+                                  : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                              }`}
+                            >
+                              {style.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Modifier le texte des sous-titres */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-medium text-neutral-700">
+                          Texte affiché (modifiable):
+                        </label>
+                        <textarea
+                          value={narrationScript}
+                          onChange={(e) => setNarrationScript(e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                          placeholder="Texte à afficher sur la vidéo..."
+                        />
+                        {narrationAudioUrl && (
                           <button
-                            key={style.key}
-                            onClick={() => setSubtitleStyle(style.key)}
-                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
-                              subtitleStyle === style.key
-                                ? 'bg-green-600 text-white border-green-600'
-                                : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                            onClick={async () => {
+                              if (!narrationScript.trim()) return;
+                              const currentVideoUrl = activeTab === 'videos' && selectedVideo
+                                ? selectedVideo.video_url : videoPreview;
+                              if (!currentVideoUrl) return;
+
+                              setMerging(true);
+                              setSuccessToast('🔄 Finalisation de la vidéo...');
+                              try {
+                                const audioRes = await fetch('/api/generate-audio-tts', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ text: narrationScript.trim(), targetDuration: 5, voice: selectedVoice, speed: 1.0 })
+                                });
+                                const audioData = await audioRes.json();
+                                if (!audioData.ok) throw new Error(audioData.error);
+
+                                setNarrationAudioUrl(audioData.audioUrl);
+                                setNarrationScript(audioData.condensedText || narrationScript);
+
+                                const mergeRes = await fetch('/api/merge-audio-video', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: audioData.audioUrl })
+                                });
+                                const mergeData = await mergeRes.json();
+                                if (mergeData.ok && mergeData.mergedUrl) {
+                                  setMergedVideoUrl(mergeData.mergedUrl);
+                                  setSuccessToast('✅ Texte mis à jour !');
+                                  setTimeout(() => setSuccessToast(null), 4000);
+
+                                  const supabase = supabaseBrowser();
+                                  const { data: { user } } = await supabase.auth.getUser();
+                                  if (user) {
+                                    await supabase.from('tiktok_drafts').insert({
+                                      user_id: user.id,
+                                      video_id: selectedVideo?.id || null,
+                                      media_url: mergeData.mergedUrl,
+                                      media_type: 'video',
+                                      category: 'draft',
+                                      caption: caption || '',
+                                      hashtags: hashtags || [],
+                                      status: 'ready'
+                                    });
+                                  }
+                                } else {
+                                  setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                                  setTimeout(() => setSuccessToast(null), 5000);
+                                }
+                              } catch (err: any) {
+                                setSuccessToast(`❌ Erreur: ${err.message}`);
+                                setTimeout(() => setSuccessToast(null), 5000);
+                              } finally { setMerging(false); }
+                            }}
+                            disabled={merging || !narrationScript.trim()}
+                            className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                              merging || !narrationScript.trim()
+                                ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-700'
                             }`}
                           >
-                            {style.label}
+                            {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
                           </button>
-                        ))}
+                        )}
                       </div>
-                    </div>
+                    </>
                   )}
-
-                  {/* Modifier le texte des sous-titres */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] font-medium text-neutral-700">
-                      Texte affiché (modifiable):
-                    </label>
-                    <textarea
-                      value={narrationScript}
-                      onChange={(e) => setNarrationScript(e.target.value)}
-                      rows={2}
-                      className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                      placeholder="Texte à afficher sur la vidéo..."
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!narrationScript.trim()) return;
-                        const currentVideoUrl = activeTab === 'videos' && selectedVideo
-                          ? selectedVideo.video_url : videoPreview;
-                        if (!currentVideoUrl) return;
-
-                        // Re-générer audio avec le nouveau texte
-                        setMerging(true);
-                        setSuccessToast('🔄 Régénération audio + fusion...');
-                        try {
-                          // 1. Générer le nouvel audio
-                          const audioRes = await fetch('/api/generate-audio-tts', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ text: narrationScript.trim(), targetDuration: 5, voice: 'nova', speed: 1.0 })
-                          });
-                          const audioData = await audioRes.json();
-                          if (!audioData.ok) throw new Error(audioData.error);
-
-                          setNarrationAudioUrl(audioData.audioUrl);
-                          setNarrationScript(audioData.condensedText || narrationScript);
-
-                          // 2. Fusionner
-                          const mergeRes = await fetch('/api/merge-audio-video', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: audioData.audioUrl })
-                          });
-                          const mergeData = await mergeRes.json();
-                          if (mergeData.ok && mergeData.mergedUrl) {
-                            setMergedVideoUrl(mergeData.mergedUrl);
-                            setSuccessToast('✅ Texte mis à jour, audio re-fusionné !');
-                            setTimeout(() => setSuccessToast(null), 4000);
-
-                            // Auto-save brouillon ready
-                            const supabase = supabaseBrowser();
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (user) {
-                              await supabase.from('tiktok_drafts').insert({
-                                user_id: user.id,
-                                video_id: selectedVideo?.id || null,
-                                media_url: mergeData.mergedUrl,
-                                media_type: 'video',
-                                category: 'draft',
-                                caption: caption || '',
-                                hashtags: hashtags || [],
-                                status: 'ready'
-                              });
-                            }
-                          } else {
-                            setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
-                            setTimeout(() => setSuccessToast(null), 5000);
-                          }
-                        } catch (err: any) {
-                          setSuccessToast(`❌ Erreur: ${err.message}`);
-                          setTimeout(() => setSuccessToast(null), 5000);
-                        } finally { setMerging(false); }
-                      }}
-                      disabled={merging || !narrationScript.trim()}
-                      className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                        merging || !narrationScript.trim()
-                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
-                    </button>
-                  </div>
                 </div>
               )}
 
