@@ -2159,9 +2159,11 @@ export default function GeneratePage() {
                               style={{ width: `${Math.max(4, imgPct)}%` }}
                             />
                           </div>
-                          {imgPct >= 80 && (
+                          {imgPct >= 100 ? (
+                            <p className="text-[10px] text-red-600 mt-0.5 font-semibold">Quota atteint</p>
+                          ) : imgPct >= 80 ? (
                             <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })()}
@@ -2180,12 +2182,38 @@ export default function GeneratePage() {
                               style={{ width: `${Math.max(4, vidPct)}%` }}
                             />
                           </div>
-                          {vidPct >= 80 && (
+                          {vidPct >= 100 ? (
+                            <p className="text-[10px] text-red-600 mt-0.5 font-semibold">Quota atteint</p>
+                          ) : vidPct >= 80 ? (
                             <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                          )}
+                          ) : null}
                         </div>
                       );
                     })()}
+                    {/* Upsell si un quota est atteint */}
+                    {(monthlyStats.images >= 30 || monthlyStats.videos >= 8) && (
+                      <div className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+                        <p className="text-xs text-purple-900 font-semibold mb-1">Continuez à créer sans interruption</p>
+                        <p className="text-[11px] text-purple-700 mb-2">Ajoutez un pack extra pour ce mois :</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => router.push('/dashboard')}
+                            className="flex-1 text-[10px] px-2 py-1.5 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center"
+                          >
+                            +10 visuels — 19€
+                          </button>
+                          <button
+                            onClick={() => router.push('/dashboard')}
+                            className="flex-1 text-[10px] px-2 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold"
+                          >
+                            +5 vidéos — 29€
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-purple-500 mt-1.5 text-center">
+                          Ou <button onClick={() => router.push('/pricing')} className="underline hover:text-purple-700">changez de plan</button> pour des quotas plus élevés
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-blue-600">Connectez-vous pour voir vos stats</p>
