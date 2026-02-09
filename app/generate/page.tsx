@@ -44,7 +44,9 @@ const CATEGORIES = [
   'Gaming',
   'Restauration',
   'Science',
-  'International'
+  'International',
+  'Musique',
+  'Tendances'
 ];
 
 /* ---------------- Page principale ---------------- */
@@ -59,10 +61,12 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
+  const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number } | null>(null);
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
   const uploadSectionRef = useRef<HTMLDivElement>(null);
+  const assistantPanelRef = useRef<HTMLDivElement>(null);
 
   /* --- Calculer les catégories qui ont au moins une news --- */
   const availableCategories = useMemo(() => {
@@ -107,6 +111,56 @@ export default function GeneratePage() {
 
     return items.slice(0, 12); // Limiter à 12 résultats
   }, [allNewsItems, category, searchQuery]);
+
+  /* --- Astuce du jour (rotation quotidienne) --- */
+  const MARKETING_TIPS = [
+    { icon: '📊', text: 'Les posts avec des visages obtiennent 38% plus d\'engagement que ceux sans.' },
+    { icon: '⏰', text: 'Le meilleur moment pour poster sur TikTok est entre 19h et 21h.' },
+    { icon: '🎨', text: 'Les visuels avec 2-3 couleurs maximum sont plus mémorables.' },
+    { icon: '📱', text: 'Les vidéos de moins de 15 secondes ont 2x plus de chances d\'être vues en entier.' },
+    { icon: '💬', text: 'Poser une question dans votre post augmente les commentaires de 50%.' },
+    { icon: '🔥', text: 'Les carrousels Instagram génèrent en moyenne 3x plus d\'engagement.' },
+    { icon: '✨', text: 'Ajouter un CTA clair augmente les conversions de 80%.' },
+    { icon: '🎯', text: 'Les posts publiés entre 11h-13h et 19h-21h performent le mieux.' },
+    { icon: '💡', text: 'Utiliser 3-5 hashtags ciblés est plus efficace que 30 hashtags génériques.' },
+    { icon: '📈', text: 'Les stories avec des stickers de sondage augmentent l\'engagement de 40%.' },
+    { icon: '🌟', text: 'Le premier mot de votre description est crucial pour capter l\'attention.' },
+    { icon: '🎬', text: 'Les vidéos avec sous-titres ont 80% de vues complètes en plus.' },
+    { icon: '👥', text: 'Mentionner d\'autres comptes peut doubler votre portée organique.' },
+    { icon: '🔔', text: 'Publier à la même heure chaque jour améliore votre visibilité algorithmique.' },
+    { icon: '💎', text: 'Les posts authentiques surperforment les visuels trop retouchés.' },
+    { icon: '🚀', text: 'Les 3 premières secondes d\'une vidéo déterminent 70% de son succès.' },
+    { icon: '🎨', text: 'Utiliser votre palette de couleurs de marque augmente la reconnaissance de 60%.' },
+    { icon: '📝', text: 'Les descriptions de 100-150 caractères obtiennent le plus d\'engagement.' },
+    { icon: '🔄', text: 'Republier votre meilleur contenu peut toucher 90% de nouvelle audience.' },
+    { icon: '👀', text: 'Les posts avec du mouvement captent l\'attention 5x plus vite.' },
+    { icon: '💪', text: 'La cohérence de publication est plus importante que la fréquence.' },
+    { icon: '🎁', text: 'Les concours augmentent le nombre d\'abonnés de 70% en moyenne.' },
+    { icon: '📱', text: 'Les formats verticaux (9:16) ont 40% de taux de complétion en plus.' },
+    { icon: '🌈', text: 'Alterner contenu éducatif et divertissant optimise votre feed.' },
+    { icon: '⚡', text: 'Les Reels de 7-9 secondes ont le meilleur taux de partage.' },
+    { icon: '🎯', text: 'Analysez vos stats chaque semaine pour identifier vos meilleurs contenus.' },
+    { icon: '💫', text: 'Les transitions rapides dans les vidéos retiennent l\'attention 3x plus.' },
+    { icon: '📢', text: 'Les appels à l\'action dans les 3 premières lignes fonctionnent mieux.' },
+    { icon: '🏆', text: 'Montrer les coulisses de votre business booste l\'authenticité perçue.' },
+    { icon: '🎪', text: 'Les émojis dans les descriptions augmentent l\'engagement de 25%.' },
+  ];
+
+  const dailyTip = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
+  }, []);
+
+  /* --- Trending news (3 plus récentes avec images) --- */
+  const trendingNews = useMemo(() => {
+    const withImages = allNewsItems.filter(item => item.image);
+    const sorted = [...withImages].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+    return sorted.slice(0, 3);
+  }, [allNewsItems]);
 
   /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
@@ -362,6 +416,33 @@ export default function GeneratePage() {
         console.error('[Generate] Error loading saved state:', error);
       }
     }
+  }, []);
+
+  /* --- Charger les stats mensuelles (visuels + vidéos créés ce mois) --- */
+  useEffect(() => {
+    const fetchMonthlyStats = async () => {
+      try {
+        const sb = supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const { count: imageCount } = await sb
+          .from('saved_images')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', firstDayOfMonth);
+        const { count: videoCount } = await sb
+          .from('my_videos')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', firstDayOfMonth);
+        setMonthlyStats({ images: imageCount || 0, videos: videoCount || 0 });
+      } catch (error) {
+        console.error('[Generate] Error fetching monthly stats:', error);
+      }
+    };
+    fetchMonthlyStats();
   }, []);
 
   // Sauvegarder l'état à chaque changement (avec debounce)
@@ -1954,6 +2035,87 @@ export default function GeneratePage() {
                 </div>
               )}
             </div>
+
+            {/* ===== WIDGETS SECTION ===== */}
+            {!loading && allNewsItems.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                {/* Widget 1 : Astuce du jour */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl flex-shrink-0">{dailyTip.icon}</div>
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-900 mb-1">Astuce du jour</h4>
+                      <p className="text-xs text-amber-800 leading-relaxed">{dailyTip.text}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Widget 2 : Quick Stats */}
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">📊</span>
+                    <h4 className="text-xs font-bold text-blue-900">Votre mois en chiffres</h4>
+                    <span className="text-[10px] text-blue-600 ml-auto">
+                      {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
+                    </span>
+                  </div>
+                  {monthlyStats ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-blue-800">Visuels créés</span>
+                        <span className="text-sm font-bold text-blue-900">{monthlyStats.images}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-blue-800">Vidéos créées</span>
+                        <span className="text-sm font-bold text-blue-900">{monthlyStats.videos}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-blue-600">Connectez-vous pour voir vos stats</p>
+                  )}
+                </div>
+
+                {/* Widget 3 : CTA Assistant (discret) */}
+                <div
+                  onClick={() => assistantPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💡</span>
+                    <p className="text-xs text-purple-800">
+                      Besoin d&apos;idées de contenu ?{' '}
+                      <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant →</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Widget 4 : Trending cette semaine */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🔥</span>
+                    <h4 className="text-xs font-bold text-green-900">Tendances cette semaine</h4>
+                  </div>
+                  {trendingNews.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {trendingNews.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedNews(item)}
+                          className="flex items-start gap-2 p-1.5 bg-white/60 rounded-lg cursor-pointer hover:bg-white transition-all border border-green-100"
+                        >
+                          {item.image && (
+                            <img src={item.image} alt="" className="w-10 h-10 object-cover rounded flex-shrink-0" />
+                          )}
+                          <p className="text-[10px] text-green-800 line-clamp-2 leading-relaxed">{item.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-green-600">Chargement...</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
@@ -2052,7 +2214,7 @@ export default function GeneratePage() {
             </div>
 
             {/* Panel Assistant Prompt */}
-            <div className="bg-white rounded-xl border p-3">
+            <div ref={assistantPanelRef} className="bg-white rounded-xl border p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Assistant Marketing IA</h3>
                 {/* Switch Actualité / Sans actualité */}
