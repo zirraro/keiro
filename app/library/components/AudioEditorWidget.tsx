@@ -2,6 +2,17 @@
 
 import { useState } from 'react';
 
+type TTSVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+
+const VOICE_OPTIONS: { value: TTSVoice; label: string; description: string }[] = [
+  { value: 'nova', label: 'Nova', description: 'Féminine, chaleureuse' },
+  { value: 'alloy', label: 'Alloy', description: 'Neutre, polyvalent' },
+  { value: 'shimmer', label: 'Shimmer', description: 'Féminine, douce' },
+  { value: 'echo', label: 'Echo', description: 'Masculine, posée' },
+  { value: 'onyx', label: 'Onyx', description: 'Masculine, grave' },
+  { value: 'fable', label: 'Fable', description: 'Chaleureuse, narrative' },
+];
+
 interface AudioEditorWidgetProps {
   initialScript?: string;
   initialAudioUrl?: string | null;
@@ -29,6 +40,7 @@ export default function AudioEditorWidget({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<TTSVoice>('nova');
 
   // Calculate word count and estimated duration
   const wordCount = script.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -41,7 +53,7 @@ export default function AudioEditorWidget({
     }
 
     setGenerating(true);
-    console.log('[AudioEditor] Generating audio for:', script);
+    console.log('[AudioEditor] Generating audio for:', script, 'voice:', selectedVoice);
 
     try {
       const response = await fetch('/api/generate-audio-tts', {
@@ -50,7 +62,7 @@ export default function AudioEditorWidget({
         body: JSON.stringify({
           text: script,
           targetDuration: 5,
-          voice: 'alloy',
+          voice: selectedVoice,
           speed: 1.0,
         }),
       });
@@ -128,7 +140,7 @@ export default function AudioEditorWidget({
           body: JSON.stringify({
             text: suggestion.text,
             targetDuration: 5,
-            voice: 'alloy',
+            voice: selectedVoice,
             speed: 1.0,
           }),
         });
@@ -191,6 +203,30 @@ Max ~15 mots pour 5 secondes"
               ⚠️ Trop long, l'IA va condenser
             </p>
           )}
+        </div>
+      </div>
+
+      {/* Voice Selector */}
+      <div>
+        <label className="block text-xs font-medium text-neutral-700 mb-1">
+          Voix
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {VOICE_OPTIONS.map((voice) => (
+            <button
+              key={voice.value}
+              onClick={() => setSelectedVoice(voice.value)}
+              className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                selectedVoice === voice.value
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
+              }`}
+              title={voice.description}
+            >
+              {voice.label}
+              <span className="ml-1 opacity-70">{voice.description.split(',')[0]}</span>
+            </button>
+          ))}
         </div>
       </div>
 

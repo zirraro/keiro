@@ -252,6 +252,7 @@ export default function GeneratePage() {
   const [audioText, setAudioText] = useState('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
@@ -1279,7 +1280,7 @@ export default function GeneratePage() {
               body: JSON.stringify({
                 text: textForAudio,
                 targetDuration: 5,
-                voice: 'alloy',
+                voice: selectedVoice,
                 speed: 1.0
               })
             });
@@ -1669,7 +1670,8 @@ export default function GeneratePage() {
           clean: 'with clean white text without any background, just text with subtle shadow for readability',
           neon: 'with glowing neon-style text in cyan/electric blue with luminous glow effect',
           karaoke: 'with colorful gradient text like karaoke subtitles, vibrant pink-to-yellow gradient',
-          outline: 'with bold outlined white text with strong black outline, high contrast and readable'
+          outline: 'with bold outlined white text with strong black outline, high contrast and readable',
+          wordbyword: 'with words appearing one at a time in sequence, each word displayed prominently then replaced by the next word, like a teleprompter or word-by-word reveal animation'
         };
         const styleInstruction = textStyleInstructions[aiTextStyle] || textStyleInstructions.dynamic;
 
@@ -1755,7 +1757,7 @@ export default function GeneratePage() {
                       const audioRes = await fetch('/api/generate-audio-tts', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: textForAudio, targetDuration: videoDuration, voice: 'alloy', speed: 1.0 })
+                        body: JSON.stringify({ text: textForAudio, targetDuration: videoDuration, voice: selectedVoice, speed: 1.0 })
                       });
                       const audioData = await audioRes.json();
                       if (audioData.ok && audioData.audioUrl) {
@@ -2668,6 +2670,34 @@ export default function GeneratePage() {
                               💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
                             </p>
                           )}
+
+                          {/* Voice Selector */}
+                          <div>
+                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">Voix</label>
+                            <div className="flex flex-wrap gap-1">
+                              {([
+                                { value: 'nova' as const, label: 'Nova', desc: 'Fém.' },
+                                { value: 'alloy' as const, label: 'Alloy', desc: 'Neutre' },
+                                { value: 'shimmer' as const, label: 'Shimmer', desc: 'Douce' },
+                                { value: 'echo' as const, label: 'Echo', desc: 'Masc.' },
+                                { value: 'onyx' as const, label: 'Onyx', desc: 'Grave' },
+                                { value: 'fable' as const, label: 'Fable', desc: 'Narr.' },
+                              ]).map((v) => (
+                                <button
+                                  key={v.value}
+                                  type="button"
+                                  onClick={() => setSelectedVoice(v.value)}
+                                  className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                    selectedVoice === v.value
+                                      ? 'bg-blue-600 text-white border-blue-600'
+                                      : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
+                                  }`}
+                                >
+                                  {v.label} <span className="opacity-70">{v.desc}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2700,6 +2730,7 @@ export default function GeneratePage() {
                               { key: 'neon', label: '💜 Néon' },
                               { key: 'karaoke', label: '🎤 Karaoké' },
                               { key: 'outline', label: '🔲 Contour' },
+                              { key: 'wordbyword', label: '📝 Mot par mot' },
                             ].map((style) => (
                               <button
                                 key={style.key}

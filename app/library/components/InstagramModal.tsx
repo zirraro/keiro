@@ -83,10 +83,16 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const [narrationScript, setNarrationScript] = useState('');
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
   const [showNarrationEditor, setShowNarrationEditor] = useState(false);
+  const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
+  const [merging, setMerging] = useState(false);
+
+  // Toast de succès
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline'>('dynamic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline' | 'wordbyword'>('dynamic');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Refs pour synchronisation audio+vidéo
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -103,6 +109,18 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
     neon: 'text-cyan-300 text-[11px] font-bold [text-shadow:_0_0_8px_rgb(0_255_255_/_70%),_0_0_16px_rgb(0_255_255_/_40%)]',
     karaoke: 'text-white text-[11px] font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 bg-clip-text text-transparent [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)] [-webkit-text-stroke:_0.5px_white]',
     outline: 'text-white text-[11px] font-extrabold [-webkit-text-stroke:_1px_black] [text-shadow:_2px_2px_0_black,_-2px_-2px_0_black,_2px_-2px_0_black,_-2px_2px_0_black]',
+    wordbyword: 'text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]',
+  };
+
+  // Calcul du mot courant pour le style word-by-word
+  const handleTimeUpdate = () => {
+    if (subtitleStyle !== 'wordbyword' || !narrationScript) return;
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const words = narrationScript.trim().split(/\s+/);
+    const progress = video.currentTime / video.duration;
+    const idx = Math.min(Math.floor(progress * words.length), words.length - 1);
+    setCurrentWordIndex(idx);
   };
 
   // Synchronisation audio avec la vidéo
@@ -272,15 +290,49 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   };
 
   const handleSave = async (status: 'draft' | 'ready') => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
-      return;
-    }
-    setSaving(true);
-    try {
-      await onSave(selectedImage, caption, hashtags, status);
-    } finally {
-      setSaving(false);
+    // Support images ET vidéos
+    if (activeTab === 'images' && selectedImage) {
+      setSaving(true);
+      try {
+        await onSave(selectedImage, caption, hashtags, status);
+        setSuccessToast(status === 'draft' ? '✅ Brouillon sauvegardé !' : '✅ Prêt à publier !');
+        setTimeout(() => setSuccessToast(null), 3000);
+      } finally {
+        setSaving(false);
+      }
+    } else if (activeTab === 'videos' && selectedVideo) {
+      setSaving(true);
+      try {
+        const supabase = supabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Non authentifié');
+
+        // Sauvegarder dans instagram_drafts pour les vidéos (Reels)
+        const { error: insertError } = await supabase
+          .from('instagram_drafts')
+          .insert({
+            user_id: user.id,
+            video_id: selectedVideo.id,
+            media_url: mergedVideoUrl || selectedVideo.video_url,
+            media_type: 'video',
+            category: 'draft',
+            caption: caption || '',
+            hashtags: hashtags || [],
+            status: status
+          });
+
+        if (insertError) throw new Error(insertError.message);
+
+        setSuccessToast(status === 'draft' ? '✅ Brouillon Reel sauvegardé !' : '✅ Reel prêt à publier !');
+        setTimeout(() => setSuccessToast(null), 3000);
+      } catch (err: any) {
+        console.error('[InstagramModal] Save video draft error:', err);
+        alert(`❌ Erreur de sauvegarde: ${err.message}`);
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      alert('Veuillez sélectionner un contenu (image ou vidéo)');
     }
   };
 
@@ -350,8 +402,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
 
   const handlePublishNow = async () => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+    const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
+    if (!hasContent) {
+      alert('Veuillez sélectionner un contenu');
       return;
     }
 
@@ -365,14 +418,22 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       return;
     }
 
+    const isVideo = activeTab === 'videos';
     const confirm = window.confirm(
-      '🚀 Publier maintenant sur Instagram ?\n\nVotre post sera publié immédiatement sur votre compte Instagram Business.'
+      isVideo
+        ? '🚀 Publier ce Reel maintenant sur Instagram ?\n\nVotre vidéo sera publiée immédiatement.'
+        : '🚀 Publier maintenant sur Instagram ?\n\nVotre post sera publié immédiatement sur votre compte Instagram Business.'
     );
 
     if (!confirm) return;
 
     setPublishing(true);
     try {
+      // Pour les vidéos, utiliser mergedVideoUrl si disponible
+      const mediaUrl = isVideo
+        ? (mergedVideoUrl || selectedVideo!.video_url)
+        : selectedImage!.image_url;
+
       const response = await fetch('/api/library/instagram/publish', {
         method: 'POST',
         headers: {
@@ -380,9 +441,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: selectedImage.image_url,
+          imageUrl: mediaUrl,
           caption,
-          hashtags
+          hashtags,
+          mediaType: isVideo ? 'video' : 'image'
         })
       });
 
@@ -570,6 +632,13 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
             <XIcon className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" />
           </button>
         </div>
+
+        {/* Toast de succès */}
+        {successToast && (
+          <div className="mx-4 sm:mx-6 mt-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg text-sm text-green-800 font-medium text-center animate-pulse">
+            {successToast}
+          </div>
+        )}
 
         {/* TAB SWITCHER - Images / Vidéos (Reels) */}
         <div className="border-b border-neutral-200 bg-neutral-50 px-4 sm:px-6 py-2">
@@ -777,23 +846,39 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       <div className="relative w-full h-full">
                         <video
                           ref={videoRef}
-                          src={selectedVideo.video_url}
+                          src={mergedVideoUrl || selectedVideo.video_url}
                           controls
                           autoPlay
                           onPlay={handleVideoPlay}
                           onPause={handleVideoPause}
                           onSeeked={handleVideoSeeked}
                           onEnded={handleVideoEnded}
+                          onTimeUpdate={handleTimeUpdate}
                           className="w-full h-full object-cover"
                         />
-                        {narrationAudioUrl && (
+                        {narrationAudioUrl && !mergedVideoUrl && (
                           <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
                         )}
                         {enableSubtitles && narrationScript && narrationAudioUrl && (
                           <div className="absolute bottom-8 left-1 right-1 text-center pointer-events-none">
-                            <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
-                              {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
-                            </span>
+                            {subtitleStyle === 'wordbyword' ? (
+                              <span className={`inline-block max-w-[95%] ${subtitleCSS.wordbyword}`}>
+                                {(() => {
+                                  const words = narrationScript.trim().split(/\s+/);
+                                  const start = Math.max(0, currentWordIndex - 1);
+                                  const end = Math.min(words.length, currentWordIndex + 2);
+                                  return words.slice(start, end).map((word, i) => (
+                                    <span key={`${start + i}`} className={start + i === currentWordIndex ? 'text-yellow-400 scale-110 inline-block mx-0.5' : 'text-white/60 inline-block mx-0.5'}>
+                                      {word}
+                                    </span>
+                                  ));
+                                })()}
+                              </span>
+                            ) : (
+                              <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
+                                {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -912,12 +997,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 {!showNarrationEditor ? (
                   <button
                     onClick={() => setShowNarrationEditor(true)}
-                    disabled={!caption}
-                    className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                      caption
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                    }`}
+                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   >
                     {narrationAudioUrl ? '🎙️ Modifier la narration audio' : '🎙️ Créer une narration audio'}
                   </button>
@@ -926,10 +1006,76 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                     initialScript={narrationScript || caption}
                     initialAudioUrl={narrationAudioUrl}
                     caption={caption}
-                    onSave={(script, audioUrl) => {
+                    onSave={async (script, audioUrl) => {
                       setNarrationScript(script);
                       setNarrationAudioUrl(audioUrl);
-                      console.log('[InstagramModal] Audio saved:', { script, audioUrl });
+                      setShowNarrationEditor(false);
+                      setEnableSubtitles(true);
+
+                      // Déterminer l'URL vidéo à fusionner
+                      const currentVideoUrl = activeTab === 'videos' && selectedVideo
+                        ? selectedVideo.video_url
+                        : null;
+
+                      if (!currentVideoUrl) {
+                        setSuccessToast('🎙️ Audio prêt ! Sélectionnez une vidéo pour fusionner.');
+                        setTimeout(() => setSuccessToast(null), 4000);
+                        return;
+                      }
+
+                      // Fusion serveur audio + vidéo
+                      setMerging(true);
+                      setSuccessToast('🔄 Fusion audio + vidéo en cours...');
+
+                      try {
+                        console.log('[InstagramModal] Fusion serveur audio+vidéo...');
+                        const mergeRes = await fetch('/api/merge-audio-video', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl })
+                        });
+
+                        const mergeData = await mergeRes.json();
+
+                        if (mergeData.ok && mergeData.mergedUrl) {
+                          setMergedVideoUrl(mergeData.mergedUrl);
+                          console.log('[InstagramModal] ✅ Vidéo fusionnée:', mergeData.mergedUrl);
+
+                          setSuccessToast('✅ Audio intégré dans la vidéo — Prêt à publier !');
+                          setTimeout(() => setSuccessToast(null), 5000);
+
+                          // Auto-save brouillon "ready" (prêt à publier)
+                          try {
+                            const supabase = supabaseBrowser();
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                              await supabase.from('instagram_drafts').insert({
+                                user_id: user.id,
+                                video_id: selectedVideo?.id || null,
+                                media_url: mergeData.mergedUrl,
+                                media_type: 'video',
+                                category: 'draft',
+                                caption: caption || '',
+                                hashtags: hashtags || [],
+                                status: 'ready'
+                              });
+                              console.log('[InstagramModal] ✅ Brouillon sauvé (prêt à publier)');
+                            }
+                          } catch (err) {
+                            console.warn('[InstagramModal] Auto-save failed (non bloquant):', err);
+                          }
+                        } else {
+                          console.error('[InstagramModal] ❌ Merge failed:', mergeData.error);
+                          setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                          setTimeout(() => setSuccessToast(null), 5000);
+                        }
+                      } catch (err: any) {
+                        console.error('[InstagramModal] ❌ Merge request failed:', err);
+                        setSuccessToast('❌ Erreur de fusion audio/vidéo');
+                        setTimeout(() => setSuccessToast(null), 5000);
+                      } finally {
+                        setMerging(false);
+                      }
                     }}
                     onCancel={() => {
                       setShowNarrationEditor(false);
@@ -940,16 +1086,73 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
               {/* Options audio + sous-titres */}
               {narrationAudioUrl && activeTab === 'videos' && selectedVideo && (
-                <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
+                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
                       🎬 Audio + Vidéo
                     </label>
-                    <span className="text-xs text-green-600 font-medium">✅ Audio synchronisé</span>
+                    {merging ? (
+                      <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                        <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                        Fusion en cours...
+                      </span>
+                    ) : mergedVideoUrl ? (
+                      <span className="text-xs text-green-600 font-medium">✅ Audio intégré — Prêt à publier</span>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const currentVideoUrl = selectedVideo.video_url;
+                          if (!currentVideoUrl || !narrationAudioUrl) return;
+                          setMerging(true);
+                          setSuccessToast('🔄 Fusion audio + vidéo...');
+                          try {
+                            const mergeRes = await fetch('/api/merge-audio-video', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: narrationAudioUrl })
+                            });
+                            const mergeData = await mergeRes.json();
+                            if (mergeData.ok && mergeData.mergedUrl) {
+                              setMergedVideoUrl(mergeData.mergedUrl);
+                              setSuccessToast('✅ Audio intégré ! Prêt à publier.');
+                              setTimeout(() => setSuccessToast(null), 4000);
+                              // Auto-save brouillon ready
+                              const supabase = supabaseBrowser();
+                              const { data: { user } } = await supabase.auth.getUser();
+                              if (user) {
+                                await supabase.from('instagram_drafts').insert({
+                                  user_id: user.id,
+                                  video_id: selectedVideo?.id || null,
+                                  media_url: mergeData.mergedUrl,
+                                  media_type: 'video',
+                                  category: 'draft',
+                                  caption: caption || '',
+                                  hashtags: hashtags || [],
+                                  status: 'ready'
+                                });
+                              }
+                            } else {
+                              setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                              setTimeout(() => setSuccessToast(null), 5000);
+                            }
+                          } catch (err: any) {
+                            setSuccessToast('❌ Erreur de fusion');
+                            setTimeout(() => setSuccessToast(null), 5000);
+                          } finally { setMerging(false); }
+                        }}
+                        className="text-xs text-red-600 font-medium hover:text-red-700 underline"
+                      >
+                        🔄 Relancer la fusion
+                      </button>
+                    )}
                   </div>
 
                   <p className="text-[10px] text-neutral-600">
-                    L'audio se joue avec la vidéo dans l'aperçu. Activez les sous-titres pour les voir en temps réel.
+                    {mergedVideoUrl
+                      ? 'L\'audio est intégré dans la vidéo. La publication enverra cette vidéo avec le son.'
+                      : merging
+                      ? 'Intégration de l\'audio dans le fichier vidéo...'
+                      : 'La fusion a échoué. Cliquez sur "Relancer la fusion" pour réessayer.'}
                   </p>
 
                   {/* Checkbox sous-titres */}
@@ -980,6 +1183,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                           { key: 'neon' as const, label: '💜 Néon' },
                           { key: 'karaoke' as const, label: '🎤 Karaoké' },
                           { key: 'outline' as const, label: '🔲 Contour' },
+                          { key: 'wordbyword' as const, label: '📝 Mot par mot' },
                         ]).map((style) => (
                           <button
                             key={style.key}

@@ -84,7 +84,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline'>('dynamic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'dynamic' | 'minimal' | 'bold' | 'cinematic' | 'elegant' | 'clean' | 'neon' | 'karaoke' | 'outline' | 'wordbyword'>('dynamic');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Refs pour synchronisation audio+vidéo
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -101,6 +102,18 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     neon: 'text-cyan-300 text-[11px] font-bold [text-shadow:_0_0_8px_rgb(0_255_255_/_70%),_0_0_16px_rgb(0_255_255_/_40%)]',
     karaoke: 'text-white text-[11px] font-extrabold bg-gradient-to-r from-pink-500 to-yellow-400 bg-clip-text text-transparent [text-shadow:_0_1px_3px_rgb(0_0_0_/_50%)] [-webkit-text-stroke:_0.5px_white]',
     outline: 'text-white text-[11px] font-extrabold [-webkit-text-stroke:_1px_black] [text-shadow:_2px_2px_0_black,_-2px_-2px_0_black,_2px_-2px_0_black,_-2px_2px_0_black]',
+    wordbyword: 'text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]',
+  };
+
+  // Calcul du mot courant pour le style word-by-word
+  const handleTimeUpdate = () => {
+    if (subtitleStyle !== 'wordbyword' || !narrationScript) return;
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const words = narrationScript.trim().split(/\s+/);
+    const progress = video.currentTime / video.duration;
+    const idx = Math.min(Math.floor(progress * words.length), words.length - 1);
+    setCurrentWordIndex(idx);
   };
 
   // Synchronisation audio avec la vidéo
@@ -1194,6 +1207,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         onPause={handleVideoPause}
                         onSeeked={handleVideoSeeked}
                         onEnded={handleVideoEnded}
+                        onTimeUpdate={handleTimeUpdate}
                         className="w-full h-full object-cover"
                       />
                       {/* Audio séparé uniquement si pas encore fusionné */}
@@ -1202,9 +1216,24 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       )}
                       {enableSubtitles && narrationScript && narrationAudioUrl && (
                         <div className="absolute bottom-8 left-1 right-1 text-center pointer-events-none">
-                          <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
-                            {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
-                          </span>
+                          {subtitleStyle === 'wordbyword' ? (
+                            <span className={`inline-block max-w-[95%] ${subtitleCSS.wordbyword}`}>
+                              {(() => {
+                                const words = narrationScript.trim().split(/\s+/);
+                                const start = Math.max(0, currentWordIndex - 1);
+                                const end = Math.min(words.length, currentWordIndex + 2);
+                                return words.slice(start, end).map((word, i) => (
+                                  <span key={`${start + i}`} className={start + i === currentWordIndex ? 'text-yellow-400 scale-110 inline-block mx-0.5' : 'text-white/60 inline-block mx-0.5'}>
+                                    {word}
+                                  </span>
+                                ));
+                              })()}
+                            </span>
+                          ) : (
+                            <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
+                              {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1351,12 +1380,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 {!showNarrationEditor ? (
                   <button
                     onClick={() => setShowNarrationEditor(true)}
-                    disabled={!caption}
-                    className={`w-full px-4 py-2 rounded-lg font-medium transition-colors ${
-                      caption
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                    }`}
+                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   >
                     {narrationAudioUrl ? '🎙️ Modifier la narration audio' : '🎙️ Créer une narration audio'}
                   </button>
@@ -1543,6 +1567,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           { key: 'neon' as const, label: '💜 Néon' },
                           { key: 'karaoke' as const, label: '🎤 Karaoké' },
                           { key: 'outline' as const, label: '🔲 Contour' },
+                          { key: 'wordbyword' as const, label: '📝 Mot par mot' },
                         ]).map((style) => (
                           <button
                             key={style.key}
