@@ -25,6 +25,50 @@ interface AllCreationsTabProps {
   onRenameFolder?: (folderId: string, newName: string) => Promise<void>;
 }
 
+function ListItemTitle({ item, onTitleEdit }: { item: CreationItem; onTitleEdit: (id: string, newTitle: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(item.title || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setTitle(item.title || ''); }, [item.title]);
+  useEffect(() => { if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editing]);
+
+  const save = () => {
+    if (title.trim() && title.trim() !== item.title) {
+      onTitleEdit(item.id, title.trim());
+    }
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex-1 min-w-0">
+      {editing ? (
+        <input
+          ref={inputRef}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') setEditing(false); }}
+          maxLength={100}
+          className="w-full font-medium text-neutral-900 bg-white border-2 border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+        />
+      ) : (
+        <h4
+          onClick={() => setEditing(true)}
+          className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+          title="Cliquer pour modifier le titre"
+        >
+          {item.title || 'Sans titre'}
+        </h4>
+      )}
+      <p className="text-sm text-neutral-500">
+        {item.type === 'image' ? '📸 Image' : '🎬 Vidéo'} • {new Date(item.created_at).toLocaleDateString('fr-FR')}
+      </p>
+      {item.is_favorite && <span className="text-xs text-pink-600">⭐ Favori</span>}
+    </div>
+  );
+}
+
 export default function AllCreationsTab({
   images,
   videos,
@@ -334,13 +378,10 @@ export default function AllCreationsTab({
                   <video src={item.url} className="w-full h-full object-cover" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-neutral-900 truncate">{item.title || 'Sans titre'}</h4>
-                <p className="text-sm text-neutral-500">
-                  {item.type === 'image' ? '📸 Image' : '🎬 Vidéo'} • {new Date(item.created_at).toLocaleDateString('fr-FR')}
-                </p>
-                {item.is_favorite && <span className="text-xs text-pink-600">⭐ Favori</span>}
-              </div>
+              <ListItemTitle
+                item={item}
+                onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
+              />
               <div className="flex gap-1">
                 <button onClick={() => onToggleFavorite(item.id, item.type, !item.is_favorite)} className="p-2 rounded-lg hover:bg-white transition-colors" title={item.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
                   <svg className={`w-4 h-4 ${item.is_favorite ? 'text-pink-600' : 'text-neutral-400'}`} fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">

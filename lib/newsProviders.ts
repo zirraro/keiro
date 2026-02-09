@@ -466,16 +466,50 @@ async function fetchFromAPIs(): Promise<NewsArticle[]> {
 }
 
 // ===== DÉDUPLICATION =====
+/** Calcule la similarité entre 2 chaînes (Dice coefficient sur bigrammes) */
+function titleSimilarity(a: string, b: string): number {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-zà-ÿ0-9 ]/g, '').trim();
+  const na = normalize(a);
+  const nb = normalize(b);
+  if (na === nb) return 1;
+  if (na.length < 2 || nb.length < 2) return 0;
+  const bigrams = (s: string) => {
+    const set = new Map<string, number>();
+    for (let i = 0; i < s.length - 1; i++) {
+      const bi = s.substring(i, i + 2);
+      set.set(bi, (set.get(bi) || 0) + 1);
+    }
+    return set;
+  };
+  const ba = bigrams(na);
+  const bb = bigrams(nb);
+  let matches = 0;
+  for (const [bi, count] of ba) {
+    matches += Math.min(count, bb.get(bi) || 0);
+  }
+  return (2 * matches) / (na.length - 1 + nb.length - 1);
+}
+
 function deduplicateArticles(articles: NewsArticle[]): NewsArticle[] {
   const seen = new Set<string>();
   const unique: NewsArticle[] = [];
 
   for (const article of articles) {
     const key = article.url.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
-      unique.push(article);
+    if (seen.has(key)) continue;
+
+    // Vérifier similarité de titre avec les articles déjà gardés (>50% = doublon)
+    let isDuplicate = false;
+    for (const existing of unique) {
+      if (titleSimilarity(article.title, existing.title) > 0.5) {
+        isDuplicate = true;
+        break;
+      }
     }
+    if (isDuplicate) continue;
+
+    seen.add(key);
+    unique.push(article);
   }
 
   console.log(`[Dedup] ${articles.length} → ${unique.length} articles (removed ${articles.length - unique.length} duplicates)`);

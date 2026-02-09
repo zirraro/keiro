@@ -152,10 +152,26 @@ export default function GeneratePage() {
     return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
   }, []);
 
-  /* --- Trending news (3 plus tendance via scoring social) --- */
-  const trendingNews = useMemo(() => {
-    const withImages = allNewsItems.filter(item => item.image);
-    const scored = withImages.map(item => ({
+  /* --- Trending news (3 plus tendance, cache 24h dans localStorage) --- */
+  const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; _score: number }> = useMemo(() => {
+    const TRENDING_CACHE_KEY = 'keiro_trending_cache';
+    const TRENDING_TTL = 24 * 60 * 60 * 1000; // 24h
+
+    // Vérifier cache trending
+    try {
+      const cached = localStorage.getItem(TRENDING_CACHE_KEY);
+      if (cached) {
+        const { items, ts } = JSON.parse(cached);
+        if (items?.length > 0 && Date.now() - ts < TRENDING_TTL) {
+          return items;
+        }
+      }
+    } catch { /* */ }
+
+    if (allNewsItems.length === 0) return [];
+
+    const withImages = allNewsItems.filter((item: any) => item.image);
+    const scored = withImages.map((item: any) => ({
       ...item,
       _score: computeSocialScore({
         id: item.id,
@@ -167,8 +183,15 @@ export default function GeneratePage() {
         publishedAt: item.date,
       })
     }));
-    scored.sort((a, b) => b._score - a._score);
-    return scored.slice(0, 3);
+    scored.sort((a: any, b: any) => b._score - a._score);
+    const top3 = scored.slice(0, 3);
+
+    // Sauvegarder en cache
+    try {
+      localStorage.setItem(TRENDING_CACHE_KEY, JSON.stringify({ items: top3, ts: Date.now() }));
+    } catch { /* */ }
+
+    return top3;
   }, [allNewsItems]);
 
   /* --- États pour l'upload logo/photo --- */
@@ -532,18 +555,43 @@ export default function GeneratePage() {
 
   async function fetchAllNews() {
     try {
-      setLoading(true);
       setError(null);
-      // Récupérer TOUTES les news en 1 appel (l'API doit gérer le cache 24h)
-      const res = await fetch('/api/news?all=true', { cache: 'force-cache' });
+
+      // 1. Charger depuis le cache localStorage immédiatement
+      const CACHE_KEY = 'keiro_news_cache';
+      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { items, ts } = JSON.parse(cached);
+          if (items?.length > 0) {
+            setAllNewsItems(items);
+            // Si cache < 24h, pas besoin de refetch
+            if (Date.now() - ts < CACHE_TTL) {
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch { /* localStorage indisponible */ }
+
+      // 2. Fetch en arrière-plan (si pas de cache ou cache expiré)
+      setLoading(true);
+      const res = await fetch('/api/news?all=true');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Erreur de chargement');
-      setAllNewsItems(data.items || []);
+      const items = data.items || [];
+      setAllNewsItems(items);
+
+      // 3. Mettre à jour le cache localStorage
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ items, ts: Date.now() }));
+      } catch { /* quota exceeded */ }
     } catch (e: any) {
       console.error('fetchAllNews error', e);
       setError('Impossible de récupérer les actualités.');
-      setAllNewsItems([]);
+      if (!allNewsItems.length) setAllNewsItems([]);
     } finally {
       setLoading(false);
     }
@@ -2083,118 +2131,129 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* ===== WIDGETS SECTION ===== */}
-            {!loading && allNewsItems.length > 0 && (
-              <div className="space-y-3 mt-6">
-                {/* Widget 1 : Quick Stats (pleine largeur + barres de progression avec quotas) */}
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xl">📊</span>
-                    <h4 className="text-sm font-bold text-blue-900">Votre activité ce mois</h4>
-                    <span className="text-xs text-blue-600 ml-auto capitalize">
-                      {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                    </span>
+            {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
+            <div className="space-y-3 mt-6">
+              {/* Widget 1 : Quick Stats (pleine largeur + barres de progression avec quotas) */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">📊</span>
+                  <h4 className="text-sm font-bold text-blue-900">Votre activité ce mois</h4>
+                  <span className="text-xs text-blue-600 ml-auto capitalize">
+                    {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                {monthlyStats ? (
+                  <div className="space-y-3">
+                    {(() => {
+                      const imgPct = Math.min(100, (monthlyStats.images / 30) * 100);
+                      const imgColor = imgPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : imgPct >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-blue-800">Visuels créés</span>
+                            <span className="text-sm font-bold text-blue-900">{monthlyStats.images} <span className="text-[10px] font-normal text-blue-500">/ 30</span></span>
+                          </div>
+                          <div className="w-full bg-neutral-200 rounded-full h-2.5">
+                            <div
+                              className={`h-2.5 rounded-full transition-all ${imgColor}`}
+                              style={{ width: `${Math.max(4, imgPct)}%` }}
+                            />
+                          </div>
+                          {imgPct >= 80 && (
+                            <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const vidPct = Math.min(100, (monthlyStats.videos / 8) * 100);
+                      const vidColor = vidPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : vidPct >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
+                      return (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-blue-800">Vidéos créées</span>
+                            <span className="text-sm font-bold text-blue-900">{monthlyStats.videos} <span className="text-[10px] font-normal text-blue-500">/ 8</span></span>
+                          </div>
+                          <div className="w-full bg-neutral-200 rounded-full h-2.5">
+                            <div
+                              className={`h-2.5 rounded-full transition-all ${vidColor}`}
+                              style={{ width: `${Math.max(4, vidPct)}%` }}
+                            />
+                          </div>
+                          {vidPct >= 80 && (
+                            <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
-                  {monthlyStats ? (
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-blue-800">Visuels créés</span>
-                          <span className="text-sm font-bold text-blue-900">{monthlyStats.images} <span className="text-[10px] font-normal text-blue-500">/ 30</span></span>
-                        </div>
-                        <div className="w-full bg-blue-100 rounded-full h-2.5">
-                          <div
-                            className={`h-2.5 rounded-full transition-all ${monthlyStats.images >= 27 ? 'bg-gradient-to-r from-red-400 to-red-500' : monthlyStats.images >= 20 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}
-                            style={{ width: `${Math.min(100, (monthlyStats.images / 30) * 100)}%` }}
-                          />
-                        </div>
-                        {monthlyStats.images >= 27 && (
-                          <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-blue-800">Vidéos créées</span>
-                          <span className="text-sm font-bold text-blue-900">{monthlyStats.videos} <span className="text-[10px] font-normal text-blue-500">/ 8</span></span>
-                        </div>
-                        <div className="w-full bg-cyan-100 rounded-full h-2.5">
-                          <div
-                            className={`h-2.5 rounded-full transition-all ${monthlyStats.videos >= 7 ? 'bg-gradient-to-r from-red-400 to-red-500' : monthlyStats.videos >= 6 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-cyan-500 to-cyan-600'}`}
-                            style={{ width: `${Math.min(100, (monthlyStats.videos / 8) * 100)}%` }}
-                          />
-                        </div>
-                        {monthlyStats.videos >= 7 && (
-                          <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-blue-600">Connectez-vous pour voir vos stats</p>
-                  )}
+                ) : (
+                  <p className="text-xs text-blue-600">Connectez-vous pour voir vos stats</p>
+                )}
+              </div>
+
+              {/* Ligne 2 : Astuce du jour + Trending (grille 2 colonnes) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Widget 2 : Astuce du jour */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+                  <div className="text-4xl mb-3">{dailyTip.icon}</div>
+                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-2">Astuce du jour</h4>
+                  <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
                 </div>
 
-                {/* Ligne 2 : Astuce du jour + Trending (grille 2 colonnes) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Widget 2 : Astuce du jour */}
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-                    <div className="text-4xl mb-3">{dailyTip.icon}</div>
-                    <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-2">Astuce du jour</h4>
-                    <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
+                {/* Widget 3 : Trending réseaux sociaux */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">🔥</span>
+                    <h4 className="text-sm font-bold text-green-900">Tendances réseaux sociaux</h4>
                   </div>
-
-                  {/* Widget 3 : Trending réseaux sociaux */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xl">🔥</span>
-                      <h4 className="text-sm font-bold text-green-900">Tendances réseaux sociaux</h4>
-                    </div>
-                    {trendingNews.length > 0 ? (
-                      <div className="space-y-2">
-                        {trendingNews.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => setSelectedNews(item)}
-                            className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all border ${
-                              selectedNews?.id === item.id
-                                ? 'bg-green-100 border-green-400 ring-1 ring-green-400'
-                                : 'bg-white/60 border-green-100 hover:bg-white'
-                            }`}
-                          >
-                            {item.image && (
-                              <img src={item.image} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className={`text-xs line-clamp-2 font-medium leading-snug ${selectedNews?.id === item.id ? 'text-green-900' : 'text-green-800'}`}>{item.title}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
-                                <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
-                                {selectedNews?.id === item.id && (
-                                  <span className="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded ml-auto">Sélectionné</span>
-                                )}
-                              </div>
+                  {trendingNews.length > 0 ? (
+                    <div className="space-y-2">
+                      {trendingNews.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => setSelectedNews(item)}
+                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all border ${
+                            selectedNews?.id === item.id
+                              ? 'bg-green-100 border-green-400 ring-1 ring-green-400'
+                              : 'bg-white/60 border-green-100 hover:bg-white'
+                          }`}
+                        >
+                          {item.image && (
+                            <img src={item.image} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-xs line-clamp-2 font-medium leading-snug ${selectedNews?.id === item.id ? 'text-green-900' : 'text-green-800'}`}>{item.title}</p>
+                            <p className="text-[9px] text-green-500 mt-0.5">{item.source}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
+                              <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
+                              {selectedNews?.id === item.id && (
+                                <span className="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded ml-auto">Sélectionné</span>
+                              )}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-green-600">Chargement...</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Widget 4 : CTA Assistant - lien vers la page assistant */}
-                <div
-                  onClick={() => router.push('/assistant')}
-                  className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg px-4 py-2 cursor-pointer hover:shadow-sm transition-all group flex items-center gap-2"
-                >
-                  <span className="text-sm">💡</span>
-                  <p className="text-[11px] text-purple-700">
-                    Besoin d&apos;idées ?{' '}
-                    <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant marketing →</span>
-                  </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-green-600">Chargement des tendances...</p>
+                  )}
                 </div>
               </div>
-            )}
+
+              {/* Widget 4 : CTA Assistant - lien vers la page assistant */}
+              <div
+                onClick={() => router.push('/assistant')}
+                className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg px-4 py-2 cursor-pointer hover:shadow-sm transition-all group flex items-center gap-2"
+              >
+                <span className="text-sm">💡</span>
+                <p className="text-[11px] text-purple-700">
+                  Besoin d&apos;idées ?{' '}
+                  <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant marketing →</span>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
