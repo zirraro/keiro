@@ -253,6 +253,7 @@ export default function GeneratePage() {
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
+  const [generatedSubtitleText, setGeneratedSubtitleText] = useState('');
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
@@ -1620,22 +1621,18 @@ export default function GeneratePage() {
         videoPrompt = `Business: ${businessType}. Description: ${businessDescription}. ${targetAudience ? `Audience: ${targetAudience}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video showcasing this business identity and value proposition.`;
       }
 
-      // Ajouter l'instruction de texte si activée
+      // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
       if (enableAIText) {
-        // Déterminer le texte des sous-titres
         let subtitleText = '';
 
-        // Si l'audio est activé, utiliser le même texte (sous-titres = narration)
         if (addAudio && audioText.trim()) {
           subtitleText = audioText.trim();
         } else if (addAudio && audioTextSource === 'ai') {
-          // L'audio IA sera généré à partir du contenu - utiliser le contexte directement
           subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
         } else {
-          // Pas d'audio - générer un texte de sous-titres via l'IA
           try {
             setVideoProgress('Génération du texte...');
-            const targetWords = Math.ceil(videoDuration * 2.5); // ~2.5 mots/seconde
+            const targetWords = Math.ceil(videoDuration * 2.5);
             const context = useNewsMode && selectedNews
               ? `${selectedNews.title}. Business: ${businessType}. ${businessDescription || ''}`
               : `Business: ${businessType}. ${businessDescription}`;
@@ -1647,7 +1644,6 @@ export default function GeneratePage() {
             });
             const subtitleData = await subtitleRes.json();
             if (subtitleData.ok && subtitleData.suggestions?.length > 0) {
-              // Choisir le style correspondant
               const styleMap: Record<string, string> = {
                 dynamic: 'catchy', minimal: 'informative', bold: 'catchy',
                 cinematic: 'storytelling', elegant: 'informative'
@@ -1661,25 +1657,13 @@ export default function GeneratePage() {
           }
         }
 
-        const textStyleInstructions: Record<string, string> = {
-          dynamic: 'with dynamic, animated typography that appears at key moments with motion effects',
-          minimal: 'with clean, minimalist typography, simple and easy to read',
-          bold: 'with bold, impactful large typography that grabs attention',
-          cinematic: 'with cinematic dramatic text reveals, elegant fades and transitions',
-          elegant: 'with elegant, refined serif typography and gentle animations',
-          clean: 'with clean white text without any background, just text with subtle shadow for readability',
-          neon: 'with glowing neon-style text in cyan/electric blue with luminous glow effect',
-          karaoke: 'with colorful gradient text like karaoke subtitles, vibrant pink-to-yellow gradient',
-          outline: 'with bold outlined white text with strong black outline, high contrast and readable',
-          wordbyword: 'with words appearing one at a time in sequence, each word displayed prominently then replaced by the next word, like a teleprompter or word-by-word reveal animation'
-        };
-        const styleInstruction = textStyleInstructions[aiTextStyle] || textStyleInstructions.dynamic;
-
+        // Stocker le texte pour overlay CSS (modifiable dans les modals)
         if (subtitleText) {
-          videoPrompt += ` Display the following French text as subtitles ${styleInstruction}: "${subtitleText}"`;
-        } else {
-          videoPrompt += ` Add French text overlays ${styleInstruction} that highlight the key message.`;
+          setGeneratedSubtitleText(subtitleText);
+          console.log('[Video] Subtitle text generated (overlay CSS):', subtitleText);
         }
+        // NE PAS envoyer le texte à Seedream - il génère du texte illisible
+        // Le texte sera superposé en CSS dans les modals TikTok/Instagram
       }
 
       console.log('[Video] Starting generation with prompt:', videoPrompt);
@@ -2989,62 +2973,8 @@ export default function GeneratePage() {
               </div>
             )}
 
-            {/* Audio généré (NOUVEAU) */}
-            {generatedAudioUrl && !showEditStudio && (
-              <div className="bg-white rounded-xl border border-blue-200 p-3">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                  🎵 Audio généré
-                </h3>
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-100">
-                  <audio
-                    src={generatedAudioUrl}
-                    controls
-                    className="w-full"
-                    style={{ height: '40px' }}
-                  />
-                  <p className="text-[10px] text-blue-600 mt-2 text-center">
-                    ✓ Narration audio prête pour TikTok/Instagram Reels
-                  </p>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <a
-                    href={generatedAudioUrl}
-                    download
-                    className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
-                  >
-                    📥 Télécharger l'audio
-                  </a>
-                  <button
-                    onClick={() => {
-                      setGeneratedAudioUrl(null);
-                      setAddAudio(false);
-                    }}
-                    className="px-4 py-2 text-xs border border-neutral-300 rounded hover:bg-neutral-50 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Loader audio en cours */}
-            {generatingAudio && !generatedAudioUrl && (
-              <div className="bg-white rounded-xl border border-blue-200 p-3 animate-pulse">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-900">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                  🎵 Génération audio...
-                </h3>
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-100">
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                    <span className="text-xs text-blue-700">
-                      L'IA crée votre narration audio...
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Audio généré - masqué au client, stocké en interne pour fusion */}
+            {/* L'audio est automatiquement fusionné dans la vidéo, le client ne voit que le résultat final */}
 
             {/* Vidéo générée */}
             {generatedVideoUrl && !showEditStudio && (

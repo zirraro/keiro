@@ -1584,6 +1584,88 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       </div>
                     </div>
                   )}
+
+                  {/* Modifier le texte des sous-titres */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-medium text-neutral-700">
+                      Texte affiché (modifiable):
+                    </label>
+                    <textarea
+                      value={narrationScript}
+                      onChange={(e) => setNarrationScript(e.target.value)}
+                      rows={2}
+                      className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      placeholder="Texte à afficher sur la vidéo..."
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!narrationScript.trim()) return;
+                        const currentVideoUrl = activeTab === 'videos' && selectedVideo
+                          ? selectedVideo.video_url : videoPreview;
+                        if (!currentVideoUrl) return;
+
+                        // Re-générer audio avec le nouveau texte
+                        setMerging(true);
+                        setSuccessToast('🔄 Régénération audio + fusion...');
+                        try {
+                          // 1. Générer le nouvel audio
+                          const audioRes = await fetch('/api/generate-audio-tts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: narrationScript.trim(), targetDuration: 5, voice: 'nova', speed: 1.0 })
+                          });
+                          const audioData = await audioRes.json();
+                          if (!audioData.ok) throw new Error(audioData.error);
+
+                          setNarrationAudioUrl(audioData.audioUrl);
+                          setNarrationScript(audioData.condensedText || narrationScript);
+
+                          // 2. Fusionner
+                          const mergeRes = await fetch('/api/merge-audio-video', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: audioData.audioUrl })
+                          });
+                          const mergeData = await mergeRes.json();
+                          if (mergeData.ok && mergeData.mergedUrl) {
+                            setMergedVideoUrl(mergeData.mergedUrl);
+                            setSuccessToast('✅ Texte mis à jour, audio re-fusionné !');
+                            setTimeout(() => setSuccessToast(null), 4000);
+
+                            // Auto-save brouillon ready
+                            const supabase = supabaseBrowser();
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                              await supabase.from('tiktok_drafts').insert({
+                                user_id: user.id,
+                                video_id: selectedVideo?.id || null,
+                                media_url: mergeData.mergedUrl,
+                                media_type: 'video',
+                                category: 'draft',
+                                caption: caption || '',
+                                hashtags: hashtags || [],
+                                status: 'ready'
+                              });
+                            }
+                          } else {
+                            setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                            setTimeout(() => setSuccessToast(null), 5000);
+                          }
+                        } catch (err: any) {
+                          setSuccessToast(`❌ Erreur: ${err.message}`);
+                          setTimeout(() => setSuccessToast(null), 5000);
+                        } finally { setMerging(false); }
+                      }}
+                      disabled={merging || !narrationScript.trim()}
+                      className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                        merging || !narrationScript.trim()
+                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
+                    </button>
+                  </div>
                 </div>
               )}
 

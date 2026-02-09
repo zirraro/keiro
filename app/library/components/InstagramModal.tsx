@@ -485,8 +485,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   };
 
   const handlePublishStory = async () => {
-    if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+    const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
+    if (!hasContent) {
+      alert('Veuillez sélectionner un contenu');
       return;
     }
 
@@ -501,6 +502,11 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
     if (!confirm) return;
 
+    const isVideo = activeTab === 'videos';
+    const mediaUrl = isVideo
+      ? (mergedVideoUrl || selectedVideo!.video_url)
+      : selectedImage!.image_url;
+
     setPublishing(true);
     try {
       const response = await fetch('/api/library/instagram/publish-story', {
@@ -510,7 +516,8 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         },
         credentials: 'include',
         body: JSON.stringify({
-          imageUrl: selectedImage.image_url
+          imageUrl: mediaUrl,
+          mediaType: isVideo ? 'video' : 'image'
         })
       });
 
@@ -551,8 +558,8 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
     window.location.href = '/api/auth/instagram-oauth';
   };
 
-  // Si aucune image sélectionnée et chargement terminé, ne rien afficher
-  if (!selectedImage && !loadingImages && availableImages.length === 0) {
+  // Si aucun contenu sélectionné et chargement terminé, ne rien afficher
+  if (!selectedImage && !selectedVideo && !loadingImages && !loadingVideos && availableImages.length === 0 && availableVideos.length === 0) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
@@ -594,7 +601,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   }
 
   // Pendant le chargement
-  if (loadingImages && !selectedImage) {
+  if ((loadingImages || loadingVideos) && !selectedImage && !selectedVideo) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
@@ -609,9 +616,8 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
     );
   }
 
-  // Si on arrive ici, selectedImage est forcément non-null (ou bien il y a des images disponibles)
-  // TypeScript ne le comprend pas, donc on doit asserter
-  if (!selectedImage) {
+  // Si aucun contenu disponible
+  if (!selectedImage && !selectedVideo) {
     return null;
   }
 
@@ -1200,6 +1206,86 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       </div>
                     </div>
                   )}
+
+                  {/* Modifier le texte des sous-titres */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-medium text-neutral-700">
+                      Texte affiché (modifiable):
+                    </label>
+                    <textarea
+                      value={narrationScript}
+                      onChange={(e) => setNarrationScript(e.target.value)}
+                      rows={2}
+                      className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+                      placeholder="Texte à afficher sur la vidéo..."
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!narrationScript.trim() || !selectedVideo) return;
+                        const currentVideoUrl = selectedVideo.video_url;
+
+                        // Re-générer audio avec le nouveau texte
+                        setMerging(true);
+                        setSuccessToast('🔄 Régénération audio + fusion...');
+                        try {
+                          // 1. Générer le nouvel audio
+                          const audioRes = await fetch('/api/generate-audio-tts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: narrationScript.trim(), targetDuration: 5, voice: 'nova', speed: 1.0 })
+                          });
+                          const audioData = await audioRes.json();
+                          if (!audioData.ok) throw new Error(audioData.error);
+
+                          setNarrationAudioUrl(audioData.audioUrl);
+                          setNarrationScript(audioData.condensedText || narrationScript);
+
+                          // 2. Fusionner
+                          const mergeRes = await fetch('/api/merge-audio-video', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl: audioData.audioUrl })
+                          });
+                          const mergeData = await mergeRes.json();
+                          if (mergeData.ok && mergeData.mergedUrl) {
+                            setMergedVideoUrl(mergeData.mergedUrl);
+                            setSuccessToast('✅ Texte mis à jour, audio re-fusionné !');
+                            setTimeout(() => setSuccessToast(null), 4000);
+
+                            // Auto-save brouillon ready
+                            const supabase = supabaseBrowser();
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                              await supabase.from('instagram_drafts').insert({
+                                user_id: user.id,
+                                video_id: selectedVideo?.id || null,
+                                media_url: mergeData.mergedUrl,
+                                media_type: 'video',
+                                category: 'draft',
+                                caption: caption || '',
+                                hashtags: hashtags || [],
+                                status: 'ready'
+                              });
+                            }
+                          } else {
+                            setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                            setTimeout(() => setSuccessToast(null), 5000);
+                          }
+                        } catch (err: any) {
+                          setSuccessToast(`❌ Erreur: ${err.message}`);
+                          setTimeout(() => setSuccessToast(null), 5000);
+                        } finally { setMerging(false); }
+                      }}
+                      disabled={merging || !narrationScript.trim()}
+                      className={`w-full px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                        merging || !narrationScript.trim()
+                          ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1254,7 +1340,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs text-blue-700 font-medium mb-2">💡 Suggestions</p>
                     <div className="flex flex-wrap gap-1">
-                      {selectedImage.news_category && (
+                      {selectedImage?.news_category && (
                         <button
                           onClick={() => suggestHashtag(selectedImage.news_category!.toLowerCase().replace(/\s/g, ''))}
                           className="text-xs px-2 py-1 bg-white rounded hover:bg-blue-100 text-blue-600 border border-blue-200"
