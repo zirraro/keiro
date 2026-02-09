@@ -103,7 +103,25 @@ export async function POST(request: NextRequest) {
       conversationHistory = messages || [];
     }
 
-    // 3. System prompt contextuel (optimisé pour être plus court)
+    // 3. Récupérer les tendances du jour pour enrichir le contexte
+    let trendsContext = '';
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+      const trendsRes = await fetch(`${baseUrl}/api/trends`, { signal: AbortSignal.timeout(5000) });
+      const trendsJson = await trendsRes.json();
+      if (trendsJson.ok && trendsJson.data) {
+        const gt = trendsJson.data.googleTrends?.slice(0, 10).map((t: any) => t.title).join(', ');
+        const tt = trendsJson.data.tiktokHashtags?.slice(0, 10).map((t: any) => '#' + t.hashtag).join(', ');
+        trendsContext = `
+
+Tendances du jour en France (données réelles) :
+- Recherches populaires Google: ${gt || 'non disponible'}
+- Hashtags TikTok populaires: ${tt || 'non disponible'}
+Utilise ces tendances pour proposer des idées de contenu pertinentes et surfant sur l'actualité quand c'est adapté au business de l'utilisateur.`;
+      }
+    } catch { /* silencieux si timeout */ }
+
+    // 4. System prompt contextuel enrichi avec tendances
     const businessType = profile?.business_description || profile?.business_type || 'entreprise';
     const systemPrompt = `Tu es un expert marketing réseaux sociaux (Instagram, TikTok, LinkedIn, Facebook).
 
@@ -115,7 +133,7 @@ Quand l'utilisateur veut créer un visuel ou une vidéo, demande-lui TOUJOURS :
 - Sur quelle plateforme il compte publier (TikTok, Instagram, les deux ?)
 - Adapte tes conseils au format de la plateforme (TikTok = vertical 9:16, Instagram = carré 1:1 ou portrait 4:5)
 - Rappelle-lui de sélectionner la bonne plateforme dans la page Générer pour obtenir le bon format
-
+${trendsContext}
 Style:
 - Concis (150-300 mots max)
 - Bullet points

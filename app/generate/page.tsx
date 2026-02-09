@@ -96,6 +96,7 @@ export default function GeneratePage() {
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
   const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number } | null>(null);
+  const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; keywords: string[] } | null>(null);
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -203,8 +204,8 @@ export default function GeneratePage() {
     return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
   }, []);
 
-  /* --- Trending news (3 plus tendance, cache 24h dans localStorage) --- */
-  const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; _score: number }> = useMemo(() => {
+  /* --- Trending news (3 plus tendance, enrichi par Google Trends + TikTok) --- */
+  const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; _score: number; _matchedTrends?: string[] }> = useMemo(() => {
     const TRENDING_CACHE_KEY = 'keiro_trending_cache';
     const TRENDING_TTL = 24 * 60 * 60 * 1000; // 24h
 
@@ -221,10 +222,10 @@ export default function GeneratePage() {
 
     if (allNewsItems.length === 0) return [];
 
+    const trendKeywords = trendingData?.keywords || [];
     const withImages = allNewsItems.filter((item: any) => item.image);
-    const scored = withImages.map((item: any) => ({
-      ...item,
-      _score: computeSocialScore({
+    const scored = withImages.map((item: any) => {
+      const baseScore = computeSocialScore({
         id: item.id,
         title: item.title,
         summary: item.description,
@@ -232,8 +233,19 @@ export default function GeneratePage() {
         image: item.image,
         source: item.source,
         publishedAt: item.date,
-      })
-    }));
+      });
+
+      // Bonus si l'article matche des tendances réelles Google/TikTok
+      const text = (item.title + ' ' + item.description).toLowerCase();
+      const matched = trendKeywords.filter((kw: string) => text.includes(kw));
+      const trendBonus = Math.min(0.3, matched.length * 0.08);
+
+      return {
+        ...item,
+        _score: Math.min(1, baseScore + trendBonus),
+        _matchedTrends: matched.slice(0, 3),
+      };
+    });
     scored.sort((a: any, b: any) => b._score - a._score);
     const top3 = scored.slice(0, 3);
 
@@ -243,7 +255,7 @@ export default function GeneratePage() {
     } catch { /* */ }
 
     return top3;
-  }, [allNewsItems]);
+  }, [allNewsItems, trendingData]);
 
   /* --- États pour l'upload logo/photo --- */
   const [uploading, setUploading] = useState(false);
@@ -417,10 +429,39 @@ export default function GeneratePage() {
   const [enrichmentUserId, setEnrichmentUserId] = useState<string>('');
   const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
 
-  /* --- Fetch actualités (1 seul appel au chargement, cache 24h) --- */
+  /* --- Fetch actualités + tendances (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
     fetchAllNews();
+    fetchTrends();
   }, []);
+
+  /* --- Fetch tendances réelles (Google Trends + TikTok, cache localStorage 24h) --- */
+  async function fetchTrends() {
+    const TRENDS_CACHE_KEY = 'keiro_trends_data';
+    const TRENDS_TTL = 24 * 60 * 60 * 1000;
+    try {
+      const cached = localStorage.getItem(TRENDS_CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (data && Date.now() - ts < TRENDS_TTL) {
+          setTrendingData(data);
+          return;
+        }
+      }
+    } catch { /* */ }
+    try {
+      const res = await fetch('/api/trends');
+      const json = await res.json();
+      if (json.ok && json.data) {
+        setTrendingData(json.data);
+        try {
+          localStorage.setItem(TRENDS_CACHE_KEY, JSON.stringify({ data: json.data, ts: Date.now() }));
+        } catch { /* */ }
+      }
+    } catch (e) {
+      console.error('[Trends] fetch error', e);
+    }
+  }
 
   /* --- Vérifier si l'utilisateur est connecté pour débloquer les limites --- */
   useEffect(() => {
@@ -2280,11 +2321,12 @@ export default function GeneratePage() {
                   <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
                 </div>
 
-                {/* Widget 3 : Trending réseaux sociaux */}
+                {/* Widget 3 : Trending réseaux sociaux (données réelles Google Trends + TikTok) */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xl">🔥</span>
                     <h4 className="text-sm font-bold text-green-900">Tendances réseaux sociaux</h4>
+                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">Google Trends + TikTok</span>}
                   </div>
                   {trendingNews.length > 0 ? (
                     <div className="space-y-2">
@@ -2304,6 +2346,13 @@ export default function GeneratePage() {
                           <div className="min-w-0 flex-1">
                             <p className={`text-xs line-clamp-2 font-medium leading-snug ${selectedNews?.id === item.id ? 'text-green-900' : 'text-green-800'}`}>{item.title}</p>
                             <p className="text-[9px] text-green-500 mt-0.5">{item.source}</p>
+                            {(item as any)._matchedTrends?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {(item as any)._matchedTrends.map((kw: string) => (
+                                  <span key={kw} className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">📈 {kw}</span>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-1 mt-1">
                               <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
                               <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
@@ -2317,6 +2366,32 @@ export default function GeneratePage() {
                     </div>
                   ) : (
                     <p className="text-xs text-green-600">Chargement des tendances...</p>
+                  )}
+                  {/* Hashtags TikTok tendance */}
+                  {trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Hashtags TikTok tendance</p>
+                      <div className="flex flex-wrap gap-1">
+                        {trendingData.tiktokHashtags.slice(0, 8).map((tag: any) => (
+                          <span key={tag.hashtag} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
+                            #{tag.hashtag} {tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Google Trends du jour */}
+                  {trendingData?.googleTrends && trendingData.googleTrends.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-green-200">
+                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Recherches populaires France</p>
+                      <div className="flex flex-wrap gap-1">
+                        {trendingData.googleTrends.slice(0, 6).map((t: any, i: number) => (
+                          <span key={i} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
+                            🔍 {t.title} {t.traffic && <span className="text-green-500">({t.traffic})</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
