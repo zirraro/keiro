@@ -17,12 +17,12 @@ export type TrendingData = {
 // Cache serveur (persiste tant que le process Node tourne)
 let cachedTrends: TrendingData | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+const CACHE_TTL = 12 * 60 * 60 * 1000; // 12h (refresh 2x/jour via cron)
 
-export async function fetchAllTrends(): Promise<TrendingData> {
-  // Vérifier le cache
+export async function fetchAllTrends(force = false): Promise<TrendingData> {
+  // Vérifier le cache (sauf si force refresh via cron)
   const now = Date.now();
-  if (cachedTrends && now - cacheTimestamp < CACHE_TTL) {
+  if (!force && cachedTrends && now - cacheTimestamp < CACHE_TTL) {
     const ageH = Math.round((now - cacheTimestamp) / 3600000);
     console.log(`[Trends] Cache hit (age: ${ageH}h)`);
     return cachedTrends;

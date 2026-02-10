@@ -4,5 +4,11 @@
       "maxDuration": 60,
       "memory": 1024
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/refresh-trends",
+      "schedule": "0 5,19 * * *"
+    }
+  ]
 }

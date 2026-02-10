@@ -438,7 +438,7 @@ export default function GeneratePage() {
   /* --- Fetch tendances réelles (Google Trends + TikTok, cache localStorage 24h) --- */
   async function fetchTrends() {
     const TRENDS_CACHE_KEY = 'keiro_trends_data';
-    const TRENDS_TTL = 24 * 60 * 60 * 1000;
+    const TRENDS_TTL = 12 * 60 * 60 * 1000; // 12h (refresh serveur 2x/jour)
     try {
       const cached = localStorage.getItem(TRENDS_CACHE_KEY);
       if (cached) {
