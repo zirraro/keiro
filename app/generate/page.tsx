@@ -3184,7 +3184,7 @@ export default function GeneratePage() {
                       <input
                         type="range"
                         min={5}
-                        max={30}
+                        max={15}
                         step={5}
                         value={videoDuration}
                         onChange={(e) => setVideoDuration(Number(e.target.value))}
@@ -3194,12 +3194,9 @@ export default function GeneratePage() {
                         <span>5s</span>
                         <span>10s</span>
                         <span>15s</span>
-                        <span>20s</span>
-                        <span>25s</span>
-                        <span>30s</span>
                       </div>
                       <p className="text-[9px] text-indigo-600 mt-1 italic">
-                        💡 15-30s = idéal pour capter l'attention sur les réseaux sociaux
+                        💡 5-15s = idéal pour capter l'attention sur les réseaux sociaux
                       </p>
                     </div>
                   </>
@@ -3208,7 +3205,7 @@ export default function GeneratePage() {
                 {/* Bouton de génération */}
                 <button
                   onClick={generationMode === 'video' ? handleGenerateVideo : handleGenerate}
-                  disabled={generating || generatingVideo || !selectedNews || !businessType.trim()}
+                  disabled={generating || generatingVideo || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim()) || !businessType.trim()}
                   className={`w-full py-2.5 text-xs font-semibold rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     generationMode === 'video'
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
@@ -3221,9 +3218,14 @@ export default function GeneratePage() {
                   }
                 </button>
 
-                {!selectedNews && (
+                {useNewsMode && !selectedNews && (
                   <p className="text-[10px] text-amber-600 text-center">
                     ⚠️ Sélectionnez une actualité
+                  </p>
+                )}
+                {!useNewsMode && !businessDescription.trim() && (
+                  <p className="text-[10px] text-amber-600 text-center">
+                    ⚠️ Décrivez votre business en détail
                   </p>
                 )}
               </div>

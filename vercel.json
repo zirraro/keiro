@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/api/cron/refresh-trends",
-      "schedule": "0 5,19 * * *"
+      "schedule": "0 5 * * *"
     }
   ]
 }
