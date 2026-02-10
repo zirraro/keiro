@@ -206,20 +206,6 @@ export default function GeneratePage() {
 
   /* --- Trending news (3 plus tendance, enrichi par Google Trends + TikTok) --- */
   const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; _score: number; _matchedTrends?: string[] }> = useMemo(() => {
-    const TRENDING_CACHE_KEY = 'keiro_trending_cache';
-    const TRENDING_TTL = 24 * 60 * 60 * 1000; // 24h
-
-    // Vérifier cache trending
-    try {
-      const cached = localStorage.getItem(TRENDING_CACHE_KEY);
-      if (cached) {
-        const { items, ts } = JSON.parse(cached);
-        if (items?.length > 0 && Date.now() - ts < TRENDING_TTL) {
-          return items;
-        }
-      }
-    } catch { /* */ }
-
     if (allNewsItems.length === 0) return [];
 
     const trendKeywords = trendingData?.keywords || [];
@@ -247,14 +233,7 @@ export default function GeneratePage() {
       };
     });
     scored.sort((a: any, b: any) => b._score - a._score);
-    const top3 = scored.slice(0, 3);
-
-    // Sauvegarder en cache
-    try {
-      localStorage.setItem(TRENDING_CACHE_KEY, JSON.stringify({ items: top3, ts: Date.now() }));
-    } catch { /* */ }
-
-    return top3;
+    return scored.slice(0, 3);
   }, [allNewsItems, trendingData]);
 
   /* --- États pour l'upload logo/photo --- */
