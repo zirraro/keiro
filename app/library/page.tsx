@@ -309,6 +309,7 @@ function LibraryContent() {
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [guestEmail, setGuestEmail] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
+  const [pendingWaitlistFeature, setPendingWaitlistFeature] = useState<string | null>(null);
 
   // État pour le drag & drop
   const [isDragging, setIsDragging] = useState(false);
@@ -1527,8 +1528,6 @@ function LibraryContent() {
       </main>
     );
   }
-
-  const [pendingWaitlistFeature, setPendingWaitlistFeature] = useState<string | null>(null);
 
   const handleStartFree = () => {
     setPendingWaitlistFeature(null);
