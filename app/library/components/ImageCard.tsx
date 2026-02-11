@@ -28,6 +28,7 @@ interface ImageCardProps {
   onPublishToInstagram?: (image: SavedImage) => void;
   onPublishToTikTok?: (image: SavedImage) => void;
   onSchedule?: (image: SavedImage) => void;
+  onMoveToFolder?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
   formatDate?: (dateString: string) => string;
 }
@@ -43,6 +44,7 @@ export default function ImageCard({
   onTitleEdit,
   onPublishToInstagram,
   onPublishToTikTok,
+  onMoveToFolder,
   formatDate
 }: ImageCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -83,8 +85,10 @@ export default function ImageCard({
         {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-2">
           {image.is_favorite && (
-            <span className="bg-pink-500 text-white text-xs px-2 py-1 rounded-full">
-              ⭐ Favorite
+            <span className="bg-pink-500 text-white text-xs px-1.5 py-1 rounded-full flex items-center">
+              <svg className="w-3.5 h-3.5" fill="currentColor" stroke="none" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </span>
           )}
           {image.published_to_instagram && (
@@ -159,6 +163,19 @@ export default function ImageCard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 Poster
+              </button>
+            )}
+            {/* Ranger */}
+            {onMoveToFolder && (
+              <button
+                onClick={() => onMoveToFolder(image)}
+                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
+                title="Ranger dans un dossier"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Ranger
               </button>
             )}
             <div className="flex-1" />

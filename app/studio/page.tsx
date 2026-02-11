@@ -110,7 +110,7 @@ function StudioContent() {
         if (response.status === 413) {
           throw new Error('Image trop volumineuse. Veuillez utiliser une image plus petite.');
         } else if (response.status === 401) {
-          throw new Error('Non authentifié. Veuillez vous reconnecter.');
+          throw new Error('Créez un compte pour accéder à cette fonctionnalité');
         } else {
           throw new Error('Erreur serveur: ' + (errorText.substring(0, 100) || 'Réponse invalide'));
         }

@@ -9,7 +9,7 @@ export async function GET() {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const { data, error } = await supabase
       .from('feature_interests')
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
     // User connecte
     if (!user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const { error } = await supabase
       .from('feature_interests')

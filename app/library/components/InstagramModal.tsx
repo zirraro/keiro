@@ -303,7 +303,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Non authentifié');
+        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
 
         // Sauvegarder dans instagram_drafts pour les vidéos (Reels)
         const { error: insertError } = await supabase

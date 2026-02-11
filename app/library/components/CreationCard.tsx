@@ -93,8 +93,10 @@ export default function CreationCard({
         {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-2">
           {item.is_favorite && (
-            <span className="bg-pink-500 text-white text-xs px-2 py-1 rounded-full">
-              ⭐ Favorite
+            <span className="bg-pink-500 text-white text-xs px-1.5 py-1 rounded-full flex items-center">
+              <svg className="w-3.5 h-3.5" fill="currentColor" stroke="none" viewBox="0 0 24 24">
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </span>
           )}
           {item.published_to_instagram && (

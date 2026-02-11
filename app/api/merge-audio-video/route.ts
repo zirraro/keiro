@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
 
     const { videoUrl, audioUrl } = await req.json();

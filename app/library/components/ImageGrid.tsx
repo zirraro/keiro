@@ -28,6 +28,7 @@ interface ImageGridProps {
   onDelete: (imageId: string) => void;
   onOpenInstagram: (image: SavedImage) => void;
   onSchedule?: (image: SavedImage) => void;
+  onMoveToFolder?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
   onRefresh?: () => void;
 }
@@ -44,6 +45,7 @@ export default function ImageGrid({
   onDelete,
   onOpenInstagram,
   onSchedule,
+  onMoveToFolder,
   onTitleEdit,
   onRefresh
 }: ImageGridProps) {
@@ -132,6 +134,7 @@ export default function ImageGrid({
           onDelete={onDelete}
           onOpenInstagram={onOpenInstagram}
           onSchedule={onSchedule}
+          onMoveToFolder={onMoveToFolder}
           onTitleEdit={onTitleEdit}
         />
       ))}

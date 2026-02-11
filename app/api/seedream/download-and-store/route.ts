@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       console.error('[DownloadAndStore] Auth failed:', authError);
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }

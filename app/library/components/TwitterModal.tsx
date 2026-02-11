@@ -155,7 +155,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Non authentifié');
+        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
         await supabase.from('twitter_drafts').insert({
           user_id: user.id,
           video_id: selectedVideo.id,

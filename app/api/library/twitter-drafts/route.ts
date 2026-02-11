@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const { data, error } = await supabase
       .from('twitter_drafts')
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const { savedImageId, caption, hashtags, status } = await req.json();
     if (!savedImageId) {
@@ -86,7 +86,7 @@ export async function PATCH(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const updates = await req.json();
     const { data, error } = await supabase
@@ -118,7 +118,7 @@ export async function DELETE(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
     const { error } = await supabase
       .from('twitter_drafts')

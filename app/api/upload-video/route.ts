@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }

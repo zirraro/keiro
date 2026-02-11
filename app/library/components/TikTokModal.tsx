@@ -330,7 +330,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Non authentifié');
+        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
 
         // Sauvegarder directement dans tiktok_drafts pour les vidéos
         const { error: insertError } = await supabase

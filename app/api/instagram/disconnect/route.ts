@@ -10,7 +10,7 @@ export async function POST() {
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

@@ -15,7 +15,7 @@ export async function PATCH(
 
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
@@ -73,7 +73,7 @@ export async function DELETE(
 
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }

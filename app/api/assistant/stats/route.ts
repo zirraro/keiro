@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }

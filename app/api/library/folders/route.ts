@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
@@ -216,7 +216,7 @@ export async function PATCH(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
@@ -284,7 +284,7 @@ export async function DELETE(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }

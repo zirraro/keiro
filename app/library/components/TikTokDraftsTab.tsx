@@ -210,7 +210,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
       {/* Grille de brouillons */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
-        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow">
+        <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
           <div className="aspect-video bg-gradient-to-br from-cyan-50 to-blue-50 relative">
             {!failedImages.has(draft.id) && (draft.media_url || (draft as any).image_url) ? (
@@ -280,7 +280,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           </div>
 
           {/* Contenu */}
-          <div className="p-3">
+          <div className="p-3 flex flex-col flex-1">
             {/* Caption preview - Cliquable pour édition */}
             {editingDraftId === draft.id ? (
               <div className="mb-3">
@@ -345,11 +345,11 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
               Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}
             </p>
 
-            {/* Actions */}
-            <div className="flex gap-2">
+            {/* Actions - empilées verticalement */}
+            <div className="flex flex-col gap-2 mt-auto">
               <button
                 onClick={() => onEdit(draft)}
-                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all flex items-center justify-center gap-2"
+                className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -358,22 +358,22 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
               </button>
               <button
                 onClick={() => onDelete(draft.id)}
-                className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                title="Supprimer"
+                className="w-full px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
+                Supprimer
               </button>
               {onSchedule && (
                 <button
                   onClick={() => onSchedule(draft)}
-                  className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Planning
+                  Planifier
                 </button>
               )}
             </div>

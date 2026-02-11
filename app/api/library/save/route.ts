@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       console.log('[Library/Save] No authenticated user found');
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié. Veuillez vous connecter.' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
@@ -257,7 +257,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
     if (!userId) {
-      return NextResponse.json({ ok: false, error: 'Non authentifié' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
 
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };

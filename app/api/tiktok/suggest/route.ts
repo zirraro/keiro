@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       console.error('[TikTok Suggest] Auth error:', authError);
       return NextResponse.json(
-        { ok: false, error: 'Non authentifié' },
+        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
       );
     }
