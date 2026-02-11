@@ -1051,6 +1051,11 @@ export default function HomeKeiro() {
                     Privacy Policy
                   </a>
                 </li>
+                <li>
+                  <a href="/legal/data-deletion" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
+                    Suppression des données
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -1082,6 +1087,9 @@ export default function HomeKeiro() {
               </a>
               <a href="/legal/privacy" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
                 Privacy Policy
+              </a>
+              <a href="/legal/data-deletion" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
+                Suppression des données
               </a>
             </div>
           </div>
