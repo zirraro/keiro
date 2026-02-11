@@ -19,10 +19,11 @@ interface LinkedInDraftsTabProps {
   drafts: LinkedInDraft[];
   onEdit: (draft: LinkedInDraft) => void;
   onDelete: (draftId: string) => void;
+  onSchedule?: (draft: LinkedInDraft) => void;
   onPrepareLinkedIn?: () => void;
 }
 
-export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onPrepareLinkedIn }: LinkedInDraftsTabProps) {
+export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule, onPrepareLinkedIn }: LinkedInDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
 
   const filteredDrafts = activeCategory === 'all'
@@ -127,12 +128,25 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onPrepareL
               )}
               <p className="text-xs text-neutral-400 mb-4">Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}</p>
               <div className="flex gap-2">
-                <button onClick={() => onEdit(draft)} className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors">
-                  Modifier
+                <button onClick={() => onEdit(draft)} className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-sm font-semibold hover:from-[#005f8f] hover:to-blue-700 transition-all flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  Continuer
                 </button>
                 <button onClick={() => onDelete(draft.id)} className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors" title="Supprimer">
-                  <TrashIcon className="w-5 h-5" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
+                {onSchedule && (
+                  <button onClick={() => onSchedule(draft)} className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Planning
+                  </button>
+                )}
               </div>
             </div>
           </div>

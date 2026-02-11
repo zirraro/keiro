@@ -1528,14 +1528,38 @@ function LibraryContent() {
     );
   }
 
+  const [pendingWaitlistFeature, setPendingWaitlistFeature] = useState<string | null>(null);
+
   const handleStartFree = () => {
+    setPendingWaitlistFeature(null);
     setShowEmailGate(true);
   };
 
-  const handleEmailSubmit = (email: string) => {
-    setGuestEmail(email);
-    setIsGuest(true);
-    console.log('[Library] Guest mode activated:', email);
+  const handleJoinTwitterWaitlist = () => {
+    setPendingWaitlistFeature('twitter');
+    setShowEmailGate(true);
+  };
+
+  const handleEmailSubmit = async (email: string) => {
+    if (pendingWaitlistFeature) {
+      // Waitlist mode: enregistrer l'email + interet, PAS activer guest mode
+      try {
+        await fetch('/api/feature-interest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feature: pendingWaitlistFeature, email })
+        });
+      } catch (error) {
+        console.error('[Library] Error saving waitlist interest:', error);
+      }
+      setPendingWaitlistFeature(null);
+      alert('Merci ! Vous serez notifié quand cette fonctionnalité sera disponible.');
+    } else {
+      // Guest mode classique
+      setGuestEmail(email);
+      setIsGuest(true);
+      console.log('[Library] Guest mode activated:', email);
+    }
   };
 
   const handleUpload = async (files: FileList) => {
@@ -1772,10 +1796,10 @@ function LibraryContent() {
                 </p>
               </div>
               <a
-                href="/login"
+                href="/pricing"
                 className="px-4 py-2 rounded-lg bg-white text-green-600 font-semibold text-sm hover:bg-green-50 transition-colors"
               >
-                Créer un compte pour publier automatiquement
+                Débloquer toutes les fonctionnalités
               </a>
             </div>
           </div>
@@ -1968,7 +1992,7 @@ function LibraryContent() {
                 <p className="text-xs text-neutral-700 mb-3">
                   Tweets percutants avec IA pour maximiser l'impact.
                 </p>
-                <button onClick={handleStartFree} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-neutral-800 to-black text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                <button onClick={handleJoinTwitterWaitlist} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-neutral-800 to-black text-white font-semibold rounded-lg hover:shadow-lg transition-all">
                   Rejoindre la liste prioritaire
                 </button>
               </div>

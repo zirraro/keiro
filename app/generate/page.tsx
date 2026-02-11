@@ -2245,7 +2245,7 @@ export default function GeneratePage() {
                         </div>
                         {hasIntensive && (
                           <p className="text-[10px] text-neutral-500 mt-2 text-center">
-                            Besoin de plus ? <button onClick={() => router.push('/mon-compte')} className="text-purple-600 underline hover:text-purple-700">Voir les options</button>
+                            Besoin de plus ? <button onClick={() => router.push('/pricing')} className="text-purple-600 underline hover:text-purple-700">Acheter des crédits</button>
                           </p>
                         )}
                       </div>
