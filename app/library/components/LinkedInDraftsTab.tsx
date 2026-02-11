@@ -104,7 +104,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
           <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-            <div className="aspect-video bg-neutral-100 relative">
+            <div className="h-36 bg-neutral-100 relative">
               <img src={draft.media_url} alt="LinkedIn post preview" className="w-full h-full object-cover" loading="lazy" />
               <div className="absolute top-2 left-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${

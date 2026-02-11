@@ -212,7 +212,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
-          <div className="aspect-video bg-gradient-to-br from-cyan-50 to-blue-50 relative">
+          <div className="h-36 bg-gradient-to-br from-cyan-50 to-blue-50 relative">
             {!failedImages.has(draft.id) && (draft.media_url || (draft as any).image_url) ? (
               draft.media_type === 'video' || (draft.media_url || (draft as any).image_url)?.endsWith('.mp4') ? (
                 <video

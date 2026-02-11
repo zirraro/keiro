@@ -25,6 +25,7 @@ type MyVideosTabProps = {
   onToggleFavorite: (videoId: string, isFavorite: boolean) => void;
   onPublishToTikTok: (video: MyVideo) => void;
   onTitleEdit: (videoId: string, newTitle: string) => void;
+  onMoveToFolder?: (video: MyVideo) => void;
 };
 
 export default function MyVideosTab({
@@ -33,7 +34,8 @@ export default function MyVideosTab({
   onDelete,
   onToggleFavorite,
   onPublishToTikTok,
-  onTitleEdit
+  onTitleEdit,
+  onMoveToFolder
 }: MyVideosTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'duration'>('date');
@@ -180,6 +182,7 @@ export default function MyVideosTab({
               onToggleFavorite={onToggleFavorite}
               onPublishToTikTok={onPublishToTikTok}
               onTitleEdit={onTitleEdit}
+              onMoveToFolder={onMoveToFolder}
               formatDuration={formatDuration}
               formatFileSize={formatFileSize}
               formatDate={formatDate}
@@ -197,6 +200,7 @@ type VideoCardProps = {
   onToggleFavorite: (videoId: string, isFavorite: boolean) => void;
   onPublishToTikTok: (video: MyVideo) => void;
   onTitleEdit: (videoId: string, newTitle: string) => void;
+  onMoveToFolder?: (video: MyVideo) => void;
   formatDuration: (seconds?: number) => string;
   formatFileSize: (bytes?: number) => string;
   formatDate: (dateString: string) => string;
@@ -208,6 +212,7 @@ function VideoCard({
   onToggleFavorite,
   onPublishToTikTok,
   onTitleEdit,
+  onMoveToFolder,
   formatDuration,
   formatFileSize,
   formatDate
@@ -335,7 +340,19 @@ function VideoCard({
                 Poster
               </button>
             )}
-
+            {/* Ranger */}
+            {onMoveToFolder && (
+              <button
+                onClick={() => onMoveToFolder(video)}
+                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
+                title="Ranger dans un dossier"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Ranger
+              </button>
+            )}
             <div className="flex-1" />
             {/* Favoris - icone seule */}
             <button

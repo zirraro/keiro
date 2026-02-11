@@ -304,7 +304,7 @@ function LibraryContent() {
 
   // États pour les dossiers
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
-  const [imageToMoveToFolder, setImageToMoveToFolder] = useState<any>(null);
+  const [itemToMoveToFolder, setItemToMoveToFolder] = useState<{ id: string; type: 'image' | 'video' } | null>(null);
 
   // États pour le Guest Mode
   const [showEmailGate, setShowEmailGate] = useState(false);
@@ -2054,7 +2054,7 @@ function LibraryContent() {
                         onTitleEdit={handleTitleEdit}
                         onDownload={downloadImage}
                         onSchedule={openScheduleModal}
-                        onMoveToFolder={(image) => setImageToMoveToFolder(image)}
+                        onMoveToFolder={(image) => setItemToMoveToFolder({ id: image.id, type: 'image' })}
                       />
                     )
                   ) : activeTab === 'videos' ? (
@@ -2065,6 +2065,7 @@ function LibraryContent() {
                       onToggleFavorite={handleToggleVideoFavorite}
                       onPublishToTikTok={openPlatformChoiceModalForVideo}
                       onTitleEdit={handleVideoTitleEdit}
+                      onMoveToFolder={(video) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
                     />
                   ) : activeTab === 'drafts' ? (
                     <InstagramDraftsTab
@@ -2153,7 +2154,7 @@ function LibraryContent() {
                   onTitleEdit={handleTitleEdit}
                   onDownload={downloadImage}
                   onSchedule={openScheduleModal}
-                  onMoveToFolder={(image) => setImageToMoveToFolder(image)}
+                  onMoveToFolder={(image) => setItemToMoveToFolder({ id: image.id, type: 'image' })}
                 />
               )
             ) : activeTab === 'videos' ? (
@@ -2164,6 +2165,7 @@ function LibraryContent() {
                 onToggleFavorite={() => {}}
                 onPublishToTikTok={(video) => openPlatformChoiceModalForVideo(video)}
                 onTitleEdit={() => {}}
+                onMoveToFolder={(video) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
               />
             ) : activeTab === 'drafts' ? (
               <InstagramDraftsTab
@@ -2282,16 +2284,16 @@ function LibraryContent() {
         />
       )}
 
-      {/* Modal Ranger dans un dossier (pour images) */}
-      {imageToMoveToFolder && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setImageToMoveToFolder(null)}>
+      {/* Modal Ranger dans un dossier */}
+      {itemToMoveToFolder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setItemToMoveToFolder(null)}>
           <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-neutral-900 mb-4">Ranger dans un dossier</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               <button
                 onClick={async () => {
-                  await handleUnifiedMoveToFolder(imageToMoveToFolder.id, 'image', null);
-                  setImageToMoveToFolder(null);
+                  await handleUnifiedMoveToFolder(itemToMoveToFolder.id, itemToMoveToFolder.type, null);
+                  setItemToMoveToFolder(null);
                 }}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm text-neutral-600"
               >
@@ -2301,8 +2303,8 @@ function LibraryContent() {
                 <button
                   key={folder.id}
                   onClick={async () => {
-                    await handleUnifiedMoveToFolder(imageToMoveToFolder.id, 'image', folder.id);
-                    setImageToMoveToFolder(null);
+                    await handleUnifiedMoveToFolder(itemToMoveToFolder.id, itemToMoveToFolder.type, folder.id);
+                    setItemToMoveToFolder(null);
                   }}
                   className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm flex items-center gap-2"
                 >
@@ -2312,7 +2314,7 @@ function LibraryContent() {
               ))}
             </div>
             <button
-              onClick={() => setImageToMoveToFolder(null)}
+              onClick={() => setItemToMoveToFolder(null)}
               className="mt-4 w-full px-3 py-2 rounded-lg border border-neutral-300 text-neutral-600 text-sm hover:bg-neutral-50"
             >
               Annuler

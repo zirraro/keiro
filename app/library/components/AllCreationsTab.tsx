@@ -341,7 +341,7 @@ export default function AllCreationsTab({
   const renderFolderContent = (items: CreationItem[]) => {
     if (viewMode === 'grid') {
       return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {items.map(item => (
             <div key={`${item.type}-${item.id}`}>
               <CreationCard

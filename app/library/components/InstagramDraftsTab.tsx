@@ -190,7 +190,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
           {/* Image/Video */}
-          <div className="aspect-video bg-neutral-100 relative">
+          <div className="h-36 bg-neutral-100 relative">
             <img
               src={draft.media_url}
               alt="Instagram post preview"
