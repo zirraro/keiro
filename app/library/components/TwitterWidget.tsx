@@ -8,6 +8,8 @@ interface TwitterWidgetProps {
   onPreparePost?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: (collapsed: boolean) => void;
+  onJoinWaitlist?: () => void;
+  hasJoinedWaitlist?: boolean;
 }
 
 const DEMO_POSTS = [
@@ -23,7 +25,9 @@ export default function TwitterWidget({
   isGuest = false,
   onPreparePost,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  onJoinWaitlist,
+  hasJoinedWaitlist = false
 }: TwitterWidgetProps) {
   const connected = false;
 
@@ -94,12 +98,21 @@ export default function TwitterWidget({
               <p className="text-sm text-neutral-600 mb-3">
                 Connectez votre compte X pour publier
               </p>
-              <button
-                disabled
-                className="px-6 py-2 bg-gradient-to-r from-neutral-800 to-black text-white text-sm font-medium rounded-lg opacity-50 cursor-not-allowed"
-              >
-                Bientôt disponible
-              </button>
+              {hasJoinedWaitlist ? (
+                <button
+                  disabled
+                  className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium rounded-lg opacity-80 cursor-default"
+                >
+                  Demande enregistrée !
+                </button>
+              ) : (
+                <button
+                  onClick={onJoinWaitlist}
+                  className="px-6 py-2 bg-gradient-to-r from-neutral-800 to-black text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
+                >
+                  Rejoindre la liste prioritaire
+                </button>
+              )}
             </div>
           )}
         </>
