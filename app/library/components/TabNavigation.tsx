@@ -1,3 +1,5 @@
+import type { Network } from './NetworkSelector';
+
 export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'linkedin-drafts' | 'twitter-drafts' | 'calendar';
 
 interface TabNavigationProps {
@@ -10,10 +12,12 @@ interface TabNavigationProps {
   linkedinDraftCount: number;
   twitterDraftCount: number;
   scheduledCount: number;
+  visibleNetworks?: Network[];
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount, visibleNetworks }: TabNavigationProps) {
   const totalCount = imageCount + videoCount;
+  const showNetwork = (network: Network) => !visibleNetworks || visibleNetworks.includes(network);
 
   return (
     <div className="border-b border-neutral-200 mb-6">
@@ -78,85 +82,93 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
           )}
         </button>
 
-        <button
-          onClick={() => onTabChange('drafts')}
-          className={`pb-4 px-2 font-semibold transition-all relative ${
-            activeTab === 'drafts'
-              ? 'text-purple-600 border-b-2 border-purple-600'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Brouillons Instagram
-          {draftCount > 0 && (
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+        {showNetwork('instagram') && (
+          <button
+            onClick={() => onTabChange('drafts')}
+            className={`pb-4 px-2 font-semibold transition-all relative ${
               activeTab === 'drafts'
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-neutral-100 text-neutral-600'
-            }`}>
-              {draftCount}
-            </span>
-          )}
-        </button>
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            Brouillons Instagram
+            {draftCount > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'drafts'
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {draftCount}
+              </span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => onTabChange('tiktok-drafts')}
-          className={`pb-4 px-2 font-semibold transition-all relative ${
-            activeTab === 'tiktok-drafts'
-              ? 'text-cyan-600 border-b-2 border-cyan-600'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Brouillons TikTok
-          {tiktokDraftCount > 0 && (
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+        {showNetwork('tiktok') && (
+          <button
+            onClick={() => onTabChange('tiktok-drafts')}
+            className={`pb-4 px-2 font-semibold transition-all relative ${
               activeTab === 'tiktok-drafts'
-                ? 'bg-cyan-100 text-cyan-700'
-                : 'bg-neutral-100 text-neutral-600'
-            }`}>
-              {tiktokDraftCount}
-            </span>
-          )}
-        </button>
+                ? 'text-cyan-600 border-b-2 border-cyan-600'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            Brouillons TikTok
+            {tiktokDraftCount > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'tiktok-drafts'
+                  ? 'bg-cyan-100 text-cyan-700'
+                  : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {tiktokDraftCount}
+              </span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => onTabChange('linkedin-drafts')}
-          className={`pb-4 px-2 font-semibold transition-all relative ${
-            activeTab === 'linkedin-drafts'
-              ? 'text-[#0077B5] border-b-2 border-[#0077B5]'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Brouillons LinkedIn
-          {linkedinDraftCount > 0 && (
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+        {showNetwork('linkedin') && (
+          <button
+            onClick={() => onTabChange('linkedin-drafts')}
+            className={`pb-4 px-2 font-semibold transition-all relative ${
               activeTab === 'linkedin-drafts'
-                ? 'bg-blue-100 text-[#0077B5]'
-                : 'bg-neutral-100 text-neutral-600'
-            }`}>
-              {linkedinDraftCount}
-            </span>
-          )}
-        </button>
+                ? 'text-[#0077B5] border-b-2 border-[#0077B5]'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            Brouillons LinkedIn
+            {linkedinDraftCount > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'linkedin-drafts'
+                  ? 'bg-blue-100 text-[#0077B5]'
+                  : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {linkedinDraftCount}
+              </span>
+            )}
+          </button>
+        )}
 
-        <button
-          onClick={() => onTabChange('twitter-drafts')}
-          className={`pb-4 px-2 font-semibold transition-all relative ${
-            activeTab === 'twitter-drafts'
-              ? 'text-neutral-900 border-b-2 border-neutral-900'
-              : 'text-neutral-600 hover:text-neutral-900'
-          }`}
-        >
-          Brouillons X
-          {twitterDraftCount > 0 && (
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+        {showNetwork('twitter') && (
+          <button
+            onClick={() => onTabChange('twitter-drafts')}
+            className={`pb-4 px-2 font-semibold transition-all relative ${
               activeTab === 'twitter-drafts'
-                ? 'bg-neutral-200 text-neutral-800'
-                : 'bg-neutral-100 text-neutral-600'
-            }`}>
-              {twitterDraftCount}
-            </span>
-          )}
-        </button>
+                ? 'text-neutral-900 border-b-2 border-neutral-900'
+                : 'text-neutral-600 hover:text-neutral-900'
+            }`}
+          >
+            Brouillons X
+            {twitterDraftCount > 0 && (
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                activeTab === 'twitter-drafts'
+                  ? 'bg-neutral-200 text-neutral-800'
+                  : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {twitterDraftCount}
+              </span>
+            )}
+          </button>
+        )}
 
         <button
           onClick={() => onTabChange('calendar')}

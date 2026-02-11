@@ -33,7 +33,7 @@ interface TwitterModalProps {
   video?: MyVideo;
   videos?: MyVideo[];
   onClose: () => void;
-  onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
+  onSave: (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
 }
@@ -46,7 +46,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   const [suggesting, setSuggesting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'images' | 'videos'>(video ? 'videos' : 'images');
+  const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'text-only'>(video ? 'videos' : 'images');
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
   const [loadingImages, setLoadingImages] = useState(!images && !video);
@@ -131,7 +131,17 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   };
 
   const handleSave = async (status: 'draft' | 'ready') => {
-    if (activeTab === 'images' && selectedImage) {
+    if (activeTab === 'text-only') {
+      if (!caption.trim()) { alert('Veuillez écrire du texte pour votre tweet'); return; }
+      setSaving(true);
+      try {
+        await onSave(null, caption, hashtags, status);
+        setSuccessToast(status === 'draft' ? '✅ Brouillon texte X sauvegardé !' : '✅ Prêt à publier !');
+        setTimeout(() => setSuccessToast(null), 3000);
+      } finally {
+        setSaving(false);
+      }
+    } else if (activeTab === 'images' && selectedImage) {
       setSaving(true);
       try {
         await onSave(selectedImage, caption, hashtags, status);
@@ -168,8 +178,10 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   };
 
   const handleSuggest = async () => {
-    const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
-    if (!hasContent) { alert('Veuillez sélectionner un contenu'); return; }
+    if (activeTab !== 'text-only') {
+      const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
+      if (!hasContent) { alert('Veuillez sélectionner un contenu'); return; }
+    }
     setSuggesting(true);
     try {
       const contentUrl = activeTab === 'images' ? (selectedImage?.image_url || '') : (selectedVideo?.thumbnail_url || '');
@@ -251,105 +263,119 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
             >
               🎥 Vidéos ({availableVideos.length})
             </button>
+            <button
+              onClick={() => { setActiveTab('text-only'); setSelectedImage(null); setSelectedVideo(null); }}
+              className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                activeTab === 'text-only'
+                  ? 'bg-neutral-900 text-white shadow-md'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-100'
+              }`}
+            >
+              📝 Texte seul
+            </button>
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
           {/* Gallery sidebar (desktop) */}
-          <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
-            <div className="p-2 space-y-2">
-              <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">Sélectionner</p>
-              {activeTab === 'images' && (
-                <>
-                  {loadingImages ? (
-                    [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>)
-                  ) : (
-                    availableImages.map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => setSelectedImage(img)}
-                        className={`w-full aspect-square rounded-lg overflow-hidden transition-all ${
-                          selectedImage?.id === img.id ? 'ring-2 ring-neutral-900 scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-neutral-500'
-                        }`}
-                      >
-                        <img src={img.thumbnail_url || img.image_url} alt={img.title || 'Image'} className="w-full h-full object-cover" />
-                      </button>
-                    ))
-                  )}
-                </>
-              )}
-              {activeTab === 'videos' && (
-                <>
-                  {loadingVideos ? (
-                    [1, 2, 3, 4].map(i => <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>)
-                  ) : (
-                    availableVideos.map((vid) => (
-                      <button
-                        key={vid.id}
-                        onClick={() => setSelectedVideo(vid)}
-                        className={`w-full aspect-square rounded-lg overflow-hidden transition-all relative ${
-                          selectedVideo?.id === vid.id ? 'ring-2 ring-neutral-900 scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-neutral-500'
-                        }`}
-                      >
-                        {vid.thumbnail_url ? (
-                          <img src={vid.thumbnail_url} alt={vid.title || 'Vidéo'} className="w-full h-full object-cover" />
-                        ) : (
-                          <video src={vid.video_url} className="w-full h-full object-cover" muted preload="metadata" />
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                          </svg>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </>
-              )}
+          {activeTab !== 'text-only' && (
+            <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
+              <div className="p-2 space-y-2">
+                <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">Sélectionner</p>
+                {activeTab === 'images' && (
+                  <>
+                    {loadingImages ? (
+                      [1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>)
+                    ) : (
+                      availableImages.map((img) => (
+                        <button
+                          key={img.id}
+                          onClick={() => setSelectedImage(img)}
+                          className={`w-full aspect-square rounded-lg overflow-hidden transition-all ${
+                            selectedImage?.id === img.id ? 'ring-2 ring-neutral-900 scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-neutral-500'
+                          }`}
+                        >
+                          <img src={img.thumbnail_url || img.image_url} alt={img.title || 'Image'} className="w-full h-full object-cover" />
+                        </button>
+                      ))
+                    )}
+                  </>
+                )}
+                {activeTab === 'videos' && (
+                  <>
+                    {loadingVideos ? (
+                      [1, 2, 3, 4].map(i => <div key={i} className="aspect-square bg-neutral-200 rounded animate-pulse"></div>)
+                    ) : (
+                      availableVideos.map((vid) => (
+                        <button
+                          key={vid.id}
+                          onClick={() => setSelectedVideo(vid)}
+                          className={`w-full aspect-square rounded-lg overflow-hidden transition-all relative ${
+                            selectedVideo?.id === vid.id ? 'ring-2 ring-neutral-900 scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-neutral-500'
+                          }`}
+                        >
+                          {vid.thumbnail_url ? (
+                            <img src={vid.thumbnail_url} alt={vid.title || 'Vidéo'} className="w-full h-full object-cover" />
+                          ) : (
+                            <video src={vid.video_url} className="w-full h-full object-cover" muted preload="metadata" />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                            </svg>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Mobile gallery */}
-          <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {activeTab === 'images' && availableImages.map((img) => (
-                <button
-                  key={img.id}
-                  onClick={() => setSelectedImage(img)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden ${
-                    selectedImage?.id === img.id ? 'ring-2 ring-neutral-900' : 'ring-1 ring-neutral-300'
-                  }`}
-                >
-                  <img src={img.thumbnail_url || img.image_url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-              {activeTab === 'videos' && availableVideos.map((vid) => (
-                <button
-                  key={vid.id}
-                  onClick={() => setSelectedVideo(vid)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden relative ${
-                    selectedVideo?.id === vid.id ? 'ring-2 ring-neutral-900' : 'ring-1 ring-neutral-300'
-                  }`}
-                >
-                  {vid.thumbnail_url ? (
-                    <img src={vid.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-neutral-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              ))}
+          {activeTab !== 'text-only' && (
+            <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {activeTab === 'images' && availableImages.map((img) => (
+                  <button
+                    key={img.id}
+                    onClick={() => setSelectedImage(img)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden ${
+                      selectedImage?.id === img.id ? 'ring-2 ring-neutral-900' : 'ring-1 ring-neutral-300'
+                    }`}
+                  >
+                    <img src={img.thumbnail_url || img.image_url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+                {activeTab === 'videos' && availableVideos.map((vid) => (
+                  <button
+                    key={vid.id}
+                    onClick={() => setSelectedVideo(vid)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden relative ${
+                      selectedVideo?.id === vid.id ? 'ring-2 ring-neutral-900' : 'ring-1 ring-neutral-300'
+                    }`}
+                  >
+                    {vid.thumbnail_url ? (
+                      <img src={vid.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-neutral-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Preview + Form */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             {/* Preview - Tweet style */}
-            {(selectedImage || selectedVideo) && (
+            {(selectedImage || selectedVideo || activeTab === 'text-only') && (
               <div className="hidden md:block md:w-1/2 md:overflow-y-auto md:p-6 bg-neutral-50">
                 <div className="md:sticky md:top-0">
                   <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm max-w-sm mx-auto overflow-hidden p-4">
@@ -364,20 +390,24 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                       </div>
                     </div>
                     {/* Tweet text */}
-                    {caption && (
+                    {caption ? (
                       <p className="text-sm text-neutral-900 mb-3 whitespace-pre-line">{caption}</p>
-                    )}
+                    ) : activeTab === 'text-only' ? (
+                      <p className="text-sm text-neutral-400 italic mb-3">Votre tweet apparaitra ici...</p>
+                    ) : null}
                     {hashtags.length > 0 && (
                       <p className="text-sm text-[#1DA1F2] mb-3">{hashtags.join(' ')}</p>
                     )}
                     {/* Media */}
-                    <div className="aspect-video bg-black rounded-xl overflow-hidden">
-                      {activeTab === 'videos' && selectedVideo ? (
-                        <video src={selectedVideo.video_url} controls className="w-full h-full object-cover" />
-                      ) : activeTab === 'images' && selectedImage ? (
-                        <img src={selectedImage.image_url} alt="Preview" className="w-full h-full object-cover" />
-                      ) : null}
-                    </div>
+                    {activeTab !== 'text-only' && (
+                      <div className="aspect-video bg-black rounded-xl overflow-hidden">
+                        {activeTab === 'videos' && selectedVideo ? (
+                          <video src={selectedVideo.video_url} controls className="w-full h-full object-cover" />
+                        ) : activeTab === 'images' && selectedImage ? (
+                          <img src={selectedImage.image_url} alt="Preview" className="w-full h-full object-cover" />
+                        ) : null}
+                      </div>
+                    )}
                     {/* Engagement */}
                     <div className="flex items-center justify-between mt-3 text-neutral-500 px-2">
                       <span className="text-xs">💬</span>
@@ -498,14 +528,14 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-neutral-200">
                 <button
                   onClick={() => handleSave('draft')}
-                  disabled={saving || (!selectedImage && !selectedVideo)}
+                  disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
                   className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-neutral-800 text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {saving ? 'Sauvegarde...' : '📝 Sauvegarder brouillon'}
                 </button>
                 <button
                   onClick={() => handleSave('ready')}
-                  disabled={saving || (!selectedImage && !selectedVideo) || !caption.trim() || remainingChars < 0}
+                  disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim() || remainingChars < 0}
                   className="flex-1 py-3 px-4 rounded-lg font-medium bg-neutral-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                 >
                   {saving ? 'Sauvegarde...' : '✅ Marquer prêt à publier'}

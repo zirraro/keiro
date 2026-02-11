@@ -1125,7 +1125,7 @@ export default function GeneratePage() {
       // 7. STANDARDS VISUELS PROFESSIONNELS (Amélioré)
       promptParts.push(
         `\n\n📸 PROFESSIONAL VISUAL STANDARDS:\n` +
-        `Quality Level: Publication-ready for professional social media (Instagram, LinkedIn, Facebook)\n` +
+        `Quality Level: Publication-ready for professional social media (Instagram, LinkedIn, Twitter/X, TikTok)\n` +
         `Composition:\n` +
         `- Rule of thirds with clear focal point\n` +
         `- Leading lines that guide viewer's eye naturally\n` +
@@ -1891,7 +1891,9 @@ export default function GeneratePage() {
       // Déterminer le ratio selon la plateforme cible
       const platformRatio = platform === 'TikTok' ? '9:16'
         : platform === 'Instagram' ? '4:5'
-        : undefined; // défaut 16:9
+        : platform === 'LinkedIn' ? '16:9'
+        : platform === 'Twitter/X' ? '16:9'
+        : '16:9';
 
       const res = await fetch('/api/seedream/t2v', {
         method: 'POST',
@@ -2204,90 +2206,37 @@ export default function GeneratePage() {
 
             {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
             <div className="space-y-3 mt-6">
-              {/* Widget 1 : Quick Stats (pleine largeur + barres de progression avec quotas) */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xl">📊</span>
-                  <h4 className="text-sm font-bold text-blue-900">Votre activité ce mois</h4>
-                  <span className="text-xs text-blue-600 ml-auto capitalize">
-                    {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-                  </span>
-                </div>
+              {/* Widget 1 : Usage discret */}
+              <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
                 {monthlyStats ? (
-                  <div className="space-y-3">
-                    {(() => {
-                      const imgPct = Math.min(100, (monthlyStats.images / 30) * 100);
-                      const imgColor = imgPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : imgPct >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
-                      return (
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-blue-800">Visuels créés</span>
-                            <span className="text-sm font-bold text-blue-900">{monthlyStats.images} <span className="text-[10px] font-normal text-blue-500">/ 30</span></span>
-                          </div>
-                          <div className="w-full bg-neutral-200 rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full transition-all ${imgColor}`}
-                              style={{ width: `${Math.max(4, imgPct)}%` }}
-                            />
-                          </div>
-                          {imgPct >= 100 ? (
-                            <p className="text-[10px] text-red-600 mt-0.5 font-semibold">Quota atteint</p>
-                          ) : imgPct >= 80 ? (
-                            <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                          ) : null}
+                  (() => {
+                    const imgPct = (monthlyStats.images / 30) * 100;
+                    const vidPct = (monthlyStats.videos / 8) * 100;
+                    const maxPct = Math.min(100, Math.max(imgPct, vidPct));
+                    const label = maxPct >= 80 ? 'Usage intensif' : maxPct >= 50 ? 'Usage soutenu' : 'Usage léger';
+                    const barColor = maxPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : maxPct >= 50 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
+                    const textColor = maxPct >= 80 ? 'text-red-600' : maxPct >= 50 ? 'text-amber-600' : 'text-green-600';
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs font-semibold ${textColor}`}>{label}</span>
+                          <span className="text-[10px] text-neutral-400 capitalize">
+                            {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
+                          </span>
                         </div>
-                      );
-                    })()}
-                    {(() => {
-                      const vidPct = Math.min(100, (monthlyStats.videos / 8) * 100);
-                      const vidColor = vidPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : vidPct >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
-                      return (
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-blue-800">Vidéos créées</span>
-                            <span className="text-sm font-bold text-blue-900">{monthlyStats.videos} <span className="text-[10px] font-normal text-blue-500">/ 8</span></span>
-                          </div>
-                          <div className="w-full bg-neutral-200 rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full transition-all ${vidColor}`}
-                              style={{ width: `${Math.max(4, vidPct)}%` }}
-                            />
-                          </div>
-                          {vidPct >= 100 ? (
-                            <p className="text-[10px] text-red-600 mt-0.5 font-semibold">Quota atteint</p>
-                          ) : vidPct >= 80 ? (
-                            <p className="text-[10px] text-red-600 mt-0.5">Quota bientôt atteint</p>
-                          ) : null}
+                        <div className="w-full bg-neutral-200 rounded-full h-1.5">
+                          <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${Math.max(4, maxPct)}%` }} />
                         </div>
-                      );
-                    })()}
-                    {/* Upsell si un quota est atteint */}
-                    {(monthlyStats.images >= 30 || monthlyStats.videos >= 8) && (
-                      <div className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-                        <p className="text-xs text-purple-900 font-semibold mb-1">Continuez à créer sans interruption</p>
-                        <p className="text-[11px] text-purple-700 mb-2">Ajoutez un pack extra pour ce mois :</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => router.push('/mon-compte')}
-                            className="flex-1 text-[10px] px-2 py-1.5 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center"
-                          >
-                            +10 visuels — 19€
-                          </button>
-                          <button
-                            onClick={() => router.push('/mon-compte')}
-                            className="flex-1 text-[10px] px-2 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold"
-                          >
-                            +5 vidéos — 29€
-                          </button>
-                        </div>
-                        <p className="text-[9px] text-purple-500 mt-1.5 text-center">
-                          Ou <button onClick={() => router.push('/pricing')} className="underline hover:text-purple-700">changez de plan</button> pour des quotas plus élevés
-                        </p>
+                        {maxPct >= 80 && (
+                          <p className="text-[10px] text-neutral-500 mt-2 text-center">
+                            Besoin de plus ? <button onClick={() => router.push('/mon-compte')} className="text-purple-600 underline hover:text-purple-700">Voir les options</button>
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()
                 ) : (
-                  <p className="text-xs text-blue-600">Connectez-vous pour voir vos stats</p>
+                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir votre usage</p>
                 )}
               </div>
 
@@ -2954,7 +2903,6 @@ export default function GeneratePage() {
                   >
                     <option>Instagram</option>
                     <option>LinkedIn</option>
-                    <option>Facebook</option>
                     <option>Twitter/X</option>
                     <option>TikTok</option>
                   </select>

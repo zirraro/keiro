@@ -249,7 +249,7 @@ function LibraryContent() {
   const [twitterDrafts, setTwitterDrafts] = useState<TwitterDraft[]>([]);
 
   // NetworkSelector state (persisted in localStorage)
-  const [selectedNetworks, setSelectedNetworks] = useState<[Network, Network]>(() => {
+  const [selectedNetworks, setSelectedNetworks] = useState<Network[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('keiro_selected_networks');
       if (saved) {
@@ -278,6 +278,21 @@ function LibraryContent() {
   // États pour les onglets
   const tabParam = searchParams?.get('tab') as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>(tabParam || 'all-creations');
+
+  // Fallback: if active tab is a draft of a deselected network, reset to all-creations
+  useEffect(() => {
+    const draftNetworkMap: Record<string, Network> = {
+      'drafts': 'instagram',
+      'tiktok-drafts': 'tiktok',
+      'linkedin-drafts': 'linkedin',
+      'twitter-drafts': 'twitter',
+    };
+    const requiredNetwork = draftNetworkMap[activeTab];
+    if (requiredNetwork && !selectedNetworks.includes(requiredNetwork)) {
+      setActiveTab('all-creations');
+    }
+  }, [selectedNetworks, activeTab]);
+
   const [instagramDrafts, setInstagramDrafts] = useState<InstagramDraft[]>([]);
   const [tiktokDrafts, setTikTokDrafts] = useState<TikTokDraft[]>([]);
   const [myVideos, setMyVideos] = useState<MyVideo[]>([]);
@@ -296,7 +311,7 @@ function LibraryContent() {
   const [isDragging, setIsDragging] = useState(false);
 
   // Persist network selection
-  const handleNetworkSelectionChange = (networks: [Network, Network]) => {
+  const handleNetworkSelectionChange = (networks: Network[]) => {
     setSelectedNetworks(networks);
     localStorage.setItem('keiro_selected_networks', JSON.stringify(networks));
   };
@@ -982,9 +997,7 @@ function LibraryContent() {
   };
 
   // Sauvegarder le brouillon LinkedIn
-  const saveLinkedInDraft = async (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
-    if (!image) return;
-
+  const saveLinkedInDraft = async (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
     try {
       if (isGuest) {
         alert('LinkedIn n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur LinkedIn !');
@@ -994,7 +1007,7 @@ function LibraryContent() {
       const response = await fetch('/api/library/linkedin-drafts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ savedImageId: image.id, caption, hashtags, status })
+        body: JSON.stringify({ savedImageId: image?.id || null, caption, hashtags, status })
       });
 
       const data = await response.json();
@@ -1038,9 +1051,7 @@ function LibraryContent() {
   };
 
   // Sauvegarder le brouillon Twitter
-  const saveTwitterDraft = async (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
-    if (!image) return;
-
+  const saveTwitterDraft = async (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
     try {
       if (isGuest) {
         alert('Twitter n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur X !');
@@ -1050,7 +1061,7 @@ function LibraryContent() {
       const response = await fetch('/api/library/twitter-drafts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ savedImageId: image.id, caption, hashtags, status })
+        body: JSON.stringify({ savedImageId: image?.id || null, caption, hashtags, status })
       });
 
       const data = await response.json();
@@ -1760,12 +1771,11 @@ function LibraryContent() {
               />
             </div>
 
-            {/* Widgets Réseaux Sociaux - Adaptatif selon collapse */}
+            {/* Widgets Réseaux Sociaux - Adaptatif selon sélection et collapse */}
             {(() => {
-              const net1 = selectedNetworks[0];
-              const net2 = selectedNetworks[1];
-              const c1 = getCollapseState(net1);
-              const c2 = getCollapseState(net2);
+              const nets = selectedNetworks;
+              const collapsedCount = nets.filter(n => getCollapseState(n)).length;
+              const expandedCount = nets.length - collapsedCount;
 
               const renderWidget = (network: Network) => {
                 switch (network) {
@@ -1810,20 +1820,30 @@ function LibraryContent() {
                 }
               };
 
+              // For 2 widgets with collapse: use 10-col grid for asymmetric layout
+              if (nets.length === 2 && (collapsedCount === 1)) {
+                return (
+                  <div className="grid gap-6 md:grid-cols-10">
+                    {nets.map(net => (
+                      <div key={net} className={getCollapseState(net) ? 'md:col-span-1' : 'md:col-span-9'}>
+                        {renderWidget(net)}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+
+              // Default: equal columns grid
+              const gridClass = nets.length === 1 ? 'grid-cols-1'
+                : nets.length === 2 ? 'md:grid-cols-2'
+                : nets.length === 3 ? 'md:grid-cols-3'
+                : 'grid-cols-2 lg:grid-cols-4';
+
               return (
-                <div className={`grid gap-6 ${
-                  (c1 && !c2) || (!c1 && c2) ? 'md:grid-cols-10' : 'md:grid-cols-2'
-                }`}>
-                  <div className={
-                    c1 && !c2 ? 'md:col-span-1' : !c1 && c2 ? 'md:col-span-9' : ''
-                  }>
-                    {renderWidget(net1)}
-                  </div>
-                  <div className={
-                    c2 && !c1 ? 'md:col-span-1' : !c2 && c1 ? 'md:col-span-9' : ''
-                  }>
-                    {renderWidget(net2)}
-                  </div>
+                <div className={`grid gap-6 ${gridClass}`}>
+                  {nets.map(net => (
+                    <div key={net}>{renderWidget(net)}</div>
+                  ))}
                 </div>
               );
             })()}
@@ -1839,47 +1859,79 @@ function LibraryContent() {
               Studios de création
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Studio Instagram */}
-              <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-xl border border-pink-200 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">📷</span>
+              <div className="bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-xl border border-pink-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">📷</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-neutral-900">Studio Instagram</h3>
-                    <p className="text-sm text-neutral-600">Publication & Analytics</p>
+                    <h3 className="text-sm font-bold text-neutral-900">Instagram</h3>
+                    <p className="text-xs text-neutral-600">Posts & Stories</p>
                   </div>
                 </div>
-                <p className="text-sm text-neutral-700 mb-4">
-                  Créez, planifiez et publiez automatiquement sur Instagram. Suivez vos performances en temps réel.
+                <p className="text-xs text-neutral-700 mb-3">
+                  Créez et publiez automatiquement sur Instagram.
                 </p>
-                <button
-                  onClick={handleStartFree}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
+                <button onClick={handleStartFree} className="w-full px-3 py-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
                   Essayer gratuitement
                 </button>
               </div>
 
               {/* Studio TikTok */}
-              <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 rounded-xl border border-cyan-200 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">🎵</span>
+              <div className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 rounded-xl border border-cyan-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <span className="text-lg">🎵</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-neutral-900">Studio TikTok</h3>
-                    <p className="text-sm text-neutral-600">Vidéos & Engagement</p>
+                    <h3 className="text-sm font-bold text-neutral-900">TikTok</h3>
+                    <p className="text-xs text-neutral-600">Vidéos virales</p>
                   </div>
                 </div>
-                <p className="text-sm text-neutral-700 mb-4">
-                  Convertissez vos images en vidéos TikTok. Publication automatique et analytics complètes.
+                <p className="text-xs text-neutral-700 mb-3">
+                  Convertissez vos images en vidéos TikTok.
                 </p>
-                <button
-                  onClick={handleStartFree}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-                >
+                <button onClick={handleStartFree} className="w-full px-3 py-2 text-sm bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                  Essayer gratuitement
+                </button>
+              </div>
+
+              {/* Studio LinkedIn */}
+              <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#0077B5] to-blue-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-neutral-900">LinkedIn</h3>
+                    <p className="text-xs text-neutral-600">Posts pro</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-700 mb-3">
+                  Posts professionnels avec IA pour LinkedIn.
+                </p>
+                <button onClick={handleStartFree} className="w-full px-3 py-2 text-sm bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
+                  Essayer gratuitement
+                </button>
+              </div>
+
+              {/* Studio Twitter/X */}
+              <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl border border-neutral-200 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-neutral-800 to-black rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-neutral-900">X (Twitter)</h3>
+                    <p className="text-xs text-neutral-600">Tweets viraux</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-700 mb-3">
+                  Tweets percutants avec IA pour maximiser l'impact.
+                </p>
+                <button onClick={handleStartFree} className="w-full px-3 py-2 text-sm bg-gradient-to-r from-neutral-800 to-black text-white font-semibold rounded-lg hover:shadow-lg transition-all">
                   Essayer gratuitement
                 </button>
               </div>
@@ -1899,6 +1951,7 @@ function LibraryContent() {
             linkedinDraftCount={stats.total_linkedin_drafts}
             twitterDraftCount={stats.total_twitter_drafts}
             scheduledCount={scheduledPosts.length}
+            visibleNetworks={selectedNetworks}
           />
         </div>
 
