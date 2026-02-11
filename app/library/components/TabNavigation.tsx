@@ -1,4 +1,4 @@
-export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'calendar';
+export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'linkedin-drafts' | 'twitter-drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
@@ -7,10 +7,12 @@ interface TabNavigationProps {
   videoCount: number;
   draftCount: number;
   tiktokDraftCount: number;
+  linkedinDraftCount: number;
+  twitterDraftCount: number;
   scheduledCount: number;
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, scheduledCount }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount }: TabNavigationProps) {
   const totalCount = imageCount + videoCount;
 
   return (
@@ -112,6 +114,46 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {tiktokDraftCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('linkedin-drafts')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'linkedin-drafts'
+              ? 'text-[#0077B5] border-b-2 border-[#0077B5]'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          Brouillons LinkedIn
+          {linkedinDraftCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'linkedin-drafts'
+                ? 'bg-blue-100 text-[#0077B5]'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {linkedinDraftCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('twitter-drafts')}
+          className={`pb-4 px-2 font-semibold transition-all relative ${
+            activeTab === 'twitter-drafts'
+              ? 'text-neutral-900 border-b-2 border-neutral-900'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          Brouillons X
+          {twitterDraftCount > 0 && (
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'twitter-drafts'
+                ? 'bg-neutral-200 text-neutral-800'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {twitterDraftCount}
             </span>
           )}
         </button>
