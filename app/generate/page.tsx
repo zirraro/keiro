@@ -95,7 +95,7 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
-  const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number } | null>(null);
+  const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number; assistant: number } | null>(null);
   const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; keywords: string[] } | null>(null);
 
   /* --- Ref pour le scroll auto sur mobile --- */
@@ -542,7 +542,12 @@ export default function GeneratePage() {
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .gte('created_at', firstDayOfMonth);
-        setMonthlyStats({ images: imageCount || 0, videos: videoCount || 0 });
+        const { data: assistantData } = await sb
+          .from('assistant_usage_limits')
+          .select('messages_this_month')
+          .eq('user_id', user.id)
+          .single();
+        setMonthlyStats({ images: imageCount || 0, videos: videoCount || 0, assistant: assistantData?.messages_this_month || 0 });
       } catch (error) {
         console.error('[Generate] Error fetching monthly stats:', error);
       }
@@ -1540,7 +1545,7 @@ export default function GeneratePage() {
           const saveData = await saveResponse.json();
           if (saveData.ok && saveData.savedImage?.id) {
             setLastSavedImageId(saveData.savedImage.id);
-            setMonthlyStats(prev => prev ? { ...prev, images: prev.images + 1 } : { images: 1, videos: 0 });
+            setMonthlyStats(prev => prev ? { ...prev, images: prev.images + 1 } : { images: 1, videos: 0, assistant: 0 });
             console.log('[Generate] Auto-saved to library:', saveData.savedImage.id);
           }
         }
@@ -2025,7 +2030,7 @@ export default function GeneratePage() {
                   const vSaveData = await vSaveRes.json();
                   if (vSaveData.ok && vSaveData.video?.id) {
                     setLastSavedVideoId(vSaveData.video.id);
-                    setMonthlyStats(prev => prev ? { ...prev, videos: prev.videos + 1 } : { images: 0, videos: 1 });
+                    setMonthlyStats(prev => prev ? { ...prev, videos: prev.videos + 1 } : { images: 0, videos: 1, assistant: 0 });
                     console.log('[Video] Auto-saved to library:', vSaveData.video.id);
                   }
                 }
@@ -2206,28 +2211,39 @@ export default function GeneratePage() {
 
             {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
             <div className="space-y-3 mt-6">
-              {/* Widget 1 : Usage discret */}
+              {/* Widget 1 : Usage discret - 3 barres */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
                 {monthlyStats ? (
                   (() => {
-                    const imgPct = (monthlyStats.images / 30) * 100;
-                    const vidPct = (monthlyStats.videos / 8) * 100;
-                    const maxPct = Math.min(100, Math.max(imgPct, vidPct));
-                    const label = maxPct >= 80 ? 'Usage intensif' : maxPct >= 50 ? 'Usage soutenu' : 'Usage léger';
-                    const barColor = maxPct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : maxPct >= 50 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
-                    const textColor = maxPct >= 80 ? 'text-red-600' : maxPct >= 50 ? 'text-amber-600' : 'text-green-600';
+                    const bars = [
+                      { label: 'Visuels', pct: Math.min(100, (monthlyStats.images / 30) * 100) },
+                      { label: 'Vidéos', pct: Math.min(100, (monthlyStats.videos / 8) * 100) },
+                      { label: 'Assistant', pct: Math.min(100, (monthlyStats.assistant / 50) * 100) },
+                    ];
+                    const getColor = (pct: number) => pct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : pct >= 50 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
+                    const getTextColor = (pct: number) => pct >= 80 ? 'text-red-600' : pct >= 50 ? 'text-amber-600' : 'text-green-600';
+                    const getLabel = (pct: number) => pct >= 80 ? 'Intensif' : pct >= 50 ? 'Soutenu' : 'Léger';
+                    const hasIntensive = bars.some(b => b.pct >= 80);
                     return (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`text-xs font-semibold ${textColor}`}>{label}</span>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Votre usage</span>
                           <span className="text-[10px] text-neutral-400 capitalize">
                             {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
                           </span>
                         </div>
-                        <div className="w-full bg-neutral-200 rounded-full h-1.5">
-                          <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${Math.max(4, maxPct)}%` }} />
+                        <div className="space-y-2">
+                          {bars.map((bar) => (
+                            <div key={bar.label} className="flex items-center gap-2">
+                              <span className="text-[10px] text-neutral-500 w-14 shrink-0">{bar.label}</span>
+                              <div className="flex-1 bg-neutral-200 rounded-full h-1">
+                                <div className={`h-1 rounded-full transition-all ${getColor(bar.pct)}`} style={{ width: `${Math.max(4, bar.pct)}%` }} />
+                              </div>
+                              <span className={`text-[9px] font-medium w-12 text-right shrink-0 ${getTextColor(bar.pct)}`}>{getLabel(bar.pct)}</span>
+                            </div>
+                          ))}
                         </div>
-                        {maxPct >= 80 && (
+                        {hasIntensive && (
                           <p className="text-[10px] text-neutral-500 mt-2 text-center">
                             Besoin de plus ? <button onClick={() => router.push('/mon-compte')} className="text-purple-600 underline hover:text-purple-700">Voir les options</button>
                           </p>
