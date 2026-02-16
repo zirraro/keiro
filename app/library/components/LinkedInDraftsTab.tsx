@@ -6,7 +6,7 @@ export type LinkedInDraft = {
   saved_image_id?: string;
   video_id?: string;
   media_url: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'text-only';
   caption: string;
   hashtags: string[];
   status: 'draft' | 'ready' | 'published';
@@ -106,18 +106,49 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
           <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-            <div className="h-36 bg-neutral-100 relative">
-              <img src={draft.media_url} alt="LinkedIn post preview" className="w-full h-full object-cover" loading="lazy" />
-              <div className="absolute top-2 left-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  draft.status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700'
-                }`}>
-                  {draft.status === 'ready' ? '✓ Prêt' : '📝 Brouillon'}
-                </span>
+            {/* Preview zone */}
+            {draft.media_url && draft.media_type !== 'text-only' ? (
+              <div className="h-36 bg-neutral-100 relative">
+                {draft.media_type === 'video' ? (
+                  <video src={draft.media_url} className="w-full h-full object-cover" muted preload="metadata" />
+                ) : (
+                  <img src={draft.media_url} alt="LinkedIn post preview" className="w-full h-full object-cover" loading="lazy" />
+                )}
+                <div className="absolute top-2 left-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    draft.category === 'published' ? 'bg-green-100 text-green-700' : draft.status === 'ready' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100 text-neutral-700'
+                  }`}>
+                    {draft.category === 'published' ? '✓ Publié' : draft.status === 'ready' ? '✓ Prêt' : '📝 Brouillon'}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Aperçu style post LinkedIn pour texte seul */
+              <div className="bg-gradient-to-br from-blue-50 to-sky-50 p-4 relative min-h-[144px]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <LinkedInIcon className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-800">Post LinkedIn</p>
+                    <p className="text-[10px] text-neutral-500">Texte seul</p>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-700 line-clamp-4 leading-relaxed">{draft.caption || 'Pas de texte'}</p>
+                <div className="absolute top-2 right-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    draft.category === 'published' ? 'bg-green-100 text-green-700' : draft.status === 'ready' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100 text-neutral-700'
+                  }`}>
+                    {draft.category === 'published' ? '✓ Publié' : draft.status === 'ready' ? '✓ Prêt' : '📝 Brouillon'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="p-4 flex flex-col flex-1">
-              <p className="text-sm text-neutral-700 line-clamp-3 mb-2">{draft.caption || 'Pas de description'}</p>
+              {(draft.media_url && draft.media_type !== 'text-only') && (
+                <p className="text-sm text-neutral-700 line-clamp-3 mb-2">{draft.caption || 'Pas de description'}</p>
+              )}
               {draft.hashtags?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {draft.hashtags.slice(0, 3).map((tag, idx) => (
@@ -130,7 +161,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
               )}
               <p className="text-xs text-neutral-400 mb-2">Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}</p>
               <div className="flex flex-col gap-1.5 mt-auto">
-                {linkedinConnected && onPublish && (draft.status === 'ready' || draft.status === 'draft') && draft.category !== 'published' && (
+                {linkedinConnected && onPublish && draft.category !== 'published' && (
                   <button onClick={() => onPublish(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-md">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -150,8 +181,8 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                   </svg>
                   Supprimer
                 </button>
-                {onSchedule && (
-                  <button onClick={() => onSchedule(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-1.5">
+                {onSchedule && draft.category !== 'published' && (
+                  <button onClick={() => onSchedule(draft)} className="w-full px-2 py-1.5 rounded-lg border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors text-xs font-medium flex items-center justify-center gap-1.5">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>

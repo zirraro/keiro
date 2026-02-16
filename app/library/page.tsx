@@ -1154,34 +1154,6 @@ function LibraryContent() {
     await loadLinkedInDrafts();
   };
 
-  // Connecter LinkedIn
-  const handleConnectLinkedIn = () => {
-    window.location.href = '/api/auth/linkedin-oauth';
-  };
-
-  // Déconnecter LinkedIn
-  const handleDisconnectLinkedIn = async () => {
-    if (!confirm('Déconnecter votre compte LinkedIn ?')) return;
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          linkedin_user_id: null,
-          linkedin_username: null,
-          linkedin_access_token: null,
-          linkedin_token_expiry: null,
-          linkedin_connected_at: null,
-        })
-        .eq('id', user!.id);
-      if (!error) {
-        setIsLinkedInConnected(false);
-        setLinkedInUsername('');
-      }
-    } catch (error) {
-      console.error('[Library] Error disconnecting LinkedIn:', error);
-    }
-  };
-
   // Sauvegarder le brouillon Twitter
   const saveTwitterDraft = async (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
     try {
@@ -1960,10 +1932,10 @@ function LibraryContent() {
                         onPreparePost={() => setShowLinkedInModal(true)}
                         isCollapsed={isLinkedInWidgetCollapsed}
                         onToggleCollapse={setIsLinkedInWidgetCollapsed}
-                        connected={isLinkedInConnected}
-                        username={linkedinUsername}
-                        onConnect={handleConnectLinkedIn}
-                        onDisconnect={handleDisconnectLinkedIn}
+                        onConnectionChange={(conn, name) => {
+                          setIsLinkedInConnected(conn);
+                          setLinkedInUsername(name);
+                        }}
                       />
                     );
                   case 'twitter':
