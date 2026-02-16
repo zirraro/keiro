@@ -1133,6 +1133,17 @@ function LibraryContent() {
     }
   };
 
+  // Ajouter LinkedIn draft au planning
+  const scheduleLinkedInDraft = (draft: LinkedInDraft) => {
+    const image: SavedImage = {
+      id: draft.saved_image_id || draft.id,
+      image_url: draft.media_url,
+      is_favorite: false,
+      created_at: draft.created_at
+    };
+    openScheduleModal(image);
+  };
+
   // Supprimer un brouillon LinkedIn
   const deleteLinkedInDraft = async (draftId: string) => {
     if (!confirm('Supprimer ce brouillon LinkedIn ?')) return;
@@ -2197,6 +2208,7 @@ function LibraryContent() {
                       drafts={linkedinDrafts}
                       onEdit={editLinkedInDraft}
                       onDelete={deleteLinkedInDraft}
+                      onSchedule={scheduleLinkedInDraft}
                       onPrepareLinkedIn={() => setShowLinkedInModal(true)}
                       linkedinConnected={isLinkedInConnected}
                       onPublish={handlePublishToLinkedIn}
@@ -2299,6 +2311,7 @@ function LibraryContent() {
                 drafts={[]}
                 onEdit={editLinkedInDraft}
                 onDelete={deleteLinkedInDraft}
+                onSchedule={scheduleLinkedInDraft}
                 onPrepareLinkedIn={() => setShowLinkedInModal(true)}
                 linkedinConnected={isLinkedInConnected}
                 onPublish={handlePublishToLinkedIn}

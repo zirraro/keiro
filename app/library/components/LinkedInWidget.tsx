@@ -57,7 +57,7 @@ export default function LinkedInWidget({
       onConnectionChange?.(isConnected, name);
 
       if (isConnected) {
-        await syncPublishedDrafts(user.id);
+        await syncDrafts();
       }
     } catch (error) {
       console.error('[LinkedInWidget] Error:', error);
@@ -66,25 +66,14 @@ export default function LinkedInWidget({
     }
   };
 
-  const syncPublishedDrafts = async (userId?: string) => {
+  const syncDrafts = async () => {
     try {
-      const supabase = supabaseBrowser();
-      let uid = userId;
-      if (!uid) {
-        const { data: { user } } = await supabase.auth.getUser();
-        uid = user?.id;
+      const res = await fetch('/api/library/linkedin-drafts');
+      if (res.ok) {
+        const data = await res.json();
+        const allDrafts = data.posts || [];
+        setPublishedDrafts(allDrafts.slice(0, 6));
       }
-      if (!uid) return;
-
-      const { data: drafts } = await supabase
-        .from('linkedin_drafts')
-        .select('*')
-        .eq('user_id', uid)
-        .eq('category', 'published')
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      setPublishedDrafts(drafts || []);
     } catch (error) {
       console.error('[LinkedInWidget] Sync error:', error);
     }
@@ -93,16 +82,7 @@ export default function LinkedInWidget({
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await syncPublishedDrafts();
-      // Aussi recharger les brouillons via l'API pour forcer un refresh global
-      try {
-        const res = await fetch('/api/library/linkedin-drafts');
-        if (res.ok) {
-          const data = await res.json();
-          const published = (data.posts || []).filter((p: any) => p.category === 'published');
-          setPublishedDrafts(published.slice(0, 6));
-        }
-      } catch {}
+      await syncDrafts();
     } finally {
       setSyncing(false);
     }
