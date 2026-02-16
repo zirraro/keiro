@@ -17,17 +17,22 @@ interface LinkedInWidgetProps {
   onPreparePost?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: (collapsed: boolean) => void;
+  connected?: boolean;
+  username?: string;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
 }
 
 export default function LinkedInWidget({
   isGuest = false,
   onPreparePost,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  connected = false,
+  username,
+  onConnect,
+  onDisconnect
 }: LinkedInWidgetProps) {
-  // LinkedIn OAuth not implemented yet, always show "not connected" state
-  const connected = false;
-
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
       <div className={`border-b border-neutral-200 bg-gradient-to-r from-blue-50 to-sky-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
@@ -51,7 +56,9 @@ export default function LinkedInWidget({
             {!isCollapsed && (
               <div>
                 <h3 className="text-sm font-bold text-neutral-900">Vos posts LinkedIn</h3>
-                <p className="text-xs text-neutral-500">{isGuest ? 'Aperçu démo' : 'Non connecté'}</p>
+                <p className="text-xs text-neutral-500">
+                  {isGuest ? 'Aperçu démo' : connected ? username || 'Connecté' : 'Non connecté'}
+                </p>
               </div>
             )}
           </div>
@@ -89,17 +96,40 @@ export default function LinkedInWidget({
                 </div>
               ))}
             </div>
+          ) : connected ? (
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center">
+                    <LinkedInIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900">{username}</p>
+                    <p className="text-xs text-green-600">Connecté</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onDisconnect}
+                  className="px-3 py-1 text-xs text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  Déconnecter
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500">
+                Vous pouvez publier directement sur LinkedIn depuis vos brouillons.
+              </p>
+            </div>
           ) : (
             <div className="p-6 text-center">
               <LinkedInIcon className="w-12 h-12 text-[#0077B5]/30 mx-auto mb-3" />
               <p className="text-sm text-neutral-600 mb-3">
-                Connectez votre LinkedIn pour voir vos posts
+                Connectez votre LinkedIn pour publier directement
               </p>
               <button
-                disabled
-                className="px-6 py-2 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-sm font-medium rounded-lg opacity-50 cursor-not-allowed"
+                onClick={onConnect}
+                className="px-6 py-2 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-sm font-medium rounded-lg hover:from-[#005f8f] hover:to-blue-700 transition-all shadow-md"
               >
-                Bientôt disponible
+                Connecter LinkedIn
               </button>
             </div>
           )}

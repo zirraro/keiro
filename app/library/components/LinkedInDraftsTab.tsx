@@ -21,9 +21,11 @@ interface LinkedInDraftsTabProps {
   onDelete: (draftId: string) => void;
   onSchedule?: (draft: LinkedInDraft) => void;
   onPrepareLinkedIn?: () => void;
+  linkedinConnected?: boolean;
+  onPublish?: (draft: LinkedInDraft) => void;
 }
 
-export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule, onPrepareLinkedIn }: LinkedInDraftsTabProps) {
+export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule, onPrepareLinkedIn, linkedinConnected, onPublish }: LinkedInDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
 
   const filteredDrafts = activeCategory === 'all'
@@ -128,6 +130,14 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
               )}
               <p className="text-xs text-neutral-400 mb-2">Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}</p>
               <div className="flex flex-col gap-1.5 mt-auto">
+                {linkedinConnected && onPublish && (draft.status === 'ready' || draft.status === 'draft') && draft.category !== 'published' && (
+                  <button onClick={() => onPublish(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-md">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Publier sur LinkedIn
+                  </button>
+                )}
                 <button onClick={() => onEdit(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-xs font-semibold hover:from-[#005f8f] hover:to-blue-700 transition-all flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

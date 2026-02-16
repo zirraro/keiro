@@ -210,6 +210,8 @@ function LibraryContent() {
   // États pour les connexions sociales
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [isTikTokConnected, setIsTikTokConnected] = useState(false);
+  const [isLinkedInConnected, setIsLinkedInConnected] = useState(false);
+  const [linkedinUsername, setLinkedInUsername] = useState<string>('');
 
   // États pour le collapse des widgets
   const [isInstagramWidgetCollapsed, setIsInstagramWidgetCollapsed] = useState(false);
@@ -410,24 +412,32 @@ function LibraryContent() {
     loadUser();
   }, [supabase]);
 
-  // Vérifier les connexions Instagram et TikTok
+  // Vérifier les connexions Instagram, TikTok et LinkedIn
   useEffect(() => {
     const checkConnections = async () => {
       if (!user) {
         setIsInstagramConnected(false);
         setIsTikTokConnected(false);
+        setIsLinkedInConnected(false);
+        setLinkedInUsername('');
         return;
       }
 
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('instagram_user_id, tiktok_user_id')
+          .select('instagram_user_id, tiktok_user_id, linkedin_user_id, linkedin_username, linkedin_token_expiry')
           .eq('id', user.id)
           .single();
 
         setIsInstagramConnected(!!profile?.instagram_user_id);
         setIsTikTokConnected(!!profile?.tiktok_user_id);
+
+        // LinkedIn: check token not expired
+        const linkedinConnected = !!profile?.linkedin_user_id && !!profile?.linkedin_token_expiry &&
+          new Date(profile.linkedin_token_expiry) > new Date();
+        setIsLinkedInConnected(linkedinConnected);
+        setLinkedInUsername(profile?.linkedin_username || '');
       } catch (error) {
         console.error('[Library] Error checking connections:', error);
       }
@@ -1084,6 +1094,76 @@ function LibraryContent() {
       if (res.ok) await loadLinkedInDrafts();
     } catch (error) {
       console.error('[Library] Error deleting LinkedIn draft:', error);
+    }
+  };
+
+  // Publier un brouillon LinkedIn
+  const handlePublishToLinkedIn = async (draft: LinkedInDraft) => {
+    if (!confirm('Publier ce post sur LinkedIn ?')) return;
+    try {
+      const response = await fetch('/api/library/linkedin/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mediaUrl: draft.media_url || null,
+          mediaType: draft.media_type || (draft.media_url ? 'image' : 'text-only'),
+          caption: draft.caption,
+          hashtags: draft.hashtags,
+          draftId: draft.id,
+        }),
+      });
+      const data = await response.json();
+      if (data.ok) {
+        alert('Post publié sur LinkedIn !');
+        await loadLinkedInDrafts();
+      } else {
+        throw new Error(data.error || 'Erreur lors de la publication');
+      }
+    } catch (error: any) {
+      console.error('[Library] Error publishing to LinkedIn:', error);
+      alert(error.message || 'Erreur lors de la publication sur LinkedIn');
+    }
+  };
+
+  // Publier directement depuis le modal LinkedIn
+  const handlePublishLinkedInFromModal = async (mediaUrl: string | null, mediaType: string, caption: string, hashtags: string[]) => {
+    const response = await fetch('/api/library/linkedin/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaUrl, mediaType, caption, hashtags }),
+    });
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(data.error || 'Erreur lors de la publication');
+    }
+    await loadLinkedInDrafts();
+  };
+
+  // Connecter LinkedIn
+  const handleConnectLinkedIn = () => {
+    window.location.href = '/api/auth/linkedin-oauth';
+  };
+
+  // Déconnecter LinkedIn
+  const handleDisconnectLinkedIn = async () => {
+    if (!confirm('Déconnecter votre compte LinkedIn ?')) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          linkedin_user_id: null,
+          linkedin_username: null,
+          linkedin_access_token: null,
+          linkedin_token_expiry: null,
+          linkedin_connected_at: null,
+        })
+        .eq('id', user!.id);
+      if (!error) {
+        setIsLinkedInConnected(false);
+        setLinkedInUsername('');
+      }
+    } catch (error) {
+      console.error('[Library] Error disconnecting LinkedIn:', error);
     }
   };
 
@@ -1865,6 +1945,10 @@ function LibraryContent() {
                         onPreparePost={() => setShowLinkedInModal(true)}
                         isCollapsed={isLinkedInWidgetCollapsed}
                         onToggleCollapse={setIsLinkedInWidgetCollapsed}
+                        connected={isLinkedInConnected}
+                        username={linkedinUsername}
+                        onConnect={handleConnectLinkedIn}
+                        onDisconnect={handleDisconnectLinkedIn}
                       />
                     );
                   case 'twitter':
@@ -2094,6 +2178,8 @@ function LibraryContent() {
                       onEdit={editLinkedInDraft}
                       onDelete={deleteLinkedInDraft}
                       onPrepareLinkedIn={() => setShowLinkedInModal(true)}
+                      linkedinConnected={isLinkedInConnected}
+                      onPublish={handlePublishToLinkedIn}
                     />
                   ) : activeTab === 'twitter-drafts' ? (
                     <TwitterDraftsTab
@@ -2193,6 +2279,8 @@ function LibraryContent() {
                 onEdit={editLinkedInDraft}
                 onDelete={deleteLinkedInDraft}
                 onPrepareLinkedIn={() => setShowLinkedInModal(true)}
+                linkedinConnected={isLinkedInConnected}
+                onPublish={handlePublishToLinkedIn}
               />
             ) : activeTab === 'twitter-drafts' ? (
               <TwitterDraftsTab
@@ -2352,6 +2440,8 @@ function LibraryContent() {
           onSave={saveLinkedInDraft}
           draftCaption={draftLinkedInCaptionToEdit}
           draftHashtags={draftLinkedInHashtagsToEdit}
+          linkedinConnected={isLinkedInConnected}
+          onPublish={handlePublishLinkedInFromModal}
         />
       )}
 

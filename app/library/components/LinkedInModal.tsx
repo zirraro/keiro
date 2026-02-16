@@ -36,14 +36,17 @@ interface LinkedInModalProps {
   onSave: (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
+  linkedinConnected?: boolean;
+  onPublish?: (mediaUrl: string | null, mediaType: string, caption: string, hashtags: string[]) => Promise<void>;
 }
 
-export default function LinkedInModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: LinkedInModalProps) {
+export default function LinkedInModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags, linkedinConnected, onPublish }: LinkedInModalProps) {
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'text-only'>(video ? 'videos' : 'images');
@@ -206,6 +209,32 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
       alert('Erreur lors de la génération');
     } finally {
       setSuggesting(false);
+    }
+  };
+
+  const handlePublishNow = async () => {
+    if (!onPublish) return;
+    if (!caption.trim()) { alert('Veuillez écrire du texte pour votre post'); return; }
+    setPublishing(true);
+    try {
+      let mediaUrl: string | null = null;
+      let mediaType = 'text-only';
+
+      if (activeTab === 'images' && selectedImage) {
+        mediaUrl = selectedImage.image_url;
+        mediaType = 'image';
+      } else if (activeTab === 'videos' && selectedVideo) {
+        mediaUrl = selectedVideo.video_url;
+        mediaType = 'video';
+      }
+
+      await onPublish(mediaUrl, mediaType, caption, hashtags);
+      setSuccessToast('✅ Publié sur LinkedIn !');
+      setTimeout(() => { setSuccessToast(null); onClose(); }, 2000);
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de la publication');
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -512,18 +541,33 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-neutral-200">
                 <button
                   onClick={() => handleSave('draft')}
-                  disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
+                  disabled={saving || publishing || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
                   className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-[#0077B5] text-[#0077B5] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {saving ? 'Sauvegarde...' : '📝 Sauvegarder brouillon'}
                 </button>
-                <button
-                  onClick={() => handleSave('ready')}
-                  disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
-                  className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-[#0077B5] to-blue-600 text-white hover:from-[#005f8f] hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                >
-                  {saving ? 'Sauvegarde...' : '✅ Marquer prêt à publier'}
-                </button>
+                {linkedinConnected && onPublish ? (
+                  <button
+                    onClick={handlePublishNow}
+                    disabled={publishing || saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
+                    className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                  >
+                    {publishing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Publication...
+                      </span>
+                    ) : '🚀 Publier sur LinkedIn'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSave('ready')}
+                    disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
+                    className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-[#0077B5] to-blue-600 text-white hover:from-[#005f8f] hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                  >
+                    {saving ? 'Sauvegarde...' : '✅ Marquer prêt à publier'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
