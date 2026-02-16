@@ -544,30 +544,20 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   disabled={saving || publishing || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
                   className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-[#0077B5] text-[#0077B5] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {saving ? 'Sauvegarde...' : '📝 Sauvegarder brouillon'}
+                  {saving ? 'Sauvegarde...' : '📝 Brouillon'}
                 </button>
-                {linkedinConnected && onPublish ? (
-                  <button
-                    onClick={handlePublishNow}
-                    disabled={publishing || saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
-                    className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                  >
-                    {publishing ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Publication...
-                      </span>
-                    ) : '🚀 Publier sur LinkedIn'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleSave('ready')}
-                    disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
-                    className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-[#0077B5] to-blue-600 text-white hover:from-[#005f8f] hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                  >
-                    {saving ? 'Sauvegarde...' : '✅ Marquer prêt à publier'}
-                  </button>
-                )}
+                <button
+                  onClick={linkedinConnected && onPublish ? handlePublishNow : () => handleSave('ready')}
+                  disabled={(linkedinConnected ? publishing : saving) || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim()}
+                  className="flex-1 py-3 px-4 rounded-lg font-medium bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+                >
+                  {publishing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Publication...
+                    </span>
+                  ) : saving ? 'Sauvegarde...' : '🚀 Publier'}
+                </button>
               </div>
             </div>
           </div>

@@ -424,20 +424,29 @@ function LibraryContent() {
       }
 
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('instagram_user_id, tiktok_user_id, linkedin_user_id, linkedin_username, linkedin_token_expiry')
+          .select('instagram_user_id, tiktok_user_id, linkedin_user_id, linkedin_username')
           .eq('id', user.id)
           .single();
+
+        if (profileError) {
+          console.error('[Library] Error fetching profile for connections:', profileError);
+        }
 
         setIsInstagramConnected(!!profile?.instagram_user_id);
         setIsTikTokConnected(!!profile?.tiktok_user_id);
 
-        // LinkedIn: check token not expired
-        const linkedinConnected = !!profile?.linkedin_user_id && !!profile?.linkedin_token_expiry &&
-          new Date(profile.linkedin_token_expiry) > new Date();
-        setIsLinkedInConnected(linkedinConnected);
+        // LinkedIn: si linkedin_user_id existe, le compte est connecté
+        setIsLinkedInConnected(!!profile?.linkedin_user_id);
         setLinkedInUsername(profile?.linkedin_username || '');
+
+        console.log('[Library] Connection check:', {
+          instagram: !!profile?.instagram_user_id,
+          tiktok: !!profile?.tiktok_user_id,
+          linkedin: !!profile?.linkedin_user_id,
+          linkedinUsername: profile?.linkedin_username
+        });
       } catch (error) {
         console.error('[Library] Error checking connections:', error);
       }
@@ -1054,13 +1063,19 @@ function LibraryContent() {
       const response = await fetch('/api/library/linkedin-drafts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ savedImageId: image?.id || null, caption, hashtags, status })
+        body: JSON.stringify({
+          savedImageId: image?.id || null,
+          mediaType: image ? 'image' : 'text-only',
+          caption,
+          hashtags,
+          status
+        })
       });
 
       const data = await response.json();
 
       if (data.ok) {
-        alert(status === 'ready' ? 'Post LinkedIn prêt !' : 'Brouillon LinkedIn sauvegardé !');
+        alert('Brouillon LinkedIn sauvegardé !');
         setShowLinkedInModal(false);
         await loadLinkedInDrafts();
       } else {

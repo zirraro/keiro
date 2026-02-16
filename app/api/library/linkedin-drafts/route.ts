@@ -36,26 +36,45 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
-    const { savedImageId, caption, hashtags, status } = await req.json();
-    if (!savedImageId) {
-      return NextResponse.json({ ok: false, error: 'ID de l\'image manquant' }, { status: 400 });
+    const { savedImageId, videoId, mediaUrl, mediaType, caption, hashtags, status } = await req.json();
+
+    let finalMediaUrl = mediaUrl || '';
+    let finalMediaType = mediaType || 'text-only';
+    let finalSavedImageId = savedImageId || null;
+    let finalVideoId = videoId || null;
+
+    // Si on a un savedImageId, récupérer l'URL de l'image
+    if (savedImageId) {
+      const { data: image, error: imageError } = await supabase
+        .from('saved_images')
+        .select('image_url')
+        .eq('id', savedImageId)
+        .eq('user_id', user.id)
+        .single();
+      if (imageError || !image) {
+        return NextResponse.json({ ok: false, error: 'Image non trouvée' }, { status: 404 });
+      }
+      finalMediaUrl = image.image_url;
+      finalMediaType = 'image';
     }
-    const { data: image, error: imageError } = await supabase
-      .from('saved_images')
-      .select('image_url')
-      .eq('id', savedImageId)
-      .eq('user_id', user.id)
-      .single();
-    if (imageError || !image) {
-      return NextResponse.json({ ok: false, error: 'Image non trouvée' }, { status: 404 });
+
+    // Texte seul : pas besoin de média
+    if (!savedImageId && !videoId && !mediaUrl) {
+      if (!caption?.trim()) {
+        return NextResponse.json({ ok: false, error: 'Texte requis pour un post texte seul' }, { status: 400 });
+      }
+      finalMediaType = 'text-only';
+      finalMediaUrl = '';
     }
+
     const { data: draft, error: insertError } = await supabase
       .from('linkedin_drafts')
       .insert({
         user_id: user.id,
-        saved_image_id: savedImageId,
-        media_url: image.image_url,
-        media_type: 'image',
+        saved_image_id: finalSavedImageId,
+        video_id: finalVideoId,
+        media_url: finalMediaUrl,
+        media_type: finalMediaType,
         category: 'draft',
         caption: caption || '',
         hashtags: hashtags || [],
