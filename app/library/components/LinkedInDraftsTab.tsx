@@ -165,9 +165,9 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
           <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
-            {/* Preview zone */}
+            {/* Preview zone - image/video/texte */}
             {draft.media_url && draft.media_type !== 'text-only' ? (
-              <div className="h-36 bg-neutral-100 relative">
+              <div className="h-36 bg-gradient-to-br from-blue-50 to-sky-50 relative">
                 {draft.media_type === 'video' ? (
                   <video
                     src={draft.media_url}
@@ -198,7 +198,8 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                 )}
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-blue-50 to-sky-50 relative min-h-[144px]">
+              /* Aperçu texte-seul style LinkedIn */
+              <div className="h-36 bg-gradient-to-br from-blue-50 to-sky-50 relative overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center flex-shrink-0">
@@ -211,50 +212,46 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                   </div>
                   <p className="text-xs text-neutral-700 line-clamp-4 leading-relaxed">{draft.caption || 'Pas de texte'}</p>
                 </div>
-                <div className="absolute top-2 left-2">
-                  {getStatusBadge(draft.status)}
-                </div>
                 <div className="absolute top-2 right-2">
                   {getCategoryBadge(draft.category, draft.media_type)}
                 </div>
               </div>
             )}
 
+            {/* Contenu - identique au format TikTok */}
             <div className="p-3 flex flex-col flex-1">
-              {/* Caption editable inline */}
-              {(draft.media_url && draft.media_type !== 'text-only') && (
-                editingDraftId === draft.id ? (
-                  <div className="mb-2">
-                    <textarea
-                      value={editedCaption}
-                      onChange={(e) => setEditedCaption(e.target.value)}
-                      onBlur={() => handleSaveCaption(draft)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && e.ctrlKey) {
-                          handleSaveCaption(draft);
-                        }
-                        if (e.key === 'Escape') {
-                          setEditingDraftId(null);
-                        }
-                      }}
-                      className="w-full text-sm text-neutral-700 border border-blue-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      rows={3}
-                      autoFocus
-                    />
-                    <p className="text-xs text-neutral-400 mt-1">Ctrl+Entrée pour sauvegarder, Échap pour annuler</p>
-                  </div>
-                ) : (
-                  <p
-                    onClick={() => {
-                      setEditingDraftId(draft.id);
-                      setEditedCaption(draft.caption || '');
+              {/* Caption preview - Cliquable pour édition inline (TOUJOURS affiché) */}
+              {editingDraftId === draft.id ? (
+                <div className="mb-2">
+                  <textarea
+                    value={editedCaption}
+                    onChange={(e) => setEditedCaption(e.target.value)}
+                    onBlur={() => handleSaveCaption(draft)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.ctrlKey) {
+                        handleSaveCaption(draft);
+                      }
+                      if (e.key === 'Escape') {
+                        setEditingDraftId(null);
+                      }
                     }}
-                    className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors"
-                    title="Cliquer pour modifier la description"
-                  >
-                    {draft.caption || 'Pas de description (cliquer pour ajouter)'}
-                  </p>
-                )
+                    className="w-full text-sm text-neutral-700 border border-blue-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    rows={3}
+                    autoFocus
+                  />
+                  <p className="text-xs text-neutral-400 mt-1">Ctrl+Entrée pour sauvegarder, Échap pour annuler</p>
+                </div>
+              ) : (
+                <p
+                  onClick={() => {
+                    setEditingDraftId(draft.id);
+                    setEditedCaption(draft.caption || '');
+                  }}
+                  className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors"
+                  title="Cliquer pour modifier la description"
+                >
+                  {draft.caption || 'Pas de description (cliquer pour ajouter)'}
+                </p>
               )}
 
               {/* Hashtags preview */}
@@ -271,16 +268,8 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
 
               <p className="text-xs text-neutral-400 mb-2">Créé le {new Date(draft.created_at).toLocaleDateString('fr-FR')}</p>
 
-              {/* Actions - ordre: Publier, Continuer, Supprimer, Planifier */}
+              {/* Actions - EXACTEMENT comme TikTok : Continuer → Supprimer → Planifier */}
               <div className="flex flex-col gap-1.5 mt-auto">
-                {linkedinConnected && onPublish && draft.category !== 'published' && (
-                  <button onClick={() => onPublish(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-semibold hover:from-green-600 hover:to-emerald-600 transition-all flex items-center justify-center gap-1.5 shadow-md">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    Publier sur LinkedIn
-                  </button>
-                )}
                 <button onClick={() => onEdit(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-xs font-semibold hover:from-[#005f8f] hover:to-blue-700 transition-all flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

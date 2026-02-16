@@ -269,7 +269,10 @@ export default function InstagramWidget({
             {!isCollapsed && (
               <div>
                 <h3 className="font-semibold text-neutral-900 text-sm">Vos posts Instagram</h3>
-                <p className="text-xs text-neutral-500">@{profile.instagram_username}</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-neutral-500">@{profile.instagram_username}</span>
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓</span>
+                </div>
               </div>
             )}
           </div>

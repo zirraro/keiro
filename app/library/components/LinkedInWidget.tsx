@@ -94,6 +94,15 @@ export default function LinkedInWidget({
     setSyncing(true);
     try {
       await syncPublishedDrafts();
+      // Aussi recharger les brouillons via l'API pour forcer un refresh global
+      try {
+        const res = await fetch('/api/library/linkedin-drafts');
+        if (res.ok) {
+          const data = await res.json();
+          const published = (data.posts || []).filter((p: any) => p.category === 'published');
+          setPublishedDrafts(published.slice(0, 6));
+        }
+      } catch {}
     } finally {
       setSyncing(false);
     }
