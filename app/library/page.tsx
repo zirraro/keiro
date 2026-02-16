@@ -982,6 +982,22 @@ function LibraryContent() {
     setShowInstagramModal(true);
   };
 
+  // Sauvegarder la caption d'un brouillon Instagram (édition inline)
+  const saveInstagramDraftCaption = async (draftId: string, caption: string) => {
+    try {
+      const res = await fetch(`/api/library/instagram-drafts?id=${draftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption }),
+      });
+      if (res.ok) {
+        setInstagramDrafts(prev => prev.map(d => d.id === draftId ? { ...d, caption } : d));
+      }
+    } catch (error) {
+      console.error('[Library] Error saving Instagram caption:', error);
+    }
+  };
+
   // Supprimer un brouillon Instagram
   const deleteInstagramDraft = async (draftId: string) => {
     if (!confirm('Supprimer ce brouillon Instagram ?')) return;
@@ -1099,6 +1115,22 @@ function LibraryContent() {
     setDraftLinkedInCaptionToEdit(draft.caption || '');
     setDraftLinkedInHashtagsToEdit(draft.hashtags || []);
     setShowLinkedInModal(true);
+  };
+
+  // Sauvegarder la caption d'un brouillon LinkedIn (édition inline)
+  const saveLinkedInDraftCaption = async (draftId: string, caption: string) => {
+    try {
+      const res = await fetch(`/api/library/linkedin-drafts?id=${draftId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caption }),
+      });
+      if (res.ok) {
+        setLinkedInDrafts((prev: LinkedInDraft[]) => prev.map((d: LinkedInDraft) => d.id === draftId ? { ...d, caption } : d));
+      }
+    } catch (error) {
+      console.error('[Library] Error saving LinkedIn caption:', error);
+    }
   };
 
   // Supprimer un brouillon LinkedIn
@@ -2147,6 +2179,7 @@ function LibraryContent() {
                       onBackToImages={() => setActiveTab('images')}
                       onPrepareInstagram={() => setShowInstagramModal(true)}
                       onPrepareTikTok={() => setShowTikTokModal(true)}
+                      onSaveCaption={saveInstagramDraftCaption}
                     />
                   ) : activeTab === 'tiktok-drafts' ? (
                     <TikTokDraftsTab
@@ -2167,6 +2200,7 @@ function LibraryContent() {
                       onPrepareLinkedIn={() => setShowLinkedInModal(true)}
                       linkedinConnected={isLinkedInConnected}
                       onPublish={handlePublishToLinkedIn}
+                      onSaveCaption={saveLinkedInDraftCaption}
                     />
                   ) : activeTab === 'twitter-drafts' ? (
                     <TwitterDraftsTab

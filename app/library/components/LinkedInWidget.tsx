@@ -23,6 +23,7 @@ export default function LinkedInWidget({
   const [connected, setConnected] = useState(false);
   const [username, setUsername] = useState<string>('');
   const [publishedDrafts, setPublishedDrafts] = useState<any[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     loadLinkedInStatus();
@@ -56,16 +57,7 @@ export default function LinkedInWidget({
       onConnectionChange?.(isConnected, name);
 
       if (isConnected) {
-        // Charger les brouillons publiés comme "posts"
-        const { data: drafts } = await supabase
-          .from('linkedin_drafts')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('category', 'published')
-          .order('created_at', { ascending: false })
-          .limit(6);
-
-        setPublishedDrafts(drafts || []);
+        await syncPublishedDrafts(user.id);
       }
     } catch (error) {
       console.error('[LinkedInWidget] Error:', error);
@@ -74,35 +66,41 @@ export default function LinkedInWidget({
     }
   };
 
-  const handleConnect = () => {
-    window.location.href = '/api/auth/linkedin-oauth';
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm('Déconnecter votre compte LinkedIn ?')) return;
+  const syncPublishedDrafts = async (userId?: string) => {
     try {
       const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let uid = userId;
+      if (!uid) {
+        const { data: { user } } = await supabase.auth.getUser();
+        uid = user?.id;
+      }
+      if (!uid) return;
 
-      await supabase
-        .from('profiles')
-        .update({
-          linkedin_user_id: null,
-          linkedin_username: null,
-          linkedin_access_token: null,
-          linkedin_token_expiry: null,
-          linkedin_connected_at: null,
-        })
-        .eq('id', user.id);
+      const { data: drafts } = await supabase
+        .from('linkedin_drafts')
+        .select('*')
+        .eq('user_id', uid)
+        .eq('category', 'published')
+        .order('created_at', { ascending: false })
+        .limit(6);
 
-      setConnected(false);
-      setUsername('');
-      setPublishedDrafts([]);
-      onConnectionChange?.(false, '');
+      setPublishedDrafts(drafts || []);
     } catch (error) {
-      console.error('[LinkedInWidget] Error disconnecting:', error);
+      console.error('[LinkedInWidget] Sync error:', error);
     }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await syncPublishedDrafts();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleConnect = () => {
+    window.location.href = '/api/auth/linkedin-oauth';
   };
 
   if (loading) {
@@ -153,12 +151,13 @@ export default function LinkedInWidget({
           <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col w-full' : ''}`}>
             {connected && !isCollapsed && (
               <button
-                onClick={handleDisconnect}
-                className="p-2 border border-neutral-300 text-neutral-500 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
-                title="Déconnecter LinkedIn"
+                onClick={handleSync}
+                disabled={syncing}
+                className="p-2 border border-neutral-300 text-neutral-500 rounded-lg hover:bg-blue-50 hover:text-[#0077B5] hover:border-blue-200 transition-all disabled:opacity-50"
+                title="Synchroniser les posts"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
             )}

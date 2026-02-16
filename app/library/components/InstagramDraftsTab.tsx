@@ -26,11 +26,14 @@ interface InstagramDraftsTabProps {
   onBackToImages?: () => void;
   onPrepareInstagram?: () => void;
   onPrepareTikTok?: () => void;
+  onSaveCaption?: (draftId: string, caption: string) => void;
 }
 
-export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onPrepareInstagram, onPrepareTikTok }: InstagramDraftsTabProps) {
+export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onPrepareInstagram, onPrepareTikTok, onSaveCaption }: InstagramDraftsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  const [editedCaption, setEditedCaption] = useState<string>('');
 
   // Filter drafts by category
   const filteredDrafts = activeCategory === 'all'
@@ -41,6 +44,17 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
   const countByCategory = {
     draft: drafts.filter(d => d.category === 'draft').length,
     published: drafts.filter(d => d.category === 'published').length
+  };
+
+  const handleSaveCaption = (draft: InstagramDraft) => {
+    if (editedCaption.trim() && editedCaption !== draft.caption) {
+      if (onSaveCaption) {
+        onSaveCaption(draft.id, editedCaption.trim());
+      } else {
+        onEdit({ ...draft, caption: editedCaption.trim() });
+      }
+    }
+    setEditingDraftId(null);
   };
 
   if (drafts.length === 0) {
@@ -217,11 +231,40 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
           </div>
 
           {/* Contenu */}
-          <div className="p-4 flex flex-col flex-1">
-            {/* Caption preview */}
-            <p className="text-sm text-neutral-700 line-clamp-3 mb-2">
-              {draft.caption || 'Pas de description'}
-            </p>
+          <div className="p-3 flex flex-col flex-1">
+            {/* Caption preview - Cliquable pour édition inline */}
+            {editingDraftId === draft.id ? (
+              <div className="mb-2">
+                <textarea
+                  value={editedCaption}
+                  onChange={(e) => setEditedCaption(e.target.value)}
+                  onBlur={() => handleSaveCaption(draft)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      handleSaveCaption(draft);
+                    }
+                    if (e.key === 'Escape') {
+                      setEditingDraftId(null);
+                    }
+                  }}
+                  className="w-full text-sm text-neutral-700 border border-purple-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows={3}
+                  autoFocus
+                />
+                <p className="text-xs text-neutral-400 mt-1">Ctrl+Entrée pour sauvegarder, Échap pour annuler</p>
+              </div>
+            ) : (
+              <p
+                onClick={() => {
+                  setEditingDraftId(draft.id);
+                  setEditedCaption(draft.caption || '');
+                }}
+                className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-purple-600 hover:bg-purple-50 rounded p-1 transition-colors"
+                title="Cliquer pour modifier la description"
+              >
+                {draft.caption || 'Pas de description (cliquer pour ajouter)'}
+              </p>
+            )}
 
             {/* Hashtags preview */}
             {draft.hashtags && draft.hashtags.length > 0 && (
