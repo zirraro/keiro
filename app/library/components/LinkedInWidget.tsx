@@ -10,6 +10,7 @@ interface LinkedInWidgetProps {
   isCollapsed?: boolean;
   onToggleCollapse?: (collapsed: boolean) => void;
   onConnectionChange?: (connected: boolean, username: string) => void;
+  onConnect?: () => void;
 }
 
 export default function LinkedInWidget({
@@ -17,7 +18,8 @@ export default function LinkedInWidget({
   onPreparePost,
   isCollapsed = false,
   onToggleCollapse,
-  onConnectionChange
+  onConnectionChange,
+  onConnect
 }: LinkedInWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -215,7 +217,7 @@ export default function LinkedInWidget({
                 Connectez votre LinkedIn pour publier directement
               </p>
               <button
-                onClick={handleConnect}
+                onClick={onConnect || handleConnect}
                 className="px-6 py-2 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-sm font-medium rounded-lg hover:from-[#005f8f] hover:to-blue-700 transition-all shadow-md"
               >
                 Connecter LinkedIn

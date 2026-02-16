@@ -27,6 +27,7 @@ import TikTokConnectionModal from './components/TikTokConnectionModal';
 import TikTokModal from './components/TikTokModal';
 import LinkedInWidget from './components/LinkedInWidget';
 import LinkedInModal from './components/LinkedInModal';
+import LinkedInConnectionModal from './components/LinkedInConnectionModal';
 import LinkedInDraftsTab, { LinkedInDraft } from './components/LinkedInDraftsTab';
 import TwitterWidget from './components/TwitterWidget';
 import TwitterModal from './components/TwitterModal';
@@ -235,6 +236,7 @@ function LibraryContent() {
   const [draftTikTokHashtagsToEdit, setDraftTikTokHashtagsToEdit] = useState<string[] | undefined>(undefined);
 
   // États pour LinkedIn
+  const [showLinkedInConnectionModal, setShowLinkedInConnectionModal] = useState(false);
   const [showLinkedInModal, setShowLinkedInModal] = useState(false);
   const [selectedImageForLinkedIn, setSelectedImageForLinkedIn] = useState<SavedImage | null>(null);
   const [selectedVideoForLinkedIn, setSelectedVideoForLinkedIn] = useState<MyVideo | null>(null);
@@ -1905,12 +1907,26 @@ function LibraryContent() {
                   {guestEmail} • Upload illimité • 1 brouillon Instagram gratuit
                 </p>
               </div>
-              <a
-                href="/pricing"
-                className="px-4 py-2 rounded-lg bg-white text-green-600 font-semibold text-sm hover:bg-green-50 transition-colors"
-              >
-                Débloquer toutes les fonctionnalités
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/pricing"
+                  className="px-4 py-2 rounded-lg bg-white text-green-600 font-semibold text-sm hover:bg-green-50 transition-colors"
+                >
+                  Débloquer toutes les fonctionnalités
+                </a>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('keiro_guest_email');
+                    localStorage.removeItem('keiro_guest_images');
+                    setIsGuest(false);
+                    setGuestEmail(null);
+                    window.location.href = '/login';
+                  }}
+                  className="px-4 py-2 rounded-lg border border-white/30 text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                >
+                  Se déconnecter
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1956,6 +1972,7 @@ function LibraryContent() {
                         onPrepareTikTok={() => setShowTikTokModal(true)}
                         isCollapsed={isInstagramWidgetCollapsed}
                         onToggleCollapse={setIsInstagramWidgetCollapsed}
+                        onConnect={() => setShowConnectionModal(true)}
                       />
                     );
                   case 'tiktok':
@@ -1979,6 +1996,7 @@ function LibraryContent() {
                           setIsLinkedInConnected(conn);
                           setLinkedInUsername(name);
                         }}
+                        onConnect={() => setShowLinkedInConnectionModal(true)}
                       />
                     );
                   case 'twitter':
@@ -2455,6 +2473,12 @@ function LibraryContent() {
       <TikTokConnectionModal
         isOpen={showTikTokConnectionModal}
         onClose={() => setShowTikTokConnectionModal(false)}
+      />
+
+      {/* Modal Connexion LinkedIn */}
+      <LinkedInConnectionModal
+        isOpen={showLinkedInConnectionModal}
+        onClose={() => setShowLinkedInConnectionModal(false)}
       />
 
       {/* Modal LinkedIn */}

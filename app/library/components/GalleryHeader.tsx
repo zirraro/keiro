@@ -29,13 +29,11 @@ export default function GalleryHeader({ user, stats, isGuest, onUpload, onUpload
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">
             {user || isGuest ? 'Galerie & Posts' : 'Aperçu Galerie & Posts'}
           </h1>
-          <p className="text-neutral-600">
-            {user || isGuest ? (
-              <>{stats.total_images} {stats.total_images > 1 ? 'visuels' : 'visuel'} sauvegardé{stats.total_images > 1 ? 's' : ''}</>
-            ) : (
-              <>Exemples de visuels générés avec Keiro AI</>
-            )}
-          </p>
+          {!(user || isGuest) && (
+            <p className="text-neutral-600">
+              Exemples de visuels générés avec Keiro AI
+            </p>
+          )}
         </div>
 
         {/* Boutons d'action */}
