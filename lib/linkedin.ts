@@ -3,7 +3,7 @@
  * REST API v2 with OpenID Connect
  */
 
-const LINKEDIN_API_VERSION = '202401';
+const LINKEDIN_API_VERSION = '202502';
 
 // Types
 export type LinkedInUserInfo = {
