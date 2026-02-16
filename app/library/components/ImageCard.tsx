@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type SavedImage = {
   id: string;
@@ -49,6 +49,17 @@ export default function ImageCard({
 }: ImageCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(image.title || image.news_title || '');
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Close preview on Escape
+  useEffect(() => {
+    if (!showPreview) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowPreview(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [showPreview]);
 
   const handleSaveTitle = () => {
     if (editedTitle.trim()) {
@@ -74,13 +85,19 @@ export default function ImageCard({
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
       {/* Image preview - Format vidéo comme Mes vidéos */}
-      <div className="relative aspect-video bg-neutral-900">
+      <div className="relative aspect-video bg-neutral-900 cursor-pointer" onClick={() => setShowPreview(true)}>
         <img
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Image'}
           className="w-full h-full object-cover"
           loading="lazy"
         />
+        {/* Zoom overlay on hover */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+          <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+          </svg>
+        </div>
 
         {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-2">
@@ -215,6 +232,29 @@ export default function ImageCard({
           </div>
         </div>
       </div>
+
+      {/* Lightbox preview */}
+      {showPreview && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <button
+            onClick={() => setShowPreview(false)}
+            className="absolute top-4 right-4 text-white hover:text-neutral-300 transition-colors z-10"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={image.image_url}
+            alt={image.title || image.news_title || 'Image'}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
