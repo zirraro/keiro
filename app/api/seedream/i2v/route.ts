@@ -1,3 +1,6 @@
+import { getAuthUser } from '@/lib/auth-server';
+import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
+
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes max pour le polling
 
@@ -7,22 +10,40 @@ const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/c
 /**
  * POST /api/seedream/i2v
  * Convertir une image en vidéo avec Seedream
- *
- * Body:
- * - imageUrl: URL de l'image à convertir (requis)
- * - prompt: Description du mouvement (optionnel, ex: "zoom avant lentement")
- * - duration: Durée en secondes (défaut: 5)
- * - resolution: '720p' ou '1080p' (défaut: '1080p')
- * - taskId: Pour vérifier le statut d'une tâche existante
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { imageUrl, prompt = '', duration = 5, resolution = '1080p', taskId } = body;
 
-    // Si taskId est fourni, on vérifie le statut
+    // Si taskId est fourni, on vérifie le statut (pas de check crédits pour le polling)
     if (taskId) {
       return checkTaskStatus(taskId);
+    }
+
+    // --- Vérification crédits (vidéo = bloquée en mode gratuit) ---
+    const { user } = await getAuthUser();
+    if (!user) {
+      return Response.json({
+        ok: false,
+        blocked: true,
+        reason: 'requires_account',
+        cta: true,
+      }, { status: 403 });
+    }
+
+    const isAdminUser = await isAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'video_i2v', duration);
+      if (!check.allowed) {
+        return Response.json({
+          ok: false,
+          error: 'Crédits insuffisants',
+          insufficientCredits: true,
+          cost: check.cost,
+          balance: check.balance,
+        }, { status: 402 });
+      }
     }
 
     // Vérifier que l'image est fournie
@@ -148,10 +169,18 @@ export async function POST(request: Request) {
 
     console.log('[Seedream I2V] Task created successfully:', taskIdFromResponse);
 
+    // --- Déduction crédits après création de tâche ---
+    let newBalance: number | undefined;
+    if (user && !isAdminUser) {
+      const result = await deductCredits(user.id, 'video_i2v', `Vidéo I2V ${duration}s`, duration);
+      newBalance = result.newBalance;
+    }
+
     return Response.json({
       ok: true,
       taskId: taskIdFromResponse,
-      status: 'pending'
+      status: 'pending',
+      newBalance,
     });
 
   } catch (error: any) {

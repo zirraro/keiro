@@ -183,7 +183,7 @@ export default function PricingPage() {
                 <span className="text-5xl font-bold">0€</span>
                 <span className="text-neutral-500">/toujours</span>
               </div>
-              <p className="text-neutral-600 text-sm">3 visuels avec watermark</p>
+              <p className="text-neutral-600 text-sm">15 crédits — 3 images/mois avec watermark</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -191,7 +191,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700"><strong>3 visuels</strong> avec watermark Keiro</span>
+                <span className="text-sm text-neutral-700"><strong>15 crédits</strong> — 3 images avec watermark</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +242,7 @@ export default function PricingPage() {
                 <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">4.99€</span>
                 <span className="text-neutral-500">/3 jours</span>
               </div>
-              <p className="text-neutral-600 text-sm font-medium">Teste intensément, décide vite</p>
+              <p className="text-neutral-600 text-sm font-medium">110 crédits — teste intensément, décide vite</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -262,7 +262,7 @@ export default function PricingPage() {
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-neutral-700">15 visuels + 3 vidéos pour tester</span>
+                <span className="text-sm text-neutral-700"><strong>110 crédits</strong> (~22 images ou 4 vidéos)</span>
               </li>
               <li className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,11 +364,11 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">49€</span>
                 <span className="text-neutral-500">/mois</span>
               </div>
-              <p className="text-neutral-600 text-sm">Instagram seulement</p>
+              <p className="text-neutral-600 text-sm"><strong>220 crédits/mois</strong> — ~44 images ou 8 vidéos</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>20 visuels/mois</strong> (3 retouches incluses)</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>1 vidéo/mois</strong> (test Reels)</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>220 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos + IA</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 messages Assistant IA</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 10 suggestions texte IA</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram Post</li>
@@ -402,7 +402,7 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">149€</span>
                 <span className="text-amber-100">/mois</span>
               </div>
-              <p className="text-amber-100 text-sm font-medium">Multi-plateforme + TikTok débloqué</p>
+              <p className="text-amber-100 text-sm font-medium"><strong>660 crédits/mois</strong> — ~132 images ou 26 vidéos</p>
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
@@ -411,8 +411,8 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>50 visuels/mois</strong> (3 retouches incluses)</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>12 vidéos TikTok/mois</strong> (3/semaine !)</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Images + vidéos + IA illimité</strong></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
               <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok</strong> 🎵 (Croissance virale 10x)</span></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
@@ -442,7 +442,7 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">349€</span>
                 <span className="text-blue-100">/mois</span>
               </div>
-              <p className="text-blue-100 text-sm">Gérez 5 clients avec TikTok</p>
+              <p className="text-blue-100 text-sm"><strong>1 750 crédits/mois</strong> — ~350 images ou 70 vidéos</p>
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
@@ -451,8 +451,8 @@ export default function PricingPage() {
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>100 visuels/mois</strong> (3 retouches incluses)</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>25 vidéos TikTok/mois</strong> (6/semaine !)</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>1 750 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Images + vidéos + IA en volume</strong></li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 100 messages Assistant IA</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
@@ -476,11 +476,11 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">999€</span>
                 <span className="text-neutral-500">/mois</span>
               </div>
-              <p className="text-neutral-600 text-sm">Service premium + consulting</p>
+              <p className="text-neutral-600 text-sm"><strong>5 500 crédits/mois</strong> — ~1100 images ou 220 vidéos</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>250 visuels/mois + 70 vidéos</strong></li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> 200 messages IA + 100 suggestions</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>5 500 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Volume massif images + vidéos + IA</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> 2h/mois consulting stratégique</li>
@@ -491,6 +491,36 @@ export default function PricingPage() {
             <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
               Contacter Elite
             </Link>
+          </div>
+        </div>
+
+        {/* Inclus gratuitement */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 mb-10">
+          <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
+            <span>🎁</span> Inclus gratuitement avec tous les plans
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {['Dashboard analytics', 'Masterclass marketing', 'Galerie & bibliothèque', 'Publication réseaux sociaux', 'Conversion vidéo'].map((item) => (
+              <div key={item} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <span className="text-xs font-medium text-green-800">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Grille crédits */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
+          <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">Coût en crédits par action</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
+            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">5 cr</p><p className="text-xs text-neutral-600">Image</p></div>
+            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">3 cr</p><p className="text-xs text-neutral-600">Retouche image</p></div>
+            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">Vidéo 5s</p></div>
+            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">Vidéo 10s</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Suggestion IA</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Audio narration</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Assistant marketing</p></div>
+            <div className="p-3 bg-red-50 rounded-lg"><p className="font-bold text-red-700">100 cr</p><p className="text-xs text-neutral-600">Vidéo 30s</p></div>
           </div>
         </div>
 

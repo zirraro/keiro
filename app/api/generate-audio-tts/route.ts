@@ -2,33 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { generateAudioWithOpenAI, estimateAudioDuration } from '@/lib/audio/openai-tts';
 import { condenseText } from '@/lib/audio/condense-text';
+import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
-/**
- * POST /api/generate-audio-tts
- * Generate audio narration from text using TTS services
- *
- * Body:
- * - text: string (text to narrate)
- * - targetDuration?: number (target duration in seconds, default 5)
- * - voice?: string ('alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer')
- * - speed?: number (0.25 to 4.0, default 1.0)
- *
- * Returns:
- * - audioUrl: URL of generated MP3 file
- * - condensedText: Text after condensation (if needed)
- * - estimatedDuration: Estimated duration in seconds
- *
- * Free tier: OpenAI TTS is very affordable ($0.015/1000 chars)
- */
 export async function POST(req: NextRequest) {
   try {
     // Get authenticated user
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
+        { ok: false, blocked: true, reason: 'requires_account', cta: true },
+        { status: 403 }
       );
+    }
+
+    // --- Vérification crédits ---
+    const isAdminUser = await isAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'audio_tts');
+      if (!check.allowed) {
+        return NextResponse.json(
+          { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
+          { status: 402 }
+        );
+      }
     }
 
     const {
@@ -86,6 +82,13 @@ export async function POST(req: NextRequest) {
     console.log('[GenerateAudioTTS] Audio URL:', audioUrl);
     console.log('[GenerateAudioTTS] Estimated duration:', estimatedDuration, 'seconds');
 
+    // --- Déduction crédits après succès ---
+    let newBalance: number | undefined;
+    if (!isAdminUser) {
+      const result = await deductCredits(user.id, 'audio_tts', 'Audio narration TTS');
+      newBalance = result.newBalance;
+    }
+
     return NextResponse.json({
       ok: true,
       audioUrl,
@@ -93,6 +96,7 @@ export async function POST(req: NextRequest) {
       estimatedDuration,
       originalWordCount: currentWords,
       finalWordCount: finalText.split(/\s+/).length,
+      newBalance,
     });
   } catch (error: any) {
     console.error('[GenerateAudioTTS] Error:', error);

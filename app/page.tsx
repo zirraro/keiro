@@ -853,12 +853,12 @@ export default function HomeKeiro() {
             <Plan
               title="🎁 Gratuit"
               price="0€"
-              subtitle="Pour découvrir"
+              subtitle="15 crédits — Pour découvrir"
               bullets={[
-                '3 visuels/mois avec watermark',
-                '5 catégories d\'actualités',
-                'Export réseaux sociaux (1080px)',
-                '2 styles visuels'
+                '15 crédits (3 images/mois)',
+                'Avec watermark Keiro',
+                'Export réseaux sociaux',
+                'Pas de vidéo ni IA avancée'
               ]}
               ctaLabel="Essayer gratuitement"
             />
@@ -866,15 +866,14 @@ export default function HomeKeiro() {
             <Plan
               title="🚀 Solo"
               price="49€ / mois"
-              subtitle="Pour créateurs"
+              subtitle="220 crédits — Pour créateurs"
               bullets={[
-                '20 visuels/mois (3 retouches incluses)',
-                '1 vidéo/mois (test Reels)',
-                '20 messages Assistant IA',
-                '10 suggestions texte IA',
+                '220 crédits/mois',
+                '~44 images ou 8 vidéos 5s',
+                'Images + vidéos + IA',
                 'Instagram Post',
-                'Toutes catégories d\'actualités',
-                'Calendrier de publications'
+                'Toutes catégories actualités',
+                'Calendrier publications'
               ]}
               ctaLabel="Choisir Solo"
             />
@@ -882,17 +881,16 @@ export default function HomeKeiro() {
             <Plan
               title="⭐ Fondateurs"
               price="149€ / mois"
-              subtitle="50 places - puis 199€"
+              subtitle="660 crédits — 50 places"
               special
               highlight
               bullets={[
-                '50 visuels/mois (3 retouches incluses)',
-                '12 vidéos TikTok/mois (3/semaine !)',
+                '660 crédits/mois',
+                '~132 images ou 26 vidéos 5s',
                 'Instagram + TikTok débloqué',
-                '50 messages Assistant IA Marketing',
-                '20 suggestions texte + 15 narrations audio',
+                'Assistant IA Marketing',
+                'Suggestions texte + narrations audio',
                 'Analytics Instagram & TikTok',
-                'Calendrier + Planification auto',
                 'Prix verrouillé à vie (50 places)'
               ]}
               ctaLabel="Devenir Fondateur"
@@ -901,11 +899,10 @@ export default function HomeKeiro() {
             <Plan
               title="🏢 Business"
               price="349€ / mois"
-              subtitle="Pour agences"
+              subtitle="1 750 crédits — Pour agences"
               bullets={[
-                '100 visuels/mois (3 retouches incluses)',
-                '25 vidéos TikTok/mois (6/semaine !)',
-                '100 messages Assistant IA',
+                '1 750 crédits/mois',
+                '~350 images ou 70 vidéos 5s',
                 'Tout Fondateurs +',
                 'Multi-comptes (1+5 clients)',
                 'Calendrier collaboratif',
@@ -923,11 +920,11 @@ export default function HomeKeiro() {
             <div className="rounded-xl p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl">
               <h3 className="text-xl font-bold mb-2">🏆 Elite</h3>
               <div className="text-3xl font-black mb-1">999€ / mois</div>
-              <p className="text-sm text-neutral-600 mb-6">Service premium avec consulting</p>
+              <p className="text-sm text-neutral-600 mb-6">5 500 crédits/mois — Service premium avec consulting</p>
               <ul className="grid md:grid-cols-2 gap-3 mb-6">
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>250 visuels/mois + 70 vidéos/mois</span>
+                  <span>5 500 crédits/mois (~1100 images ou 220 vidéos)</span>
                 </li>
                 <li className="text-sm flex items-start gap-2">
                   <span className="text-purple-600 font-bold text-lg">✓</span>

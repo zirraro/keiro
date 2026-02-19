@@ -5,16 +5,18 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { PLAN_CREDITS, CREDIT_PACKS, FEATURE_LABELS } from '@/lib/credits/constants';
+
 // Plan definitions
-const PLANS: Record<string, { name: string; price: string; visuals: number; videos: number; color: string }> = {
-  free: { name: 'Gratuit', price: '0€', visuals: 3, videos: 0, color: '#9CA3AF' },
-  sprint: { name: 'Sprint Fondateur', price: '4,99€', visuals: 15, videos: 3, color: '#3B82F6' },
-  solo: { name: 'Solo', price: '49€', visuals: 20, videos: 1, color: '#3B82F6' },
-  fondateurs: { name: 'Fondateurs', price: '149€', visuals: 50, videos: 12, color: '#8B5CF6' },
-  standard: { name: 'Standard', price: '199€', visuals: 40, videos: 11, color: '#06B6D4' },
-  business: { name: 'Business', price: '349€', visuals: 100, videos: 25, color: '#F59E0B' },
-  elite: { name: 'Elite', price: '999€', visuals: 250, videos: 70, color: '#EF4444' },
-  admin: { name: 'Fondateurs', price: '—', visuals: 30, videos: 8, color: '#10B981' },
+const PLANS: Record<string, { name: string; price: string; credits: number; color: string }> = {
+  free: { name: 'Gratuit', price: '0€', credits: PLAN_CREDITS.free, color: '#9CA3AF' },
+  sprint: { name: 'Sprint Fondateur', price: '4,99€', credits: PLAN_CREDITS.sprint, color: '#3B82F6' },
+  solo: { name: 'Solo', price: '49€', credits: PLAN_CREDITS.solo, color: '#3B82F6' },
+  fondateurs: { name: 'Fondateurs', price: '149€', credits: PLAN_CREDITS.fondateurs, color: '#8B5CF6' },
+  standard: { name: 'Standard', price: '199€', credits: PLAN_CREDITS.standard, color: '#06B6D4' },
+  business: { name: 'Business', price: '349€', credits: PLAN_CREDITS.business, color: '#F59E0B' },
+  elite: { name: 'Elite', price: '999€', credits: PLAN_CREDITS.elite, color: '#EF4444' },
+  admin: { name: 'Admin', price: '—', credits: 999999, color: '#10B981' },
 };
 
 export default function MonComptePage() {
@@ -26,6 +28,15 @@ export default function MonComptePage() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [monthlyStats, setMonthlyStats] = useState({ images: 0, videos: 0 });
   const [activeSection, setActiveSection] = useState<'overview' | 'billing' | 'connections'>('overview');
+
+  // Credits state
+  const [creditsBalance, setCreditsBalance] = useState(0);
+  const [creditsMonthly, setCreditsMonthly] = useState(0);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [creditHistory, setCreditHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const supabase = useMemo(() => supabaseBrowser(), []);
 
@@ -81,6 +92,10 @@ export default function MonComptePage() {
         videos: vidRes.count || 0,
       });
 
+      // Charger crédits
+      setCreditsBalance(profileData?.credits_balance ?? 0);
+      setCreditsMonthly(profileData?.credits_monthly_allowance ?? 0);
+
       // Si Instagram est connecté, charger les posts récents
       if (profileData?.instagram_business_account_id) {
         loadInstagramPosts();
@@ -89,6 +104,52 @@ export default function MonComptePage() {
       console.error('[MonCompte] Error loading user:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCreditHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch('/api/credits/history?limit=10');
+      if (res.ok) {
+        const data = await res.json();
+        setCreditHistory(data.transactions || []);
+      }
+    } catch (error) {
+      console.error('[MonCompte] Error loading credit history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleRedeemPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoMessage(null);
+    try {
+      const res = await fetch('/api/credits/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPromoMessage({ type: 'success', text: `+${data.credits} crédits ajoutés !` });
+        setPromoCode('');
+        // Recharger le solde
+        const balRes = await fetch('/api/credits/balance');
+        if (balRes.ok) {
+          const bal = await balRes.json();
+          setCreditsBalance(bal.balance);
+        }
+        loadCreditHistory();
+      } else {
+        setPromoMessage({ type: 'error', text: data.error || 'Code invalide' });
+      }
+    } catch {
+      setPromoMessage({ type: 'error', text: 'Erreur réseau' });
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -145,8 +206,7 @@ export default function MonComptePage() {
     );
   }
 
-  const imgPct = currentPlan.visuals > 0 ? Math.min(100, (monthlyStats.images / currentPlan.visuals) * 100) : 0;
-  const vidPct = currentPlan.videos > 0 ? Math.min(100, (monthlyStats.videos / currentPlan.videos) * 100) : 0;
+  const creditPct = creditsMonthly > 0 ? Math.min(100, (creditsBalance / creditsMonthly) * 100) : 0;
   const barColor = (pct: number) => pct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : pct >= 65 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
 
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—';
@@ -238,7 +298,7 @@ export default function MonComptePage() {
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
                 <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                Utilisation ce mois
+                Crédits ce mois
                 <span className="text-xs text-neutral-400 font-normal ml-auto capitalize">
                   {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
                 </span>
@@ -246,39 +306,40 @@ export default function MonComptePage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-neutral-700">Visuels créés</span>
-                    <span className="text-sm font-bold text-neutral-900">{monthlyStats.images} <span className="text-xs font-normal text-neutral-400">/ {currentPlan.visuals}</span></span>
+                    <span className="text-sm text-neutral-700">Crédits restants</span>
+                    <span className={`text-sm font-bold ${creditsBalance <= 10 ? 'text-red-600' : creditsBalance <= 50 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {creditsBalance} {creditsMonthly > 0 && <span className="text-xs font-normal text-neutral-400">/ {creditsMonthly}</span>}
+                    </span>
                   </div>
                   <div className="w-full bg-neutral-100 rounded-full h-3">
-                    <div className={`h-3 rounded-full transition-all ${barColor(imgPct)}`} style={{ width: `${Math.max(3, imgPct)}%` }} />
+                    <div className={`h-3 rounded-full transition-all ${creditPct > 50 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : creditPct > 20 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-red-400 to-red-500'}`} style={{ width: `${Math.max(3, creditPct)}%` }} />
                   </div>
-                  {imgPct >= 100 && <p className="text-xs text-red-600 mt-1 font-medium">Quota atteint</p>}
-                  {imgPct >= 80 && imgPct < 100 && <p className="text-xs text-amber-600 mt-1">Quota bientôt atteint</p>}
+                  {creditsBalance <= 0 && <p className="text-xs text-red-600 mt-1 font-medium">Plus de crédits disponibles</p>}
+                  {creditsBalance > 0 && creditsBalance <= 20 && <p className="text-xs text-amber-600 mt-1">Crédits bientôt épuisés</p>}
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm text-neutral-700">Vidéos créées</span>
-                    <span className="text-sm font-bold text-neutral-900">{monthlyStats.videos} <span className="text-xs font-normal text-neutral-400">/ {currentPlan.videos}</span></span>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 bg-neutral-50 rounded-lg">
+                    <p className="text-lg font-bold text-neutral-900">{monthlyStats.images}</p>
+                    <p className="text-xs text-neutral-500">Visuels ce mois</p>
                   </div>
-                  <div className="w-full bg-neutral-100 rounded-full h-3">
-                    <div className={`h-3 rounded-full transition-all ${barColor(vidPct)}`} style={{ width: `${Math.max(3, vidPct)}%` }} />
+                  <div className="p-3 bg-neutral-50 rounded-lg">
+                    <p className="text-lg font-bold text-neutral-900">{monthlyStats.videos}</p>
+                    <p className="text-xs text-neutral-500">Vidéos ce mois</p>
                   </div>
-                  {vidPct >= 100 && <p className="text-xs text-red-600 mt-1 font-medium">Quota atteint</p>}
-                  {vidPct >= 80 && vidPct < 100 && <p className="text-xs text-amber-600 mt-1">Quota bientôt atteint</p>}
                 </div>
 
-                {/* Upsell si quota atteint */}
-                {(monthlyStats.images >= currentPlan.visuals || monthlyStats.videos >= currentPlan.videos) && (
+                {/* Upsell si crédits bas */}
+                {creditsBalance <= 20 && (
                   <div className="mt-3 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
                     <p className="text-sm text-purple-900 font-semibold mb-1">Continuez à créer sans interruption</p>
-                    <p className="text-xs text-purple-700 mb-3">Ajoutez un pack extra pour ce mois :</p>
+                    <p className="text-xs text-purple-700 mb-3">Rechargez vos crédits :</p>
                     <div className="flex gap-3">
-                      <button className="flex-1 text-xs px-3 py-2 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center font-medium">
-                        +10 visuels — 19€
+                      <button onClick={() => setActiveSection('billing')} className="flex-1 text-xs px-3 py-2 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center font-medium">
+                        Acheter un pack
                       </button>
-                      <button className="flex-1 text-xs px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold">
-                        +5 vidéos — 29€
-                      </button>
+                      <Link href="/pricing" className="flex-1 text-xs px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold">
+                        Upgrader mon plan
+                      </Link>
                     </div>
                     <p className="text-[10px] text-purple-500 mt-2 text-center">
                       Ou <Link href="/pricing" className="underline hover:text-purple-700">changez de plan</Link> pour des quotas plus élevés
@@ -326,7 +387,7 @@ export default function MonComptePage() {
         {/* ===== ONGLET ABONNEMENT & FACTURES ===== */}
         {activeSection === 'billing' && (
           <div className="space-y-6">
-            {/* Plan actuel */}
+            {/* Plan actuel + Solde crédits */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
                 <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -341,7 +402,7 @@ export default function MonComptePage() {
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Actif</span>
                     </div>
                     <p className="text-sm text-neutral-600">
-                      {currentPlan.visuals} visuels / mois + {currentPlan.videos} vidéos / mois
+                      {currentPlan.credits.toLocaleString()} crédits / mois
                     </p>
                   </div>
                   <div className="text-right">
@@ -349,6 +410,25 @@ export default function MonComptePage() {
                     <p className="text-xs text-neutral-500">/mois</p>
                   </div>
                 </div>
+
+                {/* Jauge crédits */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-semibold text-neutral-700">Crédits restants</span>
+                    <span className={`text-lg font-bold ${creditsBalance <= 10 ? 'text-red-600' : creditsBalance <= 50 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {creditsBalance} {creditsMonthly > 0 && <span className="text-sm font-normal text-neutral-400">/ {creditsMonthly}</span>}
+                    </span>
+                  </div>
+                  {creditsMonthly > 0 && (
+                    <div className="w-full h-3 bg-neutral-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${creditsBalance / creditsMonthly > 0.5 ? 'bg-green-500' : creditsBalance / creditsMonthly > 0.2 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${Math.min(100, (creditsBalance / creditsMonthly) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3 mt-4">
                   <Link
                     href="/pricing"
@@ -360,65 +440,110 @@ export default function MonComptePage() {
               </div>
             </div>
 
-            {/* Packs extras */}
+            {/* Code Promo */}
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
+              <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
+                <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" /></svg>
+                Code promo
+              </h2>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder="Entrez votre code promo"
+                  className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase tracking-wider"
+                  onKeyDown={(e) => e.key === 'Enter' && handleRedeemPromo()}
+                />
+                <button
+                  onClick={handleRedeemPromo}
+                  disabled={promoLoading || !promoCode.trim()}
+                  className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {promoLoading ? 'Activation...' : 'Activer'}
+                </button>
+              </div>
+              {promoMessage && (
+                <p className={`mt-2 text-sm font-medium ${promoMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  {promoMessage.text}
+                </p>
+              )}
+            </div>
+
+            {/* Packs crédits */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
                 <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Packs extras disponibles
+                Packs de crédits
               </h2>
-              <p className="text-sm text-neutral-500 mb-4">Besoin de plus de créations ce mois-ci ? Ajoutez un pack ponctuel.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border border-neutral-200 rounded-xl hover:border-purple-300 hover:shadow-sm transition-all">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-neutral-900">Pack Visuels</h3>
-                    <span className="text-lg font-bold text-purple-600">19€</span>
+              <p className="text-sm text-neutral-500 mb-4">Besoin de plus de crédits ? Ajoutez un pack ponctuel.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {CREDIT_PACKS.map((pack) => (
+                  <div key={pack.id} className="p-4 border border-neutral-200 rounded-xl hover:border-purple-300 hover:shadow-sm transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-neutral-900">{pack.name}</h3>
+                      <span className="text-lg font-bold text-purple-600">{pack.priceLabel}</span>
+                    </div>
+                    <p className="text-sm text-neutral-600 mb-1">{pack.credits} crédits</p>
+                    <p className="text-xs text-neutral-400 mb-3">{pack.perCredit}/crédit</p>
+                    <button className="w-full py-2 text-sm bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium border border-purple-200">
+                      Acheter
+                    </button>
                   </div>
-                  <p className="text-sm text-neutral-600 mb-3">+10 visuels supplémentaires pour ce mois</p>
-                  <button className="w-full py-2 text-sm bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium border border-purple-200">
-                    Ajouter ce pack
-                  </button>
-                </div>
-                <div className="p-4 border border-neutral-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-neutral-900">Pack Vidéos</h3>
-                    <span className="text-lg font-bold text-blue-600">29€</span>
-                  </div>
-                  <p className="text-sm text-neutral-600 mb-3">+5 vidéos supplémentaires pour ce mois</p>
-                  <button className="w-full py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium border border-blue-200">
-                    Ajouter ce pack
-                  </button>
-                </div>
+                ))}
               </div>
+              <p className="text-xs text-neutral-400 mt-3 italic">
+                Economisez avec un abonnement : Fondateurs = 660 crédits/mois pour 149EUR (0,23EUR/crédit)
+              </p>
             </div>
 
-            {/* Historique des paiements */}
+            {/* Historique crédits */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
-              <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
-                <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Mes paiements
-              </h2>
-
-              <div className="border border-neutral-100 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-neutral-50">
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Date</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Description</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Montant</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-neutral-400">
-                        <svg className="w-8 h-8 text-neutral-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Aucun paiement pour le moment
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Historique crédits
+                </h2>
+                <button
+                  onClick={loadCreditHistory}
+                  disabled={historyLoading}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                >
+                  {historyLoading ? 'Chargement...' : creditHistory.length > 0 ? 'Actualiser' : 'Charger'}
+                </button>
               </div>
-              <p className="text-xs text-neutral-400 mt-3">Les factures seront disponibles ici une fois le paiement activé.</p>
+
+              {creditHistory.length > 0 ? (
+                <div className="border border-neutral-100 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-neutral-50">
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Date</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Description</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Crédits</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-neutral-500 uppercase">Solde</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {creditHistory.map((tx: any) => (
+                        <tr key={tx.id} className="border-t border-neutral-100">
+                          <td className="px-4 py-2.5 text-neutral-600">{new Date(tx.created_at).toLocaleDateString('fr-FR')}</td>
+                          <td className="px-4 py-2.5 text-neutral-900">{tx.description || (FEATURE_LABELS as any)[tx.feature] || tx.feature}</td>
+                          <td className={`px-4 py-2.5 text-right font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {tx.amount > 0 ? '+' : ''}{tx.amount}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-neutral-500">{tx.balance_after}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-neutral-400">
+                  <svg className="w-8 h-8 text-neutral-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Cliquez sur "Charger" pour voir l'historique
+                </div>
+              )}
             </div>
           </div>
         )}

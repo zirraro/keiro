@@ -1,3 +1,6 @@
+import { getAuthUser } from '@/lib/auth-server';
+import { checkCredits, deductCredits, isAdmin, getClientIP } from '@/lib/credits/server';
+
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes max pour le polling
 
@@ -10,9 +13,34 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { prompt, duration = 5, resolution = '1080p', aspectRatio, taskId } = body;
 
-    // Si taskId est fourni, on vérifie le statut
+    // Si taskId est fourni, on vérifie le statut (pas de check crédits pour le polling)
     if (taskId) {
       return checkTaskStatus(taskId);
+    }
+
+    // --- Vérification crédits (vidéo = bloquée en mode gratuit) ---
+    const { user } = await getAuthUser();
+    if (!user) {
+      return Response.json({
+        ok: false,
+        blocked: true,
+        reason: 'requires_account',
+        cta: true,
+      }, { status: 403 });
+    }
+
+    const isAdminUser = await isAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'video_t2v', duration);
+      if (!check.allowed) {
+        return Response.json({
+          ok: false,
+          error: 'Crédits insuffisants',
+          insufficientCredits: true,
+          cost: check.cost,
+          balance: check.balance,
+        }, { status: 402 });
+      }
     }
 
     // Sinon, on crée une nouvelle tâche
@@ -89,10 +117,18 @@ export async function POST(request: Request) {
 
     console.log('[Seedream T2V] Task created successfully:', taskIdFromResponse);
 
+    // --- Déduction crédits après création de tâche ---
+    let newBalance: number | undefined;
+    if (user && !isAdminUser) {
+      const result = await deductCredits(user.id, 'video_t2v', `Vidéo T2V ${duration}s`, duration);
+      newBalance = result.newBalance;
+    }
+
     return Response.json({
       ok: true,
       taskId: taskIdFromResponse,
-      status: 'pending'
+      status: 'pending',
+      newBalance,
     });
 
   } catch (error: any) {

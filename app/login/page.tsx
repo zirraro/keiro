@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [customBusinessType, setCustomBusinessType] = useState('');
+  const [promoCode, setPromoCode] = useState('');
 
   // Form fields - Step 2 (optional enrichment)
   const [companyName, setCompanyName] = useState('');
@@ -52,6 +53,17 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
+
+      // Activer code promo si fourni
+      if (promoCode.trim()) {
+        try {
+          await fetch('/api/credits/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: promoCode.trim() }),
+          });
+        } catch {}
+      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -142,6 +154,18 @@ export default function LoginPage() {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
+
+      // Activer code promo si fourni
+      if (promoCode.trim() && session) {
+        try {
+          await fetch('/api/credits/redeem', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: promoCode.trim() }),
+          });
+          console.log('[Signup] Promo code redeemed');
+        } catch {}
+      }
 
       if (session) {
         console.log('[Signup] User logged in immediately, showing step 2');
@@ -642,6 +666,19 @@ export default function LoginPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-1">
+                Code promo (optionnel)
+              </label>
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                className="w-full px-4 py-2.5 rounded-lg border-2 border-neutral-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 transition-all uppercase tracking-wider text-sm"
+                placeholder="MONCODE"
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -752,6 +789,20 @@ export default function LoginPage() {
                   placeholder="Précisez votre activité..."
                 />
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-500 mb-1">
+                Code promo (optionnel)
+              </label>
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                className="w-full px-4 py-2.5 rounded-lg border-2 border-neutral-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 transition-all uppercase tracking-wider text-sm"
+                placeholder="MONCODE"
+              />
+              <p className="text-xs text-neutral-400 mt-1">Activez un code pour recevoir des crédits bonus</p>
             </div>
 
             <button

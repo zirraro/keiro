@@ -1,12 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { getAuthUser } from '@/lib/auth-server';
+import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
-/**
- * API Route pour générer des suggestions de texte IA via Claude
- * Génère 5 propositions expertes basées sur l'actualité + business
- */
 export async function POST(req: NextRequest) {
   try {
+    // --- Vérification auth + crédits ---
+    const { user } = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { ok: false, blocked: true, reason: 'requires_account', cta: true },
+        { status: 403 }
+      );
+    }
+
+    const isAdminUser = await isAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'text_suggest');
+      if (!check.allowed) {
+        return NextResponse.json(
+          { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
+          { status: 402 }
+        );
+      }
+    }
+
     const body = await req.json();
     const { newsTitle, newsDescription, businessType, businessDescription, tone, targetAudience } = body;
 
@@ -155,9 +173,17 @@ Génère maintenant les 10 punchlines EN FRANÇAIS.`;
 
     console.log('[SuggestText] ✅ Generated', suggestions.length, 'suggestions');
 
+    // --- Déduction crédits après succès ---
+    let newBalance: number | undefined;
+    if (!isAdminUser) {
+      const result = await deductCredits(user.id, 'text_suggest', 'Suggestion texte IA');
+      newBalance = result.newBalance;
+    }
+
     return NextResponse.json({
       ok: true,
-      suggestions
+      suggestions,
+      newBalance,
     });
 
   } catch (error: any) {

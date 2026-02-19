@@ -1,3 +1,6 @@
+import { getAuthUser } from '@/lib/auth-server';
+import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
+
 export const runtime = "nodejs";
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
@@ -23,6 +26,43 @@ export async function POST(request: Request) {
         ok: false,
         error: 'Image URL is required and must be a string'
       }, { status: 400 });
+    }
+
+    // --- Vérification crédits ---
+    const { user } = await getAuthUser();
+    let isAdminUser = false;
+    let isFreeMode = false;
+    let useWatermark = false;
+
+    if (user) {
+      isAdminUser = await isAdmin(user.id);
+      if (!isAdminUser) {
+        const check = await checkCredits(user.id, 'image_i2i');
+        if (!check.allowed) {
+          return Response.json({
+            ok: false,
+            error: 'Crédits insuffisants',
+            insufficientCredits: true,
+            cost: check.cost,
+            balance: check.balance,
+          }, { status: 402 });
+        }
+      }
+    } else {
+      isFreeMode = true;
+      useWatermark = true;
+      const ip = getClientIP(request);
+      const freeCheck = await checkFreeGeneration(ip, 'image');
+      if (!freeCheck.allowed) {
+        return Response.json({
+          ok: false,
+          blocked: true,
+          reason: freeCheck.reason,
+          used: freeCheck.used,
+          limit: freeCheck.limit,
+          cta: true,
+        }, { status: 403 });
+      }
     }
 
     console.log('[Seedream I2I] Editing image with prompt:', prompt.substring(0, 100) + '...');
@@ -78,11 +118,24 @@ export async function POST(request: Request) {
 
     console.log('[Seedream I2I] Image edited successfully:', data.data[0].url);
 
+    // --- Déduction crédits après succès ---
+    let newBalance: number | undefined;
+    if (user && !isAdminUser) {
+      const result = await deductCredits(user.id, 'image_i2i', 'Modification image I2I');
+      newBalance = result.newBalance;
+    } else if (isFreeMode) {
+      const ip = getClientIP(request);
+      const fingerprint = request.headers.get('x-fingerprint');
+      await recordFreeGeneration(ip, fingerprint, 'image');
+    }
+
     return Response.json({
       ok: true,
       imageUrl: data.data[0].url,
       size: data.data[0].size,
-      usage: data.usage
+      usage: data.usage,
+      watermark: useWatermark,
+      newBalance,
     });
 
   } catch (error: any) {

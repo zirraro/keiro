@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
+import { checkCredits, deductCredits, isAdmin as checkIsAdmin } from '@/lib/credits/server';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -18,7 +19,19 @@ export async function POST(request: NextRequest) {
   try {
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
+      return NextResponse.json({ ok: false, blocked: true, reason: 'requires_account', cta: true }, { status: 403 });
+    }
+
+    // --- Vérification crédits ---
+    const isAdminUser = await checkIsAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'marketing_chat');
+      if (!check.allowed) {
+        return NextResponse.json(
+          { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
+          { status: 402 }
+        );
+      }
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -226,11 +239,19 @@ Style:
 
     console.log('[MarketingAssistant] Conversation saved successfully');
 
+    // --- Déduction crédits après succès ---
+    let newBalance: number | undefined;
+    if (!isAdminUser) {
+      const result = await deductCredits(user.id, 'marketing_chat', 'Message assistant marketing');
+      newBalance = result.newBalance;
+    }
+
     return NextResponse.json({
       ok: true,
       message: assistantMessage,
       conversationId: finalConversationId,
       tokensUsed,
+      newBalance,
       usage: {
         messagesUsed: currentMessages + 1,
         messagesLimit: messageLimit,

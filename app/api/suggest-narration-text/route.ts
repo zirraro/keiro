@@ -1,27 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { generateNarrationSuggestions } from '@/lib/audio/condense-text';
+import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
-/**
- * POST /api/suggest-narration-text
- * Generate AI-powered text suggestions for audio narration
- *
- * Body:
- * - context: string (caption, description, or current text)
- * - targetWords?: number (default 15 for ~5 seconds)
- *
- * Returns:
- * - suggestions: { informative, catchy, storytelling }
- */
 export async function POST(req: NextRequest) {
   try {
-    // Get authenticated user
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
       return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
+        { ok: false, blocked: true, reason: 'requires_account', cta: true },
+        { status: 403 }
       );
+    }
+
+    // --- Vérification crédits ---
+    const isAdminUser = await isAdmin(user.id);
+    if (!isAdminUser) {
+      const check = await checkCredits(user.id, 'narration_suggest');
+      if (!check.allowed) {
+        return NextResponse.json(
+          { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
+          { status: 402 }
+        );
+      }
     }
 
     const { context, targetWords = 15 } = await req.json();
@@ -46,6 +47,13 @@ export async function POST(req: NextRequest) {
     console.log('[SuggestNarration] Catchy:', suggestions.catchy);
     console.log('[SuggestNarration] Storytelling:', suggestions.storytelling);
 
+    // --- Déduction crédits après succès ---
+    let newBalance: number | undefined;
+    if (!isAdminUser) {
+      const result = await deductCredits(user.id, 'narration_suggest', 'Suggestion narration IA');
+      newBalance = result.newBalance;
+    }
+
     return NextResponse.json({
       ok: true,
       suggestions: [
@@ -65,6 +73,7 @@ export async function POST(req: NextRequest) {
           text: suggestions.storytelling,
         },
       ],
+      newBalance,
     });
   } catch (error: any) {
     console.error('[SuggestNarration] Error:', error);

@@ -9,6 +9,8 @@ import AdminBadge from '@/components/AdminBadge';
 import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
+import { useCredits } from '@/hooks/useCredits';
+import { CREDIT_COSTS, getVideoCreditCost } from '@/lib/credits/constants';
 import { supabase } from '@/lib/supabase';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { generateTextSuggestions } from '@/lib/text-suggestion';
@@ -400,10 +402,13 @@ export default function GeneratePage() {
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
   const editLimit = useEditLimit();
+  const credits = useCredits();
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showEditEmailGate, setShowEditEmailGate] = useState(false);
   const [showEditSignupGate, setShowEditSignupGate] = useState(false);
+  const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
+  const [showRequiresAccountModal, setShowRequiresAccountModal] = useState(false);
   const [enrichmentProfile, setEnrichmentProfile] = useState<any>(null);
   const [enrichmentUserId, setEnrichmentUserId] = useState<string>('');
   const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
@@ -1231,6 +1236,24 @@ export default function GeneratePage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        // Crédits insuffisants
+        if (res.status === 402 && errorData.insufficientCredits) {
+          clearInterval(progressInterval);
+          setGenerating(false);
+          setShowInsufficientCreditsModal(true);
+          return;
+        }
+        // Requiert un compte (mode gratuit bloqué)
+        if (res.status === 403 && errorData.blocked) {
+          clearInterval(progressInterval);
+          setGenerating(false);
+          if (errorData.reason === 'free_limit') {
+            setShowSignupGate(true);
+          } else {
+            setShowRequiresAccountModal(true);
+          }
+          return;
+        }
         throw new Error(errorData.error || `Erreur serveur: ${res.status}`);
       }
 
@@ -1238,6 +1261,11 @@ export default function GeneratePage() {
       clearInterval(progressInterval);
       setImageLoadingProgress(90);
       setLoadingStep('download');
+
+      // Mettre à jour le solde crédits si retourné
+      if (data.newBalance !== undefined) {
+        credits.refresh();
+      }
 
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
 
@@ -1914,11 +1942,29 @@ export default function GeneratePage() {
       const data = await res.json();
       console.log('[Video] Task creation response:', data);
 
+      // Crédits insuffisants
+      if (res.status === 402 && data.insufficientCredits) {
+        setGeneratingVideo(false);
+        setShowInsufficientCreditsModal(true);
+        return;
+      }
+      // Requiert un compte
+      if (res.status === 403 && data.blocked) {
+        setGeneratingVideo(false);
+        setShowRequiresAccountModal(true);
+        return;
+      }
+
       if (!data?.ok) {
         const errorMsg = data?.error || 'Échec de création de la tâche vidéo';
         console.error('[Video] Task creation failed:', errorMsg);
         if (data?.debug) console.log('[Video] Debug info:', data.debug);
         throw new Error(errorMsg);
+      }
+
+      // Mettre à jour crédits après succès
+      if (data.newBalance !== undefined) {
+        credits.refresh();
       }
 
       setVideoTaskId(data.taskId);
@@ -2081,11 +2127,32 @@ export default function GeneratePage() {
       <AdminBadge />
 
       <div className="max-w-7xl mx-auto">
-        <p className="text-neutral-600 mb-6">
-          {useNewsMode
-            ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
-            : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
-        </p>
+        {/* Barre crédits */}
+        {!credits.loading && credits.plan && (
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-neutral-600 text-sm">
+              {useNewsMode
+                ? 'Associez une actualité à votre business pour créer un visuel engageant'
+                : 'Décrivez votre business en détail pour créer un visuel percutant'}
+            </p>
+            <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-full px-4 py-1.5 shadow-sm shrink-0">
+              <span className="text-xs text-neutral-500">Crédits</span>
+              <span className={`text-sm font-bold ${credits.balance <= 10 ? 'text-red-600' : credits.balance <= 50 ? 'text-amber-600' : 'text-green-600'}`}>
+                {credits.balance}
+              </span>
+              {credits.monthlyAllowance > 0 && (
+                <span className="text-[10px] text-neutral-400">/ {credits.monthlyAllowance}</span>
+              )}
+            </div>
+          </div>
+        )}
+        {(credits.loading || !credits.plan) && (
+          <p className="text-neutral-600 mb-6">
+            {useNewsMode
+              ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
+              : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
+          </p>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
@@ -3177,8 +3244,8 @@ export default function GeneratePage() {
                   }`}
                 >
                   {generationMode === 'video'
-                    ? (generatingVideo ? videoProgress || 'Génération...' : `🎬 Créer une vidéo (${videoDuration}s)`)
-                    : (generating ? 'Génération...' : '🖼️ Générer un visuel')
+                    ? (generatingVideo ? videoProgress || 'Génération...' : `🎬 Créer une vidéo (${videoDuration}s) — ${getVideoCreditCost(videoDuration)} cr`)
+                    : (generating ? 'Génération...' : `🖼️ Générer un visuel — ${CREDIT_COSTS.image_t2i} cr`)
                   }
                 </button>
 
@@ -5094,6 +5161,55 @@ export default function GeneratePage() {
             userId={enrichmentUserId}
             onClose={() => setShowEnrichmentModal(false)}
           />
+        )}
+
+        {/* Modal crédits insuffisants */}
+        {showInsufficientCreditsModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowInsufficientCreditsModal(false)}>
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">Crédits insuffisants</h3>
+                <p className="text-sm text-neutral-600 mb-1">Solde actuel : <span className="font-semibold text-red-600">{credits.balance} crédits</span></p>
+                <p className="text-sm text-neutral-600 mb-6">Rechargez vos crédits ou passez à un plan supérieur pour continuer.</p>
+                <div className="flex gap-3">
+                  <a href="/mon-compte" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
+                    Acheter des crédits
+                  </a>
+                  <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
+                    Voir les plans
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal requiert un compte */}
+        {showRequiresAccountModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowRequiresAccountModal(false)}>
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">Créez un compte pour continuer</h3>
+                <p className="text-sm text-neutral-600 mb-2">Cette fonctionnalité nécessite un compte Keiro.</p>
+                <p className="text-sm text-neutral-500 mb-1">30 crédits offerts à l'inscription</p>
+                <p className="text-sm text-neutral-500 mb-6">Code promo ? Activez-le à l'inscription pour des crédits bonus</p>
+                <div className="flex gap-3">
+                  <a href="/login" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
+                    Créer un compte
+                  </a>
+                  <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
+                    Voir les tarifs
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>
