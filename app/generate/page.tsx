@@ -10,6 +10,9 @@ import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
 import { useEditLimit } from '@/hooks/useEditLimit';
 import { useCredits } from '@/hooks/useCredits';
+import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+import FeedbackPopup from '@/components/FeedbackPopup';
+import FeedbackModal from '@/components/FeedbackModal';
 import { CREDIT_COSTS, getVideoCreditCost } from '@/lib/credits/constants';
 import { supabase } from '@/lib/supabase';
 import { supabaseBrowser } from '@/lib/supabase/client';
@@ -403,6 +406,7 @@ export default function GeneratePage() {
   const generationLimit = useGenerationLimit();
   const editLimit = useEditLimit();
   const credits = useCredits();
+  const feedback = useFeedbackPopup();
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showEditEmailGate, setShowEditEmailGate] = useState(false);
@@ -5190,6 +5194,8 @@ export default function GeneratePage() {
           </div>
         )}
 
+        <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
+        <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
       </div>
     </div>
   );

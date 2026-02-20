@@ -2,6 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import FeedbackPopup from '@/components/FeedbackPopup';
+import FeedbackModal from '@/components/FeedbackModal';
+import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 
 function ContactFormPricing() {
   const [name, setName] = useState('');
@@ -141,6 +144,8 @@ function ContactFormPricing() {
 }
 
 export default function PricingPage() {
+  const feedback = useFeedbackPopup();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
 
@@ -752,6 +757,9 @@ export default function PricingPage() {
           <p className="text-blue-100 text-sm mt-4">3 visuels gratuits • Sans carte bancaire • En 2 minutes</p>
         </div>
       </main>
+
+      <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
+      <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
     </div>
   );
 }

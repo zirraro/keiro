@@ -9,11 +9,15 @@ import EmailGateModal from "@/components/EmailGateModal";
 import SignupGateModal from "@/components/SignupGateModal";
 import TextOverlayEditor from "@/components/TextOverlayEditor";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import FeedbackPopup from '@/components/FeedbackPopup';
+import FeedbackModal from '@/components/FeedbackModal';
+import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 
 function StudioContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const supabase = supabaseBrowser();
+  const feedback = useFeedbackPopup();
   const editLimit = useEditLimit();
 
   const [imageUrl, setImageUrl] = useState(searchParams.get("image") || "");
@@ -666,6 +670,9 @@ function StudioContent() {
           onCancel={() => setShowTextEditor(false)}
         />
       )}
+
+      <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
+      <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
     </div>
   );
 }

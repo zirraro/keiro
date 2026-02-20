@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { getAuthUser } from '@/lib/auth-server';
+
+function getSupabaseAdmin() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+}
 
 /**
  * POST /api/support/contact
- * Envoyer un message de support par email
+ * Envoyer un message de support par email + sauvegarder en DB
  */
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +30,18 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Sauvegarder en DB pour le panel admin
+    const { user } = await getAuthUser().catch(() => ({ user: null }));
+    const supabase = getSupabaseAdmin();
+    await supabase.from('contact_requests').insert({
+      user_id: user?.id || null,
+      user_email: email,
+      user_name: name,
+      subject,
+      messages: [{ from: 'user', text: message + (technicalDetails ? `\n\n---\nDétails techniques:\n${technicalDetails}` : ''), at: new Date().toISOString() }],
+      status: 'new',
+    });
 
     // Construire le corps de l'email
     const emailBody = `

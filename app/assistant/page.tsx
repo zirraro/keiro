@@ -5,8 +5,12 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ChatMarketingTab from './ChatMarketingTab';
 import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
+import FeedbackPopup from '@/components/FeedbackPopup';
+import FeedbackModal from '@/components/FeedbackModal';
+import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 
 export default function AssistantPage() {
+  const feedback = useFeedbackPopup();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('chat');
@@ -201,6 +205,9 @@ export default function AssistantPage() {
           onClose={() => setShowEnrichmentModal(false)}
         />
       )}
+
+      <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
+      <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
     </div>
   );
 }
@@ -797,6 +804,7 @@ function FormationTab() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -37,6 +37,9 @@ import MyVideosTab from './components/MyVideosTab';
 import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
 import NetworkSelector, { Network } from './components/NetworkSelector';
+import FeedbackPopup from '@/components/FeedbackPopup';
+import FeedbackModal from '@/components/FeedbackModal';
+import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 
 type SavedImage = {
   id: string;
@@ -190,6 +193,7 @@ const DEMO_VIDEOS: MyVideo[] = [
 function LibraryContent() {
   const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
+  const feedback = useFeedbackPopup();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingImages, setLoadingImages] = useState(false);
@@ -2533,6 +2537,8 @@ function LibraryContent() {
           onSelectTwitter={handleSelectTwitter}
         />
       )}
+      <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
+      <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
     </main>
   );
 }
