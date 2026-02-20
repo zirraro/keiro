@@ -112,7 +112,7 @@ export default function HomeKeiro() {
                 <p className="text-xs text-blue-100">Accès complet • 4.99€ déduits si tu continues</p>
               </div>
             </div>
-            <a href="/generate" className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
+            <a href="https://buy.stripe.com/fZu9ASfHb8iB1qidFobAs01" target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
               Essayer maintenant →
             </a>
           </div>
@@ -876,6 +876,7 @@ export default function HomeKeiro() {
                 'Calendrier publications'
               ]}
               ctaLabel="Choisir Solo"
+              ctaHref="https://buy.stripe.com/5kQ28q7aF7ex5Gy1WGbAs02"
             />
 
             <Plan
@@ -894,6 +895,7 @@ export default function HomeKeiro() {
                 'Prix verrouillé à vie (50 places)'
               ]}
               ctaLabel="Devenir Fondateur"
+              ctaHref="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
             />
 
             <Plan
@@ -908,7 +910,8 @@ export default function HomeKeiro() {
                 'Calendrier collaboratif',
                 'Workflow validation + Reporting PDF'
               ]}
-              ctaLabel="Contacter"
+              ctaLabel="Choisir Business"
+              ctaHref="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04"
             />
           </div>
 
@@ -977,7 +980,9 @@ export default function HomeKeiro() {
                 💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
               </p>
               <a
-                href="/generate"
+                href="https://buy.stripe.com/fZu9ASfHb8iB1qidFobAs01"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all hover:shadow-lg hover:scale-105"
               >
                 Démarrer mon essai 4.99€ →
@@ -1450,13 +1455,14 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, subtitle, bullets, ctaLabel, highlight, special
+  title, price, subtitle, bullets, ctaLabel, ctaHref, highlight, special
 }: {
   title: string;
   price: string;
   subtitle?: string;
   bullets: string[];
   ctaLabel: string;
+  ctaHref?: string;
   highlight?: boolean;
   special?: boolean;
 }) {
@@ -1476,7 +1482,7 @@ function Plan({
           </li>
         ))}
       </ul>
-      <a href="/generate" className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
+      <a href={ctaHref || "/generate"} {...(ctaHref?.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
         special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
         'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
       }`}>

@@ -278,12 +278,14 @@ export default function PricingPage() {
               </li>
             </ul>
 
-            <Link
-              href="/generate"
+            <a
+              href="https://buy.stripe.com/fZu9ASfHb8iB1qidFobAs01"
+              target="_blank"
+              rel="noopener noreferrer"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
               Démarrer le Sprint 3 jours ⚡
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -378,9 +380,9 @@ export default function PricingPage() {
               <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> <span className="line-through">TikTok (Fondateurs+)</span></li>
             </ul>
             <div className="mt-auto space-y-2">
-              <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+              <a href="https://buy.stripe.com/5kQ28q7aF7ex5Gy1WGbAs02" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
                 Choisir Solo
-              </Link>
+              </a>
               <p className="text-xs text-center text-neutral-500">
                 Plus de vidéos + TikTok ? <a href="#fondateurs" className="text-cyan-600 hover:underline font-semibold">Upgrade →</a>
               </p>
@@ -421,9 +423,9 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Prix verrouillé à vie (50 places)</strong></li>
             </ul>
-            <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
+            <a href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
               Débloquer TikTok + IA
-            </Link>
+            </a>
             <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
           </div>
 
@@ -460,9 +462,9 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
-            <Link href="/generate" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
-              Contacter Business
-            </Link>
+            <a href="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
+              Choisir Business
+            </a>
             <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
           </div>
 
