@@ -2127,32 +2127,11 @@ export default function GeneratePage() {
       <AdminBadge />
 
       <div className="max-w-7xl mx-auto">
-        {/* Barre crédits */}
-        {!credits.loading && credits.plan && (
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-neutral-600 text-sm">
-              {useNewsMode
-                ? 'Associez une actualité à votre business pour créer un visuel engageant'
-                : 'Décrivez votre business en détail pour créer un visuel percutant'}
-            </p>
-            <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-full px-4 py-1.5 shadow-sm shrink-0">
-              <span className="text-xs text-neutral-500">Crédits</span>
-              <span className={`text-sm font-bold ${credits.balance <= 10 ? 'text-red-600' : credits.balance <= 50 ? 'text-amber-600' : 'text-green-600'}`}>
-                {credits.balance}
-              </span>
-              {credits.monthlyAllowance > 0 && (
-                <span className="text-[10px] text-neutral-400">/ {credits.monthlyAllowance}</span>
-              )}
-            </div>
-          </div>
-        )}
-        {(credits.loading || !credits.plan) && (
-          <p className="text-neutral-600 mb-6">
-            {useNewsMode
-              ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
-              : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
-          </p>
-        )}
+        <p className="text-neutral-600 mb-6">
+          {useNewsMode
+            ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
+            : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
@@ -2278,48 +2257,47 @@ export default function GeneratePage() {
 
             {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
             <div className="space-y-3 mt-6">
-              {/* Widget 1 : Usage discret - 3 barres */}
+              {/* Widget 1 : Crédits */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-                {monthlyStats ? (
+                {!credits.loading && credits.plan ? (
                   (() => {
-                    const bars = [
-                      { label: 'Visuels', pct: Math.min(100, (monthlyStats.images / 30) * 100) },
-                      { label: 'Vidéos', pct: Math.min(100, (monthlyStats.videos / 8) * 100) },
-                      { label: 'Assistant', pct: Math.min(100, (monthlyStats.assistant / 50) * 100) },
-                    ];
-                    const getColor = (pct: number) => pct >= 80 ? 'bg-gradient-to-r from-red-400 to-red-500' : pct >= 50 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
-                    const getTextColor = (pct: number) => pct >= 80 ? 'text-red-600' : pct >= 50 ? 'text-amber-600' : 'text-green-600';
-                    const getLabel = (pct: number) => pct >= 80 ? 'Intensif' : pct >= 50 ? 'Soutenu' : 'Léger';
-                    const hasIntensive = bars.some(b => b.pct >= 80);
+                    const pct = credits.monthlyAllowance > 0 ? Math.min(100, (credits.balance / credits.monthlyAllowance) * 100) : 0;
+                    const getColor = () => pct <= 15 ? 'bg-gradient-to-r from-red-400 to-red-500' : pct <= 35 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
+                    const getTextColor = () => pct <= 15 ? 'text-red-600' : pct <= 35 ? 'text-amber-600' : 'text-green-600';
+                    const getLabel = () => pct <= 15 ? 'Critique' : pct <= 35 ? 'Modéré' : pct <= 60 ? 'Confortable' : 'Optimal';
                     return (
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Votre usage</span>
+                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Vos crédits</span>
                           <span className="text-[10px] text-neutral-400 capitalize">
                             {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
                           </span>
                         </div>
-                        <div className="space-y-2">
-                          {bars.map((bar) => (
-                            <div key={bar.label} className="flex items-center gap-2">
-                              <span className="text-[10px] text-neutral-500 w-14 shrink-0">{bar.label}</span>
-                              <div className="flex-1 bg-neutral-200 rounded-full h-1">
-                                <div className={`h-1 rounded-full transition-all ${getColor(bar.pct)}`} style={{ width: `${Math.max(4, bar.pct)}%` }} />
-                              </div>
-                              <span className={`text-[9px] font-medium w-12 text-right shrink-0 ${getTextColor(bar.pct)}`}>{getLabel(bar.pct)}</span>
-                            </div>
-                          ))}
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`text-2xl font-bold ${getTextColor()}`}>{credits.balance}</div>
+                          {credits.monthlyAllowance > 0 && (
+                            <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} ce mois</span>
+                          )}
                         </div>
-                        {hasIntensive && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-neutral-200 rounded-full h-1.5">
+                            <div className={`h-1.5 rounded-full transition-all ${getColor()}`} style={{ width: `${Math.max(2, pct)}%` }} />
+                          </div>
+                          <span className={`text-[9px] font-medium shrink-0 ${getTextColor()}`}>{getLabel()}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-neutral-400">
+                          <span>1 image = 5 cr | 1 vidéo = 25 cr</span>
+                        </div>
+                        {pct <= 20 && (
                           <p className="text-[10px] text-neutral-500 mt-2 text-center">
-                            Besoin de plus ? <button onClick={() => router.push('/pricing')} className="text-purple-600 underline hover:text-purple-700">Acheter des crédits</button>
+                            <button onClick={() => router.push('/pricing')} className="text-purple-600 underline hover:text-purple-700">Acheter des crédits</button>
                           </p>
                         )}
                       </div>
                     );
                   })()
                 ) : (
-                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir votre usage</p>
+                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir vos crédits</p>
                 )}
               </div>
 
