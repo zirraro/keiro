@@ -1,8 +1,15 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover',
-});
+// Lazy initialization pour éviter crash au build (env vars pas encore dispo)
+let _stripe: Stripe | null = null;
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2026-01-28.clover',
+    });
+  }
+  return _stripe;
+}
 
 // Mapping montant en centimes → plan Keiro
 // Permet d'identifier le plan acheté via payment links

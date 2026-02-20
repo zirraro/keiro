@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, AMOUNT_TO_PLAN } from '@/lib/stripe';
+import { getStripe, AMOUNT_TO_PLAN } from '@/lib/stripe';
 import { PLAN_CREDITS } from '@/lib/credits/constants';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy init pour éviter crash au build
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -18,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
     const credits = PLAN_CREDITS[planKey];
 
     // Trouver le user par email
-    const { data: profile, error: findError } = await supabaseAdmin
+    const { data: profile, error: findError } = await getSupabaseAdmin()
       .from('profiles')
       .select('id, credits_balance')
       .eq('email', customerEmail.toLowerCase())
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mettre à jour le plan et les crédits
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await getSupabaseAdmin()
       .from('profiles')
       .update({
         subscription_plan: planKey,
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enregistrer la transaction
-    await supabaseAdmin
+    await getSupabaseAdmin()
       .from('credit_transactions')
       .insert({
         user_id: profile.id,
