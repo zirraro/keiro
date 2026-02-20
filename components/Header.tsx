@@ -253,12 +253,14 @@ export default function Header() {
               </Link>
             );
           })}
-          <button
-            onClick={() => setShowContactModal(true)}
-            className="text-sm text-neutral-600 hover:text-neutral-900 transition"
-          >
-            Contact
-          </button>
+          {user && (
+            <button
+              onClick={() => setShowContactModal(true)}
+              className="text-sm text-neutral-600 hover:text-neutral-900 transition"
+            >
+              Contact
+            </button>
+          )}
         </nav>
 
         {/* Bouton connexion/inscription OU Menu utilisateur */}

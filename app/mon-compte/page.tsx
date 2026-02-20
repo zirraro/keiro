@@ -41,7 +41,7 @@ function MonComptePage() {
   const [monthlyStats, setMonthlyStats] = useState({ images: 0, videos: 0 });
   const searchParams = useSearchParams();
   const initialSection = searchParams.get('section') === 'admin-feedback' ? 'admin-feedback' : 'overview';
-  const [activeSection, setActiveSection] = useState<'overview' | 'billing' | 'connections' | 'admin-feedback'>(initialSection as any);
+  const [activeSection, setActiveSection] = useState<'overview' | 'billing' | 'connections' | 'support' | 'admin-feedback'>(initialSection as any);
 
   // Credits state
   const [creditsBalance, setCreditsBalance] = useState(0);
@@ -53,6 +53,13 @@ function MonComptePage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [customCredits, setCustomCredits] = useState(100);
   const feedback = useFeedbackPopup();
+
+  // User support state
+  const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [myRequestsLoading, setMyRequestsLoading] = useState(false);
+  const [selectedMyRequest, setSelectedMyRequest] = useState<any>(null);
+  const [userReply, setUserReply] = useState('');
+  const [userReplyLoading, setUserReplyLoading] = useState(false);
 
   // Admin feedback state
   const [adminFeedbackTab, setAdminFeedbackTab] = useState<'questionnaires' | 'demandes'>('questionnaires');
@@ -205,6 +212,39 @@ function MonComptePage() {
     } catch (e) { console.error('[Admin] Status change error:', e); }
   };
 
+  // User: charger mes demandes de support
+  const loadMyRequests = async () => {
+    setMyRequestsLoading(true);
+    try {
+      const res = await fetch('/api/contact-requests/my');
+      if (res.ok) {
+        const data = await res.json();
+        setMyRequests(data.requests || []);
+      }
+    } catch (e) { console.error('[Support] Load error:', e); }
+    finally { setMyRequestsLoading(false); }
+  };
+
+  // User: répondre à sa propre demande
+  const handleUserReply = async (requestId: string) => {
+    if (!userReply.trim()) return;
+    setUserReplyLoading(true);
+    try {
+      const res = await fetch('/api/contact-requests/my', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, message: userReply }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedMyRequest(data.request);
+        setMyRequests(prev => prev.map(r => r.id === requestId ? data.request : r));
+        setUserReply('');
+      }
+    } catch (e) { console.error('[Support] Reply error:', e); }
+    finally { setUserReplyLoading(false); }
+  };
+
   const loadCreditHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -341,11 +381,15 @@ function MonComptePage() {
             { key: 'overview' as const, label: 'Vue d\'ensemble', icon: '📊' },
             { key: 'billing' as const, label: 'Abonnement & Factures', icon: '💳' },
             { key: 'connections' as const, label: 'Réseaux sociaux', icon: '🔗' },
+            { key: 'support' as const, label: 'Mes demandes', icon: '💬' },
             ...(profile?.is_admin ? [{ key: 'admin-feedback' as const, label: 'Retours clients', icon: '📋' }] : []),
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveSection(tab.key)}
+              onClick={() => {
+                setActiveSection(tab.key);
+                if (tab.key === 'support' && myRequests.length === 0 && !myRequestsLoading) loadMyRequests();
+              }}
               className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
                 activeSection === tab.key
                   ? 'bg-white shadow-sm text-neutral-900'
@@ -804,6 +848,136 @@ function MonComptePage() {
             </div>
           </div>
         )}
+        {/* ===== ONGLET MES DEMANDES ===== */}
+        {activeSection === 'support' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-neutral-900">Mes demandes de support</h2>
+                <button
+                  onClick={loadMyRequests}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {myRequestsLoading ? 'Chargement...' : 'Actualiser'}
+                </button>
+              </div>
+
+              {myRequests.length === 0 && !myRequestsLoading && (
+                <div className="text-center py-12 text-neutral-400">
+                  <svg className="w-12 h-12 mx-auto mb-3 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <p className="text-sm">Aucune demande de support pour le moment</p>
+                  <p className="text-xs mt-1">Utilisez le bouton Contact dans le menu pour nous contacter</p>
+                </div>
+              )}
+
+              {myRequests.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Liste des demandes */}
+                  <div className="md:col-span-1 space-y-2 max-h-[500px] overflow-y-auto">
+                    {myRequests.map((req: any) => {
+                      const hasAdminReply = req.messages?.some((m: any) => m.from === 'admin');
+                      return (
+                        <button
+                          key={req.id}
+                          onClick={() => setSelectedMyRequest(req)}
+                          className={`w-full text-left p-3 rounded-lg border transition-all ${
+                            selectedMyRequest?.id === req.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              req.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                              req.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {req.status === 'resolved' ? 'Résolu' : req.status === 'in_progress' ? 'En cours' : 'Nouveau'}
+                            </span>
+                            {hasAdminReply && (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
+                                Réponse
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-neutral-900 truncate">{req.subject}</p>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            {new Date(req.updated_at || req.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Détail / Chat */}
+                  <div className="md:col-span-2 border border-neutral-200 rounded-xl">
+                    {selectedMyRequest ? (
+                      <div className="flex flex-col h-[500px]">
+                        <div className="p-4 border-b border-neutral-200 bg-neutral-50 rounded-t-xl">
+                          <h3 className="font-semibold text-neutral-900">{selectedMyRequest.subject}</h3>
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold mt-1 ${
+                            selectedMyRequest.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                            selectedMyRequest.status === 'in_progress' ? 'bg-orange-100 text-orange-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {selectedMyRequest.status === 'resolved' ? 'Résolu' : selectedMyRequest.status === 'in_progress' ? 'En cours' : 'Nouveau'}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                          {(selectedMyRequest.messages || []).map((msg: any, i: number) => (
+                            <div key={i} className={`flex ${msg.from === 'admin' ? 'justify-start' : 'justify-end'}`}>
+                              <div className={`max-w-[80%] rounded-xl px-4 py-2.5 ${
+                                msg.from === 'admin'
+                                  ? 'bg-purple-50 border border-purple-200'
+                                  : 'bg-blue-50 border border-blue-200'
+                              }`}>
+                                <p className="text-xs font-semibold mb-1" style={{ color: msg.from === 'admin' ? '#7C3AED' : '#2563EB' }}>
+                                  {msg.from === 'admin' ? 'Keiro Support' : 'Vous'}
+                                </p>
+                                <p className="text-sm text-neutral-800 whitespace-pre-wrap">{msg.text}</p>
+                                <p className="text-[10px] text-neutral-400 mt-1">
+                                  {msg.at ? new Date(msg.at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {selectedMyRequest.status !== 'resolved' && (
+                          <div className="p-3 border-t border-neutral-200 flex gap-2">
+                            <input
+                              type="text"
+                              value={userReply}
+                              onChange={(e) => setUserReply(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleUserReply(selectedMyRequest.id)}
+                              placeholder="Votre réponse..."
+                              className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                              onClick={() => handleUserReply(selectedMyRequest.id)}
+                              disabled={userReplyLoading || !userReply.trim()}
+                              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+                            >
+                              {userReplyLoading ? '...' : 'Envoyer'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-48 text-neutral-400 text-sm">
+                        Sélectionnez une demande pour voir la conversation
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ===== ONGLET ADMIN: RETOURS CLIENTS ===== */}
         {activeSection === 'admin-feedback' && profile?.is_admin && (
           <div className="space-y-6">
