@@ -226,16 +226,16 @@ export async function redeemPromoCode(
     return { success: false, error: 'Ce code promo a atteint sa limite d\'utilisation' };
   }
 
-  // Vérifier si déjà utilisé par cet utilisateur
+  // Vérifier si l'utilisateur a déjà utilisé un code promo (1 seul code promo par utilisateur, tous codes confondus)
   const { data: existing } = await supabase
     .from('promo_code_redemptions')
     .select('id')
     .eq('user_id', userId)
-    .eq('promo_code_id', promoCode.id)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (existing) {
-    return { success: false, error: 'Vous avez déjà utilisé ce code promo' };
+    return { success: false, error: 'Vous avez déjà utilisé un code promo' };
   }
 
   // Ajouter les crédits
