@@ -407,6 +407,7 @@ export default function GeneratePage() {
   const editLimit = useEditLimit();
   const credits = useCredits();
   const feedback = useFeedbackPopup();
+  const [showWelcome, setShowWelcome] = useState(false);
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showEditEmailGate, setShowEditEmailGate] = useState(false);
@@ -416,6 +417,15 @@ export default function GeneratePage() {
   const [enrichmentProfile, setEnrichmentProfile] = useState<any>(null);
   const [enrichmentUserId, setEnrichmentUserId] = useState<string>('');
   const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
+
+  // Detect welcome param after email confirmation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('welcome') === 'true') {
+      setShowWelcome(true);
+      window.history.replaceState({}, '', '/generate');
+    }
+  }, []);
 
   /* --- Fetch actualités + tendances (1 seul appel au chargement, cache 24h) --- */
   useEffect(() => {
@@ -5196,6 +5206,27 @@ export default function GeneratePage() {
 
         <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
         <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
+
+        {/* Welcome popup after email confirmation */}
+        {showWelcome && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-in fade-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2">Confirmation réussie !</h2>
+              <p className="text-neutral-600 mb-6">Bienvenue sur KeiroAI. Votre compte est maintenant actif.</p>
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
+              >
+                Commencer
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { requestId, message } = await req.json();
+    const { requestId, message, image } = await req.json();
 
-    if (!requestId || !message) {
-      return NextResponse.json({ error: 'requestId and message are required' }, { status: 400 });
+    if (!requestId || (!message && !image)) {
+      return NextResponse.json({ error: 'requestId and message or image are required' }, { status: 400 });
     }
 
     // Verify the request belongs to this user
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       .update({
         messages: [
           ...currentMessages,
-          { from: 'user', text: message, at: new Date().toISOString() },
+          { from: 'user', text: message || '', at: new Date().toISOString(), ...(image ? { image } : {}) },
         ],
         updated_at: new Date().toISOString(),
       })

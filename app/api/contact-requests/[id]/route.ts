@@ -69,7 +69,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { message, status } = await req.json();
+    const { message, status, image } = await req.json();
 
     // Fetch current record to get existing messages
     const { data: existing, error: fetchError } = await supabaseAdmin
@@ -86,11 +86,11 @@ export async function PUT(
       updated_at: new Date().toISOString(),
     };
 
-    if (message) {
+    if (message || image) {
       const currentMessages = existing.messages || [];
       updates.messages = [
         ...currentMessages,
-        { from: 'admin', text: message, at: new Date().toISOString() },
+        { from: 'admin', text: message || '', at: new Date().toISOString(), ...(image ? { image } : {}) },
       ];
     }
 

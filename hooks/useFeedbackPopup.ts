@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 
 /**
  * Hook pour gérer l'affichage du popup feedback.
- * Apparaît après la 5e connexion, puis toutes les 10 connexions.
+ * Apparaît à chaque visite dès la 5e connexion.
+ * "Plus tard" cache seulement pour ce chargement de page.
  * Disparaît définitivement une fois le questionnaire rempli.
  */
 export function useFeedbackPopup() {
@@ -19,17 +20,10 @@ export function useFeedbackPopup() {
     const count = parseInt(localStorage.getItem('keiro_page_visits') || '0', 10) + 1;
     localStorage.setItem('keiro_page_visits', String(count));
 
-    // Afficher après la 5e visite, puis toutes les 10 visites
-    const shouldShow = count === 5 || (count > 5 && (count - 5) % 10 === 0);
-
-    // Vérifier qu'on ne l'a pas déjà montré dans cette session
-    const shownThisSession = sessionStorage.getItem('keiro_feedback_shown');
-
-    if (shouldShow && !shownThisSession) {
-      // Petit délai pour ne pas gêner le chargement
+    // Afficher à partir de la 5e visite, à CHAQUE visite
+    if (count >= 5) {
       const timer = setTimeout(() => {
         setShowPopup(true);
-        sessionStorage.setItem('keiro_feedback_shown', 'true');
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -41,6 +35,7 @@ export function useFeedbackPopup() {
   };
 
   const handleDismiss = () => {
+    // "Plus tard" cache seulement pour ce chargement de page
     setShowPopup(false);
   };
 

@@ -29,6 +29,7 @@ export default function Header() {
   const [disconnectingTikTok, setDisconnectingTikTok] = useState(false);
   const [disconnectingLinkedIn, setDisconnectingLinkedIn] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Charger l'utilisateur ET la session
@@ -104,6 +105,24 @@ export default function Header() {
 
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  // Poll for unread messages
+  useEffect(() => {
+    if (!user) return;
+    const checkUnread = async () => {
+      const lastRead = localStorage.getItem('keiro_support_last_read') || '1970-01-01T00:00:00Z';
+      try {
+        const res = await fetch(`/api/contact-requests/unread?since=${encodeURIComponent(lastRead)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch {}
+    };
+    checkUnread();
+    const interval = setInterval(checkUnread, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -275,6 +294,11 @@ export default function Header() {
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                     {profile.first_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                   {profile.instagram_username && (
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center border-2 border-white">
                       <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -333,7 +357,7 @@ export default function Header() {
 
                     {profile.is_admin && (
                       <Link
-                        href="/mon-compte?section=admin-feedback"
+                        href="/admin/retours-clients"
                         className="flex items-center gap-2 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 transition-colors font-medium"
                         onClick={() => setShowMenu(false)}
                       >

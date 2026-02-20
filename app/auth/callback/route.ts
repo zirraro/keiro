@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') || '/generate'
+  const next = url.searchParams.get('next') || '/generate?welcome=true'
 
   if (!code) {
     console.log('[Auth Callback] No code provided, redirecting to login')

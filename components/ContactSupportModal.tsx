@@ -54,7 +54,9 @@ export default function ContactSupportModal({
           setSubject('');
           setMessage('');
           setSent(false);
-        }, 3000);
+          // Redirect to support tab to show the message
+          window.location.href = '/mon-compte?section=support';
+        }, 2000);
       } else {
         throw new Error(data.error || 'Erreur lors de l\'envoi');
       }
