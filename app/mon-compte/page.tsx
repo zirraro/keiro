@@ -37,6 +37,7 @@ export default function MonComptePage() {
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [creditHistory, setCreditHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [customCredits, setCustomCredits] = useState(100);
 
   const supabase = useMemo(() => supabaseBrowser(), []);
 
@@ -106,6 +107,18 @@ export default function MonComptePage() {
       setLoading(false);
     }
   };
+
+  // Calcul prix unitaire dégressif (sliding scale basé sur les packs)
+  // 1-49cr: 0,30€/cr | 50-149cr: 0,30€/cr | 150-299cr: 0,27€/cr | 300+: 0,23€/cr
+  const getCustomCreditPrice = (qty: number): { total: number; perCredit: number } => {
+    let perCredit: number;
+    if (qty >= 300) perCredit = 0.23;
+    else if (qty >= 150) perCredit = 0.27;
+    else perCredit = 0.30;
+    return { total: Math.round(qty * perCredit * 100) / 100, perCredit };
+  };
+
+  const customPrice = getCustomCreditPrice(customCredits);
 
   const loadCreditHistory = async () => {
     setHistoryLoading(true);
@@ -470,30 +483,78 @@ export default function MonComptePage() {
               )}
             </div>
 
-            {/* Packs crédits */}
+            {/* Acheter des crédits */}
             <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
               <h2 className="text-lg font-semibold mb-4 text-neutral-900 flex items-center gap-2">
                 <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Packs de crédits
+                Acheter des crédits
               </h2>
-              <p className="text-sm text-neutral-500 mb-4">Besoin de plus de crédits ? Ajoutez un pack ponctuel.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <p className="text-sm text-neutral-500 mb-4">Besoin de plus de crédits ? Choisissez un pack ou définissez votre quantité.</p>
+
+              {/* Packs rapides */}
+              <div className="grid grid-cols-3 gap-3 mb-6">
                 {CREDIT_PACKS.map((pack) => (
-                  <div key={pack.id} className="p-4 border border-neutral-200 rounded-xl hover:border-purple-300 hover:shadow-sm transition-all">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-neutral-900">{pack.name}</h3>
-                      <span className="text-lg font-bold text-purple-600">{pack.priceLabel}</span>
-                    </div>
-                    <p className="text-sm text-neutral-600 mb-1">{pack.credits} crédits</p>
-                    <p className="text-xs text-neutral-400 mb-3">{pack.perCredit}/crédit</p>
-                    <button className="w-full py-2 text-sm bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium border border-purple-200">
-                      Acheter
-                    </button>
-                  </div>
+                  <button
+                    key={pack.id}
+                    onClick={() => setCustomCredits(pack.credits)}
+                    className={`p-3 border rounded-xl text-center transition-all ${
+                      customCredits === pack.credits
+                        ? 'border-purple-500 bg-purple-50 shadow-sm'
+                        : 'border-neutral-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="font-bold text-purple-600">{pack.credits} cr</div>
+                    <div className="text-xs text-neutral-500">{pack.priceLabel}</div>
+                  </button>
                 ))}
               </div>
+
+              {/* Achat libre */}
+              <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-neutral-700">Quantité personnalisée</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={10}
+                      max={5000}
+                      value={customCredits}
+                      onChange={(e) => setCustomCredits(Math.max(10, Math.min(5000, Number(e.target.value) || 10)))}
+                      className="w-20 text-center text-sm border border-neutral-300 rounded-lg px-2 py-1 font-bold"
+                    />
+                    <span className="text-sm text-neutral-500">crédits</span>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={1000}
+                  step={10}
+                  value={Math.min(customCredits, 1000)}
+                  onChange={(e) => setCustomCredits(Number(e.target.value))}
+                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-purple-600 mb-3"
+                />
+                <div className="flex items-center justify-between text-xs text-neutral-400 mb-4">
+                  <span>10</span>
+                  <div className="flex gap-4">
+                    <span className={customCredits >= 150 ? 'text-purple-500 font-medium' : ''}>150+ = 0,27€/cr</span>
+                    <span className={customCredits >= 300 ? 'text-purple-600 font-medium' : ''}>300+ = 0,23€/cr</span>
+                  </div>
+                  <span>1000</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-neutral-900">{customPrice.total.toFixed(2).replace('.', ',')}€</div>
+                    <div className="text-xs text-neutral-500">{customPrice.perCredit.toFixed(2).replace('.', ',')}€/crédit</div>
+                  </div>
+                  <button className="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all hover:shadow-lg">
+                    Acheter {customCredits} crédits
+                  </button>
+                </div>
+              </div>
+
               <p className="text-xs text-neutral-400 mt-3 italic">
-                Economisez avec un abonnement : Fondateurs = 660 crédits/mois pour 149EUR (0,23EUR/crédit)
+                Economisez avec un abonnement : Fondateurs = 660 crédits/mois pour 149€ (0,23€/crédit)
               </p>
             </div>
 
