@@ -17,7 +17,7 @@ export const AMOUNT_TO_PLAN: Record<number, string> = {
 
 // Mapping montant en centimes → pack crédits
 export const AMOUNT_TO_PACK: Record<number, number> = {
-  1900: 100,  // 19€ → 100 crédits
-  4900: 300,  // 49€ → 300 crédits (attention: même montant que Solo)
-  6900: 500,  // 69€ → 500 crédits
+  1499: 50,   // 14,99€ → 50 crédits
+  3999: 150,  // 39,99€ → 150 crédits
+  6999: 300,  // 69,99€ → 300 crédits
 };

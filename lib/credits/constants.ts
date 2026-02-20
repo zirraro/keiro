@@ -75,11 +75,12 @@ export const FREE_FEATURES = [
   'Conversion vidéo',
 ] as const;
 
-// Packs crédits à l'achat
+// Packs crédits à l'achat (plus cher que l'abonnement pour pousser vers l'abo)
+// Référence : Fondateurs = 660cr/149€ = 0,23€/cr
 export const CREDIT_PACKS = [
-  { id: 'starter', name: 'Starter', credits: 100, price: 19, priceLabel: '19€', perCredit: '0,19€' },
-  { id: 'pro', name: 'Pro', credits: 300, price: 49, priceLabel: '49€', perCredit: '0,16€' },
-  { id: 'expert', name: 'Expert', credits: 500, price: 69, priceLabel: '69€', perCredit: '0,14€' },
+  { id: 'starter', name: 'Starter', credits: 50, price: 14.99, priceLabel: '14,99€', perCredit: '0,30€' },
+  { id: 'pro', name: 'Pro', credits: 150, price: 39.99, priceLabel: '39,99€', perCredit: '0,27€' },
+  { id: 'expert', name: 'Expert', credits: 300, price: 69.99, priceLabel: '69,99€', perCredit: '0,23€' },
 ] as const;
 
 // Crédits offerts code promo (= Fondateurs)
