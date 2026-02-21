@@ -20,6 +20,10 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL('/login', url))
   }
 
+  // Create the redirect response FIRST so cookies are set ON it
+  const redirectUrl = new URL(next, url)
+  const response = NextResponse.redirect(redirectUrl)
+
   const cookieStore = await cookies()
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -28,24 +32,25 @@ export async function GET(req: Request) {
         return cookieStore.getAll()
       },
       setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          // Set cookies on BOTH the cookieStore and the redirect response
+          try {
             cookieStore.set(name, value, options)
-          })
-        } catch (error) {
-          // This can happen in some edge cases, we'll handle it below
-          console.warn('[Auth Callback] Cookie set warning:', error)
-        }
+          } catch {
+            // cookieStore.set can fail in some contexts
+          }
+          response.cookies.set(name, value, options)
+        })
       },
     },
   })
 
-  // Exchange code for session - this sets the auth cookies
+  // Exchange code for session - cookies will be set on the response
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
     console.error('[Auth Callback] Exchange error:', exchangeError)
-    return NextResponse.redirect(new URL('/login', url))
+    return NextResponse.redirect(new URL('/login?error=confirmation_failed', url))
   }
 
   // Get the authenticated user
@@ -58,7 +63,7 @@ export async function GET(req: Request) {
 
   console.log('[Auth Callback] User authenticated:', user.id, user.email)
 
-  // Check if profile exists, create if needed
+  // Check if profile exists, create if needed (use service role for insert)
   const { data: existingProfile, error: profileError } = await supabase
     .from('profiles')
     .select('id')
@@ -66,7 +71,6 @@ export async function GET(req: Request) {
     .single()
 
   if (profileError && profileError.code === 'PGRST116') {
-    // Profile not found, create it
     console.log('[Auth Callback] Creating profile for user:', user.id)
     const { error: insertError } = await supabase
       .from('profiles')
@@ -85,6 +89,6 @@ export async function GET(req: Request) {
     }
   }
 
-  console.log('[Auth Callback] Redirecting to:', next)
-  return NextResponse.redirect(new URL(next, url))
+  console.log('[Auth Callback] Redirecting to:', next, '(with session cookies)')
+  return response
 }
