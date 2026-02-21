@@ -467,7 +467,7 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
-            <a href="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
+            <a href="https://buy.stripe.com/14AdR80Mh7ex4Cu6cWbAs03" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
               Choisir Business
             </a>
             <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
@@ -495,9 +495,9 @@ export default function PricingPage() {
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Formation équipe (20 pers.)</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> SLA 99.9% garanti</li>
             </ul>
-            <Link href="/generate" className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
-              Contacter Elite
-            </Link>
+            <a href="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
+              Choisir Elite
+            </a>
           </div>
         </div>
 

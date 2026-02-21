@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'informatif', audioUrl, audioScript } = body;
+    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'informatif', audioUrl, audioScript, userKeywords } = body;
 
     console.log('[Suggest] Image URL:', imageUrl);
     console.log('[Suggest] Content angle:', contentAngle);
@@ -69,6 +69,9 @@ export async function POST(request: NextRequest) {
     // Ajouter contexte audio si disponible
     const audioContext = audioScript ? `\n\n🎙️ CONTEXTE AUDIO:\nUne narration audio accompagne ce post avec le script suivant:\n"${audioScript}"\n\nTiens compte de ce script audio dans ta suggestion pour créer une cohérence entre l'audio et le texte.` : '';
 
+    // Ajouter mots-clés utilisateur si fournis
+    const keywordsContext = userKeywords ? `\n\n🔑 MOTS-CLÉS / DIRECTION DU CLIENT:\nLe client souhaite orienter ce post autour de: "${userKeywords}"\nINTÈGRE ces mots-clés et cette direction dans la description ET les hashtags. C'est une priorité.` : '';
+
     const prompt = `Tu es un copywriter Instagram expert en conversion B2C. Ta mission : créer du contenu qui ATTIRE les clients vers ${business}.
 
 🎯 OBJECTIF CRITIQUE:
@@ -80,7 +83,7 @@ Le contenu doit donner ENVIE d'acheter, d'essayer, de découvrir, de contacter.
 - Sujet: ${title}
 - Catégorie: ${category}
 - ANGLE: ${contentAngle.toUpperCase()}
-  ${angleInstruction}${audioContext}
+  ${angleInstruction}${audioContext}${keywordsContext}
 
 🖼️ ANALYSE DE L'IMAGE:
 1. Regarde VRAIMENT l'image - couleurs, ambiance, éléments visuels

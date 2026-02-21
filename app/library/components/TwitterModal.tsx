@@ -55,6 +55,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   const [loadingVideos, setLoadingVideos] = useState(false);
 
   const [contentAngle, setContentAngle] = useState('viral');
+  const [userKeywords, setUserKeywords] = useState('');
 
   // Character count including hashtags
   const hashtagsText = hashtags.length > 0 ? ' ' + hashtags.join(' ') : '';
@@ -196,6 +197,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           platform: 'twitter',
           maxLength: 280
         })
@@ -437,6 +439,21 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   <option value="conversationnel">💬 Conversationnel - Engager un échange</option>
                   <option value="inspirant">✨ Inspirant - Motiver</option>
                 </select>
+              </div>
+
+              {/* Mots-clés optionnels */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: breaking news, opinion, thread..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Suggest */}

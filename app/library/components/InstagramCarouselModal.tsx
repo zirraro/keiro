@@ -37,6 +37,7 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
+  const [userKeywords, setUserKeywords] = useState('');
   const [suggesting, setSuggesting] = useState(false);
 
   // Vérifier si l'utilisateur a connecté son compte Instagram
@@ -152,6 +153,7 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
           newsTitle: selectedImages[0].news_title,
           newsCategory: selectedImages[0].news_category,
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           isCarousel: true,
           imageCount: selectedImages.length
         })
@@ -371,6 +373,21 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
                   <option value="educatif">🎓 Éducatif</option>
                   <option value="provocateur">🔥 Provocateur</option>
                 </select>
+              </div>
+
+              {/* Mots-clés optionnels */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: promo été, lancement produit, témoignage client..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Bouton suggérer IA */}

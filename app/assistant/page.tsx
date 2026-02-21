@@ -104,7 +104,7 @@ export default function AssistantPage() {
                 👋 Bonjour {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'à vous'} !
               </h1>
               <p className="text-sm md:text-base text-neutral-600 mb-4">
-                Voici votre tableau de bord marketing IA personnalisé
+                Voici votre tableau de bord marketing personnalisé !
               </p>
 
               {/* Stats résumé */}
@@ -130,11 +130,11 @@ export default function AssistantPage() {
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Top catégorie</div>
-                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">{stats.topCategory}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">meilleure performance</div>
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Contenus publiés</div>
+                  <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.totalPosts}</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">posts au total</div>
                   <div className="text-xs text-blue-700 font-medium">
-                    {stats.totalPosts} posts au total
+                    Thème fort : {stats.topCategory}
                   </div>
                 </div>
 

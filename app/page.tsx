@@ -911,7 +911,7 @@ export default function HomeKeiro() {
                 'Workflow validation + Reporting PDF'
               ]}
               ctaLabel="Choisir Business"
-              ctaHref="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04"
+              ctaHref="https://buy.stripe.com/14AdR80Mh7ex4Cu6cWbAs03"
             />
           </div>
 
@@ -959,10 +959,12 @@ export default function HomeKeiro() {
                 </li>
               </ul>
               <a
-                href="/generate"
+                href="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
               >
-                Contacter l'équipe Elite
+                Choisir Elite
               </a>
             </div>
           </div>

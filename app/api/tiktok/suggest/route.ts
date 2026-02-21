@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'viral', audioUrl, audioScript } = body;
+    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'viral', audioUrl, audioScript, userKeywords } = body;
 
     console.log('[TikTok Suggest] Image URL:', imageUrl);
     console.log('[TikTok Suggest] Content angle:', contentAngle);
@@ -66,6 +66,9 @@ export async function POST(request: NextRequest) {
     // Ajouter contexte audio si disponible
     const audioContext = audioScript ? `\n\n🎙️ CONTEXTE AUDIO:\nUne narration audio accompagne cette vidéo avec le script suivant:\n"${audioScript}"\n\nTiens compte de ce script audio dans ta suggestion pour créer une cohérence entre l'audio et le texte.` : '';
 
+    // Ajouter mots-clés utilisateur si fournis
+    const keywordsContext = userKeywords ? `\n\n🔑 MOTS-CLÉS / DIRECTION DU CLIENT:\nLe client souhaite orienter cette vidéo autour de: "${userKeywords}"\nINTÈGRE ces mots-clés et cette direction dans la description ET les hashtags. C'est une priorité.` : '';
+
     const prompt = `Tu es un expert TikTok spécialisé dans les vidéos virales. Ta mission : créer du contenu qui EXPLOSE sur TikTok et attire des clients vers ${business}.
 
 🎯 OBJECTIF CRITIQUE:
@@ -77,7 +80,7 @@ Sur TikTok, les 3 premières secondes sont TOUT.
 - Sujet: ${title}
 - Catégorie: ${category}
 - ANGLE: ${contentAngle.toUpperCase()}
-  ${angleInstruction}${audioContext}
+  ${angleInstruction}${audioContext}${keywordsContext}
 
 🖼️ ANALYSE DE L'IMAGE:
 1. Repère ce qui attire l'œil IMMÉDIATEMENT

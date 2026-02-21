@@ -144,6 +144,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('viral');
+  const [userKeywords, setUserKeywords] = useState('');
 
   // Pré-remplir caption et hashtags depuis le brouillon
   useEffect(() => {
@@ -404,6 +405,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           audioUrl: narrationAudioUrl, // Include audio for context
           audioScript: narrationScript // Include audio script for context
         })
@@ -1325,6 +1327,21 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </select>
               </div>
 
+              {/* Mots-clés optionnels pour orienter la suggestion */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: tendance, behind the scenes, astuce rapide..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+              </div>
+
               {/* Bouton suggérer IA */}
               <div>
                 <button
@@ -1738,32 +1755,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
         {/* FOOTER - Boutons action */}
         <div className="border-t p-4 sm:p-6 bg-neutral-50">
-          {/* Statut de connexion TikTok */}
-          {!checkingConnection && (
-            <div className="mb-4">
-              {isTikTokConnected ? (
-                <div className="flex items-center justify-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Connecté à TikTok : <strong>@{tiktokUsername}</strong></span>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200 mb-3">
-                    ⚠️ Connectez votre compte TikTok pour publier automatiquement
-                  </p>
-                  <button
-                    onClick={handleConnectTikTok}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-                    </svg>
-                    <span>Connecter TikTok</span>
-                  </button>
-                </div>
-              )}
+          {/* Statut de connexion TikTok (discret) */}
+          {!checkingConnection && isTikTokConnected && (
+            <div className="mb-3">
+              <div className="flex items-center justify-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg py-2 px-3 border border-green-200">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Connecté : <strong>@{tiktokUsername}</strong></span>
+              </div>
             </div>
           )}
 

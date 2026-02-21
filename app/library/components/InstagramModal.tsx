@@ -78,6 +78,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('informatif');
+  const [userKeywords, setUserKeywords] = useState('');
 
   // États pour la narration audio TTS
   const [narrationScript, setNarrationScript] = useState('');
@@ -377,6 +378,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           audioUrl: narrationAudioUrl, // Include audio for AI context
           audioScript: narrationScript // Include audio script for AI context
         })
@@ -961,6 +963,21 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 </select>
               </div>
 
+              {/* Mots-clés optionnels pour orienter la suggestion */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: promo été, lancement produit, témoignage client..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+              </div>
+
               {/* Bouton Suggérer IA */}
               <button
                 onClick={handleSuggest}
@@ -1391,30 +1408,15 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
         {/* FOOTER - Boutons action */}
         <div className="border-t p-4 sm:p-6 bg-neutral-50">
-          {/* Statut de connexion Instagram */}
-          {!checkingConnection && (
-            <div className="mb-4">
-              {isInstagramConnected ? (
-                <div className="flex items-center justify-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Connecté à Instagram : <strong>@{instagramUsername}</strong></span>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 border border-amber-200 mb-3">
-                    ⚠️ Connectez votre compte Instagram Business pour publier automatiquement
-                  </p>
-                  <button
-                    onClick={handleConnectInstagram}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
-                  >
-                    <InstagramIcon className="w-5 h-5" />
-                    <span>Connecter Instagram</span>
-                  </button>
-                </div>
-              )}
+          {/* Statut de connexion Instagram (discret) */}
+          {!checkingConnection && isInstagramConnected && (
+            <div className="mb-3">
+              <div className="flex items-center justify-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg py-2 px-3 border border-green-200">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Connecté : <strong>@{instagramUsername}</strong></span>
+              </div>
             </div>
           )}
 

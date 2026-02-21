@@ -58,6 +58,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
   const [loadingVideos, setLoadingVideos] = useState(false);
 
   const [contentAngle, setContentAngle] = useState('professionnel');
+  const [userKeywords, setUserKeywords] = useState('');
 
   useEffect(() => {
     if (draftCaption !== undefined) setCaption(draftCaption);
@@ -194,6 +195,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
           newsTitle: selectedImage?.news_title || contentTitle,
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           platform: 'linkedin'
         })
       });
@@ -468,6 +470,21 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   <option value="inspirant">✨ Inspirant - Motiver votre réseau</option>
                   <option value="engagement">💬 Engagement - Lancer un débat</option>
                 </select>
+              </div>
+
+              {/* Mots-clés optionnels pour orienter la suggestion */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: leadership, recrutement, innovation tech..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#0077B5] focus:border-transparent text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Suggest button */}

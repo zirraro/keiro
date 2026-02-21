@@ -37,6 +37,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('viral');
+  const [userKeywords, setUserKeywords] = useState('');
   const [suggesting, setSuggesting] = useState(false);
 
   // États pour la prévisualisation vidéo
@@ -158,6 +159,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
           newsTitle: selectedImages[0].news_title,
           newsCategory: selectedImages[0].news_category,
           contentAngle: contentAngle,
+          userKeywords: userKeywords.trim() || undefined,
           isCarousel: true,
           imageCount: selectedImages.length
         })
@@ -536,6 +538,21 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                   <option value="inspirant">✨ Inspirant</option>
                   <option value="educatif">🎓 Éducatif</option>
                 </select>
+              </div>
+
+              {/* Mots-clés optionnels */}
+              <div>
+                <label className="block text-sm font-semibold text-neutral-900 mb-1">
+                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={userKeywords}
+                  onChange={(e) => setUserKeywords(e.target.value)}
+                  placeholder="Ex: tendance, behind the scenes, astuce rapide..."
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Bouton suggérer IA */}

@@ -2275,43 +2275,81 @@ export default function GeneratePage() {
               <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
                 {!credits.loading && credits.plan ? (
                   (() => {
-                    const pct = credits.monthlyAllowance > 0 ? Math.min(100, (credits.balance / credits.monthlyAllowance) * 100) : 0;
-                    const getColor = () => pct <= 15 ? 'bg-gradient-to-r from-red-400 to-red-500' : pct <= 35 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-emerald-500';
-                    const getTextColor = () => pct <= 15 ? 'text-red-600' : pct <= 35 ? 'text-amber-600' : 'text-green-600';
-                    const getLabel = () => pct <= 15 ? 'Critique' : pct <= 35 ? 'Modéré' : pct <= 60 ? 'Confortable' : 'Optimal';
+                    const bal = credits.balance;
+                    const total = credits.monthlyAllowance;
+                    const usedPct = total > 0 ? Math.round(((total - bal) / total) * 100) : 0;
+
+                    // Niveaux d'usage par feature : combien on peut encore en faire
+                    const features = [
+                      { label: 'Images', icon: '🖼️', cost: 5, remaining: Math.floor(bal / 5) },
+                      { label: 'Vidéos', icon: '🎬', cost: 25, remaining: Math.floor(bal / 25) },
+                      { label: 'Audio / IA', icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
+                    ];
+
+                    const getIntensity = (remaining: number, cost: number) => {
+                      const maxPossible = total > 0 ? Math.floor(total / cost) : 0;
+                      if (maxPossible === 0) return { label: '—', color: 'text-neutral-400', bg: 'bg-neutral-100' };
+                      const usedRatio = maxPossible > 0 ? 1 - (remaining / maxPossible) : 1;
+                      if (usedRatio < 0.4) return { label: 'Léger', color: 'text-green-700', bg: 'bg-green-100' };
+                      if (usedRatio < 0.75) return { label: 'Moyen', color: 'text-amber-700', bg: 'bg-amber-100' };
+                      return { label: 'Intensif', color: 'text-red-700', bg: 'bg-red-100' };
+                    };
+
+                    const hasIntensive = features.some(f => {
+                      const maxP = total > 0 ? Math.floor(total / f.cost) : 0;
+                      return maxP > 0 && (1 - f.remaining / maxP) >= 0.75;
+                    });
+
                     return (
                       <div>
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Vos crédits</span>
+                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Votre usage</span>
                           <span className="text-[10px] text-neutral-400 capitalize">
                             {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`text-2xl font-bold ${getTextColor()}`}>{credits.balance}</div>
-                          {credits.monthlyAllowance > 0 && (
-                            <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} ce mois</span>
-                          )}
+
+                        <div className="space-y-2">
+                          {features.map((f) => {
+                            const intensity = getIntensity(f.remaining, f.cost);
+                            return (
+                              <div key={f.label} className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm">{f.icon}</span>
+                                  <span className="text-xs text-neutral-700 font-medium">{f.label}</span>
+                                </div>
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${intensity.bg} ${intensity.color}`}>
+                                  {intensity.label}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-neutral-200 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full transition-all ${getColor()}`} style={{ width: `${Math.max(2, pct)}%` }} />
+
+                        {/* Barre globale discrète */}
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className="flex-1 bg-neutral-200 rounded-full h-1">
+                            <div
+                              className={`h-1 rounded-full transition-all ${usedPct >= 75 ? 'bg-red-400' : usedPct >= 40 ? 'bg-amber-400' : 'bg-green-400'}`}
+                              style={{ width: `${Math.min(100, Math.max(2, usedPct))}%` }}
+                            />
                           </div>
-                          <span className={`text-[9px] font-medium shrink-0 ${getTextColor()}`}>{getLabel()}</span>
+                          <span className="text-[9px] text-neutral-400">{usedPct}%</span>
                         </div>
-                        <div className="flex items-center justify-between mt-2 text-[10px] text-neutral-400">
-                          <span>1 image = 5 cr | 1 vidéo = 25 cr</span>
-                        </div>
-                        {pct <= 20 && (
-                          <p className="text-[10px] text-neutral-500 mt-2 text-center">
-                            <button onClick={() => router.push('/pricing')} className="text-purple-600 underline hover:text-purple-700">Acheter des crédits</button>
-                          </p>
+
+                        {hasIntensive && (
+                          <button
+                            onClick={() => router.push('/pricing')}
+                            className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                          >
+                            Débloquer plus de crédits
+                          </button>
                         )}
                       </div>
                     );
                   })()
                 ) : (
-                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir vos crédits</p>
+                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir votre usage</p>
                 )}
               </div>
 
@@ -2324,12 +2362,12 @@ export default function GeneratePage() {
                   <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
                 </div>
 
-                {/* Widget 3 : Trending réseaux sociaux (données réelles Google Trends + TikTok) */}
+                {/* Widget 3 : Trending réseaux sociaux */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xl">🔥</span>
-                    <h4 className="text-sm font-bold text-green-900">Tendances réseaux sociaux</h4>
-                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">Google Trends + TikTok</span>}
+                    <h4 className="text-sm font-bold text-green-900">Sujets tendance à exploiter</h4>
+                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">Mis à jour aujourd'hui</span>}
                   </div>
                   {trendingNews.length > 0 ? (
                     <div className="space-y-2">
@@ -2383,14 +2421,14 @@ export default function GeneratePage() {
                       </div>
                     </div>
                   )}
-                  {/* Google Trends du jour */}
+                  {/* Sujets viraux à surfer */}
                   {trendingData?.googleTrends && trendingData.googleTrends.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-green-200">
-                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Recherches populaires France</p>
+                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Buzz du moment — surfez dessus !</p>
                       <div className="flex flex-wrap gap-1">
                         {trendingData.googleTrends.slice(0, 6).map((t: any, i: number) => (
                           <span key={i} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
-                            🔍 {t.title} {t.traffic && <span className="text-green-500">({t.traffic})</span>}
+                            🔥 {t.title} {t.traffic && <span className="text-green-500">({t.traffic})</span>}
                           </span>
                         ))}
                       </div>

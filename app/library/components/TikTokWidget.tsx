@@ -14,6 +14,7 @@ interface TikTokWidgetProps {
 export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = false, onToggleCollapse, refreshTrigger }: TikTokWidgetProps) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [hasAccount, setHasAccount] = useState(false);
   const [tiktokUsername, setTiktokUsername] = useState<string | null>(null);
   const [stats, setStats] = useState<{
     totalVideos: number;
@@ -98,9 +99,11 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
+        setHasAccount(false);
         setLoading(false);
         return;
       }
+      setHasAccount(true);
 
       console.log('[TikTokWidget] Loading TikTok status for user:', user.id);
 
@@ -221,13 +224,15 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
             </svg>
             <p className="text-sm text-neutral-600 mb-3">
-              Connectez votre TikTok pour publier automatiquement
+              {hasAccount
+                ? 'Connectez votre TikTok pour publier automatiquement'
+                : 'Créez un compte pour connecter TikTok'}
             </p>
             <button
-              onClick={onConnect}
+              onClick={hasAccount ? onConnect : () => window.location.href = '/login'}
               className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
             >
-              Connecter TikTok
+              {hasAccount ? 'Connecter TikTok' : 'Créer un compte'}
             </button>
           </div>
         )}
