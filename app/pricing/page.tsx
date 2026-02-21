@@ -375,10 +375,10 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>220 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos + IA</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos sans watermark</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 messages Assistant IA</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> 10 suggestions texte IA</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram Post</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram + LinkedIn</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
@@ -419,9 +419,9 @@ export default function PricingPage() {
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Images + vidéos + IA illimité</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Images + vidéos illimité</strong></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
-              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok</strong> 🎵 (Croissance virale 10x)</span></li>
+              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + LinkedIn + TikTok</strong> 🎵</span></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> 20 suggestions texte + 15 narrations audio</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics Instagram & TikTok</li>
@@ -459,7 +459,7 @@ export default function PricingPage() {
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>1 750 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Images + vidéos + IA en volume</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Tout Fondateurs + volume x3</strong></li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> 100 messages Assistant IA</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
@@ -487,7 +487,7 @@ export default function PricingPage() {
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>5 500 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Volume massif images + vidéos + IA</li>
+              <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business + volume x3</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> 2h/mois consulting stratégique</li>
@@ -527,7 +527,7 @@ export default function PricingPage() {
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Suggestion IA</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Audio narration</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Assistant marketing</p></div>
-            <div className="p-3 bg-red-50 rounded-lg"><p className="font-bold text-red-700">100 cr</p><p className="text-xs text-neutral-600">Vidéo 30s</p></div>
+            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">50 cr</p><p className="text-xs text-neutral-600">Vidéo 15s</p></div>
           </div>
         </div>
 
@@ -578,6 +578,14 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>Post + Story</strong></td>
                   <td className="text-center py-3 px-2">Post + Story</td>
                   <td className="text-center py-3 px-2">Post + Story</td>
+                </tr>
+                <tr className="border-b bg-blue-50/50">
+                  <td className="py-3 px-2 font-medium">LinkedIn</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓ Post</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-blue-600">✓ Post</strong></td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Assistant IA</td>

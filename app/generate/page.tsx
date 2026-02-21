@@ -407,6 +407,7 @@ export default function GeneratePage() {
   const editLimit = useEditLimit();
   const credits = useCredits();
   const feedback = useFeedbackPopup();
+  const [sprintTick, setSprintTick] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
@@ -460,6 +461,13 @@ export default function GeneratePage() {
       console.error('[Trends] fetch error', e);
     }
   }
+
+  /* --- Sprint countdown timer (refresh every 60s) --- */
+  useEffect(() => {
+    if (credits.plan !== 'sprint') return;
+    const interval = setInterval(() => setSprintTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, [credits.plan]);
 
   /* --- Vérifier si l'utilisateur est connecté pour débloquer les limites --- */
   useEffect(() => {
@@ -2271,6 +2279,45 @@ export default function GeneratePage() {
 
             {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
             <div className="space-y-3 mt-6">
+              {/* Widget Sprint Countdown */}
+              {!credits.loading && credits.plan === 'sprint' && credits.resetAt && (() => {
+                void sprintTick; // force re-render on tick
+                const sprintEnd = new Date(credits.resetAt).getTime() + 3 * 24 * 60 * 60 * 1000;
+                const now = Date.now();
+                const remaining = Math.max(0, sprintEnd - now);
+                const totalMs = 3 * 24 * 60 * 60 * 1000;
+                const pct = Math.round((remaining / totalMs) * 100);
+                const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+                const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+                return (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">⏱️</span>
+                      <span className="text-xs font-bold text-amber-900">Sprint Fondateur</span>
+                    </div>
+                    <p className="text-sm font-bold text-amber-800 mb-2">
+                      {remaining > 0 ? `Il vous reste ${days}j ${hours}h ${mins}min` : 'Sprint terminé !'}
+                    </p>
+                    <div className="w-full bg-amber-200 rounded-full h-2 mb-3">
+                      <div
+                        className={`h-2 rounded-full transition-all ${pct > 30 ? 'bg-amber-500' : 'bg-red-500'}`}
+                        style={{ width: `${Math.max(2, pct)}%` }}
+                      />
+                    </div>
+                    <a
+                      href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2 text-center text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:shadow-lg transition-all"
+                    >
+                      Passer Fondateurs (149€/mois)
+                    </a>
+                    <p className="text-[9px] text-amber-700 text-center mt-1.5">4,99€ déduits du premier mois</p>
+                  </div>
+                );
+              })()}
+
               {/* Widget 1 : Crédits */}
               <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
                 {!credits.loading && credits.plan ? (
@@ -2344,6 +2391,18 @@ export default function GeneratePage() {
                           >
                             Débloquer plus de crédits
                           </button>
+                        )}
+
+                        {/* CTA Solo → Fondateurs */}
+                        {credits.plan === 'solo' && (
+                          <a
+                            href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                          >
+                            TikTok + LinkedIn + plus de crédits ? Fondateurs →
+                          </a>
                         )}
                       </div>
                     );

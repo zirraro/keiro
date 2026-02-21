@@ -870,8 +870,8 @@ export default function HomeKeiro() {
               bullets={[
                 '220 crédits/mois',
                 '~44 images ou 8 vidéos 5s',
-                'Images + vidéos + IA',
-                'Instagram Post',
+                'Images + vidéos sans watermark',
+                'Instagram + LinkedIn Post',
                 'Toutes catégories actualités',
                 'Calendrier publications'
               ]}
@@ -888,7 +888,7 @@ export default function HomeKeiro() {
               bullets={[
                 '660 crédits/mois',
                 '~132 images ou 26 vidéos 5s',
-                'Instagram + TikTok débloqué',
+                'Instagram + LinkedIn + TikTok',
                 'Assistant IA Marketing',
                 'Suggestions texte + narrations audio',
                 'Analytics Instagram & TikTok',
@@ -914,6 +914,10 @@ export default function HomeKeiro() {
               ctaHref="https://buy.stripe.com/14AdR80Mh7ex4Cu6cWbAs03"
             />
           </div>
+
+          <p className="text-center text-xs text-neutral-500 mb-6">
+            *Fondateurs : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois
+          </p>
 
           {/* Elite Plan - Séparé */}
           <div className="max-w-4xl mx-auto relative">
