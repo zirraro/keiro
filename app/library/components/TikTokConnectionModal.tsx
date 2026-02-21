@@ -13,8 +13,8 @@ export default function TikTokConnectionModal({ isOpen, onClose }: TikTokConnect
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
         {/* Header compact */}
         <div className="px-5 py-4 border-b border-neutral-200">
           <div className="flex items-center justify-between">

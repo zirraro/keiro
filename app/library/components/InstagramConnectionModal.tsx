@@ -17,13 +17,13 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slideUp">
-        {/* Header compact */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="relative bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700 px-5 py-5 text-white rounded-t-2xl">
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors z-10"
             aria-label="Fermer"
           >
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -39,44 +39,56 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
             </div>
             <div>
               <h2 className="text-xl font-bold">Connecter Instagram</h2>
-              <p className="text-white/90 text-xs">Configuration Meta Business API</p>
+              <p className="text-white/90 text-xs">Publiez directement sur votre profil</p>
             </div>
           </div>
         </div>
 
-        {/* Content compact */}
+        {/* Content */}
         <div className="px-5 py-4 space-y-3">
-          <p className="text-sm text-neutral-700 leading-relaxed">
-            Pour publier automatiquement sur Instagram, connectez votre compte professionnel via <strong>Meta Business Suite</strong> (10-15 min).
-          </p>
-
-          {/* Prérequis inline */}
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <h3 className="font-bold text-neutral-900 text-sm mb-2">Prérequis</h3>
-            <div className="grid grid-cols-3 gap-2 text-xs text-neutral-700">
-              <div className="text-center">
-                <span className="text-blue-600 font-bold block">1.</span>
-                <strong>Compte Instagram Pro</strong>
+          {/* Pourquoi connecter */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3 border border-purple-200">
+            <h3 className="text-sm font-semibold text-neutral-900 mb-2">Pourquoi connecter Instagram ?</h3>
+            <div className="grid grid-cols-2 gap-1.5 text-xs text-neutral-700">
+              <div className="flex items-start gap-1.5">
+                <span className="text-purple-600 font-bold">✓</span>
+                <span><strong>Publication directe</strong> en un clic</span>
               </div>
-              <div className="text-center">
-                <span className="text-blue-600 font-bold block">2.</span>
-                <strong>Page Facebook Business</strong>
+              <div className="flex items-start gap-1.5">
+                <span className="text-purple-600 font-bold">✓</span>
+                <span><strong>Images et vidéos</strong> supportées</span>
               </div>
-              <div className="text-center">
-                <span className="text-blue-600 font-bold block">3.</span>
-                <strong>Meta Business Suite</strong>
+              <div className="flex items-start gap-1.5">
+                <span className="text-purple-600 font-bold">✓</span>
+                <span><strong>Brouillons</strong> intelligents</span>
+              </div>
+              <div className="flex items-start gap-1.5">
+                <span className="text-purple-600 font-bold">✓</span>
+                <span><strong>Gain de temps</strong> plus de copier-coller</span>
               </div>
             </div>
           </div>
 
-          {/* Note */}
-          <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-            <p className="text-xs text-neutral-700">
-              <strong>Sans configuration Meta :</strong> vous pouvez toujours préparer vos posts et les publier manuellement via l'app Instagram.
-            </p>
+          {/* Ce dont vous avez besoin */}
+          <div className="border border-neutral-200 rounded-lg p-3">
+            <h3 className="text-sm font-semibold text-neutral-900 mb-2">Ce dont vous avez besoin</h3>
+            <div className="flex gap-4 text-xs text-neutral-700">
+              <div className="flex items-center gap-1.5">
+                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">1</span>
+                <span>Compte Instagram Pro</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">2</span>
+                <span>Page Facebook liée</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">3</span>
+                <span>Meta Business Suite</span>
+              </div>
+            </div>
           </div>
 
-          {/* CTAs compacts */}
+          {/* CTAs */}
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={openMetaGuide}
@@ -103,16 +115,10 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
               </div>
             </button>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-5 py-3 bg-neutral-50 border-t border-neutral-200 flex justify-end rounded-b-2xl">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-lg bg-white border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-100 transition-colors text-sm"
-          >
-            Fermer
-          </button>
+          <p className="text-[10px] text-center text-neutral-500">
+            Sans configuration Meta, vous pouvez toujours préparer vos posts et les publier manuellement.
+          </p>
         </div>
       </div>
     </div>
