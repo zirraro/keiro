@@ -425,6 +425,9 @@ export default function GeneratePage() {
     if (params.get('welcome') === 'true') {
       setShowWelcome(true);
       window.history.replaceState({}, '', '/generate');
+      // Auto-dismiss after 10s
+      const timer = setTimeout(() => setShowWelcome(false), 10000);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -5304,17 +5307,25 @@ export default function GeneratePage() {
         <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
         <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
 
-        {/* Welcome popup after email confirmation */}
+        {/* Welcome popup after email confirmation - auto-dismiss 10s */}
         {showWelcome && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-in fade-in zoom-in duration-300">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowWelcome(false)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-in fade-in zoom-in duration-300 relative">
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center transition-colors"
+              >
+                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
               <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">Confirmation réussie !</h2>
-              <p className="text-neutral-600 mb-6">Bienvenue sur KeiroAI. Votre compte est maintenant actif.</p>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2">Bienvenue sur KeiroAI !</h2>
+              <p className="text-neutral-600 mb-6">Votre compte est confirmé et actif. Créez votre premier contenu.</p>
               <button
                 onClick={() => setShowWelcome(false)}
                 className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"

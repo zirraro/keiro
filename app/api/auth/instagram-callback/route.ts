@@ -1,81 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { getUserPages, getPageInstagramAccount } from '@/lib/meta';
-
-/**
- * Helper: Extract access token from Supabase cookies
- */
-async function getAccessTokenFromCookies(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll();
-
-  for (const cookie of allCookies) {
-    if (cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')) {
-      try {
-        let cookieValue = cookie.value;
-
-        if (cookieValue.startsWith('base64-')) {
-          const base64Content = cookieValue.substring(7);
-          cookieValue = Buffer.from(base64Content, 'base64').toString('utf-8');
-        }
-
-        const parsed = JSON.parse(cookieValue);
-        return parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
-      } catch (err) {
-        console.error('[InstagramCallback] Error processing cookie:', err);
-      }
-    }
-  }
-
-  return cookieStore.get('sb-access-token')?.value ||
-         cookieStore.get('supabase-auth-token')?.value ||
-         null;
-}
 
 /**
  * POST /api/auth/instagram-callback
  * Échange le code OAuth contre un token d'accès et sauvegarde les infos Instagram
+ * Utilise le userId passé depuis le state parameter (fiable après redirect externe)
  */
 export async function POST(req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur connecté
-    let accessToken = await getAccessTokenFromCookies();
-
-    if (!accessToken) {
-      const authHeader = req.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        accessToken = authHeader.substring(7);
-      }
-    }
-
-    if (!accessToken) {
-      return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
-      );
-    }
-
-    // Récupérer le code d'autorisation
-    const { code } = await req.json();
+    // Récupérer le code et userId depuis le body
+    const { code, userId } = await req.json();
 
     if (!code) {
       return NextResponse.json(
         { ok: false, error: 'Code d\'autorisation manquant' },
         { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: 'Session expirée. Veuillez vous reconnecter et réessayer.' },
+        { status: 401 }
+      );
+    }
+
+    // Vérifier que l'utilisateur existe dans la base
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { ok: false, error: 'Utilisateur introuvable. Veuillez vous reconnecter.' },
+        { status: 401 }
       );
     }
 
@@ -91,7 +56,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[InstagramCallback] Exchanging code for access token...');
+    console.log('[InstagramCallback] Exchanging code for access token for user:', userId);
 
     // Étape 1: Échanger le code contre un access token
     const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${metaAppId}&redirect_uri=${redirectUri}&client_secret=${metaAppSecret}&code=${code}`;
@@ -129,7 +94,6 @@ export async function POST(req: NextRequest) {
 
     for (const page of pages) {
       try {
-        // Vérifier que la page a un access_token avant de continuer
         if (!page.access_token) {
           console.log(`[InstagramCallback] Page ${page.id} has no access_token`);
           continue;
@@ -155,21 +119,21 @@ export async function POST(req: NextRequest) {
 
     console.log('[InstagramCallback] Instagram Business Account found:', instagramAccount.id);
 
-    // Étape 4: Sauvegarder les informations dans Supabase
+    // Étape 4: Sauvegarder les informations dans Supabase (avec service role key)
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        meta_app_user_id: user.id, // Utiliser l'ID utilisateur Supabase
+        meta_app_user_id: userId,
         instagram_business_account_id: instagramAccount.id,
         instagram_username: instagramAccount.username,
-        instagram_access_token: selectedPage.access_token, // Token de la Page (long-lived)
+        instagram_access_token: selectedPage.access_token,
         facebook_page_id: selectedPage.id,
         facebook_page_access_token: selectedPage.access_token,
         instagram_connected_at: new Date().toISOString(),
         instagram_last_sync_at: new Date().toISOString(),
-        instagram_token_expiry: null // Les tokens de Page ne expirent généralement pas
+        instagram_token_expiry: null
       })
-      .eq('id', user.id);
+      .eq('id', userId);
 
     if (updateError) {
       console.error('[InstagramCallback] Error saving to database:', updateError);
@@ -179,7 +143,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('[InstagramCallback] ✅ Instagram account connected successfully');
+    console.log('[InstagramCallback] Instagram account connected successfully for user:', userId);
 
     return NextResponse.json({
       ok: true,
@@ -190,7 +154,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('[InstagramCallback] ❌ Unexpected error:', error);
+    console.error('[InstagramCallback] Unexpected error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Erreur serveur' },
       { status: 500 }

@@ -33,11 +33,29 @@ function InstagramCallbackContent() {
           return;
         }
 
-        // Ensure Supabase session is still active after external redirect
+        // Extract userId from state parameter (set during OAuth initiation)
+        const stateParam = searchParams.get('state');
+        let userId: string | null = null;
+        if (stateParam) {
+          try {
+            const decoded = JSON.parse(atob(stateParam));
+            userId = decoded.userId;
+          } catch (e) {
+            console.warn('[InstagramCallback] Could not decode state:', e);
+          }
+        }
+
+        // Also try to restore Supabase session
         const supabase = supabaseBrowser();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           await supabase.auth.refreshSession();
+        }
+
+        // If no userId from state, try from session
+        if (!userId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          userId = user?.id || null;
         }
 
         setMessage('Échange du code d\'autorisation...');
@@ -46,7 +64,7 @@ function InstagramCallbackContent() {
         const response = await fetch('/api/auth/instagram-callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code, userId })
         });
 
         const data = await response.json();

@@ -316,28 +316,23 @@ export default function AdminRetoursClientsPage() {
               <>
                 <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
                   <h2 className="text-lg font-semibold mb-4">{feedbackTotal} retour{feedbackTotal > 1 ? 's' : ''} recus</h2>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.entries(feedbackStats).map(([key, counts]: [string, any]) => {
                       const total = (counts.tres_bien || 0) + (counts.bien || 0) + (counts.moyen || 0) + (counts.pas_du_tout || 0);
                       if (total === 0) return null;
+                      const best = counts.tres_bien || 0;
+                      const good = counts.bien || 0;
+                      const avg = counts.moyen || 0;
+                      const bad = counts.pas_du_tout || 0;
+                      // Note moyenne sur 4
+                      const score = total > 0 ? ((best * 4 + good * 3 + avg * 2 + bad * 1) / total) : 0;
+                      const emoji = score >= 3.5 ? '😍' : score >= 2.5 ? '😊' : score >= 1.5 ? '😐' : '😟';
                       return (
-                        <div key={key}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-neutral-700">{LABELS[key] || key}</span>
-                            <span className="text-xs text-neutral-400">{total} reponse{total > 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="flex h-4 rounded-full overflow-hidden bg-neutral-100">
-                            {counts.tres_bien > 0 && <div className="bg-green-500" style={{ width: `${(counts.tres_bien / total) * 100}%` }} title={`Tres bien: ${counts.tres_bien}`} />}
-                            {counts.bien > 0 && <div className="bg-blue-500" style={{ width: `${(counts.bien / total) * 100}%` }} title={`Bien: ${counts.bien}`} />}
-                            {counts.moyen > 0 && <div className="bg-amber-500" style={{ width: `${(counts.moyen / total) * 100}%` }} title={`Moyen: ${counts.moyen}`} />}
-                            {counts.pas_du_tout > 0 && <div className="bg-red-500" style={{ width: `${(counts.pas_du_tout / total) * 100}%` }} title={`Pas du tout: ${counts.pas_du_tout}`} />}
-                          </div>
-                          <div className="flex gap-3 mt-1 text-[10px] text-neutral-400">
-                            {counts.tres_bien > 0 && <span className="text-green-600">Tres bien: {counts.tres_bien}</span>}
-                            {counts.bien > 0 && <span className="text-blue-600">Bien: {counts.bien}</span>}
-                            {counts.moyen > 0 && <span className="text-amber-600">Moyen: {counts.moyen}</span>}
-                            {counts.pas_du_tout > 0 && <span className="text-red-600">Pas du tout: {counts.pas_du_tout}</span>}
-                          </div>
+                        <div key={key} className="border border-neutral-100 rounded-xl p-3 text-center">
+                          <span className="text-2xl block mb-1">{emoji}</span>
+                          <p className="text-xs font-semibold text-neutral-800 mb-1">{LABELS[key] || key}</p>
+                          <p className="text-lg font-bold text-neutral-900">{score.toFixed(1)}<span className="text-xs text-neutral-400 font-normal">/4</span></p>
+                          <p className="text-[10px] text-neutral-400 mt-1">{total} avis</p>
                         </div>
                       );
                     })}
