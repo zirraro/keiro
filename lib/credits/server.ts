@@ -271,16 +271,8 @@ export async function redeemPromoCode(
     return { success: false, error: 'Vous avez déjà utilisé un code promo' };
   }
 
-  // Ajouter les crédits
-  const { newBalance } = await addCredits(
-    userId,
-    promoCode.credits_amount,
-    'promo_code',
-    'promo_code',
-    `Code promo: ${promoCode.code} (+${promoCode.credits_amount} crédits)`
-  );
-
-  // Si le code promo a un plan_override, mettre à jour le plan de l'utilisateur
+  // Si plan_override: remplacer le solde (pas additionner)
+  // Sinon: ajouter les crédits au solde existant
   let expiresAt: string | undefined;
   if (promoCode.plan_override) {
     const planCredits = PLAN_CREDITS[promoCode.plan_override] || promoCode.credits_amount;
@@ -288,14 +280,34 @@ export async function redeemPromoCode(
     expDate.setDate(expDate.getDate() + 14); // 2 semaines
     expiresAt = expDate.toISOString();
 
+    // Set balance TO credits_amount (not add)
     await supabase
       .from('profiles')
       .update({
         subscription_plan: promoCode.plan_override,
+        credits_balance: promoCode.credits_amount,
         credits_monthly_allowance: planCredits,
         credits_expires_at: expiresAt,
       })
       .eq('id', userId);
+
+    // Log transaction
+    await supabase.from('credit_transactions').insert({
+      user_id: userId,
+      amount: promoCode.credits_amount,
+      balance_after: promoCode.credits_amount,
+      type: 'promo_code',
+      feature: 'promo_code',
+      description: `Code promo: ${promoCode.code} (${promoCode.credits_amount} crédits, plan ${promoCode.plan_override})`,
+    });
+  } else {
+    await addCredits(
+      userId,
+      promoCode.credits_amount,
+      'promo_code',
+      'promo_code',
+      `Code promo: ${promoCode.code} (+${promoCode.credits_amount} crédits)`
+    );
   }
 
   // Enregistrer la rédemption
