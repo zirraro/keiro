@@ -247,6 +247,18 @@ export async function redeemPromoCode(
     `Code promo: ${promoCode.code} (+${promoCode.credits_amount} crédits)`
   );
 
+  // Si le code promo a un plan_override, mettre à jour le plan de l'utilisateur
+  if (promoCode.plan_override) {
+    const planCredits = PLAN_CREDITS[promoCode.plan_override] || promoCode.credits_amount;
+    await supabase
+      .from('profiles')
+      .update({
+        subscription_plan: promoCode.plan_override,
+        credits_monthly_allowance: planCredits,
+      })
+      .eq('id', userId);
+  }
+
   // Enregistrer la rédemption
   await supabase.from('promo_code_redemptions').insert({
     user_id: userId,

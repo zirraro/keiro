@@ -40,6 +40,7 @@ import NetworkSelector, { Network } from './components/NetworkSelector';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+import { useCredits } from '@/hooks/useCredits';
 
 type SavedImage = {
   id: string;
@@ -194,7 +195,9 @@ function LibraryContent() {
   const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
   const feedback = useFeedbackPopup();
+  const credits = useCredits();
   const [user, setUser] = useState<any>(null);
+  const [showTikTokUpgradeModal, setShowTikTokUpgradeModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingImages, setLoadingImages] = useState(false);
   const [images, setImages] = useState<SavedImage[]>([]);
@@ -744,8 +747,22 @@ function LibraryContent() {
     setShowInstagramModal(true);
   };
 
+  // Plans qui n'ont PAS accès à TikTok (seulement Fondateurs et au-dessus)
+  const tiktokBlockedPlans = ['free', 'sprint', 'solo'];
+  const isTikTokBlocked = tiktokBlockedPlans.includes(credits.plan || 'free');
+
+  // Vérifier accès TikTok avant d'ouvrir le modal
+  const checkTikTokAccess = (): boolean => {
+    if (isTikTokBlocked) {
+      setShowTikTokUpgradeModal(true);
+      return false;
+    }
+    return true;
+  };
+
   // Ouvrir le modal TikTok pour une image
   const openTikTokModalForImage = (image: SavedImage) => {
+    if (!checkTikTokAccess()) return;
     setSelectedImageForTikTok(image);
     setSelectedVideoForTikTok(null); // Clear video selection
     setDraftTikTokCaptionToEdit(undefined);
@@ -794,6 +811,7 @@ function LibraryContent() {
 
   const handleSelectTikTok = () => {
     setShowPlatformChoiceModal(false);
+    if (!checkTikTokAccess()) return;
     const image = selectedImageForPlatformRef.current;
     const video = selectedVideoForPlatformRef.current;
 
@@ -1034,6 +1052,7 @@ function LibraryContent() {
 
   // Modifier un brouillon TikTok
   const editTikTokDraft = (draft: TikTokDraft) => {
+    if (!checkTikTokAccess()) return;
     const image: SavedImage = {
       id: draft.saved_image_id || draft.id,
       image_url: draft.media_url,
@@ -1450,6 +1469,7 @@ function LibraryContent() {
   };
 
   const handlePublishVideoToTikTok = async (video: MyVideo) => {
+    if (!checkTikTokAccess()) return;
     // Open TikTok modal with selected video instead of publishing directly
     setSelectedVideoForTikTok(video);
     setSelectedImageForTikTok(null); // Clear image selection
@@ -1973,7 +1993,7 @@ function LibraryContent() {
                       <InstagramWidget
                         isGuest={!user}
                         onPrepareInstagram={() => setShowInstagramModal(true)}
-                        onPrepareTikTok={() => setShowTikTokModal(true)}
+                        onPrepareTikTok={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
                         isCollapsed={isInstagramWidgetCollapsed}
                         onToggleCollapse={setIsInstagramWidgetCollapsed}
                         onConnect={() => setShowConnectionModal(true)}
@@ -1983,7 +2003,7 @@ function LibraryContent() {
                     return (
                       <TikTokWidget
                         onConnect={() => setShowTikTokConnectionModal(true)}
-                        onPreparePost={() => setShowTikTokModal(true)}
+                        onPreparePost={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
                         isCollapsed={isTikTokWidgetCollapsed}
                         onToggleCollapse={setIsTikTokWidgetCollapsed}
                         refreshTrigger={tiktokWidgetRefreshTrigger}
@@ -2211,7 +2231,7 @@ function LibraryContent() {
                       onSchedule={scheduleInstagramDraft}
                       onBackToImages={() => setActiveTab('images')}
                       onPrepareInstagram={() => setShowInstagramModal(true)}
-                      onPrepareTikTok={() => setShowTikTokModal(true)}
+                      onPrepareTikTok={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
                       onSaveCaption={saveInstagramDraftCaption}
                     />
                   ) : activeTab === 'tiktok-drafts' ? (
@@ -2223,7 +2243,7 @@ function LibraryContent() {
                       onBackToImages={() => setActiveTab('images')}
                       onRefresh={loadTikTokDrafts}
                       onPrepareInstagram={() => setShowInstagramModal(true)}
-                      onPrepareTikTok={() => setShowTikTokModal(true)}
+                      onPrepareTikTok={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
                     />
                   ) : activeTab === 'linkedin-drafts' ? (
                     <LinkedInDraftsTab
@@ -2316,7 +2336,7 @@ function LibraryContent() {
                 onSchedule={scheduleInstagramDraft}
                 onBackToImages={() => setActiveTab('images')}
                 onPrepareInstagram={() => setShowInstagramModal(true)}
-                onPrepareTikTok={() => setShowTikTokModal(true)}
+                onPrepareTikTok={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
               />
             ) : activeTab === 'tiktok-drafts' ? (
               <TikTokDraftsTab
@@ -2326,7 +2346,7 @@ function LibraryContent() {
                 onSchedule={scheduleTikTokDraft}
                 onBackToImages={() => setActiveTab('images')}
                 onPrepareInstagram={() => setShowInstagramModal(true)}
-                onPrepareTikTok={() => setShowTikTokModal(true)}
+                onPrepareTikTok={() => { if (checkTikTokAccess()) setShowTikTokModal(true); }}
               />
             ) : activeTab === 'linkedin-drafts' ? (
               <LinkedInDraftsTab
@@ -2539,6 +2559,35 @@ function LibraryContent() {
       )}
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
       <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
+
+      {/* Modal upgrade TikTok — Plans free/sprint/solo */}
+      {showTikTokUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowTikTokUpgradeModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center" onClick={(e) => e.stopPropagation()}>
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
+              <span className="text-3xl">🎵</span>
+            </div>
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">TikTok est disponible avec Fondateurs</h3>
+            <p className="text-neutral-600 text-sm mb-6">
+              La publication TikTok est incluse a partir du pack <strong>Fondateurs</strong>. Passez au niveau superieur pour debloquer TikTok + LinkedIn + volume de credits.
+            </p>
+            <div className="space-y-2.5">
+              <a
+                href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+                className="block w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm"
+              >
+                Passer Fondateurs — 149€/mois
+              </a>
+              <button
+                onClick={() => setShowTikTokUpgradeModal(false)}
+                className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
