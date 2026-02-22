@@ -16,6 +16,7 @@ export async function GET() {
       monthlyAllowance: profile?.credits_monthly_allowance ?? 0,
       plan: profile?.subscription_plan || 'free',
       resetAt: profile?.credits_reset_at || null,
+      expiresAt: profile?.credits_expires_at || null,
     });
   } catch (error: any) {
     console.error('[Credits Balance] Error:', error);

@@ -7,6 +7,7 @@ interface CreditsState {
   monthlyAllowance: number;
   plan: string | null;
   resetAt: string | null;
+  expiresAt: string | null;
   loading: boolean;
 }
 
@@ -16,6 +17,7 @@ export function useCredits() {
     monthlyAllowance: 0,
     plan: null,
     resetAt: null,
+    expiresAt: null,
     loading: true,
   });
 
@@ -29,6 +31,7 @@ export function useCredits() {
           monthlyAllowance: data.monthlyAllowance,
           plan: data.plan,
           resetAt: data.resetAt || null,
+          expiresAt: data.expiresAt || null,
           loading: false,
         });
       } else {

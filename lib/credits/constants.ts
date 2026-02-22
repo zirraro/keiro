@@ -9,7 +9,6 @@ export const CREDIT_COSTS = {
   image_i2i: 3,
   video_5s: 25,
   video_10s: 40,
-  video_15s: 50,
   audio_tts: 1,
   text_suggest: 1,
   narration_suggest: 1,
@@ -106,6 +105,5 @@ export const FREE_BLOCKED_FEATURES = [
  */
 export function getVideoCreditCost(duration: number): number {
   if (duration <= 5) return CREDIT_COSTS.video_5s;
-  if (duration <= 10) return CREDIT_COSTS.video_10s;
-  return CREDIT_COSTS.video_15s;
+  return CREDIT_COSTS.video_10s;
 }

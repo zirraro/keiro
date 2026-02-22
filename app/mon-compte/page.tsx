@@ -16,6 +16,7 @@ const PLANS: Record<string, { name: string; price: string; credits: number; colo
   free: { name: 'Gratuit', price: '0€', credits: PLAN_CREDITS.free, color: '#9CA3AF' },
   sprint: { name: 'Sprint Fondateur', price: '4,99€', credits: PLAN_CREDITS.sprint, color: '#3B82F6' },
   solo: { name: 'Solo', price: '49€', credits: PLAN_CREDITS.solo, color: '#3B82F6' },
+  solo_promo: { name: 'Solo (Promo)', price: '—', credits: PLAN_CREDITS.solo_promo, color: '#8B5CF6' },
   fondateurs: { name: 'Fondateurs', price: '149€', credits: PLAN_CREDITS.fondateurs, color: '#8B5CF6' },
   standard: { name: 'Standard', price: '199€', credits: PLAN_CREDITS.standard, color: '#06B6D4' },
   business: { name: 'Business', price: '349€', credits: PLAN_CREDITS.business, color: '#F59E0B' },
@@ -434,6 +435,13 @@ function MonComptePage() {
                     <p className="text-xs text-neutral-500">Vidéos ce mois</p>
                   </div>
                 </div>
+                {(monthlyStats.images > 0 || monthlyStats.videos > 0) && (
+                  <p className="text-xs text-neutral-400 mt-2 text-center">
+                    ~{monthlyStats.images * 5 + monthlyStats.videos * 25} crédits utilisés ce mois
+                    <span className="mx-1">·</span>
+                    1 image = 5 cr · 1 vidéo 5s = 25 cr · 1 vidéo 10s = 40 cr
+                  </p>
+                )}
 
                 {/* Upsell si crédits bas */}
                 {creditsBalance <= 20 && (
@@ -506,7 +514,13 @@ function MonComptePage() {
                   <div>
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold" style={{ color: currentPlan.color }}>{currentPlan.name}</h3>
-                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Actif</span>
+                      {profile?.credits_expires_at ? (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                          Expire le {new Date(profile.credits_expires_at).toLocaleDateString('fr-FR')}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Actif</span>
+                      )}
                     </div>
                     <p className="text-sm text-neutral-600">
                       {currentPlan.credits.toLocaleString()} crédits / mois
@@ -541,9 +555,19 @@ function MonComptePage() {
                     href="/pricing"
                     className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
                   >
-                    Changer de plan
+                    {profile?.credits_expires_at ? 'S\'abonner pour garder mes avantages' : 'Changer de plan'}
                   </Link>
                 </div>
+                {profile?.credits_expires_at && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-800 font-medium">
+                      Votre accès promo expire le {new Date(profile.credits_expires_at).toLocaleDateString('fr-FR')}.
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Abonnez-vous avant cette date pour conserver vos avantages et vos crédits.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

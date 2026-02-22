@@ -526,7 +526,6 @@ export default function PricingPage() {
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Suggestion IA</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Audio narration</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Assistant marketing</p></div>
-            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">50 cr</p><p className="text-xs text-neutral-600">Vidéo 15s</p></div>
           </div>
         </div>
 

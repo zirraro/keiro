@@ -1306,9 +1306,9 @@ export default function GeneratePage() {
       let finalImageUrl = data.imageUrl;
 
       try {
-        // Vérifier statut premium pour watermark
+        // Vérifier statut premium pour watermark (utiliser le plan depuis profiles, pas user_metadata)
         const { data: { user } } = await supabaseClient.auth.getUser();
-        const hasPremiumPlan = user?.user_metadata?.subscription_status === 'active' || false;
+        const hasPremiumPlan = !!(credits.plan && credits.plan !== 'free');
         const hasProvidedEmail = !!generationLimit.email;
         const hasCreatedAccount = generationLimit.hasAccount;
         const userEmail = user?.email || generationLimit.email || null;
@@ -1756,6 +1756,7 @@ export default function GeneratePage() {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+        if (!isUpdate) setTimeout(() => { window.location.href = '/library'; }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -1855,6 +1856,7 @@ export default function GeneratePage() {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+        if (!isUpdate) setTimeout(() => { window.location.href = '/library'; }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -1890,12 +1892,12 @@ export default function GeneratePage() {
     setLastSavedVideoId(null);
 
     try {
-      // Construire le prompt vidéo
+      // Construire le prompt vidéo enrichi
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
-        videoPrompt = `${selectedNews.title}. Business: ${businessType}. ${businessDescription ? `Description: ${businessDescription}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video.`;
+        videoPrompt = `Create a professional ${videoDuration}-second social media video. Topic: ${selectedNews.title}. ${(selectedNews as any).description ? `Context: ${(selectedNews as any).description}.` : ''} Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics.`;
       } else {
-        videoPrompt = `Business: ${businessType}. Description: ${businessDescription}. ${targetAudience ? `Audience: ${targetAudience}.` : ''} Style: ${visualStyle}, ${tone}. Create an engaging social media video showcasing this business identity and value proposition.`;
+        videoPrompt = `Create a professional ${videoDuration}-second social media video. Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics showcasing business identity.`;
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
@@ -2396,16 +2398,37 @@ export default function GeneratePage() {
                           </button>
                         )}
 
-                        {/* CTA Solo → Fondateurs */}
-                        {credits.plan === 'solo' && (
-                          <a
-                            href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
-                          >
-                            TikTok + LinkedIn + plus de crédits ? Fondateurs →
-                          </a>
+                        {/* CTA Solo / Solo Promo → Fondateurs */}
+                        {(credits.plan === 'solo' || credits.plan === 'solo_promo') && (
+                          <>
+                            <a
+                              href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                            >
+                              TikTok + LinkedIn + plus de crédits ? Fondateurs →
+                            </a>
+                            {credits.expiresAt && (
+                              <p className="text-[10px] text-red-500 mt-1 text-center font-medium">
+                                Accès promo expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline">S'abonner au plan Solo</a>
+                              </p>
+                            )}
+                          </>
+                        )}
+                        {/* CTA Fondateurs promo → S'abonner */}
+                        {credits.plan === 'fondateurs' && credits.expiresAt && (
+                          <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg text-center">
+                            <p className="text-[11px] text-purple-800 font-semibold">Accès Fondateurs expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
+                            <a
+                              href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors"
+                            >
+                              Garder mes avantages Fondateurs →
+                            </a>
+                          </div>
                         )}
                       </div>
                     );
@@ -3307,7 +3330,7 @@ export default function GeneratePage() {
                       <input
                         type="range"
                         min={5}
-                        max={15}
+                        max={10}
                         step={5}
                         value={videoDuration}
                         onChange={(e) => setVideoDuration(Number(e.target.value))}
@@ -3316,10 +3339,9 @@ export default function GeneratePage() {
                       <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
                         <span>5s</span>
                         <span>10s</span>
-                        <span>15s</span>
                       </div>
                       <p className="text-[9px] text-indigo-600 mt-1 italic">
-                        💡 5-15s = idéal pour capter l'attention sur les réseaux sociaux
+                        💡 5-10s = idéal pour capter l'attention sur les réseaux sociaux
                       </p>
                     </div>
                   </>
@@ -3554,6 +3576,13 @@ export default function GeneratePage() {
                     loop
                     className="w-full h-full object-contain"
                   />
+                  {generatedSubtitleText && (
+                    <div className="absolute bottom-4 left-2 right-2 text-center pointer-events-none">
+                      <span className="inline-block max-w-[95%] text-white text-sm font-bold bg-black/60 px-3 py-1.5 rounded-lg">
+                        {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-3 space-y-2">
                   <div className="flex gap-2">
@@ -3995,13 +4024,34 @@ export default function GeneratePage() {
                             console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
                             console.log('[Edit Studio] Prompt:', editPrompt);
 
+                            // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
+                            let imageForApi = selectedEditVersion!;
+                            if (imageForApi.startsWith('data:')) {
+                              console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
+                              const sb = supabaseBrowser();
+                              const { data: { user: currentUser } } = await sb.auth.getUser();
+                              if (currentUser) {
+                                const blobRes = await fetch(imageForApi);
+                                const blob = await blobRes.blob();
+                                const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+                                const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/png', upsert: false });
+                                if (!upErr) {
+                                  const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
+                                  imageForApi = publicUrl;
+                                  console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
+                                } else {
+                                  console.warn('[Edit Studio] Upload failed, using data URL:', upErr);
+                                }
+                              }
+                            }
+
                             // Appeler l'API Seedream 3.0 i2i
                             const res = await fetch('/api/seedream/i2i', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
                                 prompt: editPrompt,
-                                image: selectedEditVersion,
+                                image: imageForApi,
                                 guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
                               }),
                             });
@@ -4881,13 +4931,34 @@ export default function GeneratePage() {
                           console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
                           console.log('[Edit Studio] Prompt:', editPrompt);
 
+                          // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
+                          let imageForApi = selectedEditVersion!;
+                          if (imageForApi.startsWith('data:')) {
+                            console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
+                            const sb = supabaseBrowser();
+                            const { data: { user: currentUser } } = await sb.auth.getUser();
+                            if (currentUser) {
+                              const blobRes = await fetch(imageForApi);
+                              const blob = await blobRes.blob();
+                              const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+                              const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/png', upsert: false });
+                              if (!upErr) {
+                                const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
+                                imageForApi = publicUrl;
+                                console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
+                              } else {
+                                console.warn('[Edit Studio] Upload failed, using data URL:', upErr);
+                              }
+                            }
+                          }
+
                           // Appeler l'API Seedream 3.0 i2i
                           const res = await fetch('/api/seedream/i2i', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               prompt: editPrompt,
-                              image: selectedEditVersion,
+                              image: imageForApi,
                               guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
                             }),
                           });
