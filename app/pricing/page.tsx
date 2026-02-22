@@ -414,22 +414,21 @@ export default function PricingPage() {
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
               <p className="text-xs font-semibold mb-1">💰 ROI : 1 client TikTok = plan payé</p>
-              <p className="text-xs text-amber-100">149€ pour 2 plateformes = 2x plus de visibilité</p>
+              <p className="text-xs text-amber-100">149€ pour 3 plateformes (Instagram + TikTok + LinkedIn)</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Images + vidéos illimité</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
-              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + LinkedIn + TikTok</strong> 🎵</span></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong> (3x plus que Solo)</li>
+              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> 🎵</span></li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 20 suggestions texte + 15 narrations audio</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Suggestions texte + narrations audio IA</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics Instagram & TikTok</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Prix verrouillé à vie (50 places)</strong></li>
             </ul>
             <a href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00" target="_blank" rel="noopener noreferrer" className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              Débloquer TikTok + IA
+              Débloquer TikTok + 3x crédits
             </a>
             <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
           </div>
@@ -547,21 +546,61 @@ export default function PricingPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Visuels</td>
-                  <td className="text-center py-3 px-2">3 (watermark)</td>
-                  <td className="text-center py-3 px-2">20/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>50/mois</strong></td>
-                  <td className="text-center py-3 px-2">100/mois</td>
-                  <td className="text-center py-3 px-2">250/mois</td>
+                <tr className="border-b bg-blue-50/30">
+                  <td className="py-3 px-2 font-medium">Crédits/mois</td>
+                  <td className="text-center py-3 px-2">15</td>
+                  <td className="text-center py-3 px-2"><strong>220</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>660</strong></td>
+                  <td className="text-center py-3 px-2"><strong>1 750</strong></td>
+                  <td className="text-center py-3 px-2"><strong>5 500</strong></td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Vidéos</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">1 (Reels test)</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>12 (TikTok + Reels)</strong></td>
-                  <td className="text-center py-3 px-2">25</td>
-                  <td className="text-center py-3 px-2">70</td>
+                  <td className="py-3 px-2 font-medium">Images IA</td>
+                  <td className="text-center py-3 px-2">3 (watermark)</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">Selon crédits</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Vidéos IA</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">Selon crédits</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                  <td className="text-center py-3 px-2">Selon crédits</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Audio narration</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 text-amber-600">✓</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Suggestions texte + hashtags</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 text-amber-600">✓</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Assistant IA Marketing</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2">20 msg</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>50 msg</strong></td>
+                  <td className="text-center py-3 px-2">Illimité</td>
+                  <td className="text-center py-3 px-2">Illimité</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Instagram</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2">Post</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Post + Story</strong></td>
+                  <td className="text-center py-3 px-2">Post + Story</td>
+                  <td className="text-center py-3 px-2">Post + Story</td>
                 </tr>
                 <tr className="border-b bg-cyan-50/50">
                   <td className="py-3 px-2 font-medium">🎵 TikTok</td>
@@ -570,14 +609,6 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
                   <td className="text-center py-3 px-2 text-cyan-600">✓</td>
                   <td className="text-center py-3 px-2 text-cyan-600">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Instagram</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">Post uniquement</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Post + Story</strong></td>
-                  <td className="text-center py-3 px-2">Post + Story</td>
-                  <td className="text-center py-3 px-2">Post + Story</td>
                 </tr>
                 <tr className="border-b bg-blue-50/50">
                   <td className="py-3 px-2 font-medium">LinkedIn</td>
@@ -588,16 +619,8 @@ export default function PricingPage() {
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Assistant IA</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                </tr>
-                <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Calendrier</td>
-                  <td className="text-center py-3 px-2">-</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
                   <td className="text-center py-3 px-2">✓</td>
                   <td className="text-center py-3 px-2 bg-amber-50">✓ Auto</td>
                   <td className="text-center py-3 px-2">✓ Collaboratif</td>
@@ -605,9 +628,9 @@ export default function PricingPage() {
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Multi-comptes</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2">-</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">-</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-neutral-400">-</td>
                   <td className="text-center py-3 px-2">1+5</td>
                   <td className="text-center py-3 px-2">Illimité</td>
                 </tr>
@@ -622,6 +645,7 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-neutral-500 text-center mt-4">1 image = 5 cr · 1 retouche = 3 cr · 1 vidéo 5s = 25 cr · 1 suggestion/narration/assistant = 1 cr · Crédits non utilisés reportés 1 mois</p>
         </div>
 
         {/* FAQ Section */}

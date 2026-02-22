@@ -57,11 +57,18 @@ export default function LoginPage() {
       // Activer code promo si fourni
       if (promoCode.trim()) {
         try {
-          await fetch('/api/credits/redeem', {
+          const promoRes = await fetch('/api/credits/redeem', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: promoCode.trim() }),
           });
+          const promoData = await promoRes.json();
+          if (promoData.ok && promoData.expiresAt) {
+            setSuccess(true);
+            setError(`+${promoData.credits} crédits ajoutés ! Vos crédits expirent dans 14 jours.`);
+            setTimeout(() => { window.location.href = '/generate'; }, 2500);
+            return;
+          }
         } catch {}
       }
 
@@ -156,13 +163,18 @@ export default function LoginPage() {
       const { data: { session } } = await supabase.auth.getSession();
 
       // Activer code promo si fourni
+      let promoExpiresMessage = '';
       if (promoCode.trim() && session) {
         try {
-          await fetch('/api/credits/redeem', {
+          const promoRes = await fetch('/api/credits/redeem', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: promoCode.trim() }),
           });
+          const promoData = await promoRes.json();
+          if (promoData.ok && promoData.expiresAt) {
+            promoExpiresMessage = ` +${promoData.credits} crédits ajoutés — expirent dans 14 jours.`;
+          }
           console.log('[Signup] Promo code redeemed');
         } catch {}
       }
@@ -170,10 +182,11 @@ export default function LoginPage() {
       if (session) {
         console.log('[Signup] User logged in immediately, showing step 2');
         setSuccess(true);
+        if (promoExpiresMessage) setError(promoExpiresMessage.trim());
         setStep(2);
       } else {
         setSuccess(true);
-        setError('Vérifiez votre email pour confirmer votre inscription !');
+        setError('Vérifiez votre email pour confirmer votre inscription !' + promoExpiresMessage);
       }
     } catch (err: any) {
       console.error('[Signup] Error:', err);

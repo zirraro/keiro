@@ -17,20 +17,45 @@ function getAdminClient() {
 }
 
 /**
- * Lazy monthly refresh: si credits_reset_at est NULL ou dans un mois passé,
- * reset le balance à credits_monthly_allowance
+ * Lazy monthly refresh avec rollover (max 2 mois) + expiration promo
  */
 async function ensureMonthlyReset(userId: string): Promise<void> {
   const supabase = getAdminClient();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('credits_balance, credits_monthly_allowance, credits_reset_at')
+    .select('credits_balance, credits_monthly_allowance, credits_reset_at, credits_expires_at, subscription_plan')
     .eq('id', userId)
     .single();
 
   if (!profile) return;
 
   const now = new Date();
+
+  // Check promo expiration: si credits_expires_at est passé, reset à free
+  if (profile.credits_expires_at && new Date(profile.credits_expires_at) < now) {
+    const freeAllowance = PLAN_CREDITS.free || 15;
+    await supabase
+      .from('profiles')
+      .update({
+        subscription_plan: 'free',
+        credits_balance: freeAllowance,
+        credits_monthly_allowance: freeAllowance,
+        credits_expires_at: null,
+        credits_reset_at: now.toISOString(),
+      })
+      .eq('id', userId);
+
+    await supabase.from('credit_transactions').insert({
+      user_id: userId,
+      amount: freeAllowance,
+      balance_after: freeAllowance,
+      type: 'promo_expired',
+      feature: 'promo_expired',
+      description: `Crédits promo expirés — retour au plan Gratuit (${freeAllowance} crédits)`,
+    });
+    return;
+  }
+
   const resetAt = profile.credits_reset_at ? new Date(profile.credits_reset_at) : null;
 
   const needsReset = !resetAt ||
@@ -38,7 +63,12 @@ async function ensureMonthlyReset(userId: string): Promise<void> {
     resetAt.getFullYear() !== now.getFullYear();
 
   if (needsReset && profile.credits_monthly_allowance > 0) {
-    const newBalance = profile.credits_monthly_allowance;
+    // Rollover: les crédits restants sont reportés (max = 1x allowance de report)
+    const currentBalance = profile.credits_balance || 0;
+    const allowance = profile.credits_monthly_allowance;
+    const carryOver = Math.min(currentBalance, allowance);
+    const newBalance = allowance + carryOver;
+
     await supabase
       .from('profiles')
       .update({
@@ -48,13 +78,16 @@ async function ensureMonthlyReset(userId: string): Promise<void> {
       .eq('id', userId);
 
     // Log transaction
+    const desc = carryOver > 0
+      ? `Renouvellement mensuel: ${allowance} crédits + ${carryOver} reportés`
+      : `Renouvellement mensuel: ${allowance} crédits`;
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: newBalance,
       balance_after: newBalance,
       type: 'monthly_reset',
       feature: 'monthly_reset',
-      description: `Renouvellement mensuel: ${newBalance} crédits`,
+      description: desc,
     });
   }
 }
@@ -84,7 +117,7 @@ export async function getCreditsProfile(userId: string) {
   const supabase = getAdminClient();
   const { data } = await supabase
     .from('profiles')
-    .select('credits_balance, credits_monthly_allowance, credits_reset_at, subscription_plan, is_admin')
+    .select('credits_balance, credits_monthly_allowance, credits_reset_at, credits_expires_at, subscription_plan, is_admin')
     .eq('id', userId)
     .single();
 
@@ -200,7 +233,7 @@ export async function addCredits(
 export async function redeemPromoCode(
   userId: string,
   code: string
-): Promise<{ success: boolean; credits?: number; error?: string }> {
+): Promise<{ success: boolean; credits?: number; expiresAt?: string; error?: string }> {
   const supabase = getAdminClient();
 
   // Trouver le code (case-insensitive)
@@ -248,13 +281,19 @@ export async function redeemPromoCode(
   );
 
   // Si le code promo a un plan_override, mettre à jour le plan de l'utilisateur
+  let expiresAt: string | undefined;
   if (promoCode.plan_override) {
     const planCredits = PLAN_CREDITS[promoCode.plan_override] || promoCode.credits_amount;
+    const expDate = new Date();
+    expDate.setDate(expDate.getDate() + 14); // 2 semaines
+    expiresAt = expDate.toISOString();
+
     await supabase
       .from('profiles')
       .update({
         subscription_plan: promoCode.plan_override,
         credits_monthly_allowance: planCredits,
+        credits_expires_at: expiresAt,
       })
       .eq('id', userId);
   }
@@ -272,7 +311,7 @@ export async function redeemPromoCode(
     .update({ used_count: promoCode.used_count + 1 })
     .eq('id', promoCode.id);
 
-  return { success: true, credits: promoCode.credits_amount };
+  return { success: true, credits: promoCode.credits_amount, expiresAt };
 }
 
 /**

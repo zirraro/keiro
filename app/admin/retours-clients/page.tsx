@@ -17,8 +17,8 @@ export default function AdminRetoursClientsPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Tabs: demandes first (default), questionnaires second
-  const [activeTab, setActiveTab] = useState<'demandes' | 'questionnaires'>('demandes');
+  // Tabs: demandes first (default), questionnaires second, promos third
+  const [activeTab, setActiveTab] = useState<'demandes' | 'questionnaires' | 'promos'>('demandes');
 
   // Questionnaires state
   const [feedbackStats, setFeedbackStats] = useState<any>(null);
@@ -33,6 +33,12 @@ export default function AdminRetoursClientsPage() {
   const [adminAttachment, setAdminAttachment] = useState<string | null>(null);
   const [adminUploading, setAdminUploading] = useState(false);
   const adminFileRef = useRef<HTMLInputElement>(null);
+
+  // Promos state
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [promoRedemptions, setPromoRedemptions] = useState<any[]>([]);
+  const [expandedPromo, setExpandedPromo] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -78,6 +84,33 @@ export default function AdminRetoursClientsPage() {
         setContactRequests(data.requests || []);
       }
     } catch (e) { console.error('[Admin] Contacts load error:', e); }
+  };
+
+  const loadPromos = async () => {
+    try {
+      const res = await fetch('/api/admin/promos');
+      if (res.ok) {
+        const data = await res.json();
+        setPromoCodes(data.promoCodes || []);
+        setPromoRedemptions(data.redemptions || []);
+      }
+    } catch (e) { console.error('[Admin] Promos load error:', e); }
+  };
+
+  const handleRevoke = async (userId: string) => {
+    if (!confirm('Révoquer cet utilisateur ? Son plan passera à Gratuit (15 crédits).')) return;
+    setRevoking(userId);
+    try {
+      const res = await fetch('/api/admin/promos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke', userId }),
+      });
+      if (res.ok) {
+        await loadPromos();
+      }
+    } catch (e) { console.error('[Admin] Revoke error:', e); }
+    finally { setRevoking(null); }
   };
 
   const handleAdminReply = async (requestId: string) => {
@@ -177,6 +210,12 @@ export default function AdminRetoursClientsPage() {
             className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'questionnaires' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}
           >
             Questionnaires ({feedbackTotal})
+          </button>
+          <button
+            onClick={() => { setActiveTab('promos'); if (promoCodes.length === 0) loadPromos(); }}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'promos' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}
+          >
+            Codes promo
           </button>
         </div>
 
@@ -357,6 +396,103 @@ export default function AdminRetoursClientsPage() {
                 )}
               </>
             )}
+          </div>
+        )}
+        {/* ===== TAB PROMOS ===== */}
+        {activeTab === 'promos' && (
+          <div className="space-y-4">
+            {/* Liste des codes promo */}
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Codes promo ({promoCodes.length})</h2>
+                <button onClick={loadPromos} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+              </div>
+
+              {promoCodes.length === 0 ? (
+                <p className="text-sm text-neutral-400 text-center py-4">Aucun code promo</p>
+              ) : (
+                <div className="space-y-3">
+                  {promoCodes.map((pc: any) => {
+                    const redemptionsForCode = promoRedemptions.filter((r: any) => r.promo_code_id === pc.id);
+                    const isExpanded = expandedPromo === pc.id;
+
+                    return (
+                      <div key={pc.id} className="border border-neutral-200 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setExpandedPromo(isExpanded ? null : pc.id)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-neutral-50 transition-all text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${pc.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {pc.is_active ? 'Actif' : 'Inactif'}
+                            </span>
+                            <div>
+                              <span className="font-mono font-bold text-sm">{pc.code}</span>
+                              {pc.plan_override && (
+                                <span className="ml-2 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{pc.plan_override}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-neutral-500">
+                            <span>{pc.credits_amount} cr</span>
+                            <span>{pc.used_count || 0}/{pc.max_uses || '∞'} utilisations</span>
+                            <svg className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="border-t border-neutral-100 p-4 bg-neutral-50">
+                            <p className="text-xs text-neutral-500 mb-3">{pc.description || 'Pas de description'}</p>
+
+                            {redemptionsForCode.length === 0 ? (
+                              <p className="text-xs text-neutral-400">Aucune utilisation</p>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-neutral-700 mb-2">Utilisateurs ({redemptionsForCode.length})</p>
+                                {redemptionsForCode.map((r: any) => (
+                                  <div key={r.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-neutral-100">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">{r.user_name || r.user_email}</span>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${r.user_plan === 'free' ? 'bg-neutral-100 text-neutral-600' : 'bg-purple-100 text-purple-700'}`}>
+                                          {r.user_plan}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 text-[11px] text-neutral-500 mt-0.5">
+                                        <span>{r.user_email}</span>
+                                        <span>{r.credits_granted} cr</span>
+                                        <span>Solde: {r.user_credits} cr</span>
+                                        <span>{new Date(r.created_at).toLocaleDateString('fr-FR')}</span>
+                                        {r.user_expires_at && (
+                                          <span className={new Date(r.user_expires_at) < new Date() ? 'text-red-500' : 'text-amber-600'}>
+                                            {new Date(r.user_expires_at) < new Date() ? 'Expiré' : `Expire ${new Date(r.user_expires_at).toLocaleDateString('fr-FR')}`}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {r.user_plan !== 'free' && (
+                                      <button
+                                        onClick={() => handleRevoke(r.user_id)}
+                                        disabled={revoking === r.user_id}
+                                        className="ml-3 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-all disabled:opacity-50"
+                                      >
+                                        {revoking === r.user_id ? '...' : 'Révoquer'}
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

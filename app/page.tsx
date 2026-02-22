@@ -869,10 +869,10 @@ export default function HomeKeiro() {
               subtitle="220 crédits — Pour créateurs"
               bullets={[
                 '220 crédits/mois',
-                '~44 images ou 8 vidéos 5s',
                 'Images + vidéos sans watermark',
-                'Instagram + LinkedIn Post',
-                'Toutes catégories actualités',
+                'Instagram + LinkedIn (Post)',
+                '20 msg Assistant IA',
+                'Suggestions texte IA',
                 'Calendrier publications'
               ]}
               ctaLabel="Choisir Solo"
@@ -882,19 +882,19 @@ export default function HomeKeiro() {
             <Plan
               title="⭐ Fondateurs"
               price="149€ / mois"
-              subtitle="660 crédits — 50 places"
+              subtitle="660 crédits — 3x plus que Solo"
               special
               highlight
               bullets={[
-                '660 crédits/mois',
-                '~132 images ou 26 vidéos 5s',
-                'Instagram + LinkedIn + TikTok',
-                'Assistant IA Marketing',
-                'Suggestions texte + narrations audio',
-                'Analytics Instagram & TikTok',
+                '660 crédits/mois (3x Solo)',
+                'Instagram + TikTok + LinkedIn',
+                'Stories Instagram incluses',
+                '50 msg Assistant IA Marketing',
+                'Suggestions texte + audio IA',
+                'Analytics + Planification auto',
                 'Prix verrouillé à vie (50 places)'
               ]}
-              ctaLabel="Devenir Fondateur"
+              ctaLabel="Débloquer TikTok + 3x crédits"
               ctaHref="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
             />
 

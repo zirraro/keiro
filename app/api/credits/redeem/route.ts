@@ -27,11 +27,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const response: any = {
       ok: true,
       credits: result.credits,
       message: `+${result.credits} crédits ajoutés !`,
-    });
+    };
+
+    if (result.expiresAt) {
+      response.expiresAt = result.expiresAt;
+      response.message += ' Vos crédits expirent dans 14 jours.';
+    }
+
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error('[Credits Redeem] Error:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
