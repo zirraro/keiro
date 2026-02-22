@@ -859,32 +859,29 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
             <span className="text-3xl">🎵</span>
           </div>
           <h3 className="text-lg font-bold text-neutral-900 mb-2">Préparer un post TikTok</h3>
-          <p className="text-neutral-600 text-sm mb-2">
-            Vous n'avez pas encore de visuels. Créez votre premier visuel pour commencer.
+          <p className="text-neutral-600 text-sm mb-4">
+            Vous n'avez pas encore de visuels dans votre galerie.
           </p>
-          <div className="bg-neutral-50 rounded-lg p-4 mb-6 text-left">
-            <p className="text-xs font-semibold text-neutral-700 mb-2">Les étapes :</p>
-            <ol className="text-xs text-neutral-600 space-y-1.5">
-              <li className="flex items-start gap-2"><span className="font-bold text-cyan-600">1.</span> Créez un visuel ou une vidéo avec l'IA</li>
-              <li className="flex items-start gap-2"><span className="font-bold text-cyan-600">2.</span> Choisissez votre contenu</li>
-              <li className="flex items-start gap-2"><span className="font-bold text-cyan-600">3.</span> Ajoutez description et hashtags</li>
-              <li className="flex items-start gap-2"><span className="font-bold text-cyan-600">4.</span> Publiez sur TikTok</li>
-            </ol>
-          </div>
-          <div className="flex gap-3">
+          <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
-              className="flex-1 px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+              className="w-full px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
-              Créer mon visuel
+              Créer un visuel avec l'IA
             </button>
             <button
-              onClick={onClose}
-              className="px-6 py-2 border border-neutral-300 text-neutral-700 font-medium rounded-lg hover:bg-neutral-100 transition-all"
+              onClick={() => { window.location.href = '/library'; }}
+              className="w-full px-5 py-3 border-2 border-cyan-200 text-cyan-700 font-semibold rounded-lg hover:bg-cyan-50 transition-all text-sm"
             >
-              Fermer
+              Ajouter un visuel à votre galerie
             </button>
           </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
+          >
+            Fermer
+          </button>
         </div>
       </div>
     );

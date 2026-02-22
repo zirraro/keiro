@@ -240,6 +240,54 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
     }
   };
 
+  // Si aucun contenu et chargement terminé et pas en mode texte → popup guide
+  if (activeTab !== 'text-only' && !selectedImage && !selectedVideo && !loadingImages && !loadingVideos && availableImages.length === 0 && availableVideos.length === 0) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#0077B5] to-blue-600 rounded-full mb-4">
+            <LinkedInIcon className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">Préparer un post LinkedIn</h3>
+          <p className="text-neutral-600 text-sm mb-4">
+            Vous n'avez pas encore de visuels dans votre galerie.
+          </p>
+          <div className="space-y-2.5 mb-6">
+            <button
+              onClick={() => { window.location.href = '/generate'; }}
+              className="w-full px-5 py-3 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
+            >
+              Créer un visuel avec l'IA
+            </button>
+            <button
+              onClick={() => { window.location.href = '/library'; }}
+              className="w-full px-5 py-3 border-2 border-blue-200 text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-all text-sm"
+            >
+              Ajouter un visuel à votre galerie
+            </button>
+            <div className="relative flex items-center py-1">
+              <div className="flex-grow border-t border-neutral-200"></div>
+              <span className="flex-shrink mx-3 text-xs text-neutral-400">ou</span>
+              <div className="flex-grow border-t border-neutral-200"></div>
+            </div>
+            <button
+              onClick={() => { setActiveTab('text-only'); }}
+              className="w-full px-5 py-3 border border-neutral-200 text-neutral-600 font-medium rounded-lg hover:bg-neutral-50 transition-all text-sm"
+            >
+              Commencer avec du texte uniquement
+            </button>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
       <div className="bg-white w-full h-full md:w-[95vw] md:h-[90vh] md:max-w-6xl md:rounded-2xl overflow-hidden flex flex-col shadow-2xl">
