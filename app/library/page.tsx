@@ -37,6 +37,7 @@ import MyVideosTab from './components/MyVideosTab';
 import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
 import NetworkSelector, { Network } from './components/NetworkSelector';
+import ImageEditModal from './components/ImageEditModal';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
@@ -291,6 +292,9 @@ function LibraryContent() {
   // États pour la planification
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedImageForSchedule, setSelectedImageForSchedule] = useState<SavedImage | null>(null);
+
+  // États pour l'édition d'image (I2I)
+  const [editingImage, setEditingImage] = useState<SavedImage | null>(null);
 
   // États pour les onglets
   const tabParam = searchParams?.get('tab') as Tab | null;
@@ -2196,6 +2200,12 @@ function LibraryContent() {
                       onMoveToFolder={handleUnifiedMoveToFolder}
                       onRenameFolder={handleRenameFolder}
                       onDeleteFolder={handleDeleteFolder}
+                      onEditImage={(item) => {
+                        if (item.type === 'image') {
+                          const img = images.find(i => i.id === item.id);
+                          if (img) setEditingImage(img);
+                        }
+                      }}
                     />
                   ) : activeTab === 'images' ? (
                     loadingImages ? (
@@ -2214,6 +2224,7 @@ function LibraryContent() {
                         onDownload={downloadImage}
                         onSchedule={openScheduleModal}
                         onMoveToFolder={(image) => setItemToMoveToFolder({ id: image.id, type: 'image' })}
+                        onEditImage={(image) => setEditingImage(image)}
                       />
                     )
                   ) : activeTab === 'videos' ? (
@@ -2547,6 +2558,22 @@ function LibraryContent() {
           onSave={saveTwitterDraft}
           draftCaption={draftTwitterCaptionToEdit}
           draftHashtags={draftTwitterHashtagsToEdit}
+        />
+      )}
+
+      {/* Modal Édition d'image (I2I) */}
+      {editingImage && (
+        <ImageEditModal
+          imageUrl={editingImage.image_url}
+          imageId={editingImage.id}
+          onClose={() => setEditingImage(null)}
+          onImageEdited={(newUrl) => {
+            // Mettre à jour l'image dans le state local
+            setImages(prev => prev.map(img =>
+              img.id === editingImage.id ? { ...img, image_url: newUrl } : img
+            ));
+            setEditingImage(null);
+          }}
         />
       )}
 

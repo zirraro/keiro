@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TwitterXIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import ImageEditModal from './ImageEditModal';
 
 type SavedImage = {
   id: string;
@@ -47,6 +48,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'images' | 'videos' | 'text-only'>(video ? 'videos' : 'images');
+  const [showImageEditModal, setShowImageEditModal] = useState(false);
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(image || null);
   const [loadingImages, setLoadingImages] = useState(!images && !video);
@@ -410,6 +412,18 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                         ) : null}
                       </div>
                     )}
+                    {/* Bouton Éditer l'image */}
+                    {activeTab === 'images' && selectedImage && (
+                      <button
+                        onClick={() => setShowImageEditModal(true)}
+                        className="mt-2 w-full py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Modifier l'image avec l'IA
+                      </button>
+                    )}
                     {/* Engagement */}
                     <div className="flex items-center justify-between mt-3 text-neutral-500 px-2">
                       <span className="text-xs">💬</span>
@@ -562,6 +576,22 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
           </div>
         </div>
       </div>
+
+      {/* Modal Édition d'image */}
+      {showImageEditModal && selectedImage && (
+        <ImageEditModal
+          imageUrl={selectedImage.image_url}
+          imageId={selectedImage.id}
+          onClose={() => setShowImageEditModal(false)}
+          onImageEdited={(newUrl) => {
+            setSelectedImage({ ...selectedImage, image_url: newUrl });
+            setAvailableImages(prev => prev.map(img =>
+              img.id === selectedImage.id ? { ...img, image_url: newUrl } : img
+            ));
+            setShowImageEditModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

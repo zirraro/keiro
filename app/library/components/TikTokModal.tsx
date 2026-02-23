@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
+import ImageEditModal from './ImageEditModal';
 
 type SavedImage = {
   id: string;
@@ -135,6 +136,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     if (audioRef.current) audioRef.current.currentTime = 0;
     if (videoRef.current) { videoRef.current.currentTime = 0; videoRef.current.play().catch(() => {}); }
   };
+
+  // État pour l'édition d'image
+  const [showImageEditModal, setShowImageEditModal] = useState(false);
 
   // États pour la galerie IMAGES
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -1270,6 +1274,19 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   ) : null}
                 </div>
 
+                {/* Bouton Éditer l'image */}
+                {activeTab === 'images' && selectedImage && (
+                  <button
+                    onClick={() => setShowImageEditModal(true)}
+                    className="w-full mb-2 py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Modifier l'image avec l'IA
+                  </button>
+                )}
+
                 {/* Bouton de prévisualisation (only for images tab) */}
                 {activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !selectedImage.title?.includes('Vidéo TikTok') && (
                   <button
@@ -1888,6 +1905,22 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         <TikTokCarouselModal
           images={availableImages}
           onClose={() => setShowCarouselModal(false)}
+        />
+      )}
+
+      {/* Modal Édition d'image */}
+      {showImageEditModal && selectedImage && (
+        <ImageEditModal
+          imageUrl={selectedImage.image_url}
+          imageId={selectedImage.id}
+          onClose={() => setShowImageEditModal(false)}
+          onImageEdited={(newUrl) => {
+            setSelectedImage({ ...selectedImage, image_url: newUrl });
+            setAvailableImages(prev => prev.map(img =>
+              img.id === selectedImage.id ? { ...img, image_url: newUrl } : img
+            ));
+            setShowImageEditModal(false);
+          }}
         />
       )}
     </div>

@@ -24,6 +24,7 @@ interface AllCreationsTabProps {
   onMoveToFolder: (id: string, type: 'image' | 'video', folderId: string | null) => Promise<void>;
   onRenameFolder?: (folderId: string, newName: string) => Promise<void>;
   onDeleteFolder?: (folderId: string) => Promise<void>;
+  onEditImage?: (item: CreationItem) => void;
 }
 
 function ListItemTitle({ item, onTitleEdit }: { item: CreationItem; onTitleEdit: (id: string, newTitle: string) => void }) {
@@ -82,7 +83,8 @@ export default function AllCreationsTab({
   onDownload,
   onMoveToFolder,
   onRenameFolder,
-  onDeleteFolder
+  onDeleteFolder,
+  onEditImage
 }: AllCreationsTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'images' | 'videos'>('all');
@@ -355,6 +357,7 @@ export default function AllCreationsTab({
                   setItemToMove(item);
                   setShowMoveFolderModal(true);
                 }}
+                onEditImage={onEditImage}
               />
             </div>
           ))}

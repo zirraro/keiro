@@ -32,6 +32,7 @@ type MyImagesTabProps = {
   onDownload: (imageUrl: string, title?: string) => void;
   onSchedule: (image: SavedImage) => void;
   onMoveToFolder?: (image: SavedImage) => void;
+  onEditImage?: (image: SavedImage) => void;
 };
 
 export default function MyImagesTab({
@@ -46,7 +47,8 @@ export default function MyImagesTab({
   onTitleEdit,
   onDownload,
   onSchedule,
-  onMoveToFolder
+  onMoveToFolder,
+  onEditImage
 }: MyImagesTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
@@ -187,6 +189,7 @@ export default function MyImagesTab({
               onDownload={onDownload}
               onSchedule={onSchedule}
               onMoveToFolder={onMoveToFolder}
+              onEditImage={onEditImage}
               formatDate={formatDate}
             />
           ))}

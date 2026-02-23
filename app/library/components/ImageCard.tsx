@@ -29,6 +29,7 @@ interface ImageCardProps {
   onPublishToTikTok?: (image: SavedImage) => void;
   onSchedule?: (image: SavedImage) => void;
   onMoveToFolder?: (image: SavedImage) => void;
+  onEditImage?: (image: SavedImage) => void;
   onTitleEdit: (imageId: string, newTitle: string) => void;
   formatDate?: (dateString: string) => string;
 }
@@ -45,6 +46,7 @@ export default function ImageCard({
   onPublishToInstagram,
   onPublishToTikTok,
   onMoveToFolder,
+  onEditImage,
   formatDate
 }: ImageCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -180,6 +182,19 @@ export default function ImageCard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 Poster
+              </button>
+            )}
+            {/* Éditer */}
+            {onEditImage && (
+              <button
+                onClick={() => onEditImage(image)}
+                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
+                title="Modifier l'image avec l'IA"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Éditer
               </button>
             )}
             {/* Ranger */}

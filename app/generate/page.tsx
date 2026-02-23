@@ -1641,7 +1641,9 @@ export default function GeneratePage() {
 
   // Sauvegarder l'image dans la galerie
   async function saveToLibrary() {
-    if (!generatedImageUrl) {
+    // Sauvegarder la version éditée (avec texte) si disponible, sinon l'original
+    const imageToSave = selectedEditVersion || generatedImageUrl;
+    if (!imageToSave) {
       console.error('[SaveToLibrary] Missing image data');
       return;
     }
@@ -1659,16 +1661,16 @@ export default function GeneratePage() {
         return;
       }
 
-      console.log('[SaveToLibrary] Saving image to library...');
+      console.log('[SaveToLibrary] Saving image to library...', selectedEditVersion ? '(edited version)' : '(original)');
 
       // ÉTAPE 1: Vérifier si l'URL est une data URL base64 (trop volumineuse)
-      let finalImageUrl = generatedImageUrl;
+      let finalImageUrl = imageToSave;
 
-      if (generatedImageUrl.startsWith('data:')) {
+      if (imageToSave.startsWith('data:')) {
         console.log('[SaveToLibrary] Data URL detected, uploading to Supabase Storage...');
 
         // Convertir data URL en Blob
-        const response = await fetch(generatedImageUrl);
+        const response = await fetch(imageToSave);
         const blob = await response.blob();
 
         // Générer un nom de fichier unique
@@ -3623,7 +3625,7 @@ export default function GeneratePage() {
                       Éditer
                     </button>
                     <a
-                      href={generatedImageUrl}
+                      href={selectedEditVersion || generatedImageUrl}
                       download
                       className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                     >
@@ -4517,14 +4519,17 @@ export default function GeneratePage() {
                       {/* Style de fond */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">Style de fond</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           {[
                             { value: 'clean', emoji: '🔲', label: 'Sans fond' },
+                            { value: 'none', emoji: '🚫', label: 'Aucun' },
+                            { value: 'minimal', emoji: '✦', label: 'Minimal' },
                             { value: 'transparent', emoji: '👻', label: 'Transparent' },
                             { value: 'solid', emoji: '⬛', label: 'Solide' },
                             { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
                             { value: 'blur', emoji: '💨', label: 'Flou' },
-                            { value: 'outline', emoji: '⭕', label: 'Contour' }
+                            { value: 'outline', emoji: '⭕', label: 'Contour' },
+                            { value: 'glow', emoji: '💫', label: 'Lumineux' }
                           ].map((style) => (
                             <button
                               key={style.value}
