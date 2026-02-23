@@ -384,6 +384,7 @@ export default function GeneratePage() {
   const [videoAspectRatio, setVideoAspectRatio] = useState('16:9');
   const [videoDuration, setVideoDuration] = useState(5);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
+  const [lastProvider, setLastProvider] = useState<string>('');
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -1300,6 +1301,12 @@ export default function GeneratePage() {
       }
 
       if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
+
+      // Log provider discret (visible dans la console navigateur)
+      if (data._p) {
+        console.log(`[Generate] 🏷️ Provider: ${data._p === 'k' ? 'Kling' : 'Seedream'}`);
+        setLastProvider(data._p);
+      }
 
       console.log('[Generate] Image generated, applying overlays CLIENT-SIDE...', {
         hasOptionalText: !!optionalText?.trim(),
@@ -3480,7 +3487,15 @@ export default function GeneratePage() {
             {/* Visuel généré */}
             {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
-                <h3 className="text-sm font-semibold mb-2">Visuel</h3>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  Visuel
+                  {lastProvider && (
+                    <span
+                      title={lastProvider === 'k' ? 'Kling' : 'Seedream'}
+                      className={`w-2 h-2 rounded-full ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                    />
+                  )}
+                </h3>
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
                   <img
                     src={generatedImageUrl}

@@ -88,63 +88,20 @@ export async function POST(request: Request) {
     let resultImageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Kling omni-image (image-o1) ---
+    // --- Kling omni-image (image-o1) (fallback Seedream désactivé pour debug) ---
     try {
-      console.log('[I2I] Trying Kling image-o1 omni-image...');
+      console.log('[I2I] Generating with Kling image-o1 omni-image...');
       const result = await generateKlingI2I({ prompt, image: imageBase64 });
       resultImageUrl = result.imageUrl;
       provider = 'k';
       console.log('[I2I] ✓ Kling image-o1 generated successfully');
     } catch (klingError: any) {
-      console.warn('[I2I] Kling failed, falling back to Seedream:', klingError.message);
-
-      // --- Fallback: Seedream ---
-      const requestBody: any = {
-        model: 'seededit-3-0-i2i-250628',
-        prompt: prompt,
-        image: sourceImage,
-        response_format: 'url',
-        guidance_scale: guidance_scale,
-        watermark: false
-      };
-
-      if (size && size !== 'adaptive') {
-        requestBody.size = size;
-      }
-      if (seed !== undefined) {
-        requestBody.seed = seed;
-      }
-
-      const response = await fetch(SEEDREAM_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDREAM_API_KEY}`
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[I2I] Seedream fallback also failed:', response.status, errorText);
-        return Response.json({
-          ok: false,
-          error: 'Impossible d\'éditer l\'image. Vérifiez votre connexion et réessayez.'
-        }, { status: response.status });
-      }
-
-      const data = await response.json();
-      if (!data.data || !data.data[0] || !data.data[0].url) {
-        console.error('[I2I] Seedream invalid response:', data);
-        return Response.json({
-          ok: false,
-          error: 'Erreur lors de l\'édition. Veuillez réessayer.'
-        }, { status: 500 });
-      }
-
-      resultImageUrl = data.data[0].url;
-      provider = 's';
-      console.log('[I2I] ⚠ Seedream fallback used successfully');
+      console.error('[I2I] Kling failed:', klingError.message);
+      // TODO: Réactiver fallback Seedream quand Kling confirmé stable
+      return Response.json({
+        ok: false,
+        error: `Erreur d'édition: ${klingError.message}`
+      }, { status: 500 });
     }
 
     // --- Déduction crédits après succès ---

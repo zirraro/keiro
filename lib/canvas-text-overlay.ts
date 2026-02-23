@@ -269,18 +269,25 @@ export async function addTextOverlay(
               ctx.fillStyle = solidColor;
               ctx.fill();
             } else if (backgroundStyle === 'gradient') {
-              // Gradient linéaire (haut vers bas)
-              const gradient = ctx.createLinearGradient(bgX, bgY, bgX, bgY + bgHeight);
-              // Extraire la couleur de base
-              const baseColor = finalBgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-              if (baseColor) {
-                const r = baseColor[1], g = baseColor[2], b = baseColor[3];
-                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
-                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
-                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.9)`);
+              // Gradient linéaire diagonal (135deg)
+              const gradient = ctx.createLinearGradient(bgX, bgY, bgX + bgWidth, bgY + bgHeight);
+              // Détecter si c'est un CSS linear-gradient
+              const cssGradientMatch = finalBgColor.match(/linear-gradient\([\d.]+deg,\s*(#[0-9a-fA-F]+|rgba?\([^)]+\)),\s*(#[0-9a-fA-F]+|rgba?\([^)]+\))\)/);
+              if (cssGradientMatch) {
+                gradient.addColorStop(0, cssGradientMatch[1]);
+                gradient.addColorStop(1, cssGradientMatch[2]);
               } else {
-                gradient.addColorStop(0, finalBgColor);
-                gradient.addColorStop(1, finalBgColor);
+                // Extraire la couleur de base pour un gradient auto
+                const baseColor = finalBgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (baseColor) {
+                  const r = baseColor[1], g = baseColor[2], b = baseColor[3];
+                  gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+                  gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
+                  gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.9)`);
+                } else {
+                  gradient.addColorStop(0, '#3b82f6');
+                  gradient.addColorStop(1, '#06b6d4');
+                }
               }
               ctx.fillStyle = gradient;
               ctx.fill();

@@ -60,55 +60,21 @@ export async function POST(request: Request) {
     let imageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Kling image-o1 ---
+    // --- Kling image-o1 (fallback Seedream désactivé pour debug) ---
     try {
-      console.log('[T2I] Trying Kling image-o1...');
+      console.log('[T2I] Generating with Kling image-o1...');
       const result = await generateKlingT2I({ prompt });
       imageUrl = result.imageUrl;
       provider = 'k';
       console.log('[T2I] ✓ Kling image-o1 generated successfully');
     } catch (klingError: any) {
-      console.warn('[T2I] Kling failed, falling back to Seedream:', klingError.message);
-
-      // --- Fallback: Seedream ---
-      const response = await fetch(SEEDREAM_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDREAM_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'seedream-4-0-250828',
-          prompt: prompt,
-          sequential_image_generation: 'disabled',
-          response_format: 'url',
-          size: size,
-          stream: false,
-          watermark: false
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[T2I] Seedream fallback also failed:', response.status, errorText);
-        return Response.json({
-          ok: false,
-          error: 'Impossible de générer l\'image. Vérifiez votre connexion et réessayez.'
-        }, { status: response.status });
-      }
-
-      const data = await response.json();
-      if (!data.data || !data.data[0] || !data.data[0].url) {
-        console.error('[T2I] Seedream invalid response:', data);
-        return Response.json({
-          ok: false,
-          error: 'Erreur lors de la génération. Veuillez réessayer.'
-        }, { status: 500 });
-      }
-
-      imageUrl = data.data[0].url;
-      provider = 's';
-      console.log('[T2I] ⚠ Seedream fallback used successfully');
+      console.error('[T2I] Kling failed:', klingError.message);
+      // TODO: Réactiver fallback Seedream quand Kling confirmé stable
+      // Pour l'instant, on remonte l'erreur directement
+      return Response.json({
+        ok: false,
+        error: `Erreur de génération: ${klingError.message}`
+      }, { status: 500 });
     }
 
     // --- Déduction crédits après succès ---
