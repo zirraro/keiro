@@ -175,6 +175,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         description: 'Sprint Fondateur activé (3 jours)',
       });
 
+      // Créditer 4,99€ sur le solde Stripe du client
+      // → sera déduit automatiquement de son prochain abonnement
+      const customerId = session.customer as string;
+      if (customerId) {
+        try {
+          const stripe = getStripe();
+          await stripe.customers.createBalanceTransaction(customerId, {
+            amount: -499, // négatif = crédit client (4,99€)
+            currency: 'eur',
+            description: 'Crédit Sprint déduit du prochain abonnement',
+          });
+          console.log('[Webhook] Sprint credit applied to customer balance:', customerId);
+        } catch (e) {
+          console.error('[Webhook] Failed to apply Sprint credit:', e);
+        }
+      }
+
       console.log('[Webhook] Sprint activated:', { userId: profileId });
 
     } else if (planKey?.startsWith('pack_')) {
