@@ -1,7 +1,12 @@
 /**
- * Kling AI Video Generation Helper
+ * Kling AI Generation Helper
  *
- * JWT authentication + API helpers for text-to-video and image-to-video.
+ * JWT authentication + API helpers for:
+ * - Text-to-Image (kling-image-o1)
+ * - Image-to-Image / Omni Image (kling-image-o1)
+ * - Text-to-Video (kling-v2-5-turbo)
+ * - Image-to-Video (kling-v2-5-turbo)
+ *
  * API docs: https://api.klingai.com
  */
 
@@ -52,6 +57,142 @@ function normalizeAspectRatio(ratio?: string): string {
   // 5:4, 4:3, 3:2 (landscape) → 16:9
   if (ratio === '5:4' || ratio === '4:3' || ratio === '3:2') return '16:9';
   return '16:9';
+}
+
+// Image aspect ratios — Kling images support more ratios than video
+const IMAGE_SUPPORTED_RATIOS = ['1:1', '16:9', '4:3', '3:2', '2:3', '3:4', '9:16', '21:9'];
+function normalizeImageAspectRatio(ratio?: string): string {
+  if (!ratio) return '1:1';
+  if (IMAGE_SUPPORTED_RATIOS.includes(ratio)) return ratio;
+  if (ratio === '4:5') return '3:4';
+  if (ratio === '5:4') return '4:3';
+  return '1:1';
+}
+
+// ====== Text-to-Image ======
+
+/**
+ * Create a T2I task and poll until completion (server-side).
+ * Returns the generated image URL.
+ */
+export async function generateKlingT2I(params: {
+  prompt: string;
+  aspectRatio?: string;
+}): Promise<{ imageUrl: string }> {
+  const body = {
+    model_name: 'kling-image-o1',
+    prompt: params.prompt,
+    n: 1,
+    aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
+  };
+
+  console.log('[Kling T2I] Creating task with model kling-image-o1');
+
+  const createRes = await fetch(`${KLING_API_BASE}/v1/images/generations`, {
+    method: 'POST',
+    headers: getKlingHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  const createText = await createRes.text();
+  if (!createRes.ok) {
+    throw new Error(`Kling T2I create error: ${createRes.status} - ${createText}`);
+  }
+
+  const createData = JSON.parse(createText);
+  const taskId = createData.data?.task_id;
+  if (!taskId) throw new Error('Kling T2I: no task_id returned');
+
+  console.log('[Kling T2I] Task created:', taskId);
+
+  // Server-side polling (max 60s, every 2s)
+  return pollKlingImageTask(`/v1/images/generations/${taskId}`, 'T2I');
+}
+
+// ====== Image-to-Image (Omni Image) ======
+
+/**
+ * Create an I2I task using Kling omni-image endpoint.
+ * Image must be base64 data URI.
+ */
+export async function generateKlingI2I(params: {
+  prompt: string;
+  image: string; // base64 data URI or URL
+  aspectRatio?: string;
+}): Promise<{ imageUrl: string }> {
+  const body: any = {
+    model_name: 'kling-image-o1',
+    prompt: `<<<image_1>>> ${params.prompt}`,
+    image_list: [{ image: params.image }],
+    n: 1,
+    aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
+  };
+
+  console.log('[Kling I2I] Creating omni-image task, image size:', params.image.length > 200 ? `${(params.image.length / 1024).toFixed(0)}KB` : 'URL');
+
+  const createRes = await fetch(`${KLING_API_BASE}/v1/images/omni-image`, {
+    method: 'POST',
+    headers: getKlingHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  const createText = await createRes.text();
+  if (!createRes.ok) {
+    throw new Error(`Kling I2I create error: ${createRes.status} - ${createText}`);
+  }
+
+  const createData = JSON.parse(createText);
+  const taskId = createData.data?.task_id;
+  if (!taskId) throw new Error('Kling I2I: no task_id returned');
+
+  console.log('[Kling I2I] Task created:', taskId);
+
+  return pollKlingImageTask(`/v1/images/omni-image/${taskId}`, 'I2I');
+}
+
+/**
+ * Poll a Kling image task until completion.
+ * Max 60s, polling every 2s.
+ */
+async function pollKlingImageTask(pollPath: string, tag: string): Promise<{ imageUrl: string }> {
+  const maxWait = 60_000;
+  const interval = 2_000;
+  const start = Date.now();
+
+  while (Date.now() - start < maxWait) {
+    await new Promise(r => setTimeout(r, interval));
+
+    const pollRes = await fetch(`${KLING_API_BASE}${pollPath}`, {
+      method: 'GET',
+      headers: getKlingHeaders(),
+    });
+
+    const pollText = await pollRes.text();
+    if (!pollRes.ok) {
+      throw new Error(`Kling ${tag} poll error: ${pollRes.status} - ${pollText}`);
+    }
+
+    const pollData = JSON.parse(pollText);
+    const taskStatus = pollData.data?.task_status;
+
+    if (taskStatus === 'succeed') {
+      const images = pollData.data?.task_result?.images;
+      if (images && images.length > 0 && images[0].url) {
+        console.log(`[Kling ${tag}] Image ready:`, images[0].url);
+        return { imageUrl: images[0].url };
+      }
+      throw new Error(`Kling ${tag}: succeed but no image URL`);
+    }
+
+    if (taskStatus === 'failed') {
+      const msg = pollData.data?.task_status_msg || 'Image generation failed';
+      throw new Error(`Kling ${tag} failed: ${msg}`);
+    }
+
+    console.log(`[Kling ${tag}] Polling... status: ${taskStatus}`);
+  }
+
+  throw new Error(`Kling ${tag}: timeout after ${maxWait / 1000}s`);
 }
 
 // ====== Text-to-Video ======
