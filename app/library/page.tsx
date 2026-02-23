@@ -79,6 +79,8 @@ type MyVideo = {
   tiktok_published_at?: string;
   file_size?: number;
   folder_id?: string | null;
+  subtitle_text?: string;
+  audio_url?: string;
 };
 
 // Données de démonstration pour le mode visiteur

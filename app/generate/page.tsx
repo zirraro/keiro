@@ -391,6 +391,8 @@ export default function GeneratePage() {
   const [selectedVoice, setSelectedVoice] = useState('JBFqnCBsd6RMkjVDRZzb'); // ElevenLabs George (Homme narrateur)
   const [selectedMusic, setSelectedMusic] = useState('none');
   const [generatedSubtitleText, setGeneratedSubtitleText] = useState('');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [videoEditorMerging, setVideoEditorMerging] = useState(false);
 
@@ -1791,15 +1793,17 @@ export default function GeneratePage() {
 
       console.log('[SaveVideoToLibrary] Saving video to library...');
 
-      // Payload pour la vidéo (déjà uploadée par Seedream)
+      // Payload pour la vidéo
       const payload = {
         videoUrl: generatedVideoUrl,
         title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
         sourceType: 'seedream_i2v',
-        duration: 5,
-        thumbnailUrl: null, // Ne pas envoyer base64 data URL (payload trop large)
+        duration: videoDuration || 5,
+        thumbnailUrl: null,
         originalImageId: null,
-        folderId: null
+        folderId: null,
+        subtitleText: generatedSubtitleText || null,
+        audioUrl: generatedAudioUrl || null,
       };
 
       console.log('[SaveVideoToLibrary] Payload:', payload);
@@ -2099,7 +2103,9 @@ export default function GeneratePage() {
                       videoUrl: finalVideoUrl,
                       title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
                       sourceType: 'seedream_i2v',
-                      duration: 5
+                      duration: videoDuration,
+                      subtitleText: generatedSubtitleText || null,
+                      audioUrl: generatedAudioUrl || null,
                     })
                   });
                   const vSaveData = await vSaveRes.json();
@@ -3596,17 +3602,48 @@ export default function GeneratePage() {
                 </h3>
                 <div className="relative w-full aspect-video bg-neutral-900 rounded border overflow-hidden">
                   <video
+                    ref={videoPreviewRef}
                     src={generatedVideoUrl}
                     controls
                     autoPlay
                     loop
                     className="w-full h-full object-contain"
+                    onTimeUpdate={() => {
+                      if (!generatedSubtitleText || (aiTextStyle !== 'wordstay' && aiTextStyle !== 'wordflash')) return;
+                      const v = videoPreviewRef.current;
+                      if (!v || !v.duration) return;
+                      const words = generatedSubtitleText.trim().split(/\s+/);
+                      const progress = v.currentTime / v.duration;
+                      setCurrentWordIndex(Math.min(Math.floor(progress * words.length), words.length - 1));
+                    }}
                   />
                   {generatedSubtitleText && (
                     <div className="absolute bottom-4 left-2 right-2 text-center pointer-events-none">
-                      <span className="inline-block max-w-[95%] text-white text-sm font-bold bg-black/60 px-3 py-1.5 rounded-lg">
-                        {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
-                      </span>
+                      {aiTextStyle === 'wordstay' ? (
+                        <span className="inline-block max-w-[95%] text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]">
+                          {generatedSubtitleText.trim().split(/\s+/).slice(0, currentWordIndex + 1).join(' ')}
+                        </span>
+                      ) : aiTextStyle === 'wordflash' ? (
+                        <span className="inline-block text-white text-lg font-extrabold [text-shadow:_2px_2px_6px_rgb(0_0_0_/_90%)]">
+                          {generatedSubtitleText.trim().split(/\s+/)[currentWordIndex] || ''}
+                        </span>
+                      ) : aiTextStyle === 'impact' ? (
+                        <span className="inline-block max-w-[95%] text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl">
+                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
+                        </span>
+                      ) : aiTextStyle === 'minimal' ? (
+                        <span className="inline-block max-w-[95%] text-white text-[10px] font-medium bg-black/40 px-1.5 py-0.5 rounded">
+                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
+                        </span>
+                      ) : aiTextStyle === 'clean' ? (
+                        <span className="inline-block max-w-[95%] text-white text-sm font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]">
+                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
+                        </span>
+                      ) : (
+                        <span className="inline-block max-w-[95%] text-white text-sm font-bold bg-black/60 px-3 py-1.5 rounded-lg">
+                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

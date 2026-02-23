@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
       originalImageId,
       duration,
       thumbnailUrl,
-      folderId
+      folderId,
+      subtitleText,
+      audioUrl,
     } = body;
 
     // 3. Validate required fields
@@ -74,6 +76,8 @@ export async function POST(req: NextRequest) {
         duration: duration || null,
         format,
         folder_id: folderId || null,
+        subtitle_text: subtitleText || null,
+        audio_url: audioUrl || null,
         is_favorite: false,
         published_to_tiktok: false
       })
@@ -116,7 +120,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, videoUrl, title } = body;
+    const { id, videoUrl, title, subtitleText, audioUrl } = body;
 
     if (!id) {
       return NextResponse.json({ ok: false, error: 'id requis' }, { status: 400 });
@@ -129,6 +133,8 @@ export async function PATCH(req: NextRequest) {
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
     if (videoUrl) updateData.video_url = videoUrl;
     if (title) updateData.title = title;
+    if (subtitleText !== undefined) updateData.subtitle_text = subtitleText;
+    if (audioUrl !== undefined) updateData.audio_url = audioUrl;
 
     const { data, error } = await supabase
       .from('my_videos')

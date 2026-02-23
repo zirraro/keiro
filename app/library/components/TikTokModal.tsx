@@ -30,6 +30,8 @@ type MyVideo = {
   published_to_tiktok: boolean;
   tiktok_published_at?: string;
   file_size?: number;
+  subtitle_text?: string;
+  audio_url?: string;
 };
 
 interface TikTokModalProps {
@@ -141,6 +143,17 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [availableVideos, setAvailableVideos] = useState<MyVideo[]>(videos || []);
   const [selectedVideo, setSelectedVideo] = useState<MyVideo | null>(video || null);
   const [loadingVideos, setLoadingVideos] = useState(!videos && !!video);
+
+  // Pré-charger subtitle/audio depuis la vidéo sélectionnée
+  useEffect(() => {
+    if (selectedVideo?.subtitle_text && !narrationScript) {
+      setNarrationScript(selectedVideo.subtitle_text);
+      setEnableSubtitles(true);
+    }
+    if (selectedVideo?.audio_url && !narrationAudioUrl) {
+      setNarrationAudioUrl(selectedVideo.audio_url);
+    }
+  }, [selectedVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Angle/ton de la description
   const [contentAngle, setContentAngle] = useState('viral');

@@ -25,6 +25,8 @@ type MyVideo = {
   is_favorite: boolean;
   created_at: string;
   file_size?: number;
+  subtitle_text?: string;
+  audio_url?: string;
 };
 
 interface LinkedInModalProps {
