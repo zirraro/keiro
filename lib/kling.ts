@@ -123,13 +123,13 @@ export async function generateKlingT2I(params: {
   const prompt = condensePromptForKling(params.prompt);
 
   const body = {
-    model_name: 'kling-image-o1',
+    model_name: 'kling-v2-1',
     prompt,
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
 
-  console.log('[Kling T2I] Creating task with model kling-image-o1, prompt length:', prompt.length);
+  console.log('[Kling T2I] Creating task with model kling-v2-1, prompt length:', prompt.length);
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/generations`, {
     method: 'POST',
@@ -167,7 +167,7 @@ export async function generateKlingI2I(params: {
   const rawPrompt = condensePromptForKling(params.prompt, 2480);
 
   const body: any = {
-    model_name: 'kling-image-o1',
+    model_name: 'kling-v1-5',
     prompt: `<<<image_1>>> ${rawPrompt}`,
     image_list: [{ image: params.image }],
     n: 1,
