@@ -69,7 +69,7 @@ export interface KlingT2VRequest {
  */
 export async function createT2VTask(params: KlingT2VRequest): Promise<string> {
   const body = {
-    model_name: 'kling-v2-master',
+    model_name: 'kling-v2',
     prompt: params.prompt,
     duration: params.duration,
     aspect_ratio: normalizeAspectRatio(params.aspect_ratio),
@@ -138,7 +138,7 @@ export interface KlingI2VRequest {
  */
 export async function createI2VTask(params: KlingI2VRequest): Promise<string> {
   const body: any = {
-    model_name: 'kling-v2-master',
+    model_name: 'kling-v2',
     image: params.image,
     duration: params.duration,
     mode: params.mode || 'std',
