@@ -378,7 +378,10 @@ export default function GeneratePage() {
   const [videoProgress, setVideoProgress] = useState<string>('');
   const [videoSavedToLibrary, setVideoSavedToLibrary] = useState(false);
   const [enableAIText, setEnableAIText] = useState(false);
-  const [aiTextStyle, setAITextStyle] = useState('classic'); // classic, minimal, impact, clean, wordstay, wordflash
+  const [aiTextStyle, setAITextStyle] = useState('wordflash'); // wordflash, wordstay, neon, cinema, impact, minimal
+  const [subtitleFontSize, setSubtitleFontSize] = useState<'sm' | 'md' | 'lg' | 'xl'>('md');
+  const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'center' | 'bottom'>('bottom');
+  const [videoAspectRatio, setVideoAspectRatio] = useState('16:9');
   const [videoDuration, setVideoDuration] = useState(5);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
 
@@ -1901,9 +1904,9 @@ export default function GeneratePage() {
       // Construire le prompt vidéo enrichi
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
-        videoPrompt = `Create a professional ${videoDuration}-second social media video. Topic: ${selectedNews.title}. ${(selectedNews as any).description ? `Context: ${(selectedNews as any).description}.` : ''} Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics.`;
+        videoPrompt = `Create a professional ${videoDuration}-second social media video. Topic: ${selectedNews.title}. ${(selectedNews as any).description ? `Context: ${(selectedNews as any).description}.` : ''} Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics. IMPORTANT: Do NOT include any text, letters, words, titles or typography in the video. Pure visual content only.`;
       } else {
-        videoPrompt = `Create a professional ${videoDuration}-second social media video. Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics showcasing business identity.`;
+        videoPrompt = `Create a professional ${videoDuration}-second social media video. Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics showcasing business identity. IMPORTANT: Do NOT include any text, letters, words, titles or typography in the video. Pure visual content only.`;
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
@@ -1930,8 +1933,8 @@ export default function GeneratePage() {
             const subtitleData = await subtitleRes.json();
             if (subtitleData.ok && subtitleData.suggestions?.length > 0) {
               const styleMap: Record<string, string> = {
-                classic: 'catchy', minimal: 'informative', impact: 'catchy',
-                clean: 'informative', wordstay: 'catchy', wordflash: 'catchy'
+                wordflash: 'catchy', wordstay: 'catchy', neon: 'catchy',
+                cinema: 'informative', impact: 'catchy', minimal: 'informative'
               };
               const targetStyle = styleMap[aiTextStyle] || 'catchy';
               const match = subtitleData.suggestions.find((s: any) => s.style === targetStyle);
@@ -1960,6 +1963,7 @@ export default function GeneratePage() {
         : platform === 'LinkedIn' ? '16:9'
         : platform === 'Twitter/X' ? '16:9'
         : '16:9';
+      setVideoAspectRatio(platformRatio);
 
       const res = await fetch('/api/seedream/t2v', {
         method: 'POST',
@@ -3325,12 +3329,12 @@ export default function GeneratePage() {
                           <p className="text-[10px] text-purple-700">Style du texte:</p>
                           <div className="flex flex-wrap gap-1.5">
                             {[
-                              { key: 'classic', label: 'Classique' },
-                              { key: 'minimal', label: 'Discret' },
-                              { key: 'impact', label: 'Impact' },
-                              { key: 'clean', label: 'Sans fond' },
-                              { key: 'wordstay', label: 'Mots progressifs' },
-                              { key: 'wordflash', label: 'Mot par mot' },
+                              { key: 'wordflash', label: '⚡ Mot par mot' },
+                              { key: 'wordstay', label: '🎤 Karaoké' },
+                              { key: 'neon', label: '💜 Néon' },
+                              { key: 'cinema', label: '🎬 Cinéma' },
+                              { key: 'impact', label: '💥 Bold' },
+                              { key: 'minimal', label: '✦ Discret' },
                             ].map((style) => (
                               <button
                                 key={style.key}
@@ -3345,7 +3349,54 @@ export default function GeneratePage() {
                               </button>
                             ))}
                           </div>
-                          <p className="text-[9px] text-purple-600 italic">
+                          {/* Taille du texte */}
+                          <div className="mt-1.5">
+                            <p className="text-[9px] text-purple-600 mb-1">Taille:</p>
+                            <div className="flex gap-1">
+                              {([
+                                { key: 'sm', label: 'Petit' },
+                                { key: 'md', label: 'Moyen' },
+                                { key: 'lg', label: 'Grand' },
+                                { key: 'xl', label: 'Très grand' },
+                              ] as const).map((s) => (
+                                <button
+                                  key={s.key}
+                                  onClick={() => setSubtitleFontSize(s.key)}
+                                  className={`px-1.5 py-1 text-[9px] rounded border transition-all ${
+                                    subtitleFontSize === s.key
+                                      ? 'bg-purple-600 text-white border-purple-600'
+                                      : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                                  }`}
+                                >
+                                  {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Position du texte */}
+                          <div className="mt-1.5">
+                            <p className="text-[9px] text-purple-600 mb-1">Position:</p>
+                            <div className="flex gap-1">
+                              {([
+                                { key: 'top', label: '⬆ Haut' },
+                                { key: 'center', label: '● Centre' },
+                                { key: 'bottom', label: '⬇ Bas' },
+                              ] as const).map((p) => (
+                                <button
+                                  key={p.key}
+                                  onClick={() => setSubtitlePosition(p.key)}
+                                  className={`px-1.5 py-1 text-[9px] rounded border transition-all ${
+                                    subtitlePosition === p.key
+                                      ? 'bg-purple-600 text-white border-purple-600'
+                                      : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
+                                  }`}
+                                >
+                                  {p.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-purple-600 italic mt-1.5">
                             {addAudio
                               ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
                               : '💡 L\'IA génèrera automatiquement du texte adapté à la vidéo'}
@@ -3600,14 +3651,18 @@ export default function GeneratePage() {
                   <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                   Vidéo générée
                 </h3>
-                <div className="relative w-full aspect-video bg-neutral-900 rounded border overflow-hidden">
+                <div className={`relative w-full bg-neutral-900 rounded border overflow-hidden ${
+                  videoAspectRatio === '9:16' ? 'aspect-[9/16] max-h-[500px] mx-auto'
+                  : videoAspectRatio === '4:5' ? 'aspect-[4/5] max-h-[500px] mx-auto'
+                  : 'aspect-video'
+                }`}>
                   <video
                     ref={videoPreviewRef}
                     src={generatedVideoUrl}
                     controls
                     autoPlay
                     loop
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                     onTimeUpdate={() => {
                       if (!generatedSubtitleText || !['wordstay', 'wordflash', 'neon'].includes(aiTextStyle)) return;
                       const v = videoPreviewRef.current;
@@ -3620,34 +3675,46 @@ export default function GeneratePage() {
                   {generatedSubtitleText && (() => {
                     const words = generatedSubtitleText.trim().split(/\s+/);
                     const displayText = generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText;
+                    const sizeMap: Record<string, Record<string, string>> = {
+                      wordflash: { sm: 'text-lg', md: 'text-2xl', lg: 'text-4xl', xl: 'text-5xl' },
+                      wordstay: { sm: 'text-xs', md: 'text-sm', lg: 'text-base', xl: 'text-lg' },
+                      neon: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
+                      cinema: { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm', xl: 'text-base' },
+                      impact: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
+                      minimal: { sm: 'text-[8px]', md: 'text-[10px]', lg: 'text-xs', xl: 'text-sm' },
+                    };
+                    const fontSize = sizeMap[aiTextStyle]?.[subtitleFontSize] || sizeMap.wordflash[subtitleFontSize];
+                    const posClass = subtitlePosition === 'top' ? 'top-4'
+                      : subtitlePosition === 'center' ? 'inset-0 flex items-center justify-center'
+                      : 'bottom-4';
                     return (
-                      <div className={`absolute left-2 right-2 text-center pointer-events-none ${aiTextStyle === 'wordflash' || aiTextStyle === 'impact' ? 'inset-0 flex items-center justify-center' : 'bottom-4'}`}>
+                      <div className={`absolute left-2 right-2 text-center pointer-events-none ${posClass}`}>
                         {aiTextStyle === 'wordflash' ? (
-                          <span className="text-white text-2xl font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]">
+                          <span className={`text-white ${fontSize} font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]`}>
                             {words[currentWordIndex] || ''}
                           </span>
                         ) : aiTextStyle === 'wordstay' ? (
                           <span className="inline-block max-w-[95%]">
                             {words.slice(0, currentWordIndex + 1).map((w, i) => (
-                              <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]`}>
+                              <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} ${fontSize} font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]`}>
                                 {w}{' '}
                               </span>
                             ))}
                           </span>
                         ) : aiTextStyle === 'neon' ? (
-                          <span className="text-fuchsia-400 text-xl font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]">
+                          <span className={`text-fuchsia-400 ${fontSize} font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]`}>
                             {words[currentWordIndex] || ''}
                           </span>
                         ) : aiTextStyle === 'cinema' ? (
-                          <span className="inline-block max-w-[95%] text-white text-xs font-medium bg-black/80 px-4 py-2 tracking-wider">
+                          <span className={`inline-block max-w-[95%] text-white ${fontSize} font-medium bg-black/80 px-4 py-2 tracking-wider`}>
                             {displayText}
                           </span>
                         ) : aiTextStyle === 'impact' ? (
-                          <span className="text-white text-xl font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]">
+                          <span className={`text-white ${fontSize} font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]`}>
                             {displayText}
                           </span>
                         ) : (
-                          <span className="inline-block max-w-[95%] text-white/90 text-[10px] font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm">
+                          <span className={`inline-block max-w-[95%] text-white/90 ${fontSize} font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm`}>
                             {displayText}
                           </span>
                         )}
@@ -3730,6 +3797,53 @@ export default function GeneratePage() {
                             {style.label}
                           </button>
                         ))}
+                      </div>
+                      {/* Taille du texte */}
+                      <div className="mt-2">
+                        <p className="text-[10px] text-green-700 mb-1">Taille du texte:</p>
+                        <div className="flex gap-1.5">
+                          {([
+                            { key: 'sm', label: 'Petit' },
+                            { key: 'md', label: 'Moyen' },
+                            { key: 'lg', label: 'Grand' },
+                            { key: 'xl', label: 'Très grand' },
+                          ] as const).map((s) => (
+                            <button
+                              key={s.key}
+                              onClick={() => setSubtitleFontSize(s.key)}
+                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                subtitleFontSize === s.key
+                                  ? 'bg-green-600 text-white border-green-600'
+                                  : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Position du texte */}
+                      <div className="mt-2">
+                        <p className="text-[10px] text-green-700 mb-1">Position:</p>
+                        <div className="flex gap-1.5">
+                          {([
+                            { key: 'top', label: '⬆ Haut' },
+                            { key: 'center', label: '● Centre' },
+                            { key: 'bottom', label: '⬇ Bas' },
+                          ] as const).map((p) => (
+                            <button
+                              key={p.key}
+                              onClick={() => setSubtitlePosition(p.key)}
+                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                subtitlePosition === p.key
+                                  ? 'bg-green-600 text-white border-green-600'
+                                  : 'bg-white text-green-700 border-green-300 hover:border-green-400'
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
