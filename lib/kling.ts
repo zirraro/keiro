@@ -79,14 +79,17 @@ export async function generateKlingT2I(params: {
   prompt: string;
   aspectRatio?: string;
 }): Promise<{ imageUrl: string }> {
+  // Kling limit: prompt max 2500 chars
+  const prompt = params.prompt.length > 2500 ? params.prompt.substring(0, 2500) : params.prompt;
+
   const body = {
     model_name: 'kling-image-o1',
-    prompt: params.prompt,
+    prompt,
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
 
-  console.log('[Kling T2I] Creating task with model kling-image-o1');
+  console.log('[Kling T2I] Creating task with model kling-image-o1, prompt length:', prompt.length);
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/generations`, {
     method: 'POST',
@@ -120,15 +123,18 @@ export async function generateKlingI2I(params: {
   image: string; // base64 data URI or URL
   aspectRatio?: string;
 }): Promise<{ imageUrl: string }> {
+  // Kling limit: prompt max 2500 chars (including the <<<image_1>>> prefix)
+  const rawPrompt = params.prompt.length > 2480 ? params.prompt.substring(0, 2480) : params.prompt;
+
   const body: any = {
     model_name: 'kling-image-o1',
-    prompt: `<<<image_1>>> ${params.prompt}`,
+    prompt: `<<<image_1>>> ${rawPrompt}`,
     image_list: [{ image: params.image }],
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
 
-  console.log('[Kling I2I] Creating omni-image task, image size:', params.image.length > 200 ? `${(params.image.length / 1024).toFixed(0)}KB` : 'URL');
+  console.log('[Kling I2I] Creating omni-image task, prompt length:', rawPrompt.length, ', image size:', params.image.length > 200 ? `${(params.image.length / 1024).toFixed(0)}KB` : 'URL');
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/omni-image`, {
     method: 'POST',
