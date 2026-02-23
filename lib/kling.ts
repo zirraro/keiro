@@ -42,6 +42,18 @@ export function getKlingHeaders(): Record<string, string> {
   };
 }
 
+// Kling only supports 16:9, 9:16, 1:1
+// Map unsupported ratios to the closest supported one
+const SUPPORTED_RATIOS = ['16:9', '9:16', '1:1'];
+function normalizeAspectRatio(ratio?: string): string {
+  if (!ratio || SUPPORTED_RATIOS.includes(ratio)) return ratio || '16:9';
+  // 4:5 (Instagram portrait) → 9:16
+  if (ratio === '4:5' || ratio === '3:4' || ratio === '2:3') return '9:16';
+  // 5:4, 4:3, 3:2 (landscape) → 16:9
+  if (ratio === '5:4' || ratio === '4:3' || ratio === '3:2') return '16:9';
+  return '16:9';
+}
+
 // ====== Text-to-Video ======
 
 export interface KlingT2VRequest {
@@ -60,7 +72,7 @@ export async function createT2VTask(params: KlingT2VRequest): Promise<string> {
     model_name: 'kling-v2-master',
     prompt: params.prompt,
     duration: params.duration,
-    aspect_ratio: params.aspect_ratio || '16:9',
+    aspect_ratio: normalizeAspectRatio(params.aspect_ratio),
     mode: params.mode || 'std',
   };
 
