@@ -105,7 +105,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         }
       }
     }
-    console.error('[Webhook] Could not identify user for checkout:', session.id);
+    // User pas encore inscrit → sera activé via /api/stripe/claim-payment après création de compte
+    console.log('[Webhook] User not found for checkout (will be claimed after signup):', session.id, 'plan:', planKey);
     return;
   }
 

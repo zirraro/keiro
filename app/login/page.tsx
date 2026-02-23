@@ -17,11 +17,35 @@ function LoginPageInner() {
   const searchParams = useSearchParams();
   const supabase = supabaseBrowser();
 
-  // Redirect après login : utiliser le param ?redirect= ou /generate par défaut
+  const stripeSessionId = searchParams.get('stripe_session_id');
+  const paymentSuccess = searchParams.get('payment_success') === '1';
+  const planFromUrl = searchParams.get('plan');
+
+  // Redirect après login : /generate par défaut
   const getRedirectUrl = () => {
     const redirect = searchParams.get('redirect') || '/generate';
     const plan = searchParams.get('plan');
     return plan ? `${redirect}?plan=${plan}` : redirect;
+  };
+
+  // Après login/signup, lier le paiement Stripe au compte si session_id présent
+  const claimStripePayment = async () => {
+    if (!stripeSessionId) return;
+    try {
+      const res = await fetch('/api/stripe/claim-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: stripeSessionId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        console.log('[Login] Stripe payment claimed:', data.plan);
+      } else {
+        console.error('[Login] Failed to claim payment:', data.error);
+      }
+    } catch (err) {
+      console.error('[Login] Claim payment error:', err);
+    }
   };
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
@@ -69,6 +93,15 @@ function LoginPageInner() {
       });
 
       if (error) throw error;
+
+      // Lier le paiement Stripe si session_id présent
+      if (stripeSessionId) {
+        setSuccess(true);
+        setError('Activation de votre plan en cours...');
+        await claimStripePayment();
+        window.location.href = '/generate';
+        return;
+      }
 
       // Activer code promo si fourni
       if (promoCode.trim()) {
@@ -128,6 +161,11 @@ function LoginPageInner() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    // Sauvegarder le stripe_session_id pour le récupérer après confirmation email
+    if (stripeSessionId) {
+      localStorage.setItem('pending_stripe_session', stripeSessionId);
+    }
 
     const finalBusinessType = businessType === 'other' ? customBusinessType : businessType;
 
@@ -196,13 +234,28 @@ function LoginPageInner() {
       }
 
       if (session) {
+        // Lier le paiement Stripe si session_id présent
+        if (stripeSessionId) {
+          setSuccess(true);
+          setError('Activation de votre plan en cours...');
+          await claimStripePayment();
+          window.location.href = '/generate';
+          return;
+        }
+
         console.log('[Signup] User logged in immediately, showing step 2');
         setSuccess(true);
         if (promoExpiresMessage) setError(promoExpiresMessage.trim());
         setStep(2);
       } else {
-        setSuccess(true);
-        setError('Vérifiez votre email pour confirmer votre inscription !' + promoExpiresMessage);
+        // Email de confirmation requis
+        if (stripeSessionId) {
+          setSuccess(true);
+          setError('Vérifiez votre email pour confirmer votre inscription. Votre plan sera activé automatiquement après confirmation.');
+        } else {
+          setSuccess(true);
+          setError('Vérifiez votre email pour confirmer votre inscription !' + promoExpiresMessage);
+        }
       }
     } catch (err: any) {
       console.error('[Signup] Error:', err);
@@ -623,6 +676,18 @@ function LoginPageInner() {
             Créez des visuels qui surfent sur l{"'"}actu
           </p>
         </div>
+
+        {/* Paiement Stripe réussi — créer un compte pour activer */}
+        {paymentSuccess && (
+          <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+            <p className="text-green-800 font-semibold text-sm">
+              Paiement reçu !
+            </p>
+            <p className="text-green-700 text-xs mt-1">
+              {mode === 'login' ? 'Connectez-vous' : 'Créez votre compte'} pour activer votre plan <span className="font-semibold capitalize">{planFromUrl}</span>.
+            </p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 bg-neutral-100 rounded-lg p-1">

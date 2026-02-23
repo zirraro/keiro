@@ -13,28 +13,41 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Authentifier l'utilisateur
-    const { user, error: authError } = await getAuthUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+    // 1. Auth optionnelle — fonctionne avec ou sans connexion
+    const { user } = await getAuthUser();
 
     const { planKey } = await request.json();
     if (!planKey) {
       return NextResponse.json({ error: 'planKey requis' }, { status: 400 });
     }
 
-    // 2. Créer ou réutiliser le Stripe Customer
-    const customerId = await getOrCreateStripeCustomer(
-      user.id,
-      user.email!,
-      user.user_metadata?.first_name
-        ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim()
-        : undefined
-    );
-
     const stripe = getStripe();
     let sessionParams: any;
+
+    // Params communs selon que l'user est connecté ou non
+    const isAuthenticated = !!user;
+    const metadata: Record<string, string> = { planKey };
+    if (isAuthenticated) {
+      metadata.userId = user.id;
+    }
+
+    // Success URL : si connecté → mon-compte, sinon → login avec session_id pour lier le paiement
+    const successUrlAuth = `${SITE_URL}/mon-compte?section=billing&success=1`;
+    const successUrlGuest = `${SITE_URL}/login?stripe_session_id={CHECKOUT_SESSION_ID}&plan=${planKey}&payment_success=1`;
+    const successUrl = isAuthenticated ? successUrlAuth : successUrlGuest;
+    const cancelUrl = `${SITE_URL}/pricing?cancelled=1`;
+
+    // Créer un Stripe Customer si connecté (sinon Stripe en crée un automatiquement)
+    let customerId: string | undefined;
+    if (isAuthenticated) {
+      customerId = await getOrCreateStripeCustomer(
+        user.id,
+        user.email!,
+        user.user_metadata?.first_name
+          ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim()
+          : undefined
+      );
+    }
 
     if (SUBSCRIPTION_PLANS.includes(planKey)) {
       // ---- ABONNEMENT MENSUEL RÉCURRENT ----
@@ -45,17 +58,15 @@ export async function POST(request: NextRequest) {
       }
 
       sessionParams = {
-        customer: customerId,
         mode: 'subscription' as const,
         line_items: [{ price: priceId, quantity: 1 }],
-        metadata: { userId: user.id, planKey },
-        subscription_data: {
-          metadata: { userId: user.id, planKey },
-        },
-        success_url: `${SITE_URL}/mon-compte?section=billing&success=1`,
-        cancel_url: `${SITE_URL}/pricing?cancelled=1`,
+        metadata,
+        subscription_data: { metadata },
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         allow_promotion_codes: true,
       };
+      if (customerId) sessionParams.customer = customerId;
 
     } else if (planKey === 'sprint') {
       // ---- SPRINT: PAIEMENT UNIQUE (3 jours) ----
@@ -65,13 +76,13 @@ export async function POST(request: NextRequest) {
       }
 
       sessionParams = {
-        customer: customerId,
         mode: 'payment' as const,
         line_items: [{ price: sprintPriceId, quantity: 1 }],
-        metadata: { userId: user.id, planKey: 'sprint' },
-        success_url: `${SITE_URL}/generate?sprint=activated`,
-        cancel_url: `${SITE_URL}/pricing?cancelled=1`,
+        metadata,
+        success_url: isAuthenticated ? `${SITE_URL}/generate?sprint=activated` : successUrlGuest,
+        cancel_url: cancelUrl,
       };
+      if (customerId) sessionParams.customer = customerId;
 
     } else if (planKey.startsWith('pack_')) {
       // ---- PACK CRÉDITS: PAIEMENT UNIQUE ----
@@ -82,13 +93,13 @@ export async function POST(request: NextRequest) {
       }
 
       sessionParams = {
-        customer: customerId,
         mode: 'payment' as const,
         line_items: [{ price: packPriceId, quantity: 1 }],
-        metadata: { userId: user.id, planKey },
-        success_url: `${SITE_URL}/mon-compte?section=billing&pack=1`,
-        cancel_url: `${SITE_URL}/mon-compte?section=billing`,
+        metadata,
+        success_url: isAuthenticated ? `${SITE_URL}/mon-compte?section=billing&pack=1` : successUrlGuest,
+        cancel_url: cancelUrl,
       };
+      if (customerId) sessionParams.customer = customerId;
 
     } else {
       return NextResponse.json({ error: 'Plan inconnu' }, { status: 400 });
@@ -97,10 +108,11 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log('[Stripe Checkout] Session created:', {
-      userId: user.id,
+      userId: user?.id || 'guest',
       planKey,
       sessionId: session.id,
       mode: sessionParams.mode,
+      authenticated: isAuthenticated,
     });
 
     return NextResponse.json({ url: session.url });

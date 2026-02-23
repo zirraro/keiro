@@ -85,6 +85,23 @@ export default function AuthCallbackPage() {
             }]);
           }
 
+          // Vérifier s'il y a un paiement Stripe en attente
+          const pendingStripeSession = localStorage.getItem('pending_stripe_session');
+          if (pendingStripeSession) {
+            console.log('[Auth Callback] Claiming pending Stripe payment:', pendingStripeSession);
+            localStorage.removeItem('pending_stripe_session');
+            try {
+              await fetch('/api/stripe/claim-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: pendingStripeSession }),
+              });
+              console.log('[Auth Callback] Stripe payment claimed');
+            } catch (err) {
+              console.error('[Auth Callback] Failed to claim Stripe payment:', err);
+            }
+          }
+
           setStatus('success');
           setTimeout(() => { window.location.href = '/generate?welcome=true'; }, 1000);
           return;

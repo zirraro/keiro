@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
@@ -147,17 +146,6 @@ function ContactFormPricing() {
 
 function PricingPageInner() {
   const feedback = useFeedbackPopup();
-  const searchParams = useSearchParams();
-
-  // Auto-déclencher le checkout après redirect login (ex: ?plan=fondateurs)
-  useEffect(() => {
-    const plan = searchParams.get('plan');
-    if (plan) {
-      // Nettoyer l'URL pour éviter de re-déclencher
-      window.history.replaceState({}, '', '/pricing');
-      startCheckout(plan);
-    }
-  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
@@ -807,9 +795,5 @@ function PricingPageInner() {
 }
 
 export default function PricingPage() {
-  return (
-    <Suspense>
-      <PricingPageInner />
-    </Suspense>
-  );
+  return <PricingPageInner />;
 }

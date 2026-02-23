@@ -1,22 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 
 function HomeKeiroInner() {
-  const searchParams = useSearchParams();
-
-  // Auto-déclencher le checkout après redirect login (ex: ?plan=fondateurs)
-  useEffect(() => {
-    const plan = searchParams.get('plan');
-    if (plan) {
-      window.history.replaceState({}, '', '/');
-      startCheckout(plan);
-    }
-  }, [searchParams]);
-
   return (
     <main className="min-h-dvh bg-white">
       {/* HERO */}
@@ -1535,9 +1523,5 @@ function Faq({ q, a }: { q: string; a: string }) {
 }
 
 export default function HomeKeiro() {
-  return (
-    <Suspense>
-      <HomeKeiroInner />
-    </Suspense>
-  );
+  return <HomeKeiroInner />;
 }
