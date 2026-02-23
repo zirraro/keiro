@@ -166,10 +166,16 @@ export async function generateKlingI2I(params: {
   // Kling limit: prompt max 2500 chars (including the <<<image_1>>> prefix)
   const rawPrompt = condensePromptForKling(params.prompt, 2480);
 
+  // Strip data URI prefix — Kling expects raw base64 only
+  let imageBase64 = params.image;
+  if (imageBase64.startsWith('data:')) {
+    imageBase64 = imageBase64.replace(/^data:[^;]+;base64,/, '');
+  }
+
   const body: any = {
     model_name: 'kling-v2',
     prompt: `<<<image_1>>> ${rawPrompt}`,
-    image_list: [{ image: params.image }],
+    image_list: [{ image: imageBase64 }],
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
