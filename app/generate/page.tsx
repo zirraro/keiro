@@ -1036,42 +1036,48 @@ export default function GeneratePage() {
       // 1. CONTEXTE & LANGUE
       if (useNewsMode && selectedNews) {
         promptParts.push(
-          `\n\nYou are an expert social media content creator and community manager. ` +
-          `Create a professional visual for a French-speaking audience that connects current news with a specific business.`
+          `\n\nYou are a world-class creative director and social media strategist. ` +
+          `Create a visually STUNNING and INNOVATIVE image for a French-speaking audience. ` +
+          `The BUSINESS is the HERO of the image — the news serves as context and opportunity to make the business shine.`
         );
 
-        // 2. ACTUALITÉ
+        // 2. ACTUALITÉ (contexte, pas le focus)
         promptParts.push(
-          `\n\nNEWS STORY:\n` +
+          `\n\nCURRENT NEWS CONTEXT (use as creative backdrop, NOT the main subject):\n` +
           `Headline: "${selectedNews.title}"\n` +
           (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 200)}\n` : '') +
           `Source: ${selectedNews.source || 'Web'}\n\n` +
-          `Make this news story visually engaging and relevant to the target business.`
+          `Use this news as a CREATIVE SPRINGBOARD to showcase the business. The news is the CONTEXT, the business is the STAR.`
         );
 
-        // 3. BUSINESS & BRAND
+        // 3. BUSINESS & BRAND (LE HÉROS)
         promptParts.push(
-          `BUSINESS PROFILE:\n` +
+          `\n\n⭐ BUSINESS — THE MAIN FOCUS OF THE IMAGE:\n` +
           `Type: ${businessType}\n` +
           (businessDescription ? `Details: ${businessDescription}\n` : '') +
-          `\nThe visual must clearly show how this business BENEFITS from or RELATES to this news. ` +
-          `Show a specific, tangible connection that makes immediate sense to viewers.`
+          `\nThe business must occupy the FOREGROUND and be the MOST PROMINENT element in the image. ` +
+          `Show the business in action: its products, services, environment, atmosphere, or the experience it delivers. ` +
+          `The news context should be subtly woven into the BACKGROUND or ambiance — NOT competing with the business for attention. ` +
+          `Think: "How does this news make THIS business even MORE relevant, valuable, and compelling RIGHT NOW?"`
         );
       } else {
-        // MODE SANS ACTUALITÉ - Focus sur le business
+        // MODE SANS ACTUALITÉ - Focus 100% business
         promptParts.push(
-          `\n\nYou are an expert social media content creator and community manager. ` +
-          `Create a professional, eye-catching visual for a French-speaking audience that showcases a specific business and its unique value proposition.`
+          `\n\nYou are a world-class creative director and social media strategist. ` +
+          `Create a visually STUNNING and INNOVATIVE image for a French-speaking audience that puts this business in the spotlight.`
         );
 
         promptParts.push(
-          `\n\nBUSINESS PROFILE (DETAILED):\n` +
+          `\n\n⭐ BUSINESS — THE STAR OF THE IMAGE:\n` +
           `Type: ${businessType}\n` +
           `Description: ${businessDescription}\n` +
           (targetAudience ? `Target Audience: ${targetAudience}\n` : '') +
-          `\nCreate a compelling visual that captures the ESSENCE of this business. ` +
-          `Highlight what makes it unique, its atmosphere, values, and the experience it offers. ` +
-          `The visual should make people want to discover and engage with this business immediately.`
+          `\nCreate a CINEMATIC, high-impact visual that makes this business irresistible:\n` +
+          `- Show the business IN ACTION: its best products, its environment, the experience it creates\n` +
+          `- Capture the ENERGY and ATMOSPHERE that makes it unique\n` +
+          `- Use dramatic lighting, bold composition, and rich textures\n` +
+          `- Make the viewer feel like they NEED to visit, buy, or engage with this business RIGHT NOW\n` +
+          `- Think like a premium brand campaign: aspirational, emotional, unforgettable`
         );
       }
 
@@ -1189,25 +1195,25 @@ export default function GeneratePage() {
         `- No stock photo clichés (generic handshakes, forced smiles)`
       );
 
-      // 8. LIEN ACTUALITÉ-BUSINESS (NOUVEAU - Section renforcée)
+      // 8. LIEN ACTUALITÉ-BUSINESS (Business = héros, news = décor créatif)
       promptParts.push(
-        `\n\n🔗 NEWS-TO-BUSINESS CONNECTION (CRITICAL):\n` +
-        `The viewer should IMMEDIATELY understand:\n` +
-        `1. What the news is about (visual representation of the event)\n` +
-        `2. What the business does (clear brand/service indication)\n` +
-        `3. WHY they're connected (obvious benefit, opportunity, or relevance)\n\n` +
-        `VISUAL INTEGRATION - Show this connection through UNIFIED, cohesive compositions:\n` +
-        `- Blended imagery: Seamlessly integrate news elements WITH business elements in ONE harmonious scene\n` +
-        `- Layered storytelling: Use depth and layers to show news context supporting/surrounding the business\n` +
-        `- Symbolic fusion: Create visual metaphors where news and business naturally coexist in the same visual space\n` +
-        `- Environmental context: Place the business/product within an environment that evokes the news story\n\n` +
+        `\n\n🔗 INNOVATIVE BUSINESS-FIRST COMPOSITION (CRITICAL):\n` +
+        `HIERARCHY (follow strictly):\n` +
+        `1. FOREGROUND (60-70% of visual weight): The BUSINESS — its products, services, people, environment, energy\n` +
+        `2. BACKGROUND/AMBIANCE (30-40%): Subtle news context woven into the atmosphere, lighting, or setting\n` +
+        `3. CONNECTION: The viewer should feel "This business is PERFECTLY positioned for this moment"\n\n` +
+        `CREATIVE INNOVATION — Go beyond basic compositions:\n` +
+        `- Cinematic storytelling: Frame the business like a movie scene where the news is the plot setting\n` +
+        `- Emotional resonance: The news creates the MOOD, the business creates the SOLUTION or OPPORTUNITY\n` +
+        `- Visual metaphors: Use creative symbolism to link the news context to the business value\n` +
+        `- Dynamic perspectives: Unusual angles, dramatic lighting, or immersive viewpoints that make the business feel powerful\n` +
+        `- Contrast & juxtaposition: Show the business thriving BECAUSE of the news context\n\n` +
         `AVOID:\n` +
-        `- Split-screen or divided compositions (left/right, top/bottom splits)\n` +
-        `- Obvious before/after side-by-side layouts\n` +
-        `- Jarring visual cuts or harsh separations\n\n` +
-        `The connection must be SPECIFIC and TANGIBLE, not generic or abstract. ` +
-        `Create ONE beautiful, unified image where news and business flow together naturally. ` +
-        `Think like a storyteller: "This news creates THIS opportunity/problem for THIS business/audience."`
+        `- Generic stock-photo compositions (boring, flat, predictable)\n` +
+        `- Split-screen or side-by-side layouts\n` +
+        `- Equal weight between news and business (business ALWAYS dominates)\n` +
+        `- Abstract or vague connections — be SPECIFIC and TANGIBLE\n\n` +
+        `The image should make people think: "Wow, this business is exactly what I need right now given what's happening in the world."`
       );
 
       // 9. CALL TO ENGAGEMENT (NOUVEAU - Community Manager focus)
