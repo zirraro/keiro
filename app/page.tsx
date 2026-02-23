@@ -5,6 +5,8 @@ import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 
 function HomeKeiroInner() {
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+
   return (
     <main className="min-h-dvh bg-white">
       {/* HERO */}
@@ -847,6 +849,33 @@ function HomeKeiroInner() {
             <p className="text-lg text-neutral-600">
               Choisissez le plan qui correspond à vos besoins
             </p>
+
+            {/* Toggle mensuel/annuel */}
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <button
+                onClick={() => setBillingPeriod('monthly')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  billingPeriod === 'monthly'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                Mensuel
+              </button>
+              <button
+                onClick={() => setBillingPeriod('annual')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  billingPeriod === 'annual'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                Annuel <span className="ml-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">-17%</span>
+              </button>
+            </div>
+            {billingPeriod === 'annual' && (
+              <p className="text-sm text-green-600 font-medium mt-2">2 mois offerts sur tous les plans annuels</p>
+            )}
           </div>
 
           {/* Plans Grid */}
@@ -866,7 +895,8 @@ function HomeKeiroInner() {
 
             <Plan
               title="🚀 Solo"
-              price="49€ / mois"
+              price={billingPeriod === 'annual' ? '490€ / an' : '49€ / mois'}
+              priceNote={billingPeriod === 'annual' ? 'soit 40,83€/mois' : undefined}
               subtitle="220 crédits — Pour créateurs"
               bullets={[
                 '220 crédits/mois',
@@ -876,13 +906,14 @@ function HomeKeiroInner() {
                 'Suggestions texte IA',
                 'Calendrier publications'
               ]}
-              ctaLabel="Choisir Solo"
-              ctaOnClick={() => startCheckout('solo')}
+              ctaLabel={billingPeriod === 'annual' ? 'Solo annuel (-17%)' : 'Choisir Solo'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')}
             />
 
             <Plan
               title="⭐ Fondateurs"
-              price="149€ / mois"
+              price={billingPeriod === 'annual' ? '1 490€ / an' : '149€ / mois'}
+              priceNote={billingPeriod === 'annual' ? 'soit 124€/mois' : undefined}
               subtitle="660 crédits — 3x plus que Solo"
               special
               highlight
@@ -895,13 +926,14 @@ function HomeKeiroInner() {
                 'Analytics + Planification auto',
                 'Prix verrouillé à vie (50 places)'
               ]}
-              ctaLabel="Débloquer TikTok + 3x crédits"
-              ctaOnClick={() => startCheckout('fondateurs')}
+              ctaLabel={billingPeriod === 'annual' ? 'Fondateurs annuel (-17%)' : 'Débloquer TikTok + 3x crédits'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
 
             <Plan
               title="🏢 Business"
-              price="349€ / mois"
+              price={billingPeriod === 'annual' ? '3 490€ / an' : '349€ / mois'}
+              priceNote={billingPeriod === 'annual' ? 'soit 290€/mois' : undefined}
               subtitle="1 750 crédits — Pour agences"
               bullets={[
                 '1 750 crédits/mois',
@@ -911,8 +943,8 @@ function HomeKeiroInner() {
                 'Calendrier collaboratif',
                 'Workflow validation + Reporting PDF'
               ]}
-              ctaLabel="Choisir Business"
-              ctaOnClick={() => startCheckout('business')}
+              ctaLabel={billingPeriod === 'annual' ? 'Business annuel (-17%)' : 'Choisir Business'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
           </div>
 
@@ -927,7 +959,8 @@ function HomeKeiroInner() {
             </div>
             <div className="rounded-xl p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl">
               <h3 className="text-xl font-bold mb-2">🏆 Elite</h3>
-              <div className="text-3xl font-black mb-1">999€ / mois</div>
+              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}</div>
+              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold mb-1">soit 832€/mois</p>}
               <p className="text-sm text-neutral-600 mb-6">5 500 crédits/mois — Service premium avec consulting</p>
               <ul className="grid md:grid-cols-2 gap-3 mb-6">
                 <li className="text-sm flex items-start gap-2">
@@ -964,10 +997,10 @@ function HomeKeiroInner() {
                 </li>
               </ul>
               <button
-                onClick={() => startCheckout('elite')}
+                onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
                 className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
               >
-                Choisir Elite
+                {billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
               </button>
             </div>
           </div>
@@ -1458,10 +1491,11 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
+  title, price, priceNote, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
 }: {
   title: string;
   price: string;
+  priceNote?: string;
   subtitle?: string;
   bullets: string[];
   ctaLabel: string;
@@ -1482,6 +1516,7 @@ function Plan({
     }`}>
       <h3 className="text-base font-semibold">{title}</h3>
       <div className="text-xl font-bold mt-1">{price}</div>
+      {priceNote && <p className="text-xs text-green-600 font-semibold">{priceNote}</p>}
       {subtitle && <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>}
       <ul className="mt-4 space-y-2 text-sm text-neutral-700 flex-1">
         {bullets.map((b, i) => (

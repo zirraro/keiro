@@ -4,9 +4,11 @@ import {
   getStripe,
   getOrCreateStripeCustomer,
   getPlanToPrice,
+  getPlanToPriceAnnual,
   getSprintPriceId,
   getPackPrices,
   SUBSCRIPTION_PLANS,
+  ANNUAL_PLAN_SUFFIX,
 } from '@/lib/stripe';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
@@ -49,19 +51,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (SUBSCRIPTION_PLANS.includes(planKey)) {
-      // ---- ABONNEMENT MENSUEL RÉCURRENT ----
-      const planToPrice = getPlanToPrice();
-      const priceId = planToPrice[planKey];
-      if (!priceId) {
-        return NextResponse.json({ error: 'Prix non configuré pour ce plan' }, { status: 400 });
+    // Détecter si c'est un plan annuel (ex: solo_annual → basePlan=solo, annual=true)
+    const isAnnual = planKey.endsWith(ANNUAL_PLAN_SUFFIX);
+    const basePlan = isAnnual ? planKey.replace(ANNUAL_PLAN_SUFFIX, '') : planKey;
+
+    if (SUBSCRIPTION_PLANS.includes(basePlan) && (planKey === basePlan || isAnnual)) {
+      // ---- ABONNEMENT RÉCURRENT (MENSUEL OU ANNUEL) ----
+      let priceId: string | undefined;
+      if (isAnnual) {
+        const annualPrices = getPlanToPriceAnnual();
+        priceId = annualPrices[basePlan];
+      } else {
+        const monthlyPrices = getPlanToPrice();
+        priceId = monthlyPrices[basePlan];
       }
+
+      if (!priceId) {
+        return NextResponse.json({ error: `Prix ${isAnnual ? 'annuel' : 'mensuel'} non configuré pour ce plan` }, { status: 400 });
+      }
+
+      // Le planKey stocké dans metadata est toujours le basePlan (ex: solo, pas solo_annual)
+      const subMetadata = { ...metadata, planKey: basePlan, billing: isAnnual ? 'annual' : 'monthly' };
 
       sessionParams = {
         mode: 'subscription' as const,
         line_items: [{ price: priceId, quantity: 1 }],
-        metadata,
-        subscription_data: { metadata },
+        metadata: subMetadata,
+        subscription_data: { metadata: subMetadata },
         success_url: successUrl,
         cancel_url: cancelUrl,
         allow_promotion_codes: true,

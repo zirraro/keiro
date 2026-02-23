@@ -31,10 +31,12 @@ export const AMOUNT_TO_PACK: Record<number, number> = {
 
 // ====== NOUVEAU: Mapping Price ID → plan (abonnements récurrents) ======
 
-// Plans qui sont des abonnements mensuels récurrents
+// Plans qui sont des abonnements récurrents (mensuel ou annuel)
 export const SUBSCRIPTION_PLANS = ['solo', 'fondateurs', 'standard', 'business', 'elite'];
+// Les variantes annuelles utilisent le même plan mais un Price ID annuel
+export const ANNUAL_PLAN_SUFFIX = '_annual';
 
-// Mapping planKey → Stripe Price ID (pour créer les Checkout Sessions)
+// Mapping planKey → Stripe Price ID mensuel
 export function getPlanToPrice(): Record<string, string | undefined> {
   return {
     solo: process.env.STRIPE_PRICE_SOLO,
@@ -45,14 +47,32 @@ export function getPlanToPrice(): Record<string, string | undefined> {
   };
 }
 
-// Mapping Stripe Price ID → planKey (pour identifier le plan dans les webhooks)
+// Mapping planKey → Stripe Price ID annuel
+export function getPlanToPriceAnnual(): Record<string, string | undefined> {
+  return {
+    solo: process.env.STRIPE_PRICE_SOLO_ANNUAL,
+    fondateurs: process.env.STRIPE_PRICE_FONDATEURS_ANNUAL,
+    standard: process.env.STRIPE_PRICE_STANDARD_ANNUAL,
+    business: process.env.STRIPE_PRICE_BUSINESS_ANNUAL,
+    elite: process.env.STRIPE_PRICE_ELITE_ANNUAL,
+  };
+}
+
+// Mapping Stripe Price ID → planKey (mensuel + annuel)
 export function getPriceToPlan(): Record<string, string> {
   const map: Record<string, string> = {};
+  // Mensuel
   if (process.env.STRIPE_PRICE_SOLO) map[process.env.STRIPE_PRICE_SOLO] = 'solo';
   if (process.env.STRIPE_PRICE_FONDATEURS) map[process.env.STRIPE_PRICE_FONDATEURS] = 'fondateurs';
   if (process.env.STRIPE_PRICE_STANDARD) map[process.env.STRIPE_PRICE_STANDARD] = 'standard';
   if (process.env.STRIPE_PRICE_BUSINESS) map[process.env.STRIPE_PRICE_BUSINESS] = 'business';
   if (process.env.STRIPE_PRICE_ELITE) map[process.env.STRIPE_PRICE_ELITE] = 'elite';
+  // Annuel (même plan, facturation différente)
+  if (process.env.STRIPE_PRICE_SOLO_ANNUAL) map[process.env.STRIPE_PRICE_SOLO_ANNUAL] = 'solo';
+  if (process.env.STRIPE_PRICE_FONDATEURS_ANNUAL) map[process.env.STRIPE_PRICE_FONDATEURS_ANNUAL] = 'fondateurs';
+  if (process.env.STRIPE_PRICE_STANDARD_ANNUAL) map[process.env.STRIPE_PRICE_STANDARD_ANNUAL] = 'standard';
+  if (process.env.STRIPE_PRICE_BUSINESS_ANNUAL) map[process.env.STRIPE_PRICE_BUSINESS_ANNUAL] = 'business';
+  if (process.env.STRIPE_PRICE_ELITE_ANNUAL) map[process.env.STRIPE_PRICE_ELITE_ANNUAL] = 'elite';
   return map;
 }
 

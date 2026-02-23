@@ -146,6 +146,7 @@ function ContactFormPricing() {
 
 function PricingPageInner() {
   const feedback = useFeedbackPopup();
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
@@ -170,6 +171,36 @@ function PricingPageInner() {
             Commencez gratuitement avec 3 visuels, testez pendant 3 jours à 4.99€,
             ou rejoignez les Fondateurs pour verrouiller un prix à vie.
           </p>
+
+          {/* Toggle Mensuel / Annuel */}
+          <div className="mt-8 inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-neutral-200 shadow-sm">
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                billingPeriod === 'monthly'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Mensuel
+            </button>
+            <button
+              onClick={() => setBillingPeriod('annual')}
+              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all relative ${
+                billingPeriod === 'annual'
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Annuel
+              <span className="absolute -top-2.5 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                -17%
+              </span>
+            </button>
+          </div>
+          {billingPeriod === 'annual' && (
+            <p className="mt-3 text-sm text-green-600 font-medium">2 mois offerts sur tous les plans !</p>
+          )}
         </div>
 
         {/* Top Plans - Gratuit & Essai */}
@@ -367,8 +398,9 @@ function PricingPageInner() {
                 <span>🚀</span> Solo
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">49€</span>
-                <span className="text-neutral-500">/mois</span>
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '490€' : '49€'}</span>
+                <span className="text-neutral-500">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 40,83€/mois</span>}
               </div>
               <p className="text-neutral-600 text-sm"><strong>220 crédits/mois</strong> — ~44 images ou 8 vidéos</p>
             </div>
@@ -384,8 +416,8 @@ function PricingPageInner() {
               <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> <span className="line-through">TikTok (Fondateurs+)</span></li>
             </ul>
             <div className="mt-auto space-y-2">
-              <button onClick={() => startCheckout('solo')} className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
-                Choisir Solo
+              <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')} className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
+                Choisir Solo {billingPeriod === 'annual' ? '(annuel)' : ''}
               </button>
               <p className="text-xs text-center text-neutral-500">
                 Plus de vidéos + TikTok ? <a href="#fondateurs" className="text-cyan-600 hover:underline font-semibold">Upgrade →</a>
@@ -405,8 +437,9 @@ function PricingPageInner() {
                 <span>⭐</span> Fondateurs
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">149€</span>
-                <span className="text-amber-100">/mois</span>
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
+                <span className="text-amber-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">soit 124€/mois</span>}
               </div>
               <p className="text-amber-100 text-sm font-medium"><strong>660 crédits/mois</strong> — ~132 images ou 26 vidéos</p>
             </div>
@@ -426,8 +459,8 @@ function PricingPageInner() {
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
               <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Prix verrouillé à vie (50 places)</strong></li>
             </ul>
-            <button onClick={() => startCheckout('fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              Débloquer TikTok + 3x crédits
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
+              {billingPeriod === 'annual' ? 'Fondateurs annuel (-17%)' : 'Débloquer TikTok + 3x crédits'}
             </button>
             <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
           </div>
@@ -444,8 +477,9 @@ function PricingPageInner() {
                 <span>🏢</span> Business
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">349€</span>
-                <span className="text-blue-100">/mois</span>
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
+                <span className="text-blue-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
               <p className="text-blue-100 text-sm"><strong>1 750 crédits/mois</strong> — ~350 images ou 70 vidéos</p>
             </div>
@@ -465,8 +499,8 @@ function PricingPageInner() {
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
             </ul>
-            <button onClick={() => startCheckout('business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
-              Choisir Business
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
+              Choisir Business {billingPeriod === 'annual' ? '(annuel)' : ''}
             </button>
             <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
           </div>
@@ -478,8 +512,9 @@ function PricingPageInner() {
                 <span>🏆</span> Elite
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">999€</span>
-                <span className="text-neutral-500">/mois</span>
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '9 990€' : '999€'}</span>
+                <span className="text-neutral-500">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 832€/mois</span>}
               </div>
               <p className="text-neutral-600 text-sm"><strong>5 500 crédits/mois</strong> — ~1100 images ou 220 vidéos</p>
             </div>
@@ -493,8 +528,8 @@ function PricingPageInner() {
               <li className="flex gap-2"><span className="text-amber-500">✓</span> Formation équipe (20 pers.)</li>
               <li className="flex gap-2"><span className="text-amber-500">✓</span> SLA 99.9% garanti</li>
             </ul>
-            <button onClick={() => startCheckout('elite')} className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
-              Choisir Elite
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
+              Choisir Elite {billingPeriod === 'annual' ? '(annuel)' : ''}
             </button>
           </div>
         </div>
