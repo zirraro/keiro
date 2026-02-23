@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 
-export default function HomeKeiro() {
+function HomeKeiroInner() {
   const searchParams = useSearchParams();
 
   // Auto-déclencher le checkout après redirect login (ex: ?plan=fondateurs)
@@ -1531,5 +1531,13 @@ function Faq({ q, a }: { q: string; a: string }) {
       <summary className="cursor-pointer font-medium">{q}</summary>
       <p className="mt-2 text-neutral-700">{a}</p>
     </details>
+  );
+}
+
+export default function HomeKeiro() {
+  return (
+    <Suspense>
+      <HomeKeiroInner />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
@@ -145,7 +145,7 @@ function ContactFormPricing() {
   );
 }
 
-export default function PricingPage() {
+function PricingPageInner() {
   const feedback = useFeedbackPopup();
   const searchParams = useSearchParams();
 
@@ -803,5 +803,13 @@ export default function PricingPage() {
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
       <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense>
+      <PricingPageInner />
+    </Suspense>
   );
 }
