@@ -3609,7 +3609,7 @@ export default function GeneratePage() {
                     loop
                     className="w-full h-full object-contain"
                     onTimeUpdate={() => {
-                      if (!generatedSubtitleText || (aiTextStyle !== 'wordstay' && aiTextStyle !== 'wordflash')) return;
+                      if (!generatedSubtitleText || !['wordstay', 'wordflash', 'neon'].includes(aiTextStyle)) return;
                       const v = videoPreviewRef.current;
                       if (!v || !v.duration) return;
                       const words = generatedSubtitleText.trim().split(/\s+/);
@@ -3617,35 +3617,43 @@ export default function GeneratePage() {
                       setCurrentWordIndex(Math.min(Math.floor(progress * words.length), words.length - 1));
                     }}
                   />
-                  {generatedSubtitleText && (
-                    <div className="absolute bottom-4 left-2 right-2 text-center pointer-events-none">
-                      {aiTextStyle === 'wordstay' ? (
-                        <span className="inline-block max-w-[95%] text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]">
-                          {generatedSubtitleText.trim().split(/\s+/).slice(0, currentWordIndex + 1).join(' ')}
-                        </span>
-                      ) : aiTextStyle === 'wordflash' ? (
-                        <span className="inline-block text-white text-lg font-extrabold [text-shadow:_2px_2px_6px_rgb(0_0_0_/_90%)]">
-                          {generatedSubtitleText.trim().split(/\s+/)[currentWordIndex] || ''}
-                        </span>
-                      ) : aiTextStyle === 'impact' ? (
-                        <span className="inline-block max-w-[95%] text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl">
-                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
-                        </span>
-                      ) : aiTextStyle === 'minimal' ? (
-                        <span className="inline-block max-w-[95%] text-white text-[10px] font-medium bg-black/40 px-1.5 py-0.5 rounded">
-                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
-                        </span>
-                      ) : aiTextStyle === 'clean' ? (
-                        <span className="inline-block max-w-[95%] text-white text-sm font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]">
-                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
-                        </span>
-                      ) : (
-                        <span className="inline-block max-w-[95%] text-white text-sm font-bold bg-black/60 px-3 py-1.5 rounded-lg">
-                          {generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {generatedSubtitleText && (() => {
+                    const words = generatedSubtitleText.trim().split(/\s+/);
+                    const displayText = generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText;
+                    return (
+                      <div className={`absolute left-2 right-2 text-center pointer-events-none ${aiTextStyle === 'wordflash' || aiTextStyle === 'impact' ? 'inset-0 flex items-center justify-center' : 'bottom-4'}`}>
+                        {aiTextStyle === 'wordflash' ? (
+                          <span className="text-white text-2xl font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]">
+                            {words[currentWordIndex] || ''}
+                          </span>
+                        ) : aiTextStyle === 'wordstay' ? (
+                          <span className="inline-block max-w-[95%]">
+                            {words.slice(0, currentWordIndex + 1).map((w, i) => (
+                              <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]`}>
+                                {w}{' '}
+                              </span>
+                            ))}
+                          </span>
+                        ) : aiTextStyle === 'neon' ? (
+                          <span className="text-fuchsia-400 text-xl font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]">
+                            {words[currentWordIndex] || ''}
+                          </span>
+                        ) : aiTextStyle === 'cinema' ? (
+                          <span className="inline-block max-w-[95%] text-white text-xs font-medium bg-black/80 px-4 py-2 tracking-wider">
+                            {displayText}
+                          </span>
+                        ) : aiTextStyle === 'impact' ? (
+                          <span className="text-white text-xl font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]">
+                            {displayText}
+                          </span>
+                        ) : (
+                          <span className="inline-block max-w-[95%] text-white/90 text-[10px] font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm">
+                            {displayText}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="mt-3 space-y-2">
                   <div className="flex gap-2">
@@ -3703,12 +3711,12 @@ export default function GeneratePage() {
                       />
                       <div className="flex flex-wrap gap-1.5">
                         {[
-                          { key: 'classic', label: 'Classique' },
-                          { key: 'minimal', label: 'Discret' },
-                          { key: 'impact', label: 'Impact' },
-                          { key: 'clean', label: 'Sans fond' },
-                          { key: 'wordstay', label: 'Mots progressifs' },
-                          { key: 'wordflash', label: 'Mot par mot' },
+                          { key: 'wordflash', label: '⚡ Mot par mot' },
+                          { key: 'wordstay', label: '🎤 Karaoké' },
+                          { key: 'neon', label: '💜 Néon' },
+                          { key: 'cinema', label: '🎬 Cinéma' },
+                          { key: 'impact', label: '💥 Bold' },
+                          { key: 'minimal', label: '✦ Discret' },
                         ].map((style) => (
                           <button
                             key={style.key}

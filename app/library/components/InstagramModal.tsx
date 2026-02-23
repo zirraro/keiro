@@ -106,7 +106,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);
-  const [subtitleStyle, setSubtitleStyle] = useState<'classic' | 'minimal' | 'impact' | 'clean' | 'wordstay' | 'wordflash'>('classic');
+  const [subtitleStyle, setSubtitleStyle] = useState<'wordflash' | 'wordstay' | 'neon' | 'cinema' | 'impact' | 'minimal' | 'classic' | 'clean'>('wordflash');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
 
   // Refs pour synchronisation audio+vidéo
@@ -115,17 +115,19 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
   // CSS des styles de sous-titres
   const subtitleCSS: Record<string, string> = {
-    classic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
-    minimal: 'text-white text-[10px] font-medium bg-black/40 px-1.5 py-0.5 rounded',
-    impact: 'text-yellow-400 text-xs font-extrabold bg-black/70 px-2.5 py-1.5 rounded-xl',
-    clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
+    wordflash: 'text-white text-2xl font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]',
     wordstay: 'text-white text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]',
-    wordflash: 'text-white text-lg font-extrabold [text-shadow:_2px_2px_6px_rgb(0_0_0_/_90%)]',
+    neon: 'text-fuchsia-400 text-xl font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]',
+    cinema: 'text-white text-xs font-medium bg-black/80 px-4 py-2 tracking-wider',
+    impact: 'text-white text-xl font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]',
+    minimal: 'text-white/90 text-[10px] font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm',
+    classic: 'text-white text-[11px] font-bold bg-black/60 px-2 py-1 rounded-lg',
+    clean: 'text-white text-[11px] font-bold [text-shadow:_1px_1px_4px_rgb(0_0_0_/_80%)]',
   };
 
   // Calcul du mot courant pour les styles mot-par-mot
   const handleTimeUpdate = () => {
-    if (subtitleStyle !== 'wordstay' && subtitleStyle !== 'wordflash') return;
+    if (!['wordstay', 'wordflash', 'neon'].includes(subtitleStyle)) return;
     if (!narrationScript) return;
     const video = videoRef.current;
     if (!video || !video.duration) return;
@@ -893,30 +895,40 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         {narrationAudioUrl && !mergedVideoUrl && (
                           <audio ref={audioRef} src={narrationAudioUrl} preload="auto" />
                         )}
-                        {enableSubtitles && narrationScript && (
-                          <div className="absolute bottom-8 left-1 right-1 text-center pointer-events-none">
-                            {subtitleStyle === 'wordstay' ? (
-                              <span className={`inline-block max-w-[95%] ${subtitleCSS.wordstay}`}>
-                                {(() => {
-                                  const words = narrationScript.trim().split(/\s+/);
-                                  return words.slice(0, currentWordIndex + 1).map((word, i) => (
-                                    <span key={i} className={i === currentWordIndex ? 'text-yellow-400 inline-block mx-0.5' : 'text-white inline-block mx-0.5'}>
-                                      {word}
+                        {enableSubtitles && narrationScript && (() => {
+                          const words = narrationScript.trim().split(/\s+/);
+                          const displayText = narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript;
+                          const isCentered = subtitleStyle === 'wordflash' || subtitleStyle === 'impact' || subtitleStyle === 'neon';
+                          return (
+                            <div className={`absolute left-1 right-1 text-center pointer-events-none ${isCentered ? 'inset-0 flex items-center justify-center' : 'bottom-8'}`}>
+                              {subtitleStyle === 'wordflash' ? (
+                                <span className={`inline-block ${subtitleCSS.wordflash}`}>
+                                  {words[currentWordIndex] || ''}
+                                </span>
+                              ) : subtitleStyle === 'wordstay' ? (
+                                <span className="inline-block max-w-[95%]">
+                                  {words.slice(0, currentWordIndex + 1).map((w, i) => (
+                                    <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} text-sm font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)] mx-0.5`}>
+                                      {w}
                                     </span>
-                                  ));
-                                })()}
-                              </span>
-                            ) : subtitleStyle === 'wordflash' ? (
-                              <span className={`inline-block ${subtitleCSS.wordflash}`}>
-                                {narrationScript.trim().split(/\s+/)[currentWordIndex] || ''}
-                              </span>
-                            ) : (
-                              <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
-                                {narrationScript.length > 80 ? narrationScript.substring(0, 80) + '...' : narrationScript}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                                  ))}
+                                </span>
+                              ) : subtitleStyle === 'neon' ? (
+                                <span className={`inline-block ${subtitleCSS.neon}`}>
+                                  {words[currentWordIndex] || ''}
+                                </span>
+                              ) : subtitleStyle === 'impact' ? (
+                                <span className={`inline-block ${subtitleCSS.impact}`}>
+                                  {displayText}
+                                </span>
+                              ) : (
+                                <span className={`inline-block max-w-[95%] ${subtitleCSS[subtitleStyle]}`}>
+                                  {displayText}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : activeTab === 'images' && selectedImage ? (
                       <img
@@ -1236,12 +1248,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
                         <div className="flex flex-wrap gap-1.5">
                           {([
-                            { key: 'classic' as const, label: 'Classique' },
-                            { key: 'minimal' as const, label: 'Discret' },
-                            { key: 'impact' as const, label: 'Impact' },
-                            { key: 'clean' as const, label: 'Sans fond' },
-                            { key: 'wordstay' as const, label: 'Mots progressifs' },
-                            { key: 'wordflash' as const, label: 'Mot par mot' },
+                            { key: 'wordflash' as const, label: '⚡ Mot par mot' },
+                            { key: 'wordstay' as const, label: '🎤 Karaoké' },
+                            { key: 'neon' as const, label: '💜 Néon' },
+                            { key: 'cinema' as const, label: '🎬 Cinéma' },
+                            { key: 'impact' as const, label: '💥 Bold' },
+                            { key: 'minimal' as const, label: '✦ Discret' },
                           ]).map((style) => (
                             <button
                               key={style.key}
