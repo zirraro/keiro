@@ -1,10 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 
 export default function HomeKeiro() {
+  const searchParams = useSearchParams();
+
+  // Auto-déclencher le checkout après redirect login (ex: ?plan=fondateurs)
+  useEffect(() => {
+    const plan = searchParams.get('plan');
+    if (plan) {
+      window.history.replaceState({}, '', '/');
+      startCheckout(plan);
+    }
+  }, [searchParams]);
+
   return (
     <main className="min-h-dvh bg-white">
       {/* HERO */}

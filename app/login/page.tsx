@@ -1,12 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = supabaseBrowser();
+
+  // Redirect après login : utiliser le param ?redirect= ou /generate par défaut
+  const getRedirectUrl = () => {
+    const redirect = searchParams.get('redirect') || '/generate';
+    const plan = searchParams.get('plan');
+    return plan ? `${redirect}?plan=${plan}` : redirect;
+  };
 
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [step, setStep] = useState(1);
@@ -66,7 +74,7 @@ export default function LoginPage() {
           if (promoData.ok && promoData.expiresAt) {
             setSuccess(true);
             setError(`+${promoData.credits} crédits ajoutés ! Vos crédits expirent dans 14 jours.`);
-            setTimeout(() => { window.location.href = '/generate'; }, 2500);
+            setTimeout(() => { window.location.href = getRedirectUrl(); }, 2500);
             return;
           }
         } catch {}
@@ -74,7 +82,7 @@ export default function LoginPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        window.location.href = '/generate';
+        window.location.href = getRedirectUrl();
       }, 1000);
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion');
@@ -254,12 +262,12 @@ export default function LoginPage() {
       console.error('[Signup] Step 2 error:', err);
     } finally {
       setLoading(false);
-      window.location.href = '/generate';
+      window.location.href = getRedirectUrl();
     }
   };
 
   const handleSkipStep2 = () => {
-    window.location.href = '/generate';
+    window.location.href = getRedirectUrl();
   };
 
   // Step 2 - Profile enrichment
