@@ -69,6 +69,44 @@ function normalizeImageAspectRatio(ratio?: string): string {
   return '1:1';
 }
 
+/**
+ * Condense a verbose prompt to fit Kling's 2500 char limit.
+ * Removes anti-text instruction blocks (Kling doesn't generate text in images)
+ * while preserving all personalization (business, style, audience, etc.)
+ */
+function condensePromptForKling(prompt: string, maxLen = 2500): string {
+  let p = prompt;
+
+  // Remove verbose "no text" instruction blocks (these are for Seedream, not needed for Kling)
+  p = p.replace(/🚫🚫🚫[\s\S]*?PURE VISUALS ONLY\.\n/g, '');
+  p = p.replace(/⛔⛔⛔[\s\S]*?WITHOUT words\./g, '');
+  p = p.replace(/CRITICAL INSTRUCTION[\s\S]*?ZERO TEXT IN THE IMAGE\./g, '');
+  p = p.replace(/TEXT PROHIBITION[\s\S]*?WITHOUT words\./g, '');
+
+  // Remove excessive emoji sequences
+  p = p.replace(/[🚫⛔❌✅💡🎯]{2,}/g, '');
+
+  // Remove repeated "no text" lines
+  p = p.replace(/(?:NO|ABSOLUTELY NO|DO NOT).*?text.*?image[.\n]*/gi, '');
+  p = p.replace(/(?:❌|✅)[^\n]*\n/g, '');
+
+  // Collapse multiple newlines
+  p = p.replace(/\n{3,}/g, '\n\n');
+
+  // Add one short "no text" instruction
+  p = 'Generate a visual image without any text or writing.\n\n' + p.trim();
+
+  // If still too long, trim at word boundary
+  if (p.length > maxLen) {
+    p = p.substring(0, maxLen);
+    const lastSpace = p.lastIndexOf(' ');
+    if (lastSpace > maxLen - 200) p = p.substring(0, lastSpace);
+  }
+
+  console.log(`[Kling] Prompt condensed: ${prompt.length} → ${p.length} chars`);
+  return p;
+}
+
 // ====== Text-to-Image ======
 
 /**
@@ -80,7 +118,9 @@ export async function generateKlingT2I(params: {
   aspectRatio?: string;
 }): Promise<{ imageUrl: string }> {
   // Kling limit: prompt max 2500 chars
-  const prompt = params.prompt.length > 2500 ? params.prompt.substring(0, 2500) : params.prompt;
+  // Condenser le prompt en supprimant les blocs anti-texte verbeux (inutiles pour Kling)
+  // tout en gardant les détails de personnalisation (business, style, audience)
+  const prompt = condensePromptForKling(params.prompt);
 
   const body = {
     model_name: 'kling-image-o1',
@@ -124,7 +164,7 @@ export async function generateKlingI2I(params: {
   aspectRatio?: string;
 }): Promise<{ imageUrl: string }> {
   // Kling limit: prompt max 2500 chars (including the <<<image_1>>> prefix)
-  const rawPrompt = params.prompt.length > 2480 ? params.prompt.substring(0, 2480) : params.prompt;
+  const rawPrompt = condensePromptForKling(params.prompt, 2480);
 
   const body: any = {
     model_name: 'kling-image-o1',
