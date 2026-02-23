@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -41,6 +41,17 @@ export async function getAuthUser() {
       const sbAccessToken = cookieStore.get('sb-access-token');
       const sbAuthToken = cookieStore.get('sb-auth-token');
       accessToken = sbAccessToken?.value || sbAuthToken?.value;
+    }
+
+    // Also try Authorization header (for explicit token passing)
+    if (!accessToken) {
+      try {
+        const headersList = await headers();
+        const authHeader = headersList.get('authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+          accessToken = authHeader.substring(7);
+        }
+      } catch {}
     }
 
     if (!accessToken) {

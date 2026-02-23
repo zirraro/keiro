@@ -1,19 +1,34 @@
 /**
  * Client-side helper pour initier un Stripe Checkout.
- * Remplace les liens buy.stripe.com hardcodés.
  * Si non connecté → redirige vers login avec le plan en paramètre.
  * Après login → la page pricing auto-déclenche le checkout.
  */
+import { supabaseBrowser } from '@/lib/supabase/client';
+
 export async function startCheckout(planKey: string): Promise<void> {
   try {
+    // 1. Check auth client-side first
+    const supabase = supabaseBrowser();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Not logged in → redirect to login with plan info
+      window.location.href = `/login?redirect=/pricing&plan=${planKey}`;
+      return;
+    }
+
+    // 2. Call API with explicit auth token
     const res = await fetch('/api/stripe/create-checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ planKey }),
     });
 
     if (res.status === 401) {
-      // User non connecté → rediriger vers login, puis pricing avec auto-checkout
+      // Session expired → redirect to login
       window.location.href = `/login?redirect=/pricing&plan=${planKey}`;
       return;
     }

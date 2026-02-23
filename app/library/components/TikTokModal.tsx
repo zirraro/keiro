@@ -81,7 +81,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   // Toast de succès
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState<string>('nova');
+  const [selectedVoice, setSelectedVoice] = useState<string>('JBFqnCBsd6RMkjVDRZzb'); // ElevenLabs George
 
   // États pour les sous-titres
   const [enableSubtitles, setEnableSubtitles] = useState(false);

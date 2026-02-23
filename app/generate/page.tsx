@@ -388,7 +388,8 @@ export default function GeneratePage() {
   const [audioText, setAudioText] = useState('');
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'>('nova');
+  const [selectedVoice, setSelectedVoice] = useState('JBFqnCBsd6RMkjVDRZzb'); // ElevenLabs George (Homme narrateur)
+  const [selectedMusic, setSelectedMusic] = useState('none');
   const [generatedSubtitleText, setGeneratedSubtitleText] = useState('');
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [videoEditorMerging, setVideoEditorMerging] = useState(false);
@@ -3237,29 +3238,59 @@ export default function GeneratePage() {
                             </p>
                           )}
 
-                          {/* Voice Selector */}
+                          {/* Voice Selector (ElevenLabs) */}
                           <div>
                             <label className="block text-[10px] font-medium text-neutral-700 mb-1">Voix</label>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="grid grid-cols-2 gap-1">
                               {([
-                                { value: 'nova' as const, label: 'Femme dynamique' },
-                                { value: 'shimmer' as const, label: 'Femme douce' },
-                                { value: 'alloy' as const, label: 'Mixte neutre' },
-                                { value: 'echo' as const, label: 'Homme posé' },
-                                { value: 'onyx' as const, label: 'Homme grave' },
-                                { value: 'fable' as const, label: 'Conteur' },
+                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: '♂ Homme narrateur' },
+                                { value: '21m00Tcm4TlvDq8ikWAM', label: '♀ Femme douce' },
+                                { value: 'EXAVITQu4vr4xnSDxMaL', label: '♀ Femme naturelle' },
+                                { value: 'ErXwobaYiN019PkySvjV', label: '♂ Homme dynamique' },
+                                { value: 'TxGEqnHWrfWFTfGW9XjX', label: '♂ Homme profond' },
+                                { value: 'pNInz6obpgDQGcFmaJgB', label: '♂ Homme autoritaire' },
+                                { value: 'AZnzlk1XvdvUeBnXmlld', label: '♀ Femme énergique' },
+                                { value: 'MF3mGyEYCl7XYWbV9V6O', label: '♀ Femme pro' },
                               ]).map((v) => (
                                 <button
                                   key={v.value}
                                   type="button"
                                   onClick={() => setSelectedVoice(v.value)}
-                                  className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                                  className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${
                                     selectedVoice === v.value
                                       ? 'bg-blue-600 text-white border-blue-600'
-                                      : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
+                                      : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'
                                   }`}
                                 >
                                   {v.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Background Music */}
+                          <div>
+                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">Musique de fond</label>
+                            <div className="flex flex-wrap gap-1">
+                              {([
+                                { value: 'none', label: 'Aucune' },
+                                { value: 'corporate', label: 'Corporate' },
+                                { value: 'energetic', label: 'Énergique' },
+                                { value: 'calm', label: 'Calme' },
+                                { value: 'inspiring', label: 'Inspirant' },
+                                { value: 'trendy', label: 'Tendance' },
+                              ]).map((m) => (
+                                <button
+                                  key={m.value}
+                                  type="button"
+                                  onClick={() => setSelectedMusic(m.value)}
+                                  className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
+                                    selectedMusic === m.value
+                                      ? 'bg-purple-600 text-white border-purple-600'
+                                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                                  }`}
+                                >
+                                  {m.label}
                                 </button>
                               ))}
                             </div>
@@ -3662,22 +3693,24 @@ export default function GeneratePage() {
                       <label className="block text-xs font-semibold text-neutral-900">
                         🎙️ Audio
                       </label>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="grid grid-cols-2 gap-1.5">
                         {[
-                          { value: 'nova' as const, label: 'Femme dynamique' },
-                          { value: 'shimmer' as const, label: 'Femme douce' },
-                          { value: 'alloy' as const, label: 'Mixte neutre' },
-                          { value: 'echo' as const, label: 'Homme posé' },
-                          { value: 'onyx' as const, label: 'Homme grave' },
-                          { value: 'fable' as const, label: 'Conteur' },
+                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: '♂ Homme narrateur' },
+                          { value: '21m00Tcm4TlvDq8ikWAM', label: '♀ Femme douce' },
+                          { value: 'EXAVITQu4vr4xnSDxMaL', label: '♀ Femme naturelle' },
+                          { value: 'ErXwobaYiN019PkySvjV', label: '♂ Homme dynamique' },
+                          { value: 'TxGEqnHWrfWFTfGW9XjX', label: '♂ Homme profond' },
+                          { value: 'pNInz6obpgDQGcFmaJgB', label: '♂ Homme autoritaire' },
+                          { value: 'AZnzlk1XvdvUeBnXmlld', label: '♀ Femme énergique' },
+                          { value: 'MF3mGyEYCl7XYWbV9V6O', label: '♀ Femme pro' },
                         ].map((voice) => (
                           <button
                             key={voice.value}
                             onClick={() => setSelectedVoice(voice.value)}
-                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
+                            className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${
                               selectedVoice === voice.value
                                 ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-blue-700 border-blue-300 hover:border-blue-400'
+                                : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'
                             }`}
                           >
                             {voice.label}
