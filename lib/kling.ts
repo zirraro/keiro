@@ -93,14 +93,22 @@ function condensePromptForKling(prompt: string, maxLen = 2500): string {
   // Collapse multiple newlines
   p = p.replace(/\n{3,}/g, '\n\n');
 
-  // Add one short "no text" instruction
-  p = 'Generate a visual image without any text or writing.\n\n' + p.trim();
+  // Strong no-text instruction at beginning AND end
+  const noTextPrefix = 'STRICT RULE: The image must contain ABSOLUTELY ZERO text, zero letters, zero words, zero numbers, zero symbols, zero writing of any kind. Pure visual only.\n\n';
+  const noTextSuffix = '\n\nREMINDER: NO TEXT AT ALL in the image. No letters, no words, no numbers, no logos with text, no signs, no labels. The image must be 100% visual with zero written content.';
 
-  // If still too long, trim at word boundary
+  p = noTextPrefix + p.trim() + noTextSuffix;
+
+  // If still too long, trim the middle content at word boundary (keep prefix and suffix)
   if (p.length > maxLen) {
-    p = p.substring(0, maxLen);
-    const lastSpace = p.lastIndexOf(' ');
-    if (lastSpace > maxLen - 200) p = p.substring(0, lastSpace);
+    const available = maxLen - noTextPrefix.length - noTextSuffix.length;
+    let middle = p.substring(noTextPrefix.length, p.length - noTextSuffix.length);
+    if (middle.length > available) {
+      middle = middle.substring(0, available);
+      const lastSpace = middle.lastIndexOf(' ');
+      if (lastSpace > available - 200) middle = middle.substring(0, lastSpace);
+    }
+    p = noTextPrefix + middle + noTextSuffix;
   }
 
   console.log(`[Kling] Prompt condensed: ${prompt.length} → ${p.length} chars`);
