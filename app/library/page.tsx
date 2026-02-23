@@ -41,6 +41,7 @@ import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { useCredits } from '@/hooks/useCredits';
+import { startCheckout } from '@/lib/stripe/checkout';
 
 type SavedImage = {
   id: string;
@@ -2572,12 +2573,12 @@ function LibraryContent() {
               La publication TikTok est incluse a partir du pack <strong>Fondateurs</strong>. Passez au niveau superieur pour debloquer TikTok + LinkedIn + volume de credits.
             </p>
             <div className="space-y-2.5">
-              <a
-                href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+              <button
+                onClick={() => startCheckout('fondateurs')}
                 className="block w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm"
               >
                 Passer Fondateurs — 149€/mois
-              </a>
+              </button>
               <button
                 onClick={() => setShowTikTokUpgradeModal(false)}
                 className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"

@@ -10,6 +10,7 @@ import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 
 import { PLAN_CREDITS, CREDIT_PACKS, FEATURE_LABELS } from '@/lib/credits/constants';
+import { startCheckout } from '@/lib/stripe/checkout';
 
 // Plan definitions
 const PLANS: Record<string, { name: string; price: string; credits: number; color: string }> = {
@@ -550,13 +551,36 @@ function MonComptePage() {
                   )}
                 </div>
 
+                {/* Date prochain renouvellement */}
+                {profile?.stripe_current_period_end && !profile?.credits_expires_at && (
+                  <p className="text-xs text-neutral-500 mt-3">
+                    Prochain renouvellement : {new Date(profile.stripe_current_period_end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                )}
+
                 <div className="flex gap-3 mt-4">
-                  <Link
-                    href="/pricing"
-                    className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
-                  >
-                    {profile?.credits_expires_at ? 'S\'abonner pour garder mes avantages' : 'Changer de plan'}
-                  </Link>
+                  {profile?.stripe_subscription_id ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/stripe/manage', { method: 'POST' });
+                          const data = await res.json();
+                          if (data.url) window.location.href = data.url;
+                          else alert(data.error || 'Erreur');
+                        } catch { alert('Erreur réseau'); }
+                      }}
+                      className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
+                    >
+                      Gérer mon abonnement
+                    </button>
+                  ) : (
+                    <Link
+                      href="/pricing"
+                      className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
+                    >
+                      {profile?.credits_expires_at ? 'S\'abonner pour garder mes avantages' : 'Choisir un plan'}
+                    </Link>
+                  )}
                 </div>
                 {profile?.credits_expires_at && (
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">

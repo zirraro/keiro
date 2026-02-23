@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 // Lazy initialization pour éviter crash au build (env vars pas encore dispo)
 let _stripe: Stripe | null = null;
@@ -11,8 +12,7 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-// Mapping montant en centimes → plan Keiro
-// Permet d'identifier le plan acheté via payment links
+// ====== LEGACY: Mapping montant → plan (fallback pour anciens payment links) ======
 export const AMOUNT_TO_PLAN: Record<number, string> = {
   499: 'sprint',       // 4,99€
   4900: 'solo',        // 49€
@@ -28,3 +28,86 @@ export const AMOUNT_TO_PACK: Record<number, number> = {
   3999: 150,  // 39,99€ → 150 crédits
   6999: 300,  // 69,99€ → 300 crédits
 };
+
+// ====== NOUVEAU: Mapping Price ID → plan (abonnements récurrents) ======
+
+// Plans qui sont des abonnements mensuels récurrents
+export const SUBSCRIPTION_PLANS = ['solo', 'fondateurs', 'standard', 'business', 'elite'];
+
+// Mapping planKey → Stripe Price ID (pour créer les Checkout Sessions)
+export function getPlanToPrice(): Record<string, string | undefined> {
+  return {
+    solo: process.env.STRIPE_PRICE_SOLO,
+    fondateurs: process.env.STRIPE_PRICE_FONDATEURS,
+    standard: process.env.STRIPE_PRICE_STANDARD,
+    business: process.env.STRIPE_PRICE_BUSINESS,
+    elite: process.env.STRIPE_PRICE_ELITE,
+  };
+}
+
+// Mapping Stripe Price ID → planKey (pour identifier le plan dans les webhooks)
+export function getPriceToPlan(): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (process.env.STRIPE_PRICE_SOLO) map[process.env.STRIPE_PRICE_SOLO] = 'solo';
+  if (process.env.STRIPE_PRICE_FONDATEURS) map[process.env.STRIPE_PRICE_FONDATEURS] = 'fondateurs';
+  if (process.env.STRIPE_PRICE_STANDARD) map[process.env.STRIPE_PRICE_STANDARD] = 'standard';
+  if (process.env.STRIPE_PRICE_BUSINESS) map[process.env.STRIPE_PRICE_BUSINESS] = 'business';
+  if (process.env.STRIPE_PRICE_ELITE) map[process.env.STRIPE_PRICE_ELITE] = 'elite';
+  return map;
+}
+
+// Sprint = one-time payment
+export function getSprintPriceId(): string | undefined {
+  return process.env.STRIPE_PRICE_SPRINT;
+}
+
+// Pack crédits Price IDs
+export function getPackPrices(): Record<string, string | undefined> {
+  return {
+    pack_starter: process.env.STRIPE_PRICE_PACK_STARTER,
+    pack_pro: process.env.STRIPE_PRICE_PACK_PRO,
+    pack_expert: process.env.STRIPE_PRICE_PACK_EXPERT,
+  };
+}
+
+/**
+ * Créer ou réutiliser un Stripe Customer pour un utilisateur.
+ * Stocke le customer ID dans profiles.stripe_customer_id.
+ */
+export async function getOrCreateStripeCustomer(
+  userId: string,
+  email: string,
+  name?: string
+): Promise<string> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // 1. Vérifier si l'user a déjà un stripe_customer_id
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.stripe_customer_id) {
+    return profile.stripe_customer_id;
+  }
+
+  // 2. Créer un nouveau Stripe Customer
+  const stripe = getStripe();
+  const customer = await stripe.customers.create({
+    email,
+    name: name || undefined,
+    metadata: { supabase_user_id: userId },
+  });
+
+  // 3. Sauvegarder le customer ID
+  await supabase
+    .from('profiles')
+    .update({ stripe_customer_id: customer.id })
+    .eq('id', userId);
+
+  return customer.id;
+}

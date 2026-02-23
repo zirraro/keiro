@@ -20,6 +20,7 @@ import { generateTextSuggestions } from '@/lib/text-suggestion';
 import { addTextOverlay } from '@/lib/canvas-text-overlay';
 import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
 import { computeSocialScore } from '@/lib/news/socialRanker';
+import { startCheckout } from '@/lib/stripe/checkout';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -2310,14 +2311,12 @@ export default function GeneratePage() {
                         style={{ width: `${Math.max(2, pct)}%` }}
                       />
                     </div>
-                    <a
-                      href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => startCheckout('fondateurs')}
                       className="block w-full py-2 text-center text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:shadow-lg transition-all"
                     >
                       Passer Fondateurs (149€/mois)
-                    </a>
+                    </button>
                     <p className="text-[9px] text-amber-700 text-center mt-1.5">4,99€ déduits du premier mois</p>
                   </div>
                 );
@@ -2401,14 +2400,12 @@ export default function GeneratePage() {
                         {/* CTA Solo / Solo Promo → Fondateurs */}
                         {(credits.plan === 'solo' || credits.plan === 'solo_promo') && (
                           <>
-                            <a
-                              href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => startCheckout('fondateurs')}
                               className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                             >
                               TikTok + LinkedIn + plus de crédits ? Fondateurs →
-                            </a>
+                            </button>
                             {credits.expiresAt && (
                               <p className="text-[10px] text-red-500 mt-1 text-center font-medium">
                                 Accès promo expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline">S'abonner au plan Solo</a>
@@ -2420,14 +2417,12 @@ export default function GeneratePage() {
                         {credits.plan === 'fondateurs' && credits.expiresAt && (
                           <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg text-center">
                             <p className="text-[11px] text-purple-800 font-semibold">Accès Fondateurs expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
-                            <a
-                              href="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => startCheckout('fondateurs')}
                               className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors"
                             >
                               Garder mes avantages Fondateurs →
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
+import { startCheckout } from '@/lib/stripe/checkout';
 
 export default function HomeKeiro() {
   return (
@@ -112,9 +113,9 @@ export default function HomeKeiro() {
                 <p className="text-xs text-blue-100">Accès complet • 4.99€ déduits si tu continues</p>
               </div>
             </div>
-            <a href="https://buy.stripe.com/fZu9ASfHb8iB1qidFobAs01" target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
+            <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
               Essayer maintenant →
-            </a>
+            </button>
           </div>
         </div>
       </section>
@@ -876,7 +877,7 @@ export default function HomeKeiro() {
                 'Calendrier publications'
               ]}
               ctaLabel="Choisir Solo"
-              ctaHref="https://buy.stripe.com/5kQ28q7aF7ex5Gy1WGbAs02"
+              ctaOnClick={() => startCheckout('solo')}
             />
 
             <Plan
@@ -895,7 +896,7 @@ export default function HomeKeiro() {
                 'Prix verrouillé à vie (50 places)'
               ]}
               ctaLabel="Débloquer TikTok + 3x crédits"
-              ctaHref="https://buy.stripe.com/6oUbJ03Yt2Yhb0S6cWbAs00"
+              ctaOnClick={() => startCheckout('fondateurs')}
             />
 
             <Plan
@@ -911,7 +912,7 @@ export default function HomeKeiro() {
                 'Workflow validation + Reporting PDF'
               ]}
               ctaLabel="Choisir Business"
-              ctaHref="https://buy.stripe.com/14AdR80Mh7ex4Cu6cWbAs03"
+              ctaOnClick={() => startCheckout('business')}
             />
           </div>
 
@@ -962,14 +963,12 @@ export default function HomeKeiro() {
                   <span>SLA 99.9% garanti</span>
                 </li>
               </ul>
-              <a
-                href="https://buy.stripe.com/7sY14mgLf1Ud7OG9p8bAs04"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => startCheckout('elite')}
                 className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
               >
                 Choisir Elite
-              </a>
+              </button>
             </div>
           </div>
 
@@ -985,14 +984,12 @@ export default function HomeKeiro() {
               <p className="text-xs text-blue-600 mb-4">
                 💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
               </p>
-              <a
-                href="https://buy.stripe.com/fZu9ASfHb8iB1qidFobAs01"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => startCheckout('sprint')}
                 className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all hover:shadow-lg hover:scale-105"
               >
                 Démarrer mon essai 4.99€ →
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -1461,7 +1458,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, subtitle, bullets, ctaLabel, ctaHref, highlight, special
+  title, price, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
 }: {
   title: string;
   price: string;
@@ -1469,9 +1466,15 @@ function Plan({
   bullets: string[];
   ctaLabel: string;
   ctaHref?: string;
+  ctaOnClick?: () => void;
   highlight?: boolean;
   special?: boolean;
 }) {
+  const ctaClassName = `mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
+    special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
+    'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+  }`;
+
   return (
     <div className={`rounded-2xl border p-5 bg-white shadow-sm transition-all hover:shadow-lg flex flex-col ${
       special ? 'ring-2 ring-amber-400 bg-gradient-to-br from-amber-50 to-orange-50' :
@@ -1488,12 +1491,15 @@ function Plan({
           </li>
         ))}
       </ul>
-      <a href={ctaHref || "/generate"} {...(ctaHref?.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className={`mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
-        special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
-        'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
-      }`}>
-        {ctaLabel}
-      </a>
+      {ctaOnClick ? (
+        <button onClick={ctaOnClick} className={ctaClassName}>
+          {ctaLabel}
+        </button>
+      ) : (
+        <a href={ctaHref || "/generate"} className={ctaClassName}>
+          {ctaLabel}
+        </a>
+      )}
     </div>
   );
 }
