@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { addTextOverlay, type TextOverlayOptions } from '@/lib/canvas-text-overlay';
 
 interface ImageEditModalProps {
   imageUrl: string;
@@ -10,55 +11,131 @@ interface ImageEditModalProps {
   onImageEdited: (newImageUrl: string) => void;
 }
 
+type TabType = 'ai' | 'text';
+type Position = 'top' | 'center' | 'bottom';
+type FontFamily = 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
+type BgStyle = 'transparent' | 'clean' | 'none' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
+
+const FONTS: { value: FontFamily; label: string }[] = [
+  { value: 'inter', label: 'Inter' },
+  { value: 'montserrat', label: 'Montserrat' },
+  { value: 'bebas', label: 'Bebas Neue' },
+  { value: 'roboto', label: 'Roboto' },
+  { value: 'playfair', label: 'Playfair' },
+];
+
+const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
+  { value: 'transparent', emoji: '▦', label: 'Transparent' },
+  { value: 'solid', emoji: '■', label: 'Solide' },
+  { value: 'gradient', emoji: '◐', label: 'Dégradé' },
+  { value: 'blur', emoji: '☁', label: 'Flou' },
+  { value: 'outline', emoji: '□', label: 'Contour' },
+  { value: 'clean', emoji: '✦', label: 'Ombre' },
+  { value: 'none', emoji: '🅰', label: 'Contour fort' },
+  { value: 'minimal', emoji: '·', label: 'Minimal' },
+  { value: 'glow', emoji: '✧', label: 'Lumineux' },
+];
+
+const POSITIONS: { value: Position; label: string }[] = [
+  { value: 'top', label: 'Haut' },
+  { value: 'center', label: 'Centre' },
+  { value: 'bottom', label: 'Bas' },
+];
+
 export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdited }: ImageEditModalProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('text');
+
+  // === AI Edit state ===
   const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [editedImageUrl, setEditedImageUrl] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiEditedUrl, setAiEditedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const handleEdit = async () => {
+  // === Text Overlay state ===
+  const [overlayText, setOverlayText] = useState('');
+  const [textPosition, setTextPosition] = useState<Position>('bottom');
+  const [fontFamily, setFontFamily] = useState<FontFamily>('montserrat');
+  const [fontSize, setFontSize] = useState(60);
+  const [textColor, setTextColor] = useState('#ffffff');
+  const [bgColor, setBgColor] = useState('rgba(0, 0, 0, 0.5)');
+  const [bgStyle, setBgStyle] = useState<BgStyle>('transparent');
+  const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
+  const [textLoading, setTextLoading] = useState(false);
+
+  // Live preview for text overlay
+  const generatePreview = useCallback(async () => {
+    if (!overlayText.trim()) {
+      setTextPreviewUrl(null);
+      return;
+    }
+    setTextLoading(true);
+    try {
+      const result = await addTextOverlay(imageUrl, {
+        text: overlayText,
+        position: textPosition,
+        fontSize,
+        fontFamily,
+        textColor,
+        backgroundColor: bgColor,
+        backgroundStyle: bgStyle,
+      });
+      setTextPreviewUrl(result);
+    } catch (err) {
+      console.error('[TextOverlay] Preview error:', err);
+    } finally {
+      setTextLoading(false);
+    }
+  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, imageUrl]);
+
+  // Debounced preview
+  useEffect(() => {
+    if (activeTab !== 'text' || !overlayText.trim()) return;
+    const timer = setTimeout(generatePreview, 300);
+    return () => clearTimeout(timer);
+  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, activeTab, generatePreview]);
+
+  // === AI Edit handlers ===
+  const handleAiEdit = async () => {
     if (!prompt.trim()) return;
-    setLoading(true);
+    setAiLoading(true);
     setError(null);
-    setEditedImageUrl(null);
+    setAiEditedUrl(null);
 
     try {
       const res = await fetch('/api/seedream/i2i', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), imageUrl: imageUrl }),
+        body: JSON.stringify({ prompt: prompt.trim(), imageUrl }),
       });
-
       const data = await res.json();
-
       if (!data.ok) {
         setError(data.error || 'Erreur lors de la modification');
         return;
       }
-
-      setEditedImageUrl(data.imageUrl);
+      setAiEditedUrl(data.imageUrl);
     } catch (err: any) {
       setError(err.message || 'Erreur réseau');
     } finally {
-      setLoading(false);
+      setAiLoading(false);
     }
   };
 
-  const handleUse = async () => {
-    if (!editedImageUrl) return;
+  // === Save (common for both tabs) ===
+  const handleUse = async (resultUrl: string) => {
     setSaving(true);
+    setError(null);
 
     try {
-      let finalUrl = editedImageUrl;
+      let finalUrl = resultUrl;
 
-      // Si l'image modifiée est une data URL, l'uploader sur Supabase Storage
-      if (editedImageUrl.startsWith('data:')) {
+      // Upload data URLs to Supabase Storage
+      if (resultUrl.startsWith('data:')) {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Non authentifié');
 
-        const response = await fetch(editedImageUrl);
+        const response = await fetch(resultUrl);
         const blob = await response.blob();
         const fileName = `${user.id}/${Date.now()}_edited_${Math.random().toString(36).substring(7)}.png`;
 
@@ -75,7 +152,7 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
         finalUrl = publicUrl;
       }
 
-      // Si on a un imageId, mettre à jour en BDD
+      // Update in DB if imageId provided
       if (imageId) {
         const res = await fetch('/api/library/update-image', {
           method: 'POST',
@@ -96,17 +173,43 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
     }
   };
 
+  const currentResult = activeTab === 'ai' ? aiEditedUrl : textPreviewUrl;
+  const isLoading = activeTab === 'ai' ? aiLoading : textLoading;
+
   return (
-    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-2 sm:p-4">
       <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">Modifier l'image</h2>
-          <button onClick={onClose} className="p-1 hover:bg-neutral-100 rounded-lg transition">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        {/* Header with tabs */}
+        <div className="border-b">
+          <div className="flex items-center justify-between px-4 pt-3 pb-0">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('text')}
+                className={`px-3 py-2 text-sm font-semibold rounded-t-lg transition ${
+                  activeTab === 'text'
+                    ? 'bg-white border border-b-0 border-neutral-200 text-blue-700'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                Ajouter du texte
+              </button>
+              <button
+                onClick={() => setActiveTab('ai')}
+                className={`px-3 py-2 text-sm font-semibold rounded-t-lg transition ${
+                  activeTab === 'ai'
+                    ? 'bg-white border border-b-0 border-neutral-200 text-purple-700'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                Modifier avec l'IA
+              </button>
+            </div>
+            <button onClick={onClose} className="p-1 hover:bg-neutral-100 rounded-lg transition mb-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -119,30 +222,190 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
                 <img src={imageUrl} alt="Original" className="w-full h-full object-cover" />
               </div>
             </div>
-            {editedImageUrl && (
+            {currentResult && (
               <div>
-                <p className="text-xs font-medium text-emerald-600 mb-1">Modifié</p>
+                <p className="text-xs font-medium text-emerald-600 mb-1">
+                  {activeTab === 'text' ? 'Aperçu' : 'Modifié'}
+                </p>
                 <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300">
-                  <img src={editedImageUrl} alt="Modifié" className="w-full h-full object-cover" />
+                  <img src={currentResult} alt="Résultat" className="w-full h-full object-cover" />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Prompt input */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">
-              Décrivez les modifications souhaitées
-            </label>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Ex: Enlève le texte, ajoute plus de lumière, change le fond en bleu..."
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              disabled={loading}
-            />
-          </div>
+          {/* === TEXT OVERLAY TAB === */}
+          {activeTab === 'text' && (
+            <div className="space-y-3">
+              {/* Text input */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Texte</label>
+                <textarea
+                  value={overlayText}
+                  onChange={(e) => setOverlayText(e.target.value)}
+                  placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={2}
+                />
+              </div>
+
+              {/* Position */}
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Position</label>
+                <div className="flex gap-1.5">
+                  {POSITIONS.map(p => (
+                    <button
+                      key={p.value}
+                      onClick={() => setTextPosition(p.value)}
+                      className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
+                        textPosition === p.value
+                          ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font + Size */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value as FontFamily)}
+                    className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-sm"
+                  >
+                    {FONTS.map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {fontSize}px</label>
+                  <input
+                    type="range"
+                    min={24}
+                    max={120}
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-blue-600"
+                  />
+                </div>
+              </div>
+
+              {/* Colors */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="w-8 h-8 rounded border cursor-pointer"
+                    />
+                    <div className="flex gap-1">
+                      {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setTextColor(c)}
+                          className={`w-6 h-6 rounded-full border-2 transition ${
+                            textColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                          }`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={bgColor.startsWith('rgba') ? '#000000' : bgColor}
+                      onChange={(e) => {
+                        const hex = e.target.value;
+                        const r = parseInt(hex.slice(1, 3), 16);
+                        const g = parseInt(hex.slice(3, 5), 16);
+                        const b = parseInt(hex.slice(5, 7), 16);
+                        setBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
+                      }}
+                      className="w-8 h-8 rounded border cursor-pointer"
+                    />
+                    <div className="flex gap-1">
+                      {[
+                        'rgba(0, 0, 0, 0.6)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                      ].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setBgColor(c)}
+                          className={`w-6 h-6 rounded-full border-2 transition ${
+                            bgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                          }`}
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Background style */}
+              <div>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {BG_STYLES.map(s => (
+                    <button
+                      key={s.value}
+                      onClick={() => setBgStyle(s.value)}
+                      className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
+                        bgStyle === s.value
+                          ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      <span>{s.emoji}</span>
+                      <span>{s.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* === AI EDIT TAB === */}
+          {activeTab === 'ai' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Décrivez les modifications souhaitées
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Ex: Enlève le texte, ajoute plus de lumière, change le fond en bleu..."
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  rows={3}
+                  disabled={aiLoading}
+                />
+              </div>
+
+              {aiLoading && (
+                <div className="flex items-center justify-center gap-3 py-6">
+                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-neutral-600">Modification en cours... (~15-30s)</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -150,49 +413,64 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
               {error}
             </div>
           )}
-
-          {/* Loading */}
-          {loading && (
-            <div className="flex items-center justify-center gap-3 py-6">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-neutral-600">Modification en cours... (~15-30s)</span>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="border-t px-4 py-3 flex gap-2">
-          {editedImageUrl ? (
+          {activeTab === 'text' ? (
+            // Text overlay footer
             <>
               <button
-                onClick={handleUse}
-                disabled={saving}
-                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+                onClick={() => textPreviewUrl && handleUse(textPreviewUrl)}
+                disabled={!textPreviewUrl || saving || textLoading}
+                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? 'Sauvegarde...' : 'Utiliser cette version'}
+                {saving ? 'Sauvegarde...' : 'Appliquer le texte'}
               </button>
               <button
-                onClick={() => { setEditedImageUrl(null); setError(null); }}
-                className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-200 transition"
+                onClick={() => { setOverlayText(''); setTextPreviewUrl(null); }}
+                disabled={!overlayText}
+                className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-200 transition disabled:opacity-50"
               >
-                Réessayer
+                Effacer
               </button>
             </>
           ) : (
-            <button
-              onClick={handleEdit}
-              disabled={loading || !prompt.trim()}
-              className="flex-1 py-2.5 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-semibold text-sm hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Modification...' : 'Modifier l\'image'}
-            </button>
+            // AI edit footer
+            <>
+              {aiEditedUrl ? (
+                <>
+                  <button
+                    onClick={() => handleUse(aiEditedUrl)}
+                    disabled={saving}
+                    className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+                  >
+                    {saving ? 'Sauvegarde...' : 'Utiliser cette version'}
+                  </button>
+                  <button
+                    onClick={() => { setAiEditedUrl(null); setError(null); }}
+                    className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-200 transition"
+                  >
+                    Réessayer
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleAiEdit}
+                  disabled={aiLoading || !prompt.trim()}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-sm hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {aiLoading ? 'Modification...' : 'Modifier avec l\'IA'}
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={onClose}
-            disabled={loading || saving}
+            disabled={aiLoading || saving}
             className="px-4 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-50 transition disabled:opacity-50"
           >
-            Annuler
+            Fermer
           </button>
         </div>
       </div>

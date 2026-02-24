@@ -87,7 +87,7 @@ export default function ImageCard({
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
       {/* Image preview - Format vidéo comme Mes vidéos */}
-      <div className="relative aspect-video bg-neutral-900 cursor-pointer" onClick={() => setShowPreview(true)}>
+      <div className="relative aspect-video bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
         <img
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Image'}

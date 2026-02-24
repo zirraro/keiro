@@ -86,7 +86,7 @@ export default function CreationCard({
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
       {/* Media preview - Format vidéo pour uniformité */}
-      <div className={`relative aspect-video bg-neutral-900${item.type === 'image' ? ' cursor-pointer' : ''}`} onClick={item.type === 'image' ? () => setShowPreview(true) : undefined}>
+      <div className={`relative aspect-video bg-neutral-900 overflow-hidden${item.type === 'image' ? ' cursor-pointer' : ''}`} onClick={item.type === 'image' ? () => setShowPreview(true) : undefined}>
         {item.type === 'image' ? (
           <>
             <img

@@ -230,7 +230,7 @@ function VideoCard({
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
       {/* Video preview */}
-      <div className="relative aspect-video bg-neutral-900">
+      <div className="relative aspect-video bg-neutral-900 overflow-hidden">
         <video
           src={video.video_url}
           poster={video.thumbnail_url}
