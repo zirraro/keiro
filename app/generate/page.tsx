@@ -1057,7 +1057,7 @@ export default function GeneratePage() {
         promptParts.push(
           `Create a STUNNING visual image. NO TEXT/WORDS/LETTERS.\n\n` +
           `SCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} in a world shaped by this news: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 120)}\n` : '') +
+          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 200)}\n` : '') +
           `\nCREATIVE BRIDGE — The specific connection:\n` +
           `This business (${businessType}) is relevant to this news because it can help, benefit from, or respond to the situation.\n` +
           `Show the business THRIVING in this context. The news sets the atmosphere, the business is the hero.\n\n` +
@@ -1098,13 +1098,7 @@ export default function GeneratePage() {
         (marketingAngle ? ` Strategy: ${marketingAngle}.` : '')
       );
 
-      // 4. QUALITY (concis — les instructions créatives longues diluent le message)
-      promptParts.push(
-        `\n\nQUALITY: 4K, cinematic lighting, professional depth of field, publication-ready.\n` +
-        `AVOID: flat compositions, stock-photo clichés, generic backgrounds, boring lighting.`
-      );
-
-      // 5. TEXT OVERLAY SPACE (si texte optionnel)
+      // 4. TEXT OVERLAY SPACE (si texte optionnel)
       if (optionalText && optionalText.trim()) {
         const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
         promptParts.push(
@@ -1112,10 +1106,11 @@ export default function GeneratePage() {
         );
       }
 
-      // 6. QUALITY + NEGATIVE PROMPT (concis)
+      // 5. QUALITY + NEGATIVE (une seule section, concise)
       promptParts.push(
-        `\n\nQuality: 4K, publication-ready for Instagram/LinkedIn/TikTok. Professional photography level.\n` +
-        `NEGATIVE: text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos with text, UI elements, platform names.`
+        `\n\n4K, cinematic lighting, depth of field, publication-ready for social media.\n` +
+        `AVOID: flat compositions, stock-photo clichés, generic backgrounds.\n` +
+        `ABSOLUTELY NO text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos with text.`
       );
 
       const fullPrompt = promptParts.join(' ');
