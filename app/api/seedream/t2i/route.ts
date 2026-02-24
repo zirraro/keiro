@@ -60,21 +60,48 @@ export async function POST(request: Request) {
     let imageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Kling image-o1 (fallback Seedream désactivé pour debug) ---
+    // --- Kling en premier, fallback Seedream ---
     try {
-      console.log('[T2I] Generating with Kling image-o1...');
+      console.log('[T2I] Generating with Kling...');
       const result = await generateKlingT2I({ prompt });
       imageUrl = result.imageUrl;
       provider = 'k';
-      console.log('[T2I] ✓ Kling image-o1 generated successfully');
+      console.log('[T2I] ✓ Kling generated successfully');
     } catch (klingError: any) {
-      console.error('[T2I] Kling failed:', klingError.message);
-      // TODO: Réactiver fallback Seedream quand Kling confirmé stable
-      // Pour l'instant, on remonte l'erreur directement
-      return Response.json({
-        ok: false,
-        error: `Erreur de génération: ${klingError.message}`
-      }, { status: 500 });
+      console.error('[T2I] Kling failed, falling back to Seedream:', klingError.message);
+
+      // Fallback Seedream T2I
+      try {
+        const seedreamRes = await fetch(SEEDREAM_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'seedream-3.0',
+            prompt,
+            size: size || '2K',
+            seed: -1,
+          }),
+        });
+
+        const seedreamData = await seedreamRes.json();
+
+        if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
+          throw new Error(seedreamData.error?.message || 'Seedream generation failed');
+        }
+
+        imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
+        provider = 's';
+        console.log('[T2I] ✓ Seedream fallback generated successfully');
+      } catch (seedreamError: any) {
+        console.error('[T2I] Seedream fallback also failed:', seedreamError.message);
+        return Response.json({
+          ok: false,
+          error: `Erreur de génération: ${klingError.message}`
+        }, { status: 500 });
+      }
     }
 
     // --- Déduction crédits après succès ---

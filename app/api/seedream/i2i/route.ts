@@ -88,20 +88,60 @@ export async function POST(request: Request) {
     let resultImageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Kling omni-image (image-o1) (fallback Seedream désactivé pour debug) ---
+    // --- Kling en premier, fallback Seedream ---
     try {
-      console.log('[I2I] Generating with Kling image-o1 omni-image...');
+      console.log('[I2I] Generating with Kling omni-image...');
       const result = await generateKlingI2I({ prompt, image: imageBase64 });
       resultImageUrl = result.imageUrl;
       provider = 'k';
-      console.log('[I2I] ✓ Kling image-o1 generated successfully');
+      console.log('[I2I] ✓ Kling generated successfully');
     } catch (klingError: any) {
-      console.error('[I2I] Kling failed:', klingError.message);
-      // TODO: Réactiver fallback Seedream quand Kling confirmé stable
-      return Response.json({
-        ok: false,
-        error: `Erreur d'édition: ${klingError.message}`
-      }, { status: 500 });
+      console.error('[I2I] Kling failed, falling back to Seedream:', klingError.message);
+
+      // Fallback Seedream I2I (utilise le même endpoint avec image_url)
+      try {
+        const seedreamBody: any = {
+          model: 'seedream-3.0',
+          prompt,
+          size: size || 'adaptive',
+          seed: seed || -1,
+          guidance_scale: guidance_scale || 5.5,
+        };
+
+        // Seedream accepte image_url pour I2I
+        if (sourceImage.startsWith('http')) {
+          seedreamBody.image_url = sourceImage;
+        } else if (sourceImage.startsWith('data:')) {
+          // Extraire le base64 pur
+          const b64 = sourceImage.replace(/^data:[^;]+;base64,/, '');
+          seedreamBody.image_url = `data:image/jpeg;base64,${b64}`;
+        }
+
+        const seedreamRes = await fetch(SEEDREAM_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+          },
+          body: JSON.stringify(seedreamBody),
+        });
+
+        const seedreamData = await seedreamRes.json();
+
+        if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
+          throw new Error(seedreamData.error?.message || 'Seedream I2I failed');
+        }
+
+        resultImageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
+        provider = 's';
+        console.log('[I2I] ✓ Seedream fallback generated successfully');
+      } catch (seedreamError: any) {
+        console.error('[I2I] Seedream fallback also failed:', seedreamError.message);
+        return Response.json({
+          ok: false,
+          error: `Erreur d'édition: ${klingError.message}`
+        }, { status: 500 });
+      }
     }
 
     // --- Déduction crédits après succès ---
