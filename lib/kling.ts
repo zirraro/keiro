@@ -181,7 +181,7 @@ export async function generateKlingI2I(params: {
   }
 
   const body: any = {
-    model_name: 'kling-v2',
+    model_name: 'kling-v1-5', // v2 not supported for omni-image, v1-5 is the best available
     prompt: `<<<image_1>>> ${rawPrompt}`,
     image_list: [{ image: imageBase64 }],
     n: 1,

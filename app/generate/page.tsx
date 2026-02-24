@@ -1022,232 +1022,84 @@ export default function GeneratePage() {
       // Construire un prompt optimisé Community Manager Expert
       let promptParts: string[] = [];
 
-      // ⛔⛔⛔ PRIORITÉ ABSOLUE : INTERDICTION DE TEXTE ⛔⛔⛔
-      // DOIT être EN PREMIER pour que l'IA le voie immédiatement
-      promptParts.push(
-        `🚫🚫🚫 CRITICAL INSTRUCTION - READ THIS FIRST 🚫🚫🚫\n` +
-        `ABSOLUTELY NO TEXT, WORDS, LETTERS, OR WRITING IN THE IMAGE.\n` +
-        `This is the #1 rule. If you include ANY text, the image will be rejected.\n` +
-        `NO exceptions. NO text overlay. NO captions. NO labels. NO signs.\n` +
-        `Create ONLY the visual composition. Text will be added later separately.\n` +
-        `REPEAT: ZERO TEXT IN THE IMAGE. PURE VISUALS ONLY.\n`
-      );
+      // Note: condensePromptForKling() adds strong no-text prefix+suffix automatically
+      // So we keep ONE concise no-text line here, not 3 massive blocks
 
-      // 1. CONTEXTE & LANGUE
+      // 1. ROLE + CREATIVE DIRECTION
       if (useNewsMode && selectedNews) {
         promptParts.push(
-          `\n\nYou are a world-class creative director and social media strategist. ` +
-          `Create a visually STUNNING and INNOVATIVE image for a French-speaking audience. ` +
-          `The BUSINESS is the HERO of the image — the news serves as context and opportunity to make the business shine.`
-        );
-
-        // 2. ACTUALITÉ (contexte, pas le focus)
-        promptParts.push(
-          `\n\nCURRENT NEWS CONTEXT (use as creative backdrop, NOT the main subject):\n` +
-          `Headline: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 200)}\n` : '') +
-          `Source: ${selectedNews.source || 'Web'}\n\n` +
-          `Use this news as a CREATIVE SPRINGBOARD to showcase the business. The news is the CONTEXT, the business is the STAR.`
-        );
-
-        // 3. BUSINESS & BRAND (LE HÉROS)
-        promptParts.push(
-          `\n\n⭐ BUSINESS — THE MAIN FOCUS OF THE IMAGE:\n` +
-          `Type: ${businessType}\n` +
-          (businessDescription ? `Details: ${businessDescription}\n` : '') +
-          `\nThe business must occupy the FOREGROUND and be the MOST PROMINENT element in the image. ` +
-          `Show the business in action: its products, services, environment, atmosphere, or the experience it delivers. ` +
-          `The news context should be subtly woven into the BACKGROUND or ambiance — NOT competing with the business for attention. ` +
-          `Think: "How does this news make THIS business even MORE relevant, valuable, and compelling RIGHT NOW?"`
+          `Create a visually STUNNING, artistic, original image. NO TEXT/WORDS/LETTERS in the image.\n\n` +
+          `CREATIVE BRIEF: Combine a current news story with a business in ONE powerful, cohesive visual.\n` +
+          `The business is the HERO (foreground, 60%). The news sets the MOOD and CONTEXT (background, 40%).\n` +
+          `They must feel naturally INTERTWINED — not separated, not collaged. One unified cinematic scene.\n\n` +
+          `NEWS: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `${selectedNews.description.substring(0, 150)}\n` : '') +
+          `\nBUSINESS: ${businessType}\n` +
+          (businessDescription ? `${businessDescription}\n` : '') +
+          `\nCREATIVE FUSION — How to blend them:\n` +
+          `- The news creates an atmosphere, mood, or situation in the scene\n` +
+          `- The business products/services/people exist WITHIN that atmosphere naturally\n` +
+          `- The viewer thinks: "This business thrives in this context" — an organic, obvious connection\n` +
+          `- Use visual metaphors, symbolic objects, environmental storytelling to link both worlds\n` +
+          `- Example: If news=Olympics + business=jewelry → luxurious jewelry displayed on a podium with gold lighting and victory energy`
         );
       } else {
-        // MODE SANS ACTUALITÉ - Focus 100% business
+        // MODE SANS ACTUALITÉ
         promptParts.push(
-          `\n\nYou are a world-class creative director and social media strategist. ` +
-          `Create a visually STUNNING and INNOVATIVE image for a French-speaking audience that puts this business in the spotlight.`
-        );
-
-        promptParts.push(
-          `\n\n⭐ BUSINESS — THE STAR OF THE IMAGE:\n` +
-          `Type: ${businessType}\n` +
-          `Description: ${businessDescription}\n` +
-          (targetAudience ? `Target Audience: ${targetAudience}\n` : '') +
-          `\nCreate a CINEMATIC, high-impact visual that makes this business irresistible:\n` +
-          `- Show the business IN ACTION: its best products, its environment, the experience it creates\n` +
-          `- Capture the ENERGY and ATMOSPHERE that makes it unique\n` +
-          `- Use dramatic lighting, bold composition, and rich textures\n` +
-          `- Make the viewer feel like they NEED to visit, buy, or engage with this business RIGHT NOW\n` +
-          `- Think like a premium brand campaign: aspirational, emotional, unforgettable`
+          `Create a visually STUNNING, artistic, original image. NO TEXT/WORDS/LETTERS in the image.\n\n` +
+          `BUSINESS SPOTLIGHT: ${businessType}\n` +
+          (businessDescription ? `${businessDescription}\n` : '') +
+          (targetAudience ? `Audience: ${targetAudience}\n` : '') +
+          `\nCreate a CINEMATIC brand campaign image:\n` +
+          `- Show the business IN ACTION: products, environment, atmosphere, the experience it delivers\n` +
+          `- Dramatic lighting, bold composition, rich textures, depth of field\n` +
+          `- Make viewers feel they MUST engage with this business immediately\n` +
+          `- Think: Vogue editorial meets luxury advertising — aspirational, emotional, unforgettable`
         );
       }
 
-      // 3.5 QUESTIONS EXPERTES - Lien ULTRA-FORT actualité/business (NOUVEAU)
+      // 2. EXPERT INSIGHTS (si disponibles)
       if (problemSolved || uniqueAdvantage || desiredVisualIdea) {
-        promptParts.push(
-          `\n\n🎯 EXPERT INSIGHTS - NEWS-TO-BUSINESS SUPER CONNECTION:\n`
-        );
-
-        if (problemSolved) {
-          promptParts.push(
-            `Problem Solved: ${problemSolved}\n` +
-            `→ CRITICAL: Show visually HOW this business solves the problem created by the news. ` +
-            `Make this connection OBVIOUS and COMPELLING. The viewer must immediately see: "News Problem → Business Solution".\n`
-          );
-        }
-
-        if (uniqueAdvantage) {
-          promptParts.push(
-            `Unique Advantage: ${uniqueAdvantage}\n` +
-            `→ Highlight this unique selling point visually. Show what makes this business DIFFERENT and BETTER. ` +
-            `This should be a central visual element that stands out.\n`
-          );
-        }
-
-        if (desiredVisualIdea) {
-          promptParts.push(
-            `Visual Direction: ${desiredVisualIdea}\n` +
-            `→ Use this as creative inspiration for the composition. Interpret artistically while maintaining professional quality. ` +
-            `This is the client's vision - honor it while enhancing it with your artistic expertise.\n`
-          );
-        }
-
-        promptParts.push(
-          `\n💡 These expert insights are KEY to creating a viral-worthy visual. ` +
-          `Use them to create a POWERFUL, OBVIOUS connection that makes people think: "WOW, that makes perfect sense!"`
-        );
+        let insights = '\nKEY INSIGHTS:\n';
+        if (problemSolved) insights += `Problem solved: ${problemSolved} → Show this solution visually.\n`;
+        if (uniqueAdvantage) insights += `Unique advantage: ${uniqueAdvantage} → Make this the visual focal point.\n`;
+        if (desiredVisualIdea) insights += `Creative direction: ${desiredVisualIdea}\n`;
+        promptParts.push(insights);
       }
 
-      // 4. AUDIENCE CIBLÉE (Amélioré)
-      if (targetAudience) {
-        promptParts.push(
-          `\n\nTARGET AUDIENCE: ${targetAudience}\n` +
-          `Speak directly to their interests, pain points, and aspirations. ` +
-          `The visual should resonate emotionally with this specific demographic.`
-        );
-      }
-
-      // 5. DIRECTION CRÉATIVE COMMUNITY MANAGER (NOUVEAU)
+      // 3. AUDIENCE + TONE
       promptParts.push(
-        `\n\nCOMMUNITY MANAGER APPROACH:\n` +
-        `Tone: ${tone} with an ${emotionToConvey || 'inspiring and emotional'} vibe\n` +
-        `Visual Style: ${visualStyle}\n` +
-        `Engagement Hook: The image should make people STOP scrolling and feel compelled to comment or share\n` +
-        `Storytelling: ${storyToTell || 'Connect the news to real human impact and business transformation'}\n` +
-        (publicationGoal ? `Goal: ${publicationGoal}\n` : '') +
-        (marketingAngle ? `Marketing Strategy: ${marketingAngle}\n` : '')
+        `\nTone: ${tone}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle}.` +
+        (targetAudience ? ` Target: ${targetAudience}.` : '') +
+        (storyToTell ? ` Story: ${storyToTell}.` : '') +
+        (publicationGoal ? ` Goal: ${publicationGoal}.` : '') +
+        (marketingAngle ? ` Strategy: ${marketingAngle}.` : '')
       );
 
-      // 6. INTERDICTION ABSOLUE DE TEXTE (RÉPÉTITION RENFORCÉE)
-      // L'IA NE DOIT JAMAIS générer de texte - on l'ajoute avec Canvas pour qualité parfaite
+      // 4. CREATIVE INNOVATION BOOST
       promptParts.push(
-        `\n\n⛔⛔⛔ TEXT PROHIBITION - SECOND REMINDER ⛔⛔⛔\n` +
-        `DO NOT WRITE ANY TEXT IN THE IMAGE. This includes:\n` +
-        `❌ NO letters, words, numbers, or characters of ANY alphabet\n` +
-        `❌ NO brand names, product names, company names, logos with text\n` +
-        `❌ NO slogans, taglines, catchphrases, mottos\n` +
-        `❌ NO prices, percentages, dates, times\n` +
-        `❌ NO UI elements with text (buttons, badges, labels, ribbons)\n` +
-        `❌ NO newspaper headlines, article titles, book covers with text\n` +
-        `❌ NO signs, billboards, storefronts with text\n` +
-        `❌ NO social media posts, screenshots with text\n` +
-        `❌ NO handwritten text, calligraphy, graffiti with letters\n` +
-        `❌ NO typography, fonts, text overlays of ANY kind\n\n` +
-        `✅ WHAT TO DO: Create a beautiful VISUAL-ONLY composition with objects, people, scenes, colors, lighting.\n` +
-        `✅ Text will be added separately with professional tools after generation.\n` +
-        `✅ Focus on creating STUNNING VISUALS that tell the story WITHOUT words.`
+        `\n\nCREATIVE EXCELLENCE:\n` +
+        `- Unexpected angles: bird's eye, worm's eye, dutch angle, extreme close-up, panoramic\n` +
+        `- Dramatic lighting: rim light, chiaroscuro, neon glow, golden hour, studio flash\n` +
+        `- Rich textures: metallic, glass, fabric, water droplets, smoke, bokeh\n` +
+        `- Color storytelling: monochrome with one pop color, complementary contrasts, gradient ambiance\n` +
+        `- Depth & layers: foreground interest, mid-ground subject, atmospheric background\n` +
+        `- Emotional triggers: warmth, luxury, energy, mystery, triumph, desire\n` +
+        `- AVOID: flat compositions, centered subjects, stock-photo clichés, generic backgrounds, boring lighting`
       );
 
+      // 5. TEXT OVERLAY SPACE (si texte optionnel)
       if (optionalText && optionalText.trim()) {
         const isCTA = /\b(offre|promo|réduction|%|€|gratuit|limité|maintenant|découvr|inscri)/i.test(optionalText);
-
         promptParts.push(
-          `\n\n📐 COMPOSITION READY FOR TEXT OVERLAY:\n` +
-          `Create visual breathing room for text overlay:\n` +
-          `- ${isCTA ? 'Lower third (bottom 1/3) OR center area' : 'Upper third (top 1/3) OR center area'} should have clean space\n` +
-          `- ${isCTA ? 'Darker or gradient area at bottom/center' : 'Clean visual area at top/center'} for text placement\n` +
-          `- Avoid busy patterns in text zones\n` +
-          `- Good contrast potential (not too busy)\n\n` +
-          `🚫 REMEMBER: ZERO TEXT IN THE IMAGE. CREATE VISUAL-ONLY COMPOSITION.`
+          `\nLeave clean breathing room in the ${isCTA ? 'bottom third' : 'top third'} for text overlay. No busy patterns there.`
         );
       }
 
-      // 7. STANDARDS VISUELS PROFESSIONNELS (Amélioré)
+      // 6. QUALITY + NEGATIVE PROMPT (concis)
       promptParts.push(
-        `\n\n📸 PROFESSIONAL VISUAL STANDARDS:\n` +
-        `Quality Level: Publication-ready for professional social media (Instagram, LinkedIn, Twitter/X, TikTok)\n` +
-        `Composition:\n` +
-        `- Rule of thirds with clear focal point\n` +
-        `- Leading lines that guide viewer's eye naturally\n` +
-        `- Balanced negative space for visual breathing room\n` +
-        `Color Palette:\n` +
-        `- Vibrant but harmonious colors\n` +
-        `- High contrast for attention-grabbing impact\n` +
-        `- Cohesive color story that matches the emotion and tone\n` +
-        `Lighting & Atmosphere:\n` +
-        `- Professional lighting setup\n` +
-        `- ${emotionToConvey === 'Inspiration' || tone === 'Inspirant' ? 'Warm, uplifting lighting with golden hour feel' :
-             emotionToConvey === 'Urgence' ? 'Dynamic, energetic lighting with bold shadows' :
-             'Balanced lighting that enhances the emotional tone'}\n` +
-        `Forbidden Elements:\n` +
-        `- No social media platform names or logos (no "Instagram", "TikTok", etc.)\n` +
-        `- No UI elements (likes, comments, share buttons)\n` +
-        `- No watermarks or "AI Generated" text\n` +
-        `- No stock photo clichés (generic handshakes, forced smiles)`
-      );
-
-      // 8. LIEN ACTUALITÉ-BUSINESS (Business = héros, news = décor créatif)
-      promptParts.push(
-        `\n\n🔗 INNOVATIVE BUSINESS-FIRST COMPOSITION (CRITICAL):\n` +
-        `HIERARCHY (follow strictly):\n` +
-        `1. FOREGROUND (60-70% of visual weight): The BUSINESS — its products, services, people, environment, energy\n` +
-        `2. BACKGROUND/AMBIANCE (30-40%): Subtle news context woven into the atmosphere, lighting, or setting\n` +
-        `3. CONNECTION: The viewer should feel "This business is PERFECTLY positioned for this moment"\n\n` +
-        `CREATIVE INNOVATION — Go beyond basic compositions:\n` +
-        `- Cinematic storytelling: Frame the business like a movie scene where the news is the plot setting\n` +
-        `- Emotional resonance: The news creates the MOOD, the business creates the SOLUTION or OPPORTUNITY\n` +
-        `- Visual metaphors: Use creative symbolism to link the news context to the business value\n` +
-        `- Dynamic perspectives: Unusual angles, dramatic lighting, or immersive viewpoints that make the business feel powerful\n` +
-        `- Contrast & juxtaposition: Show the business thriving BECAUSE of the news context\n\n` +
-        `AVOID:\n` +
-        `- Generic stock-photo compositions (boring, flat, predictable)\n` +
-        `- Split-screen or side-by-side layouts\n` +
-        `- Equal weight between news and business (business ALWAYS dominates)\n` +
-        `- Abstract or vague connections — be SPECIFIC and TANGIBLE\n\n` +
-        `The image should make people think: "Wow, this business is exactly what I need right now given what's happening in the world."`
-      );
-
-      // 9. CALL TO ENGAGEMENT (NOUVEAU - Community Manager focus)
-      promptParts.push(
-        `\n\n💬 ENGAGEMENT DESIGN:\n` +
-        `Design the visual to spark conversation and interaction:\n` +
-        `- Include thought-provoking visual elements that invite questions\n` +
-        `- Create curiosity gaps that make people want to learn more\n` +
-        `- ${tone === 'Inspirant' || emotionToConvey === 'Inspiration' ?
-             'Show aspirational outcomes that inspire viewers to imagine themselves in that scenario' :
-             'Show relatable situations that prompt viewers to share their own experiences'}\n` +
-        `- Visual should work WITH the caption (not repeat it) to create a complete story`
-      );
-
-      // 10. RENFORCER L'INTERDICTION DE TEXTE (CRITIQUE - répété à la fin)
-      promptParts.push(
-        `\n\n🚫🚫🚫 FINAL CRITICAL REMINDER - NO TEXT ALLOWED 🚫🚫🚫\n` +
-        `IMPORTANT: This image must contain ZERO text, words, letters, numbers, or written characters.\n` +
-        `❌ NO text at the top of the image\n` +
-        `❌ NO text at the bottom of the image\n` +
-        `❌ NO text in the center of the image\n` +
-        `❌ NO text anywhere in the image\n` +
-        `❌ NO signs, banners, labels, captions, or typography of any kind\n` +
-        `❌ NO newspapers with visible text\n` +
-        `❌ NO computer screens with text\n` +
-        `❌ NO billboards with text\n` +
-        `❌ NO books with visible text\n` +
-        `❌ NO handwritten notes or letters\n\n` +
-        `NEGATIVE PROMPT (what to AVOID): text, words, letters, writing, typography, captions, ` +
-        `labels, signs, banners, headlines, taglines, slogans, watermarks, logos with text, ` +
-        `newspapers with readable text, books with readable text, computer screens with text, ` +
-        `phone screens with text, billboards with text, street signs, shop signs, any written language, ` +
-        `any alphabetic characters, any numeric characters, any symbols that look like text.\n\n` +
-        `CREATE PURE VISUAL IMAGERY ONLY. The text will be added separately as a professional overlay.`
+        `\n\nQuality: 4K, publication-ready for Instagram/LinkedIn/TikTok. Professional photography level.\n` +
+        `NEGATIVE: text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos with text, UI elements, platform names.`
       );
 
       const fullPrompt = promptParts.join(' ');
