@@ -46,94 +46,57 @@ export async function POST(req: NextRequest) {
     });
 
     // Construire le prompt optimisé pour Claude Haiku
-    const prompt = `Tu es un copywriter Instagram expert. Crée 10 punchlines overlay qui STOPPENT le scroll en 0,5 seconde.
+    // Étape 1: Forcer l'IA à analyser le LIEN business↔actu avant de générer
+    const prompt = `Tu es un copywriter expert qui crée des textes overlay pour les réseaux sociaux.
 
-📋 CONTEXTE:
+ÉTAPE 1 — ANALYSE DU LIEN (réfléchis avant de générer) :
 Actualité: "${newsTitle}"
-${newsDescription ? `Détails: ${newsDescription}` : ''}
+${newsDescription ? `Contexte: ${newsDescription}` : ''}
 Business: ${businessType}
-${businessDescription ? `Description: ${businessDescription}` : ''}
-${targetAudience ? `Audience: ${targetAudience}` : ''}
-Ton: ${tone || 'Confiant, premium, provocateur'}
+${businessDescription ? `Ce business fait: ${businessDescription}` : ''}
+${targetAudience ? `Pour: ${targetAudience}` : ''}
 
-RÈGLES DE CRÉATION (IMPÉRATIF):
+Demande-toi: "Comment CE business est directement impacté ou peut profiter de CETTE actualité ?"
+Quel est le PONT CONCRET entre les deux ? (ex: si actu=inflation et business=restaurant bio → le bio comme choix malin face aux prix qui montent)
 
-✅ AUTORISÉ et ENCOURAGÉ:
-- Ellipse et tension (phrases incomplètes mais évocatrices)
-- Ton confiant, premium, provocateur, ironique, satirique
-- Questions qui dérangent, affirmations qui choquent
-- Jeux de mots, double-sens, second degré
-- Chiffres brutaux, vérités crues
-- Emojis stratégiques (max 1 par texte)
-- Lecture instantanée (0,5 seconde max)
+ÉTAPE 2 — GÉNÈRE 10 PUNCHLINES basées sur CE LIEN :
 
-❌ INTERDICTIONS ABSOLUES:
-- Banalités marketing ("Découvrez", "Profitez", "Saisissez l'opportunité")
-- Mots creux (innovation, disruption, révolution, transformation digitale)
-- Reformulation plate de l'actualité
-- Textes qui passent inaperçus
-- Gentillesse corporate fade
-- Questions rhétoriques molles
-
-🎯 10 PUNCHLINES OBLIGATOIRES (approches variées):
-
-1. CHIFFRE BRUTAL → Ex: "IA = -70% jobs 🤖"
-2. QUESTION PROVOCANTE → Ex: "T'es obsolète en 2026 ?"
-3. AFFIRMATION CHOC → Ex: "Ton diplôme ne vaut rien"
-4. IRONIE/SATIRE → Ex: "Inflation ? Quelle inflation ? 🙃"
-5. ELLIPSE TENDUE → Ex: "Quand ton boss découvre..."
-6. VÉRITÉ CRUE → Ex: "Marketing = mensonge légal"
-7. URGENCE BRUTALE → Ex: "2 semaines pour survivre ⏰"
-8. DOUBLE-SENS → Ex: "Tout le monde te ment. Nous aussi."
-9. CALL-OUT DIRECT → Ex: "Oui, toi qui scrolles"
-10. PUNCHLINE PREMIUM → Ex: "Pendant que tu hésites..."
-
-EXEMPLES DE PUNCHLINES QUI TUENT:
-
-Actu: "Inflation 5.2%"
-Business: "Restaurant bio"
-❌ FADE: "Manger bio malgré l'inflation"
-✅ TUEUR: "Bio à 15€ quand tout explose ? 😏"
-
-Actu: "IA ChatGPT 100M users"
-Business: "Formation"
-❌ FADE: "Formez-vous à l'IA"
-✅ TUEUR: "Ton job n'existe plus en 2027"
-
-Actu: "Canicule 42°C"
-Business: "Climatisation"
-❌ FADE: "Climatisation écologique"
-✅ TUEUR: "Crever de chaud ET de culpabilité ?"
-
-CONTRAINTES TECHNIQUES:
-- Maximum 45 caractères (emojis inclus)
-- 10 propositions DISTINCTES
-- Aucune justification, juste les textes
-- Chaque texte = approche DIFFÉRENTE
-- Lisible et compris en 0,5 seconde
-
-🎯 TA MISSION:
-
-1. Trouve l'angle PROVOCANT/INATTENDU entre "${newsTitle}" et "${businessType}"
-2. Génère 10 PUNCHLINES distinctes qui STOPPENT le scroll
-3. Varie les 10 approches (chiffre brutal, question choc, ironie, ellipse, urgence, etc.)
-
-⚡ CRITÈRES DE SUCCÈS:
-- Unique à cette marque (pas générique)
-- Choque/interpelle/intrigue
+RÈGLES ABSOLUES:
+- Chaque punchline DOIT mentionner ou évoquer le business (pas juste reformuler l'actu)
+- Le lien business↔actu doit être ÉVIDENT pour le lecteur
 - Max 45 caractères (emojis inclus)
-- Lecture instantanée (0,5 sec)
-- Pas consensuel ou "gentil"
+- Ton: ${tone || 'Confiant, premium'}
+- Lecture instantanée
 
-📤 FORMAT (JSON array pur):
-["Punchline 1", "Punchline 2", "Punchline 3", "Punchline 4", "Punchline 5", "Punchline 6", "Punchline 7", "Punchline 8", "Punchline 9", "Punchline 10"]
+INTERDIT:
+- Reformuler l'actu sans lien au business
+- Mots vides: "innovation", "disruption", "découvrez", "profitez"
+- Punchlines génériques qui marchent pour n'importe quel business
 
-Génère maintenant les 10 punchlines EN FRANÇAIS.`;
+EXEMPLES AVEC BON LIEN:
+Actu: "Inflation 5.2%" / Business: "Restaurant bio"
+❌ "L'inflation monte encore" (juste l'actu, pas le business)
+✅ "Bio à 15€ quand tout flambe 😏" (lien: le bio face à l'inflation)
+
+Actu: "Canicule 42°C" / Business: "Glacier artisanal"
+❌ "Il fait chaud cet été" (juste l'actu)
+✅ "42°C, nos sorbets fondent pas 🍨" (lien: le produit face à la chaleur)
+
+Actu: "IA remplace des jobs" / Business: "Formation professionnelle"
+❌ "L'IA va tout changer" (juste l'actu)
+✅ "Formé à l'IA > remplacé par l'IA" (lien: la formation comme solution)
+
+10 APPROCHES DIFFÉRENTES:
+1. Chiffre + business / 2. Question provocante / 3. Business = solution / 4. Ironie / 5. Urgence
+6. Comparaison / 7. Promesse directe / 8. Défi au lecteur / 9. Double-sens / 10. Affirmation forte
+
+FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
+["Punchline 1", "Punchline 2", ...]`;
 
     const message = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
       max_tokens: 2048,
-      temperature: 1.0, // Maximum de créativité pour des punchlines variées
+      temperature: 0.85, // Créatif mais pertinent
       messages: [
         {
           role: 'user',

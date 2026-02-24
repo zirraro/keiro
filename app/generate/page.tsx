@@ -93,6 +93,12 @@ const CATEGORIES = [
 export default function GeneratePage() {
   const router = useRouter();
 
+  /* --- Auth user ID for scoped localStorage --- */
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
+  /* --- Wizard step (1-4) --- */
+  const [formStep, setFormStep] = useState(1);
+
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('Les bonnes nouvelles');
   const [searchQuery, setSearchQuery] = useState('');
@@ -488,6 +494,7 @@ export default function GeneratePage() {
       if (user) {
         generationLimit.setHasAccount(true);
         editLimit.setHasAccount(true);
+        setAuthUserId(user.id);
         console.log('[Generate] User authenticated:', user.email);
 
         // Load profile for enrichment modal
@@ -522,13 +529,27 @@ export default function GeneratePage() {
   }, [loading, allNewsItems, filteredNews, availableCategories, category]);
 
   /* --- Sauvegarder et restaurer l'état du formulaire --- */
-  // Charger l'état sauvegardé au montage
+  // Charger l'état sauvegardé SEULEMENT quand on connaît le userId (après auth)
   useEffect(() => {
-    const savedState = localStorage.getItem('keiro_generate_form_state');
+    if (!authUserId) return; // Ne rien restaurer pour les visiteurs non connectés
+
+    const storageKey = `keiro_form_${authUserId}`;
+    const savedState = localStorage.getItem(storageKey);
     if (savedState) {
       try {
         const state = JSON.parse(savedState);
-        console.log('[Generate] Restoring saved form state:', state);
+
+        // TTL : ignorer les données de plus de 2h
+        if (state.savedAt) {
+          const ageMs = Date.now() - new Date(state.savedAt).getTime();
+          if (ageMs > 2 * 60 * 60 * 1000) {
+            console.log('[Generate] Saved state expired (>2h), removing');
+            localStorage.removeItem(storageKey);
+            return;
+          }
+        }
+
+        console.log('[Generate] Restoring saved form state for user:', authUserId);
 
         // Restaurer tous les états
         if (state.selectedNews) setSelectedNews(state.selectedNews);
@@ -554,12 +575,15 @@ export default function GeneratePage() {
         if (state.desiredVisualIdea) setDesiredVisualIdea(state.desiredVisualIdea);
 
         // Nettoyer après restauration
-        localStorage.removeItem('keiro_generate_form_state');
+        localStorage.removeItem(storageKey);
       } catch (error) {
         console.error('[Generate] Error loading saved state:', error);
       }
     }
-  }, []);
+
+    // Nettoyer aussi l'ancienne clé non scopée (migration)
+    localStorage.removeItem('keiro_generate_form_state');
+  }, [authUserId]);
 
   /* --- Charger les stats mensuelles (visuels + vidéos créés ce mois) --- */
   useEffect(() => {
@@ -593,8 +617,10 @@ export default function GeneratePage() {
     fetchMonthlyStats();
   }, []);
 
-  // Sauvegarder l'état à chaque changement (avec debounce)
+  // Sauvegarder l'état à chaque changement (SEULEMENT si connecté, avec debounce)
   useEffect(() => {
+    if (!authUserId) return; // Ne pas sauvegarder pour les visiteurs non connectés
+
     const timeoutId = setTimeout(() => {
       const state = {
         selectedNews,
@@ -621,7 +647,7 @@ export default function GeneratePage() {
         savedAt: new Date().toISOString()
       };
 
-      localStorage.setItem('keiro_generate_form_state', JSON.stringify(state));
+      localStorage.setItem(`keiro_form_${authUserId}`, JSON.stringify(state));
     }, 1000); // Debounce de 1 seconde
 
     return () => clearTimeout(timeoutId);
@@ -646,7 +672,8 @@ export default function GeneratePage() {
     // Questions EXPERTES
     problemSolved,
     uniqueAdvantage,
-    desiredVisualIdea
+    desiredVisualIdea,
+    authUserId
   ]);
 
   /* --- Auto-scroll vers la section upload sur mobile après sélection d'une actualité --- */
@@ -1028,64 +1055,53 @@ export default function GeneratePage() {
       // 1. ROLE + CREATIVE DIRECTION
       if (useNewsMode && selectedNews) {
         promptParts.push(
-          `Create a visually STUNNING, artistic, original image. NO TEXT/WORDS/LETTERS in the image.\n\n` +
-          `CREATIVE BRIEF: Combine a current news story with a business in ONE powerful, cohesive visual.\n` +
-          `The business is the HERO (foreground, 60%). The news sets the MOOD and CONTEXT (background, 40%).\n` +
-          `They must feel naturally INTERTWINED — not separated, not collaged. One unified cinematic scene.\n\n` +
-          `NEWS: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `${selectedNews.description.substring(0, 150)}\n` : '') +
-          `\nBUSINESS: ${businessType}\n` +
-          (businessDescription ? `${businessDescription}\n` : '') +
-          `\nCREATIVE FUSION — How to blend them:\n` +
-          `- The news creates an atmosphere, mood, or situation in the scene\n` +
-          `- The business products/services/people exist WITHIN that atmosphere naturally\n` +
-          `- The viewer thinks: "This business thrives in this context" — an organic, obvious connection\n` +
-          `- Use visual metaphors, symbolic objects, environmental storytelling to link both worlds\n` +
-          `- Example: If news=Olympics + business=jewelry → luxurious jewelry displayed on a podium with gold lighting and victory energy`
+          `Create a STUNNING visual image. NO TEXT/WORDS/LETTERS.\n\n` +
+          `SCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} in a world shaped by this news: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 120)}\n` : '') +
+          `\nCREATIVE BRIDGE — The specific connection:\n` +
+          `This business (${businessType}) is relevant to this news because it can help, benefit from, or respond to the situation.\n` +
+          `Show the business THRIVING in this context. The news sets the atmosphere, the business is the hero.\n\n` +
+          `COMPOSITION:\n` +
+          `- Foreground (60%): ${businessType} products, services, people, environment in action\n` +
+          `- Background (40%): The news creates the mood, lighting, atmosphere, setting\n` +
+          `- ONE unified scene — not a collage. The two worlds merge naturally.\n` +
+          `- Use visual metaphors and environmental storytelling to make the connection OBVIOUS`
         );
       } else {
         // MODE SANS ACTUALITÉ
         promptParts.push(
-          `Create a visually STUNNING, artistic, original image. NO TEXT/WORDS/LETTERS in the image.\n\n` +
-          `BUSINESS SPOTLIGHT: ${businessType}\n` +
-          (businessDescription ? `${businessDescription}\n` : '') +
-          (targetAudience ? `Audience: ${targetAudience}\n` : '') +
-          `\nCreate a CINEMATIC brand campaign image:\n` +
-          `- Show the business IN ACTION: products, environment, atmosphere, the experience it delivers\n` +
-          `- Dramatic lighting, bold composition, rich textures, depth of field\n` +
-          `- Make viewers feel they MUST engage with this business immediately\n` +
-          `- Think: Vogue editorial meets luxury advertising — aspirational, emotional, unforgettable`
+          `Create a STUNNING visual image. NO TEXT/WORDS/LETTERS.\n\n` +
+          `SUBJECT: ${businessType}${businessDescription ? `\n${businessDescription}` : ''}\n` +
+          (targetAudience ? `For: ${targetAudience}\n` : '') +
+          `\nShow this business at its BEST — in action, alive, magnetic.\n` +
+          `Products, environment, atmosphere, the experience it delivers.\n` +
+          `Cinematic quality: dramatic lighting, rich textures, depth of field.\n` +
+          `The viewer must feel drawn to this business immediately.`
         );
       }
 
-      // 2. EXPERT INSIGHTS (si disponibles)
+      // 2. EXPERT INSIGHTS (si disponibles) — enrichissent le contexte
       if (problemSolved || uniqueAdvantage || desiredVisualIdea) {
-        let insights = '\nKEY INSIGHTS:\n';
-        if (problemSolved) insights += `Problem solved: ${problemSolved} → Show this solution visually.\n`;
-        if (uniqueAdvantage) insights += `Unique advantage: ${uniqueAdvantage} → Make this the visual focal point.\n`;
-        if (desiredVisualIdea) insights += `Creative direction: ${desiredVisualIdea}\n`;
+        let insights = '\nVISUAL STORY:\n';
+        if (problemSolved) insights += `Show how this business SOLVES: ${problemSolved}\n`;
+        if (uniqueAdvantage) insights += `Highlight what makes it UNIQUE: ${uniqueAdvantage}\n`;
+        if (desiredVisualIdea) insights += `Visual direction: ${desiredVisualIdea}\n`;
         promptParts.push(insights);
       }
 
-      // 3. AUDIENCE + TONE
+      // 3. AUDIENCE + TONE + STRATEGY
       promptParts.push(
-        `\nTone: ${tone}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle}.` +
+        `\nTone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.` +
         (targetAudience ? ` Target: ${targetAudience}.` : '') +
         (storyToTell ? ` Story: ${storyToTell}.` : '') +
         (publicationGoal ? ` Goal: ${publicationGoal}.` : '') +
         (marketingAngle ? ` Strategy: ${marketingAngle}.` : '')
       );
 
-      // 4. CREATIVE INNOVATION BOOST
+      // 4. QUALITY (concis — les instructions créatives longues diluent le message)
       promptParts.push(
-        `\n\nCREATIVE EXCELLENCE:\n` +
-        `- Unexpected angles: bird's eye, worm's eye, dutch angle, extreme close-up, panoramic\n` +
-        `- Dramatic lighting: rim light, chiaroscuro, neon glow, golden hour, studio flash\n` +
-        `- Rich textures: metallic, glass, fabric, water droplets, smoke, bokeh\n` +
-        `- Color storytelling: monochrome with one pop color, complementary contrasts, gradient ambiance\n` +
-        `- Depth & layers: foreground interest, mid-ground subject, atmospheric background\n` +
-        `- Emotional triggers: warmth, luxury, energy, mystery, triumph, desire\n` +
-        `- AVOID: flat compositions, centered subjects, stock-photo clichés, generic backgrounds, boring lighting`
+        `\n\nQUALITY: 4K, cinematic lighting, professional depth of field, publication-ready.\n` +
+        `AVOID: flat compositions, stock-photo clichés, generic backgrounds, boring lighting.`
       );
 
       // 5. TEXT OVERLAY SPACE (si texte optionnel)
@@ -2670,7 +2686,44 @@ export default function GeneratePage() {
                 )}
               </div>
 
+              {/* === WIZARD STEP INDICATOR === */}
+              <div className="flex items-center justify-between mb-3 px-1">
+                {[
+                  { step: 1, label: 'Business' },
+                  { step: 2, label: 'Direction' },
+                  { step: 3, label: 'Affiner' },
+                  { step: 4, label: 'Générer' },
+                ].map(({ step, label }, i) => (
+                  <div key={step} className="flex items-center">
+                    <button
+                      onClick={() => setFormStep(step)}
+                      className={`flex items-center gap-1.5 transition-all ${
+                        formStep === step
+                          ? 'text-blue-700'
+                          : formStep > step
+                          ? 'text-emerald-600'
+                          : 'text-neutral-400'
+                      }`}
+                    >
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                        formStep === step
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : formStep > step
+                          ? 'bg-emerald-500 text-white border-emerald-500'
+                          : 'bg-white text-neutral-400 border-neutral-300'
+                      }`}>
+                        {formStep > step ? '✓' : step}
+                      </span>
+                      <span className="text-[10px] font-semibold hidden sm:inline">{label}</span>
+                    </button>
+                    {i < 3 && <div className={`w-4 sm:w-6 h-0.5 mx-1 ${formStep > step ? 'bg-emerald-400' : 'bg-neutral-200'}`} />}
+                  </div>
+                ))}
+              </div>
+
               <div className="space-y-2">
+                {/* ===== ÉTAPE 1 : VOTRE BUSINESS ===== */}
+                {formStep === 1 && (<>
                 {/* Type de business */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
@@ -2681,6 +2734,7 @@ export default function GeneratePage() {
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
                     placeholder="Ex: Restaurant bio, Agence marketing digital, Coach sportif..."
+                    autoComplete="off"
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
@@ -2721,7 +2775,18 @@ export default function GeneratePage() {
                   />
                 </div>
 
-                {/* Nouveaux champs pour guidance détaillée */}
+                {/* Bouton Suivant étape 1 */}
+                <button
+                  onClick={() => setFormStep(2)}
+                  disabled={!businessType.trim()}
+                  className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  Suivant <span className="text-xs">→</span>
+                </button>
+                </>)}
+
+                {/* ===== ÉTAPE 2 : DIRECTION CRÉATIVE ===== */}
+                {formStep === 2 && (<>
                 <div className="border-t pt-2 mt-2">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
@@ -2814,6 +2879,24 @@ export default function GeneratePage() {
                     />
                   </div>
 
+                </div>
+                {/* Navigation étape 2 */}
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                    ← Retour
+                  </button>
+                  <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                    Suivant →
+                  </button>
+                </div>
+                <button onClick={() => setFormStep(3)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                  Passer cette étape →
+                </button>
+                </>)}
+
+                {/* ===== ÉTAPE 3 : AFFINER ===== */}
+                {formStep === 3 && (<>
+                <div>
                   {/* Histoire à raconter */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
@@ -2910,7 +2993,6 @@ export default function GeneratePage() {
                     )}
 
                   </div>
-                </div>
 
                 {/* NOUVELLES QUESTIONS EXPERTES - Section premium */}
                 <div className="border-t pt-3 mt-3">
@@ -2964,6 +3046,23 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
+                </div>
+                {/* Navigation étape 3 */}
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                    ← Retour
+                  </button>
+                  <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                    Suivant →
+                  </button>
+                </div>
+                <button onClick={() => setFormStep(4)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                  Passer cette étape →
+                </button>
+                </>)}
+
+                {/* ===== ÉTAPE 4 : GÉNÉRER ===== */}
+                {formStep === 4 && (<>
                 {/* Plateforme */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>
@@ -3323,6 +3422,11 @@ export default function GeneratePage() {
                     ⚠️ Décrivez votre business en détail
                   </p>
                 )}
+                {/* Navigation étape 4 */}
+                <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
+                  ← Modifier les détails
+                </button>
+                </>)}
               </div>
             </div>
 
@@ -5277,12 +5381,17 @@ export default function GeneratePage() {
                     {/* Style de fond */}
                     <div className="mb-3">
                       <label className="block text-xs font-medium mb-1">Style de fond</label>
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="grid grid-cols-3 gap-1">
                         {[
+                          { value: 'clean', emoji: '🔲', label: 'Sans fond' },
+                          { value: 'none', emoji: '🚫', label: 'Aucun' },
+                          { value: 'minimal', emoji: '✦', label: 'Minimal' },
                           { value: 'transparent', emoji: '👻', label: 'Transparent' },
                           { value: 'solid', emoji: '⬛', label: 'Solide' },
                           { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
-                          { value: 'blur', emoji: '💨', label: 'Flou' }
+                          { value: 'blur', emoji: '💨', label: 'Flou' },
+                          { value: 'outline', emoji: '⭕', label: 'Contour' },
+                          { value: 'glow', emoji: '💫', label: 'Lumineux' }
                         ].map((style) => (
                           <button
                             key={style.value}

@@ -93,9 +93,9 @@ function condensePromptForKling(prompt: string, maxLen = 2500): string {
   // Collapse multiple newlines
   p = p.replace(/\n{3,}/g, '\n\n');
 
-  // Strong no-text instruction at beginning AND end
-  const noTextPrefix = 'STRICT RULE: The image must contain ABSOLUTELY ZERO text, zero letters, zero words, zero numbers, zero symbols, zero writing of any kind. Pure visual only.\n\n';
-  const noTextSuffix = '\n\nREMINDER: NO TEXT AT ALL in the image. No letters, no words, no numbers, no logos with text, no signs, no labels. The image must be 100% visual with zero written content.';
+  // Short, direct no-text instructions (shorter = better understood by models)
+  const noTextPrefix = 'ZERO text/words/letters/numbers in the image. Pure visual only. No writing of any kind.\n\n';
+  const noTextSuffix = '\n\nNO TEXT. No letters, words, signs, labels, logos with text. 100% visual.';
 
   p = noTextPrefix + p.trim() + noTextSuffix;
 
@@ -133,6 +133,7 @@ export async function generateKlingT2I(params: {
   const body = {
     model_name: 'kling-v2',
     prompt,
+    negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, characters, alphabets',
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
@@ -183,6 +184,7 @@ export async function generateKlingI2I(params: {
   const body: any = {
     model_name: 'kling-v1-5', // v2 not supported for omni-image, v1-5 is the best available
     prompt: `<<<image_1>>> ${rawPrompt}`,
+    negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, characters, alphabets',
     image_list: [{ image: imageBase64 }],
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
