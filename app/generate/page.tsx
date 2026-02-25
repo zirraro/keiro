@@ -1100,18 +1100,44 @@ export default function GeneratePage() {
 
       // 2. SCENE + CREATIVE DIRECTION
       if (useNewsMode && selectedNews) {
+        // Map news themes to CONCRETE visual elements via regex
+        const newsContent = `${selectedNews.title || ''} ${selectedNews.description || ''}`;
+        let newsVisualCues = '';
+        if (/inflat|prix|co[uû]t|[eé]conom|recession|march[eé]|bourse|crise|banque|euro|dollar/i.test(newsContent)) {
+          newsVisualCues = 'price tags, market stalls, coins, shopping bags, cash registers, stock charts on screens, store windows';
+        } else if (/tech|ia\b|intellig|robot|num[eé]r|digital|app\b|startup|crypto|blockchain|donn[eé]e/i.test(newsContent)) {
+          newsVisualCues = 'glowing screens, smartphones, circuit board patterns, holographic displays, server racks, LED indicators, digital interfaces';
+        } else if (/sport|foot|match|olympi|champion|coupe|rugby|tennis|athl[eè]t/i.test(newsContent)) {
+          newsVisualCues = 'stadium floodlights, team jerseys, trophies, sports equipment, cheering crowd silhouettes, scoreboards, athletic gear';
+        } else if (/m[eé]t[eé]o|climat|temp[eê]te|chaleur|froid|neige|pluie|inondation|s[eé]cheresse|canicule/i.test(newsContent)) {
+          newsVisualCues = 'dramatic sky formations, visible rain drops, sun rays breaking through clouds, snow, wind-blown elements, weather instruments';
+        } else if (/sant[eé]|m[eé]dical|h[oô]pital|vaccin|virus|pand[eé]m|bien-[eê]tre|pharma/i.test(newsContent)) {
+          newsVisualCues = 'medical equipment, stethoscopes, lab coats, green nature wellness elements, clean clinical surfaces, health monitoring screens';
+        } else if (/politique|[eé]lection|gouvern|pr[eé]sident|loi|r[eé]forme|vote|parlement/i.test(newsContent)) {
+          newsVisualCues = 'civic building facades, podiums with microphones, waving flags, gathering crowds, formal architectural columns';
+        } else if (/culture|musique|film|cin[eé]|art|spectacle|festival|concert|th[eé][aâ]tre/i.test(newsContent)) {
+          newsVisualCues = 'stage spotlights, musical instruments, film cameras, art installations, festival decorations, theatrical curtains, colorful projections';
+        } else if (/environnement|[eé]colog|vert\b|durable|recycl|bio\b|plan[eè]te|carbone/i.test(newsContent)) {
+          newsVisualCues = 'lush greenery, solar panels, recycling materials, earth-toned textures, sustainable wood and bamboo, living plants';
+        } else if (/[eé]ducation|[eé]cole|universit|[eé]tudiant|formation|apprenti|dipl[oô]m/i.test(newsContent)) {
+          newsVisualCues = 'open books, classroom settings, graduation caps, study materials, campus buildings, chalkboards with diagrams';
+        } else {
+          newsVisualCues = 'contextual environmental details reflecting current events, dynamic urban or natural backdrop elements, visible human activity and energy';
+        }
+
         promptParts.push(
-          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} responding to this news event: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `News details: ${selectedNews.description.substring(0, 250)}\n` : '') +
-          `\nTHE VISUAL STORY: Show ${businessType} as THE SOLUTION or THE RESPONSE to this news.\n` +
-          `- What would this business look like RIGHT NOW reacting to this news?\n` +
-          `- Show the business environment, products, team actively engaging with the situation\n` +
-          `- The news event should be visible through: atmosphere, weather, crowd behavior, environmental cues, mood\n` +
-          `- NOT a split screen or collage — ONE unified cinematic moment\n\n` +
+          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} in the context of this news: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 250)}\n` : '') +
+          `\nTHE VISUAL STORY: Create ONE scene where the business AND the news coexist naturally.\n` +
+          `- The business must be IMMEDIATELY RECOGNIZABLE: show its products, services, tools, environment, team in action\n` +
+          `- The news must be VISUALLY PRESENT through CONCRETE objects: ${newsVisualCues}\n` +
+          `- These news elements appear naturally IN the scene — on shelves, in the background, on screens, held by people, as decorations\n` +
+          `- Business and news must INTERACT — not be separate zones. ONE unified photographic moment.\n\n` +
           `COMPOSITION:\n` +
-          `- Hero subject (70%): ${businessType} in action — products, services, team, storefront, workshop\n` +
-          `- Context (30%): The news creates atmosphere — lighting, weather, urban backdrop, crowd energy\n` +
-          `- Camera: close to medium shot, eye-level, professional photography\n` +
+          `- Business (50%): ${businessType} in action — products, services, team, storefront, tools of the trade\n` +
+          `- News context (50%): Integrated through VISIBLE OBJECTS: ${newsVisualCues}\n` +
+          `- Both must blend into ONE coherent scene where you understand both the business and the news at a glance\n` +
+          `- Camera: close to medium shot, eye-level, professional editorial photography\n` +
           `- If people are shown, ensure natural diversity in ethnicity, age, and appearance`
         );
       } else {

@@ -100,24 +100,19 @@ export async function POST(request: Request) {
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
 
     try {
-      console.log('[I2I] Generating with Seedream...', { promptLength: seedreamPrompt.length });
+      console.log('[I2I] Generating with SeedEdit 3.0...', { promptLength: seedreamPrompt.length });
       const seedreamBody: any = {
-        model: 'seedream-3.0',
+        model: 'seededit-3-0-i2i-250628',
         prompt: seedreamPrompt,
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,
-        image_strength: 0.65,
       };
 
-      // Seedream accepte image_url pour I2I
-      if (sourceImage.startsWith('http')) {
-        seedreamBody.image_url = sourceImage;
-      } else if (sourceImage.startsWith('data:')) {
-        seedreamBody.image_url = sourceImage;
-      } else {
-        seedreamBody.image_url = `data:image/jpeg;base64,${sourceImage}`;
-      }
+      // SeedEdit 3.0 I2I uses 'image' parameter
+      seedreamBody.image = sourceImage.startsWith('http') || sourceImage.startsWith('data:')
+        ? sourceImage
+        : `data:image/jpeg;base64,${sourceImage}`;
 
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
         method: 'POST',

@@ -51,42 +51,48 @@ export async function POST(req: NextRequest) {
     let prompt: string;
 
     if (hasNews) {
-      prompt = `Tu es un copywriter expert qui crée des textes overlay COURTS pour les réseaux sociaux.
+      prompt = `Tu es un copywriter expert en textes overlay pour les réseaux sociaux.
 
-ÉTAPE 1 — ANALYSE DU LIEN (réfléchis avant de générer) :
+ÉTAPE 1 — ANALYSE DU LIEN :
 Actualité: "${newsTitle}"
 ${newsDescription ? `Contexte: ${newsDescription}` : ''}
 Business: ${businessType}
 ${businessDescription ? `Ce business fait: ${businessDescription}` : ''}
 ${targetAudience ? `Pour: ${targetAudience}` : ''}
 
-Demande-toi: "Comment CE business est directement impacté ou peut profiter de CETTE actualité ?"
-Quel est le PONT CONCRET entre les deux ?
+Question clé: "Quel est le PONT CONCRET entre CE business et CETTE actualité ?"
 
-ÉTAPE 2 — GÉNÈRE 10 PUNCHLINES basées sur CE LIEN :
+ÉTAPE 2 — GÉNÈRE 10 PUNCHLINES basées sur ce lien :
 
-RÈGLES ABSOLUES:
-- Chaque punchline DOIT évoquer le business ET l'actu
-- Max 30 caractères (emojis inclus) — COURT pour overlay image
+RÈGLES:
+- Chaque punchline DOIT évoquer le business ET l'actu — les deux !
+- Maximum 6 à 8 mots par punchline — phrase COMPLÈTE et sensée
 - Ton: ${tone || 'Confiant, premium'}
-- Lecture instantanée en 1 seconde
+- Chaque phrase doit se comprendre instantanément, sans contexte
+- VARIÉTÉ : 10 angles différents, pas 10 reformulations de la même idée
 
 INTERDIT:
+- Phrases tronquées ou incomplètes
 - Reformuler l'actu sans lien au business
 - Mots vides: "innovation", "disruption", "découvrez", "profitez"
-- Punchlines génériques
+- Punchlines génériques applicables à tout
 
 EXEMPLES:
 Actu: "Inflation 5.2%" / Business: "Restaurant bio"
-✅ "Bio à 15€ quand tout flambe 😏"
+✅ "Le bio malin quand tout flambe"
+✅ "Bien manger sans se ruiner 🍃"
+✅ "Prix doux, saveurs intenses"
+
+Actu: "IA remplace des emplois" / Business: "Agence de design"
+✅ "L'IA dessine, on crée l'émotion"
+✅ "Le design humain a de l'avenir ✨"
 
 10 APPROCHES: Chiffre, Question, Solution, Ironie, Urgence, Comparaison, Promesse, Défi, Double-sens, Affirmation
 
 FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
 ["Punchline 1", "Punchline 2", ...]`;
     } else {
-      // Mode sans actualité — centré sur le business uniquement
-      prompt = `Tu es un copywriter expert qui crée des textes overlay COURTS pour les réseaux sociaux.
+      prompt = `Tu es un copywriter expert en textes overlay pour les réseaux sociaux.
 
 CONTEXTE:
 Business: ${businessType}
@@ -95,20 +101,27 @@ ${targetAudience ? `Cible: ${targetAudience}` : ''}
 
 GÉNÈRE 10 PUNCHLINES pour mettre en valeur CE business :
 
-RÈGLES ABSOLUES:
+RÈGLES:
 - Chaque punchline DOIT être SPÉCIFIQUE à "${businessType}" (pas générique)
-- Max 30 caractères (emojis inclus) — COURT pour overlay image
+- Maximum 6 à 8 mots par punchline — phrase COMPLÈTE et sensée
 - Ton: ${tone || 'Confiant, premium'}
-- Lecture instantanée en 1 seconde
+- Chaque phrase doit se comprendre instantanément
+- VARIÉTÉ : 10 angles différents, pas 10 reformulations
 
 INTERDIT:
+- Phrases tronquées ou incomplètes
 - Textes génériques ("Découvrez-nous", "Le meilleur choix")
 - Mots vides: "innovation", "disruption", "profitez"
 - Punchlines applicables à n'importe quel business
 
 EXEMPLES pour "Boulangerie artisanale":
-✅ "Pétri à la main, pas en usine"
-✅ "Pain chaud, 5h du mat' 🥖"
+✅ "Fait main, cuit au feu de bois"
+✅ "L'odeur du pain à 5h du mat'"
+✅ "Croûte dorée, mie fondante 🥖"
+
+EXEMPLES pour "Coach sportif":
+✅ "Ton corps te remerciera demain"
+✅ "Zéro excuse, que des résultats 💪"
 
 10 APPROCHES: Savoir-faire, Émotion, Qualité, Histoire, Humour, Promesse, Exclusivité, Proximité, Passion, Identité
 
@@ -144,7 +157,7 @@ FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
 
     suggestions = suggestions
       .filter(s => typeof s === 'string' && s.trim().length > 0)
-      .map(s => s.trim().substring(0, 30))
+      .map(s => s.trim().substring(0, 50))
       .slice(0, 10);
 
     console.log('[SuggestText] Generated', suggestions.length, 'suggestions');
