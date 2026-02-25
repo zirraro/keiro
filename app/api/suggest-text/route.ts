@@ -5,25 +5,25 @@ import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
 export async function POST(req: NextRequest) {
   try {
-    // --- Vérification auth + crédits ---
+    // --- Auth optionnelle (fonctionne aussi sans compte) ---
     const { user } = await getAuthUser();
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, blocked: true, reason: 'requires_account', cta: true },
-        { status: 403 }
-      );
-    }
+    let isAdminUser = false;
+    let shouldDeductCredits = false;
 
-    const isAdminUser = await isAdmin(user.id);
-    if (!isAdminUser) {
-      const check = await checkCredits(user.id, 'text_suggest');
-      if (!check.allowed) {
-        return NextResponse.json(
-          { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
-          { status: 402 }
-        );
+    if (user) {
+      isAdminUser = await isAdmin(user.id);
+      if (!isAdminUser) {
+        const check = await checkCredits(user.id, 'text_suggest');
+        if (!check.allowed) {
+          return NextResponse.json(
+            { ok: false, error: 'Crédits insuffisants', insufficientCredits: true, cost: check.cost, balance: check.balance },
+            { status: 402 }
+          );
+        }
+        shouldDeductCredits = true;
       }
     }
+    // Non-connecté = gratuit (pas de déduction crédits)
 
     const body = await req.json();
     const { newsTitle, newsDescription, businessType, businessDescription, tone, targetAudience } = body;
@@ -136,9 +136,9 @@ FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
 
     console.log('[SuggestText] ✅ Generated', suggestions.length, 'suggestions');
 
-    // --- Déduction crédits après succès ---
+    // --- Déduction crédits après succès (seulement si connecté) ---
     let newBalance: number | undefined;
-    if (!isAdminUser) {
+    if (shouldDeductCredits && user) {
       const result = await deductCredits(user.id, 'text_suggest', 'Suggestion texte IA');
       newBalance = result.newBalance;
     }

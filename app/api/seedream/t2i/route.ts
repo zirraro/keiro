@@ -61,8 +61,11 @@ export async function POST(request: Request) {
     let provider: 'k' | 's';
 
     // --- Seedream en premier, fallback Kling ---
+    // Tronquer le prompt pour Seedream si trop long (limite ~2000 chars)
+    const seedreamPrompt = prompt.length > 2000 ? prompt.substring(0, 2000) : prompt;
+
     try {
-      console.log('[T2I] Generating with Seedream...');
+      console.log('[T2I] Generating with Seedream...', { promptLength: seedreamPrompt.length });
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
         method: 'POST',
         headers: {
@@ -71,16 +74,23 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           model: 'seedream-3.0',
-          prompt,
+          prompt: seedreamPrompt,
           size: size || '2K',
           seed: -1,
         }),
       });
 
       const seedreamData = await seedreamRes.json();
+      console.log('[T2I] Seedream response status:', seedreamRes.status, 'ok:', seedreamRes.ok, 'hasImage:', !!seedreamData.data?.[0]?.b64_image);
 
-      if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
-        throw new Error(seedreamData.error?.message || 'Seedream generation failed');
+      if (!seedreamRes.ok) {
+        console.error('[T2I] Seedream API error:', JSON.stringify(seedreamData).substring(0, 500));
+        throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
+      }
+
+      if (!seedreamData.data?.[0]?.b64_image) {
+        console.error('[T2I] Seedream no image in response:', JSON.stringify(seedreamData).substring(0, 500));
+        throw new Error('Seedream returned no image');
       }
 
       imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
