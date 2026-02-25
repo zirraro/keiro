@@ -1,12 +1,16 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingT2I } from '@/lib/kling';
+import { optimizePromptForImage } from '@/lib/prompt-optimizer';
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+
+// Instruction anti-texte ajoutée APRÈS l'optimisation (pas dans le prompt Claude)
+const NO_TEXT_SUFFIX = '\n\nAbsolutely no text, letters, words, numbers, writing, signs, labels, watermarks, logos, captions, titles in the image. Pure visual only. Any signs or storefronts must show abstract shapes, not readable text.';
 
 export async function POST(request: Request) {
   try {
@@ -57,15 +61,21 @@ export async function POST(request: Request) {
       }
     }
 
+    // --- Étape 1: Optimiser le prompt avec Claude Haiku ---
+    // Transforme le prompt brut (avec titres d'actu, noms) en description purement visuelle
+    console.log('[T2I] Step 1: Optimizing prompt with Claude...', { rawLength: prompt.length });
+    const visualPrompt = await optimizePromptForImage(prompt);
+    const finalPrompt = visualPrompt + NO_TEXT_SUFFIX;
+    console.log('[T2I] Optimized prompt:', finalPrompt.substring(0, 300));
+
     let imageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Seedream en premier, fallback Kling ---
-    // Tronquer le prompt pour Seedream si trop long (limite ~2000 chars)
-    const seedreamPrompt = prompt.length > 2000 ? prompt.substring(0, 2000) : prompt;
+    // --- Étape 2: Seedream en premier, fallback Kling ---
+    const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
 
     try {
-      console.log('[T2I] Generating with Seedream...', { promptLength: seedreamPrompt.length });
+      console.log('[T2I] Step 2: Generating with Seedream...', { promptLength: seedreamPrompt.length });
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
         method: 'POST',
         headers: {
@@ -81,32 +91,31 @@ export async function POST(request: Request) {
       });
 
       const seedreamData = await seedreamRes.json();
-      console.log('[T2I] Seedream response status:', seedreamRes.status, 'ok:', seedreamRes.ok, 'hasImage:', !!seedreamData.data?.[0]?.b64_image);
+      console.log('[T2I] Seedream response:', seedreamRes.status, 'hasImage:', !!seedreamData.data?.[0]?.b64_image);
 
       if (!seedreamRes.ok) {
-        console.error('[T2I] Seedream API error:', JSON.stringify(seedreamData).substring(0, 500));
+        console.error('[T2I] Seedream error:', JSON.stringify(seedreamData).substring(0, 500));
         throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
       }
 
       if (!seedreamData.data?.[0]?.b64_image) {
-        console.error('[T2I] Seedream no image in response:', JSON.stringify(seedreamData).substring(0, 500));
+        console.error('[T2I] Seedream no image:', JSON.stringify(seedreamData).substring(0, 500));
         throw new Error('Seedream returned no image');
       }
 
       imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
       provider = 's';
-      console.log('[T2I] ✓ Seedream generated successfully');
+      console.log('[T2I] ✓ Seedream OK');
     } catch (seedreamError: any) {
-      console.error('[T2I] Seedream failed, falling back to Kling:', seedreamError.message);
+      console.error('[T2I] Seedream failed:', seedreamError.message, '→ trying Kling');
 
-      // Fallback Kling T2I
       try {
-        const result = await generateKlingT2I({ prompt });
+        const result = await generateKlingT2I({ prompt: finalPrompt });
         imageUrl = result.imageUrl;
         provider = 'k';
-        console.log('[T2I] ✓ Kling fallback generated successfully');
+        console.log('[T2I] ✓ Kling fallback OK');
       } catch (klingError: any) {
-        console.error('[T2I] Kling fallback also failed:', klingError.message);
+        console.error('[T2I] Kling also failed:', klingError.message);
         return Response.json({
           ok: false,
           error: `Erreur de génération: ${seedreamError.message}`
