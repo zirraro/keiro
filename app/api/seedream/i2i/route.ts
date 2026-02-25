@@ -107,6 +107,7 @@ export async function POST(request: Request) {
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,
+        image_strength: 0.65,
       };
 
       // Seedream accepte image_url pour I2I

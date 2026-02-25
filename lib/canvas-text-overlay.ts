@@ -327,28 +327,43 @@ export async function addTextOverlay(
 
           // Styles adaptatifs selon backgroundStyle
           if (backgroundStyle === 'clean') {
-            // Clean: texte pur MAIS avec ombre portée pour visibilité
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            ctx.shadowBlur = fontSize * 0.12;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
-          } else if (backgroundStyle === 'minimal') {
-            // Minimal: ombre très légère, pas de contour
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            // Ombre portée: texte pur avec ombre forte décalée (style cinématique)
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
             ctx.shadowBlur = fontSize * 0.08;
+            ctx.shadowOffsetX = fontSize * 0.06;
+            ctx.shadowOffsetY = fontSize * 0.06;
+            // Léger contour pour lisibilité
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = fontSize * 0.03;
+            ctx.strokeText(line, canvas.width / 2, y);
+          } else if (backgroundStyle === 'minimal') {
+            // Discret: très léger, presque pas d'effet (texte sobre)
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = fontSize * 0.04;
             ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = fontSize * 0.03;
+            ctx.shadowOffsetY = fontSize * 0.02;
           } else if (backgroundStyle === 'none') {
-            // None: contour + ombre forts pour fort contraste
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-            ctx.lineWidth = fontSize * 0.10;
+            // Sans fond: contour épais + ombre forts pour max contraste sans background
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.95)';
+            ctx.lineWidth = fontSize * 0.12;
             ctx.strokeText(line, canvas.width / 2, y);
             ctx.shadowColor = 'rgba(0, 0, 0, 1)';
-            ctx.shadowBlur = fontSize * 0.25;
-            ctx.shadowOffsetX = 4;
-            ctx.shadowOffsetY = 4;
+            ctx.shadowBlur = fontSize * 0.2;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+          } else if (backgroundStyle === 'glow') {
+            // Lumineux: halo coloré autour du texte (neon effect)
+            const glowColor = finalTextColor === 'white' || finalTextColor === '#ffffff'
+              ? 'rgba(255, 255, 255, 0.9)' : finalTextColor;
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = fontSize * 0.35;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            // Double pass pour intensifier le glow
+            ctx.fillStyle = finalTextColor;
+            ctx.fillText(line, canvas.width / 2, y);
           } else {
-            // Autres styles: contour + ombre normaux
+            // Autres styles avec fond: contour + ombre normaux
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.lineWidth = fontSize * 0.05;
             ctx.strokeText(line, canvas.width / 2, y);

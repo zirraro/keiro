@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { imageId, newImageUrl } = await req.json();
+    const { imageId, newImageUrl, textOverlay } = await req.json();
 
     if (!imageId || !newImageUrl) {
       return NextResponse.json({ ok: false, error: 'imageId and newImageUrl are required' }, { status: 400 });
@@ -26,9 +26,14 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    const updateData: Record<string, any> = { image_url: newImageUrl };
+    if (textOverlay !== undefined) {
+      updateData.text_overlay = textOverlay;
+    }
+
     const { error } = await supabase
       .from('saved_images')
-      .update({ image_url: newImageUrl })
+      .update(updateData)
       .eq('id', imageId)
       .eq('user_id', user.id);
 

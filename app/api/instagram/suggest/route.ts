@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error('[Suggest] OPENAI_API_KEY not configured');
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-});
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[Suggest] Starting...');
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { ok: false, error: 'API IA non configurée' },
-        { status: 500 }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
-      console.error('[Suggest] Auth error:', authError);
       return NextResponse.json(
         { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
@@ -37,10 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'informatif', audioUrl, audioScript, userKeywords } = body;
+    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'informatif', audioScript, userKeywords, platform = 'instagram' } = body;
 
-    console.log('[Suggest] Image URL:', imageUrl);
-    console.log('[Suggest] Content angle:', contentAngle);
+    console.log('[Suggest] Platform:', platform, 'Angle:', contentAngle);
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -48,94 +33,126 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const business = profile?.business_description || profile?.business_type || 'entreprise';
-    const title = imageTitle || newsTitle || 'contenu';
+    const businessType = profile?.business_type || 'entreprise';
+    const businessDesc = profile?.business_description || '';
+    const title = newsTitle || imageTitle || 'contenu';
     const category = newsCategory || 'Business';
 
-    // Définir le prompt selon l'angle choisi - APPROCHE B2C
-    const angleInstructions = {
-      informatif: "Parle comme un ami qui partage une découverte utile. Mets en avant les BÉNÉFICES concrets pour le client. Utilise 'vous' et 'tu' pour créer une connexion.",
-      emotionnel: "Raconte une histoire qui touche le cœur. Parle des rêves, peurs, désirs du client. Crée une connexion émotionnelle forte. Utilise des mots sensoriels.",
-      inspirant: "Parle directement aux aspirations du client. Montre la transformation possible. Utilise 'vous pouvez', 'imaginez', 'c'est possible'. Crée du rêve.",
-      humoristique: "Amuse-toi ! Utilise l'humour du quotidien, des situations relatable. Fais sourire le lecteur. Reste léger et accessible.",
-      professionnel: "Reste accessible mais crédible. Montre la valeur sans jargon. Parle des résultats, pas des processus. Le client veut des solutions, pas des features.",
-      storytelling: "Raconte l'histoire du CLIENT, pas du produit. Commence par un problème relatable, montre la transformation, termine par l'invitation à agir.",
-      educatif: "Apprends quelque chose d'utile et APPLICABLE immédiatement. Utilise des exemples concrets. Rends l'info facile à retenir et partager.",
-      provocateur: "Challenge les croyances limitantes. Pose des questions qui font réfléchir. Crée la curiosité. Donne envie de découvrir la solution."
+    // Contexte actualité enrichi
+    const newsContext = newsTitle
+      ? `ACTUALITÉ SÉLECTIONNÉE:\n- Titre: "${newsTitle}"\n${newsDescription ? `- Détails: ${newsDescription.substring(0, 300)}` : ''}\n- Catégorie: ${category}`
+      : `Sujet: ${title}\nCatégorie: ${category}`;
+
+    // Contexte audio si disponible
+    const audioContext = audioScript ? `\nNarration audio: "${audioScript.substring(0, 200)}"` : '';
+    const keywordsContext = userKeywords ? `\nMots-clés client: "${userKeywords}"` : '';
+
+    // Angles par plateforme
+    const angleInstructions: Record<string, Record<string, string>> = {
+      instagram: {
+        informatif: "Partage une découverte utile. Bénéfices concrets. Connexion via 'vous'/'tu'.",
+        emotionnel: "Histoire qui touche le cœur. Rêves, peurs, désirs du client.",
+        inspirant: "Aspirations du client. Transformation possible. 'Imaginez...'",
+        humoristique: "Humour du quotidien, relatable. Léger et accessible.",
+        professionnel: "Accessible mais crédible. Résultats, pas processus.",
+        storytelling: "Histoire du CLIENT. Problème → transformation → action.",
+        educatif: "Info utile et applicable. Exemples concrets.",
+        provocateur: "Challenge les croyances. Questions qui font réfléchir."
+      },
+      linkedin: {
+        professionnel: "Ton expert mais accessible. Insights sectoriels. Crédibilité.",
+        'thought-leadership': "Vision d'avenir. Analyse tendances. Position de leader.",
+        informatif: "Partage de savoir-faire. Données et faits. Valeur ajoutée.",
+        inspirant: "Parcours entrepreneurial. Leçons apprises. Vision motivante.",
+        storytelling: "Anecdote professionnelle. Leçon business concrète.",
+        educatif: "Formation rapide. Tips actionnables. Expertise partagée."
+      }
     };
 
-    const angleInstruction = angleInstructions[contentAngle as keyof typeof angleInstructions] || angleInstructions.informatif;
+    const platformAngles = angleInstructions[platform] || angleInstructions.instagram;
+    const angleInstruction = platformAngles[contentAngle] || Object.values(platformAngles)[0];
 
-    // Ajouter contexte audio si disponible
-    const audioContext = audioScript ? `\n\n🎙️ CONTEXTE AUDIO:\nUne narration audio accompagne ce post avec le script suivant:\n"${audioScript}"\n\nTiens compte de ce script audio dans ta suggestion pour créer une cohérence entre l'audio et le texte.` : '';
+    let promptText: string;
 
-    // Ajouter mots-clés utilisateur si fournis
-    const keywordsContext = userKeywords ? `\n\n🔑 MOTS-CLÉS / DIRECTION DU CLIENT:\nLe client souhaite orienter ce post autour de: "${userKeywords}"\nINTÈGRE ces mots-clés et cette direction dans la description ET les hashtags. C'est une priorité.` : '';
+    if (platform === 'linkedin') {
+      promptText = `Tu es un expert LinkedIn et personal branding B2B. Crée un post LinkedIn pour ${businessType}.
 
-    const prompt = `Tu es un copywriter Instagram expert en conversion B2C. Ta mission : créer du contenu qui ATTIRE les clients vers ${business}.
+ÉTAPE 1 — ANALYSE DU CONTEXTE:
+Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
+${newsContext}${audioContext}${keywordsContext}
 
-🎯 OBJECTIF CRITIQUE:
-Ce post doit attirer des CONSOMMATEURS FINAUX (clients potentiels), PAS des professionnels.
-Le contenu doit donner ENVIE d'acheter, d'essayer, de découvrir, de contacter.
+QUESTION CLÉ: Comment CE business peut se positionner comme expert/leader face à CETTE actualité ?
+Quel insight UNIQUE ce business peut apporter à son réseau professionnel ?
 
-📊 CONTEXTE:
-- Business: ${business}
-- Sujet: ${title}
-- Catégorie: ${category}
-- ANGLE: ${contentAngle.toUpperCase()}
-  ${angleInstruction}${audioContext}${keywordsContext}
+ÉTAPE 2 — RÉDIGE LE POST LINKEDIN:
+Angle: ${contentAngle.toUpperCase()} — ${angleInstruction}
 
-🖼️ ANALYSE DE L'IMAGE:
-1. Regarde VRAIMENT l'image - couleurs, ambiance, éléments visuels
-2. Identifie l'émotion principale qu'elle dégage
-3. Trouve le message subtil qu'elle communique
-4. Repère ce qui attire l'œil en premier
+STRUCTURE:
+1. HOOK (1ère ligne): Accroche forte qui arrête le scroll LinkedIn (question, stat, affirmation)
+2. CONTEXTE: Lie l'actualité au secteur du business (2-3 lignes)
+3. INSIGHT: Point de vue unique, leçon ou analyse (2-3 lignes)
+4. VALEUR: Ce que le lecteur retient/apprend (1-2 lignes)
+5. CTA: Engagement subtil (question ouverte, "Qu'en pensez-vous ?")
 
-✍️ RÉDACTION:
-Structure du post:
-1. HOOK (1ère ligne): Captive en 3 secondes max - question, affirmation choc, ou promesse claire
-2. BÉNÉFICE CLIENT: Parle de CE QUE LE CLIENT GAGNE (pas de ce que tu fais)
-3. PREUVE SOCIALE/CRÉDIBILITÉ: Léger, subtil (ex: "Des centaines de clients satisfaits")
-4. CALL TO ACTION: Clair et simple (DM, visite profil, clic lien bio, réserve maintenant)
+RÈGLES:
+- Ton professionnel mais humain (pas corporate froid)
+- Max 200 mots
+- Sauts de ligne fréquents (lisibilité mobile)
+- 1-2 emojis par paragraphe max
+- Pas de hashtags dans le texte
 
-RÈGLES D'OR:
-- Parle AU client, pas DU produit ("Imaginez..." pas "Nous proposons...")
-- Utilise des verbes d'action et mots émotionnels
-- Crée l'urgence ou la rareté si pertinent (sans mentir)
-- Reste authentique - pas de sur-promesses
-- Max 150-180 mots (Instagram = scroll rapide)
-- Emojis stratégiques (1-2 par paragraphe max)
+HASHTAGS LINKEDIN:
+- 3 à 5 hashtags max (LinkedIn pénalise plus)
+- Mix: 1 secteur + 1 thématique + 1 niche
+- Professionnels et pertinents
 
-🏷️ HASHTAGS:
-- Mélange de hashtags populaires (100k-1M posts) et niches (10k-50k)
-- Inclus des hashtags locaux si business local
-- Évite les hashtags trop saturés (#love, #instagood)
-
-Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
-{
-  "caption": "🎯 Hook percutant basé sur l'image\\n\\n💡 Bénéfice client clair\\n\\n✨ Mini preuve sociale\\n\\n👉 CTA avec emoji",
-  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
-}`;
-
-    // Build message: with image if available, text-only otherwise
-    const messageContent: any[] = [];
-    if (imageUrl) {
-      console.log('[Suggest] Calling GPT-4o Vision (with image)...');
-      messageContent.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'auto' } });
+JSON pur:
+{"caption": "...", "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"]}`;
     } else {
-      console.log('[Suggest] Calling GPT-4o (text-only, no thumbnail)...');
-    }
-    messageContent.push({ type: 'text', text: prompt });
+      // Instagram
+      promptText = `Tu es un copywriter Instagram expert B2C. Crée un post Instagram pour ${businessType}.
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 2000,
+ÉTAPE 1 — ANALYSE DU CONTEXTE:
+Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
+${newsContext}${audioContext}${keywordsContext}
+
+QUESTION CLÉ: Comment CE business attire ses clients en surfant sur CETTE actualité ?
+Quel BÉNÉFICE CONCRET le client retire de ce business face à cette situation ?
+
+ÉTAPE 2 — RÉDIGE LE POST INSTAGRAM:
+Angle: ${contentAngle.toUpperCase()} — ${angleInstruction}
+
+STRUCTURE:
+1. HOOK (1ère ligne): Captive en 3 sec — question, affirmation choc, promesse
+2. LIEN ACTU↔BUSINESS: Montre pourquoi ce business est LA solution face à cette actu
+3. BÉNÉFICE CLIENT: Ce que le client GAGNE (pas ce que tu fais)
+4. CTA: Simple et clair (DM, lien bio, commentez)
+
+RÈGLES:
+- Parle AU client ("Imaginez..." pas "Nous proposons...")
+- Max 150-180 mots
+- Emojis stratégiques (1-2 par paragraphe)
+- Crée urgence/rareté si pertinent
+
+HASHTAGS:
+- 8-10 hashtags
+- Mix populaires (100k-1M) + niches (10k-50k)
+- Hashtags locaux si business local
+- Évite #love, #instagood (trop saturés)
+
+JSON pur:
+{"caption": "...", "hashtags": ["#h1", "#h2", "#h3", "#h4", "#h5", "#h6", "#h7", "#h8", "#h9", "#h10"]}`;
+    }
+
+    console.log('[Suggest] Calling Claude Haiku...');
+    const message = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 2048,
       temperature: 0.8,
-      messages: [{ role: 'user', content: messageContent }],
-      response_format: { type: 'json_object' }
+      messages: [{ role: 'user', content: promptText }],
     });
 
-    const text = response.choices[0]?.message?.content || '';
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
     console.log('[Suggest] Response:', text.substring(0, 200));
 
     let suggestion;
@@ -150,13 +167,19 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
       if (!Array.isArray(suggestion.hashtags)) suggestion.hashtags = [];
       suggestion.hashtags = suggestion.hashtags.map((t: string) => t.startsWith('#') ? t : `#${t}`);
 
-      console.log('[Suggest] Success!');
+      // LinkedIn: max 5 hashtags
+      if (platform === 'linkedin') {
+        suggestion.hashtags = suggestion.hashtags.slice(0, 5);
+      }
 
+      console.log('[Suggest] Success!');
     } catch (e: any) {
       console.error('[Suggest] Parse error:', e.message);
       suggestion = {
         caption: `${title}\n\n✨ Découvrez notre actualité sur ${category.toLowerCase()}.\n\n💭 Qu'en pensez-vous ?\n\n👉 Commentez !`,
-        hashtags: ['#business', '#entreprise', '#inspiration', '#motivation', '#france', '#instagram', '#contenu', `#${category.toLowerCase().replace(/\s+/g, '')}`]
+        hashtags: platform === 'linkedin'
+          ? ['#business', '#entreprise', '#actualité']
+          : ['#business', '#entreprise', '#inspiration', '#motivation', '#france', '#instagram', '#contenu', `#${category.toLowerCase().replace(/\s+/g, '')}`]
       };
     }
 

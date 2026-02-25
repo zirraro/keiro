@@ -1394,33 +1394,66 @@ export default function GeneratePage() {
               setImageWithWatermarkOnly(watermarkOnlyDataUrl);
               console.log('[Generate] ✅ Image with watermark-only saved for studio');
 
-              // TEXTE OVERLAY centré (taille réduite pour Instagram 1080x1080)
+              // TEXTE OVERLAY centré avec word wrapping
               if (textToApply) {
-                const fontSize = Math.max(60, Math.floor(img.width * 0.06)); // Réduit à 6%
+                // Taille proportionnelle à l'image, réduite si texte long
+                const textLen = textToApply.length;
+                let fontScale = 0.06; // 6% par défaut
+                if (textLen > 40) fontScale = 0.045;
+                if (textLen > 60) fontScale = 0.035;
+                const fontSize = Math.max(36, Math.floor(img.width * fontScale));
 
                 ctx.font = `900 ${fontSize}px Arial, Helvetica, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                const x = img.width / 2;
-                const y = img.height / 2;
+                // Word wrap : découper en lignes qui tiennent dans 80% de la largeur
+                const maxWidth = img.width * 0.80;
+                const words = textToApply.split(' ');
+                const lines: string[] = [];
+                let currentLine = '';
+                for (const word of words) {
+                  const testLine = currentLine ? `${currentLine} ${word}` : word;
+                  if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                  } else {
+                    currentLine = testLine;
+                  }
+                }
+                if (currentLine) lines.push(currentLine);
 
-                // Ombre portée forte
-                ctx.shadowColor = 'rgba(0, 0, 0, 1)';
-                ctx.shadowBlur = 12;
-                ctx.shadowOffsetX = 6;
-                ctx.shadowOffsetY = 6;
+                const lineHeight = fontSize * 1.25;
+                const totalHeight = lines.length * lineHeight;
+                const startY = (img.height / 2) - (totalHeight / 2) + (lineHeight / 2);
 
-                // Contour noir épais
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.95)';
-                ctx.lineWidth = Math.max(6, Math.floor(fontSize * 0.10));
-                ctx.strokeText(textToApply, x, y);
+                lines.forEach((line, i) => {
+                  const x = img.width / 2;
+                  const y = startY + (i * lineHeight);
 
-                // Texte blanc
-                ctx.fillStyle = 'white';
-                ctx.fillText(textToApply, x, y);
+                  // Ombre portée forte
+                  ctx.shadowColor = 'rgba(0, 0, 0, 1)';
+                  ctx.shadowBlur = 12;
+                  ctx.shadowOffsetX = 6;
+                  ctx.shadowOffsetY = 6;
 
-                console.log('[Generate] ✅ Text overlay applied');
+                  // Contour noir épais
+                  ctx.strokeStyle = 'rgba(0, 0, 0, 0.95)';
+                  ctx.lineWidth = Math.max(4, Math.floor(fontSize * 0.10));
+                  ctx.strokeText(line, x, y);
+
+                  // Texte blanc
+                  ctx.fillStyle = 'white';
+                  ctx.fillText(line, x, y);
+
+                  // Reset shadow
+                  ctx.shadowColor = 'transparent';
+                  ctx.shadowBlur = 0;
+                  ctx.shadowOffsetX = 0;
+                  ctx.shadowOffsetY = 0;
+                });
+
+                console.log('[Generate] ✅ Text overlay applied:', lines.length, 'lines, fontSize:', fontSize);
               }
 
               // Convertir en data URL
@@ -1619,7 +1652,7 @@ export default function GeneratePage() {
         newsSource: null,
         businessType: null,
         businessDescription: null,
-        textOverlay: null,
+        textOverlay: overlayText?.trim() || null,
         visualStyle: null,
         tone: null,
         generationPrompt: null,
@@ -4560,8 +4593,8 @@ export default function GeneratePage() {
                         <div className="grid grid-cols-3 gap-2">
                           {[
                             { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-                            { value: 'none', emoji: '🚫', label: 'Aucun' },
-                            { value: 'minimal', emoji: '✦', label: 'Minimal' },
+                            { value: 'none', emoji: '🅰', label: 'Contour fort' },
+                            { value: 'minimal', emoji: '✦', label: 'Discret' },
                             { value: 'transparent', emoji: '👻', label: 'Transparent' },
                             { value: 'solid', emoji: '⬛', label: 'Solide' },
                             { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
@@ -4721,7 +4754,7 @@ export default function GeneratePage() {
                                       newsSource: null,
                                       businessType: null,
                                       businessDescription: null,
-                                      textOverlay: null,
+                                      textOverlay: overlayText?.trim() || null,
                                       visualStyle: null,
                                       tone: null,
                                       generationPrompt: null,
@@ -5466,8 +5499,8 @@ export default function GeneratePage() {
                       <div className="grid grid-cols-3 gap-1">
                         {[
                           { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-                          { value: 'none', emoji: '🚫', label: 'Aucun' },
-                          { value: 'minimal', emoji: '✦', label: 'Minimal' },
+                          { value: 'none', emoji: '🅰', label: 'Contour fort' },
+                          { value: 'minimal', emoji: '✦', label: 'Discret' },
                           { value: 'transparent', emoji: '👻', label: 'Transparent' },
                           { value: 'solid', emoji: '⬛', label: 'Solide' },
                           { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
@@ -5585,7 +5618,10 @@ export default function GeneratePage() {
         {/* Modal crédits insuffisants */}
         {showInsufficientCreditsModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowInsufficientCreditsModal(false)}>
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowInsufficientCreditsModal(false)} className="absolute top-3 right-3 text-neutral-400 hover:text-neutral-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
               <div className="text-center">
                 <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
@@ -5609,7 +5645,10 @@ export default function GeneratePage() {
         {/* Modal requiert un compte */}
         {showRequiresAccountModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowRequiresAccountModal(false)}>
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowRequiresAccountModal(false)} className="absolute top-3 right-3 text-neutral-400 hover:text-neutral-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
               <div className="text-center">
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>

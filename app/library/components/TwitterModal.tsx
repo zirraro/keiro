@@ -582,11 +582,12 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
         <ImageEditModal
           imageUrl={selectedImage.image_url}
           imageId={selectedImage.id}
+          initialText={selectedImage.text_overlay || ''}
           onClose={() => setShowImageEditModal(false)}
-          onImageEdited={(newUrl) => {
-            setSelectedImage({ ...selectedImage, image_url: newUrl });
+          onImageEdited={(newUrl, textOverlay) => {
+            setSelectedImage({ ...selectedImage, image_url: newUrl, text_overlay: textOverlay || selectedImage.text_overlay });
             setAvailableImages(prev => prev.map(img =>
-              img.id === selectedImage.id ? { ...img, image_url: newUrl } : img
+              img.id === selectedImage.id ? { ...img, image_url: newUrl, text_overlay: textOverlay || img.text_overlay } : img
             ));
             setShowImageEditModal(false);
           }}

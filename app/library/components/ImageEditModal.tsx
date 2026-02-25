@@ -7,8 +7,9 @@ import { addTextOverlay, type TextOverlayOptions } from '@/lib/canvas-text-overl
 interface ImageEditModalProps {
   imageUrl: string;
   imageId?: string;
+  initialText?: string;
   onClose: () => void;
-  onImageEdited: (newImageUrl: string) => void;
+  onImageEdited: (newImageUrl: string, textOverlay?: string) => void;
 }
 
 type TabType = 'ai' | 'text';
@@ -25,14 +26,14 @@ const FONTS: { value: FontFamily; label: string }[] = [
 ];
 
 const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
+  { value: 'clean', emoji: '🔲', label: 'Sans fond' },
+  { value: 'none', emoji: '🅰', label: 'Contour fort' },
+  { value: 'minimal', emoji: '·', label: 'Discret' },
   { value: 'transparent', emoji: '▦', label: 'Transparent' },
   { value: 'solid', emoji: '■', label: 'Solide' },
   { value: 'gradient', emoji: '◐', label: 'Dégradé' },
   { value: 'blur', emoji: '☁', label: 'Flou' },
   { value: 'outline', emoji: '□', label: 'Contour' },
-  { value: 'clean', emoji: '✦', label: 'Ombre' },
-  { value: 'none', emoji: '🅰', label: 'Contour fort' },
-  { value: 'minimal', emoji: '·', label: 'Minimal' },
   { value: 'glow', emoji: '✧', label: 'Lumineux' },
 ];
 
@@ -42,7 +43,7 @@ const POSITIONS: { value: Position; label: string }[] = [
   { value: 'bottom', label: 'Bas' },
 ];
 
-export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdited }: ImageEditModalProps) {
+export default function ImageEditModal({ imageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('text');
 
   // === AI Edit state ===
@@ -53,13 +54,13 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
   const [saving, setSaving] = useState(false);
 
   // === Text Overlay state ===
-  const [overlayText, setOverlayText] = useState('');
+  const [overlayText, setOverlayText] = useState(initialText || '');
   const [textPosition, setTextPosition] = useState<Position>('bottom');
   const [fontFamily, setFontFamily] = useState<FontFamily>('montserrat');
   const [fontSize, setFontSize] = useState(60);
   const [textColor, setTextColor] = useState('#ffffff');
   const [bgColor, setBgColor] = useState('rgba(0, 0, 0, 0.5)');
-  const [bgStyle, setBgStyle] = useState<BgStyle>('transparent');
+  const [bgStyle, setBgStyle] = useState<BgStyle>('clean');
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
 
@@ -157,7 +158,7 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
         const res = await fetch('/api/library/update-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageId, newImageUrl: finalUrl }),
+          body: JSON.stringify({ imageId, newImageUrl: finalUrl, textOverlay: overlayText.trim() || null }),
         });
         const data = await res.json();
         if (!data.ok) {
@@ -165,7 +166,7 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
         }
       }
 
-      onImageEdited(finalUrl);
+      onImageEdited(finalUrl, overlayText.trim() || undefined);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -191,7 +192,7 @@ export default function ImageEditModal({ imageUrl, imageId, onClose, onImageEdit
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                Ajouter du texte
+                {initialText ? 'Modifier le texte' : 'Ajouter du texte'}
               </button>
               <button
                 onClick={() => setActiveTab('ai')}

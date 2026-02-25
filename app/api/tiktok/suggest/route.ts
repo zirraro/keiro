@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error('[TikTok Suggest] OPENAI_API_KEY not configured');
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
-});
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[TikTok Suggest] Starting...');
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { ok: false, error: 'API IA non configurée' },
-        { status: 500 }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { user, error: authError } = await getAuthUser();
 
     if (authError || !user) {
-      console.error('[TikTok Suggest] Auth error:', authError);
       return NextResponse.json(
         { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
         { status: 401 }
@@ -37,10 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageUrl, imageTitle, newsTitle, newsCategory, contentAngle = 'viral', audioUrl, audioScript, userKeywords } = body;
+    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'viral', audioScript, userKeywords } = body;
 
-    console.log('[TikTok Suggest] Image URL:', imageUrl);
-    console.log('[TikTok Suggest] Content angle:', contentAngle);
+    console.log('[TikTok Suggest] Angle:', contentAngle);
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -48,94 +33,71 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const business = profile?.business_description || profile?.business_type || 'entreprise';
-    const title = imageTitle || newsTitle || 'contenu';
+    const businessType = profile?.business_type || 'entreprise';
+    const businessDesc = profile?.business_description || '';
+    const title = newsTitle || imageTitle || 'contenu';
     const category = newsCategory || 'Business';
 
-    // Définir le prompt selon l'angle choisi - OPTIMISÉ TIKTOK
-    const angleInstructions = {
-      viral: "Capte l'attention en 1 seconde. Utilise des hooks choquants, surprenants ou intrigants. Crée l'urgence de regarder jusqu'au bout.",
-      fun: "Sois léger, relatable et amusant. Utilise l'humour du quotidien. Fais sourire ou rire. Reste accessible et authentique.",
-      informatif: "Apprends quelque chose d'utile en 5 secondes. Info rapide, claire et mémorable. Partage des faits surprenants.",
-      inspirant: "Motive et inspire. Parle de transformation, de possibilités. Crée de l'espoir et de l'ambition. Utilise des mots puissants.",
-      educatif: "Enseigne quelque chose d'utile et applicable immédiatement. Exemples concrets. Format 'Saviez-vous que...' fonctionne bien."
+    // Contexte actualité enrichi
+    const newsContext = newsTitle
+      ? `ACTUALITÉ:\n- Titre: "${newsTitle}"\n${newsDescription ? `- Détails: ${newsDescription.substring(0, 300)}` : ''}\n- Catégorie: ${category}`
+      : `Sujet: ${title}\nCatégorie: ${category}`;
+
+    const audioContext = audioScript ? `\nNarration audio: "${audioScript.substring(0, 200)}"` : '';
+    const keywordsContext = userKeywords ? `\nMots-clés: "${userKeywords}"` : '';
+
+    const angleInstructions: Record<string, string> = {
+      viral: "Hook choquant/surprenant/intrigant. Urgence de regarder jusqu'au bout.",
+      fun: "Humour du quotidien, relatable. Fais sourire. Authentique.",
+      informatif: "Info rapide, claire, mémorable. Faits surprenants.",
+      inspirant: "Motive et inspire. Transformation, possibilités, espoir.",
+      educatif: "Enseigne quelque chose d'applicable. 'Saviez-vous que...' fonctionne bien."
     };
 
-    const angleInstruction = angleInstructions[contentAngle as keyof typeof angleInstructions] || angleInstructions.viral;
+    const angleInstruction = angleInstructions[contentAngle] || angleInstructions.viral;
 
-    // Ajouter contexte audio si disponible
-    const audioContext = audioScript ? `\n\n🎙️ CONTEXTE AUDIO:\nUne narration audio accompagne cette vidéo avec le script suivant:\n"${audioScript}"\n\nTiens compte de ce script audio dans ta suggestion pour créer une cohérence entre l'audio et le texte.` : '';
+    const promptText = `Tu es un expert TikTok spécialisé vidéos virales. Crée une description TikTok pour ${businessType}.
 
-    // Ajouter mots-clés utilisateur si fournis
-    const keywordsContext = userKeywords ? `\n\n🔑 MOTS-CLÉS / DIRECTION DU CLIENT:\nLe client souhaite orienter cette vidéo autour de: "${userKeywords}"\nINTÈGRE ces mots-clés et cette direction dans la description ET les hashtags. C'est une priorité.` : '';
+ÉTAPE 1 — ANALYSE DU CONTEXTE:
+Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
+${newsContext}${audioContext}${keywordsContext}
 
-    const prompt = `Tu es un expert TikTok spécialisé dans les vidéos virales. Ta mission : créer du contenu qui EXPLOSE sur TikTok et attire des clients vers ${business}.
+QUESTION CLÉ: Comment CE business peut devenir VIRAL en surfant sur CETTE actualité ?
+Quel angle TikTok (POV, storytime, fait surprenant) fonctionne le mieux ?
 
-🎯 OBJECTIF CRITIQUE:
-Cette vidéo doit CAPTER L'ATTENTION en 0.5 secondes et RETENIR jusqu'à la fin.
-Sur TikTok, les 3 premières secondes sont TOUT.
+ÉTAPE 2 — RÉDIGE LA DESCRIPTION TIKTOK:
+Angle: ${contentAngle.toUpperCase()} — ${angleInstruction}
 
-📊 CONTEXTE:
-- Business: ${business}
-- Sujet: ${title}
-- Catégorie: ${category}
-- ANGLE: ${contentAngle.toUpperCase()}
-  ${angleInstruction}${audioContext}${keywordsContext}
+STRUCTURE (vidéo courte 5s):
+1. HOOK ULTRA-PUISSANT (ligne 1): Arrête le scroll instantanément
+   Ex: "POV:", "Attends quoi?!", "Personne n'en parle mais...", "La VRAIE raison pour..."
+2. LIEN ACTU↔BUSINESS: Pourquoi CE business EST la réponse à cette actu
+3. CTA SUBTIL: "Sauvegarde", "Partage", "Follow pour la suite"
 
-🖼️ ANALYSE DE L'IMAGE:
-1. Repère ce qui attire l'œil IMMÉDIATEMENT
-2. Identifie le potentiel viral (surprise, émotion, intrigue)
-3. Trouve le hook visuel le plus fort
-4. Pense "scroll stopper" - qu'est-ce qui ferait arrêter le scroll ?
+RÈGLES TIKTOK:
+- Langage TikTok naturel ("POV", "Storytime", "Wait for it", "Part 1/2")
+- Ton casual, comme un ami
+- Max 100-120 mots
+- Crée la curiosité — envie de regarder jusqu'au bout
 
-✍️ RÉDACTION:
-Structure TikTok (vidéo de 5 secondes):
-1. HOOK ULTRA-PUISSANT (ligne 1): Question choc, affirmation surprenante, ou promesse claire
-   Exemples: "POV:", "Attends quoi?!", "Personne n'en parle mais...", "La VRAIE raison pour..."
-2. BÉNÉFICE/RÉVÉLATION (ligne 2): Le "pourquoi" je devrais regarder
-3. CTA SUBTIL (ligne 3): "Sauvegarde pour plus tard", "Partage à qui en a besoin", "Follow pour la suite"
+HASHTAGS TIKTOK:
+- TOUJOURS: #fyp #pourtoi #viral
+- + hashtags de niche liés au contenu et au business
+- Mix français + anglais
+- 8-12 hashtags max
 
-RÈGLES D'OR TIKTOK:
-- Première ligne = HOOK qui arrête le scroll instantanément
-- Utilise le langage TikTok ("POV", "Storytime", "Wait for it", "Part 1/2")
-- Parle comme si tu parlais à un ami (ton casual, direct)
-- Crée la curiosité - donne envie de regarder jusqu'au bout
-- Max 100-120 mots (lecture rapide)
-- Emojis stratégiques mais pas trop (TikTok = moins formel qu'Instagram)
-- Pense vertical (9:16) - le texte doit être lisible sur mobile
+JSON pur:
+{"caption": "...", "hashtags": ["#fyp", "#pourtoi", "#viral", "#h4", "#h5", "#h6", "#h7", "#h8", "#h9", "#h10"]}`;
 
-🏷️ HASHTAGS TIKTOK:
-- TOUJOURS inclure: #fyp #pourtoi #viral
-- Ajouter des hashtags de niche liés au contenu
-- Mix de populaires (1M+ posts) et émergents (10k-100k)
-- Hashtags français ET anglais (TikTok = international)
-- Total: 8-12 hashtags max
-
-Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
-{
-  "caption": "🔥 Hook viral qui arrête le scroll\\n\\n💡 Révélation/bénéfice en 1 ligne\\n\\n✨ CTA subtil avec emoji",
-  "hashtags": ["#fyp", "#pourtoi", "#viral", "#trending", "#foryou", "#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"]
-}`;
-
-    // Build message: with image if available, text-only otherwise
-    const messageContent: any[] = [];
-    if (imageUrl) {
-      console.log('[TikTok Suggest] Calling GPT-4o Vision (with image)...');
-      messageContent.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'auto' } });
-    } else {
-      console.log('[TikTok Suggest] Calling GPT-4o (text-only, no thumbnail)...');
-    }
-    messageContent.push({ type: 'text', text: prompt });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 2000,
+    console.log('[TikTok Suggest] Calling Claude Haiku...');
+    const message = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 2048,
       temperature: 0.9,
-      messages: [{ role: 'user', content: messageContent }],
-      response_format: { type: 'json_object' }
+      messages: [{ role: 'user', content: promptText }],
     });
 
-    const text = response.choices[0]?.message?.content || '';
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
     console.log('[TikTok Suggest] Response:', text.substring(0, 200));
 
     let suggestion: { caption: string; hashtags: string[] };
@@ -150,7 +112,7 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
       if (!Array.isArray(suggestion.hashtags)) suggestion.hashtags = [];
       suggestion.hashtags = suggestion.hashtags.map((t: string) => t.startsWith('#') ? t : `#${t}`);
 
-      // S'assurer que les hashtags essentiels TikTok sont présents
+      // Assurer les hashtags essentiels TikTok
       const essentialTags = ['#fyp', '#pourtoi', '#viral'];
       essentialTags.forEach(tag => {
         if (!suggestion.hashtags.includes(tag)) {
@@ -159,11 +121,10 @@ Réponds UNIQUEMENT avec ce JSON (pas de \`\`\`, pas de markdown):
       });
 
       console.log('[TikTok Suggest] Success!');
-
     } catch (e: any) {
       console.error('[TikTok Suggest] Parse error:', e.message);
       suggestion = {
-        caption: `${title}\n\n🔥 Découvrez notre actualité sur ${category.toLowerCase()}\n\n💬 Commentez votre avis !\n\n✨ Follow pour plus de contenu !`,
+        caption: `${title}\n\n🔥 Découvrez notre actualité sur ${category.toLowerCase()}\n\n💬 Commentez !\n\n✨ Follow pour plus !`,
         hashtags: ['#fyp', '#pourtoi', '#viral', '#trending', '#foryou', '#tiktok', '#france', `#${category.toLowerCase().replace(/\s+/g, '')}`]
       };
     }

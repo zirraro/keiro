@@ -2566,11 +2566,11 @@ function LibraryContent() {
         <ImageEditModal
           imageUrl={editingImage.image_url}
           imageId={editingImage.id}
+          initialText={editingImage.text_overlay || ''}
           onClose={() => setEditingImage(null)}
-          onImageEdited={(newUrl) => {
-            // Mettre à jour l'image dans le state local
+          onImageEdited={(newUrl, textOverlay) => {
             setImages(prev => prev.map(img =>
-              img.id === editingImage.id ? { ...img, image_url: newUrl } : img
+              img.id === editingImage.id ? { ...img, image_url: newUrl, text_overlay: textOverlay || img.text_overlay } : img
             ));
             setEditingImage(null);
           }}
