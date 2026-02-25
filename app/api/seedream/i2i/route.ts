@@ -88,58 +88,58 @@ export async function POST(request: Request) {
     let resultImageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Kling en premier, fallback Seedream ---
+    // --- Seedream en premier, fallback Kling ---
     try {
-      console.log('[I2I] Generating with Kling omni-image...');
-      const result = await generateKlingI2I({ prompt, image: imageBase64 });
-      resultImageUrl = result.imageUrl;
-      provider = 'k';
-      console.log('[I2I] ✓ Kling generated successfully');
-    } catch (klingError: any) {
-      console.error('[I2I] Kling failed, falling back to Seedream:', klingError.message);
+      console.log('[I2I] Generating with Seedream...');
+      const seedreamBody: any = {
+        model: 'seedream-3.0',
+        prompt,
+        size: size || 'adaptive',
+        seed: seed || -1,
+        guidance_scale: guidance_scale || 5.5,
+      };
 
-      // Fallback Seedream I2I (utilise le même endpoint avec image_url)
+      // Seedream accepte image_url pour I2I
+      if (sourceImage.startsWith('http')) {
+        seedreamBody.image_url = sourceImage;
+      } else if (sourceImage.startsWith('data:')) {
+        seedreamBody.image_url = sourceImage;
+      } else {
+        seedreamBody.image_url = `data:image/jpeg;base64,${sourceImage}`;
+      }
+
+      const seedreamRes = await fetch(SEEDREAM_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+        },
+        body: JSON.stringify(seedreamBody),
+      });
+
+      const seedreamData = await seedreamRes.json();
+
+      if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
+        throw new Error(seedreamData.error?.message || 'Seedream I2I failed');
+      }
+
+      resultImageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
+      provider = 's';
+      console.log('[I2I] ✓ Seedream generated successfully');
+    } catch (seedreamError: any) {
+      console.error('[I2I] Seedream failed, falling back to Kling:', seedreamError.message);
+
+      // Fallback Kling I2I
       try {
-        const seedreamBody: any = {
-          model: 'seedream-3.0',
-          prompt,
-          size: size || 'adaptive',
-          seed: seed || -1,
-          guidance_scale: guidance_scale || 5.5,
-        };
-
-        // Seedream accepte image_url pour I2I
-        if (sourceImage.startsWith('http')) {
-          seedreamBody.image_url = sourceImage;
-        } else if (sourceImage.startsWith('data:')) {
-          // Extraire le base64 pur
-          const b64 = sourceImage.replace(/^data:[^;]+;base64,/, '');
-          seedreamBody.image_url = `data:image/jpeg;base64,${b64}`;
-        }
-
-        const seedreamRes = await fetch(SEEDREAM_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
-          },
-          body: JSON.stringify(seedreamBody),
-        });
-
-        const seedreamData = await seedreamRes.json();
-
-        if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
-          throw new Error(seedreamData.error?.message || 'Seedream I2I failed');
-        }
-
-        resultImageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
-        provider = 's';
-        console.log('[I2I] ✓ Seedream fallback generated successfully');
-      } catch (seedreamError: any) {
-        console.error('[I2I] Seedream fallback also failed:', seedreamError.message);
+        const result = await generateKlingI2I({ prompt, image: imageBase64 });
+        resultImageUrl = result.imageUrl;
+        provider = 'k';
+        console.log('[I2I] ✓ Kling fallback generated successfully');
+      } catch (klingError: any) {
+        console.error('[I2I] Kling fallback also failed:', klingError.message);
         return Response.json({
           ok: false,
-          error: `Erreur d'édition: ${klingError.message}`
+          error: `Erreur d'édition: ${seedreamError.message}`
         }, { status: 500 });
       }
     }

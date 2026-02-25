@@ -60,46 +60,46 @@ export async function POST(request: Request) {
     let imageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Kling en premier, fallback Seedream ---
+    // --- Seedream en premier, fallback Kling ---
     try {
-      console.log('[T2I] Generating with Kling...');
-      const result = await generateKlingT2I({ prompt });
-      imageUrl = result.imageUrl;
-      provider = 'k';
-      console.log('[T2I] ✓ Kling generated successfully');
-    } catch (klingError: any) {
-      console.error('[T2I] Kling failed, falling back to Seedream:', klingError.message);
+      console.log('[T2I] Generating with Seedream...');
+      const seedreamRes = await fetch(SEEDREAM_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'seedream-3.0',
+          prompt,
+          size: size || '2K',
+          seed: -1,
+        }),
+      });
 
-      // Fallback Seedream T2I
+      const seedreamData = await seedreamRes.json();
+
+      if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
+        throw new Error(seedreamData.error?.message || 'Seedream generation failed');
+      }
+
+      imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
+      provider = 's';
+      console.log('[T2I] ✓ Seedream generated successfully');
+    } catch (seedreamError: any) {
+      console.error('[T2I] Seedream failed, falling back to Kling:', seedreamError.message);
+
+      // Fallback Kling T2I
       try {
-        const seedreamRes = await fetch(SEEDREAM_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'seedream-3.0',
-            prompt,
-            size: size || '2K',
-            seed: -1,
-          }),
-        });
-
-        const seedreamData = await seedreamRes.json();
-
-        if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
-          throw new Error(seedreamData.error?.message || 'Seedream generation failed');
-        }
-
-        imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
-        provider = 's';
-        console.log('[T2I] ✓ Seedream fallback generated successfully');
-      } catch (seedreamError: any) {
-        console.error('[T2I] Seedream fallback also failed:', seedreamError.message);
+        const result = await generateKlingT2I({ prompt });
+        imageUrl = result.imageUrl;
+        provider = 'k';
+        console.log('[T2I] ✓ Kling fallback generated successfully');
+      } catch (klingError: any) {
+        console.error('[T2I] Kling fallback also failed:', klingError.message);
         return Response.json({
           ok: false,
-          error: `Erreur de génération: ${klingError.message}`
+          error: `Erreur de génération: ${seedreamError.message}`
         }, { status: 500 });
       }
     }

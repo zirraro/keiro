@@ -174,7 +174,7 @@ export default function GeneratePage() {
       );
     }
 
-    return items.slice(0, 12); // Limiter à 12 résultats
+    return items.slice(0, 9); // 9 = 3×3 grille propre
   }, [allNewsItems, category, searchQuery]);
 
   /* --- Astuce du jour (rotation quotidienne) --- */
@@ -277,6 +277,7 @@ export default function GeneratePage() {
   const [problemSolved, setProblemSolved] = useState(''); // Quel problème vous résolvez face à cette actu
   const [uniqueAdvantage, setUniqueAdvantage] = useState(''); // Votre avantage unique vs concurrence
   const [desiredVisualIdea, setDesiredVisualIdea] = useState(''); // Idée vague du visuel souhaité
+  const [autoFillLoading, setAutoFillLoading] = useState(false);
 
   /* --- États pour le sélecteur de profil de communication --- */
   const [communicationProfile, setCommunicationProfile] = useState<'inspirant' | 'expert' | 'urgent' | 'conversationnel'>('inspirant');
@@ -847,6 +848,47 @@ export default function GeneratePage() {
     // Mais on pourrait les ajuster légèrement si nécessaire
   }
 
+  /* --- Auto-fill IA contextuel pour étapes Créatif + Expert --- */
+  async function handleAiAutoFill() {
+    if (!businessType.trim()) {
+      alert('Renseignez d\'abord votre type de business (étape 1)');
+      return;
+    }
+    setAutoFillLoading(true);
+    try {
+      const res = await fetch('/api/auto-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newsTitle: selectedNews?.title || '',
+          newsDescription: selectedNews?.description || '',
+          businessType,
+          businessDescription,
+          communicationProfile,
+          targetAudience,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.fields) {
+        if (data.fields.storyToTell) setStoryToTell(data.fields.storyToTell);
+        if (data.fields.publicationGoal) setPublicationGoal(data.fields.publicationGoal);
+        if (data.fields.emotionToConvey) setEmotionToConvey(data.fields.emotionToConvey);
+        if (data.fields.problemSolved) setProblemSolved(data.fields.problemSolved);
+        if (data.fields.uniqueAdvantage) setUniqueAdvantage(data.fields.uniqueAdvantage);
+        if (data.fields.desiredVisualIdea) setDesiredVisualIdea(data.fields.desiredVisualIdea);
+        if (data.newBalance !== undefined) {
+          // Refresh credit balance
+        }
+      } else if (data.insufficientCredits) {
+        alert('Crédits insuffisants pour cette fonctionnalité');
+      }
+    } catch (err) {
+      console.error('[AutoFill] Error:', err);
+    } finally {
+      setAutoFillLoading(false);
+    }
+  }
+
   /* --- Génération de suggestions de texte intelligentes --- */
   async function handleGenerateTextSuggestions() {
     if (useNewsMode && !selectedNews) {
@@ -1049,34 +1091,39 @@ export default function GeneratePage() {
       // Construire un prompt optimisé Community Manager Expert
       let promptParts: string[] = [];
 
-      // Note: condensePromptForKling() adds strong no-text prefix+suffix automatically
-      // So we keep ONE concise no-text line here, not 3 massive blocks
+      // 1. CRITICAL NO-TEXT RULE (premier = plus respecté par le modèle)
+      promptParts.push(
+        `CRITICAL RULE: This image must contain ZERO text, ZERO letters, ZERO numbers, ZERO words, ZERO writing of any kind. ` +
+        `No signs, labels, brands, watermarks, captions, titles, headlines, UI elements. ` +
+        `If there are storefronts or signs, they must be blurred, out of focus, or show abstract shapes instead of readable text.`
+      );
 
-      // 1. ROLE + CREATIVE DIRECTION
+      // 2. SCENE + CREATIVE DIRECTION
       if (useNewsMode && selectedNews) {
         promptParts.push(
-          `Create a STUNNING visual image. NO TEXT/WORDS/LETTERS.\n\n` +
-          `SCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} in a world shaped by this news: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 200)}\n` : '') +
-          `\nCREATIVE BRIDGE — The specific connection:\n` +
-          `This business (${businessType}) is relevant to this news because it can help, benefit from, or respond to the situation.\n` +
-          `Show the business THRIVING in this context. The news sets the atmosphere, the business is the hero.\n\n` +
+          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} responding to this news event: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `News details: ${selectedNews.description.substring(0, 250)}\n` : '') +
+          `\nTHE VISUAL STORY: Show ${businessType} as THE SOLUTION or THE RESPONSE to this news.\n` +
+          `- What would this business look like RIGHT NOW reacting to this news?\n` +
+          `- Show the business environment, products, team actively engaging with the situation\n` +
+          `- The news event should be visible through: atmosphere, weather, crowd behavior, environmental cues, mood\n` +
+          `- NOT a split screen or collage — ONE unified cinematic moment\n\n` +
           `COMPOSITION:\n` +
-          `- Foreground (60%): ${businessType} products, services, people, environment in action\n` +
-          `- Background (40%): The news creates the mood, lighting, atmosphere, setting\n` +
-          `- ONE unified scene — not a collage. The two worlds merge naturally.\n` +
-          `- Use visual metaphors and environmental storytelling to make the connection OBVIOUS`
+          `- Hero subject (70%): ${businessType} in action — products, services, team, storefront, workshop\n` +
+          `- Context (30%): The news creates atmosphere — lighting, weather, urban backdrop, crowd energy\n` +
+          `- Camera: close to medium shot, eye-level, professional photography\n` +
+          `- If people are shown, ensure natural diversity in ethnicity, age, and appearance`
         );
       } else {
         // MODE SANS ACTUALITÉ
         promptParts.push(
-          `Create a STUNNING visual image. NO TEXT/WORDS/LETTERS.\n\n` +
-          `SUBJECT: ${businessType}${businessDescription ? `\n${businessDescription}` : ''}\n` +
+          `\n\nSUBJECT: ${businessType}${businessDescription ? `\n${businessDescription}` : ''}\n` +
           (targetAudience ? `For: ${targetAudience}\n` : '') +
           `\nShow this business at its BEST — in action, alive, magnetic.\n` +
           `Products, environment, atmosphere, the experience it delivers.\n` +
           `Cinematic quality: dramatic lighting, rich textures, depth of field.\n` +
-          `The viewer must feel drawn to this business immediately.`
+          `The viewer must feel drawn to this business immediately.\n` +
+          `If people are shown, ensure natural diversity in ethnicity, age, and appearance.`
         );
       }
 
@@ -1106,11 +1153,11 @@ export default function GeneratePage() {
         );
       }
 
-      // 5. QUALITY + NEGATIVE (une seule section, concise)
+      // 5. QUALITY + ABSOLUTE NO-TEXT (repeated at end for reinforcement)
       promptParts.push(
         `\n\n4K, cinematic lighting, depth of field, publication-ready for social media.\n` +
         `AVOID: flat compositions, stock-photo clichés, generic backgrounds.\n` +
-        `ABSOLUTELY NO text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos with text.`
+        `ABSOLUTELY FORBIDDEN: Any form of text, writing, typography, letters, numbers, words, labels, signs, brand names, watermarks, captions, titles, subtitles, UI mockups. PURE VISUAL ONLY.`
       );
 
       const fullPrompt = promptParts.join(' ');
@@ -2686,13 +2733,14 @@ export default function GeneratePage() {
                 {[
                   { step: 1, label: 'Business' },
                   { step: 2, label: 'Direction' },
-                  { step: 3, label: 'Affiner' },
-                  { step: 4, label: 'Générer' },
+                  { step: 3, label: 'Créatif' },
+                  { step: 4, label: 'Expert' },
+                  { step: 5, label: 'Générer' },
                 ].map(({ step, label }, i) => (
                   <div key={step} className="flex items-center">
                     <button
                       onClick={() => setFormStep(step)}
-                      className={`flex items-center gap-1.5 transition-all ${
+                      className={`flex items-center gap-1 transition-all ${
                         formStep === step
                           ? 'text-blue-700'
                           : formStep > step
@@ -2700,7 +2748,7 @@ export default function GeneratePage() {
                           : 'text-neutral-400'
                       }`}
                     >
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
                         formStep === step
                           ? 'bg-blue-600 text-white border-blue-600'
                           : formStep > step
@@ -2709,9 +2757,9 @@ export default function GeneratePage() {
                       }`}>
                         {formStep > step ? '✓' : step}
                       </span>
-                      <span className="text-[10px] font-semibold hidden sm:inline">{label}</span>
+                      <span className="text-[9px] font-semibold hidden sm:inline">{label}</span>
                     </button>
-                    {i < 3 && <div className={`w-4 sm:w-6 h-0.5 mx-1 ${formStep > step ? 'bg-emerald-400' : 'bg-neutral-200'}`} />}
+                    {i < 4 && <div className={`w-3 sm:w-4 h-0.5 mx-0.5 ${formStep > step ? 'bg-emerald-400' : 'bg-neutral-200'}`} />}
                   </div>
                 ))}
               </div>
@@ -2790,13 +2838,10 @@ export default function GeneratePage() {
                     {communicationProfile && (
                       <button
                         onClick={() => {
-                          // Auto-fill selon la stratégie
+                          // Auto-fill Direction uniquement (pas Affiner)
                           const preset = tonePresets[communicationProfile];
                           setTone(preset.tone);
                           setVisualStyle(preset.visualStyle);
-                          setEmotionToConvey(preset.emotion);
-                          setPublicationGoal(preset.goal);
-                          setStoryToTell(preset.story);
                           setImageAngle(preset.imageAngle);
                           setMarketingAngle(preset.marketingAngle);
                         }}
@@ -2889,9 +2934,25 @@ export default function GeneratePage() {
                 </button>
                 </>)}
 
-                {/* ===== ÉTAPE 3 : AFFINER ===== */}
+                {/* ===== ÉTAPE 3 : CRÉATIF ===== */}
                 {formStep === 3 && (<>
                 <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-medium text-neutral-600">Personnalisez votre contenu</p>
+                    <button
+                      type="button"
+                      onClick={handleAiAutoFill}
+                      disabled={autoFillLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                    >
+                      {autoFillLoading ? (
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                      ) : (
+                        <><span>✨</span> Remplir avec l'IA</>
+                      )}
+                    </button>
+                  </div>
+
                   {/* Histoire à raconter */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
@@ -2960,7 +3021,7 @@ export default function GeneratePage() {
                     {/* Suggestions intelligentes */}
                     {showTextSuggestions && textSuggestions.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">✨ Suggestions basées sur votre actu + business :</p>
+                        <p className="text-xs font-semibold text-blue-900 mb-2">Suggestions basées sur votre actu + business :</p>
                         <div className="space-y-1.5">
                           {textSuggestions.map((suggestion, index) => (
                             <button
@@ -2973,7 +3034,7 @@ export default function GeneratePage() {
                               className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
                             >
                               <span className="text-neutral-700">{suggestion}</span>
-                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">✓ Utiliser</span>
+                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">Utiliser</span>
                             </button>
                           ))}
                         </div>
@@ -2989,19 +3050,47 @@ export default function GeneratePage() {
 
                   </div>
 
-                {/* NOUVELLES QUESTIONS EXPERTES - Section premium */}
-                <div className="border-t pt-3 mt-3">
-                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 mb-3">
-                    <h3 className="text-xs font-bold text-blue-900 mb-1 flex items-center gap-1">
-                      🎯 Questions EXPERTES (optionnel mais recommandé)
-                    </h3>
-                    <p className="text-[10px] text-blue-700">Ces questions vont multiplier l'impact de votre visuel en créant un lien ultra-fort actualité/business</p>
+                </div>
+                {/* Navigation étape 3 */}
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                    Retour
+                  </button>
+                  <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                    Suivant
+                  </button>
+                </div>
+                <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                  Passer les étapes optionnelles
+                </button>
+                </>)}
+
+                {/* ===== ÉTAPE 4 : EXPERT ===== */}
+                {formStep === 4 && (<>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-[10px] font-medium text-neutral-600">Questions expert (optionnel)</p>
+                      <p className="text-[9px] text-neutral-400">Multipliez l'impact de votre visuel</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAiAutoFill}
+                      disabled={autoFillLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                    >
+                      {autoFillLoading ? (
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                      ) : (
+                        <><span>✨</span> Remplir avec l'IA</>
+                      )}
+                    </button>
                   </div>
 
                   {/* Question 1 : Problème résolu */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      💡 Quel problème résolvez-vous face à cette actualité ?
+                      Quel problème résolvez-vous face à cette actualité ?
                     </label>
                     <input
                       type="text"
@@ -3015,7 +3104,7 @@ export default function GeneratePage() {
                   {/* Question 2 : Avantage unique */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      ⭐ Quel est votre avantage unique face à vos concurrents ?
+                      Quel est votre avantage unique face à vos concurrents ?
                     </label>
                     <input
                       type="text"
@@ -3029,7 +3118,7 @@ export default function GeneratePage() {
                   {/* Question 3 : Idée visuelle */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      🎨 Avez-vous une idée de visuel en tête ?
+                      Avez-vous une idée de visuel en tête ?
                     </label>
                     <textarea
                       value={desiredVisualIdea}
@@ -3040,24 +3129,22 @@ export default function GeneratePage() {
                     />
                   </div>
                 </div>
-
-                </div>
-                {/* Navigation étape 3 */}
+                {/* Navigation étape 4 */}
                 <div className="flex gap-2 mt-3">
-                  <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    ← Retour
+                  <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                    Retour
                   </button>
-                  <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    Suivant →
+                  <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                    Suivant
                   </button>
                 </div>
-                <button onClick={() => setFormStep(4)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  Passer cette étape →
+                <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                  Passer cette étape
                 </button>
                 </>)}
 
-                {/* ===== ÉTAPE 4 : GÉNÉRER ===== */}
-                {formStep === 4 && (<>
+                {/* ===== ÉTAPE 5 : GÉNÉRER ===== */}
+                {formStep === 5 && (<>
                 {/* Plateforme */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>

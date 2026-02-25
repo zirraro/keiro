@@ -30,11 +30,11 @@ function isCTA(text: string): boolean {
  */
 function calculateFontSize(text: string, canvasWidth: number): number {
   const length = text.length;
-
-  if (length < 20) return Math.min(canvasWidth * 0.08, 120); // Hero text
-  if (length < 40) return Math.min(canvasWidth * 0.06, 80);  // Large
-  if (length < 60) return Math.min(canvasWidth * 0.05, 60);  // Medium-large
-  return Math.min(canvasWidth * 0.04, 48);                    // Medium
+  const scale = canvasWidth / 1080; // Rapport à 1080px de référence
+  if (length < 20) return Math.round(80 * scale);
+  if (length < 40) return Math.round(60 * scale);
+  if (length < 60) return Math.round(48 * scale);
+  return Math.round(36 * scale);
 }
 
 /**
@@ -165,8 +165,11 @@ export async function addTextOverlay(
         // Détecter si c'est un CTA
         const isCallToAction = isCTA(text);
 
-        // Calculer la taille de police (ou utiliser celle fournie)
-        const fontSize = customFontSize || calculateFontSize(text, canvas.width);
+        // Calculer la taille de police — scaler proportionnellement à la taille de l'image
+        const REF_WIDTH = 1080; // Référence design (1080px = taille standard social media)
+        const fontSize = customFontSize
+          ? Math.round(customFontSize * (canvas.width / REF_WIDTH))
+          : calculateFontSize(text, canvas.width);
 
         // Mapper les noms de police
         const fontFamilyMap: Record<string, string> = {
