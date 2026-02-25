@@ -53,9 +53,12 @@ ${hasNews ? `1. Lis et COMPRENDS l'actualité "${newsTitle}" — de quoi parle-t
 3. Chaque réponse doit montrer que tu as COMPRIS l'actu et le business` : `1. Concentre-toi sur "${businessType}" et son activité
 2. Chaque réponse doit être SPÉCIFIQUE à ce business, pas générique`}
 
-GÉNÈRE exactement ce JSON (6 champs):
+GÉNÈRE exactement ce JSON (9 champs):
 
 {
+  "imageAngle": "[1 phrase] L'angle VISUEL de l'image — comment cadrer la scène",
+  "marketingAngle": "[1 phrase] L'angle MARKETING — la stratégie de communication",
+  "contentAngle": "[1 phrase] L'angle ÉDITORIAL — le type de contenu (témoignage, éducatif, coulisses, opinion, inspirant)",
   "storyToTell": "[1-2 phrases] L'angle narratif CONCRET pour ${hasNews ? 'lier ce business à cette actu' : 'mettre en valeur ce business'}",
   "publicationGoal": "[1 phrase] L'objectif PRÉCIS et MESURABLE de ce post",
   "emotionToConvey": "[2-4 mots] L'émotion EXACTE à provoquer chez la cible",
@@ -66,6 +69,9 @@ GÉNÈRE exactement ce JSON (6 champs):
 
 EXEMPLE pour "bijouterie artisanale" + actu "Ligue des champions PSG vs Monaco":
 {
+  "imageAngle": "Gros plan dramatique sur le bijou avec reflets de projecteurs de stade en arrière-plan",
+  "marketingAngle": "Surfer sur l'émotion du match pour montrer que nos pièces sont aussi exceptionnelles qu'un exploit sportif",
+  "contentAngle": "Contenu inspirant liant l'émotion du sport à l'artisanat d'exception",
   "storyToTell": "Comme Monaco qui brille contre les géants, nos créations artisanales rivalisent avec les grandes maisons — petit mais éclatant",
   "publicationGoal": "Générer de l'engagement en surfant sur l'émotion du match pour montrer nos pièces de caractère",
   "emotionToConvey": "Fierté combative et élégance",

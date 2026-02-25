@@ -182,7 +182,7 @@ export async function generateKlingI2I(params: {
   }
 
   const body: any = {
-    model_name: 'kling-v1-5', // v2 not supported for omni-image, v1-5 is the best available
+    model_name: 'kling-image-o1',
     prompt: `<<<image_1>>> ${rawPrompt}`,
     negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, characters, alphabets',
     image_list: [{ image: imageBase64 }],

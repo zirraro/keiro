@@ -426,15 +426,38 @@ export default function ImageEditModal({ imageUrl, imageId, initialText, onClose
                 disabled={!textPreviewUrl || saving || textLoading}
                 className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? 'Sauvegarde...' : 'Appliquer le texte'}
+                {saving ? 'Sauvegarde...' : overlayText.trim() ? 'Appliquer le texte' : 'Sauvegarder'}
               </button>
-              <button
-                onClick={() => { setOverlayText(''); setTextPreviewUrl(null); }}
-                disabled={!overlayText}
-                className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-200 transition disabled:opacity-50"
-              >
-                Effacer
-              </button>
+              {initialText && (
+                <button
+                  onClick={async () => {
+                    // Supprimer le texte overlay — sauvegarder l'image originale sans texte
+                    setOverlayText('');
+                    setTextPreviewUrl(null);
+                    setSaving(true);
+                    try {
+                      // Sauver l'image originale (sans overlay) avec textOverlay = null
+                      let finalUrl = imageUrl;
+                      if (imageId) {
+                        await fetch('/api/library/update-image', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ imageId, newImageUrl: imageUrl, textOverlay: null }),
+                        });
+                      }
+                      onImageEdited(finalUrl, '');
+                    } catch (err) {
+                      console.error('[ImageEditModal] Delete overlay error:', err);
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition disabled:opacity-50"
+                >
+                  Supprimer le texte
+                </button>
+              )}
             </>
           ) : (
             // AI edit footer

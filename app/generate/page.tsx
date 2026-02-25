@@ -261,7 +261,8 @@ export default function GeneratePage() {
   const [businessDescription, setBusinessDescription] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [marketingAngle, setMarketingAngle] = useState('');
-  const [imageAngle, setImageAngle] = useState(''); // Nouvel état : angle de l'image
+  const [imageAngle, setImageAngle] = useState('');
+  const [contentAngle, setContentAngle] = useState(''); // Angle du contenu (éditorial)
   const [storyToTell, setStoryToTell] = useState(''); // Nouvel état : histoire à raconter
   const [publicationGoal, setPublicationGoal] = useState(''); // Nouvel état : but de la publication
   const [emotionToConvey, setEmotionToConvey] = useState(''); // Nouvel état : émotion à transmettre
@@ -364,7 +365,7 @@ export default function GeneratePage() {
 
   /* --- États pour l'éditeur de texte overlay intégré --- */
   const [overlayText, setOverlayText] = useState('');
-  const [textPosition, setTextPosition] = useState<'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'>('center');
+  const [textPosition, setTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
   const [textColor, setTextColor] = useState('#ffffff');
   const [textBackgroundColor, setTextBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
   const [fontSize, setFontSize] = useState(60);
@@ -848,8 +849,8 @@ export default function GeneratePage() {
     // Mais on pourrait les ajuster légèrement si nécessaire
   }
 
-  /* --- Auto-fill IA contextuel pour étapes Créatif + Expert --- */
-  async function handleAiAutoFill() {
+  /* --- Auto-fill IA contextuel — rempli UNIQUEMENT l'étape demandée --- */
+  async function handleAiAutoFill(step: 'direction' | 'creatif' | 'expert') {
     if (!businessType.trim()) {
       alert('Renseignez d\'abord votre type de business (étape 1)');
       return;
@@ -870,14 +871,21 @@ export default function GeneratePage() {
       });
       const data = await res.json();
       if (data.ok && data.fields) {
-        if (data.fields.storyToTell) setStoryToTell(data.fields.storyToTell);
-        if (data.fields.publicationGoal) setPublicationGoal(data.fields.publicationGoal);
-        if (data.fields.emotionToConvey) setEmotionToConvey(data.fields.emotionToConvey);
-        if (data.fields.problemSolved) setProblemSolved(data.fields.problemSolved);
-        if (data.fields.uniqueAdvantage) setUniqueAdvantage(data.fields.uniqueAdvantage);
-        if (data.fields.desiredVisualIdea) setDesiredVisualIdea(data.fields.desiredVisualIdea);
-        if (data.newBalance !== undefined) {
-          // Refresh credit balance
+        if (step === 'direction') {
+          // Étape 2 : Direction — angles + tone + style
+          if (data.fields.imageAngle) setImageAngle(data.fields.imageAngle);
+          if (data.fields.marketingAngle) setMarketingAngle(data.fields.marketingAngle);
+          if (data.fields.contentAngle) setContentAngle(data.fields.contentAngle);
+        } else if (step === 'creatif') {
+          // Étape 3 : Créatif — histoire, but, émotion
+          if (data.fields.storyToTell) setStoryToTell(data.fields.storyToTell);
+          if (data.fields.publicationGoal) setPublicationGoal(data.fields.publicationGoal);
+          if (data.fields.emotionToConvey) setEmotionToConvey(data.fields.emotionToConvey);
+        } else if (step === 'expert') {
+          // Étape 4 : Expert — problème, avantage, visuel
+          if (data.fields.problemSolved) setProblemSolved(data.fields.problemSolved);
+          if (data.fields.uniqueAdvantage) setUniqueAdvantage(data.fields.uniqueAdvantage);
+          if (data.fields.desiredVisualIdea) setDesiredVisualIdea(data.fields.desiredVisualIdea);
         }
       } else if (data.insufficientCredits) {
         alert('Crédits insuffisants pour cette fonctionnalité');
@@ -1168,7 +1176,8 @@ export default function GeneratePage() {
         (targetAudience ? ` Target: ${targetAudience}.` : '') +
         (storyToTell ? ` Story: ${storyToTell}.` : '') +
         (publicationGoal ? ` Goal: ${publicationGoal}.` : '') +
-        (marketingAngle ? ` Strategy: ${marketingAngle}.` : '')
+        (marketingAngle ? ` Strategy: ${marketingAngle}.` : '') +
+        (contentAngle ? ` Editorial angle: ${contentAngle}.` : '')
       );
 
       // 4. TEXT OVERLAY SPACE (si texte optionnel)
@@ -2893,25 +2902,19 @@ export default function GeneratePage() {
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
 
-                    {/* Bouton remplissage automatique */}
-                    {communicationProfile && (
-                      <button
-                        onClick={() => {
-                          // Auto-fill Direction uniquement (pas Affiner)
-                          const preset = tonePresets[communicationProfile];
-                          setTone(preset.tone);
-                          setVisualStyle(preset.visualStyle);
-                          setImageAngle(preset.imageAngle);
-                          setMarketingAngle(preset.marketingAngle);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-md transition-all"
-                      >
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Remplir automatiquement
-                      </button>
-                    )}
+                    {/* Bouton IA pour remplir la direction */}
+                    <button
+                      type="button"
+                      onClick={() => handleAiAutoFill('direction')}
+                      disabled={autoFillLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                    >
+                      {autoFillLoading ? (
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                      ) : (
+                        <><span>✨</span> Remplir avec l'IA</>
+                      )}
+                    </button>
                   </div>
 
                   {/* Angle de l'image */}
@@ -2941,7 +2944,7 @@ export default function GeneratePage() {
                       type="text"
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
-                      placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
+                      placeholder="Personnalisez votre angle visuel..."
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -2972,9 +2975,41 @@ export default function GeneratePage() {
                     <textarea
                       value={marketingAngle}
                       onChange={(e) => setMarketingAngle(e.target.value)}
-                      placeholder="Personnalisez votre angle ou utilisez une suggestion ci-dessus"
+                      placeholder="Personnalisez votre angle marketing..."
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Angle du contenu (éditorial) */}
+                  <div className="mb-2">
+                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                      Angle du contenu
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value !== 'custom') {
+                          setContentAngle(e.target.value);
+                        } else {
+                          setContentAngle('');
+                        }
+                      }}
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                    >
+                      <option value="">-- Choisir une suggestion --</option>
+                      <option value="Témoignage client ou étude de cas concret">Témoignage / Cas concret</option>
+                      <option value="Contenu éducatif qui apporte de la valeur au lecteur">Éducatif / Valeur ajoutée</option>
+                      <option value="Behind-the-scenes, coulisses du métier">Coulisses / Behind-the-scenes</option>
+                      <option value="Prise de position forte et opinion tranchée">Opinion / Prise de position</option>
+                      <option value="Contenu inspirant et motivationnel">Inspirant / Motivationnel</option>
+                      <option value="custom">✏️ Personnalisé</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={contentAngle}
+                      onChange={(e) => setContentAngle(e.target.value)}
+                      placeholder="Personnalisez votre angle éditorial..."
+                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
 
@@ -3000,7 +3035,7 @@ export default function GeneratePage() {
                     <p className="text-[10px] font-medium text-neutral-600">Personnalisez votre contenu</p>
                     <button
                       type="button"
-                      onClick={handleAiAutoFill}
+                      onClick={() => handleAiAutoFill('creatif')}
                       disabled={autoFillLoading}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
@@ -3134,7 +3169,7 @@ export default function GeneratePage() {
                     </div>
                     <button
                       type="button"
-                      onClick={handleAiAutoFill}
+                      onClick={() => handleAiAutoFill('expert')}
                       disabled={autoFillLoading}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
@@ -4480,12 +4515,12 @@ export default function GeneratePage() {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
                                   setBackgroundStyle('transparent');
-                                  setTextPosition('top-center');
+                                  setTextPosition('top');
                                 } else if (template.id === 'cta') {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('#3b82f6');
                                   setBackgroundStyle('solid');
-                                  setTextPosition('bottom-center');
+                                  setTextPosition('bottom');
                                 } else if (template.id === 'minimal') {
                                   setTextColor('#000000');
                                   setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
@@ -4505,7 +4540,7 @@ export default function GeneratePage() {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
                                   setBackgroundStyle('gradient');
-                                  setTextPosition('bottom-center');
+                                  setTextPosition('bottom');
                                 }
                               }}
                               className={`p-3 rounded-lg border-2 text-center transition-all ${
@@ -4534,15 +4569,9 @@ export default function GeneratePage() {
                         <label className="block text-sm font-medium mb-2">Position</label>
                         <div className="grid grid-cols-3 gap-2">
                           {[
-                            { pos: 'top-left', emoji: '↖️', label: 'Haut gauche' },
-                            { pos: 'top-center', emoji: '⬆️', label: 'Haut centre' },
-                            { pos: 'top-right', emoji: '↗️', label: 'Haut droite' },
-                            { pos: 'center-left', emoji: '⬅️', label: 'Centre gauche' },
+                            { pos: 'top', emoji: '⬆️', label: 'Haut' },
                             { pos: 'center', emoji: '⏺️', label: 'Centre' },
-                            { pos: 'center-right', emoji: '➡️', label: 'Centre droite' },
-                            { pos: 'bottom-left', emoji: '↙️', label: 'Bas gauche' },
-                            { pos: 'bottom-center', emoji: '⬇️', label: 'Bas centre' },
-                            { pos: 'bottom-right', emoji: '↘️', label: 'Bas droite' },
+                            { pos: 'bottom', emoji: '⬇️', label: 'Bas' },
                           ].map((item) => (
                             <button
                               key={item.pos}
@@ -4647,24 +4676,14 @@ export default function GeneratePage() {
                       {/* Bouton Appliquer */}
                       <button
                         onClick={async () => {
-                          if (!overlayText.trim()) {
-                            return; // Pas de texte à ajouter
-                          }
-
-                          // IMPORTANT : Toujours utiliser l'image ORIGINALE générée (sans texte)
-                          // pour éviter d'avoir du texte superposé
+                          if (!overlayText.trim()) return;
                           const imageToEdit = originalImageUrl || generatedImageUrl;
                           if (!imageToEdit) return;
 
                           try {
-                            // Convertir position en format simple pour addTextOverlay
-                            let simplePosition: 'top' | 'center' | 'bottom' = 'center';
-                            if (textPosition.startsWith('top')) simplePosition = 'top';
-                            else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
-
                             const result = await addTextOverlay(imageToEdit, {
                               text: overlayText,
-                              position: simplePosition,
+                              position: textPosition,
                               fontSize: fontSize,
                               fontFamily: fontFamily,
                               textColor: textColor,
@@ -4672,7 +4691,6 @@ export default function GeneratePage() {
                               backgroundStyle: backgroundStyle,
                             });
 
-                            // Ajouter cette nouvelle version
                             setEditVersions([...editVersions, result]);
                             setSelectedEditVersion(result);
                           } catch (error) {
@@ -4684,6 +4702,20 @@ export default function GeneratePage() {
                         className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         ✓ Appliquer le texte
+                      </button>
+
+                      {/* Bouton Supprimer le texte — revenir à l'image originale */}
+                      <button
+                        onClick={() => {
+                          const originalImg = originalImageUrl || generatedImageUrl;
+                          if (!originalImg) return;
+                          setOverlayText('');
+                          setEditVersions([...editVersions, originalImg]);
+                          setSelectedEditVersion(originalImg);
+                        }}
+                        className="w-full py-2 mt-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+                      >
+                        Supprimer le texte
                       </button>
                     </div>
                   </div>
@@ -5394,12 +5426,12 @@ export default function GeneratePage() {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
                                 setBackgroundStyle('transparent');
-                                setTextPosition('top-center');
+                                setTextPosition('top');
                               } else if (template.id === 'cta') {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('#3b82f6');
                                 setBackgroundStyle('solid');
-                                setTextPosition('bottom-center');
+                                setTextPosition('bottom');
                               } else if (template.id === 'minimal') {
                                 setTextColor('#000000');
                                 setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
@@ -5419,7 +5451,7 @@ export default function GeneratePage() {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
                                 setBackgroundStyle('gradient');
-                                setTextPosition('bottom-center');
+                                setTextPosition('bottom');
                               }
                             }}
                             className={`p-1.5 rounded border transition-all flex flex-col items-center ${
