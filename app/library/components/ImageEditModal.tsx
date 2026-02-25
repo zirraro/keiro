@@ -6,6 +6,7 @@ import { addTextOverlay, type TextOverlayOptions } from '@/lib/canvas-text-overl
 
 interface ImageEditModalProps {
   imageUrl: string;
+  originalImageUrl?: string; // Image sans overlay pour édition propre
   imageId?: string;
   initialText?: string;
   onClose: () => void;
@@ -43,7 +44,9 @@ const POSITIONS: { value: Position; label: string }[] = [
   { value: 'bottom', label: 'Bas' },
 ];
 
-export default function ImageEditModal({ imageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
+export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
+  // Pour le texte overlay, utiliser l'image originale (sans overlay) si disponible
+  const textBaseImage = originalImageUrl || imageUrl;
   const [activeTab, setActiveTab] = useState<TabType>('text');
 
   // === AI Edit state ===
@@ -72,7 +75,7 @@ export default function ImageEditModal({ imageUrl, imageId, initialText, onClose
     }
     setTextLoading(true);
     try {
-      const result = await addTextOverlay(imageUrl, {
+      const result = await addTextOverlay(textBaseImage, {
         text: overlayText,
         position: textPosition,
         fontSize,
@@ -87,7 +90,7 @@ export default function ImageEditModal({ imageUrl, imageId, initialText, onClose
     } finally {
       setTextLoading(false);
     }
-  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, imageUrl]);
+  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, textBaseImage]);
 
   // Debounced preview
   useEffect(() => {
@@ -158,7 +161,12 @@ export default function ImageEditModal({ imageUrl, imageId, initialText, onClose
         const res = await fetch('/api/library/update-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageId, newImageUrl: finalUrl, textOverlay: overlayText.trim() || null }),
+          body: JSON.stringify({
+            imageId,
+            newImageUrl: finalUrl,
+            textOverlay: overlayText.trim() || null,
+            originalImageUrl: originalImageUrl || imageUrl,
+          }),
         });
         const data = await res.json();
         if (!data.ok) {
@@ -437,15 +445,15 @@ export default function ImageEditModal({ imageUrl, imageId, initialText, onClose
                     setSaving(true);
                     try {
                       // Sauver l'image originale (sans overlay) avec textOverlay = null
-                      let finalUrl = imageUrl;
+                      const cleanImage = textBaseImage;
                       if (imageId) {
                         await fetch('/api/library/update-image', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ imageId, newImageUrl: imageUrl, textOverlay: null }),
+                          body: JSON.stringify({ imageId, newImageUrl: cleanImage, textOverlay: null }),
                         });
                       }
-                      onImageEdited(finalUrl, '');
+                      onImageEdited(cleanImage, '');
                     } catch (err) {
                       console.error('[ImageEditModal] Delete overlay error:', err);
                     } finally {

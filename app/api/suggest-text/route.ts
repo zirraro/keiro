@@ -66,13 +66,15 @@ Question clé: "Quel est le PONT CONCRET entre CE business et CETTE actualité ?
 
 RÈGLES:
 - Chaque punchline DOIT évoquer le business ET l'actu — les deux !
-- Maximum 6 à 8 mots par punchline — phrase COMPLÈTE et sensée
+- Entre 4 et 10 mots par punchline — phrase COMPLÈTE, COHÉRENTE et qui a du SENS
+- CHAQUE phrase doit être AUTONOME — compréhensible sans contexte supplémentaire
 - Ton: ${tone || 'Confiant, premium'}
-- Chaque phrase doit se comprendre instantanément, sans contexte
 - VARIÉTÉ : 10 angles différents, pas 10 reformulations de la même idée
+- Le DERNIER MOT de chaque phrase doit être un vrai mot qui conclut la phrase (pas un mot coupé)
 
 INTERDIT:
-- Phrases tronquées ou incomplètes
+- Phrases tronquées, incomplètes ou qui s'arrêtent en plein milieu
+- Finir par "..." ou par un mot sans sens
 - Reformuler l'actu sans lien au business
 - Mots vides: "innovation", "disruption", "découvrez", "profitez"
 - Punchlines génériques applicables à tout
@@ -103,13 +105,15 @@ GÉNÈRE 10 PUNCHLINES pour mettre en valeur CE business :
 
 RÈGLES:
 - Chaque punchline DOIT être SPÉCIFIQUE à "${businessType}" (pas générique)
-- Maximum 6 à 8 mots par punchline — phrase COMPLÈTE et sensée
+- Entre 4 et 10 mots par punchline — phrase COMPLÈTE, COHÉRENTE et qui a du SENS
+- CHAQUE phrase doit être AUTONOME — compréhensible sans contexte supplémentaire
+- Le DERNIER MOT doit conclure la phrase proprement (jamais un mot coupé)
 - Ton: ${tone || 'Confiant, premium'}
-- Chaque phrase doit se comprendre instantanément
 - VARIÉTÉ : 10 angles différents, pas 10 reformulations
 
 INTERDIT:
-- Phrases tronquées ou incomplètes
+- Phrases tronquées, incomplètes ou qui s'arrêtent en plein milieu
+- Finir par "..." ou par un mot sans sens
 - Textes génériques ("Découvrez-nous", "Le meilleur choix")
 - Mots vides: "innovation", "disruption", "profitez"
 - Punchlines applicables à n'importe quel business
@@ -157,7 +161,15 @@ FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
 
     suggestions = suggestions
       .filter(s => typeof s === 'string' && s.trim().length > 0)
-      .map(s => s.trim().substring(0, 50))
+      .map(s => s.trim())
+      .filter(s => {
+        // Filtrer les phrases manifestement tronquées (finissent par un mot coupé ou '...')
+        if (s.endsWith('...') || s.endsWith('…')) return false;
+        // Vérifier que la phrase est complète (au moins 3 mots)
+        const words = s.split(/\s+/);
+        if (words.length < 2) return false;
+        return true;
+      })
       .slice(0, 10);
 
     console.log('[SuggestText] Generated', suggestions.length, 'suggestions');

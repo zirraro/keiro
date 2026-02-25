@@ -1134,19 +1134,21 @@ export default function GeneratePage() {
         }
 
         promptParts.push(
-          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} in the context of this news: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `News context: ${selectedNews.description.substring(0, 250)}\n` : '') +
-          `\nTHE VISUAL STORY: Create ONE scene where the business AND the news coexist naturally.\n` +
-          `- The business must be IMMEDIATELY RECOGNIZABLE: show its products, services, tools, environment, team in action\n` +
-          `- The news must be VISUALLY PRESENT through CONCRETE objects: ${newsVisualCues}\n` +
-          `- These news elements appear naturally IN the scene — on shelves, in the background, on screens, held by people, as decorations\n` +
-          `- Business and news must INTERACT — not be separate zones. ONE unified photographic moment.\n\n` +
-          `COMPOSITION:\n` +
-          `- Business (50%): ${businessType} in action — products, services, team, storefront, tools of the trade\n` +
-          `- News context (50%): Integrated through VISIBLE OBJECTS: ${newsVisualCues}\n` +
-          `- Both must blend into ONE coherent scene where you understand both the business and the news at a glance\n` +
-          `- Camera: close to medium shot, eye-level, professional editorial photography\n` +
-          `- If people are shown, ensure natural diversity in ethnicity, age, and appearance`
+          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} reacting to this news: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `What happened: ${selectedNews.description.substring(0, 300)}\n` : '') +
+          `\nNARRATIVE BRIDGE: Show HOW this specific business is AFFECTED by or RESPONDS to this specific news event.\n` +
+          `Think: What would a photographer capture if they visited "${businessType}" the day this news broke?\n\n` +
+          `FOREGROUND (the business — 50%):\n` +
+          `- "${businessType}" in action: its products, tools, workspace, team, customers\n` +
+          `- Must be IMMEDIATELY recognizable as this specific type of business\n\n` +
+          `BACKGROUND & CONTEXT (the news — 50%):\n` +
+          `- The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
+          `- These elements appear naturally IN the business scene: on walls, screens, shelves, through windows, worn by people\n\n` +
+          `THE LINK:\n` +
+          `- Show the MOMENT where business and news MEET: a reaction, an adaptation, a contrast, a synergy\n` +
+          `- ONE unified scene — not two separate images side by side\n` +
+          `- Camera: close to medium shot, editorial photography quality\n` +
+          `- If people are shown, natural diversity in ethnicity, age, and appearance`
         );
       } else {
         // MODE SANS ACTUALITÉ
@@ -1678,8 +1680,34 @@ export default function GeneratePage() {
       }
 
       // ÉTAPE 2: PAYLOAD ULTRA-MINIMAL avec URL courte
+      // Sauvegarder l'image originale (sans overlay) séparément pour édition future
+      let originalCleanUrl: string | null = null;
+      if (originalImageUrl && originalImageUrl !== finalImageUrl) {
+        // L'image originale est un data URL, il faut l'uploader sur Supabase Storage
+        if (originalImageUrl.startsWith('data:')) {
+          try {
+            const origBlob = await fetch(originalImageUrl).then(r => r.blob());
+            const origFileName = `${user.id}/${Date.now()}_original_${Math.random().toString(36).substring(7)}.png`;
+            const { error: origUpErr } = await supabaseClient.storage
+              .from('generated-images')
+              .upload(origFileName, origBlob, { contentType: 'image/png', upsert: false });
+            if (!origUpErr) {
+              const { data: { publicUrl: origPubUrl } } = supabaseClient.storage
+                .from('generated-images')
+                .getPublicUrl(origFileName);
+              originalCleanUrl = origPubUrl;
+            }
+          } catch (e) {
+            console.warn('[SaveToLibrary] Failed to upload original image:', e);
+          }
+        } else {
+          originalCleanUrl = originalImageUrl;
+        }
+      }
+
       const payload = {
         imageUrl: finalImageUrl,
+        originalImageUrl: originalCleanUrl,
         title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
         newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
         newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
@@ -4406,9 +4434,35 @@ export default function GeneratePage() {
                               throw new Error(data?.error || 'Édition échouée');
                             }
 
-                            const newVersion = data.imageUrl;
-                            setEditVersions([...editVersions, newVersion]);
-                            setSelectedEditVersion(newVersion);
+                            let newVersion = data.imageUrl;
+
+                            // Mettre à jour l'image originale (base pour overlays)
+                            setOriginalImageUrl(newVersion);
+
+                            // Auto-réappliquer l'overlay texte si existant
+                            if (overlayText.trim()) {
+                              try {
+                                const withText = await addTextOverlay(newVersion, {
+                                  text: overlayText,
+                                  position: textPosition,
+                                  fontSize,
+                                  fontFamily,
+                                  textColor,
+                                  backgroundColor: textBackgroundColor,
+                                  backgroundStyle,
+                                });
+                                setEditVersions([...editVersions, newVersion, withText]);
+                                setSelectedEditVersion(withText);
+                              } catch (overlayErr) {
+                                console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
+                                setEditVersions([...editVersions, newVersion]);
+                                setSelectedEditVersion(newVersion);
+                              }
+                            } else {
+                              setEditVersions([...editVersions, newVersion]);
+                              setSelectedEditVersion(newVersion);
+                            }
+
                             setEditPrompt('');
                             setActiveTab('image');
 
@@ -5313,9 +5367,35 @@ export default function GeneratePage() {
                             throw new Error(data?.error || 'Édition échouée');
                           }
 
-                          const newVersion = data.imageUrl;
-                          setEditVersions([...editVersions, newVersion]);
-                          setSelectedEditVersion(newVersion);
+                          let newVersion = data.imageUrl;
+
+                          // Mettre à jour l'image originale (base pour overlays)
+                          setOriginalImageUrl(newVersion);
+
+                          // Auto-réappliquer l'overlay texte si existant
+                          if (overlayText.trim()) {
+                            try {
+                              const withText = await addTextOverlay(newVersion, {
+                                text: overlayText,
+                                position: textPosition,
+                                fontSize,
+                                fontFamily,
+                                textColor,
+                                backgroundColor: textBackgroundColor,
+                                backgroundStyle,
+                              });
+                              setEditVersions([...editVersions, newVersion, withText]);
+                              setSelectedEditVersion(withText);
+                            } catch (overlayErr) {
+                              console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
+                              setEditVersions([...editVersions, newVersion]);
+                              setSelectedEditVersion(newVersion);
+                            }
+                          } else {
+                            setEditVersions([...editVersions, newVersion]);
+                            setSelectedEditVersion(newVersion);
+                          }
+
                           setEditPrompt('');
 
                           // Incrémenter le compteur d'éditions après succès
@@ -5472,15 +5552,9 @@ export default function GeneratePage() {
                       <label className="block text-xs font-medium mb-1.5">Position</label>
                       <div className="grid grid-cols-3 gap-1">
                         {[
-                          { pos: 'top-left', emoji: '↖️', label: 'Haut G' },
-                          { pos: 'top-center', emoji: '⬆️', label: 'Haut C' },
-                          { pos: 'top-right', emoji: '↗️', label: 'Haut D' },
-                          { pos: 'center-left', emoji: '⬅️', label: 'Centre G' },
+                          { pos: 'top', emoji: '⬆️', label: 'Haut' },
                           { pos: 'center', emoji: '⏺️', label: 'Centre' },
-                          { pos: 'center-right', emoji: '➡️', label: 'Centre D' },
-                          { pos: 'bottom-left', emoji: '↙️', label: 'Bas G' },
-                          { pos: 'bottom-center', emoji: '⬇️', label: 'Bas C' },
-                          { pos: 'bottom-right', emoji: '↘️', label: 'Bas D' },
+                          { pos: 'bottom', emoji: '⬇️', label: 'Bas' },
                         ].map((item) => (
                           <button
                             key={item.pos}
@@ -5586,17 +5660,13 @@ export default function GeneratePage() {
                     <button
                       onClick={async () => {
                         if (!overlayText.trim()) return;
-                        const imageToEdit = selectedEditVersion || generatedImageUrl;
+                        const imageToEdit = originalImageUrl || generatedImageUrl;
                         if (!imageToEdit) return;
 
                         try {
-                          let simplePosition: 'top' | 'center' | 'bottom' = 'center';
-                          if (textPosition.startsWith('top')) simplePosition = 'top';
-                          else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
-
                           const result = await addTextOverlay(imageToEdit, {
                             text: overlayText,
-                            position: simplePosition,
+                            position: textPosition,
                             fontSize: fontSize,
                             fontFamily: fontFamily,
                             textColor: textColor,
@@ -5615,6 +5685,20 @@ export default function GeneratePage() {
                       className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ✓ Appliquer le texte
+                    </button>
+
+                    {/* Bouton Supprimer le texte */}
+                    <button
+                      onClick={() => {
+                        const originalImg = originalImageUrl || generatedImageUrl;
+                        if (!originalImg) return;
+                        setOverlayText('');
+                        setEditVersions([...editVersions, originalImg]);
+                        setSelectedEditVersion(originalImg);
+                      }}
+                      className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
+                    >
+                      Supprimer le texte
                     </button>
                   </div>
                   )}

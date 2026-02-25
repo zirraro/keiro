@@ -69,37 +69,45 @@ export async function optimizePromptForImage(rawPrompt: string): Promise<string>
       temperature: 0.85,
       messages: [{
         role: 'user',
-        content: `Tu es un DIRECTEUR ARTISTIQUE de premier plan pour la generation d'images IA.
+        content: `Tu es un DIRECTEUR ARTISTIQUE pour la generation d'images IA.
 
-DIRECTION CREATIVE POUR CETTE IMAGE:
-- Camera/Composition: ${angle}
-- Lumiere/Ambiance: ${mood}
+DIRECTION CREATIVE:
+- Camera: ${angle}
+- Lumiere: ${mood}
 
-TACHE: Reecris ce prompt en une DESCRIPTION VISUELLE PURE et UNIQUE. Le resultat sera envoye a un modele d'image.
+TACHE: Transforme ce prompt en DESCRIPTION VISUELLE PURE pour un modele d'image.
 
 PROMPT ORIGINAL:
 ${rawPrompt}
 
-REGLES ABSOLUES:
-1. UTILISE la direction creative ci-dessus — laisse-la influencer ta composition, ton eclairage, ton ambiance. Ne la copie pas mot pour mot, INTERPRETE-la.
-2. Si une ACTUALITE et un BUSINESS sont mentionnes, ils doivent avoir un POIDS EGAL (50/50) dans l'image:
-   - Le BUSINESS doit etre identifiable: ses produits, son environnement, ses outils, son equipe
-   - L'ACTUALITE doit etre VISUELLEMENT PRESENTE a travers des OBJETS CONCRETS:
-     * Economie/inflation → etiquettes de prix, pieces, caisses, graphiques
-     * Technologie/IA → ecrans lumineux, circuits, interfaces, devices
-     * Sport → elements de stade, maillots, trophees, foule
-     * Meteo/climat → elements atmospheriques visibles
-     * Sante → equipements medicaux, nature, bien-etre
-     * Culture → lumieres de scene, instruments, cameras
-   - Les deux doivent INTERAGIR dans UNE SEULE scene unifiee
-3. SUPPRIME tout texte litteral, citation, titre, nom propre, marque — transforme en SYMBOLES VISUELS
-4. VARIE ton vocabulaire — INTERDIT de toujours utiliser "warm lighting", "vibrant colors", "cinematic feel", "rich textures". Trouve des descriptions SPECIFIQUES et ORIGINALES a chaque fois.
-5. Si des personnes sont mentionnees, diversite naturelle d'origines
-6. Maximum 500 caracteres
-7. NE METS AUCUNE instruction "no text" — je les ajouterai
-8. Ecris en ANGLAIS
+METHODE EN 2 TEMPS:
+A) D'abord, IDENTIFIE:
+   - Le BUSINESS exact: quel metier, quels produits/services, quel univers visuel ?
+   - L'ACTUALITE exacte: quel evenement, quelle situation, quelles images ca evoque ?
+   - Le PONT NARRATIF: quelle scene CONCRETE reunit les deux ?
 
-REPONDS uniquement avec le prompt visuel optimise, rien d'autre.`
+B) Ensuite, DECRIS cette scene en detaillant:
+   - FOREGROUND (devant): le business en action — produits, outils, artisan, client, comptoir
+   - BACKGROUND (fond): l'actualite traduite en DECOR VISUEL — objets, ambiance, elements reconnaissables
+   - L'INTERACTION: comment les deux plans se repondent visuellement
+
+EXEMPLES DE PONTS VISUELS:
+- Boulangerie + Inflation → artisan qui ajuste ses prix a la craie sur l'ardoise, clients souriants au comptoir
+- Coach sportif + Canicule → seance d'entrainement outdoor au lever du soleil pour eviter la chaleur
+- Bijoutier + Finale foot → vitrine avec bijoux disposes en forme de coupe, eclairage stadium
+- Fleuriste + Elections → compositions florales aux couleurs du drapeau en vitrine
+
+REGLES:
+1. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
+2. Business ET actualite a POIDS EGAL — les deux reconnaissables au premier regard
+3. ZERO texte litteral — transforme tout en symboles visuels
+4. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
+5. Diversite naturelle si personnes presentes
+6. Maximum 500 caracteres
+7. PAS d'instruction "no text" — ajoutee separement
+8. En ANGLAIS
+
+REPONDS uniquement avec le prompt visuel, rien d'autre.`
       }],
     });
 

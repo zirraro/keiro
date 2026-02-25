@@ -14,6 +14,7 @@ type SavedImage = {
   news_title?: string;
   news_category?: string;
   text_overlay?: string;
+  original_image_url?: string;
   is_favorite: boolean;
   created_at: string;
   folder_id?: string | null;
@@ -1590,13 +1591,14 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       {showImageEditModal && selectedImage && (
         <ImageEditModal
           imageUrl={selectedImage.image_url}
+          originalImageUrl={selectedImage.original_image_url}
           imageId={selectedImage.id}
           initialText={selectedImage.text_overlay || ''}
           onClose={() => setShowImageEditModal(false)}
           onImageEdited={(newUrl, textOverlay) => {
-            setSelectedImage({ ...selectedImage, image_url: newUrl, text_overlay: textOverlay || selectedImage.text_overlay });
+            setSelectedImage({ ...selectedImage, image_url: newUrl, text_overlay: textOverlay || selectedImage.text_overlay, original_image_url: selectedImage.original_image_url || selectedImage.image_url });
             setAvailableImages(prev => prev.map(img =>
-              img.id === selectedImage.id ? { ...img, image_url: newUrl, text_overlay: textOverlay || img.text_overlay } : img
+              img.id === selectedImage.id ? { ...img, image_url: newUrl, text_overlay: textOverlay || img.text_overlay, original_image_url: img.original_image_url || img.image_url } : img
             ));
             setShowImageEditModal(false);
           }}

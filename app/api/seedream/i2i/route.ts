@@ -1,7 +1,6 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingI2I } from '@/lib/kling';
-import { optimizePromptForImage } from '@/lib/prompt-optimizer';
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -89,12 +88,12 @@ export async function POST(request: Request) {
     let resultImageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Optimiser le prompt avec Claude Haiku ---
-    console.log('[I2I] Optimizing prompt...', { rawLength: prompt.length });
-    const visualPrompt = await optimizePromptForImage(prompt);
-    const noTextSuffix = '\n\nAbsolutely no text, letters, words, numbers, writing, signs, labels, watermarks in the image. Pure visual only.';
-    const finalPrompt = visualPrompt + noTextSuffix;
-    console.log('[I2I] Optimized:', finalPrompt.substring(0, 200));
+    // --- Pour I2I, utiliser le prompt d'édition DIRECTEMENT ---
+    // Ne PAS passer par l'optimizer qui réécrit tout en nouvelle scène.
+    // L'image elle-même fournit le contexte, le prompt décrit juste la modification souhaitée.
+    const noTextSuffix = '. No text, letters, words, numbers, writing in the result.';
+    const finalPrompt = prompt.trim() + noTextSuffix;
+    console.log('[I2I] Edit prompt (direct):', finalPrompt.substring(0, 200));
 
     // --- Kling omni-image en premier (kling-image-o1), Seedream en fallback ---
     try {

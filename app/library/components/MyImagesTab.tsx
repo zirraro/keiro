@@ -12,6 +12,7 @@ type SavedImage = {
   news_title?: string;
   news_category?: string;
   text_overlay?: string;
+  original_image_url?: string;
   is_favorite: boolean;
   created_at: string;
   folder_id?: string | null;

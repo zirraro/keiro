@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
 
     const {
       imageUrl,
+      originalImageUrl,
       thumbnailUrl,
       folderId,
       newsTitle,
@@ -161,6 +162,7 @@ export async function POST(req: NextRequest) {
         user_id: userId,
         folder_id: folderId || null,
         image_url: imageUrl,
+        original_image_url: originalImageUrl || null,
         thumbnail_url: thumbnailUrl || null,
         news_title: newsTitle || null,
         news_description: newsDescription || null,

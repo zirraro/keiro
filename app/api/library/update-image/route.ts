@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { imageId, newImageUrl, textOverlay } = await req.json();
+    const { imageId, newImageUrl, textOverlay, originalImageUrl } = await req.json();
 
     if (!imageId || !newImageUrl) {
       return NextResponse.json({ ok: false, error: 'imageId and newImageUrl are required' }, { status: 400 });
@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
     const updateData: Record<string, any> = { image_url: newImageUrl };
     if (textOverlay !== undefined) {
       updateData.text_overlay = textOverlay;
+    }
+    if (originalImageUrl !== undefined) {
+      updateData.original_image_url = originalImageUrl;
     }
 
     const { error } = await supabase
