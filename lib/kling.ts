@@ -172,8 +172,10 @@ export async function generateKlingI2I(params: {
   image: string; // base64 data URI or URL
   aspectRatio?: string;
 }): Promise<{ imageUrl: string }> {
-  // Kling limit: prompt max 2500 chars (including the <<<image_1>>> prefix)
-  const rawPrompt = condensePromptForKling(params.prompt, 2480);
+  // Pour I2I (édition), le prompt est une instruction directe de modification.
+  // NE PAS passer par condensePromptForKling qui noie l'instruction dans des directives "no text".
+  // Le negative_prompt gère déjà la suppression de texte.
+  const editPrompt = params.prompt.length > 2400 ? params.prompt.substring(0, 2400) : params.prompt;
 
   // Strip data URI prefix — Kling expects raw base64 only
   let imageBase64 = params.image;
@@ -183,14 +185,14 @@ export async function generateKlingI2I(params: {
 
   const body: any = {
     model_name: 'kling-image-o1',
-    prompt: `<<<image_1>>> ${rawPrompt}`,
-    negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, characters, alphabets',
+    prompt: `<<<image_1>>> ${editPrompt}`,
+    negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks',
     image_list: [{ image: imageBase64 }],
     n: 1,
     aspect_ratio: normalizeImageAspectRatio(params.aspectRatio),
   };
 
-  console.log('[Kling I2I] Creating omni-image task, prompt length:', rawPrompt.length, ', image size:', params.image.length > 200 ? `${(params.image.length / 1024).toFixed(0)}KB` : 'URL');
+  console.log('[Kling I2I] Creating omni-image task, prompt length:', editPrompt.length, ', image size:', params.image.length > 200 ? `${(params.image.length / 1024).toFixed(0)}KB` : 'URL');
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/omni-image`, {
     method: 'POST',

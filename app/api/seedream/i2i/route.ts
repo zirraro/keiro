@@ -89,11 +89,10 @@ export async function POST(request: Request) {
     let provider: 'k' | 's';
 
     // --- Pour I2I, utiliser le prompt d'édition DIRECTEMENT ---
-    // Ne PAS passer par l'optimizer qui réécrit tout en nouvelle scène.
-    // L'image elle-même fournit le contexte, le prompt décrit juste la modification souhaitée.
-    const noTextSuffix = '. No text, letters, words, numbers, writing in the result.';
-    const finalPrompt = prompt.trim() + noTextSuffix;
-    console.log('[I2I] Edit prompt (direct):', finalPrompt.substring(0, 200));
+    // Ne PAS ajouter d'instructions "no text" — le negative_prompt de Kling s'en charge.
+    // L'image fournit le contexte, le prompt décrit juste la modification souhaitée.
+    const finalPrompt = prompt.trim();
+    console.log('[I2I] Edit prompt (direct):', finalPrompt);
 
     // --- Kling omni-image en premier (kling-image-o1), Seedream en fallback ---
     try {

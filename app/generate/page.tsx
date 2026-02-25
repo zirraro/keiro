@@ -914,26 +914,6 @@ export default function GeneratePage() {
       return;
     }
 
-    // NOUVEAU : Auto-remplir "problème résolu" si vide
-    // Cela crée une PROPOSITION cohérente avec les suggestions de texte
-    if (!problemSolved || !problemSolved.trim()) {
-      const { generateProblemSolvedSuggestion } = require('@/lib/text-suggestion');
-
-      const problemSuggestion = generateProblemSolvedSuggestion({
-        newsTitle: selectedNews?.title || businessType,
-        newsDescription: selectedNews?.description || businessDescription,
-        businessType,
-        businessDescription,
-        targetAudience,
-        specialist: specialist as any,
-        communicationProfile,
-        marketingAngle,
-      });
-
-      setProblemSolved(problemSuggestion);
-      console.log('[TextSuggestion] 🎯 Auto-filled problem solved:', problemSuggestion);
-    }
-
     // Générer les suggestions de texte avec IA
     setShowTextSuggestions(true);
     setTextSuggestions(['⏳ Génération en cours...']);
@@ -1793,6 +1773,66 @@ export default function GeneratePage() {
       alert(error.message || 'Erreur lors de la sauvegarde dans la galerie');
     } finally {
       setSavingToLibrary(false);
+    }
+  }
+
+  // Auto-sauvegarder une version éditée dans la galerie (silencieux, sans redirection)
+  async function autoSaveEditedVersion(editedImageUrl: string) {
+    try {
+      const supabaseClient = supabaseBrowser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+
+      // Upload si data URL
+      let finalUrl = editedImageUrl;
+      if (editedImageUrl.startsWith('data:')) {
+        const blob = await fetch(editedImageUrl).then(r => r.blob());
+        const fname = `${user.id}/${Date.now()}_edit_${Math.random().toString(36).substring(7)}.png`;
+        const { error: upErr } = await supabaseClient.storage
+          .from('generated-images')
+          .upload(fname, blob, { contentType: 'image/png', upsert: false });
+        if (upErr) { console.warn('[AutoSave] Upload failed:', upErr); return; }
+        const { data: { publicUrl } } = supabaseClient.storage.from('generated-images').getPublicUrl(fname);
+        finalUrl = publicUrl;
+      }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
+      if (lastSavedImageId) {
+        // Mettre à jour l'entrée existante
+        await fetch('/api/library/save', {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ id: lastSavedImageId, imageUrl: finalUrl }),
+        });
+        console.log('[AutoSave] Updated existing gallery entry:', lastSavedImageId);
+      } else {
+        // Créer une nouvelle entrée
+        const res = await fetch('/api/library/save', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            imageUrl: finalUrl,
+            originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
+            title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
+            newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+            newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
+            textOverlay: overlayText?.trim() || null,
+            aiModel: 'seedream',
+            tags: [],
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.savedImage?.id) {
+          setLastSavedImageId(data.savedImage.id);
+          setImageSavedToLibrary(true);
+          console.log('[AutoSave] Saved new gallery entry:', data.savedImage.id);
+        }
+      }
+    } catch (err) {
+      console.warn('[AutoSave] Error (non-blocking):', err);
     }
   }
 
@@ -4469,7 +4509,8 @@ export default function GeneratePage() {
                             // Incrémenter le compteur d'éditions après succès
                             editLimit.incrementCount();
 
-                            // Succès silencieux - l'utilisateur voit déjà la nouvelle image
+                            // Auto-sauvegarder dans la galerie
+                            autoSaveEditedVersion(newVersion);
                           } catch (e: any) {
                             console.error('[Edit Studio] Error:', e);
                             const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
@@ -5401,7 +5442,8 @@ export default function GeneratePage() {
                           // Incrémenter le compteur d'éditions après succès
                           editLimit.incrementCount();
 
-                          // Succès silencieux - l'utilisateur voit déjà la nouvelle version
+                          // Auto-sauvegarder dans la galerie
+                          autoSaveEditedVersion(newVersion);
                         } catch (e: any) {
                           console.error('[Edit Studio] Error:', e);
                           const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
