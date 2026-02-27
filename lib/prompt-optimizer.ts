@@ -100,12 +100,13 @@ EXEMPLES DE PONTS VISUELS:
 REGLES:
 1. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
 2. Business ET actualite a POIDS EGAL — les deux reconnaissables au premier regard
-3. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes. Remplace par des FORMES, COULEURS, OBJETS
+3. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes, prix. Remplace par des FORMES, COULEURS, OBJETS
 4. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
 5. Diversite naturelle si personnes presentes
 6. Maximum 500 caracteres
 7. PAS d'instruction "no text" explicite — mais ta description ne doit JAMAIS suggerer des elements contenant du texte lisible
 8. En ANGLAIS
+9. RESPECTE le style de rendu demande dans le prompt original (PHOTOREALISTIC = photo reelle, pas illustration/3D)
 
 REPONDS uniquement avec le prompt visuel, rien d'autre.`
       }],

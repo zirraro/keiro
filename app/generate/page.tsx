@@ -273,6 +273,7 @@ export default function GeneratePage() {
   const [tone, setTone] = useState('');
   const [visualStyle, setVisualStyle] = useState('');
   const [characterStyle, setCharacterStyle] = useState<'real' | 'fiction'>('real'); // Humains réels vs personnages fiction
+  const [renderStyle, setRenderStyle] = useState<'photo' | 'illustration'>('photo'); // Photo réaliste vs illustration
   const [specialist, setSpecialist] = useState<string>('');
 
   // NOUVELLES questions EXPERTES pour personnalisation ultra-précise
@@ -1159,12 +1160,17 @@ export default function GeneratePage() {
         promptParts.push(insights);
       }
 
-      // 3. AUDIENCE + TONE + STRATEGY + CHARACTER STYLE
+      // 3. RENDER STYLE + AUDIENCE + TONE + STRATEGY + CHARACTER STYLE
+      const renderInstruction = renderStyle === 'illustration'
+        ? 'RENDER STYLE: Stylized 3D illustration, digital art, cartoon or vector style. Colorful, clean, modern illustration look.'
+        : 'RENDER STYLE: PHOTOREALISTIC. Real photograph taken with a professional camera. Real textures, real lighting, real materials. NOT a drawing, NOT an illustration, NOT 3D render, NOT digital art.';
+
       const characterInstruction = characterStyle === 'fiction'
         ? 'CHARACTERS: Use animated/illustrated fictional characters (3D render or stylized illustration style). NOT real photographs of people.'
         : 'CHARACTERS: If people appear, show REAL diverse humans (varied ethnicities, ages, body types). Photorealistic.';
 
       promptParts.push(
+        `\n${renderInstruction}` +
         `\nTone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.` +
         `\n${characterInstruction}` +
         (targetAudience ? ` Target: ${targetAudience}.` : '') +
@@ -1184,9 +1190,9 @@ export default function GeneratePage() {
 
       // 5. QUALITY + ABSOLUTE NO-TEXT (repeated at end for reinforcement)
       promptParts.push(
-        `\n\n4K, cinematic lighting, depth of field, publication-ready for social media.\n` +
-        `AVOID: flat compositions, stock-photo clichés, generic backgrounds.\n` +
-        `ABSOLUTELY FORBIDDEN: Any form of text, writing, typography, letters, numbers, words, labels, signs, brand names, watermarks, captions, titles, subtitles, UI mockups. PURE VISUAL ONLY.`
+        `\n\n4K, ${renderStyle === 'photo' ? 'shot on Canon EOS R5, 85mm f/1.4, natural film grain, ' : ''}depth of field, publication-ready for social media.\n` +
+        `AVOID: flat compositions, stock-photo clichés, generic backgrounds${renderStyle === 'photo' ? ', digital art look, illustration style, 3D render, cartoon, painting' : ''}.\n` +
+        `⛔ ABSOLUTELY ZERO TEXT in the image — no letters, words, numbers, signs, labels, logos, brand names, watermarks, captions, titles, menus, price tags, screens with text. Every surface must be BLANK or show PATTERNS/COLORS only. PURE VISUAL.`
       );
 
       const fullPrompt = promptParts.join(' ');
@@ -1575,14 +1581,38 @@ export default function GeneratePage() {
           const headers: HeadersInit = { 'Content-Type': 'application/json' };
           if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
+          // Uploader l'image originale (sans overlay) pour édition future
+          let originalCleanUrl: string | null = null;
+          if (originalImageUrl) {
+            try {
+              if (originalImageUrl.startsWith('data:')) {
+                const origBlob = await fetch(originalImageUrl).then(r => r.blob());
+                const origFname = `${user.id}/${Date.now()}_original_${Math.random().toString(36).substring(7)}.png`;
+                const { error: origUpErr } = await supabaseClient.storage
+                  .from('generated-images')
+                  .upload(origFname, origBlob, { contentType: 'image/png', upsert: false });
+                if (!origUpErr) {
+                  const { data: { publicUrl: origPubUrl } } = supabaseClient.storage.from('generated-images').getPublicUrl(origFname);
+                  originalCleanUrl = origPubUrl;
+                }
+              } else if (originalImageUrl.startsWith('http')) {
+                originalCleanUrl = originalImageUrl;
+              }
+            } catch (e) {
+              console.warn('[Generate] Failed to upload original image:', e);
+            }
+          }
+
           const saveResponse = await fetch('/api/library/save', {
             method: 'POST',
             headers,
             body: JSON.stringify({
               imageUrl: finalImageUrl,
+              originalImageUrl: originalCleanUrl,
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
+              textOverlay: overlayText?.trim() || null,
               aiModel: 'seedream',
               tags: []
             })
@@ -3385,6 +3415,35 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
+                {/* Style de rendu */}
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    Rendu
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setRenderStyle('photo')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                        renderStyle === 'photo'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                      }`}
+                    >
+                      Photo réaliste
+                    </button>
+                    <button
+                      onClick={() => setRenderStyle('illustration')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                        renderStyle === 'illustration'
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                      }`}
+                    >
+                      Illustration / 3D
+                    </button>
+                  </div>
+                </div>
+
                 {/* Style de personnages */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
@@ -4845,6 +4904,8 @@ export default function GeneratePage() {
 
                             setEditVersions([...editVersions, result]);
                             setSelectedEditVersion(result);
+                            // Auto-sauvegarder l'overlay dans la galerie
+                            autoSaveEditedVersion(result);
                           } catch (error) {
                             console.error('Error applying text overlay:', error);
                             alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
@@ -4864,6 +4925,8 @@ export default function GeneratePage() {
                           setOverlayText('');
                           setEditVersions([...editVersions, originalImg]);
                           setSelectedEditVersion(originalImg);
+                          // Auto-sauvegarder sans overlay
+                          autoSaveEditedVersion(originalImg);
                         }}
                         className="w-full py-2 mt-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
                       >
@@ -5778,6 +5841,8 @@ export default function GeneratePage() {
 
                           setEditVersions([...editVersions, result]);
                           setSelectedEditVersion(result);
+                          // Auto-sauvegarder l'overlay dans la galerie
+                          autoSaveEditedVersion(result);
                         } catch (error) {
                           console.error('Error applying text overlay:', error);
                           alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
@@ -5797,6 +5862,8 @@ export default function GeneratePage() {
                         setOverlayText('');
                         setEditVersions([...editVersions, originalImg]);
                         setSelectedEditVersion(originalImg);
+                        // Auto-sauvegarder sans overlay
+                        autoSaveEditedVersion(originalImg);
                       }}
                       className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
                     >

@@ -85,6 +85,7 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model: 'seedream-3.0',
           prompt: seedreamPrompt,
+          negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters',
           size: size || '2K',
           seed: -1,
         }),
