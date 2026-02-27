@@ -272,6 +272,7 @@ export default function GeneratePage() {
   const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('');
   const [visualStyle, setVisualStyle] = useState('');
+  const [characterStyle, setCharacterStyle] = useState<'real' | 'fiction'>('real'); // Humains réels vs personnages fiction
   const [specialist, setSpecialist] = useState<string>('');
 
   // NOUVELLES questions EXPERTES pour personnalisation ultra-précise
@@ -1081,9 +1082,15 @@ export default function GeneratePage() {
 
       // 1. CRITICAL NO-TEXT RULE (premier = plus respecté par le modèle)
       promptParts.push(
-        `CRITICAL RULE: This image must contain ZERO text, ZERO letters, ZERO numbers, ZERO words, ZERO writing of any kind. ` +
-        `No signs, labels, brands, watermarks, captions, titles, headlines, UI elements. ` +
-        `If there are storefronts or signs, they must be blurred, out of focus, or show abstract shapes instead of readable text.`
+        `🚫🚫🚫 ABSOLUTE RULE — READ THIS FIRST 🚫🚫🚫\n` +
+        `This image must contain ABSOLUTELY ZERO TEXT of any kind:\n` +
+        `- ZERO letters, numbers, words, writing, typography\n` +
+        `- ZERO signs, labels, brands, logos, watermarks, captions, titles\n` +
+        `- ZERO screens showing text, ZERO chalkboards with writing, ZERO price tags with numbers\n` +
+        `- ZERO menus, ZERO posters with words, ZERO book covers with titles\n` +
+        `- If storefronts or signs appear: they must be BLURRED or show ABSTRACT SHAPES only\n` +
+        `- Every surface that could contain text must be BLANK, BLURRED, or filled with PATTERNS instead\n` +
+        `THE IMAGE MUST BE 100% PURE VISUAL — NO READABLE CHARACTERS WHATSOEVER.`
       );
 
       // 2. SCENE + CREATIVE DIRECTION
@@ -1092,23 +1099,23 @@ export default function GeneratePage() {
         const newsContent = `${selectedNews.title || ''} ${selectedNews.description || ''}`;
         let newsVisualCues = '';
         if (/inflat|prix|co[uû]t|[eé]conom|recession|march[eé]|bourse|crise|banque|euro|dollar/i.test(newsContent)) {
-          newsVisualCues = 'price tags, market stalls, coins, shopping bags, cash registers, stock charts on screens, store windows';
+          newsVisualCues = 'stacked coins, gold bars, market stall produce, overflowing shopping bags, open cash register drawers, luxury vs modest items contrast, piggy banks';
         } else if (/tech|ia\b|intellig|robot|num[eé]r|digital|app\b|startup|crypto|blockchain|donn[eé]e/i.test(newsContent)) {
-          newsVisualCues = 'glowing screens, smartphones, circuit board patterns, holographic displays, server racks, LED indicators, digital interfaces';
+          newsVisualCues = 'circuit board patterns, fiber optic light trails, robotic arms, silicon chips, server rack LEDs, holographic light beams, futuristic metallic surfaces';
         } else if (/sport|foot|match|olympi|champion|coupe|rugby|tennis|athl[eè]t/i.test(newsContent)) {
-          newsVisualCues = 'stadium floodlights, team jerseys, trophies, sports equipment, cheering crowd silhouettes, scoreboards, athletic gear';
+          newsVisualCues = 'stadium floodlights, golden trophies, colorful sportswear, balls, nets, athletics tracks, cheering crowd silhouettes, medal podiums';
         } else if (/m[eé]t[eé]o|climat|temp[eê]te|chaleur|froid|neige|pluie|inondation|s[eé]cheresse|canicule/i.test(newsContent)) {
-          newsVisualCues = 'dramatic sky formations, visible rain drops, sun rays breaking through clouds, snow, wind-blown elements, weather instruments';
+          newsVisualCues = 'dramatic sky formations, visible rain drops, sun rays breaking through clouds, snow, wind-blown elements, barometers, thermometers';
         } else if (/sant[eé]|m[eé]dical|h[oô]pital|vaccin|virus|pand[eé]m|bien-[eê]tre|pharma/i.test(newsContent)) {
-          newsVisualCues = 'medical equipment, stethoscopes, lab coats, green nature wellness elements, clean clinical surfaces, health monitoring screens';
+          newsVisualCues = 'stethoscopes, lab coats, green nature wellness elements, clean clinical surfaces, plants, vitamins, surgical tools, heartbeat monitors';
         } else if (/politique|[eé]lection|gouvern|pr[eé]sident|loi|r[eé]forme|vote|parlement/i.test(newsContent)) {
-          newsVisualCues = 'civic building facades, podiums with microphones, waving flags, gathering crowds, formal architectural columns';
+          newsVisualCues = 'civic building facades, podiums, waving flags, gathering crowds, formal architectural columns, ballot boxes, tricolor ribbons';
         } else if (/culture|musique|film|cin[eé]|art|spectacle|festival|concert|th[eé][aâ]tre/i.test(newsContent)) {
-          newsVisualCues = 'stage spotlights, musical instruments, film cameras, art installations, festival decorations, theatrical curtains, colorful projections';
+          newsVisualCues = 'stage spotlights, musical instruments, film camera lenses, paint splashes, festival garlands, theatrical curtains, colorful projections';
         } else if (/environnement|[eé]colog|vert\b|durable|recycl|bio\b|plan[eè]te|carbone/i.test(newsContent)) {
-          newsVisualCues = 'lush greenery, solar panels, recycling materials, earth-toned textures, sustainable wood and bamboo, living plants';
+          newsVisualCues = 'lush greenery, solar panels, recycling bins, earth-toned textures, sustainable wood and bamboo, living plants, wind turbines';
         } else if (/[eé]ducation|[eé]cole|universit|[eé]tudiant|formation|apprenti|dipl[oô]m/i.test(newsContent)) {
-          newsVisualCues = 'open books, classroom settings, graduation caps, study materials, campus buildings, chalkboards with diagrams';
+          newsVisualCues = 'classroom desks, graduation caps, laboratory equipment, campus architecture, globes, microscopes, scientific models, colored pencils';
         } else {
           newsVisualCues = 'contextual environmental details reflecting current events, dynamic urban or natural backdrop elements, visible human activity and energy';
         }
@@ -1123,7 +1130,7 @@ export default function GeneratePage() {
           `- Must be IMMEDIATELY recognizable as this specific type of business\n\n` +
           `BACKGROUND & CONTEXT (the news — 50%):\n` +
           `- The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
-          `- These elements appear naturally IN the business scene: on walls, screens, shelves, through windows, worn by people\n\n` +
+          `- These elements appear naturally IN the business scene: on shelves, as decorations, worn by people, in the environment\n\n` +
           `THE LINK:\n` +
           `- Show the MOMENT where business and news MEET: a reaction, an adaptation, a contrast, a synergy\n` +
           `- ONE unified scene — not two separate images side by side\n` +
@@ -1152,9 +1159,14 @@ export default function GeneratePage() {
         promptParts.push(insights);
       }
 
-      // 3. AUDIENCE + TONE + STRATEGY
+      // 3. AUDIENCE + TONE + STRATEGY + CHARACTER STYLE
+      const characterInstruction = characterStyle === 'fiction'
+        ? 'CHARACTERS: Use animated/illustrated fictional characters (3D render or stylized illustration style). NOT real photographs of people.'
+        : 'CHARACTERS: If people appear, show REAL diverse humans (varied ethnicities, ages, body types). Photorealistic.';
+
       promptParts.push(
         `\nTone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.` +
+        `\n${characterInstruction}` +
         (targetAudience ? ` Target: ${targetAudience}.` : '') +
         (storyToTell ? ` Story: ${storyToTell}.` : '') +
         (publicationGoal ? ` Goal: ${publicationGoal}.` : '') +
@@ -1805,7 +1817,12 @@ export default function GeneratePage() {
         await fetch('/api/library/save', {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ id: lastSavedImageId, imageUrl: finalUrl }),
+          body: JSON.stringify({
+            id: lastSavedImageId,
+            imageUrl: finalUrl,
+            textOverlay: overlayText?.trim() || null,
+            originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
+          }),
         });
         console.log('[AutoSave] Updated existing gallery entry:', lastSavedImageId);
       } else {
@@ -3368,6 +3385,35 @@ export default function GeneratePage() {
                   </select>
                 </div>
 
+                {/* Style de personnages */}
+                <div>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                    Personnages
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCharacterStyle('real')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                        characterStyle === 'real'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                      }`}
+                    >
+                      Humains réels variés
+                    </button>
+                    <button
+                      onClick={() => setCharacterStyle('fiction')}
+                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
+                        characterStyle === 'fiction'
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
+                      }`}
+                    >
+                      Personnages fiction
+                    </button>
+                  </div>
+                </div>
+
                 {/* Sélecteur mode de génération */}
                 <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
                   <button
@@ -4180,7 +4226,15 @@ export default function GeneratePage() {
             <div className="bg-white w-full h-full lg:rounded-xl lg:max-w-7xl lg:h-[90vh] lg:m-4 flex flex-col">
               {/* Header du studio */}
               <div className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="text-lg font-semibold">Studio d'Édition</h2>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  Studio d'Édition
+                  {lastProvider && (
+                    <span
+                      title={lastProvider === 'k' ? 'Kling' : 'Seedream'}
+                      className={`w-2.5 h-2.5 rounded-full ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                    />
+                  )}
+                </h2>
                 <button
                   onClick={() => {
                     setShowEditStudio(false);
@@ -4473,6 +4527,9 @@ export default function GeneratePage() {
                               console.error('[Edit Studio] API Error:', data?.error);
                               throw new Error(data?.error || 'Édition échouée');
                             }
+
+                            // Capturer le provider pour la pastille
+                            if (data._p) setLastProvider(data._p);
 
                             let newVersion = data.imageUrl;
 
@@ -5407,6 +5464,9 @@ export default function GeneratePage() {
                             console.error('[Edit Studio] API Error:', data?.error);
                             throw new Error(data?.error || 'Édition échouée');
                           }
+
+                          // Capturer le provider pour la pastille
+                          if (data._p) setLastProvider(data._p);
 
                           let newVersion = data.imageUrl;
 

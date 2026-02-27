@@ -92,19 +92,19 @@ B) Ensuite, DECRIS cette scene en detaillant:
    - L'INTERACTION: comment les deux plans se repondent visuellement
 
 EXEMPLES DE PONTS VISUELS:
-- Boulangerie + Inflation → artisan qui ajuste ses prix a la craie sur l'ardoise, clients souriants au comptoir
-- Coach sportif + Canicule → seance d'entrainement outdoor au lever du soleil pour eviter la chaleur
-- Bijoutier + Finale foot → vitrine avec bijoux disposes en forme de coupe, eclairage stadium
-- Fleuriste + Elections → compositions florales aux couleurs du drapeau en vitrine
+- Boulangerie + Inflation → artisan qui petrit la pate, clients qui remplissent leurs paniers, etageres bien garnies
+- Coach sportif + Canicule → seance d'entrainement outdoor au lever du soleil, brumisateurs, soleil rasant
+- Bijoutier + Finale foot → vitrine avec bijoux sous eclairage stadium, ballons decoratifs dores
+- Fleuriste + Elections → compositions florales tricolores, drapeaux integres dans les bouquets
 
 REGLES:
 1. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
 2. Business ET actualite a POIDS EGAL — les deux reconnaissables au premier regard
-3. ZERO texte litteral — transforme tout en symboles visuels
+3. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes. Remplace par des FORMES, COULEURS, OBJETS
 4. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
 5. Diversite naturelle si personnes presentes
 6. Maximum 500 caracteres
-7. PAS d'instruction "no text" — ajoutee separement
+7. PAS d'instruction "no text" explicite — mais ta description ne doit JAMAIS suggerer des elements contenant du texte lisible
 8. En ANGLAIS
 
 REPONDS uniquement avec le prompt visuel, rien d'autre.`

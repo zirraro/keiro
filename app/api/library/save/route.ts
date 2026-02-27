@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id, imageUrl, title } = body;
+    const { id, imageUrl, title, textOverlay, originalImageUrl } = body;
 
     if (!id) {
       return NextResponse.json({ ok: false, error: 'id requis' }, { status: 400 });
@@ -265,6 +265,8 @@ export async function PATCH(req: NextRequest) {
     const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
     if (imageUrl) updateData.image_url = imageUrl;
     if (title) updateData.title = title;
+    if (textOverlay !== undefined) updateData.text_overlay = textOverlay;
+    if (originalImageUrl !== undefined) updateData.original_image_url = originalImageUrl;
 
     const { data, error } = await supabase
       .from('saved_images')

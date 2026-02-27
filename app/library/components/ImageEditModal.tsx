@@ -48,6 +48,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   // Pour le texte overlay, utiliser l'image originale (sans overlay) si disponible
   const textBaseImage = originalImageUrl || imageUrl;
   const [activeTab, setActiveTab] = useState<TabType>('text');
+  const [editProvider, setEditProvider] = useState<string>('');
 
   // === AI Edit state ===
   const [prompt, setPrompt] = useState('');
@@ -118,6 +119,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         return;
       }
       setAiEditedUrl(data.imageUrl);
+      if (data._p) setEditProvider(data._p);
     } catch (err: any) {
       setError(err.message || 'Erreur réseau');
     } finally {
@@ -233,8 +235,14 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
             </div>
             {currentResult && (
               <div>
-                <p className="text-xs font-medium text-emerald-600 mb-1">
+                <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1.5">
                   {activeTab === 'text' ? 'Aperçu' : 'Modifié'}
+                  {activeTab === 'ai' && editProvider && (
+                    <span
+                      title={editProvider === 'k' ? 'Kling' : 'Seedream'}
+                      className={`w-2 h-2 rounded-full ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                    />
+                  )}
                 </p>
                 <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300">
                   <img src={currentResult} alt="Résultat" className="w-full h-full object-cover" />
