@@ -50,7 +50,7 @@ export default function PlatformChoiceModal({ onClose, onSelectInstagram, onSele
                   Instagram
                 </h3>
                 <p className="text-sm text-neutral-600">
-                  Post & Story avec IA
+                  Post & Story
                 </p>
               </div>
               <svg className="w-6 h-6 text-neutral-300 group-hover:text-pink-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,7 +75,7 @@ export default function PlatformChoiceModal({ onClose, onSelectInstagram, onSele
                   TikTok
                 </h3>
                 <p className="text-sm text-neutral-600">
-                  Vidéo virale avec IA
+                  Vidéo virale
                 </p>
               </div>
               <svg className="w-6 h-6 text-neutral-300 group-hover:text-cyan-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,7 +96,7 @@ export default function PlatformChoiceModal({ onClose, onSelectInstagram, onSele
               </div>
               <div className="flex-1 text-left">
                 <h3 className="font-bold text-neutral-900 group-hover:text-[#0077B5] transition-colors">LinkedIn</h3>
-                <p className="text-sm text-neutral-600">Post professionnel avec IA</p>
+                <p className="text-sm text-neutral-600">Post professionnel</p>
               </div>
               <svg className="w-6 h-6 text-neutral-300 group-hover:text-[#0077B5] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -117,7 +117,7 @@ export default function PlatformChoiceModal({ onClose, onSelectInstagram, onSele
               </div>
               <div className="flex-1 text-left">
                 <h3 className="font-bold text-neutral-900 group-hover:text-neutral-800 transition-colors">X (Twitter)</h3>
-                <p className="text-sm text-neutral-600">Tweet percutant avec IA</p>
+                <p className="text-sm text-neutral-600">Tweet percutant</p>
               </div>
               <svg className="w-6 h-6 text-neutral-300 group-hover:text-neutral-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

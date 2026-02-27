@@ -64,6 +64,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [videoDuration, setVideoDuration] = useState(5);
+  const isProcessingVideoRef = useRef(false);
 
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
@@ -494,6 +496,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   }, [pollingInterval]);
 
   const pollVideoStatus = async (taskId: string) => {
+    // Guard: empêcher les polls concurrents (évite les doubles saves)
+    if (isProcessingVideoRef.current) return;
+
     try {
       const response = await fetch('/api/seedream/i2v', {
         method: 'POST',
@@ -504,6 +509,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       const data = await response.json();
 
       if (data.status === 'completed' && data.videoUrl) {
+        isProcessingVideoRef.current = true; // Lock avant download
         // Video ready! Download and store server-side to avoid CORS
         console.log('[TikTokModal] Video generated, downloading and storing via server...');
 
@@ -515,7 +521,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
             body: JSON.stringify({
               videoUrl: data.videoUrl,
               originalImageId: selectedImage?.id,
-              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`
+              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`,
+              duration: videoDuration,
             })
           });
 
@@ -620,6 +627,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     }
 
     setGeneratingPreview(true);
+    isProcessingVideoRef.current = false; // Reset guard pour nouvelle génération
     try {
       console.log('[TikTokModal] Starting Seedream I2V conversion...');
 
@@ -630,7 +638,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         body: JSON.stringify({
           imageUrl: selectedImage.image_url,
           prompt: 'Create a smooth cinematic video from this image with subtle camera movement',
-          duration: 5,
+          duration: videoDuration,
           resolution: '1080p'
         })
       });
@@ -679,7 +687,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
     // If it's an image and no video preview yet, generate one first
     if (activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !videoPreview) {
-      alert('⚠️ Veuillez d\'abord générer la vidéo avec IA avant de publier.\n\nCliquez sur "✨ Générer vidéo avec IA" pour créer votre vidéo.');
+      alert('⚠️ Veuillez d\'abord générer la vidéo avant de publier.\n\nCliquez sur "✨ Générer la vidéo" pour créer votre vidéo.');
       return;
     }
 
@@ -887,7 +895,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               onClick={() => { window.location.href = '/generate'; }}
               className="w-full px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
-              Créer un visuel avec l'IA
+              Créer un visuel
             </button>
             <button
               onClick={() => { window.location.href = '/library'; }}
@@ -1284,44 +1292,66 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Modifier l'image avec l'IA
+                    Modifier l'image
                   </button>
                 )}
 
                 {/* Bouton de prévisualisation (only for images tab) */}
                 {activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !selectedImage.title?.includes('Vidéo TikTok') && (
-                  <button
-                    onClick={handleGeneratePreview}
-                    disabled={generatingPreview}
-                    className={`w-full mb-2 px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm ${
-                      generatingPreview
-                        ? 'bg-neutral-400 cursor-not-allowed'
-                        : videoPreview
-                          ? 'bg-green-500 hover:bg-green-600'
-                          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg'
-                    }`}
-                  >
-                    {generatingPreview ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Génération vidéo IA...</span>
-                      </>
-                    ) : videoPreview ? (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        <span>Vidéo générée ✓</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                        </svg>
-                        <span>✨ Générer vidéo avec IA</span>
-                      </>
+                  <div className="mb-2 space-y-2">
+                    {/* Slider durée vidéo */}
+                    {!videoPreview && (
+                      <div className="bg-purple-50 rounded-lg border border-purple-200 p-2">
+                        <label className="text-xs font-medium text-neutral-700">
+                          Durée : <span className="text-purple-600 font-bold">{videoDuration}s</span>
+                        </label>
+                        <input
+                          type="range"
+                          min={5}
+                          max={12}
+                          step={1}
+                          value={videoDuration}
+                          onChange={(e) => setVideoDuration(Number(e.target.value))}
+                          className="w-full h-1.5 accent-purple-600 mt-1"
+                        />
+                        <div className="flex justify-between text-[8px] text-neutral-400 mt-0.5">
+                          <span>5s</span><span>8s</span><span>12s</span>
+                        </div>
+                      </div>
                     )}
-                  </button>
+                    <button
+                      onClick={handleGeneratePreview}
+                      disabled={generatingPreview}
+                      className={`w-full px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm ${
+                        generatingPreview
+                          ? 'bg-neutral-400 cursor-not-allowed'
+                          : videoPreview
+                            ? 'bg-green-500 hover:bg-green-600'
+                            : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg'
+                      }`}
+                    >
+                      {generatingPreview ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Génération vidéo...</span>
+                        </>
+                      ) : videoPreview ? (
+                        <>
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>Vidéo générée ✓</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                          </svg>
+                          <span>✨ Générer la vidéo ({videoDuration}s)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 )}
 
                 <div className={`${activeTab === 'videos' || (activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))) ? 'bg-green-100 border-green-200' : 'bg-cyan-100 border-cyan-200'} border rounded-lg p-2`}>
@@ -1335,8 +1365,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         : activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))
                           ? '✅ Vidéo prête pour publication TikTok'
                           : videoPreview
-                            ? '✅ Vidéo animée générée par IA (9:16, 5s)'
-                            : '🤖 L\'IA convertira votre image en vidéo animée'
+                            ? `✅ Vidéo animée générée (9:16, ${videoDuration}s)`
+                            : '🎬 Votre image sera convertie en vidéo animée'
                       }
                     </span>
                   </p>
@@ -1379,7 +1409,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   placeholder="Ex: tendance, behind the scenes, astuce rapide..."
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Bouton suggérer IA */}

@@ -388,7 +388,7 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
                   placeholder="Ex: promo été, lancement produit, témoignage client..."
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Bouton suggérer IA */}

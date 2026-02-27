@@ -92,7 +92,7 @@ export default function ChatMarketingTab({ user }: any) {
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-neutral-900">Assistant Marketing IA</h2>
+                <h2 className="text-lg font-bold text-neutral-900">Assistant Marketing</h2>
                 <p className="text-xs text-neutral-600">Conseils personnalisés pour Instagram</p>
               </div>
             </div>

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { videoUrl, originalImageId, title } = body;
+    const { videoUrl, originalImageId, title, duration = 5 } = body;
     console.log('[DownloadAndStore] Request params:', {
       videoUrl: videoUrl?.substring(0, 150),
       originalImageId,
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
         original_image_id: originalImageId || null,
         file_size: videoBuffer.byteLength,
         format: 'mp4',
-        duration: 5, // Seedream I2V default duration
+        duration: duration,
         is_favorite: false
       })
       .select()

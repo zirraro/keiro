@@ -458,10 +458,10 @@ function DashboardTab({ stats, chartData, user }: any) {
         </div>
       </div>
 
-      {/* Section Insights IA personnalisés */}
+      {/* Section Insights personnalisés */}
       <div className="bg-blue-50 rounded-xl shadow border border-blue-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🤖 Insights IA personnalisés</h2>
+          <h2 className="text-xl font-bold">🤖 Insights personnalisés</h2>
           {stats.totalPosts > 0 && (
             <span className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full font-bold">
               ACTIF
@@ -552,7 +552,7 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <p className="font-semibold text-blue-900 mb-1">✨ Pour accélérer :</p>
                   <p className="text-blue-800 text-xs">
                     Passez à 5 posts/semaine avec 2 Reels de 15-30sec sur vos meilleures performances.
-                    L'IA estime un potentiel de <strong>+180% de croissance</strong> avec cette stratégie.
+                    Estimation de potentiel de <strong>+180% de croissance</strong> avec cette stratégie.
                   </p>
                 </div>
               </div>
@@ -570,7 +570,7 @@ function DashboardTab({ stats, chartData, user }: any) {
                 commencez à créer vos premiers visuels et à les publier.
               </p>
               <p className="text-blue-700 text-xs mb-3">
-                L'Assistant IA analysera vos performances et vous proposera des actions concrètes pour optimiser votre stratégie.
+                L'Assistant analysera vos performances et vous proposera des actions concrètes pour optimiser votre stratégie.
               </p>
               <a
                 href="/generate"
@@ -583,7 +583,7 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
               <p className="font-semibold mb-1">📊 Méthodologie :</p>
               <p>
-                Ces insights sont générés par analyse IA de vos {stats.totalPosts} derniers posts,
+                Ces insights sont générés par analyse de vos {stats.totalPosts} derniers posts,
                 comparés à notre base de 500K+ posts similaires dans votre secteur.
                 Mise à jour quotidienne.
               </p>

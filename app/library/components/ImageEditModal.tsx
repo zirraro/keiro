@@ -101,31 +101,38 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     return () => clearTimeout(timer);
   }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, activeTab, generatePreview]);
 
-  // === AI Edit handlers ===
+  // === AI Edit handlers (with retry on network errors) ===
   const handleAiEdit = async () => {
     if (!prompt.trim()) return;
     setAiLoading(true);
     setError(null);
     setAiEditedUrl(null);
 
-    try {
-      const res = await fetch('/api/seedream/i2i', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), imageUrl, guidance_scale: editStrength }),
-      });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.error || 'Erreur lors de la modification');
-        return;
+    const MAX_RETRIES = 2;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const res = await fetch('/api/seedream/i2i', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt.trim(), imageUrl, guidance_scale: editStrength }),
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          setError(data.error || 'Erreur lors de la modification');
+          break; // Erreur API = pas de retry
+        }
+        setAiEditedUrl(data.imageUrl);
+        if (data._p) setEditProvider(data._p);
+        break; // Succes
+      } catch (err: any) {
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        setError('Erreur réseau. Vérifiez votre connexion et réessayez.');
       }
-      setAiEditedUrl(data.imageUrl);
-      if (data._p) setEditProvider(data._p);
-    } catch (err: any) {
-      setError(err.message || 'Erreur réseau');
-    } finally {
-      setAiLoading(false);
     }
+    setAiLoading(false);
   };
 
   // === Save (common for both tabs) ===
@@ -213,7 +220,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                Modifier avec l'IA
+                Modifier
               </button>
             </div>
             <button onClick={onClose} className="p-1 hover:bg-neutral-100 rounded-lg transition mb-2">

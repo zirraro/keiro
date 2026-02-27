@@ -376,6 +376,8 @@ export default function GeneratePage() {
   const [textTemplate, setTextTemplate] = useState<'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern'>('headline');
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [baseOriginalImageUrl, setBaseOriginalImageUrl] = useState<string | null>(null);
+  const [appliedOverlaysCount, setAppliedOverlaysCount] = useState(0);
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -974,8 +976,11 @@ export default function GeneratePage() {
       return;
     }
 
-    // Utiliser l'image AVEC WATERMARK UNIQUEMENT pour garder le watermark visible
-    const imageToPreview = imageWithWatermarkOnly || originalImageUrl || selectedEditVersion || generatedImageUrl;
+    // Si overlays deja appliques, utiliser selectedEditVersion (qui contient les overlays cuits)
+    // Sinon utiliser l'image AVEC WATERMARK UNIQUEMENT pour garder le watermark visible
+    const imageToPreview = appliedOverlaysCount > 0
+      ? (selectedEditVersion || generatedImageUrl)
+      : (imageWithWatermarkOnly || originalImageUrl || selectedEditVersion || generatedImageUrl);
     if (!imageToPreview) {
       setTextPreviewUrl(null);
       return;
@@ -1826,7 +1831,7 @@ export default function GeneratePage() {
         `;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
-        if (!isUpdate) setTimeout(() => { window.location.href = '/library'; }, 1500);
+        setTimeout(() => { window.location.href = '/library'; }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -2503,7 +2508,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     const features = [
                       { label: 'Images', icon: '🖼️', cost: 5, remaining: Math.floor(bal / 5) },
                       { label: 'Vidéos', icon: '🎬', cost: 25, remaining: Math.floor(bal / 25) },
-                      { label: 'Audio / IA', icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
+                      { label: 'Audio / Texte', icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
                     ];
 
                     const getIntensity = (remaining: number, cost: number) => {
@@ -2753,8 +2758,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             className="mt-0.5"
                           />
                           <div>
-                            <p className="text-xs font-semibold text-blue-900">✏️ Modifier cette image avec l'IA</p>
-                            <p className="text-[10px] text-blue-700">L'IA va transformer votre image selon l'actualité</p>
+                            <p className="text-xs font-semibold text-blue-900">✏️ Modifier cette image</p>
+                            <p className="text-[10px] text-blue-700">Transformez votre image selon l'actualité</p>
                           </div>
                         </label>
                       </div>
@@ -2798,7 +2803,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {/* Panel Assistant Prompt */}
             <div ref={assistantPanelRef} className="bg-white rounded-xl border p-3">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Assistant Marketing IA</h3>
+                <h3 className="text-sm font-semibold">Assistant Marketing</h3>
                 {/* Switch Actualité / Sans actualité */}
                 <div className="flex items-center gap-2">
                   <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>Sans actualité</span>
@@ -3077,7 +3082,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {autoFillLoading ? (
                         <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
                       ) : (
-                        <><span>✨</span> Remplir avec l'IA</>
+                        <><span>✨</span> Remplir automatiquement</>
                       )}
                     </button>
                   </div>
@@ -3207,7 +3212,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {autoFillLoading ? (
                         <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
                       ) : (
-                        <><span>✨</span> Remplir avec l'IA</>
+                        <><span>✨</span> Remplir automatiquement</>
                       )}
                     </button>
                   </div>
@@ -3341,7 +3346,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {autoFillLoading ? (
                         <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
                       ) : (
-                        <><span>✨</span> Remplir avec l'IA</>
+                        <><span>✨</span> Remplir automatiquement</>
                       )}
                     </button>
                   </div>
@@ -3576,7 +3581,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   : 'bg-white text-neutral-700 hover:bg-neutral-50'
                               }`}
                             >
-                              ✨ Par IA
+                              ✨ Automatique
                             </button>
                             <button
                               type="button"
@@ -3609,7 +3614,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                           {audioTextSource === 'ai' && (
                             <p className="text-[10px] text-neutral-600 italic">
-                              💡 Le texte audio sera généré automatiquement par l'IA à partir de l'actualité
+                              💡 Le texte audio sera généré automatiquement à partir de l'actualité
                             </p>
                           )}
 
@@ -3764,7 +3769,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           <p className="text-[9px] text-purple-600 italic mt-1.5">
                             {addAudio
                               ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
-                              : '💡 L\'IA génèrera automatiquement du texte adapté à la vidéo'}
+                              : '💡 Le texte sera généré automatiquement adapté à la vidéo'}
                           </p>
                         </div>
                       )}
@@ -3778,18 +3783,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       <input
                         type="range"
                         min={5}
-                        max={10}
-                        step={5}
+                        max={12}
+                        step={1}
                         value={videoDuration}
                         onChange={(e) => setVideoDuration(Number(e.target.value))}
                         className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                       />
                       <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
                         <span>5s</span>
-                        <span>10s</span>
+                        <span>8s</span>
+                        <span>12s</span>
                       </div>
                       <p className="text-[9px] text-indigo-600 mt-1 italic">
-                        💡 5-10s = idéal pour capter l'attention sur les réseaux sociaux
+                        💡 5-8s = idéal réseaux sociaux • 10-12s = storytelling
                       </p>
                     </div>
                   </>
@@ -3936,7 +3942,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           {loadingStep === 'ready' && 'Prêt !'}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          {loadingStep === 'api' && 'L\'IA crée votre visuel personnalisé'}
+                          {loadingStep === 'api' && 'Création de votre visuel personnalisé'}
                           {loadingStep === 'download' && 'Optimisation et téléchargement'}
                           {loadingStep === 'ready' && 'Votre visuel est disponible'}
                         </p>
@@ -3971,6 +3977,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         // Utiliser l'image AVEC overlays pour les garder visibles dans le studio
                         setEditVersions([generatedImageUrl]);
                         setSelectedEditVersion(generatedImageUrl);
+                        setBaseOriginalImageUrl(originalImageUrl || generatedImageUrl);
+                        setAppliedOverlaysCount(0);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >
@@ -4658,7 +4666,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   backgroundColor: textBackgroundColor,
                                   backgroundStyle,
                                 });
-                                setEditVersions([...editVersions, newVersion, withText]);
+                                setEditVersions([...editVersions, withText]);
                                 setSelectedEditVersion(withText);
                               } catch (overlayErr) {
                                 console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
@@ -4935,11 +4943,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         </div>
                       </div>
 
-                      {/* Bouton Appliquer */}
+                      {/* Bouton Appliquer / Ajouter */}
                       <button
                         onClick={async () => {
                           if (!overlayText.trim()) return;
-                          const imageToEdit = originalImageUrl || generatedImageUrl;
+                          // Si overlays deja appliques, utiliser la version avec overlays cuits
+                          const imageToEdit = appliedOverlaysCount > 0
+                            ? selectedEditVersion
+                            : (originalImageUrl || generatedImageUrl);
                           if (!imageToEdit) return;
 
                           try {
@@ -4953,8 +4964,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               backgroundStyle: backgroundStyle,
                             });
 
+                            // Cuire l'overlay dans la base
+                            setOriginalImageUrl(result);
                             setEditVersions([...editVersions, result]);
                             setSelectedEditVersion(result);
+                            setAppliedOverlaysCount(prev => prev + 1);
+                            setOverlayText(''); // Vider pour le prochain texte
                             // Auto-sauvegarder l'overlay dans la galerie
                             autoSaveEditedVersion(result);
                           } catch (error) {
@@ -4965,19 +4980,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         disabled={!overlayText.trim()}
                         className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        ✓ Appliquer le texte
+                        {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                       </button>
 
-                      {/* Bouton Supprimer le texte — revenir à l'image originale */}
+                      {/* Bouton Supprimer tout le texte — revenir à l'image originale propre */}
                       <button
                         onClick={() => {
-                          const originalImg = originalImageUrl || generatedImageUrl;
-                          if (!originalImg) return;
+                          const cleanImg = baseOriginalImageUrl || generatedImageUrl;
+                          if (!cleanImg) return;
+                          setOriginalImageUrl(cleanImg);
                           setOverlayText('');
-                          setEditVersions([...editVersions, originalImg]);
-                          setSelectedEditVersion(originalImg);
+                          setAppliedOverlaysCount(0);
+                          setEditVersions([...editVersions, cleanImg]);
+                          setSelectedEditVersion(cleanImg);
                           // Auto-sauvegarder sans overlay
-                          autoSaveEditedVersion(originalImg);
+                          autoSaveEditedVersion(cleanImg);
                         }}
                         className="w-full py-2 mt-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
                       >
@@ -5592,7 +5609,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 backgroundColor: textBackgroundColor,
                                 backgroundStyle,
                               });
-                              setEditVersions([...editVersions, newVersion, withText]);
+                              setEditVersions([...editVersions, withText]);
                               setSelectedEditVersion(withText);
                             } catch (overlayErr) {
                               console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
@@ -5865,11 +5882,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </div>
                     </div>
 
-                    {/* Bouton Appliquer */}
+                    {/* Bouton Appliquer / Ajouter */}
                     <button
                       onClick={async () => {
                         if (!overlayText.trim()) return;
-                        const imageToEdit = originalImageUrl || generatedImageUrl;
+                        const imageToEdit = appliedOverlaysCount > 0
+                          ? selectedEditVersion
+                          : (originalImageUrl || generatedImageUrl);
                         if (!imageToEdit) return;
 
                         try {
@@ -5883,9 +5902,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             backgroundStyle: backgroundStyle,
                           });
 
+                          setOriginalImageUrl(result);
                           setEditVersions([...editVersions, result]);
                           setSelectedEditVersion(result);
-                          // Auto-sauvegarder l'overlay dans la galerie
+                          setAppliedOverlaysCount(prev => prev + 1);
+                          setOverlayText('');
                           autoSaveEditedVersion(result);
                         } catch (error) {
                           console.error('Error applying text overlay:', error);
@@ -5895,19 +5916,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       disabled={!overlayText.trim()}
                       className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      ✓ Appliquer le texte
+                      {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                     </button>
 
-                    {/* Bouton Supprimer le texte */}
+                    {/* Bouton Supprimer tout le texte */}
                     <button
                       onClick={() => {
-                        const originalImg = originalImageUrl || generatedImageUrl;
-                        if (!originalImg) return;
+                        const cleanImg = baseOriginalImageUrl || generatedImageUrl;
+                        if (!cleanImg) return;
+                        setOriginalImageUrl(cleanImg);
                         setOverlayText('');
-                        setEditVersions([...editVersions, originalImg]);
-                        setSelectedEditVersion(originalImg);
-                        // Auto-sauvegarder sans overlay
-                        autoSaveEditedVersion(originalImg);
+                        setAppliedOverlaysCount(0);
+                        setEditVersions([...editVersions, cleanImg]);
+                        setSelectedEditVersion(cleanImg);
+                        autoSaveEditedVersion(cleanImg);
                       }}
                       className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
                     >

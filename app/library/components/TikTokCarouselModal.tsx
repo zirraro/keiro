@@ -553,7 +553,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                   placeholder="Ex: tendance, behind the scenes, astuce rapide..."
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Bouton suggérer IA */}

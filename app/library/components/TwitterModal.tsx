@@ -422,7 +422,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Modifier l'image avec l'IA
+                        Modifier l'image
                       </button>
                     )}
                     {/* Engagement */}
@@ -468,7 +468,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   placeholder="Ex: breaking news, opinion, thread..."
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez l'IA avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
               </div>
 
               {/* Suggest */}

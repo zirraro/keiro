@@ -37,7 +37,7 @@ export default function InstagramPreviewCard({ user, isGuest, draftCount, onOpen
                 Studio de Publication Instagram
               </h2>
               <p className="text-white/90 text-sm sm:text-base leading-relaxed mb-3 max-w-2xl">
-                Créez des posts professionnels avec l'IA : suggestions de descriptions, hashtags optimisés et gestion de brouillons.
+                Créez des posts professionnels : suggestions de descriptions, hashtags optimisés et gestion de brouillons.
               </p>
 
               {/* Features list - version compacte */}
@@ -46,7 +46,7 @@ export default function InstagramPreviewCard({ user, isGuest, draftCount, onOpen
                   <svg className="w-4 h-4 text-green-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-xs font-medium">Suggestions IA</span>
+                  <span className="text-xs font-medium">Suggestions</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-white/90">
                   <svg className="w-4 h-4 text-green-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

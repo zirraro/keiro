@@ -302,7 +302,7 @@ function StudioContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
             </svg>
             <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              Studio d'Édition IA
+              Studio d'Édition
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-3">
@@ -312,7 +312,7 @@ function StudioContent() {
             </span>
           </h1>
           <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
-            Éditez, retouchez et personnalisez vos images en quelques clics grâce à notre IA avancée
+            Éditez, retouchez et personnalisez vos images en quelques clics en quelques clics
           </p>
         </div>
 
@@ -505,7 +505,7 @@ function StudioContent() {
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-                Édition IA
+                Édition
                 {editProvider && (
                   <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                 )}
@@ -575,7 +575,7 @@ function StudioContent() {
                   <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>Soyez précis pour de meilleurs résultats. L'IA va interpréter votre demande et modifier l'image.</span>
+                  <span>Soyez précis pour de meilleurs résultats. Votre demande sera interprétée pour modifier l'image.</span>
                 </p>
               </div>
 
@@ -599,7 +599,7 @@ function StudioContent() {
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      Transformer avec l'IA
+                      Transformer
                     </>
                   )}
                 </span>

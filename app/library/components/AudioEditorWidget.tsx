@@ -178,7 +178,7 @@ export default function AudioEditorWidget({
             disabled={loadingSuggestions}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:text-neutral-400"
           >
-            {loadingSuggestions ? 'Chargement...' : 'Suggestions IA'}
+            {loadingSuggestions ? 'Chargement...' : 'Suggestions'}
           </button>
         </div>
 
@@ -253,7 +253,7 @@ Max ~15 mots pour 5 secondes"
         <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-neutral-700">
-              Suggestions IA
+              Suggestions
             </p>
             <button
               onClick={() => setShowSuggestions(false)}
@@ -344,7 +344,7 @@ Max ~15 mots pour 5 secondes"
       </div>
 
       <p className="text-xs text-neutral-500 italic">
-        Astuce: Utilisez "Suggestions IA" pour des scripts optimisés
+        Astuce: Utilisez "Suggestions" pour des scripts optimisés
       </p>
     </div>
   );
