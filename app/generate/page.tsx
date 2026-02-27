@@ -416,7 +416,7 @@ export default function GeneratePage() {
   const [editVersions, setEditVersions] = useState<string[]>([]);
   const [selectedEditVersion, setSelectedEditVersion] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
-  const [editMode, setEditMode] = useState<'precise' | 'creative'>('precise');
+  const [editStrength, setEditStrength] = useState(5.5);
   const [editingImage, setEditingImage] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'text' | 'versions'>('image');
@@ -1604,11 +1604,30 @@ export default function GeneratePage() {
             }
           }
 
+          // Convertir data URL en URL Supabase pour éviter 413
+          let autoSaveImageUrl = finalImageUrl;
+          if (finalImageUrl.startsWith('data:')) {
+            try {
+              const blob = await fetch(finalImageUrl).then(r => r.blob());
+              const fname = `${user.id}/${Date.now()}_gen_${Math.random().toString(36).substring(7)}.png`;
+              const { error: upErr } = await supabaseClient.storage
+                .from('generated-images')
+                .upload(fname, blob, { contentType: 'image/png', upsert: false });
+              if (!upErr) {
+                const { data: { publicUrl } } = supabaseClient.storage.from('generated-images').getPublicUrl(fname);
+                autoSaveImageUrl = publicUrl;
+                console.log('[Generate] Auto-save: uploaded to Supabase:', publicUrl);
+              }
+            } catch (e) {
+              console.warn('[Generate] Auto-save upload failed:', e);
+            }
+          }
+
           const saveResponse = await fetch('/api/library/save', {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              imageUrl: finalImageUrl,
+              imageUrl: autoSaveImageUrl,
               originalImageUrl: originalCleanUrl,
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
@@ -4501,35 +4520,33 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         )}
                       </div>
 
-                      {/* Mode sélection */}
+                      {/* Slider force de modification */}
                       <div className="mb-4">
-                        <p className="text-sm font-medium mb-2">Mode de modification :</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditMode('precise')}
-                            className={`flex-1 text-sm px-4 py-3 rounded-lg font-medium min-h-[44px] transition-colors ${
-                              editMode === 'precise'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
-                            }`}
-                          >
-                            🎯 Précise
-                          </button>
-                          <button
-                            onClick={() => setEditMode('creative')}
-                            className={`flex-1 text-sm px-4 py-3 rounded-lg font-medium min-h-[44px] transition-colors ${
-                              editMode === 'creative'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
-                            }`}
-                          >
-                            ✨ Créative
-                          </button>
+                        <p className="text-sm font-medium mb-2">
+                          Force de modification : <span className="text-purple-600 font-bold">
+                            {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                          </span>
+                        </p>
+                        <input
+                          type="range"
+                          min={3}
+                          max={10}
+                          step={0.5}
+                          value={editStrength}
+                          onChange={(e) => setEditStrength(Number(e.target.value))}
+                          className="w-full accent-purple-600"
+                        />
+                        <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                          <span>Subtile</span>
+                          <span>Modérée</span>
+                          <span>Forte</span>
                         </div>
-                        <p className="text-xs text-purple-700 mt-2">
-                          {editMode === 'precise'
-                            ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
-                            : '✨ Permet des transformations plus importantes et créatives'}
+                        <p className="text-xs text-neutral-500 mt-2">
+                          {editStrength <= 5
+                            ? 'Retouches légères : lumière, couleurs, détails fins'
+                            : editStrength <= 7
+                            ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
+                            : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
                         </p>
                       </div>
 
@@ -4544,9 +4561,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           rows={5}
                           className="w-full text-base rounded-lg border-2 border-purple-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                           placeholder={
-                            editMode === 'precise'
-                              ? 'Ex: Améliorer la lumière naturelle, saturer les couleurs chaudes, ajouter du contraste, flouter légèrement l\'arrière-plan...'
-                              : 'Ex: Style vintage années 80, ambiance golden hour, effet peinture impressionniste, look magazine luxe...'
+                            editStrength <= 5
+                              ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste, flouter l\'arrière-plan...'
+                              : editStrength <= 7
+                              ? 'Ex: Ajouter des plantes, changer le fond en bleu, remplacer le sol par du bois...'
+                              : 'Ex: Style vintage années 80, ambiance golden hour, look magazine luxe, changer complètement l\'ambiance...'
                           }
                         />
                         <div className="flex items-start gap-2 mt-2">
@@ -4608,14 +4627,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               }
                             }
 
-                            // Appeler l'API Seedream 3.0 i2i
+                            // Appeler l'API Seedream 4.5 i2i
                             const res = await fetch('/api/seedream/i2i', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
                                 prompt: editPrompt,
                                 image: imageForApi,
-                                guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
+                                guidance_scale: editStrength,
                               }),
                             });
 
@@ -5444,36 +5463,27 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       )}
                     </div>
 
-                    {/* Mode d'édition */}
+                    {/* Slider force de modification */}
                     <div className="mb-3">
-                      <p className="text-xs font-medium mb-1.5">Mode de modification :</p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditMode('precise')}
-                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
-                            editMode === 'precise'
-                              ? 'bg-purple-600 text-white font-medium'
-                              : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
-                          }`}
-                        >
-                          🎯 Précise
-                        </button>
-                        <button
-                          onClick={() => setEditMode('creative')}
-                          className={`flex-1 text-[10px] px-2 py-1.5 rounded transition ${
-                            editMode === 'creative'
-                              ? 'bg-purple-600 text-white font-medium'
-                              : 'bg-white text-purple-800 border border-purple-300 hover:bg-purple-100'
-                          }`}
-                        >
-                          ✨ Créative
-                        </button>
-                      </div>
-                      <p className="text-[9px] text-purple-700 mt-1">
-                        {editMode === 'precise'
-                          ? '🎯 Modifie des détails spécifiques en gardant l\'image proche de l\'original'
-                          : '✨ Permet des transformations plus importantes et créatives'}
+                      <p className="text-xs font-medium mb-1.5">
+                        Force : <span className="text-purple-600 font-bold">
+                          {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                        </span>
                       </p>
+                      <input
+                        type="range"
+                        min={3}
+                        max={10}
+                        step={0.5}
+                        value={editStrength}
+                        onChange={(e) => setEditStrength(Number(e.target.value))}
+                        className="w-full accent-purple-600"
+                      />
+                      <div className="flex justify-between text-[9px] text-neutral-400 mt-0.5">
+                        <span>Subtile</span>
+                        <span>Modérée</span>
+                        <span>Forte</span>
+                      </div>
                     </div>
 
                     {/* Prompt de modification */}
@@ -5485,9 +5495,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         value={editPrompt}
                         onChange={(e) => setEditPrompt(e.target.value)}
                         placeholder={
-                          editMode === 'precise'
-                            ? 'Ex: Améliorer lumière, saturer couleurs, ajouter contraste, flouter arrière-plan...'
-                            : 'Ex: Style vintage 80s, ambiance golden hour, effet peinture, look magazine luxe...'
+                          editStrength <= 5
+                            ? 'Ex: Améliorer lumière, saturer couleurs, ajouter contraste...'
+                            : editStrength <= 7
+                            ? 'Ex: Ajouter des plantes, changer le fond en bleu...'
+                            : 'Ex: Style vintage 80s, ambiance golden hour, look magazine luxe...'
                         }
                         rows={4}
                         className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -5556,7 +5568,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             body: JSON.stringify({
                               prompt: editPrompt,
                               image: imageForApi,
-                              guidance_scale: editMode === 'precise' ? 5.5 : 7.5,
+                              guidance_scale: editStrength,
                             }),
                           });
 

@@ -24,6 +24,8 @@ function StudioContent() {
   const [originalImage, setOriginalImage] = useState(searchParams.get("image") || "");
   const [loadedImage, setLoadedImage] = useState(searchParams.get("image") || "");
   const [editPrompt, setEditPrompt] = useState("");
+  const [editStrength, setEditStrength] = useState(5.5);
+  const [editProvider, setEditProvider] = useState<string>('');
   const [editingImage, setEditingImage] = useState(false);
   const [editedImages, setEditedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -260,7 +262,7 @@ function StudioContent() {
         body: JSON.stringify({
           imageUrl: imageToSend,
           prompt: editPrompt,
-          strength: 0.5,
+          guidance_scale: editStrength,
         }),
       });
 
@@ -269,6 +271,7 @@ function StudioContent() {
       }
 
       const data = await res.json();
+      if (data._p) setEditProvider(data._p);
       if (data.imageUrl) {
         setEditedImages([...editedImages, data.imageUrl]);
         setLoadedImage(data.imageUrl);
@@ -501,10 +504,47 @@ function StudioContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Édition IA</h2>
+              <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+                Édition IA
+                {editProvider && (
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                    {editProvider === 'k' ? 'Kling' : 'Seedream'}
+                  </span>
+                )}
+              </h2>
             </div>
 
             <div className="space-y-6">
+              {/* Slider force de modification */}
+              <div>
+                <p className="text-sm font-semibold text-neutral-700 mb-2">
+                  Force de modification : <span className="text-purple-600 font-bold">
+                    {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                  </span>
+                </p>
+                <input
+                  type="range"
+                  min={3}
+                  max={10}
+                  step={0.5}
+                  value={editStrength}
+                  onChange={(e) => setEditStrength(Number(e.target.value))}
+                  className="w-full accent-purple-600"
+                />
+                <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                  <span>Subtile</span>
+                  <span>Modérée</span>
+                  <span>Forte</span>
+                </div>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {editStrength <= 5
+                    ? 'Retouches légères : lumière, couleurs, détails fins'
+                    : editStrength <= 7
+                    ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
+                    : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
                   <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,7 +556,13 @@ function StudioContent() {
                   <textarea
                     value={editPrompt}
                     onChange={(e) => setEditPrompt(e.target.value)}
-                    placeholder="Ex: Rendre le ciel plus bleu, ajouter un logo en haut à droite, changer les couleurs en tons pastels..."
+                    placeholder={
+                      editStrength <= 5
+                        ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
+                        : editStrength <= 7
+                        ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever un objet...'
+                        : 'Ex: Style vintage 80s, ambiance golden hour, transformer en peinture...'
+                    }
                     rows={6}
                     disabled={!loadedImage || editingImage}
                     className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all disabled:bg-neutral-100 disabled:cursor-not-allowed resize-none"

@@ -88,9 +88,21 @@ export async function POST(request: Request) {
     let resultImageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Pour I2I, utiliser le prompt d'édition DIRECTEMENT ---
+    // --- Pour I2I, adapter le prompt selon la force de modification ---
     const finalPrompt = prompt.trim();
-    console.log('[I2I] Edit prompt (direct):', finalPrompt);
+    const strength = guidance_scale || 5.5;
+
+    // Prompt adaptatif : plus la force est basse, plus on insiste sur la préservation
+    let editPrefix: string;
+    if (strength <= 5) {
+      editPrefix = `Make a SUBTLE edit to this image. Keep EVERYTHING exactly the same — same composition, same subject, same background, same colors, same lighting. Only make this small adjustment: `;
+    } else if (strength <= 7) {
+      editPrefix = `EDIT this image. Keep the same overall composition and main subject. Apply this modification: `;
+    } else {
+      editPrefix = `CREATIVELY TRANSFORM this image while keeping the main subject recognizable. Apply this significant change: `;
+    }
+
+    console.log('[I2I] Edit prompt (strength:', strength, '):', finalPrompt);
 
     // --- Seedream 4.5 en premier, Kling omni-image en fallback ---
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
@@ -98,7 +110,7 @@ export async function POST(request: Request) {
       console.log('[I2I] Generating with Seedream 4.5...');
       const seedreamBody: any = {
         model: 'seedream-4-5-251128',
-        prompt: `EDIT the provided image. Keep the SAME composition, SAME subject, SAME background. Only apply this modification: ${seedreamPrompt}`,
+        prompt: `${editPrefix}${seedreamPrompt}`,
         response_format: 'url',
         watermark: false,
         size: size || 'adaptive',

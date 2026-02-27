@@ -52,6 +52,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
   // === AI Edit state ===
   const [prompt, setPrompt] = useState('');
+  const [editStrength, setEditStrength] = useState(5.5);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiEditedUrl, setAiEditedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
       const res = await fetch('/api/seedream/i2i', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), imageUrl }),
+        body: JSON.stringify({ prompt: prompt.trim(), imageUrl, guidance_scale: editStrength }),
       });
       const data = await res.json();
       if (!data.ok) {
@@ -400,6 +401,36 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           {/* === AI EDIT TAB === */}
           {activeTab === 'ai' && (
             <div className="space-y-3">
+              {/* Slider force de modification */}
+              <div>
+                <p className="text-sm font-medium mb-1.5">
+                  Force : <span className="text-purple-600 font-bold">
+                    {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                  </span>
+                </p>
+                <input
+                  type="range"
+                  min={3}
+                  max={10}
+                  step={0.5}
+                  value={editStrength}
+                  onChange={(e) => setEditStrength(Number(e.target.value))}
+                  className="w-full accent-purple-600"
+                />
+                <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
+                  <span>Subtile</span>
+                  <span>Modérée</span>
+                  <span>Forte</span>
+                </div>
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  {editStrength <= 5
+                    ? 'Retouches légères : lumière, couleurs, détails'
+                    : editStrength <= 7
+                    ? 'Modifications visibles : ajout/suppression d\'éléments'
+                    : 'Transformations créatives : changement de style ou composition'}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">
                   Décrivez les modifications souhaitées
@@ -407,7 +438,13 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex: Enlève le texte, ajoute plus de lumière, change le fond en bleu..."
+                  placeholder={
+                    editStrength <= 5
+                      ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
+                      : editStrength <= 7
+                      ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever le texte...'
+                      : 'Ex: Style vintage, ambiance golden hour, transformer en peinture...'
+                  }
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   rows={3}
                   disabled={aiLoading}
