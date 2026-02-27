@@ -98,8 +98,9 @@ export async function POST(request: Request) {
       console.log('[I2I] Generating with Seedream 4.5...');
       const seedreamBody: any = {
         model: 'seedream-4-5-251128',
-        prompt: seedreamPrompt,
+        prompt: `EDIT the provided image. Keep the SAME composition, SAME subject, SAME background. Only apply this modification: ${seedreamPrompt}`,
         response_format: 'url',
+        watermark: false,
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,

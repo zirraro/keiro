@@ -395,6 +395,7 @@ export default function GeneratePage() {
   const [videoDuration, setVideoDuration] = useState(5);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
   const [lastProvider, setLastProvider] = useState<string>('');
+  const [lastVideoProvider, setLastVideoProvider] = useState<string>('');
 
   /* --- États pour la génération audio TTS --- */
   const [addAudio, setAddAudio] = useState(false);
@@ -2009,12 +2010,40 @@ export default function GeneratePage() {
     setLastSavedVideoId(null);
 
     try {
-      // Construire le prompt vidéo enrichi
+      // Construire le prompt vidéo enrichi — même logique que le prompt image
+      const videoRenderStyle = renderStyle === 'illustration'
+        ? 'Stylized 3D illustration, digital art, colorful animated style'
+        : 'PHOTOREALISTIC footage, real camera, real textures, real lighting — NOT animation, NOT illustration';
+      const videoCharStyle = characterStyle === 'fiction'
+        ? 'animated fictional characters (3D or stylized)'
+        : 'real diverse humans (varied ethnicities, ages)';
+
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
-        videoPrompt = `Create a professional ${videoDuration}-second social media video. Topic: ${selectedNews.title}. ${(selectedNews as any).description ? `Context: ${(selectedNews as any).description}.` : ''} Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics. IMPORTANT: Do NOT include any text, letters, words, titles or typography in the video. Pure visual content only.`;
+        videoPrompt = `${videoDuration}-second social media video. ${videoRenderStyle}.
+
+BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}.
+NEWS: "${selectedNews.title}"${(selectedNews as any).description ? `. ${(selectedNews as any).description.substring(0, 200)}` : ''}.
+
+NARRATIVE LINK: Show HOW "${businessType}" REACTS to or is AFFECTED by this news. Show the business IN ACTION while the news context is visible in the environment — objects, atmosphere, decorations, behavior.
+Both business AND news must be recognizable. ONE unified scene, not two separate shots.
+
+Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
+Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
+${storyToTell ? `Story: ${storyToTell}.` : ''}
+Camera: smooth cinematic movement, professional quality.
+ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
       } else {
-        videoPrompt = `Create a professional ${videoDuration}-second social media video. Business: ${businessType}. ${businessDescription ? `About: ${businessDescription}.` : ''} ${targetAudience ? `Target audience: ${targetAudience}.` : ''} Visual style: ${visualStyle}, mood: ${tone}. High quality, engaging, modern motion graphics showcasing business identity. IMPORTANT: Do NOT include any text, letters, words, titles or typography in the video. Pure visual content only.`;
+        videoPrompt = `${videoDuration}-second social media video. ${videoRenderStyle}.
+
+BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}.
+
+Show this business at its BEST — products, environment, team, customers, the experience it delivers.
+Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
+Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
+${storyToTell ? `Story: ${storyToTell}.` : ''}
+Camera: smooth cinematic movement, professional quality.
+ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
@@ -2113,7 +2142,8 @@ export default function GeneratePage() {
       }
 
       setVideoTaskId(data.taskId);
-      console.log('[Video] Task created:', data.taskId);
+      if (data._p) setLastVideoProvider(data._p);
+      console.log('[Video] Task created:', data.taskId, 'Provider:', data._p === 'k' ? 'Kling' : 'Seedance');
 
       // Polling pour vérifier le statut avec gestion d'erreur améliorée
       // Longer videos need more polling time
@@ -2135,6 +2165,7 @@ export default function GeneratePage() {
 
           const statusData = await statusRes.json();
           console.log('[Video] Status check response:', statusData);
+          if (statusData._p) setLastVideoProvider(statusData._p);
 
           if (statusData.status === 'completed') {
             if (statusData.videoUrl) {
@@ -3458,7 +3489,7 @@ export default function GeneratePage() {
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       }`}
                     >
-                      Humains réels variés
+                      Humains
                     </button>
                     <button
                       onClick={() => setCharacterStyle('fiction')}
@@ -3803,10 +3834,9 @@ export default function GeneratePage() {
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   Visuel
                   {lastProvider && (
-                    <span
-                      title={lastProvider === 'k' ? 'Kling' : 'Seedream'}
-                      className={`w-2 h-2 rounded-full ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-400'}`}
-                    />
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                      {lastProvider === 'k' ? 'Kling' : 'Seedream'}
+                    </span>
                   )}
                 </h3>
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
@@ -3976,8 +4006,12 @@ export default function GeneratePage() {
             {generatedVideoUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
                   Vidéo générée
+                  {lastVideoProvider && (
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                      {lastVideoProvider === 'k' ? 'Kling' : 'Seedance'}
+                    </span>
+                  )}
                 </h3>
                 <div className={`relative w-full bg-neutral-900 rounded border overflow-hidden ${
                   videoAspectRatio === '9:16' ? 'aspect-[9/16] max-h-[500px] mx-auto'
@@ -4260,12 +4294,19 @@ export default function GeneratePage() {
 
             {/* Indicateur de génération vidéo en cours */}
             {generatingVideo && !generatedVideoUrl && (
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 p-4">
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                   <div>
-                    <p className="text-sm font-semibold text-purple-900">Génération vidéo en cours</p>
-                    <p className="text-xs text-purple-600">{videoProgress}</p>
+                    <p className="text-sm font-semibold text-orange-900 flex items-center gap-2">
+                      Génération vidéo en cours
+                      {lastVideoProvider && (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                          {lastVideoProvider === 'k' ? 'Kling' : 'Seedance'}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-orange-600">{videoProgress}</p>
                   </div>
                 </div>
               </div>
@@ -4288,10 +4329,9 @@ export default function GeneratePage() {
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   Studio d'Édition
                   {lastProvider && (
-                    <span
-                      title={lastProvider === 'k' ? 'Kling' : 'Seedream'}
-                      className={`w-2.5 h-2.5 rounded-full ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-400'}`}
-                    />
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                      {lastProvider === 'k' ? 'Kling' : 'Seedream'}
+                    </span>
                   )}
                 </h2>
                 <button
