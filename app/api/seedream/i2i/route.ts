@@ -108,6 +108,14 @@ export async function POST(request: Request) {
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
     try {
       console.log('[I2I] Generating with SeedEdit 3.0 I2I...');
+      // Utiliser le base64 pour SeedEdit (les serveurs BytePlus n'accèdent pas toujours aux URLs externes)
+      const imageForSeedEdit = imageBase64.startsWith('data:')
+        ? imageBase64
+        : sourceImage.startsWith('http') || sourceImage.startsWith('data:')
+          ? sourceImage
+          : `data:image/jpeg;base64,${sourceImage}`;
+      console.log('[I2I] Image format for SeedEdit:', imageForSeedEdit.substring(0, 50) + '...');
+
       const seedreamBody: any = {
         model: 'seededit-3-0-i2i-250628',
         prompt: `${editPrefix}${seedreamPrompt}`,
@@ -116,9 +124,7 @@ export async function POST(request: Request) {
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,
-        image: sourceImage.startsWith('http') || sourceImage.startsWith('data:')
-          ? sourceImage
-          : `data:image/jpeg;base64,${sourceImage}`,
+        image: imageForSeedEdit,
       };
 
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
@@ -152,7 +158,7 @@ export async function POST(request: Request) {
       provider = 's';
       console.log('[I2I] ✓ SeedEdit 3.0 generated successfully');
     } catch (seedreamError: any) {
-      console.error('[I2I] Seedream failed, falling back to Kling:', seedreamError.message);
+      console.error('[I2I] SeedEdit failed, falling back to Kling. Error:', seedreamError.message);
 
       // Fallback Kling omni-image
       try {

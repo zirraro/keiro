@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     // Non-connecté = gratuit (pas de déduction crédits)
 
     const body = await req.json();
-    const { newsTitle, newsDescription, businessType, businessDescription, communicationProfile, targetAudience } = body;
+    const { newsTitle, newsDescription, businessType, businessDescription, communicationProfile, targetAudience, contentFocus = 50 } = body;
 
     if (!businessType) {
       return NextResponse.json({ ok: false, error: 'Business type requis' }, { status: 400 });
@@ -92,6 +92,7 @@ CONTEXTE:
 - ${newsContext}
 - Communication: ${communicationProfile || 'inspirant'}
 ${targetAudience ? `- Cible: ${targetAudience}` : ''}
+- Orientation: ${contentFocus <= 30 ? 'BUSINESS-DOMINANT — le business est le héros, l\'actu est un contexte subtil' : contentFocus >= 70 ? 'ACTUALITÉ-DOMINANTE — l\'actu est au premier plan, le business est participant' : 'ÉQUILIBRÉE — poids égal entre business et actualité'} (${100 - contentFocus}% business, ${contentFocus}% actualité)
 
 ${hasNews ? `ÉTAPE 1 — COMPRENDS L'ACTU EXACTE:
 Lis attentivement le titre "${newsTitle}" et les détails.

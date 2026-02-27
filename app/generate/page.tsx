@@ -265,6 +265,7 @@ export default function GeneratePage() {
   const [contentAngle, setContentAngle] = useState(''); // Angle du contenu (éditorial)
   const [storyToTell, setStoryToTell] = useState(''); // Nouvel état : histoire à raconter
   const [publicationGoal, setPublicationGoal] = useState(''); // Nouvel état : but de la publication
+  const [contentFocus, setContentFocus] = useState(50); // 0=100% business, 100=100% actualité
   const [emotionToConvey, setEmotionToConvey] = useState(''); // Nouvel état : émotion à transmettre
   const [optionalText, setOptionalText] = useState(''); // Nouvel état : texte à ajouter (optionnel)
   const [textSuggestions, setTextSuggestions] = useState<string[]>([]); // Suggestions de texte intelligentes
@@ -580,6 +581,7 @@ export default function GeneratePage() {
         if (state.problemSolved) setProblemSolved(state.problemSolved);
         if (state.uniqueAdvantage) setUniqueAdvantage(state.uniqueAdvantage);
         if (state.desiredVisualIdea) setDesiredVisualIdea(state.desiredVisualIdea);
+        if (state.contentFocus !== undefined) setContentFocus(state.contentFocus);
 
         // Nettoyer après restauration
         localStorage.removeItem(storageKey);
@@ -651,6 +653,7 @@ export default function GeneratePage() {
         problemSolved,
         uniqueAdvantage,
         desiredVisualIdea,
+        contentFocus,
         savedAt: new Date().toISOString()
       };
 
@@ -680,6 +683,7 @@ export default function GeneratePage() {
     problemSolved,
     uniqueAdvantage,
     desiredVisualIdea,
+    contentFocus,
     authUserId
   ]);
 
@@ -872,6 +876,7 @@ export default function GeneratePage() {
           businessDescription,
           communicationProfile,
           targetAudience,
+          contentFocus,
         }),
       });
       const data = await res.json();
@@ -1127,15 +1132,32 @@ export default function GeneratePage() {
           newsVisualCues = 'contextual environmental details reflecting current events, dynamic urban or natural backdrop elements, visible human activity and energy';
         }
 
+        // Adapter le poids business/actu selon le curseur contentFocus
+        const businessWeight = 100 - contentFocus; // % business
+        const newsWeight = contentFocus; // % actualité
+        const focusLabel = contentFocus <= 30 ? 'BUSINESS-DOMINANT'
+          : contentFocus >= 70 ? 'NEWS-DOMINANT'
+          : 'BALANCED';
+
+        let focusInstruction = '';
+        if (contentFocus <= 30) {
+          focusInstruction = `PRIORITY: The business "${businessType}" is the HERO of this image. The news context is subtle, just a hint in the environment. The viewer sees the business FIRST.`;
+        } else if (contentFocus >= 70) {
+          focusInstruction = `PRIORITY: The news event is the HERO of this image. The business "${businessType}" appears as a participant/observer within the news context. The viewer feels the news impact FIRST.`;
+        } else {
+          focusInstruction = `BALANCE: Equal visual weight between the business and the news. Both are clearly visible and connected.`;
+        }
+
         promptParts.push(
-          `\n\nSCENE: A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} reacting to this news: "${selectedNews.title}"\n` +
+          `\n\nSCENE (${focusLabel}): A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} reacting to this news: "${selectedNews.title}"\n` +
           (selectedNews.description ? `What happened: ${selectedNews.description.substring(0, 300)}\n` : '') +
+          `\n${focusInstruction}\n` +
           `\nNARRATIVE BRIDGE: Show HOW this specific business is AFFECTED by or RESPONDS to this specific news event.\n` +
           `Think: What would a photographer capture if they visited "${businessType}" the day this news broke?\n\n` +
-          `FOREGROUND (the business — 50%):\n` +
+          `FOREGROUND (the business — ${businessWeight}%):\n` +
           `- "${businessType}" in action: its products, tools, workspace, team, customers\n` +
           `- Must be IMMEDIATELY recognizable as this specific type of business\n\n` +
-          `BACKGROUND & CONTEXT (the news — 50%):\n` +
+          `BACKGROUND & CONTEXT (the news — ${newsWeight}%):\n` +
           `- The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
           `- These elements appear naturally IN the business scene: on shelves, as decorations, worn by people, in the environment\n\n` +
           `THE LINK:\n` +
@@ -3086,6 +3108,38 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       )}
                     </button>
                   </div>
+
+                  {/* Curseur orientation business/actualité */}
+                  {useNewsMode && selectedNews && (
+                  <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                    <label className="block text-xs font-semibold mb-2 text-neutral-700">
+                      Orientation du visuel
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 Business</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={contentFocus}
+                        onChange={(e) => setContentFocus(Number(e.target.value))}
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                        style={{
+                          background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)`,
+                        }}
+                      />
+                      <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 Actualité</span>
+                    </div>
+                    <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
+                      {contentFocus <= 30
+                        ? '🏢 Votre business au premier plan, actualité en toile de fond'
+                        : contentFocus >= 70
+                        ? '📰 L\'actualité au premier plan, votre business en contexte'
+                        : '⚖️ Équilibre entre votre business et l\'actualité'}
+                    </p>
+                  </div>
+                  )}
 
                   {/* Angle de l'image */}
                   <div className="mb-2">
