@@ -104,19 +104,19 @@ export async function POST(request: Request) {
 
     console.log('[I2I] Edit prompt (strength:', strength, '):', finalPrompt);
 
-    // --- Seedream 4.5 en premier, Kling omni-image en fallback ---
+    // --- SeedEdit 3.0 I2I dédié en premier, Kling omni-image en fallback ---
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
     try {
-      console.log('[I2I] Generating with Seedream 4.5...');
+      console.log('[I2I] Generating with SeedEdit 3.0 I2I...');
       const seedreamBody: any = {
-        model: 'seedream-4-5-251128',
+        model: 'seededit-3-0-i2i-250628',
         prompt: `${editPrefix}${seedreamPrompt}`,
         response_format: 'url',
         watermark: false,
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,
-        image_url: sourceImage.startsWith('http') || sourceImage.startsWith('data:')
+        image: sourceImage.startsWith('http') || sourceImage.startsWith('data:')
           ? sourceImage
           : `data:image/jpeg;base64,${sourceImage}`,
       };
@@ -133,10 +133,11 @@ export async function POST(request: Request) {
       const seedreamData = await seedreamRes.json();
 
       if (!seedreamRes.ok) {
-        throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
+        console.error('[I2I] SeedEdit error:', JSON.stringify(seedreamData).substring(0, 500));
+        throw new Error(seedreamData.error?.message || `SeedEdit HTTP ${seedreamRes.status}`);
       }
 
-      // Seedream 4.5 avec response_format=url renvoie une URL, sinon b64_image
+      // SeedEdit avec response_format=url renvoie une URL, sinon b64_image
       const resultUrl = seedreamData.data?.[0]?.url;
       const resultB64 = seedreamData.data?.[0]?.b64_image;
 
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
       }
 
       provider = 's';
-      console.log('[I2I] ✓ Seedream 4.5 generated successfully');
+      console.log('[I2I] ✓ SeedEdit 3.0 generated successfully');
     } catch (seedreamError: any) {
       console.error('[I2I] Seedream failed, falling back to Kling:', seedreamError.message);
 

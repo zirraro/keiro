@@ -239,9 +239,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1.5">
                   {activeTab === 'text' ? 'Aperçu' : 'Modifié'}
                   {activeTab === 'ai' && editProvider && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                      {editProvider === 'k' ? 'Kling' : 'Seedream'}
-                    </span>
+                    <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </p>
                 <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300">

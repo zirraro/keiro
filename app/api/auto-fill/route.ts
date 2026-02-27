@@ -39,25 +39,53 @@ export async function POST(req: NextRequest) {
       ? `Actualité sélectionnée: "${newsTitle}"${newsDescription ? `\nDétails: ${newsDescription.substring(0, 300)}` : ''}`
       : 'Pas d\'actualité sélectionnée — génère des réponses centrées sur le business uniquement.';
 
-    // Direction créative aléatoire pour forcer la variété à chaque appel
-    const DIRECTIONS = [
+    // 2 dimensions créatives aléatoires pour forcer la variété à chaque appel
+    const ANGLES = [
       'MACRO — gros plan extrême sur un détail, textures visibles, bokeh',
       'PANORAMA — plan large, contexte environnemental, ambiance globale',
-      'ACTION — mouvement capturé, dynamisme, énergie brute',
-      'PORTRAIT — focus sur les personnes, expressions, regard caméra',
+      'ACTION — mouvement figé, dynamisme, énergie brute',
+      'PORTRAIT — focus sur une personne, expressions, regard caméra',
       'FLAT LAY — vue du dessus, composition graphique, objets arrangés',
-      'AMBIANCE — focus sur l\'atmosphère, lumière, couleurs dominantes',
-      'COULISSES — en backstage, le processus, la fabrication, l\'envers du décor',
-      'CONTRASTE — opposition visuelle, lumière/ombre, grand/petit, neuf/ancien',
-      'EMOTION — l\'instant décisif, la réaction humaine, le sourire, la surprise',
+      'COULISSES — en backstage, processus de fabrication, envers du décor',
+      'CONTRASTE — opposition visuelle, lumière/ombre, ancien/nouveau',
       'GRAPHIQUE — composition géométrique, lignes fortes, minimalisme',
+      'CINÉMATIQUE — cadrage de film, profondeur de champ, storytelling visuel',
+      'DOCUMENTAIRE — pris sur le vif, authenticité, moment volé',
+      'SURPLOMBANT — vue aérienne, drone, perspective en plongée',
+      'INTIME — très proche, détail, chaleur humaine, proximité',
     ];
-    const randomDirection = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+    const MOODS = [
+      'Golden hour — lumière dorée, ombres longues',
+      'Blue hour — teintes bleues, crépuscule, néons',
+      'Clair-obscur — contrastes forts, dramatique',
+      'Brumeux — atmosphère mystérieuse, voilée',
+      'Nuit — néons, reflets, lumières artificielles',
+      'Soleil cru — ombres dures, couleurs saturées',
+      'Pastel — doux, aérien, lumineux',
+      'Industriel — brut, béton, métal, vapeur',
+      'Tropical — couleurs vives, luxuriant, exotique',
+      'Hivernal — froid, blanc, givre, vapeur du souffle',
+    ];
+    const STRATEGIES = [
+      'HUMOUR — décalage, clin d\'oeil, ironie douce',
+      'ÉMOTION — toucher au coeur, empathie, nostalgie',
+      'PROVOCATION — interpeller, bousculer, surprendre',
+      'ASPIRATION — faire rêver, inspirer, projeter',
+      'ÉDUCATION — apprendre, révéler, décrypter',
+      'AUTHENTICITÉ — coulisses, vérité, sans filtre',
+      'URGENCE — maintenant, dernière chance, exclusif',
+      'COMMUNAUTÉ — ensemble, partage, appartenance',
+    ];
+    const randomAngle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
+    const randomMood = MOODS[Math.floor(Math.random() * MOODS.length)];
+    const randomStrategy = STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)];
 
-    const prompt = `Tu es un DIRECTEUR CRÉATIF audacieux. Chaque réponse doit être UNIQUE et SURPRENANTE — jamais de clichés marketing.
+    const prompt = `Tu es un DIRECTEUR CRÉATIF de campagnes social media. Chaque réponse doit être UNIQUE, CRÉATIVE et SURPRENANTE — JAMAIS de clichés marketing, JAMAIS la même chose deux fois.
 
-DIRECTION CRÉATIVE IMPOSÉE: ${randomDirection}
-(Utilise cette direction pour TOUT : angle image, histoire, visuel)
+DIRECTION CRÉATIVE IMPOSÉE (tu DOIS l'appliquer):
+- Cadrage: ${randomAngle}
+- Ambiance: ${randomMood}
+- Stratégie: ${randomStrategy}
 
 CONTEXTE:
 - Business: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}
@@ -65,26 +93,34 @@ CONTEXTE:
 - Communication: ${communicationProfile || 'inspirant'}
 ${targetAudience ? `- Cible: ${targetAudience}` : ''}
 
-${hasNews ? `ANALYSE le lien CONCRET entre "${businessType}" et l'actu "${newsTitle}".` : `Mets en valeur "${businessType}" de façon ORIGINALE et INATTENDUE.`}
+${hasNews ? `ÉTAPE 1 — COMPRENDS L'ACTU EXACTE:
+Lis attentivement le titre "${newsTitle}" et les détails.
+Identifie: QUI fait QUOI, OÙ, et POURQUOI c'est important.
+NE CONFONDS PAS les lieux, personnes ou événements. Si c'est du sport, identifie le sport EXACT et les équipes.
 
-GÉNÈRE ce JSON (9 champs) — sois CRÉATIF et SPÉCIFIQUE, PAS générique:
+ÉTAPE 2 — TROUVE UN LIEN CRÉATIF:
+Relie "${businessType}" à cette actu SPÉCIFIQUE de façon ORIGINALE et INATTENDUE.
+Le lien doit être CONCRET, pas vague.` : `Mets en valeur "${businessType}" de façon ORIGINALE et INATTENDUE. Trouve un angle FRAIS.`}
+
+GÉNÈRE ce JSON (9 champs) — CHAQUE champ doit être CRÉATIF, SPÉCIFIQUE et DIFFÉRENT à chaque appel:
 
 {
-  "imageAngle": "[1 phrase] Cadrage PRÉCIS inspiré de la direction créative",
-  "marketingAngle": "[1 phrase] Stratégie de com ORIGINALE, pas du marketing bateau",
-  "contentAngle": "[1 phrase] Type de contenu (coulisses, défi, avant/après, témoignage, humour, comparaison, éducatif)",
-  "storyToTell": "[1-2 phrases] Le récit CONCRET et SURPRENANT ${hasNews ? 'liant business et actu' : 'valorisant le business'}",
-  "publicationGoal": "[1 phrase] Objectif PRÉCIS du post",
-  "emotionToConvey": "[2-4 mots] Émotion EXACTE à provoquer",
-  "problemSolved": "[1 phrase] Problème CONCRET résolu par ${businessType}",
-  "uniqueAdvantage": "[1 phrase] Ce qui rend ${businessType} IRREMPLAÇABLE",
-  "desiredVisualIdea": "[2-3 phrases] Scène VISUELLE CONCRÈTE — DÉCRIS ce qu'on VOIT: objets, couleurs, lumière, action, cadrage. PAS de concepts abstraits. AUCUN texte, mot, panneau, étiquette visible dans la scène."
+  "imageAngle": "[1 phrase] Cadrage photo PRÉCIS (PAS 'vue rapprochée' mais 'macro sur les doigts tenant X avec Y en arrière-plan flou')",
+  "marketingAngle": "[1 phrase] Stratégie de com ORIGINALE — PAS 'mettre en avant la qualité' mais un angle SURPRENANT",
+  "contentAngle": "[1 phrase] Format PRÉCIS: coulisses, défi, avant/après, témoignage client, comparaison inattendue, quiz, making-of, confession, erreur courante...",
+  "storyToTell": "[1-2 phrases] Le récit CONCRET et SURPRENANT ${hasNews ? 'liant business et actu — CITE des éléments SPÉCIFIQUES de l\'actu' : 'valorisant le business'}",
+  "publicationGoal": "[1 phrase] Objectif MESURABLE et PRÉCIS du post",
+  "emotionToConvey": "[2-4 mots] Émotion PRÉCISE (pas 'joie' mais 'fierté du fait-main', pas 'confiance' mais 'soulagement de trouver enfin')",
+  "problemSolved": "[1 phrase] Problème QUOTIDIEN et CONCRET résolu par ${businessType}",
+  "uniqueAdvantage": "[1 phrase] Détail SPÉCIFIQUE qui rend ${businessType} IRREMPLAÇABLE (pas des généralités)",
+  "desiredVisualIdea": "[2-3 phrases] Scène VISUELLE 100% CONCRÈTE — DÉCRIS EXACTEMENT ce qu'on VOIT: quels objets, quelles couleurs dominantes, quelle lumière, quelle action en cours, quel cadrage précis. AUCUN texte, mot, panneau, étiquette visible. ${hasNews ? 'La scène doit ILLUSTRER le lien business/actu de façon VISUELLE (pas avec du texte).' : ''}"
 }
 
-INTERDIT dans desiredVisualIdea:
-- Panneaux, enseignes, écrans avec du texte, étiquettes de prix, menus
-- Descriptions vagues ("ambiance chaleureuse", "éclairage cinématique")
-- Répéter les mêmes visuels que d'habitude
+RÈGLES ABSOLUES:
+- NE copie PAS d'exemples précédents — invente du NEUF
+- CHAQUE champ doit refléter la direction créative imposée ci-dessus
+- desiredVisualIdea: ZÉRO texte visible, ZÉRO description vague, ZÉRO cliché photo ("éclairage cinématique", "ambiance chaleureuse")
+- ${hasNews ? 'NE CONFONDS PAS le contexte de l\'actu (pays, sport, personnes)' : 'Sois SPÉCIFIQUE au business, pas générique'}
 
 Réponds UNIQUEMENT avec le JSON valide.`;
 

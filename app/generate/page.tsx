@@ -1256,7 +1256,7 @@ export default function GeneratePage() {
 
       // Log provider discret (visible dans la console navigateur)
       if (data._p) {
-        console.log(`[Generate] 🏷️ Provider: ${data._p === 'k' ? 'Kling' : 'Seedream'}`);
+        console.log(`[Generate] 🏷️ Provider: ${data._p}`);
         setLastProvider(data._p);
       }
 
@@ -2162,7 +2162,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
       setVideoTaskId(data.taskId);
       if (data._p) setLastVideoProvider(data._p);
-      console.log('[Video] Task created:', data.taskId, 'Provider:', data._p === 'k' ? 'Kling' : 'Seedance');
+      console.log('[Video] Task created:', data.taskId, 'Provider:', data._p);
 
       // Polling pour vérifier le statut avec gestion d'erreur améliorée
       // Longer videos need more polling time
@@ -3853,9 +3853,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   Visuel
                   {lastProvider && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                      {lastProvider === 'k' ? 'Kling' : 'Seedream'}
-                    </span>
+                    <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h3>
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
@@ -4027,9 +4025,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   Vidéo générée
                   {lastVideoProvider && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                      {lastVideoProvider === 'k' ? 'Kling' : 'Seedance'}
-                    </span>
+                    <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h3>
                 <div className={`relative w-full bg-neutral-900 rounded border overflow-hidden ${
@@ -4320,9 +4316,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <p className="text-sm font-semibold text-orange-900 flex items-center gap-2">
                       Génération vidéo en cours
                       {lastVideoProvider && (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                          {lastVideoProvider === 'k' ? 'Kling' : 'Seedance'}
-                        </span>
+                        <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                       )}
                     </p>
                     <p className="text-xs text-orange-600">{videoProgress}</p>
@@ -4348,9 +4342,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   Studio d'Édition
                   {lastProvider && (
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium text-white ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`}>
-                      {lastProvider === 'k' ? 'Kling' : 'Seedream'}
-                    </span>
+                    <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h2>
                 <button
@@ -4602,7 +4594,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           }
                           setEditingImage(true);
                           try {
-                            console.log('[Edit Studio] Editing image with Seedream 3.0 i2i');
+                            console.log('[Edit Studio] Editing image with SeedEdit I2I');
                             console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
                             console.log('[Edit Studio] Prompt:', editPrompt);
 
@@ -5536,7 +5528,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         }
                         setEditingImage(true);
                         try {
-                          console.log('[Edit Studio] Editing image with Seedream 3.0 i2i');
+                          console.log('[Edit Studio] Editing image with SeedEdit I2I');
                           console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
                           console.log('[Edit Studio] Prompt:', editPrompt);
 
@@ -5561,7 +5553,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             }
                           }
 
-                          // Appeler l'API Seedream 3.0 i2i
+                          // Appeler l'API SeedEdit I2I
                           const res = await fetch('/api/seedream/i2i', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
