@@ -10,7 +10,7 @@ const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/c
 
 /**
  * POST /api/seedream/i2v
- * Convertir une image en vidéo — Kling primary, Seedream fallback
+ * Convertir une image en vidéo — Seedance 1.5 Pro primary, Kling fallback
  */
 export async function POST(request: Request) {
   try {
@@ -76,53 +76,24 @@ export async function POST(request: Request) {
       return Response.json({ ok: false, error: 'Image URL is required' }, { status: 400 });
     }
 
-    // Convertir l'image en base64 si c'est une URL HTTP
-    let imageBase64 = imageUrl;
-    if (imageUrl.startsWith('http')) {
-      console.log('[I2V] Downloading image for base64 conversion...');
-      try {
-        const imageResponse = await fetch(imageUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-        });
-        if (imageResponse.ok) {
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const base64 = Buffer.from(imageBuffer).toString('base64');
-          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-          imageBase64 = `data:${contentType};base64,${base64}`;
-          console.log('[I2V] Converted to base64, size:', (base64.length / 1024).toFixed(2), 'KB');
-        }
-      } catch (e: any) {
-        console.warn('[I2V] Base64 conversion failed:', e.message);
-      }
-    }
+    // Préparer l'URL de l'image — Seedance accepte URL ou data URI
+    let imageForSeedance = imageUrl;
 
     let resultTaskId: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Kling ---
+    // --- Primary: Seedance 1.5 Pro ---
     try {
-      console.log('[I2V] Trying Kling...');
-      const klingTaskId = await createI2VTask({
-        image: imageBase64,
-        prompt: prompt || 'Animate this image with smooth cinematic camera movement',
-        duration: String(duration),
-      });
-      resultTaskId = klingTaskId;
-      provider = 'k';
-      console.log('[I2V] ✓ Kling task created:', klingTaskId);
-    } catch (klingError: any) {
-      console.warn('[I2V] Kling failed, falling back to Seedream:', klingError.message);
-
-      // --- Fallback: Seedream SeedAnce ---
-      const content: any[] = [
-        { type: 'image_url', image_url: { url: imageBase64.startsWith('data:') ? imageBase64 : imageUrl } }
-      ];
+      console.log('[I2V] Trying Seedance 1.5 Pro...');
 
       const textPrompt = prompt && prompt.trim()
-        ? `${prompt} --resolution 1080p --duration ${duration} --camerafixed false`
-        : `Animate this image with smooth camera movement --resolution 1080p --duration ${duration} --camerafixed false`;
+        ? `${prompt} --duration ${duration} --camerafixed false`
+        : `Animate this image with smooth cinematic camera movement --duration ${duration} --camerafixed false`;
 
-      content.push({ type: 'text', text: textPrompt });
+      const content: any[] = [
+        { type: 'text', text: textPrompt },
+        { type: 'image_url', image_url: { url: imageForSeedance } }
+      ];
 
       const response = await fetch(SEEDREAM_VIDEO_API_URL, {
         method: 'POST',
@@ -131,27 +102,62 @@ export async function POST(request: Request) {
           'Authorization': `Bearer ${SEEDREAM_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'seedance-1-0-pro-250528',
+          model: 'seedance-1-5-pro-251215',
           content: content
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[I2V] Seedream fallback also failed:', response.status, errorText);
-        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+        console.error('[I2V] Seedance failed:', response.status, errorText);
+        throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const data = await response.json();
       const seedreamId = data.id || data.task_id || data.data?.id || data.data?.task_id;
       if (!seedreamId) {
-        console.error('[I2V] Seedream no task ID:', data);
-        return Response.json({ ok: false, error: 'Erreur création tâche vidéo' }, { status: 500 });
+        console.error('[I2V] Seedance no task ID:', data);
+        throw new Error('Seedance returned no task ID');
       }
 
       resultTaskId = `seedream_${seedreamId}`;
       provider = 's';
-      console.log('[I2V] ⚠ Seedream fallback task created:', seedreamId);
+      console.log('[I2V] ✓ Seedance 1.5 Pro task created:', seedreamId);
+    } catch (seedanceError: any) {
+      console.warn('[I2V] Seedance failed, falling back to Kling:', seedanceError.message);
+
+      // Convertir en base64 pour Kling
+      let imageBase64 = imageUrl;
+      if (imageUrl.startsWith('http')) {
+        try {
+          const imageResponse = await fetch(imageUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          if (imageResponse.ok) {
+            const imageBuffer = await imageResponse.arrayBuffer();
+            const base64 = Buffer.from(imageBuffer).toString('base64');
+            const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+            imageBase64 = `data:${contentType};base64,${base64}`;
+          }
+        } catch (e: any) {
+          console.warn('[I2V] Base64 conversion failed:', e.message);
+        }
+      }
+
+      // --- Fallback: Kling ---
+      try {
+        const klingTaskId = await createI2VTask({
+          image: imageBase64,
+          prompt: prompt || 'Animate this image with smooth cinematic camera movement',
+          duration: String(duration),
+        });
+        resultTaskId = klingTaskId;
+        provider = 'k';
+        console.log('[I2V] ✓ Kling fallback task created:', klingTaskId);
+      } catch (klingError: any) {
+        console.error('[I2V] Kling also failed:', klingError.message);
+        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+      }
     }
 
     // --- Déduction crédits après création de tâche ---

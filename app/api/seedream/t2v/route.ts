@@ -79,24 +79,12 @@ export async function POST(request: Request) {
     let resultTaskId: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Kling ---
+    // --- Primary: Seedance 1.5 Pro ---
+    const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
+    const formattedPrompt = `${prompt} --duration ${duration}${ratioFlag} --camerafixed false`;
+
     try {
-      console.log('[T2V] Trying Kling...');
-      const klingTaskId = await createT2VTask({
-        prompt,
-        duration: String(duration),
-        aspect_ratio: aspectRatio || '16:9',
-      });
-      resultTaskId = klingTaskId;
-      provider = 'k';
-      console.log('[T2V] ✓ Kling task created:', klingTaskId);
-    } catch (klingError: any) {
-      console.warn('[T2V] Kling failed, falling back to Seedream:', klingError.message);
-
-      // --- Fallback: Seedream SeedAnce ---
-      const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-      const formattedPrompt = `${prompt} --resolution 1080p --duration ${duration}${ratioFlag} --camerafixed false`;
-
+      console.log('[T2V] Trying Seedance 1.5 Pro...');
       const response = await fetch(SEEDREAM_VIDEO_API_URL, {
         method: 'POST',
         headers: {
@@ -104,27 +92,44 @@ export async function POST(request: Request) {
           'Authorization': `Bearer ${SEEDREAM_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'seedance-1-0-pro-250528',
+          model: 'seedance-1-5-pro-251215',
           content: [{ type: 'text', text: formattedPrompt }]
         })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[T2V] Seedream fallback also failed:', response.status, errorText);
-        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+        console.error('[T2V] Seedance failed:', response.status, errorText);
+        throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const data = await response.json();
       const seedreamId = data.id || data.task_id || data.data?.id || data.data?.task_id;
       if (!seedreamId) {
-        console.error('[T2V] Seedream no task ID:', data);
-        return Response.json({ ok: false, error: 'Erreur création tâche vidéo' }, { status: 500 });
+        console.error('[T2V] Seedance no task ID:', data);
+        throw new Error('Seedance returned no task ID');
       }
 
       resultTaskId = `seedream_${seedreamId}`;
       provider = 's';
-      console.log('[T2V] ⚠ Seedream fallback task created:', seedreamId);
+      console.log('[T2V] ✓ Seedance 1.5 Pro task created:', seedreamId);
+    } catch (seedanceError: any) {
+      console.warn('[T2V] Seedance failed, falling back to Kling:', seedanceError.message);
+
+      // --- Fallback: Kling ---
+      try {
+        const klingTaskId = await createT2VTask({
+          prompt,
+          duration: String(duration),
+          aspect_ratio: aspectRatio || '16:9',
+        });
+        resultTaskId = klingTaskId;
+        provider = 'k';
+        console.log('[T2V] ✓ Kling fallback task created:', klingTaskId);
+      } catch (klingError: any) {
+        console.error('[T2V] Kling also failed:', klingError.message);
+        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+      }
     }
 
     // --- Déduction crédits après création de tâche ---

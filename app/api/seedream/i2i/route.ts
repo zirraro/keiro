@@ -92,13 +92,14 @@ export async function POST(request: Request) {
     const finalPrompt = prompt.trim();
     console.log('[I2I] Edit prompt (direct):', finalPrompt);
 
-    // --- Seedream SeedEdit en premier, Kling omni-image en fallback ---
+    // --- Seedream 4.5 en premier, Kling omni-image en fallback ---
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
     try {
-      console.log('[I2I] Generating with Seedream SeedEdit...');
+      console.log('[I2I] Generating with Seedream 4.5...');
       const seedreamBody: any = {
-        model: 'bytedance-seededit-3.0-i2i',
+        model: 'seedream-4-5-251128',
         prompt: seedreamPrompt,
+        response_format: 'url',
         size: size || 'adaptive',
         seed: seed || -1,
         guidance_scale: guidance_scale || 5.5,
@@ -117,13 +118,25 @@ export async function POST(request: Request) {
       });
 
       const seedreamData = await seedreamRes.json();
-      if (!seedreamRes.ok || !seedreamData.data?.[0]?.b64_image) {
-        throw new Error(seedreamData.error?.message || 'Seedream returned no image');
+
+      if (!seedreamRes.ok) {
+        throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
       }
 
-      resultImageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
+      // Seedream 4.5 avec response_format=url renvoie une URL, sinon b64_image
+      const resultUrl = seedreamData.data?.[0]?.url;
+      const resultB64 = seedreamData.data?.[0]?.b64_image;
+
+      if (resultUrl) {
+        resultImageUrl = resultUrl;
+      } else if (resultB64) {
+        resultImageUrl = `data:image/png;base64,${resultB64}`;
+      } else {
+        throw new Error('Seedream returned no image');
+      }
+
       provider = 's';
-      console.log('[I2I] ✓ Seedream SeedEdit generated successfully');
+      console.log('[I2I] ✓ Seedream 4.5 generated successfully');
     } catch (seedreamError: any) {
       console.error('[I2I] Seedream failed, falling back to Kling:', seedreamError.message);
 

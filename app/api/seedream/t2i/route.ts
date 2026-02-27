@@ -62,7 +62,6 @@ export async function POST(request: Request) {
     }
 
     // --- Étape 1: Optimiser le prompt avec Claude Haiku ---
-    // Transforme le prompt brut (avec titres d'actu, noms) en description purement visuelle
     console.log('[T2I] Step 1: Optimizing prompt with Claude...', { rawLength: prompt.length });
     const visualPrompt = await optimizePromptForImage(prompt);
     const finalPrompt = visualPrompt + NO_TEXT_SUFFIX;
@@ -71,11 +70,11 @@ export async function POST(request: Request) {
     let imageUrl: string;
     let provider: 'k' | 's';
 
-    // --- Étape 2: Seedream en premier, fallback Kling ---
+    // --- Étape 2: Seedream 4.5 en premier, fallback Kling ---
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
 
     try {
-      console.log('[T2I] Step 2: Generating with Seedream...', { promptLength: seedreamPrompt.length });
+      console.log('[T2I] Step 2: Generating with Seedream 4.5...', { promptLength: seedreamPrompt.length });
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
         method: 'POST',
         headers: {
@@ -83,30 +82,38 @@ export async function POST(request: Request) {
           'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'seedream-3.0',
+          model: 'seedream-4-5-251128',
           prompt: seedreamPrompt,
           negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters',
+          response_format: 'url',
           size: size || '2K',
           seed: -1,
         }),
       });
 
       const seedreamData = await seedreamRes.json();
-      console.log('[T2I] Seedream response:', seedreamRes.status, 'hasImage:', !!seedreamData.data?.[0]?.b64_image);
+      console.log('[T2I] Seedream 4.5 response:', seedreamRes.status);
 
       if (!seedreamRes.ok) {
         console.error('[T2I] Seedream error:', JSON.stringify(seedreamData).substring(0, 500));
         throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
       }
 
-      if (!seedreamData.data?.[0]?.b64_image) {
+      // Seedream 4.5 avec response_format=url renvoie une URL, sinon b64_image
+      const resultUrl = seedreamData.data?.[0]?.url;
+      const resultB64 = seedreamData.data?.[0]?.b64_image;
+
+      if (resultUrl) {
+        imageUrl = resultUrl;
+      } else if (resultB64) {
+        imageUrl = `data:image/png;base64,${resultB64}`;
+      } else {
         console.error('[T2I] Seedream no image:', JSON.stringify(seedreamData).substring(0, 500));
         throw new Error('Seedream returned no image');
       }
 
-      imageUrl = `data:image/png;base64,${seedreamData.data[0].b64_image}`;
       provider = 's';
-      console.log('[T2I] ✓ Seedream OK');
+      console.log('[T2I] ✓ Seedream 4.5 OK');
     } catch (seedreamError: any) {
       console.error('[T2I] Seedream failed:', seedreamError.message, '→ trying Kling');
 
