@@ -982,10 +982,11 @@ export default function GeneratePage() {
     }
 
     // Si overlays deja appliques, utiliser selectedEditVersion (qui contient les overlays cuits)
+    // Si une version éditée (I2I) est sélectionnée, l'utiliser en priorité
     // Sinon utiliser l'image AVEC WATERMARK UNIQUEMENT pour garder le watermark visible
     const imageToPreview = appliedOverlaysCount > 0
       ? (selectedEditVersion || generatedImageUrl)
-      : (imageWithWatermarkOnly || originalImageUrl || selectedEditVersion || generatedImageUrl);
+      : (selectedEditVersion || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl);
     if (!imageToPreview) {
       setTextPreviewUrl(null);
       return;

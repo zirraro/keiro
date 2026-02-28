@@ -45,8 +45,6 @@ const POSITIONS: { value: Position; label: string }[] = [
 ];
 
 export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
-  // Pour le texte overlay, utiliser l'image originale (sans overlay) si disponible
-  const textBaseImage = originalImageUrl || imageUrl;
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [editProvider, setEditProvider] = useState<string>('');
 
@@ -68,6 +66,11 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   const [bgStyle, setBgStyle] = useState<BgStyle>('clean');
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
+  const [bakedBaseImage, setBakedBaseImage] = useState<string | null>(null);
+  const [appliedTextsCount, setAppliedTextsCount] = useState(0);
+
+  // Pour le texte overlay, utiliser l'image bakée (si texte déjà appliqué) ou l'originale
+  const textBaseImage = bakedBaseImage || originalImageUrl || imageUrl;
 
   // Live preview for text overlay
   const generatePreview = useCallback(async () => {
@@ -210,7 +213,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {initialText ? 'Modifier le texte' : 'Ajouter du texte'}
+                {appliedTextsCount > 0 ? `Texte (${appliedTextsCount} appliqué${appliedTextsCount > 1 ? 's' : ''})` : initialText ? 'Modifier le texte' : 'Ajouter du texte'}
               </button>
               <button
                 onClick={() => setActiveTab('ai')}
@@ -485,16 +488,33 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               >
                 {saving ? 'Sauvegarde...' : overlayText.trim() ? 'Appliquer le texte' : 'Sauvegarder'}
               </button>
-              {initialText && (
+              {/* Bouton Ajouter un texte : cuit le texte actuel dans l'image et permet d'en ajouter un autre */}
+              {overlayText.trim() && textPreviewUrl && (
                 <button
-                  onClick={async () => {
-                    // Supprimer le texte overlay — sauvegarder l'image originale sans texte
+                  onClick={() => {
+                    // Cuire le texte actuel dans l'image de base
+                    setBakedBaseImage(textPreviewUrl);
+                    setAppliedTextsCount(prev => prev + 1);
                     setOverlayText('');
                     setTextPreviewUrl(null);
+                  }}
+                  disabled={saving || textLoading}
+                  className="px-4 py-2.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg font-medium text-sm hover:bg-blue-100 transition disabled:opacity-50"
+                >
+                  + Ajouter un texte
+                </button>
+              )}
+              {(initialText || appliedTextsCount > 0) && (
+                <button
+                  onClick={async () => {
+                    // Supprimer tout le texte — revenir à l'image originale propre
+                    setOverlayText('');
+                    setTextPreviewUrl(null);
+                    setBakedBaseImage(null);
+                    setAppliedTextsCount(0);
                     setSaving(true);
                     try {
-                      // Sauver l'image originale (sans overlay) avec textOverlay = null
-                      const cleanImage = textBaseImage;
+                      const cleanImage = originalImageUrl || imageUrl;
                       if (imageId) {
                         await fetch('/api/library/update-image', {
                           method: 'POST',
