@@ -204,7 +204,7 @@ function LibraryContent() {
   const [user, setUser] = useState<any>(null);
   const [showTikTokUpgradeModal, setShowTikTokUpgradeModal] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingImages, setLoadingImages] = useState(false);
+  const [loadingImages, setLoadingImages] = useState(true);
   const [images, setImages] = useState<SavedImage[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -369,6 +369,7 @@ function LibraryContent() {
 
       // Si pas d'utilisateur, vérifier le mode guest
       if (!user) {
+        setLoadingImages(false);
         const storedEmail = localStorage.getItem('keiro_guest_email');
         if (storedEmail) {
           setGuestEmail(storedEmail);
@@ -555,23 +556,16 @@ function LibraryContent() {
           setStats(prev => ({ ...prev, total_folders: foldersData.folders.length }));
         }
 
-        // Charger les images
-        await loadImages();
-
-        // Charger les brouillons Instagram
-        await loadInstagramDrafts();
-
-        // Charger les brouillons TikTok
-        await loadTikTokDrafts();
-
-        // Charger les brouillons LinkedIn
-        await loadLinkedInDrafts();
-
-        // Charger les brouillons Twitter
-        await loadTwitterDrafts();
-
-        // Charger les posts planifiés
-        await loadScheduledPosts();
+        // Charger tout en parallèle pour un affichage rapide
+        await Promise.all([
+          loadImages(),
+          loadMyVideos(),
+          loadInstagramDrafts(),
+          loadTikTokDrafts(),
+          loadLinkedInDrafts(),
+          loadTwitterDrafts(),
+          loadScheduledPosts(),
+        ]);
       } catch (error) {
         console.error('[Library] Error loading library:', error);
       }
@@ -1658,9 +1652,7 @@ function LibraryContent() {
   };
 
   const handleRefreshAll = async () => {
-    await loadImages();
-    await loadMyVideos();
-    await loadTikTokPosts();
+    await Promise.all([loadImages(), loadMyVideos(), loadTikTokPosts()]);
   };
 
   if (loading) {
