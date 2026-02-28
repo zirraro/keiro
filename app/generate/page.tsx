@@ -4666,20 +4666,26 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             let imageForApi = selectedEditVersion!;
                             if (imageForApi.startsWith('data:')) {
                               console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
-                              const sb = supabaseBrowser();
-                              const { data: { user: currentUser } } = await sb.auth.getUser();
-                              if (currentUser) {
-                                const blobRes = await fetch(imageForApi);
-                                const blob = await blobRes.blob();
+                              try {
+                                const sb = supabaseBrowser();
+                                const { data: { user: currentUser } } = await sb.auth.getUser();
+                                if (!currentUser) throw new Error('Non authentifié');
+                                // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
+                                const base64Data = imageForApi.split(',')[1];
+                                const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
+                                const byteChars = atob(base64Data);
+                                const byteArray = new Uint8Array(byteChars.length);
+                                for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+                                const blob = new Blob([byteArray], { type: mimeType });
                                 const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                                const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/png', upsert: false });
-                                if (!upErr) {
-                                  const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
-                                  imageForApi = publicUrl;
-                                  console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
-                                } else {
-                                  console.warn('[Edit Studio] Upload failed, using data URL:', upErr);
-                                }
+                                const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
+                                if (upErr) throw new Error(`Upload échoué: ${upErr.message}`);
+                                const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
+                                imageForApi = publicUrl;
+                                console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
+                              } catch (uploadErr: any) {
+                                console.error('[Edit Studio] Upload error:', uploadErr);
+                                throw new Error('Impossible d\'uploader l\'image. Réessayez.');
                               }
                             }
 
@@ -4689,11 +4695,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
                                 prompt: editPrompt,
-                                image: imageForApi,
+                                imageUrl: imageForApi,
                                 guidance_scale: editStrength,
                               }),
                             });
 
+                            if (!res.ok && res.status === 413) {
+                              throw new Error('Image trop volumineuse. Réessayez.');
+                            }
                             const data = await res.json();
                             console.log('[Edit Studio] Response:', data);
 
@@ -5623,34 +5632,43 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           let imageForApi = selectedEditVersion!;
                           if (imageForApi.startsWith('data:')) {
                             console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
-                            const sb = supabaseBrowser();
-                            const { data: { user: currentUser } } = await sb.auth.getUser();
-                            if (currentUser) {
-                              const blobRes = await fetch(imageForApi);
-                              const blob = await blobRes.blob();
+                            try {
+                              const sb = supabaseBrowser();
+                              const { data: { user: currentUser } } = await sb.auth.getUser();
+                              if (!currentUser) throw new Error('Non authentifié');
+                              // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
+                              const base64Data = imageForApi.split(',')[1];
+                              const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
+                              const byteChars = atob(base64Data);
+                              const byteArray = new Uint8Array(byteChars.length);
+                              for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+                              const blob = new Blob([byteArray], { type: mimeType });
                               const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                              const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/png', upsert: false });
-                              if (!upErr) {
-                                const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
-                                imageForApi = publicUrl;
-                                console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
-                              } else {
-                                console.warn('[Edit Studio] Upload failed, using data URL:', upErr);
-                              }
+                              const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
+                              if (upErr) throw new Error(`Upload échoué: ${upErr.message}`);
+                              const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
+                              imageForApi = publicUrl;
+                              console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
+                            } catch (uploadErr: any) {
+                              console.error('[Edit Studio] Upload error:', uploadErr);
+                              throw new Error('Impossible d\'uploader l\'image. Réessayez.');
                             }
                           }
 
-                          // Appeler l'API SeedEdit I2I
+                          // Appeler l'API Seedream 4.5 i2i
                           const res = await fetch('/api/seedream/i2i', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               prompt: editPrompt,
-                              image: imageForApi,
+                              imageUrl: imageForApi,
                               guidance_scale: editStrength,
                             }),
                           });
 
+                          if (!res.ok && res.status === 413) {
+                            throw new Error('Image trop volumineuse. Réessayez.');
+                          }
                           const data = await res.json();
                           console.log('[Edit Studio] Response:', data);
 
