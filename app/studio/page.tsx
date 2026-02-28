@@ -33,6 +33,7 @@ function StudioContent() {
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
   const [showTextEditor, setShowTextEditor] = useState(false);
+  const [cleanBaseImage, setCleanBaseImage] = useState(searchParams.get("image") || ""); // Image sans texte overlay pour base
   const [user, setUser] = useState<any>(null);
   const [savingToGallery, setSavingToGallery] = useState(false);
   const [lastTextConfig, setLastTextConfig] = useState<any>({
@@ -79,6 +80,7 @@ function StudioContent() {
     }
     setOriginalImage(imageUrl);
     setLoadedImage(imageUrl);
+    setCleanBaseImage(imageUrl);
     setEditedImages([]);
   };
 
@@ -157,6 +159,7 @@ function StudioContent() {
       const result = e.target?.result as string;
       setOriginalImage(result);
       setLoadedImage(result);
+      setCleanBaseImage(result);
       setEditedImages([]);
     };
     reader.readAsDataURL(file);
@@ -244,12 +247,13 @@ function StudioContent() {
 
     setEditingImage(true);
     try {
-      // Compresser l'image si c'est une data URL
-      let imageToSend = loadedImage;
-      if (loadedImage.startsWith('data:image/')) {
+      // Utiliser la base propre (sans overlay texte) pour l'édition I2I
+      const baseForEdit = cleanBaseImage || loadedImage;
+      let imageToSend = baseForEdit;
+      if (baseForEdit.startsWith('data:image/')) {
         console.log('[Studio] Compressing image before sending...');
         try {
-          imageToSend = await compressImageDataUrl(loadedImage);
+          imageToSend = await compressImageDataUrl(baseForEdit);
           console.log('[Studio] Image compressed successfully');
         } catch (err) {
           console.warn('[Studio] Compression failed, sending original:', err);
@@ -275,6 +279,7 @@ function StudioContent() {
       if (data.imageUrl) {
         setEditedImages([...editedImages, data.imageUrl]);
         setLoadedImage(data.imageUrl);
+        setCleanBaseImage(data.imageUrl); // Nouvelle base propre après édition
         setEditPrompt("");
 
         // Incrémenter le compteur après succès
@@ -433,6 +438,7 @@ function StudioContent() {
                   onClick={() => {
                     setLoadedImage("");
                     setOriginalImage("");
+                    setCleanBaseImage("");
                     setEditedImages([]);
                   }}
                   className="w-full py-3 border-2 border-neutral-300 rounded-xl hover:bg-neutral-50 hover:border-neutral-400 transition-all font-medium text-neutral-700 flex items-center justify-center gap-2"
@@ -468,7 +474,7 @@ function StudioContent() {
                           ? "border-blue-500 ring-4 ring-blue-100 shadow-lg scale-105"
                           : "border-neutral-200 hover:border-blue-300 hover:shadow-md hover:scale-102"
                       }`}
-                      onClick={() => setLoadedImage(img)}
+                      onClick={() => { setLoadedImage(img); setCleanBaseImage(img); }}
                     >
                       <div className="relative">
                         <img
@@ -702,12 +708,13 @@ function StudioContent() {
       />
 
       {/* Éditeur de texte overlay avancé */}
-      {showTextEditor && loadedImage && (
+      {showTextEditor && (cleanBaseImage || loadedImage) && (
         <TextOverlayEditor
-          baseImageUrl={loadedImage}
+          baseImageUrl={cleanBaseImage || loadedImage}
           initialConfig={lastTextConfig}
           onApply={(newImageUrl, config) => {
-            setLoadedImage(newImageUrl);
+            setLoadedImage(newImageUrl); // Afficher l'image avec texte
+            // cleanBaseImage reste inchangé = base propre sans texte
             setLastTextConfig(config);
             setShowTextEditor(false);
           }}
