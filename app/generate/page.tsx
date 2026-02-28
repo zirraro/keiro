@@ -366,7 +366,17 @@ export default function GeneratePage() {
   const [lastSavedVideoId, setLastSavedVideoId] = useState<string | null>(null);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
 
-  /* --- États pour l'éditeur de texte overlay intégré --- */
+  /* --- États pour l'éditeur de texte overlay intégré (système array) --- */
+  interface GenerateTextOverlay {
+    id: string;
+    text: string;
+    position: 'top' | 'center' | 'bottom';
+    fontSize: number;
+    fontFamily: string;
+    textColor: string;
+    backgroundColor: string;
+    backgroundStyle: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
+  }
   const [overlayText, setOverlayText] = useState('');
   const [textPosition, setTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
   const [textColor, setTextColor] = useState('#ffffff');
@@ -378,8 +388,8 @@ export default function GeneratePage() {
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [baseOriginalImageUrl, setBaseOriginalImageUrl] = useState<string | null>(null);
-  const [appliedOverlaysCount, setAppliedOverlaysCount] = useState(0);
-  const [overlayHistory, setOverlayHistory] = useState<string[]>([]); // Historique des images AVANT chaque overlay
+  const [textOverlayItems, setTextOverlayItems] = useState<GenerateTextOverlay[]>([]);
+  const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -976,55 +986,71 @@ export default function GeneratePage() {
     }
   }
 
-  /* --- Preview en temps réel du texte overlay --- */
+  /* --- Preview en temps réel du texte overlay (array-based) --- */
   useEffect(() => {
-    // Ne générer la preview que si on est dans l'onglet texte et qu'il y a du texte
-    if (activeTab !== 'text' || !overlayText.trim() || !showEditStudio) {
+    if (activeTab !== 'text' || !showEditStudio) {
       setTextPreviewUrl(null);
       return;
     }
 
-    // Si overlays deja appliques, utiliser selectedEditVersion (qui contient les overlays cuits)
-    // Si une version éditée (I2I) est sélectionnée, l'utiliser en priorité
-    // Sinon utiliser l'image AVEC WATERMARK UNIQUEMENT pour garder le watermark visible
-    const imageToPreview = appliedOverlaysCount > 0
-      ? (selectedEditVersion || generatedImageUrl)
-      : (selectedEditVersion || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl);
-    if (!imageToPreview) {
+    const hasCurrentText = overlayText.trim().length > 0;
+    const hasAppliedItems = textOverlayItems.length > 0;
+    if (!hasCurrentText && !hasAppliedItems) {
       setTextPreviewUrl(null);
       return;
     }
 
-    // Debounce pour éviter trop de régénérations
+    // Toujours partir de l'image de base propre (sans overlays)
+    const baseImage = baseOriginalImageUrl || selectedEditVersion || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+    if (!baseImage) {
+      setTextPreviewUrl(null);
+      return;
+    }
+
     const timeoutId = setTimeout(async () => {
       setIsGeneratingPreview(true);
       try {
-        // Convertir position en format simple
-        let simplePosition: 'top' | 'center' | 'bottom' = 'center';
-        if (textPosition.startsWith('top')) simplePosition = 'top';
-        else if (textPosition.startsWith('bottom')) simplePosition = 'bottom';
+        let currentImage = baseImage;
 
-        const result = await addTextOverlay(imageToPreview, {
-          text: overlayText,
-          position: simplePosition,
-          fontSize: fontSize,
-          fontFamily: fontFamily,
-          textColor: textColor,
-          backgroundColor: textBackgroundColor,
-          backgroundStyle: backgroundStyle,
-        });
+        // Appliquer tous les overlays existants séquentiellement
+        for (const item of textOverlayItems) {
+          // Si on édite un overlay existant, skip (il sera rendu avec les valeurs du formulaire)
+          if (item.id === editingOverlayId) continue;
+          currentImage = await addTextOverlay(currentImage, {
+            text: item.text,
+            position: item.position,
+            fontSize: item.fontSize,
+            fontFamily: item.fontFamily,
+            textColor: item.textColor,
+            backgroundColor: item.backgroundColor,
+            backgroundStyle: item.backgroundStyle,
+          });
+        }
 
-        setTextPreviewUrl(result);
+        // Appliquer l'overlay en cours d'édition (formulaire actif)
+        if (hasCurrentText) {
+          currentImage = await addTextOverlay(currentImage, {
+            text: overlayText,
+            position: textPosition,
+            fontSize: fontSize,
+            fontFamily: fontFamily,
+            textColor: textColor,
+            backgroundColor: textBackgroundColor,
+            backgroundStyle: backgroundStyle,
+          });
+        }
+
+        setTextPreviewUrl(currentImage);
       } catch (error) {
         console.error('Preview error:', error);
         setTextPreviewUrl(null);
       } finally {
         setIsGeneratingPreview(false);
       }
-    }, 50); // Debounce 50ms pour preview INSTANTANÉE
+    }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio]);
+  }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio, textOverlayItems, editingOverlayId, baseOriginalImageUrl, imageWithWatermarkOnly, originalImageUrl]);
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
@@ -1663,7 +1689,7 @@ export default function GeneratePage() {
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
-              textOverlay: overlayText?.trim() || null,
+              textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
               aiModel: 'seedream',
               tags: []
             })
@@ -1788,7 +1814,7 @@ export default function GeneratePage() {
         newsSource: null,
         businessType: null,
         businessDescription: null,
-        textOverlay: overlayText?.trim() || null,
+        textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
         visualStyle: null,
         tone: null,
         generationPrompt: null,
@@ -1901,7 +1927,7 @@ export default function GeneratePage() {
           body: JSON.stringify({
             id: lastSavedImageId,
             imageUrl: finalUrl,
-            textOverlay: overlayText?.trim() || null,
+            textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
             originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
           }),
         });
@@ -1917,7 +1943,7 @@ export default function GeneratePage() {
             title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
             newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
             newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
-            textOverlay: overlayText?.trim() || null,
+            textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
             aiModel: 'seedream',
             tags: [],
           }),
@@ -4036,7 +4062,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         setEditVersions([generatedImageUrl]);
                         setSelectedEditVersion(generatedImageUrl);
                         setBaseOriginalImageUrl(originalImageUrl || generatedImageUrl);
-                        setAppliedOverlaysCount(0);
+                        setTextOverlayItems([]);
+                        setEditingOverlayId(null);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >
@@ -4718,23 +4745,27 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                             let newVersion = data.imageUrl;
 
-                            // Mettre à jour l'image originale (base pour overlays)
+                            // Mettre à jour la base pour overlays
                             setOriginalImageUrl(newVersion);
+                            setBaseOriginalImageUrl(newVersion);
 
-                            // Auto-réappliquer l'overlay texte si existant
-                            if (overlayText.trim()) {
+                            // Auto-réappliquer les overlays texte si existants
+                            if (textOverlayItems.length > 0) {
                               try {
-                                const withText = await addTextOverlay(newVersion, {
-                                  text: overlayText,
-                                  position: textPosition,
-                                  fontSize,
-                                  fontFamily,
-                                  textColor,
-                                  backgroundColor: textBackgroundColor,
-                                  backgroundStyle,
-                                });
-                                setEditVersions([...editVersions, withText]);
-                                setSelectedEditVersion(withText);
+                                let withAllText = newVersion;
+                                for (const item of textOverlayItems) {
+                                  withAllText = await addTextOverlay(withAllText, {
+                                    text: item.text,
+                                    position: item.position,
+                                    fontSize: item.fontSize,
+                                    fontFamily: item.fontFamily,
+                                    textColor: item.textColor,
+                                    backgroundColor: item.backgroundColor,
+                                    backgroundStyle: item.backgroundStyle,
+                                  });
+                                }
+                                setEditVersions([...editVersions, withAllText]);
+                                setSelectedEditVersion(withAllText);
                               } catch (overlayErr) {
                                 console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
                                 setEditVersions([...editVersions, newVersion]);
@@ -5012,82 +5043,80 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                       {/* Bouton Appliquer / Ajouter */}
                       <button
-                        onClick={async () => {
+                        onClick={() => {
                           if (!overlayText.trim()) return;
-                          // Si overlays deja appliques, utiliser la version avec overlays cuits
-                          const imageToEdit = appliedOverlaysCount > 0
-                            ? selectedEditVersion
-                            : (originalImageUrl || generatedImageUrl);
-                          if (!imageToEdit) return;
-
-                          try {
-                            const result = await addTextOverlay(imageToEdit, {
-                              text: overlayText,
-                              position: textPosition,
-                              fontSize: fontSize,
-                              fontFamily: fontFamily,
-                              textColor: textColor,
-                              backgroundColor: textBackgroundColor,
-                              backgroundStyle: backgroundStyle,
-                            });
-
-                            // Sauvegarder l'état AVANT overlay dans l'historique (pour undo)
-                            setOverlayHistory(prev => [...prev, imageToEdit]);
-                            // Cuire l'overlay dans la base
-                            setOriginalImageUrl(result);
-                            setEditVersions([...editVersions, result]);
-                            setSelectedEditVersion(result);
-                            setAppliedOverlaysCount(prev => prev + 1);
-                            setOverlayText('');
-                            autoSaveEditedVersion(result);
-                          } catch (error) {
-                            console.error('Error applying text overlay:', error);
-                            alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
+                          const newItem: GenerateTextOverlay = {
+                            id: editingOverlayId || `overlay-${Date.now()}`,
+                            text: overlayText,
+                            position: textPosition,
+                            fontSize,
+                            fontFamily,
+                            textColor,
+                            backgroundColor: textBackgroundColor,
+                            backgroundStyle,
+                          };
+                          if (editingOverlayId) {
+                            setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? newItem : item));
+                            setEditingOverlayId(null);
+                          } else {
+                            setTextOverlayItems(prev => [...prev, newItem]);
                           }
+                          setOverlayText('');
                         }}
                         disabled={!overlayText.trim()}
                         className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
+                        {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                       </button>
 
-                      {/* Bouton Annuler le dernier texte */}
-                      {overlayHistory.length > 0 && (
-                        <button
-                          onClick={() => {
-                            const previousState = overlayHistory[overlayHistory.length - 1];
-                            setOverlayHistory(prev => prev.slice(0, -1));
-                            setOriginalImageUrl(previousState);
-                            setEditVersions([...editVersions, previousState]);
-                            setSelectedEditVersion(previousState);
-                            setAppliedOverlaysCount(prev => Math.max(0, prev - 1));
-                            setOverlayText('');
-                            autoSaveEditedVersion(previousState);
-                          }}
-                          className="w-full py-2 mt-2 border border-amber-300 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-50 transition"
-                        >
-                          ↩ Annuler le dernier texte
-                        </button>
-                      )}
-
-                      {/* Bouton Supprimer tout le texte */}
-                      {appliedOverlaysCount > 0 && (
-                        <button
-                          onClick={() => {
-                            const cleanImg = baseOriginalImageUrl || generatedImageUrl;
-                            if (!cleanImg) return;
-                            setOriginalImageUrl(cleanImg);
-                            setOverlayText('');
-                            setAppliedOverlaysCount(0);
-                            setOverlayHistory([]);
-                            setEditVersions([...editVersions, cleanImg]);
-                            setSelectedEditVersion(cleanImg);
-                            autoSaveEditedVersion(cleanImg);
-                          }}
-                          className="w-full py-2 mt-1 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
-                        >
-                          Supprimer tout le texte
-                        </button>
+                      {/* Liste des textes appliqués */}
+                      {textOverlayItems.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <p className="text-xs font-semibold text-neutral-700">Textes appliqués :</p>
+                          {textOverlayItems.map((item) => (
+                            <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
+                              <span className="text-[10px] text-neutral-400">{item.position === 'top' ? '⬆️' : item.position === 'bottom' ? '⬇️' : '⏺️'}</span>
+                              <span className="flex-1 text-xs text-neutral-700 truncate">{item.text}</span>
+                              <button
+                                onClick={() => {
+                                  setOverlayText(item.text);
+                                  setTextPosition(item.position);
+                                  setFontSize(item.fontSize);
+                                  setFontFamily(item.fontFamily as any);
+                                  setTextColor(item.textColor);
+                                  setTextBackgroundColor(item.backgroundColor);
+                                  setBackgroundStyle(item.backgroundStyle as any);
+                                  setEditingOverlayId(item.id);
+                                }}
+                                className="px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50 rounded"
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setTextOverlayItems(prev => prev.filter(i => i.id !== item.id));
+                                  if (editingOverlayId === item.id) {
+                                    setEditingOverlayId(null);
+                                    setOverlayText('');
+                                  }
+                                }}
+                                className="px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50 rounded"
+                              >
+                                X
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setTextOverlayItems([]);
+                              setEditingOverlayId(null);
+                              setOverlayText('');
+                            }}
+                            className="w-full py-2 mt-1 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+                          >
+                            Supprimer tout le texte
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -5184,7 +5213,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                       newsSource: null,
                                       businessType: null,
                                       businessDescription: null,
-                                      textOverlay: overlayText?.trim() || null,
+                                      textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
                                       visualStyle: null,
                                       tone: null,
                                       generationPrompt: null,
@@ -5418,7 +5447,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       Génération preview...
                     </div>
                   )}
-                  {(textPreviewUrl && activeTab === 'text' && overlayText.trim()) ? (
+                  {(textPreviewUrl && activeTab === 'text' && (overlayText.trim() || textOverlayItems.length > 0)) ? (
                     <img
                       src={textPreviewUrl}
                       alt="Preview avec texte"
@@ -5684,23 +5713,27 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                           let newVersion = data.imageUrl;
 
-                          // Mettre à jour l'image originale (base pour overlays)
+                          // Mettre à jour la base pour overlays
                           setOriginalImageUrl(newVersion);
+                          setBaseOriginalImageUrl(newVersion);
 
-                          // Auto-réappliquer l'overlay texte si existant
-                          if (overlayText.trim()) {
+                          // Auto-réappliquer les overlays texte si existants
+                          if (textOverlayItems.length > 0) {
                             try {
-                              const withText = await addTextOverlay(newVersion, {
-                                text: overlayText,
-                                position: textPosition,
-                                fontSize,
-                                fontFamily,
-                                textColor,
-                                backgroundColor: textBackgroundColor,
-                                backgroundStyle,
-                              });
-                              setEditVersions([...editVersions, withText]);
-                              setSelectedEditVersion(withText);
+                              let withAllText = newVersion;
+                              for (const item of textOverlayItems) {
+                                withAllText = await addTextOverlay(withAllText, {
+                                  text: item.text,
+                                  position: item.position,
+                                  fontSize: item.fontSize,
+                                  fontFamily: item.fontFamily,
+                                  textColor: item.textColor,
+                                  backgroundColor: item.backgroundColor,
+                                  backgroundStyle: item.backgroundStyle,
+                                });
+                              }
+                              setEditVersions([...editVersions, withAllText]);
+                              setSelectedEditVersion(withAllText);
                             } catch (overlayErr) {
                               console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
                               setEditVersions([...editVersions, newVersion]);
@@ -5974,80 +6007,80 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                     {/* Bouton Appliquer / Ajouter */}
                     <button
-                      onClick={async () => {
+                      onClick={() => {
                         if (!overlayText.trim()) return;
-                        const imageToEdit = appliedOverlaysCount > 0
-                          ? selectedEditVersion
-                          : (originalImageUrl || generatedImageUrl);
-                        if (!imageToEdit) return;
-
-                        try {
-                          const result = await addTextOverlay(imageToEdit, {
-                            text: overlayText,
-                            position: textPosition,
-                            fontSize: fontSize,
-                            fontFamily: fontFamily,
-                            textColor: textColor,
-                            backgroundColor: textBackgroundColor,
-                            backgroundStyle: backgroundStyle,
-                          });
-
-                          // Sauvegarder l'état AVANT overlay dans l'historique (pour undo)
-                          setOverlayHistory(prev => [...prev, imageToEdit]);
-                          setOriginalImageUrl(result);
-                          setEditVersions([...editVersions, result]);
-                          setSelectedEditVersion(result);
-                          setAppliedOverlaysCount(prev => prev + 1);
-                          setOverlayText('');
-                          autoSaveEditedVersion(result);
-                        } catch (error) {
-                          console.error('Error applying text overlay:', error);
-                          alert('Impossible d\'appliquer le texte. Vérifiez votre image.');
+                        const newItem: GenerateTextOverlay = {
+                          id: editingOverlayId || `overlay-${Date.now()}`,
+                          text: overlayText,
+                          position: textPosition,
+                          fontSize,
+                          fontFamily,
+                          textColor,
+                          backgroundColor: textBackgroundColor,
+                          backgroundStyle,
+                        };
+                        if (editingOverlayId) {
+                          setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? newItem : item));
+                          setEditingOverlayId(null);
+                        } else {
+                          setTextOverlayItems(prev => [...prev, newItem]);
                         }
+                        setOverlayText('');
                       }}
                       disabled={!overlayText.trim()}
                       className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
+                      {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                     </button>
 
-                    {/* Bouton Annuler le dernier texte */}
-                    {overlayHistory.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const previousState = overlayHistory[overlayHistory.length - 1];
-                          setOverlayHistory(prev => prev.slice(0, -1));
-                          setOriginalImageUrl(previousState);
-                          setEditVersions([...editVersions, previousState]);
-                          setSelectedEditVersion(previousState);
-                          setAppliedOverlaysCount(prev => Math.max(0, prev - 1));
-                          setOverlayText('');
-                          autoSaveEditedVersion(previousState);
-                        }}
-                        className="w-full py-1.5 mt-1 border border-amber-300 text-amber-700 rounded-lg text-[10px] font-medium hover:bg-amber-50 transition"
-                      >
-                        ↩ Annuler le dernier texte
-                      </button>
-                    )}
-
-                    {/* Bouton Supprimer tout le texte */}
-                    {appliedOverlaysCount > 0 && (
-                      <button
-                        onClick={() => {
-                          const cleanImg = baseOriginalImageUrl || generatedImageUrl;
-                          if (!cleanImg) return;
-                          setOriginalImageUrl(cleanImg);
-                          setOverlayText('');
-                          setAppliedOverlaysCount(0);
-                          setOverlayHistory([]);
-                          setEditVersions([...editVersions, cleanImg]);
-                          setSelectedEditVersion(cleanImg);
-                          autoSaveEditedVersion(cleanImg);
-                        }}
-                        className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
-                      >
-                        Supprimer tout le texte
-                      </button>
+                    {/* Liste des textes appliqués */}
+                    {textOverlayItems.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-neutral-700">Textes appliqués :</p>
+                        {textOverlayItems.map((item) => (
+                          <div key={item.id} className={`flex items-center gap-1.5 p-1.5 rounded border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
+                            <span className="text-[9px] text-neutral-400">{item.position === 'top' ? '⬆️' : item.position === 'bottom' ? '⬇️' : '⏺️'}</span>
+                            <span className="flex-1 text-[10px] text-neutral-700 truncate">{item.text}</span>
+                            <button
+                              onClick={() => {
+                                setOverlayText(item.text);
+                                setTextPosition(item.position);
+                                setFontSize(item.fontSize);
+                                setFontFamily(item.fontFamily as any);
+                                setTextColor(item.textColor);
+                                setTextBackgroundColor(item.backgroundColor);
+                                setBackgroundStyle(item.backgroundStyle as any);
+                                setEditingOverlayId(item.id);
+                              }}
+                              className="px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 rounded"
+                            >
+                              Modifier
+                            </button>
+                            <button
+                              onClick={() => {
+                                setTextOverlayItems(prev => prev.filter(i => i.id !== item.id));
+                                if (editingOverlayId === item.id) {
+                                  setEditingOverlayId(null);
+                                  setOverlayText('');
+                                }
+                              }}
+                              className="px-1 py-0.5 text-[9px] text-red-600 hover:bg-red-50 rounded"
+                            >
+                              X
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            setTextOverlayItems([]);
+                            setEditingOverlayId(null);
+                            setOverlayText('');
+                          }}
+                          className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
+                        >
+                          Supprimer tout le texte
+                        </button>
+                      </div>
                     )}
                   </div>
                   )}
