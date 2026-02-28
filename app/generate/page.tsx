@@ -873,6 +873,8 @@ export default function GeneratePage() {
         body: JSON.stringify({
           newsTitle: selectedNews?.title || '',
           newsDescription: selectedNews?.description || '',
+          newsSource: selectedNews?.source || '',
+          newsCategory: selectedNews?.category || '',
           businessType,
           businessDescription,
           communicationProfile,
