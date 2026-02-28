@@ -104,28 +104,26 @@ export async function POST(request: Request) {
 
     console.log('[I2I] Edit prompt (strength:', strength, '):', finalPrompt);
 
-    // --- SeedEdit 3.0 I2I dédié en premier, Kling omni-image en fallback ---
+    // --- Seedream 4.5 I2I (même modèle que T2I + param image), Kling en fallback ---
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
+
+    // Image source : URL d'origine si disponible, sinon base64
+    const imageForSeedream = sourceImage.startsWith('http') ? sourceImage : imageBase64;
+
     try {
-      console.log('[I2I] Generating with SeedEdit 3.0 I2I...');
-      // Utiliser le base64 pour SeedEdit (les serveurs BytePlus n'accèdent pas toujours aux URLs externes)
-      const imageForSeedEdit = imageBase64.startsWith('data:')
-        ? imageBase64
-        : sourceImage.startsWith('http') || sourceImage.startsWith('data:')
-          ? sourceImage
-          : `data:image/jpeg;base64,${sourceImage}`;
-      console.log('[I2I] Image format for SeedEdit:', imageForSeedEdit.substring(0, 50) + '...');
+      console.log('[I2I] Generating with Seedream 4.5 I2I...', { imageFormat: imageForSeedream.substring(0, 60) });
 
       const seedreamBody: any = {
-        model: 'seededit-3-0-i2i-250628',
+        model: 'seedream-4-5-251128',
         prompt: `${editPrefix}${seedreamPrompt}`,
+        image: imageForSeedream,
         response_format: 'url',
         watermark: false,
         size: size || 'adaptive',
         seed: seed || -1,
-        guidance_scale: guidance_scale || 5.5,
-        image: imageForSeedEdit,
       };
+
+      console.log('[I2I] Request body (sans image):', JSON.stringify({ ...seedreamBody, image: seedreamBody.image.substring(0, 60) + '...' }));
 
       const seedreamRes = await fetch(SEEDREAM_API_URL, {
         method: 'POST',
@@ -137,13 +135,13 @@ export async function POST(request: Request) {
       });
 
       const seedreamData = await seedreamRes.json();
+      console.log('[I2I] Seedream 4.5 response status:', seedreamRes.status);
 
       if (!seedreamRes.ok) {
-        console.error('[I2I] SeedEdit error:', JSON.stringify(seedreamData).substring(0, 500));
-        throw new Error(seedreamData.error?.message || `SeedEdit HTTP ${seedreamRes.status}`);
+        console.error('[I2I] Seedream 4.5 error:', JSON.stringify(seedreamData).substring(0, 500));
+        throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
       }
 
-      // SeedEdit avec response_format=url renvoie une URL, sinon b64_image
       const resultUrl = seedreamData.data?.[0]?.url;
       const resultB64 = seedreamData.data?.[0]?.b64_image;
 
@@ -152,27 +150,84 @@ export async function POST(request: Request) {
       } else if (resultB64) {
         resultImageUrl = `data:image/png;base64,${resultB64}`;
       } else {
+        console.error('[I2I] Seedream no image in response:', JSON.stringify(seedreamData).substring(0, 500));
         throw new Error('Seedream returned no image');
       }
 
       provider = 's';
-      console.log('[I2I] ✓ SeedEdit 3.0 generated successfully');
+      console.log('[I2I] ✓ Seedream 4.5 I2I generated successfully');
     } catch (seedreamError: any) {
-      console.error('[I2I] SeedEdit failed, falling back to Kling. Error:', seedreamError.message);
+      console.error('[I2I] Seedream 4.5 failed:', seedreamError.message);
 
-      // Fallback Kling omni-image
-      try {
-        console.log('[I2I] Generating with Kling omni-image (fallback)...');
-        const result = await generateKlingI2I({ prompt: finalPrompt, image: imageBase64 });
-        resultImageUrl = result.imageUrl;
-        provider = 'k';
-        console.log('[I2I] ✓ Kling fallback generated successfully');
-      } catch (klingError: any) {
-        console.error('[I2I] Kling fallback also failed:', klingError.message);
-        return Response.json({
-          ok: false,
-          error: `Erreur d'édition: ${seedreamError.message}`
-        }, { status: 500 });
+      // Retry avec base64 si on avait envoyé une URL
+      if (imageForSeedream.startsWith('http') && imageBase64.startsWith('data:')) {
+        try {
+          console.log('[I2I] Retrying Seedream 4.5 with base64 image...');
+          const retryBody: any = {
+            model: 'seedream-4-5-251128',
+            prompt: `${editPrefix}${seedreamPrompt}`,
+            image: imageBase64,
+            response_format: 'url',
+            watermark: false,
+            size: size || 'adaptive',
+            seed: seed || -1,
+          };
+
+          const retryRes = await fetch(SEEDREAM_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+            },
+            body: JSON.stringify(retryBody),
+          });
+
+          const retryData = await retryRes.json();
+          console.log('[I2I] Seedream 4.5 retry status:', retryRes.status);
+
+          if (retryRes.ok) {
+            const retryUrl = retryData.data?.[0]?.url;
+            const retryB64 = retryData.data?.[0]?.b64_image;
+            if (retryUrl) {
+              resultImageUrl = retryUrl;
+              provider = 's';
+              console.log('[I2I] ✓ Seedream 4.5 I2I retry with base64 OK');
+            } else if (retryB64) {
+              resultImageUrl = `data:image/png;base64,${retryB64}`;
+              provider = 's';
+              console.log('[I2I] ✓ Seedream 4.5 I2I retry with base64 OK (b64)');
+            } else {
+              throw new Error('Seedream retry returned no image');
+            }
+          } else {
+            console.error('[I2I] Seedream retry error:', JSON.stringify(retryData).substring(0, 500));
+            throw new Error(retryData.error?.message || `Seedream retry HTTP ${retryRes.status}`);
+          }
+        } catch (retryError: any) {
+          console.error('[I2I] Seedream 4.5 retry also failed:', retryError.message, '→ Kling fallback');
+          // Fallback Kling
+          try {
+            const result = await generateKlingI2I({ prompt: finalPrompt, image: imageBase64 });
+            resultImageUrl = result.imageUrl;
+            provider = 'k';
+            console.log('[I2I] ✓ Kling fallback OK');
+          } catch (klingError: any) {
+            console.error('[I2I] Kling also failed:', klingError.message);
+            return Response.json({ ok: false, error: `Erreur d'édition: ${retryError.message}` }, { status: 500 });
+          }
+        }
+      } else {
+        // Fallback Kling directement
+        try {
+          console.log('[I2I] Falling back to Kling...');
+          const result = await generateKlingI2I({ prompt: finalPrompt, image: imageBase64 });
+          resultImageUrl = result.imageUrl;
+          provider = 'k';
+          console.log('[I2I] ✓ Kling fallback OK');
+        } catch (klingError: any) {
+          console.error('[I2I] Kling also failed:', klingError.message);
+          return Response.json({ ok: false, error: `Erreur d'édition: ${seedreamError.message}` }, { status: 500 });
+        }
       }
     }
 
