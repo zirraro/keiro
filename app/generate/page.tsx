@@ -1720,11 +1720,29 @@ export default function GeneratePage() {
 
   // Sauvegarder l'image dans la galerie
   async function saveToLibrary() {
-    // Sauvegarder la version éditée (avec texte) si disponible, sinon l'original
-    const imageToSave = selectedEditVersion || generatedImageUrl;
-    if (!imageToSave) {
+    const baseImage = selectedEditVersion || generatedImageUrl;
+    if (!baseImage) {
       console.error('[SaveToLibrary] Missing image data');
       return;
+    }
+
+    // Rendre les overlays texte sur l'image avant sauvegarde
+    let imageToSave = baseImage;
+    if (textOverlayItems.length > 0) {
+      try {
+        const cleanBase = baseOriginalImageUrl || imageWithWatermarkOnly || originalImageUrl || baseImage;
+        let rendered = cleanBase;
+        for (const item of textOverlayItems) {
+          rendered = await addTextOverlay(rendered, {
+            text: item.text, position: item.position, fontSize: item.fontSize,
+            fontFamily: item.fontFamily, textColor: item.textColor,
+            backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
+          });
+        }
+        imageToSave = rendered;
+      } catch (e) {
+        console.warn('[SaveToLibrary] Overlay rendering failed, saving base image:', e);
+      }
     }
 
     setSavingToLibrary(true);
@@ -1951,7 +1969,8 @@ export default function GeneratePage() {
         const data = await res.json();
         if (data.ok && data.savedImage?.id) {
           setLastSavedImageId(data.savedImage.id);
-          setImageSavedToLibrary(true);
+          // Ne PAS mettre imageSavedToLibrary=true ici — l'auto-save est silencieux
+          // Le bouton "Sauvegarder" doit rester actif pour sauvegarder avec les overlays
           console.log('[AutoSave] Saved new gallery entry:', data.savedImage.id);
         }
       }
@@ -5156,11 +5175,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                       return;
                                     }
 
+                                    // Appliquer les overlays texte sur la version avant sauvegarde
+                                    let imageWithOverlays = version;
+                                    if (textOverlayItems.length > 0) {
+                                      for (const item of textOverlayItems) {
+                                        imageWithOverlays = await addTextOverlay(imageWithOverlays, {
+                                          text: item.text, position: item.position, fontSize: item.fontSize,
+                                          fontFamily: item.fontFamily, textColor: item.textColor,
+                                          backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
+                                        });
+                                      }
+                                    }
+
                                     // Upload vers Supabase Storage si data URL
-                                    let finalImageUrl = version;
-                                    if (version.startsWith('data:')) {
+                                    let finalImageUrl = imageWithOverlays;
+                                    if (imageWithOverlays.startsWith('data:')) {
                                       console.log('[EditStudio/Mobile] Data URL detected, uploading to Storage...');
-                                      const response = await fetch(version);
+                                      const response = await fetch(imageWithOverlays);
                                       const blob = await response.blob();
                                       const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
 
@@ -5314,11 +5345,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   return;
                                 }
 
+                                // Appliquer les overlays texte sur la version avant sauvegarde
+                                let imageWithOverlays = version;
+                                if (textOverlayItems.length > 0) {
+                                  for (const item of textOverlayItems) {
+                                    imageWithOverlays = await addTextOverlay(imageWithOverlays, {
+                                      text: item.text, position: item.position, fontSize: item.fontSize,
+                                      fontFamily: item.fontFamily, textColor: item.textColor,
+                                      backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
+                                    });
+                                  }
+                                }
+
                                 // Upload vers Supabase Storage si data URL
-                                let finalImageUrl = version;
-                                if (version.startsWith('data:')) {
+                                let finalImageUrl = imageWithOverlays;
+                                if (imageWithOverlays.startsWith('data:')) {
                                   console.log('[EditStudio/Desktop] Data URL detected, uploading to Storage...');
-                                  const response = await fetch(version);
+                                  const response = await fetch(imageWithOverlays);
                                   const blob = await response.blob();
                                   const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
 
@@ -5439,7 +5482,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       Génération preview...
                     </div>
                   )}
-                  {(textPreviewUrl && textOverlayItems.length > 0) ? (
+                  {textPreviewUrl ? (
                     <img
                       src={textPreviewUrl}
                       alt="Preview avec texte"
