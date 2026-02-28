@@ -76,9 +76,27 @@ export async function POST(req: NextRequest) {
       'URGENCE — maintenant, dernière chance, exclusif',
       'COMMUNAUTÉ — ensemble, partage, appartenance',
     ];
+    const VISUAL_CONCEPTS = [
+      'JUXTAPOSITION — deux mondes qui se rencontrent dans le même cadre, contraste fort entre business et contexte',
+      'MÉTAPHORE VISUELLE — un objet du business transformé ou détourné pour évoquer l\'actualité sans la montrer littéralement',
+      'MISE EN ABYME — une image dans l\'image, écran/reflet/cadre montrant un autre univers',
+      'POINT DE VUE INATTENDU — vu depuis l\'intérieur d\'un objet, à travers une vitrine, depuis le sol, depuis le plafond',
+      'SÉRIE/RÉPÉTITION — motif répétitif d\'objets du business créant un pattern graphique puissant',
+      'SPLIT SCREEN NATUREL — la scène naturellement divisée en deux par un élément (porte, mur, ombre, route)',
+      'MOUVEMENT FIGÉ — action en cours capturée à l\'instant parfait, dynamisme gelé',
+      'MINIMALISME — un seul objet emblématique du business isolé dans un espace vide ou coloré',
+      'STORYTELLING SÉQUENTIEL — la scène raconte une micro-histoire visible en un regard (avant/après, cause/effet)',
+      'IMMERSION — vue subjective comme si le spectateur était dans la scène, first person',
+      'ÉCHELLE DÉCALÉE — jouer sur les proportions, objet miniature ou géant dans un contexte réel',
+      'SYMÉTRIE BRISÉE — composition symétrique avec un seul élément qui casse l\'équilibre',
+      'TEXTURE HERO — gros plan extrême sur la matière, le grain, la surface qui raconte tout',
+      'LUMIÈRE NARRATIVE — la lumière elle-même raconte l\'histoire (rayon, ombre portée, néon, bougie)',
+      'ENVIRONNEMENT VIVANT — le décor/lieu est le personnage principal, il respire l\'identité du business',
+    ];
     const randomAngle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
     const randomMood = MOODS[Math.floor(Math.random() * MOODS.length)];
     const randomStrategy = STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)];
+    const randomVisualConcept = VISUAL_CONCEPTS[Math.floor(Math.random() * VISUAL_CONCEPTS.length)];
 
     const prompt = `Tu es un DIRECTEUR CRÉATIF de campagnes social media. Chaque réponse doit être UNIQUE, CRÉATIVE et SURPRENANTE — JAMAIS de clichés marketing, JAMAIS la même chose deux fois.
 
@@ -86,6 +104,7 @@ DIRECTION CRÉATIVE IMPOSÉE (tu DOIS l'appliquer):
 - Cadrage: ${randomAngle}
 - Ambiance: ${randomMood}
 - Stratégie: ${randomStrategy}
+- Concept visuel: ${randomVisualConcept}
 
 CONTEXTE:
 - Business: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}
@@ -114,14 +133,16 @@ GÉNÈRE ce JSON (9 champs) — CHAQUE champ doit être CRÉATIF, SPÉCIFIQUE et
   "emotionToConvey": "[2-4 mots] Émotion PRÉCISE (pas 'joie' mais 'fierté du fait-main', pas 'confiance' mais 'soulagement de trouver enfin')",
   "problemSolved": "[1 phrase] Problème QUOTIDIEN et CONCRET résolu par ${businessType}",
   "uniqueAdvantage": "[1 phrase] Détail SPÉCIFIQUE qui rend ${businessType} IRREMPLAÇABLE (pas des généralités)",
-  "desiredVisualIdea": "[2-3 phrases] Scène VISUELLE 100% CONCRÈTE — DÉCRIS EXACTEMENT ce qu'on VOIT: quels objets, quelles couleurs dominantes, quelle lumière, quelle action en cours, quel cadrage précis. AUCUN texte, mot, panneau, étiquette visible. ${hasNews ? 'La scène doit ILLUSTRER le lien business/actu de façon VISUELLE (pas avec du texte).' : ''}"
+  "desiredVisualIdea": "[3-4 phrases] CONCEPT VISUEL UNIQUE pour "${businessType}" — Applique OBLIGATOIREMENT le concept visuel imposé (${randomVisualConcept.split(' — ')[0]}). ${contentFocus <= 30 ? `Le BUSINESS est le HÉROS: montre les produits/outils/espace de "${businessType}" en gros plan, en action, avec des détails SPÉCIFIQUES à ce métier. L'actu n'est qu'un subtil indice en arrière-plan (un détail, une couleur, un objet évocateur).` : contentFocus >= 70 ? `L'ACTUALITÉ est le HÉROS: plonge dans la scène de l'actu (lieu, ambiance, personnages, objets concrets de l'événement). "${businessType}" apparaît comme un élément intégré dans cette scène (un produit posé là, un outil en cours d'utilisation, un détail de la marque).` : `FUSION business+actu: crée une scène où on ne peut pas séparer "${businessType}" de l'actualité — ils sont imbriqués dans une composition unifiée.`} DÉCRIS: objets EXACTS, couleurs dominantes, lumière, cadrage, action en cours. ZÉRO texte/mot/panneau visible."
 }
 
 RÈGLES ABSOLUES:
-- NE copie PAS d'exemples précédents — invente du NEUF
-- CHAQUE champ doit refléter la direction créative imposée ci-dessus
-- desiredVisualIdea: ZÉRO texte visible, ZÉRO description vague, ZÉRO cliché photo ("éclairage cinématique", "ambiance chaleureuse")
-- ${hasNews ? 'NE CONFONDS PAS le contexte de l\'actu (pays, sport, personnes)' : 'Sois SPÉCIFIQUE au business, pas générique'}
+- NE copie PAS d'exemples précédents — invente du NEUF à chaque fois
+- CHAQUE champ doit refléter la direction créative ET le concept visuel imposés ci-dessus
+- desiredVisualIdea est le champ LE PLUS IMPORTANT — il doit être CINÉMATOGRAPHIQUE, PRÉCIS et UNIQUE
+- desiredVisualIdea: ZÉRO texte visible, ZÉRO description vague ("belle image", "éclairage cinématique", "ambiance chaleureuse", "composition harmonieuse")
+- desiredVisualIdea: cite des OBJETS CONCRETS du métier "${businessType}" (outils, produits, matériaux, gestes spécifiques)
+- ${hasNews ? 'NE CONFONDS PAS le contexte de l\'actu (pays, sport, personnes). CITE des éléments VISUELS CONCRETS de l\'actu.' : 'Sois HYPER-SPÉCIFIQUE au business, pas générique'}
 
 Réponds UNIQUEMENT avec le JSON valide.`;
 
