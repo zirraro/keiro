@@ -580,7 +580,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={aiLoading || !prompt.trim()}
                   className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-sm hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {aiLoading ? 'Modification...' : 'Modifier avec l\'IA'}
+                  {aiLoading ? 'Modification...' : 'Modifier'}
                 </button>
               )}
             </>

@@ -197,7 +197,7 @@ Max ~15 mots pour 5 secondes"
           </p>
           {wordCount > 20 && (
             <p className="text-xs text-orange-600">
-              Trop long, l'IA va condenser
+              Trop long, le texte sera condensé
             </p>
           )}
         </div>

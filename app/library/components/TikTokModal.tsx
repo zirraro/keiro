@@ -1874,7 +1874,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
                   }`}
-                  title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? 'Générez d\'abord la vidéo avec IA' : ''}
+                  title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? 'Générez d\'abord la vidéo' : ''}
                 >
                   {publishing ? (
                     <>

@@ -45,7 +45,7 @@ export default function TwitterDraftsTab({ drafts, onEdit, onDelete, onSchedule,
           Aucun brouillon X
         </h3>
         <p className="text-neutral-700 mb-6 max-w-md mx-auto">
-          Créez des tweets percutants avec l'IA. Optimisez chaque caractère pour maximiser votre impact.
+          Créez des tweets percutants. Optimisez chaque caractère pour maximiser votre impact.
         </p>
         <button
           onClick={onPrepareTwitter}
