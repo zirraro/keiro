@@ -379,6 +379,7 @@ export default function GeneratePage() {
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [baseOriginalImageUrl, setBaseOriginalImageUrl] = useState<string | null>(null);
   const [appliedOverlaysCount, setAppliedOverlaysCount] = useState(0);
+  const [overlayHistory, setOverlayHistory] = useState<string[]>([]); // Historique des images AVANT chaque overlay
 
   /* --- États pour le loader avancé --- */
   const [imageLoadingProgress, setImageLoadingProgress] = useState(0);
@@ -5019,13 +5020,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               backgroundStyle: backgroundStyle,
                             });
 
+                            // Sauvegarder l'état AVANT overlay dans l'historique (pour undo)
+                            setOverlayHistory(prev => [...prev, imageToEdit]);
                             // Cuire l'overlay dans la base
                             setOriginalImageUrl(result);
                             setEditVersions([...editVersions, result]);
                             setSelectedEditVersion(result);
                             setAppliedOverlaysCount(prev => prev + 1);
-                            setOverlayText(''); // Vider pour le prochain texte
-                            // Auto-sauvegarder l'overlay dans la galerie
+                            setOverlayText('');
                             autoSaveEditedVersion(result);
                           } catch (error) {
                             console.error('Error applying text overlay:', error);
@@ -5038,23 +5040,44 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                       </button>
 
-                      {/* Bouton Supprimer tout le texte — revenir à l'image originale propre */}
-                      <button
-                        onClick={() => {
-                          const cleanImg = baseOriginalImageUrl || generatedImageUrl;
-                          if (!cleanImg) return;
-                          setOriginalImageUrl(cleanImg);
-                          setOverlayText('');
-                          setAppliedOverlaysCount(0);
-                          setEditVersions([...editVersions, cleanImg]);
-                          setSelectedEditVersion(cleanImg);
-                          // Auto-sauvegarder sans overlay
-                          autoSaveEditedVersion(cleanImg);
-                        }}
-                        className="w-full py-2 mt-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
-                      >
-                        Supprimer le texte
-                      </button>
+                      {/* Bouton Annuler le dernier texte */}
+                      {overlayHistory.length > 0 && (
+                        <button
+                          onClick={() => {
+                            const previousState = overlayHistory[overlayHistory.length - 1];
+                            setOverlayHistory(prev => prev.slice(0, -1));
+                            setOriginalImageUrl(previousState);
+                            setEditVersions([...editVersions, previousState]);
+                            setSelectedEditVersion(previousState);
+                            setAppliedOverlaysCount(prev => Math.max(0, prev - 1));
+                            setOverlayText('');
+                            autoSaveEditedVersion(previousState);
+                          }}
+                          className="w-full py-2 mt-2 border border-amber-300 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-50 transition"
+                        >
+                          ↩ Annuler le dernier texte
+                        </button>
+                      )}
+
+                      {/* Bouton Supprimer tout le texte */}
+                      {appliedOverlaysCount > 0 && (
+                        <button
+                          onClick={() => {
+                            const cleanImg = baseOriginalImageUrl || generatedImageUrl;
+                            if (!cleanImg) return;
+                            setOriginalImageUrl(cleanImg);
+                            setOverlayText('');
+                            setAppliedOverlaysCount(0);
+                            setOverlayHistory([]);
+                            setEditVersions([...editVersions, cleanImg]);
+                            setSelectedEditVersion(cleanImg);
+                            autoSaveEditedVersion(cleanImg);
+                          }}
+                          className="w-full py-2 mt-1 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+                        >
+                          Supprimer tout le texte
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -5949,6 +5972,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             backgroundStyle: backgroundStyle,
                           });
 
+                          // Sauvegarder l'état AVANT overlay dans l'historique (pour undo)
+                          setOverlayHistory(prev => [...prev, imageToEdit]);
                           setOriginalImageUrl(result);
                           setEditVersions([...editVersions, result]);
                           setSelectedEditVersion(result);
@@ -5966,22 +5991,44 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {appliedOverlaysCount > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                     </button>
 
+                    {/* Bouton Annuler le dernier texte */}
+                    {overlayHistory.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const previousState = overlayHistory[overlayHistory.length - 1];
+                          setOverlayHistory(prev => prev.slice(0, -1));
+                          setOriginalImageUrl(previousState);
+                          setEditVersions([...editVersions, previousState]);
+                          setSelectedEditVersion(previousState);
+                          setAppliedOverlaysCount(prev => Math.max(0, prev - 1));
+                          setOverlayText('');
+                          autoSaveEditedVersion(previousState);
+                        }}
+                        className="w-full py-1.5 mt-1 border border-amber-300 text-amber-700 rounded-lg text-[10px] font-medium hover:bg-amber-50 transition"
+                      >
+                        ↩ Annuler le dernier texte
+                      </button>
+                    )}
+
                     {/* Bouton Supprimer tout le texte */}
-                    <button
-                      onClick={() => {
-                        const cleanImg = baseOriginalImageUrl || generatedImageUrl;
-                        if (!cleanImg) return;
-                        setOriginalImageUrl(cleanImg);
-                        setOverlayText('');
-                        setAppliedOverlaysCount(0);
-                        setEditVersions([...editVersions, cleanImg]);
-                        setSelectedEditVersion(cleanImg);
-                        autoSaveEditedVersion(cleanImg);
-                      }}
-                      className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
-                    >
-                      Supprimer le texte
-                    </button>
+                    {appliedOverlaysCount > 0 && (
+                      <button
+                        onClick={() => {
+                          const cleanImg = baseOriginalImageUrl || generatedImageUrl;
+                          if (!cleanImg) return;
+                          setOriginalImageUrl(cleanImg);
+                          setOverlayText('');
+                          setAppliedOverlaysCount(0);
+                          setOverlayHistory([]);
+                          setEditVersions([...editVersions, cleanImg]);
+                          setSelectedEditVersion(cleanImg);
+                          autoSaveEditedVersion(cleanImg);
+                        }}
+                        className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
+                      >
+                        Supprimer tout le texte
+                      </button>
+                    )}
                   </div>
                   )}
                 </div>

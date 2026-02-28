@@ -68,6 +68,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   const [textLoading, setTextLoading] = useState(false);
   const [bakedBaseImage, setBakedBaseImage] = useState<string | null>(null);
   const [appliedTextsCount, setAppliedTextsCount] = useState(0);
+  const [overlayHistory, setOverlayHistory] = useState<string[]>([]); // Historique pour undo
 
   // Pour le texte overlay, utiliser l'image bakée (si texte déjà appliqué) ou l'originale
   const textBaseImage = bakedBaseImage || originalImageUrl || imageUrl;
@@ -488,11 +489,11 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               >
                 {saving ? 'Sauvegarde...' : overlayText.trim() ? 'Appliquer le texte' : 'Sauvegarder'}
               </button>
-              {/* Bouton Ajouter un texte : cuit le texte actuel dans l'image et permet d'en ajouter un autre */}
+              {/* Bouton Ajouter un texte : cuit le texte actuel et permet d'en ajouter un autre */}
               {overlayText.trim() && textPreviewUrl && (
                 <button
                   onClick={() => {
-                    // Cuire le texte actuel dans l'image de base
+                    setOverlayHistory(prev => [...prev, textBaseImage]);
                     setBakedBaseImage(textPreviewUrl);
                     setAppliedTextsCount(prev => prev + 1);
                     setOverlayText('');
@@ -504,14 +505,32 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   + Ajouter un texte
                 </button>
               )}
+              {/* Bouton Annuler le dernier texte */}
+              {overlayHistory.length > 0 && (
+                <button
+                  onClick={() => {
+                    const previousState = overlayHistory[overlayHistory.length - 1];
+                    setOverlayHistory(prev => prev.slice(0, -1));
+                    setBakedBaseImage(previousState === (originalImageUrl || imageUrl) ? null : previousState);
+                    setAppliedTextsCount(prev => Math.max(0, prev - 1));
+                    setOverlayText('');
+                    setTextPreviewUrl(null);
+                  }}
+                  disabled={saving}
+                  className="px-4 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg font-medium text-sm hover:bg-amber-100 transition disabled:opacity-50"
+                >
+                  ↩ Annuler
+                </button>
+              )}
+              {/* Bouton Supprimer tout le texte */}
               {(initialText || appliedTextsCount > 0) && (
                 <button
                   onClick={async () => {
-                    // Supprimer tout le texte — revenir à l'image originale propre
                     setOverlayText('');
                     setTextPreviewUrl(null);
                     setBakedBaseImage(null);
                     setAppliedTextsCount(0);
+                    setOverlayHistory([]);
                     setSaving(true);
                     try {
                       const cleanImage = originalImageUrl || imageUrl;
@@ -532,7 +551,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={saving}
                   className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition disabled:opacity-50"
                 >
-                  Supprimer le texte
+                  Tout supprimer
                 </button>
               )}
             </>
