@@ -1840,20 +1840,20 @@ export default function GeneratePage() {
         if (data.savedImage?.id) setLastSavedImageId(data.savedImage.id);
         console.log('[SaveToLibrary] ✅ Image saved:', data.savedImage?.id);
 
-        // Toast succès
+        // Toast succès avec fade-out + redirection
         const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+        toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
         toast.innerHTML = `
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             <span>${isUpdate ? 'Galerie mise à jour !' : 'Sauvegardé dans votre galerie !'}</span>
           </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-        setTimeout(() => { window.location.href = '/library'; }, 1500);
+        setTimeout(() => { toast.style.opacity = '0'; }, 1000);
+        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -2009,18 +2009,18 @@ export default function GeneratePage() {
         console.log('[SaveVideoToLibrary] ✅ Video saved:', data.video?.id);
 
         const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in';
+        toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
         toast.innerHTML = `
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>${isUpdate ? 'Vidéo mise à jour dans la galerie !' : 'Vidéo sauvegardée !'}</span>
+            <span>${isUpdate ? 'Vidéo mise à jour !' : 'Vidéo sauvegardée !'}</span>
           </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-        if (!isUpdate) setTimeout(() => { window.location.href = '/library'; }, 1500);
+        setTimeout(() => { toast.style.opacity = '0'; }, 1000);
+        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 1500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -5167,22 +5167,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                                     const data = await response.json();
                                     if (data.ok) {
-                                      // Toast de succès
                                       const toast = document.createElement('div');
-                                      toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-                                      toast.innerHTML = '✅ Sauvegardé dans votre galerie ! Redirection...';
+                                      toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
+                                      toast.innerHTML = 'Sauvegardé dans votre galerie !';
                                       document.body.appendChild(toast);
-
-                                      // Rediriger vers la galerie après 1.5s
-                                      setTimeout(() => {
-                                        router.push('/library');
-                                      }, 1500);
+                                      setTimeout(() => { toast.style.opacity = '0'; }, 1000);
+                                      setTimeout(() => { toast.remove(); router.push('/library'); }, 1500);
                                     } else {
-                                      alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
+                                      alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                     }
                                   } catch (error: any) {
                                     console.error('Error saving to library:', error);
-                                    alert(`❌ Erreur : ${error.message || 'Vérifiez votre connexion'}`);
+                                    alert(`Erreur : ${error.message || 'Vérifiez votre connexion'}`);
                                   }
                                 }}
                                 className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
@@ -5329,22 +5325,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                                 const data = await response.json();
                                 if (data.ok) {
-                                  // Toast de succès
                                   const toast = document.createElement('div');
-                                  toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-                                  toast.innerHTML = '✅ Sauvegardé dans votre galerie ! Redirection...';
+                                  toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
+                                  toast.innerHTML = 'Sauvegardé dans votre galerie !';
                                   document.body.appendChild(toast);
-
-                                  // Rediriger vers la galerie après 1.5s
-                                  setTimeout(() => {
-                                    router.push('/library');
-                                  }, 1500);
+                                  setTimeout(() => { toast.style.opacity = '0'; }, 1000);
+                                  setTimeout(() => { toast.remove(); router.push('/library'); }, 1500);
                                 } else {
-                                  alert(`❌ Erreur : ${data.error || 'Impossible de sauvegarder'}`);
+                                  alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                 }
                               } catch (error: any) {
                                 console.error('Error saving to library:', error);
-                                alert(`❌ Erreur : ${error.message || 'Vérifiez votre connexion'}`);
+                                alert(`Erreur : ${error.message || 'Vérifiez votre connexion'}`);
                               }
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
