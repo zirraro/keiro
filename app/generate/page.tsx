@@ -986,22 +986,22 @@ export default function GeneratePage() {
     }
   }
 
-  /* --- Preview en temps réel du texte overlay (array-based) --- */
+  /* --- Preview en temps réel du texte overlay (array-based, tous les onglets) --- */
   useEffect(() => {
-    if (activeTab !== 'text' || !showEditStudio) {
+    if (!showEditStudio) {
       setTextPreviewUrl(null);
       return;
     }
 
-    const hasCurrentText = overlayText.trim().length > 0;
+    const hasCurrentText = activeTab === 'text' && overlayText.trim().length > 0;
     const hasAppliedItems = textOverlayItems.length > 0;
     if (!hasCurrentText && !hasAppliedItems) {
       setTextPreviewUrl(null);
       return;
     }
 
-    // Toujours partir de l'image de base propre (sans overlays)
-    const baseImage = baseOriginalImageUrl || selectedEditVersion || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+    // Toujours partir de l'image de base propre (sans texte overlay)
+    const baseImage = baseOriginalImageUrl || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
     if (!baseImage) {
       setTextPreviewUrl(null);
       return;
@@ -4058,11 +4058,26 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <button
                       onClick={() => {
                         setShowEditStudio(true);
-                        // Utiliser l'image AVEC overlays pour les garder visibles dans le studio
-                        setEditVersions([generatedImageUrl]);
-                        setSelectedEditVersion(generatedImageUrl);
-                        setBaseOriginalImageUrl(originalImageUrl || generatedImageUrl);
-                        setTextOverlayItems([]);
+                        // Utiliser l'image PROPRE (sans texte overlay) comme base
+                        const cleanBase = imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+                        setEditVersions([cleanBase]);
+                        setSelectedEditVersion(cleanBase);
+                        setBaseOriginalImageUrl(cleanBase);
+                        // Pré-charger le texte overlay de la génération comme premier item modifiable
+                        if (overlayText.trim()) {
+                          setTextOverlayItems([{
+                            id: `overlay-gen-${Date.now()}`,
+                            text: overlayText,
+                            position: 'center' as const,
+                            fontSize: 60,
+                            fontFamily: 'inter',
+                            textColor: '#ffffff',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            backgroundStyle: 'clean' as const,
+                          }]);
+                        } else {
+                          setTextOverlayItems([]);
+                        }
                         setEditingOverlayId(null);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
@@ -4682,17 +4697,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             return;
                           }
 
-                          if (!editPrompt.trim() || !selectedEditVersion) {
-                            return; // Le bouton est déjà disabled, pas besoin d'alert
+                          // Utiliser l'image propre (sans texte overlay) pour I2I
+                          const cleanImageForEdit = baseOriginalImageUrl || selectedEditVersion;
+                          if (!editPrompt.trim() || !cleanImageForEdit) {
+                            return;
                           }
                           setEditingImage(true);
                           try {
                             console.log('[Edit Studio] Editing image with SeedEdit I2I');
-                            console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
+                            console.log('[Edit Studio] Image URL:', cleanImageForEdit?.substring(0, 100));
                             console.log('[Edit Studio] Prompt:', editPrompt);
 
                             // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
-                            let imageForApi = selectedEditVersion!;
+                            let imageForApi = cleanImageForEdit;
                             if (imageForApi.startsWith('data:')) {
                               console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
                               try {
@@ -4745,36 +4762,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                             let newVersion = data.imageUrl;
 
-                            // Mettre à jour la base pour overlays
+                            // Mettre à jour la base propre (sans overlay) — le preview auto-rend les overlays
                             setOriginalImageUrl(newVersion);
                             setBaseOriginalImageUrl(newVersion);
-
-                            // Auto-réappliquer les overlays texte si existants
-                            if (textOverlayItems.length > 0) {
-                              try {
-                                let withAllText = newVersion;
-                                for (const item of textOverlayItems) {
-                                  withAllText = await addTextOverlay(withAllText, {
-                                    text: item.text,
-                                    position: item.position,
-                                    fontSize: item.fontSize,
-                                    fontFamily: item.fontFamily,
-                                    textColor: item.textColor,
-                                    backgroundColor: item.backgroundColor,
-                                    backgroundStyle: item.backgroundStyle,
-                                  });
-                                }
-                                setEditVersions([...editVersions, withAllText]);
-                                setSelectedEditVersion(withAllText);
-                              } catch (overlayErr) {
-                                console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
-                                setEditVersions([...editVersions, newVersion]);
-                                setSelectedEditVersion(newVersion);
-                              }
-                            } else {
-                              setEditVersions([...editVersions, newVersion]);
-                              setSelectedEditVersion(newVersion);
-                            }
+                            setEditVersions([...editVersions, newVersion]);
+                            setSelectedEditVersion(newVersion);
 
                             setEditPrompt('');
                             setActiveTab('image');
@@ -5442,12 +5434,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                 {/* Centre : Image display */}
                 <div className="flex-1 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden relative">
-                  {isGeneratingPreview && activeTab === 'text' && (
+                  {isGeneratingPreview && (
                     <div className="absolute top-2 right-2 bg-white/90 px-3 py-1 rounded-lg text-xs font-medium text-neutral-700 shadow-md z-10">
                       Génération preview...
                     </div>
                   )}
-                  {(textPreviewUrl && activeTab === 'text' && (overlayText.trim() || textOverlayItems.length > 0)) ? (
+                  {(textPreviewUrl && textOverlayItems.length > 0) ? (
                     <img
                       src={textPreviewUrl}
                       alt="Preview avec texte"
@@ -5650,17 +5642,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           return;
                         }
 
-                        if (!editPrompt.trim() || !selectedEditVersion) {
-                          return; // Le bouton est déjà disabled, pas besoin d'alert
+                        // Utiliser l'image propre (sans texte overlay) pour I2I
+                        const cleanImageForEdit = baseOriginalImageUrl || selectedEditVersion;
+                        if (!editPrompt.trim() || !cleanImageForEdit) {
+                          return;
                         }
                         setEditingImage(true);
                         try {
                           console.log('[Edit Studio] Editing image with SeedEdit I2I');
-                          console.log('[Edit Studio] Image URL:', selectedEditVersion?.substring(0, 100));
+                          console.log('[Edit Studio] Image URL:', cleanImageForEdit?.substring(0, 100));
                           console.log('[Edit Studio] Prompt:', editPrompt);
 
                           // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
-                          let imageForApi = selectedEditVersion!;
+                          let imageForApi = cleanImageForEdit;
                           if (imageForApi.startsWith('data:')) {
                             console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
                             try {
@@ -5713,36 +5707,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                           let newVersion = data.imageUrl;
 
-                          // Mettre à jour la base pour overlays
+                          // Mettre à jour la base propre — le preview auto-rend les overlays
                           setOriginalImageUrl(newVersion);
                           setBaseOriginalImageUrl(newVersion);
-
-                          // Auto-réappliquer les overlays texte si existants
-                          if (textOverlayItems.length > 0) {
-                            try {
-                              let withAllText = newVersion;
-                              for (const item of textOverlayItems) {
-                                withAllText = await addTextOverlay(withAllText, {
-                                  text: item.text,
-                                  position: item.position,
-                                  fontSize: item.fontSize,
-                                  fontFamily: item.fontFamily,
-                                  textColor: item.textColor,
-                                  backgroundColor: item.backgroundColor,
-                                  backgroundStyle: item.backgroundStyle,
-                                });
-                              }
-                              setEditVersions([...editVersions, withAllText]);
-                              setSelectedEditVersion(withAllText);
-                            } catch (overlayErr) {
-                              console.warn('[Edit Studio] Overlay reapply failed:', overlayErr);
-                              setEditVersions([...editVersions, newVersion]);
-                              setSelectedEditVersion(newVersion);
-                            }
-                          } else {
-                            setEditVersions([...editVersions, newVersion]);
-                            setSelectedEditVersion(newVersion);
-                          }
+                          setEditVersions([...editVersions, newVersion]);
+                          setSelectedEditVersion(newVersion);
 
                           setEditPrompt('');
 
