@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { addTextOverlay, type TextOverlayOptions } from '@/lib/canvas-text-overlay';
 
@@ -17,6 +17,17 @@ type TabType = 'ai' | 'text';
 type Position = 'top' | 'center' | 'bottom';
 type FontFamily = 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
 type BgStyle = 'transparent' | 'clean' | 'none' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
+
+interface TextOverlayItem {
+  id: string;
+  text: string;
+  position: Position;
+  fontSize: number;
+  fontFamily: FontFamily;
+  textColor: string;
+  bgColor: string;
+  bgStyle: BgStyle;
+}
 
 const FONTS: { value: FontFamily; label: string }[] = [
   { value: 'inter', label: 'Inter' },
@@ -44,6 +55,10 @@ const POSITIONS: { value: Position; label: string }[] = [
   { value: 'bottom', label: 'Bas' },
 ];
 
+function generateId() {
+  return Math.random().toString(36).substring(2, 9);
+}
+
 export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [editProvider, setEditProvider] = useState<string>('');
@@ -56,54 +71,197 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // === Text Overlay state ===
-  const [overlayText, setOverlayText] = useState(initialText || '');
-  const [textPosition, setTextPosition] = useState<Position>('bottom');
-  const [fontFamily, setFontFamily] = useState<FontFamily>('montserrat');
-  const [fontSize, setFontSize] = useState(60);
-  const [textColor, setTextColor] = useState('#ffffff');
-  const [bgColor, setBgColor] = useState('rgba(0, 0, 0, 0.5)');
-  const [bgStyle, setBgStyle] = useState<BgStyle>('clean');
+  // === Text Overlay state — array-based ===
+  const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => {
+    if (initialText) {
+      return [{
+        id: generateId(),
+        text: initialText,
+        position: 'bottom' as Position,
+        fontSize: 60,
+        fontFamily: 'montserrat' as FontFamily,
+        textColor: '#ffffff',
+        bgColor: 'rgba(0, 0, 0, 0.5)',
+        bgStyle: 'clean' as BgStyle,
+      }];
+    }
+    return [];
+  });
+  const [editingId, setEditingId] = useState<string | null>(initialText ? textOverlays[0]?.id || null : null);
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
-  const [bakedBaseImage, setBakedBaseImage] = useState<string | null>(null);
-  const [appliedTextsCount, setAppliedTextsCount] = useState(0);
-  const [overlayHistory, setOverlayHistory] = useState<string[]>([]); // Historique pour undo
 
-  // Pour le texte overlay, utiliser l'image bakée (si texte déjà appliqué) ou l'originale
-  const textBaseImage = bakedBaseImage || originalImageUrl || imageUrl;
+  // Form state for current editing overlay
+  const [formText, setFormText] = useState(initialText || '');
+  const [formPosition, setFormPosition] = useState<Position>('bottom');
+  const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');
+  const [formFontSize, setFormFontSize] = useState(60);
+  const [formTextColor, setFormTextColor] = useState('#ffffff');
+  const [formBgColor, setFormBgColor] = useState('rgba(0, 0, 0, 0.5)');
+  const [formBgStyle, setFormBgStyle] = useState<BgStyle>('clean');
 
-  // Live preview for text overlay
+  const baseImage = originalImageUrl || imageUrl;
+  const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load overlay values into form when selecting an overlay to edit
+  const loadOverlayIntoForm = useCallback((overlay: TextOverlayItem) => {
+    setFormText(overlay.text);
+    setFormPosition(overlay.position);
+    setFormFontFamily(overlay.fontFamily);
+    setFormFontSize(overlay.fontSize);
+    setFormTextColor(overlay.textColor);
+    setFormBgColor(overlay.bgColor);
+    setFormBgStyle(overlay.bgStyle);
+  }, []);
+
+  // Get the current form values as an overlay item
+  const getFormAsOverlay = useCallback((): Omit<TextOverlayItem, 'id'> => ({
+    text: formText,
+    position: formPosition,
+    fontSize: formFontSize,
+    fontFamily: formFontFamily,
+    textColor: formTextColor,
+    bgColor: formBgColor,
+    bgStyle: formBgStyle,
+  }), [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle]);
+
+  // Build the full list of overlays to render (committed + current editing)
+  const getOverlaysToRender = useCallback((): TextOverlayItem[] => {
+    const overlays = [...textOverlays];
+    if (editingId) {
+      // Replace the editing overlay with current form values
+      const idx = overlays.findIndex(o => o.id === editingId);
+      if (idx !== -1) {
+        overlays[idx] = { ...overlays[idx], ...getFormAsOverlay() };
+      }
+    } else if (formText.trim()) {
+      // New overlay being typed (not yet committed)
+      overlays.push({ id: '__new__', ...getFormAsOverlay() });
+    }
+    return overlays.filter(o => o.text.trim());
+  }, [textOverlays, editingId, formText, getFormAsOverlay]);
+
+  // Generate preview: render ALL overlays from the clean base image
   const generatePreview = useCallback(async () => {
-    if (!overlayText.trim()) {
+    const overlays = getOverlaysToRender();
+    if (overlays.length === 0) {
       setTextPreviewUrl(null);
       return;
     }
+
     setTextLoading(true);
     try {
-      const result = await addTextOverlay(textBaseImage, {
-        text: overlayText,
-        position: textPosition,
-        fontSize,
-        fontFamily,
-        textColor,
-        backgroundColor: bgColor,
-        backgroundStyle: bgStyle,
-      });
-      setTextPreviewUrl(result);
+      let currentImage = baseImage;
+      for (const overlay of overlays) {
+        currentImage = await addTextOverlay(currentImage, {
+          text: overlay.text,
+          position: overlay.position,
+          fontSize: overlay.fontSize,
+          fontFamily: overlay.fontFamily,
+          textColor: overlay.textColor,
+          backgroundColor: overlay.bgColor,
+          backgroundStyle: overlay.bgStyle,
+        });
+      }
+      setTextPreviewUrl(currentImage);
     } catch (err) {
       console.error('[TextOverlay] Preview error:', err);
     } finally {
       setTextLoading(false);
     }
-  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, textBaseImage]);
+  }, [baseImage, getOverlaysToRender]);
 
-  // Debounced preview
+  // Debounced preview — any change to form or overlays triggers a re-render
   useEffect(() => {
-    if (activeTab !== 'text' || !overlayText.trim()) return;
-    const timer = setTimeout(generatePreview, 300);
-    return () => clearTimeout(timer);
-  }, [overlayText, textPosition, fontSize, fontFamily, textColor, bgColor, bgStyle, activeTab, generatePreview]);
+    if (activeTab !== 'text') return;
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(generatePreview, 400);
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
+  }, [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle, textOverlays, activeTab, generatePreview]);
+
+  // === Overlay management actions ===
+
+  // Add current form as new overlay
+  const handleAddOverlay = () => {
+    if (!formText.trim()) return;
+    if (editingId) {
+      // Update existing
+      setTextOverlays(prev => prev.map(o =>
+        o.id === editingId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+      setEditingId(null);
+    } else {
+      // Add new
+      const newOverlay: TextOverlayItem = { id: generateId(), ...getFormAsOverlay() };
+      setTextOverlays(prev => [...prev, newOverlay]);
+    }
+    // Reset form for next overlay
+    setFormText('');
+    setFormPosition('bottom');
+    setFormFontSize(60);
+    setFormBgStyle('clean');
+  };
+
+  // Select an overlay to edit
+  const handleEditOverlay = (overlay: TextOverlayItem) => {
+    // If currently editing, commit changes first
+    if (editingId && formText.trim()) {
+      setTextOverlays(prev => prev.map(o =>
+        o.id === editingId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+    }
+    setEditingId(overlay.id);
+    loadOverlayIntoForm(overlay);
+  };
+
+  // Delete a specific overlay
+  const handleDeleteOverlay = (id: string) => {
+    setTextOverlays(prev => prev.filter(o => o.id !== id));
+    if (editingId === id) {
+      setEditingId(null);
+      setFormText('');
+    }
+  };
+
+  // Delete all overlays
+  const handleDeleteAll = async () => {
+    setTextOverlays([]);
+    setEditingId(null);
+    setFormText('');
+    setTextPreviewUrl(null);
+
+    setSaving(true);
+    try {
+      const cleanImage = baseImage;
+      if (imageId) {
+        await fetch('/api/library/update-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageId, newImageUrl: cleanImage, textOverlay: null }),
+        });
+      }
+      onImageEdited(cleanImage, '');
+    } catch (err) {
+      console.error('[ImageEditModal] Delete overlay error:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Start adding a new overlay (clear form)
+  const handleNewOverlay = () => {
+    // If currently editing, commit changes first
+    if (editingId && formText.trim()) {
+      setTextOverlays(prev => prev.map(o =>
+        o.id === editingId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+    }
+    setEditingId(null);
+    setFormText('');
+    setFormPosition('top');
+    setFormFontSize(60);
+    setFormBgStyle('clean');
+  };
 
   // === AI Edit handlers (with retry on network errors) ===
   const handleAiEdit = async () => {
@@ -123,11 +281,11 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         const data = await res.json();
         if (!data.ok) {
           setError(data.error || 'Erreur lors de la modification');
-          break; // Erreur API = pas de retry
+          break;
         }
         setAiEditedUrl(data.imageUrl);
         if (data._p) setEditProvider(data._p);
-        break; // Succes
+        break;
       } catch (err: any) {
         if (attempt < MAX_RETRIES) {
           await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
@@ -153,8 +311,14 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Non authentifié');
 
-        const response = await fetch(resultUrl);
-        const blob = await response.blob();
+        // Conversion base64 → Blob directe
+        const base64Data = resultUrl.split(',')[1];
+        const mimeType = resultUrl.match(/data:([^;]+)/)?.[1] || 'image/png';
+        const byteChars = atob(base64Data);
+        const byteArray = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([byteArray], { type: mimeType });
+
         const fileName = `${user.id}/${Date.now()}_edited_${Math.random().toString(36).substring(7)}.png`;
 
         const { error: uploadError } = await supabase.storage
@@ -170,6 +334,9 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         finalUrl = publicUrl;
       }
 
+      // Combine all overlay texts for DB storage
+      const allTexts = textOverlays.map(o => o.text).join(' | ');
+
       // Update in DB if imageId provided
       if (imageId) {
         const res = await fetch('/api/library/update-image', {
@@ -178,8 +345,8 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           body: JSON.stringify({
             imageId,
             newImageUrl: finalUrl,
-            textOverlay: overlayText.trim() || null,
-            originalImageUrl: originalImageUrl || imageUrl,
+            textOverlay: allTexts || null,
+            originalImageUrl: baseImage,
           }),
         });
         const data = await res.json();
@@ -188,7 +355,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         }
       }
 
-      onImageEdited(finalUrl, overlayText.trim() || undefined);
+      onImageEdited(finalUrl, allTexts || undefined);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {
@@ -196,8 +363,49 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     }
   };
 
+  // Save with text overlays: first commit current form, then render + save
+  const handleSaveText = async () => {
+    // Commit current form if editing
+    let finalOverlays = [...textOverlays];
+    if (editingId && formText.trim()) {
+      finalOverlays = finalOverlays.map(o =>
+        o.id === editingId ? { ...o, ...getFormAsOverlay() } : o
+      );
+    } else if (!editingId && formText.trim()) {
+      finalOverlays.push({ id: generateId(), ...getFormAsOverlay() });
+    }
+
+    if (finalOverlays.length === 0) return;
+
+    setTextLoading(true);
+    try {
+      // Render all overlays from clean base
+      let currentImage = baseImage;
+      for (const overlay of finalOverlays) {
+        if (!overlay.text.trim()) continue;
+        currentImage = await addTextOverlay(currentImage, {
+          text: overlay.text,
+          position: overlay.position,
+          fontSize: overlay.fontSize,
+          fontFamily: overlay.fontFamily,
+          textColor: overlay.textColor,
+          backgroundColor: overlay.bgColor,
+          backgroundStyle: overlay.bgStyle,
+        });
+      }
+      setTextOverlays(finalOverlays);
+      await handleUse(currentImage);
+    } catch (err) {
+      console.error('[TextOverlay] Save error:', err);
+      setError('Erreur lors de la sauvegarde');
+    } finally {
+      setTextLoading(false);
+    }
+  };
+
   const currentResult = activeTab === 'ai' ? aiEditedUrl : textPreviewUrl;
   const isLoading = activeTab === 'ai' ? aiLoading : textLoading;
+  const hasOverlays = textOverlays.length > 0 || formText.trim();
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-2 sm:p-4">
@@ -214,7 +422,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {appliedTextsCount > 0 ? `Texte (${appliedTextsCount} appliqué${appliedTextsCount > 1 ? 's' : ''})` : initialText ? 'Modifier le texte' : 'Ajouter du texte'}
+                {textOverlays.length > 0 ? `Textes (${textOverlays.length})` : 'Ajouter du texte'}
               </button>
               <button
                 onClick={() => setActiveTab('ai')}
@@ -263,12 +471,63 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           {/* === TEXT OVERLAY TAB === */}
           {activeTab === 'text' && (
             <div className="space-y-3">
-              {/* Text input */}
+              {/* Applied overlays list — each one clickable to edit, with delete button */}
+              {textOverlays.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
+                  <div className="space-y-1.5">
+                    {textOverlays.map((overlay) => (
+                      <div
+                        key={overlay.id}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
+                          editingId === overlay.id
+                            ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                            : 'border-neutral-200 bg-neutral-50 hover:border-neutral-300 hover:bg-neutral-100'
+                        }`}
+                        onClick={() => handleEditOverlay(overlay)}
+                      >
+                        <span className="text-xs font-medium text-neutral-400 uppercase w-10 shrink-0">
+                          {overlay.position === 'top' ? 'Haut' : overlay.position === 'center' ? 'Centre' : 'Bas'}
+                        </span>
+                        <span className="text-sm text-neutral-800 truncate flex-1">
+                          {overlay.text}
+                        </span>
+                        <span
+                          className="w-4 h-4 rounded-full border shrink-0"
+                          style={{ backgroundColor: overlay.textColor }}
+                        />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
+                          className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
+                          title="Supprimer ce texte"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Button to add another overlay */}
+                  {editingId && (
+                    <button
+                      onClick={handleNewOverlay}
+                      className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                    >
+                      + Ajouter un autre texte
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Text form */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-1">Texte</label>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  {editingId ? 'Modifier le texte' : 'Nouveau texte'}
+                </label>
                 <textarea
-                  value={overlayText}
-                  onChange={(e) => setOverlayText(e.target.value)}
+                  value={formText}
+                  onChange={(e) => setFormText(e.target.value)}
                   placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
@@ -282,9 +541,9 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   {POSITIONS.map(p => (
                     <button
                       key={p.value}
-                      onClick={() => setTextPosition(p.value)}
+                      onClick={() => setFormPosition(p.value)}
                       className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
-                        textPosition === p.value
+                        formPosition === p.value
                           ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
@@ -300,8 +559,8 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <div>
                   <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
                   <select
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value as FontFamily)}
+                    value={formFontFamily}
+                    onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
                     className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-sm"
                   >
                     {FONTS.map(f => (
@@ -310,13 +569,13 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {fontSize}px</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
                   <input
                     type="range"
                     min={24}
                     max={120}
-                    value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    value={formFontSize}
+                    onChange={(e) => setFormFontSize(Number(e.target.value))}
                     className="w-full accent-blue-600"
                   />
                 </div>
@@ -329,17 +588,17 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
+                      value={formTextColor}
+                      onChange={(e) => setFormTextColor(e.target.value)}
                       className="w-8 h-8 rounded border cursor-pointer"
                     />
                     <div className="flex gap-1">
                       {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
                         <button
                           key={c}
-                          onClick={() => setTextColor(c)}
+                          onClick={() => setFormTextColor(c)}
                           className={`w-6 h-6 rounded-full border-2 transition ${
-                            textColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                            formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
                           }`}
                           style={{ backgroundColor: c }}
                         />
@@ -352,13 +611,13 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={bgColor.startsWith('rgba') ? '#000000' : bgColor}
+                      value={formBgColor.startsWith('rgba') ? '#000000' : formBgColor}
                       onChange={(e) => {
                         const hex = e.target.value;
                         const r = parseInt(hex.slice(1, 3), 16);
                         const g = parseInt(hex.slice(3, 5), 16);
                         const b = parseInt(hex.slice(5, 7), 16);
-                        setBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
+                        setFormBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
                       }}
                       className="w-8 h-8 rounded border cursor-pointer"
                     />
@@ -372,9 +631,9 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                       ].map(c => (
                         <button
                           key={c}
-                          onClick={() => setBgColor(c)}
+                          onClick={() => setFormBgColor(c)}
                           className={`w-6 h-6 rounded-full border-2 transition ${
-                            bgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                            formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
                           }`}
                           style={{ backgroundColor: c }}
                         />
@@ -391,9 +650,9 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   {BG_STYLES.map(s => (
                     <button
                       key={s.value}
-                      onClick={() => setBgStyle(s.value)}
+                      onClick={() => setFormBgStyle(s.value)}
                       className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
-                        bgStyle === s.value
+                        formBgStyle === s.value
                           ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
@@ -478,76 +737,34 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         </div>
 
         {/* Footer */}
-        <div className="border-t px-4 py-3 flex gap-2">
+        <div className="border-t px-4 py-3 flex flex-wrap gap-2">
           {activeTab === 'text' ? (
             // Text overlay footer
             <>
-              <button
-                onClick={() => textPreviewUrl && handleUse(textPreviewUrl)}
-                disabled={!textPreviewUrl || saving || textLoading}
-                className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Sauvegarde...' : overlayText.trim() ? 'Appliquer le texte' : 'Sauvegarder'}
-              </button>
-              {/* Bouton Ajouter un texte : cuit le texte actuel et permet d'en ajouter un autre */}
-              {overlayText.trim() && textPreviewUrl && (
+              {/* Valider / Ajouter le texte en cours */}
+              {formText.trim() && (
                 <button
-                  onClick={() => {
-                    setOverlayHistory(prev => [...prev, textBaseImage]);
-                    setBakedBaseImage(textPreviewUrl);
-                    setAppliedTextsCount(prev => prev + 1);
-                    setOverlayText('');
-                    setTextPreviewUrl(null);
-                  }}
+                  onClick={handleAddOverlay}
                   disabled={saving || textLoading}
-                  className="px-4 py-2.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg font-medium text-sm hover:bg-blue-100 transition disabled:opacity-50"
+                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  + Ajouter un texte
+                  {editingId ? 'Valider la modification' : '+ Ajouter ce texte'}
                 </button>
               )}
-              {/* Bouton Annuler le dernier texte */}
-              {overlayHistory.length > 0 && (
+              {/* Sauvegarder (render final + upload) */}
+              {hasOverlays && (
                 <button
-                  onClick={() => {
-                    const previousState = overlayHistory[overlayHistory.length - 1];
-                    setOverlayHistory(prev => prev.slice(0, -1));
-                    setBakedBaseImage(previousState === (originalImageUrl || imageUrl) ? null : previousState);
-                    setAppliedTextsCount(prev => Math.max(0, prev - 1));
-                    setOverlayText('');
-                    setTextPreviewUrl(null);
-                  }}
-                  disabled={saving}
-                  className="px-4 py-2.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg font-medium text-sm hover:bg-amber-100 transition disabled:opacity-50"
+                  onClick={handleSaveText}
+                  disabled={saving || textLoading}
+                  className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ↩ Annuler
+                  {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                 </button>
               )}
-              {/* Bouton Supprimer tout le texte */}
-              {(initialText || appliedTextsCount > 0) && (
+              {/* Supprimer tout */}
+              {(textOverlays.length > 0 || initialText) && (
                 <button
-                  onClick={async () => {
-                    setOverlayText('');
-                    setTextPreviewUrl(null);
-                    setBakedBaseImage(null);
-                    setAppliedTextsCount(0);
-                    setOverlayHistory([]);
-                    setSaving(true);
-                    try {
-                      const cleanImage = originalImageUrl || imageUrl;
-                      if (imageId) {
-                        await fetch('/api/library/update-image', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ imageId, newImageUrl: cleanImage, textOverlay: null }),
-                        });
-                      }
-                      onImageEdited(cleanImage, '');
-                    } catch (err) {
-                      console.error('[ImageEditModal] Delete overlay error:', err);
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
+                  onClick={handleDeleteAll}
                   disabled={saving}
                   className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition disabled:opacity-50"
                 >
