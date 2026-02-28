@@ -179,6 +179,14 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
   }, [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle, textOverlays, activeTab, generatePreview]);
 
+  // Generate initial preview on mount if there's initialText
+  useEffect(() => {
+    if (initialText && textOverlays.length > 0) {
+      generatePreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // === Overlay management actions ===
 
   // Add current form as new overlay
@@ -453,7 +461,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <img src={imageUrl} alt="Original" className="w-full h-full object-cover" />
               </div>
             </div>
-            {currentResult && (
+            {(currentResult || activeTab === 'text') && (
               <div>
                 <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1.5">
                   {activeTab === 'text' ? 'Aperçu' : 'Modifié'}
@@ -461,8 +469,17 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </p>
-                <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300">
-                  <img src={currentResult} alt="Résultat" className="w-full h-full object-cover" />
+                <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300 relative">
+                  <img
+                    src={activeTab === 'text' ? (textPreviewUrl || baseImage) : currentResult || baseImage}
+                    alt="Résultat"
+                    className="w-full h-full object-cover"
+                  />
+                  {activeTab === 'text' && textLoading && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
