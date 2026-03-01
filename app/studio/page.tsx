@@ -38,7 +38,7 @@ function StudioContent() {
   const [savingToGallery, setSavingToGallery] = useState(false);
   const [lastTextConfig, setLastTextConfig] = useState<any>({
     text: '',
-    position: 'center',
+    position: 50,
     fontSize: 80,
     textColor: '#ffffff',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',

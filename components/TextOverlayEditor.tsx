@@ -5,7 +5,7 @@ import { addTextOverlay } from '@/lib/canvas-text-overlay';
 
 export interface TextOverlayConfig {
   text: string;
-  position: 'top' | 'center' | 'bottom';
+  position: number; // 0-100 percentage from top
   textColor: string;
   backgroundColor: string;
   fontFamily: 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
@@ -35,7 +35,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'rgba(0, 0, 0, 0.7)',
       backgroundStyle: 'glow' as const,
-      position: 'center' as const,
+      position: 50,
       fontFamily: 'bebas' as const,
       fontSize: 90,
     }
@@ -49,7 +49,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: '#dc2626',
       backgroundStyle: 'solid' as const,
-      position: 'top' as const,
+      position: 20,
       fontFamily: 'bebas' as const,
       fontSize: 70,
     }
@@ -63,7 +63,7 @@ const TEMPLATES = [
       textColor: '#1e293b',
       backgroundColor: 'rgba(255, 255, 255, 0.88)',
       backgroundStyle: 'blur' as const,
-      position: 'center' as const,
+      position: 50,
       fontFamily: 'playfair' as const,
       fontSize: 48,
     }
@@ -77,7 +77,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'rgba(0, 0, 0, 0.75)',
       backgroundStyle: 'outline' as const,
-      position: 'top' as const,
+      position: 20,
       fontFamily: 'montserrat' as const,
       fontSize: 80,
     }
@@ -91,7 +91,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
       backgroundStyle: 'gradient' as const,
-      position: 'bottom' as const,
+      position: 80,
       fontFamily: 'montserrat' as const,
       fontSize: 55,
     }
@@ -105,7 +105,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'transparent',
       backgroundStyle: 'clean' as const,
-      position: 'bottom' as const,
+      position: 80,
       fontFamily: 'bebas' as const,
       fontSize: 75,
     }
@@ -119,7 +119,7 @@ const TEMPLATES = [
       textColor: '#1e293b',
       backgroundColor: 'rgba(254, 249, 195, 0.92)',
       backgroundStyle: 'transparent' as const,
-      position: 'center' as const,
+      position: 50,
       fontFamily: 'playfair' as const,
       fontSize: 46,
     }
@@ -133,7 +133,7 @@ const TEMPLATES = [
       textColor: '#0f172a',
       backgroundColor: 'rgba(255, 255, 255, 0.92)',
       backgroundStyle: 'minimal' as const,
-      position: 'bottom' as const,
+      position: 80,
       fontFamily: 'inter' as const,
       fontSize: 42,
     }
@@ -168,7 +168,7 @@ export default function TextOverlayEditor({
 }: TextOverlayEditorProps) {
   const [config, setConfig] = useState<TextOverlayConfig>({
     text: initialConfig?.text || '',
-    position: initialConfig?.position || 'center',
+    position: initialConfig?.position ?? 50,
     textColor: initialConfig?.textColor || '#ffffff',
     backgroundColor: initialConfig?.backgroundColor || 'rgba(0, 0, 0, 0.5)',
     fontFamily: initialConfig?.fontFamily || 'inter',
@@ -380,27 +380,36 @@ export default function TextOverlayEditor({
                 )}
               </div>
 
-              {/* Position — 3 boutons seulement */}
+              {/* Position du texte — up/down contrôle fin */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">Position du texte</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { value: 'top' as const, label: 'Haut' },
-                    { value: 'center' as const, label: 'Centre' },
-                    { value: 'bottom' as const, label: 'Bas' },
-                  ]).map((pos) => (
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">Position du texte <span className="text-neutral-400 font-normal">({config.position}%)</span></label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setConfig(prev => ({ ...prev, position: Math.max(8, prev.position - 10) }))}
+                    className="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                  >
+                    <span>⬆️</span> Haut +
+                  </button>
+                  <div className="flex-1 flex items-center gap-2 justify-center">
                     <button
-                      key={pos.value}
-                      onClick={() => setConfig(prev => ({ ...prev, position: pos.value }))}
-                      className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
-                        config.position === pos.value
-                          ? 'bg-blue-500 text-white shadow-md'
-                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                      }`}
-                    >
-                      {pos.label}
-                    </button>
-                  ))}
+                      onClick={() => setConfig(prev => ({ ...prev, position: 20 }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Haut</button>
+                    <button
+                      onClick={() => setConfig(prev => ({ ...prev, position: 50 }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position > 30 && config.position < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Centre</button>
+                    <button
+                      onClick={() => setConfig(prev => ({ ...prev, position: 80 }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Bas</button>
+                  </div>
+                  <button
+                    onClick={() => setConfig(prev => ({ ...prev, position: Math.min(92, prev.position + 10) }))}
+                    className="flex items-center gap-1 px-3 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                  >
+                    <span>⬇️</span> Bas +
+                  </button>
                 </div>
               </div>
 

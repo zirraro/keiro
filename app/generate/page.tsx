@@ -370,7 +370,7 @@ export default function GeneratePage() {
   interface GenerateTextOverlay {
     id: string;
     text: string;
-    position: 'top' | 'center' | 'bottom';
+    position: number; // 0-100 percentage from top
     fontSize: number;
     fontFamily: string;
     textColor: string;
@@ -378,7 +378,7 @@ export default function GeneratePage() {
     backgroundStyle: 'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
   }
   const [overlayText, setOverlayText] = useState('');
-  const [textPosition, setTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
+  const [textPosition, setTextPosition] = useState<number>(50); // 0=top, 50=center, 100=bottom
   const [textColor, setTextColor] = useState('#ffffff');
   const [textBackgroundColor, setTextBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
   const [fontSize, setFontSize] = useState(60);
@@ -4136,7 +4136,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           const items: GenerateTextOverlay[] = [{
                             id: `overlay-gen-${Date.now()}`,
                             text: overlayText,
-                            position: textPosition || 'center',
+                            position: textPosition ?? 50,
                             fontSize: fontSize || 60,
                             fontFamily: fontFamily || 'inter',
                             textColor: textColor || '#ffffff',
@@ -4982,32 +4982,32 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
                                   setBackgroundStyle('transparent');
-                                  setTextPosition('top');
+                                  setTextPosition(25);
                                 } else if (template.id === 'cta') {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('#3b82f6');
                                   setBackgroundStyle('solid');
-                                  setTextPosition('bottom');
+                                  setTextPosition(80);
                                 } else if (template.id === 'minimal') {
                                   setTextColor('#000000');
                                   setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
                                   setBackgroundStyle('solid');
-                                  setTextPosition('center');
+                                  setTextPosition(50);
                                 } else if (template.id === 'bold') {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('rgba(220, 38, 38, 0.9)');
                                   setBackgroundStyle('solid');
-                                  setTextPosition('center');
+                                  setTextPosition(50);
                                 } else if (template.id === 'elegant') {
                                   setTextColor('#1f2937');
                                   setTextBackgroundColor('rgba(255, 255, 255, 0.95)');
                                   setBackgroundStyle('blur');
-                                  setTextPosition('center');
+                                  setTextPosition(50);
                                 } else if (template.id === 'modern') {
                                   setTextColor('#ffffff');
                                   setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
                                   setBackgroundStyle('gradient');
-                                  setTextPosition('bottom');
+                                  setTextPosition(80);
                                 }
                               }}
                               className={`p-3 rounded-lg border-2 text-center transition-all ${
@@ -5033,26 +5033,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                       {/* Position */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Position</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { pos: 'top', emoji: '⬆️', label: 'Haut' },
-                            { pos: 'center', emoji: '⏺️', label: 'Centre' },
-                            { pos: 'bottom', emoji: '⬇️', label: 'Bas' },
-                          ].map((item) => (
+                        <label className="block text-sm font-medium mb-2">Position <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
+                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          >
+                            <span>⬆️</span> Haut +
+                          </button>
+                          <div className="flex-1 flex items-center gap-2">
                             <button
-                              key={item.pos}
-                              onClick={() => setTextPosition(item.pos as any)}
-                              className={`px-2 py-2 rounded-lg text-xs font-medium transition-all flex flex-col items-center gap-1 ${
-                                textPosition === item.pos
-                                  ? 'bg-purple-500 text-white'
-                                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                              }`}
-                            >
-                              <span className="text-lg">{item.emoji}</span>
-                              <span className="text-[10px] leading-tight">{item.label}</span>
-                            </button>
-                          ))}
+                              onClick={() => setTextPosition(25)}
+                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Haut</button>
+                            <button
+                              onClick={() => setTextPosition(50)}
+                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Centre</button>
+                            <button
+                              onClick={() => setTextPosition(75)}
+                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Bas</button>
+                          </div>
+                          <button
+                            onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
+                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          >
+                            <span>⬇️</span> Bas +
+                          </button>
                         </div>
                       </div>
 
@@ -5174,7 +5182,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           <p className="text-xs font-semibold text-neutral-700">Textes appliqués :</p>
                           {textOverlayItems.map((item) => (
                             <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
-                              <span className="text-[10px] text-neutral-400">{item.position === 'top' ? '⬆️' : item.position === 'bottom' ? '⬇️' : '⏺️'}</span>
+                              <span className="text-[10px] text-neutral-400">{item.position <= 30 ? '⬆️' : item.position >= 70 ? '⬇️' : '⏺️'}</span>
                               <span className="flex-1 text-xs text-neutral-700 truncate">{item.text}</span>
                               <button
                                 onClick={() => {
@@ -5980,32 +5988,32 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('rgba(0, 0, 0, 0.5)');
                                 setBackgroundStyle('transparent');
-                                setTextPosition('top');
+                                setTextPosition(25);
                               } else if (template.id === 'cta') {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('#3b82f6');
                                 setBackgroundStyle('solid');
-                                setTextPosition('bottom');
+                                setTextPosition(80);
                               } else if (template.id === 'minimal') {
                                 setTextColor('#000000');
                                 setTextBackgroundColor('rgba(255, 255, 255, 0.9)');
                                 setBackgroundStyle('solid');
-                                setTextPosition('center');
+                                setTextPosition(50);
                               } else if (template.id === 'bold') {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('rgba(220, 38, 38, 0.9)');
                                 setBackgroundStyle('solid');
-                                setTextPosition('center');
+                                setTextPosition(50);
                               } else if (template.id === 'elegant') {
                                 setTextColor('#1f2937');
                                 setTextBackgroundColor('rgba(255, 255, 255, 0.95)');
                                 setBackgroundStyle('blur');
-                                setTextPosition('center');
+                                setTextPosition(50);
                               } else if (template.id === 'modern') {
                                 setTextColor('#ffffff');
                                 setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
                                 setBackgroundStyle('gradient');
-                                setTextPosition('bottom');
+                                setTextPosition(80);
                               }
                             }}
                             className={`p-1.5 rounded border transition-all flex flex-col items-center ${
@@ -6023,26 +6031,28 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                     {/* Position */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1.5">Position</label>
-                      <div className="grid grid-cols-3 gap-1">
-                        {[
-                          { pos: 'top', emoji: '⬆️', label: 'Haut' },
-                          { pos: 'center', emoji: '⏺️', label: 'Centre' },
-                          { pos: 'bottom', emoji: '⬇️', label: 'Bas' },
-                        ].map((item) => (
-                          <button
-                            key={item.pos}
-                            onClick={() => setTextPosition(item.pos as any)}
-                            className={`px-1 py-1 rounded text-[9px] transition-all flex flex-col items-center ${
-                              textPosition === item.pos
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                            }`}
-                          >
-                            <span className="text-xs">{item.emoji}</span>
-                            <span className="leading-none">{item.label}</span>
-                          </button>
-                        ))}
+                      <label className="block text-xs font-medium mb-1.5">Position <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
+                          className="px-2 py-1.5 rounded text-[9px] font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                        >⬆️ Haut +</button>
+                        <button
+                          onClick={() => setTextPosition(25)}
+                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >H</button>
+                        <button
+                          onClick={() => setTextPosition(50)}
+                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >C</button>
+                        <button
+                          onClick={() => setTextPosition(75)}
+                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >B</button>
+                        <button
+                          onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
+                          className="px-2 py-1.5 rounded text-[9px] font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                        >⬇️ Bas +</button>
                       </div>
                     </div>
 
@@ -6164,7 +6174,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         <p className="text-[10px] font-semibold text-neutral-700">Textes appliqués :</p>
                         {textOverlayItems.map((item) => (
                           <div key={item.id} className={`flex items-center gap-1.5 p-1.5 rounded border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
-                            <span className="text-[9px] text-neutral-400">{item.position === 'top' ? '⬆️' : item.position === 'bottom' ? '⬇️' : '⏺️'}</span>
+                            <span className="text-[9px] text-neutral-400">{item.position <= 30 ? '⬆️' : item.position >= 70 ? '⬇️' : '⏺️'}</span>
                             <span className="flex-1 text-[10px] text-neutral-700 truncate">{item.text}</span>
                             <button
                               onClick={() => {

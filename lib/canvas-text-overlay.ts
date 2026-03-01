@@ -5,7 +5,7 @@
 
 export interface TextOverlayOptions {
   text: string;
-  position?: 'top' | 'center' | 'bottom';
+  position?: 'top' | 'center' | 'bottom' | number; // number = 0-100 percentage from top
   style?: 'headline' | 'cta' | 'minimal';
   fontSize?: number;
   fontFamily?: string;
@@ -195,7 +195,12 @@ export async function addTextOverlay(
 
         // Calculer la position Y selon le paramètre position
         let baseY: number;
-        if (position === 'top') {
+        if (typeof position === 'number') {
+          // Numeric: 0 = top edge, 50 = center, 100 = bottom edge
+          // Clamp between 8% and 92% to keep text visible
+          const pct = Math.max(8, Math.min(92, position)) / 100;
+          baseY = canvas.height * pct;
+        } else if (position === 'top') {
           baseY = canvas.height * 0.25;
         } else if (position === 'bottom') {
           baseY = canvas.height * 0.75;
