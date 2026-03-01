@@ -435,6 +435,7 @@ export default function GeneratePage() {
   const [editingImage, setEditingImage] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'text' | 'versions'>('image');
+  const prevActiveTabRef = useRef<string>('image');
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
@@ -1028,7 +1029,9 @@ export default function GeneratePage() {
 
         // Appliquer tous les overlays existants séquentiellement
         for (const item of textOverlayItems) {
-          if (item.id === editingOverlayId) continue;
+          // Sur l'onglet texte: skip l'overlay en cours d'édition (sera remplacé par le formulaire)
+          // Sur les autres onglets: afficher tous les overlays tels quels
+          if (hasCurrentText && item.id === editingOverlayId) continue;
           currentImage = await addTextOverlay(currentImage, {
             text: item.text, position: item.position, fontSize: item.fontSize,
             fontFamily: item.fontFamily, textColor: item.textColor,
@@ -1036,7 +1039,7 @@ export default function GeneratePage() {
           });
         }
 
-        // Appliquer l'overlay en cours d'édition (formulaire actif)
+        // Appliquer l'overlay en cours d'édition depuis le formulaire (uniquement sur l'onglet texte)
         if (hasCurrentText) {
           currentImage = await addTextOverlay(currentImage, {
             text: overlayText, position: textPosition, fontSize: fontSize,
@@ -1057,9 +1060,31 @@ export default function GeneratePage() {
     return () => clearTimeout(timeoutId);
   }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio, textOverlayItems, editingOverlayId, baseOriginalImageUrl, imageWithWatermarkOnly, originalImageUrl]);
 
-  /* --- Auto-charger le premier overlay dans le formulaire quand on ouvre l'onglet texte --- */
+  /* --- Auto-entrer en mode édition quand on a des overlays existants --- */
   useEffect(() => {
-    if (activeTab === 'text' && showEditStudio && textOverlayItems.length > 0 && !editingOverlayId && !overlayText.trim()) {
+    if (activeTab === 'text' && showEditStudio && textOverlayItems.length > 0 && !editingOverlayId) {
+      // Cas 1: Le formulaire a déjà du texte qui correspond à un overlay existant (ex: texte auto-généré)
+      const currentText = overlayText.trim();
+      if (currentText) {
+        const matching = textOverlayItems.find(item => item.text === currentText);
+        if (matching) {
+          // Auto-entrer en mode édition pour cet overlay (évite le doublon sur la preview)
+          setTextPosition(matching.position);
+          setFontSize(matching.fontSize);
+          setFontFamily(matching.fontFamily as any);
+          setTextColor(matching.textColor);
+          setTextBackgroundColor(matching.backgroundColor);
+          setBackgroundStyle(matching.backgroundStyle as any);
+          setEditingOverlayId(matching.id);
+          return;
+        }
+        // Le texte ne correspond à aucun overlay → auto-éditer le premier overlay quand même
+        // pour éviter le doublon (le formulaire remplace l'overlay existant)
+        const first = textOverlayItems[0];
+        setEditingOverlayId(first.id);
+        return;
+      }
+      // Cas 2: Formulaire vide → charger le premier overlay dans le formulaire
       const first = textOverlayItems[0];
       setOverlayText(first.text);
       setTextPosition(first.position);
@@ -1071,6 +1096,28 @@ export default function GeneratePage() {
       setEditingOverlayId(first.id);
     }
   }, [activeTab, showEditStudio, textOverlayItems.length]);
+
+  /* --- Auto-appliquer les modifications de texte quand on quitte l'onglet texte --- */
+  useEffect(() => {
+    const prevTab = prevActiveTabRef.current;
+    prevActiveTabRef.current = activeTab;
+
+    // Si on quitte l'onglet texte et qu'on a un overlay en cours d'édition
+    if (prevTab === 'text' && activeTab !== 'text' && showEditStudio && editingOverlayId && overlayText.trim()) {
+      // Auto-appliquer les modifications du formulaire dans textOverlayItems
+      const updatedItem: GenerateTextOverlay = {
+        id: editingOverlayId,
+        text: overlayText.trim(),
+        position: textPosition,
+        fontSize: fontSize,
+        fontFamily: fontFamily,
+        textColor: textColor,
+        backgroundColor: textBackgroundColor,
+        backgroundStyle: backgroundStyle,
+      };
+      setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? updatedItem : item));
+    }
+  }, [activeTab]);
 
   /* --- Générer les miniatures avec overlays pour chaque version --- */
   useEffect(() => {
@@ -1789,6 +1836,9 @@ export default function GeneratePage() {
       return;
     }
 
+    // Feedback immédiat pour l'utilisateur
+    setSavingToLibrary(true);
+
     // Rendre les overlays texte sur l'image avant sauvegarde
     let imageToSave = baseImage;
     if (textOverlayItems.length > 0) {
@@ -1807,8 +1857,6 @@ export default function GeneratePage() {
         console.warn('[SaveToLibrary] Overlay rendering failed, saving base image:', e);
       }
     }
-
-    setSavingToLibrary(true);
 
     try {
       // Utiliser supabaseBrowser pour avoir accès à la session
@@ -4148,8 +4196,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         setBaseOriginalImageUrl(cleanBase);
                         // Pré-charger le texte overlay de la génération comme premier item modifiable
                         if (overlayText.trim()) {
+                          const overlayId = `overlay-gen-${Date.now()}`;
                           const items: GenerateTextOverlay[] = [{
-                            id: `overlay-gen-${Date.now()}`,
+                            id: overlayId,
                             text: overlayText,
                             position: textPosition ?? 50,
                             fontSize: fontSize || 60,
@@ -4159,6 +4208,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             backgroundStyle: backgroundStyle || 'none',
                           }];
                           setTextOverlayItems(items);
+                          // Auto-entrer en mode édition pour cet overlay
+                          setEditingOverlayId(overlayId);
                           // Générer immédiatement la preview avec texte
                           try {
                             const preview = await renderOverlaysOnImage(cleanBase, items);
@@ -4168,8 +4219,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         } else {
                           setTextOverlayItems([]);
                           setVersionPreviews({});
+                          setEditingOverlayId(null);
                         }
-                        setEditingOverlayId(null);
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >
