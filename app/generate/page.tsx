@@ -1192,45 +1192,77 @@ export default function GeneratePage() {
           newsVisualCues = 'contextual environmental details reflecting current events, dynamic urban or natural backdrop elements, visible human activity and energy';
         }
 
-        // Adapter le poids business/actu selon le curseur contentFocus
+        // Adapter le poids business/actu selon le curseur contentFocus (5 niveaux)
         const businessWeight = 100 - contentFocus; // % business
         const newsWeight = contentFocus; // % actualité
-        const focusLabel = contentFocus <= 30 ? 'BUSINESS-DOMINANT'
-          : contentFocus >= 70 ? 'NEWS-DOMINANT'
-          : 'BALANCED';
+        let focusLabel: string;
+        let focusInstruction: string;
 
-        let focusInstruction = '';
-        if (contentFocus <= 30) {
-          focusInstruction = `PRIORITY: The business "${businessType}" is the HERO of this image. The news context is subtle, just a hint in the environment. The viewer sees the business FIRST.`;
-        } else if (contentFocus >= 70) {
-          focusInstruction = `PRIORITY: The news event is the HERO of this image. The business "${businessType}" appears as a participant/observer within the news context. The viewer feels the news impact FIRST.`;
+        if (contentFocus <= 15) {
+          focusLabel = 'BUSINESS TOTAL';
+          focusInstruction = `PRIORITY 95/5: The business "${businessType}" is the ABSOLUTE HERO. The news is barely hinted at — a tiny background detail, a color, a shadow. The viewer sees ONLY the business. The news is an almost invisible whisper in the atmosphere.`;
+        } else if (contentFocus <= 35) {
+          focusLabel = 'BUSINESS-DOMINANT';
+          focusInstruction = `PRIORITY 75/25: The business "${businessType}" dominates the frame. The news context appears as secondary environmental cues — objects on a shelf, a screen in the background, ambient colors reflecting the event. The business is front and center, the news sets the mood.`;
+        } else if (contentFocus <= 65) {
+          focusLabel = 'NEWSJACKING BALANCE';
+          focusInstruction = `BALANCE 50/50: TRUE NEWSJACKING — the business and the news are EQUALLY present and VISUALLY INTERTWINED. The viewer cannot separate one from the other. The business is IN the news context, reacting, adapting, thriving. This is the sweet spot of newsjacking content.`;
+        } else if (contentFocus <= 85) {
+          focusLabel = 'NEWS-DOMINANT';
+          focusInstruction = `PRIORITY 25/75: The news event DOMINATES the scene. The business "${businessType}" appears as a smart, relevant participant within the news context — surfing on the wave, commenting through its products/services, offering its perspective. The news is the stage, the business is a key actor on it.`;
         } else {
-          focusInstruction = `BALANCE: Equal visual weight between the business and the news. Both are clearly visible and connected.`;
+          focusLabel = 'NEWS TOTAL';
+          focusInstruction = `PRIORITY 5/95: The news event is EVERYTHING. The business "${businessType}" is barely suggested — a branded object, a subtle product placement, a tiny recognizable element. The image is a powerful editorial shot of the news, with a whisper of the brand.`;
         }
 
+        // Construire le contexte business enrichi avec TOUS les champs remplis
+        let businessContext = `"${businessType}"`;
+        if (businessDescription) businessContext += ` — ${businessDescription}`;
+
+        let businessDepth = '';
+        if (problemSolved) businessDepth += `\n- This business SOLVES: ${problemSolved}`;
+        if (uniqueAdvantage) businessDepth += `\n- What makes it UNIQUE: ${uniqueAdvantage}`;
+        if (targetAudience) businessDepth += `\n- Its clients/audience: ${targetAudience}`;
+        if (marketingAngle) businessDepth += `\n- Marketing strategy: ${marketingAngle}`;
+
+        // Construire le pont créatif news ↔ business
+        let creativeBridge = '';
+        if (desiredVisualIdea) creativeBridge += `\nVISUAL IDEA FROM CLIENT: "${desiredVisualIdea}" — USE THIS as the primary creative direction for the image. Interpret it to connect the business with the news.`;
+        if (storyToTell) creativeBridge += `\nSTORY TO TELL: "${storyToTell}" — Weave this narrative into the visual scene.`;
+        if (contentAngle) creativeBridge += `\nEDITORIAL ANGLE: "${contentAngle}" — Frame the image from this perspective.`;
+        if (imageAngle) creativeBridge += `\nIMAGE APPROACH: "${imageAngle}"`;
+        if (emotionToConvey) creativeBridge += `\nCORE EMOTION: "${emotionToConvey}" — The viewer MUST feel this when seeing the image.`;
+        if (publicationGoal) creativeBridge += `\nPURPOSE: "${publicationGoal}" — This image must achieve this goal on social media.`;
+
         promptParts.push(
-          `\n\nSCENE (${focusLabel}): A ${businessType}${businessDescription ? ` (${businessDescription})` : ''} reacting to this news: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `What happened: ${selectedNews.description.substring(0, 300)}\n` : '') +
+          `\n\n🎯 NEWSJACKING SCENE (${focusLabel}):\n` +
+          `\nTHE NEWS: "${selectedNews.title}"\n` +
+          (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 400)}\n` : '') +
+          `\nTHE BUSINESS: ${businessContext}\n` +
+          (businessDepth ? `Business DNA:${businessDepth}\n` : '') +
           `\n${focusInstruction}\n` +
-          `\nNARRATIVE BRIDGE: Show HOW this specific business is AFFECTED by or RESPONDS to this specific news event.\n` +
-          `Think: What would a photographer capture if they visited "${businessType}" the day this news broke?\n\n` +
-          `FOREGROUND (the business — ${businessWeight}%):\n` +
-          `- "${businessType}" in action: its products, tools, workspace, team, customers\n` +
-          `- Must be IMMEDIATELY recognizable as this specific type of business\n\n` +
-          `BACKGROUND & CONTEXT (the news — ${newsWeight}%):\n` +
-          `- The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
-          `- These elements appear naturally IN the business scene: on shelves, as decorations, worn by people, in the environment\n\n` +
-          `THE LINK:\n` +
-          `- Show the MOMENT where business and news MEET: a reaction, an adaptation, a contrast, a synergy\n` +
-          `- ONE unified scene — not two separate images side by side\n` +
-          `- Camera: close to medium shot, editorial photography quality\n` +
-          `- If people are shown, natural diversity in ethnicity, age, and appearance`
+          `\n🔗 NEWSJACKING BRIDGE — THE CORE CREATIVE CHALLENGE:\n` +
+          `Create ONE powerful visual that shows ${businessType} SURFING on this news.\n` +
+          `Ask yourself: How does "${selectedNews.title}" DIRECTLY impact, inspire, or connect to ${businessType}?\n` +
+          `The answer is the image. Show the MOMENT of connection — not two separate worlds, but ONE unified scene where the business and the news are inseparable.\n` +
+          (creativeBridge || `\nFind the most CREATIVE, UNEXPECTED, and VISUALLY STRIKING way to link this business to this news.`) +
+          `\n\nVISUAL COMPOSITION:\n` +
+          `FOREGROUND (business — ${businessWeight}%): ${businessType} in action — its products, tools, workspace, team, customers. Immediately recognizable.\n` +
+          `ENVIRONMENT (news — ${newsWeight}%): The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
+          `INTEGRATION: These elements are WOVEN TOGETHER — news objects in the business space, business products in the news context, people bridging both worlds.\n` +
+          `Camera: close to medium shot, editorial photography quality. ONE unified scene.\n` +
+          `If people are shown, natural diversity in ethnicity, age, and appearance.`
         );
       } else {
         // MODE SANS ACTUALITÉ
         promptParts.push(
-          `\n\nSUBJECT: ${businessType}${businessDescription ? `\n${businessDescription}` : ''}\n` +
+          `\n\nSUBJECT: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}\n` +
           (targetAudience ? `For: ${targetAudience}\n` : '') +
+          (problemSolved ? `Solves: ${problemSolved}\n` : '') +
+          (uniqueAdvantage ? `Unique: ${uniqueAdvantage}\n` : '') +
+          (desiredVisualIdea ? `Visual idea: ${desiredVisualIdea}\n` : '') +
+          (storyToTell ? `Story: ${storyToTell}\n` : '') +
+          (emotionToConvey ? `Emotion: ${emotionToConvey}\n` : '') +
           `\nShow this business at its BEST — in action, alive, magnetic.\n` +
           `Products, environment, atmosphere, the experience it delivers.\n` +
           `Cinematic quality: dramatic lighting, rich textures, depth of field.\n` +
@@ -1239,16 +1271,7 @@ export default function GeneratePage() {
         );
       }
 
-      // 2. EXPERT INSIGHTS (si disponibles) — enrichissent le contexte
-      if (problemSolved || uniqueAdvantage || desiredVisualIdea) {
-        let insights = '\nVISUAL STORY:\n';
-        if (problemSolved) insights += `Show how this business SOLVES: ${problemSolved}\n`;
-        if (uniqueAdvantage) insights += `Highlight what makes it UNIQUE: ${uniqueAdvantage}\n`;
-        if (desiredVisualIdea) insights += `Visual direction: ${desiredVisualIdea}\n`;
-        promptParts.push(insights);
-      }
-
-      // 3. RENDER STYLE + AUDIENCE + TONE + STRATEGY + CHARACTER STYLE
+      // 3. RENDER STYLE + TONE + CHARACTER STYLE
       const renderInstruction = renderStyle === 'illustration'
         ? 'RENDER STYLE: Stylized 3D illustration, digital art, cartoon or vector style. Colorful, clean, modern illustration look.'
         : 'RENDER STYLE: PHOTOREALISTIC. Real photograph taken with a professional camera. Real textures, real lighting, real materials. NOT a drawing, NOT an illustration, NOT 3D render, NOT digital art.';
@@ -1260,12 +1283,7 @@ export default function GeneratePage() {
       promptParts.push(
         `\n${renderInstruction}` +
         `\nTone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.` +
-        `\n${characterInstruction}` +
-        (targetAudience ? ` Target: ${targetAudience}.` : '') +
-        (storyToTell ? ` Story: ${storyToTell}.` : '') +
-        (publicationGoal ? ` Goal: ${publicationGoal}.` : '') +
-        (marketingAngle ? ` Strategy: ${marketingAngle}.` : '') +
-        (contentAngle ? ` Editorial angle: ${contentAngle}.` : '')
+        `\n${characterInstruction}`
       );
 
       // 4. TEXT OVERLAY SPACE (si texte optionnel)

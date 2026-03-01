@@ -68,95 +68,101 @@ export async function POST(req: NextRequest) {
       'AUTHENTICITÉ — coulisses, vérité, sans filtre',
       'COMMUNAUTÉ — ensemble, partage, appartenance',
     ];
-    const VISUAL_CONCEPTS = [
-      'JUXTAPOSITION — deux mondes qui se rencontrent dans le même cadre',
-      'MÉTAPHORE VISUELLE — un objet du business détourné pour évoquer l\'actualité',
-      'POINT DE VUE INATTENDU — vu depuis l\'intérieur d\'un objet, à travers une vitrine, depuis le sol',
-      'MOUVEMENT FIGÉ — action en cours capturée à l\'instant parfait',
-      'MINIMALISME — un seul objet emblématique isolé dans un espace vide ou coloré',
-      'IMMERSION — vue subjective comme si le spectateur était dans la scène',
-      'TEXTURE HERO — gros plan extrême sur la matière, le grain, la surface',
-      'LUMIÈRE NARRATIVE — la lumière raconte l\'histoire (rayon, ombre portée, néon)',
-      'ENVIRONNEMENT VIVANT — le décor est le personnage principal',
+    const NEWSJACKING_TYPES = [
+      'DÉTOURNEMENT — reprendre un élément iconique de l\'actu et le transformer avec les codes du business',
+      'RÉACTION — le business réagit "en direct" à l\'actu, comme un commentaire visuel',
+      'PARALLÈLE — montrer que le business vit la même chose que l\'actu (même défi, même émotion, même dynamique)',
+      'SOLUTION — le business apporte SA réponse au problème soulevé par l\'actu',
+      'CÉLÉBRATION — le business fête/soutient ce que l\'actu annonce',
+      'DÉCRYPTAGE — le business éclaire l\'actu avec son expertise métier',
     ];
     const randomAngle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
     const randomMood = MOODS[Math.floor(Math.random() * MOODS.length)];
     const randomStrategy = STRATEGIES[Math.floor(Math.random() * STRATEGIES.length)];
-    const randomVisualConcept = VISUAL_CONCEPTS[Math.floor(Math.random() * VISUAL_CONCEPTS.length)];
+    const randomNewsjacking = NEWSJACKING_TYPES[Math.floor(Math.random() * NEWSJACKING_TYPES.length)];
 
-    // Orientation focus
-    const focusLabel = contentFocus <= 30 ? 'BUSINESS-DOMINANT' : contentFocus >= 70 ? 'ACTUALITÉ-DOMINANTE' : 'ÉQUILIBRÉE';
+    // Orientation focus — plus granulaire
+    let focusInstruction: string;
+    if (contentFocus <= 20) {
+      focusInstruction = 'BUSINESS TOTAL (95% business, 5% actu): Le visuel montre UNIQUEMENT le business en action. L\'actu est juste un PRÉTEXTE pour le texte de la légende — elle n\'apparaît PAS visuellement.';
+    } else if (contentFocus <= 40) {
+      focusInstruction = 'BUSINESS DOMINANT (70% business, 30% actu): Le business occupe le premier plan. L\'actu est présente via UN DÉTAIL visuel (couleur, objet, ambiance) qui fait écho sans dominer.';
+    } else if (contentFocus <= 60) {
+      focusInstruction = 'FUSION ÉQUILIBRÉE (50/50): Business et actualité sont IMBRIQUÉS dans une seule scène. Les objets du métier côtoient les symboles de l\'actu. Impossible de séparer les deux mondes.';
+    } else if (contentFocus <= 80) {
+      focusInstruction = 'ACTUALITÉ DOMINANTE (30% business, 70% actu): L\'ACTUALITÉ est le SUJET PRINCIPAL du visuel. La scène ILLUSTRE l\'actu (ses acteurs, son contexte, son impact). Le business apparaît comme UN ÉLÉMENT dans cette scène — un produit posé là, un outil visible, un artisan qui participe.';
+    } else {
+      focusInstruction = 'ACTUALITÉ TOTALE (5% business, 95% actu): Le visuel est une ILLUSTRATION DIRECTE de l\'actualité. Le business n\'est qu\'un CLIN D\'OEIL discret (un logo, une touche de couleur, un objet du métier en arrière-plan).';
+    }
 
     let prompt: string;
 
     if (hasNews) {
-      // ===== MODE AVEC ACTUALITÉ =====
-      prompt = `Tu es un DIRECTEUR CRÉATIF expert en social media et newsjacking. Tu crées des campagnes qui connectent INTELLIGEMMENT un business à l'actualité du jour.
+      // ===== MODE AVEC ACTUALITÉ — NEWSJACKING =====
+      prompt = `Tu es un EXPERT EN NEWSJACKING pour les réseaux sociaux. Ta spécialité: créer des visuels qui SURFENT sur l'actualité pour propulser un business.
 
-ACTUALITÉ SÉLECTIONNÉE:
-━━━━━━━━━━━━━━━━━━━━━
+Le NEWSJACKING c'est quoi: prendre une actualité qui fait parler, et montrer comment elle RÉSONNE avec le métier du client. Le public doit se dire "Ah c'est malin, je n'y avais pas pensé !" Le visuel doit être PARTAGEABLE — les gens le partagent parce que le lien actu-business est BRILLANT.
+
+═══════════════════════════════════
+ACTUALITÉ DU JOUR:
+═══════════════════════════════════
 Titre: "${newsTitle}"
-${newsDescription ? `Détails: ${newsDescription.substring(0, 500)}` : ''}
+${newsDescription ? `Contexte complet: ${newsDescription.substring(0, 800)}` : ''}
 ${newsSource ? `Source: ${newsSource}` : ''}
 ${newsCategory ? `Catégorie: ${newsCategory}` : ''}
-━━━━━━━━━━━━━━━━━━━━━
 
-BUSINESS DU CLIENT:
-━━━━━━━━━━━━━━━━━━━━━
-Type: "${businessType}"
-${businessDescription ? `Description: ${businessDescription}` : ''}
-Communication: ${communicationProfile || 'inspirant'}
-${targetAudience ? `Cible: ${targetAudience}` : ''}
-Orientation visuelle: ${focusLabel} (${100 - contentFocus}% business, ${contentFocus}% actualité)
-━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════
+BUSINESS À CONNECTER:
+═══════════════════════════════════
+Métier: "${businessType}"
+${businessDescription ? `Détails: ${businessDescription}` : ''}
+Style de communication: ${communicationProfile || 'inspirant'}
+${targetAudience ? `Audience cible: ${targetAudience}` : ''}
 
-DIRECTION CRÉATIVE (applique-la):
-- Cadrage: ${randomAngle}
-- Ambiance: ${randomMood}
-- Stratégie: ${randomStrategy}
-- Concept visuel: ${randomVisualConcept}
+═══════════════════════════════════
+CURSEUR ACTU/BUSINESS: ${focusInstruction}
+═══════════════════════════════════
 
-PROCESSUS DE RÉFLEXION (suis ces étapes DANS TA TÊTE avant de répondre):
+TYPE DE NEWSJACKING À APPLIQUER: ${randomNewsjacking}
+CADRAGE: ${randomAngle}
+AMBIANCE: ${randomMood}
+STRATÉGIE: ${randomStrategy}
 
-1. ANALYSE L'ACTU EN PROFONDEUR:
-   - Qui sont les ACTEURS (personnes, entreprises, pays, équipes) ?
-   - Quel est l'ÉVÉNEMENT EXACT (pas une interprétation vague) ?
-   - Où ça se passe ? Quand ?
-   - Quel IMPACT sur la société/les gens au quotidien ?
-   - Quelle ÉMOTION COLLECTIVE cette actu provoque ?
+ÉTAPE 1 — DÉCORTIQUE L'ACTU (dans ta tête):
+• QUI: Les acteurs précis (noms, entreprises, personnalités, équipes)
+• QUOI: L'événement exact — pas une interprétation, les FAITS
+• OÙ/QUAND: Le lieu, la date, le contexte temporel
+• POURQUOI ÇA BUZZE: Pourquoi les gens en parlent — l'émotion collective (surprise, indignation, fierté, espoir, inquiétude)
+• LES SYMBOLES: Quels objets, lieux, gestes, couleurs SYMBOLISENT cette actu dans l'imaginaire collectif
 
-2. COMPRENDS LE BUSINESS "${businessType}" :
-   - Quels sont ses PRODUITS/SERVICES concrets ?
-   - Qui sont ses CLIENTS au quotidien ?
-   - Quels GESTES, OUTILS, OBJETS sont associés à ce métier ?
-   - Dans quel LIEU/ESPACE ce business opère ?
+ÉTAPE 2 — TROUVE LE PONT (dans ta tête):
+• Quel GESTE du métier "${businessType}" fait ÉCHO à un geste/événement de l'actu ?
+• Quel OBJET du métier peut SYMBOLISER ou DÉTOURNER un élément de l'actu ?
+• Quelle VALEUR le business partage avec l'actu (précision, performance, créativité, résilience) ?
+• Comment "${businessType}" VIVRAIT cette actu au quotidien — quel serait l'IMPACT sur son métier ?
+• Si un professionnel de "${businessType}" voyait cette actu, quelle serait sa RÉACTION MÉTIER ?
 
-3. TROUVE LE PONT CRÉATIF:
-   - Quel PARALLÈLE SURPRENANT entre l'actu et le business ?
-   - Quelle VALEUR COMMUNE les relie (persévérance, innovation, tradition, précision...) ?
-   - Comment le business peut-il RÉAGIR/REBONDIR sur cette actu de façon PERTINENTE ?
-   - Le lien doit être INTELLIGENT, pas forcé ou superficiel
-
-GÉNÈRE ce JSON avec 9 champs. CHAQUE champ doit démontrer que tu as COMPRIS l'actu et trouvé un VRAI lien avec "${businessType}":
+ÉTAPE 3 — GÉNÈRE CE JSON:
 
 {
-  "imageAngle": "[1 phrase] Cadrage photo PRÉCIS et CONCRET. Exemple pour un boulanger + actu sportive: 'Gros plan sur des mains pétrissant une pâte en forme de ballon, farine qui vole comme de la neige de stade'. CITE des objets RÉELS du métier de ${businessType}.",
-  "marketingAngle": "[1 phrase] Angle de communication qui EXPLOITE le lien entre l'actu et le business. PAS de cliché marketing vague. L'angle doit faire que le public se dise 'c'est malin, bien trouvé !'.",
-  "contentAngle": "[1 phrase] Format éditorial PRÉCIS qui met en scène le lien actu-business: réaction en direct, défi inspiré de l'actu, comparaison inattendue, coulisses montrant l'impact, détournement humoristique...",
-  "storyToTell": "[2-3 phrases] Le RÉCIT qui lie "${businessType}" à cette actu. CITE des éléments SPÉCIFIQUES de l'actu (noms, lieux, chiffres). Raconte COMMENT le business vit/réagit/s'inspire de cet événement. Le récit doit être CRÉDIBLE et TOUCHANT.",
-  "publicationGoal": "[1 phrase] Objectif PRÉCIS: 'Que les fans de [sujet de l'actu] découvrent ${businessType}' ou 'Montrer que ${businessType} comprend l'actualité de ses clients'",
-  "emotionToConvey": "[2-4 mots] Émotion COMPOSITE et PRÉCISE liée au croisement actu+business. PAS 'joie' ou 'fierté' seuls, mais 'fierté artisanale face au défi' ou 'solidarité gourmande'",
-  "problemSolved": "[1 phrase] En quoi ${businessType} apporte une RÉPONSE CONCRÈTE au quotidien dans le CONTEXTE de cette actu (comment le service/produit aide les gens face à ce qui se passe)",
-  "uniqueAdvantage": "[1 phrase] Ce qui rend ${businessType} PARTICULIÈREMENT PERTINENT dans le contexte de cette actualité. Le lien doit être INTELLIGENT et CRÉDIBLE.",
-  "desiredVisualIdea": "[4-5 phrases] CONCEPT VISUEL CINÉMATOGRAPHIQUE. Applique le concept ${randomVisualConcept.split(' — ')[0]}. ${contentFocus <= 30 ? `BUSINESS AU PREMIER PLAN: Le métier "${businessType}" occupe 70% du cadre — ses outils, produits, gestes en action. L'actu transparaît à travers un DÉTAIL SUBTIL mais PARLANT (un objet évocateur, une couleur symbolique, un élément de décor qui fait écho).` : contentFocus >= 70 ? `ACTUALITÉ AU PREMIER PLAN: La scène ÉVOQUE l'actu (ambiance, objets, contexte). "${businessType}" s'y intègre NATURELLEMENT — un de ses produits posé là, un artisan qui observe/participe, un outil du métier au milieu de la scène de l'actu.` : `FUSION: Une scène unique où "${businessType}" et l'actu sont IMBRIQUÉS — impossible de les séparer.`} DÉCRIS: les OBJETS EXACTS (du métier ${businessType} ET de l'actu), les couleurs dominantes, la lumière, ce que font les personnages. ZÉRO texte visible dans l'image."
+  "imageAngle": "[1 phrase] LE PONT VISUEL entre l'actu et le business. PAS un cadrage générique mais LE moment où les deux mondes se croisent. Ex boulanger + victoire sportive: 'Un croissant doré posé sur une table aux couleurs du drapeau du pays champion, vu en macro avec la farine qui retombe comme des confettis'.",
+  "marketingAngle": "[1 phrase] Le message NEWSJACKING — pourquoi le public de cette actu devrait s'intéresser à ${businessType} MAINTENANT. Le lien doit être MALIN, pas opportuniste.",
+  "contentAngle": "[1 phrase] Le format éditorial qui exploite le lien: 'Notre réaction de [métier] à [actu]', 'Ce que [actu] et [métier] ont en commun', 'Si [actu] était un [produit/service du métier]'...",
+  "storyToTell": "[2-3 phrases] Le RÉCIT NEWSJACKING. CITE des éléments PRÉCIS de l'actu (noms propres, chiffres, lieux). Raconte comment le business REBONDIT sur l'actu de manière NATURELLE et CRÉDIBLE. Le ton doit être celui d'un post social qui fait sourire ou réfléchir.",
+  "publicationGoal": "[1 phrase] Objectif social media: 'Capter l'audience de [sujet de l'actu] vers ${businessType}' ou 'Devenir LE post de ${businessType} que les fans de [sujet] partagent'",
+  "emotionToConvey": "[2-4 mots] L'émotion DU PONT actu-business — ex: 'fierté artisanale de champion', 'solidarité créative', 'ironie tendre du quotidien face au grandiose'",
+  "problemSolved": "[1 phrase] Comment ${businessType} apporte une réponse CONCRÈTE et PERTINENTE dans le CONTEXTE de cette actu — pas un problème générique mais lié au sujet du moment",
+  "uniqueAdvantage": "[1 phrase] Ce qui rend ${businessType} LÉGITIME pour parler de cette actu — le lien NATUREL entre le métier et le sujet",
+  "desiredVisualIdea": "[5-6 phrases] CONCEPT VISUEL NEWSJACKING détaillé. ${focusInstruction} APPLIQUE le type: ${randomNewsjacking.split(' — ')[0]}. Tu DOIS inclure: (1) Les éléments visuels SPÉCIFIQUES de l'actu (les objets, couleurs, symboles que tout le monde associe à cette actu), (2) Les éléments visuels du métier ${businessType} (outils, produits, gestes RÉELS), (3) COMMENT ils coexistent dans la même image. Décris les COULEURS dominantes, la LUMIÈRE (${randomMood.split(' — ')[0]}), ce que font les PERSONNAGES s'il y en a. ZÉRO texte visible dans l'image. L'image seule doit faire comprendre le lien actu-business."
 }
 
-RÈGLES:
-- CHAQUE champ doit prouver que tu as COMPRIS l'actu (cite des éléments concrets)
-- CHAQUE champ doit montrer un VRAI LIEN avec "${businessType}" (pas un lien forcé)
-- NE CONFONDS PAS les acteurs/lieux/événements de l'actu
-- Sois CRÉATIF et SURPRENANT, pas générique
-- desiredVisualIdea: OBJETS CONCRETS du métier "${businessType}", ZÉRO texte visible, ZÉRO description vague
+RÈGLES ABSOLUES:
+- L'actualité doit être RECONNAISSABLE dans le visuel (le public doit comprendre DE QUELLE ACTU il s'agit en voyant l'image)
+- Le lien avec "${businessType}" doit être INTELLIGENT et NATUREL (pas forcé)
+- CITE des éléments CONCRETS de l'actu dans storyToTell (noms, lieux, chiffres)
+- desiredVisualIdea: ${contentFocus >= 50 ? 'L\'ACTU DOIT ÊTRE VISUELLEMENT DOMINANTE — les symboles de l\'actu occupent le premier plan' : 'Le BUSINESS est au premier plan mais l\'actu est VISIBLE, pas juste suggérée'}
+- ZÉRO texte visible dans le visuel
+- Pense comme un CM de marque qui veut que son post soit PARTAGÉ parce que le lien actu-business est BRILLANT
 
 Réponds UNIQUEMENT avec le JSON valide.`;
     } else {
@@ -175,7 +181,6 @@ DIRECTION CRÉATIVE (applique-la):
 - Cadrage: ${randomAngle}
 - Ambiance: ${randomMood}
 - Stratégie: ${randomStrategy}
-- Concept visuel: ${randomVisualConcept}
 
 PROCESSUS DE RÉFLEXION (dans ta tête):
 1. Quels sont les PRODUITS/SERVICES concrets de "${businessType}" ?
@@ -194,7 +199,7 @@ GÉNÈRE ce JSON avec 9 champs HYPER-SPÉCIFIQUES au métier "${businessType}":
   "emotionToConvey": "[2-4 mots] Émotion liée au VÉCU de ${businessType}: 'satisfaction du geste parfait', 'émerveillement du client', 'fierté du détail invisible'...",
   "problemSolved": "[1 phrase] Problème CONCRET et QUOTIDIEN que ${businessType} résout pour ses clients (spécifique au métier)",
   "uniqueAdvantage": "[1 phrase] DÉTAIL PRÉCIS qui rend CE ${businessType} irremplaçable (technique, savoir-faire, philosophie)",
-  "desiredVisualIdea": "[4-5 phrases] CONCEPT VISUEL pour "${businessType}". Applique le concept ${randomVisualConcept.split(' — ')[0]}. Montre le métier EN ACTION: les mains au travail, les outils spécifiques, les matières premières, l'espace de travail. DÉCRIS: objets EXACTS du métier, couleurs dominantes, lumière, geste en cours. ZÉRO texte visible."
+  "desiredVisualIdea": "[4-5 phrases] CONCEPT VISUEL pour "${businessType}". Montre le métier EN ACTION: les mains au travail, les outils spécifiques, les matières premières, l'espace de travail. DÉCRIS: objets EXACTS du métier, couleurs dominantes, lumière, geste en cours. ZÉRO texte visible."
 }
 
 RÈGLES:
@@ -208,7 +213,7 @@ Réponds UNIQUEMENT avec le JSON valide.`;
 
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
+      max_tokens: 2000,
       temperature: 0.9,
       messages: [{ role: 'user', content: prompt }],
     });
