@@ -1799,7 +1799,7 @@ export default function GeneratePage() {
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
-              textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
+              textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
               aiModel: 'seedream',
               tags: []
             })
@@ -1839,13 +1839,30 @@ export default function GeneratePage() {
     // Feedback immédiat pour l'utilisateur
     setSavingToLibrary(true);
 
+    // Auto-appliquer les modifications en cours d'édition avant de sauvegarder
+    let itemsToRender = [...textOverlayItems];
+    if (editingOverlayId && overlayText.trim()) {
+      const updatedItem: GenerateTextOverlay = {
+        id: editingOverlayId,
+        text: overlayText.trim(),
+        position: textPosition,
+        fontSize: fontSize,
+        fontFamily: fontFamily,
+        textColor: textColor,
+        backgroundColor: textBackgroundColor,
+        backgroundStyle: backgroundStyle,
+      };
+      itemsToRender = itemsToRender.map(item => item.id === editingOverlayId ? updatedItem : item);
+      setTextOverlayItems(itemsToRender);
+    }
+
     // Rendre les overlays texte sur l'image avant sauvegarde
     let imageToSave = baseImage;
-    if (textOverlayItems.length > 0) {
+    if (itemsToRender.length > 0) {
       try {
         const cleanBase = baseOriginalImageUrl || imageWithWatermarkOnly || originalImageUrl || baseImage;
         let rendered = cleanBase;
-        for (const item of textOverlayItems) {
+        for (const item of itemsToRender) {
           rendered = await addTextOverlay(rendered, {
             text: item.text, position: item.position, fontSize: item.fontSize,
             fontFamily: item.fontFamily, textColor: item.textColor,
@@ -1943,7 +1960,7 @@ export default function GeneratePage() {
         newsSource: null,
         businessType: null,
         businessDescription: null,
-        textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
+        textOverlay: itemsToRender.map(i => i.text).filter(Boolean).join(' | ') || null,
         visualStyle: null,
         tone: null,
         generationPrompt: null,
@@ -2056,7 +2073,7 @@ export default function GeneratePage() {
           body: JSON.stringify({
             id: lastSavedImageId,
             imageUrl: finalUrl,
-            textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
+            textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
             originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
           }),
         });
@@ -2072,7 +2089,7 @@ export default function GeneratePage() {
             title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
             newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
             newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
-            textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
+            textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
             aiModel: 'seedream',
             tags: [],
           }),
@@ -5229,18 +5246,47 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             backgroundStyle,
                           };
                           if (editingOverlayId) {
+                            // Mettre à jour l'overlay existant — garder le formulaire actif pour modifications rapides
                             setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? newItem : item));
-                            setEditingOverlayId(null);
                           } else {
+                            // Ajouter comme nouvel overlay et passer en mode édition
                             setTextOverlayItems(prev => [...prev, newItem]);
+                            setEditingOverlayId(newItem.id);
                           }
-                          setOverlayText('');
                         }}
                         disabled={!overlayText.trim()}
                         className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                       </button>
+
+                      {/* Bouton Nouveau texte — visible quand on est en mode édition */}
+                      {editingOverlayId && (
+                        <button
+                          onClick={() => {
+                            // D'abord auto-sauvegarder les modifications en cours
+                            if (overlayText.trim()) {
+                              const updated: GenerateTextOverlay = {
+                                id: editingOverlayId,
+                                text: overlayText.trim(),
+                                position: textPosition,
+                                fontSize,
+                                fontFamily,
+                                textColor,
+                                backgroundColor: textBackgroundColor,
+                                backgroundStyle,
+                              };
+                              setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? updated : item));
+                            }
+                            setEditingOverlayId(null);
+                            setOverlayText('');
+                            setTextPosition(25);
+                          }}
+                          className="w-full py-2.5 mt-1 border border-purple-300 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-50 transition"
+                        >
+                          + Nouveau texte
+                        </button>
+                      )}
 
                       {/* Liste des textes appliqués */}
                       {textOverlayItems.length > 0 && (
@@ -5398,7 +5444,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                       newsSource: null,
                                       businessType: null,
                                       businessDescription: null,
-                                      textOverlay: [...textOverlayItems.map(i => i.text), overlayText?.trim()].filter(Boolean).join(' | ') || null,
+                                      textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
                                       visualStyle: null,
                                       tone: null,
                                       generationPrompt: null,
@@ -6222,17 +6268,42 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         };
                         if (editingOverlayId) {
                           setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? newItem : item));
-                          setEditingOverlayId(null);
                         } else {
                           setTextOverlayItems(prev => [...prev, newItem]);
+                          setEditingOverlayId(newItem.id);
                         }
-                        setOverlayText('');
                       }}
                       disabled={!overlayText.trim()}
                       className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
                     </button>
+
+                    {editingOverlayId && (
+                      <button
+                        onClick={() => {
+                          if (overlayText.trim()) {
+                            const updated: GenerateTextOverlay = {
+                              id: editingOverlayId,
+                              text: overlayText.trim(),
+                              position: textPosition,
+                              fontSize,
+                              fontFamily,
+                              textColor,
+                              backgroundColor: textBackgroundColor,
+                              backgroundStyle,
+                            };
+                            setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? updated : item));
+                          }
+                          setEditingOverlayId(null);
+                          setOverlayText('');
+                          setTextPosition(25);
+                        }}
+                        className="w-full py-1.5 mt-1 border border-purple-300 text-purple-600 rounded-lg text-[10px] font-medium hover:bg-purple-50 transition"
+                      >
+                        + Nouveau texte
+                      </button>
+                    )}
 
                     {/* Liste des textes appliqués */}
                     {textOverlayItems.length > 0 && (
