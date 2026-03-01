@@ -69,14 +69,14 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
   // === Text Overlay state — array-based ===
   const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => {
-    if (initialText) {
-      // Gérer le séparateur | pour les overlays multiples
-      const texts = initialText.includes(' | ')
-        ? initialText.split(' | ').filter(t => t.trim())
-        : [initialText];
+    if (initialText && initialText.trim()) {
+      // Gérer le séparateur | (avec ou sans espaces) pour les overlays multiples
+      const texts = initialText.includes('|')
+        ? initialText.split('|').map(t => t.trim()).filter(Boolean)
+        : [initialText.trim()];
       return texts.map((text, idx) => ({
         id: generateId(),
-        text: text.trim(),
+        text,
         position: (texts.length === 1 ? 75 : idx === 0 ? 25 : idx === texts.length - 1 ? 75 : 50) as Position,
         fontSize: 60,
         fontFamily: 'montserrat' as FontFamily,
@@ -89,11 +89,8 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   });
   const [editingId, setEditingId] = useState<string | null>(() => {
     // Auto-entrer en mode édition pour le premier overlay
-    if (initialText) {
-      const texts = initialText.includes(' | ')
-        ? initialText.split(' | ').filter(t => t.trim())
-        : [initialText];
-      if (texts.length > 0) return textOverlays[0]?.id || null;
+    if (initialText && initialText.trim()) {
+      return textOverlays[0]?.id || null;
     }
     return null;
   });
@@ -102,9 +99,11 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
   // Form state for current editing overlay — charger le premier texte (sans séparateur |)
   const [formText, setFormText] = useState(() => {
-    if (!initialText) return '';
-    const texts = initialText.includes(' | ') ? initialText.split(' | ').filter(t => t.trim()) : [initialText];
-    return texts[0]?.trim() || '';
+    if (!initialText || !initialText.trim()) return '';
+    const texts = initialText.includes('|')
+      ? initialText.split('|').map(t => t.trim()).filter(Boolean)
+      : [initialText.trim()];
+    return texts[0] || '';
   });
   const [formPosition, setFormPosition] = useState<Position>(75);
   const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');

@@ -1,17 +1,55 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useEditLimit } from "@/hooks/useEditLimit";
 import SubscriptionModal from "@/components/SubscriptionModal";
 import EmailGateModal from "@/components/EmailGateModal";
 import SignupGateModal from "@/components/SignupGateModal";
-import TextOverlayEditor from "@/components/TextOverlayEditor";
+import { addTextOverlay } from "@/lib/canvas-text-overlay";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+
+type FontFamily = 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
+type BgStyle = 'transparent' | 'clean' | 'none' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
+
+interface TextOverlayItem {
+  id: string;
+  text: string;
+  position: number;
+  fontSize: number;
+  fontFamily: FontFamily;
+  textColor: string;
+  bgColor: string;
+  bgStyle: BgStyle;
+}
+
+const FONTS: { value: FontFamily; label: string }[] = [
+  { value: 'inter', label: 'Inter' },
+  { value: 'montserrat', label: 'Montserrat' },
+  { value: 'bebas', label: 'Bebas Neue' },
+  { value: 'roboto', label: 'Roboto' },
+  { value: 'playfair', label: 'Playfair' },
+];
+
+const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
+  { value: 'clean', emoji: '🔲', label: 'Sans fond' },
+  { value: 'none', emoji: '🅰', label: 'Contour fort' },
+  { value: 'minimal', emoji: '·', label: 'Discret' },
+  { value: 'transparent', emoji: '▦', label: 'Transparent' },
+  { value: 'solid', emoji: '■', label: 'Solide' },
+  { value: 'gradient', emoji: '◐', label: 'Dégradé' },
+  { value: 'blur', emoji: '☁', label: 'Flou' },
+  { value: 'outline', emoji: '□', label: 'Contour' },
+  { value: 'glow', emoji: '✧', label: 'Lumineux' },
+];
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 9);
+}
 
 function StudioContent() {
   const searchParams = useSearchParams();
@@ -32,17 +70,28 @@ function StudioContent() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEmailGate, setShowEmailGate] = useState(false);
   const [showSignupGate, setShowSignupGate] = useState(false);
-  const [showTextEditor, setShowTextEditor] = useState(false);
-  const [cleanBaseImage, setCleanBaseImage] = useState(searchParams.get("image") || ""); // Image sans texte overlay pour base
+  const [cleanBaseImage, setCleanBaseImage] = useState(searchParams.get("image") || "");
   const [user, setUser] = useState<any>(null);
   const [savingToGallery, setSavingToGallery] = useState(false);
-  const [lastTextConfig, setLastTextConfig] = useState<any>({
-    text: '',
-    position: 50,
-    fontSize: 80,
-    textColor: '#ffffff',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  });
+
+  // === Multi-overlay text state ===
+  const [showTextOverlay, setShowTextOverlay] = useState(false);
+  const [textOverlayItems, setTextOverlayItems] = useState<TextOverlayItem[]>([]);
+  const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
+  const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
+  const [textLoading, setTextLoading] = useState(false);
+
+  // Form state for current editing overlay
+  const [formText, setFormText] = useState('');
+  const [formPosition, setFormPosition] = useState<number>(75);
+  const [formFontSize, setFormFontSize] = useState(60);
+  const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');
+  const [formTextColor, setFormTextColor] = useState('#ffffff');
+  const [formBgColor, setFormBgColor] = useState('rgba(0, 0, 0, 0.5)');
+  const [formBgStyle, setFormBgStyle] = useState<BgStyle>('none');
+
+  const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const skipAutoEditRef = useRef(false);
 
   // Vérifier si l'utilisateur est connecté au chargement et écouter les changements d'auth
   useEffect(() => {
@@ -56,7 +105,6 @@ function StudioContent() {
     }
     checkAuth();
 
-    // Écouter les changements d'état d'authentification
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
@@ -82,6 +130,10 @@ function StudioContent() {
     setLoadedImage(imageUrl);
     setCleanBaseImage(imageUrl);
     setEditedImages([]);
+    setTextOverlayItems([]);
+    setEditingOverlayId(null);
+    setFormText('');
+    setTextPreviewUrl(null);
   };
 
   const handleSaveToGallery = async () => {
@@ -100,18 +152,18 @@ function StudioContent() {
       const response = await fetch('/api/library/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Important pour envoyer les cookies d'auth
+        credentials: 'include',
         body: JSON.stringify({
           imageUrl: loadedImage,
           title: 'Image éditée depuis Studio',
-          tags: ['studio', 'édition']
+          tags: ['studio', 'édition'],
+          textOverlay: textOverlayItems.length > 0 ? textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') : undefined,
+          originalImageUrl: cleanBaseImage || undefined,
         })
       });
 
-      // Vérifier si la réponse est bien du JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        // Si ce n'est pas du JSON, lire comme texte
         const errorText = await response.text();
         console.error('[Studio] Non-JSON response:', errorText);
 
@@ -127,16 +179,14 @@ function StudioContent() {
       const data = await response.json();
 
       if (data.ok) {
-        // Toast de succès
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
         toast.innerHTML = '✅ Image sauvegardée dans votre galerie ! Redirection...';
         document.body.appendChild(toast);
 
-        // Rediriger vers la galerie après 1.5s
         setTimeout(() => {
           router.push('/library');
-        }, 1500);
+        }, 500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -161,6 +211,10 @@ function StudioContent() {
       setLoadedImage(result);
       setCleanBaseImage(result);
       setEditedImages([]);
+      setTextOverlayItems([]);
+      setEditingOverlayId(null);
+      setFormText('');
+      setTextPreviewUrl(null);
     };
     reader.readAsDataURL(file);
   };
@@ -185,7 +239,6 @@ function StudioContent() {
     }
   };
 
-  // Fonction pour compresser les images data URL avant envoi API
   const compressImageDataUrl = async (dataUrl: string, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -194,7 +247,6 @@ function StudioContent() {
         let width = img.width;
         let height = img.height;
 
-        // Redimensionner si nécessaire
         if (width > maxWidth || height > maxHeight) {
           const ratio = Math.min(maxWidth / width, maxHeight / height);
           width = width * ratio;
@@ -211,8 +263,6 @@ function StudioContent() {
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-
-        // Convertir en JPEG avec compression
         const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(compressedDataUrl);
       };
@@ -222,7 +272,6 @@ function StudioContent() {
   };
 
   const handleEdit = async () => {
-    // Vérifier les limites freemium
     if (editLimit.requiredAction === 'email') {
       setShowEmailGate(true);
       return;
@@ -247,7 +296,6 @@ function StudioContent() {
 
     setEditingImage(true);
     try {
-      // Utiliser la base propre (sans overlay texte) pour l'édition I2I
       const baseForEdit = cleanBaseImage || loadedImage;
       let imageToSend = baseForEdit;
       if (baseForEdit.startsWith('data:image/')) {
@@ -279,10 +327,14 @@ function StudioContent() {
       if (data.imageUrl) {
         setEditedImages([...editedImages, data.imageUrl]);
         setLoadedImage(data.imageUrl);
-        setCleanBaseImage(data.imageUrl); // Nouvelle base propre après édition
+        setCleanBaseImage(data.imageUrl);
         setEditPrompt("");
+        // Reset text overlays when base image changes via AI edit
+        setTextOverlayItems([]);
+        setEditingOverlayId(null);
+        setFormText('');
+        setTextPreviewUrl(null);
 
-        // Incrémenter le compteur après succès
         editLimit.incrementCount();
       } else {
         throw new Error("Pas d'image retournée");
@@ -294,8 +346,210 @@ function StudioContent() {
     }
   };
 
+  // === Multi-overlay helpers ===
+
+  const getFormAsOverlay = useCallback((): Omit<TextOverlayItem, 'id'> => ({
+    text: formText,
+    position: formPosition,
+    fontSize: formFontSize,
+    fontFamily: formFontFamily,
+    textColor: formTextColor,
+    bgColor: formBgColor,
+    bgStyle: formBgStyle,
+  }), [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle]);
+
+  const loadOverlayIntoForm = useCallback((overlay: TextOverlayItem) => {
+    setFormText(overlay.text);
+    setFormPosition(overlay.position);
+    setFormFontSize(overlay.fontSize);
+    setFormFontFamily(overlay.fontFamily);
+    setFormTextColor(overlay.textColor);
+    setFormBgColor(overlay.bgColor);
+    setFormBgStyle(overlay.bgStyle);
+  }, []);
+
+  const getOverlaysToRender = useCallback((): TextOverlayItem[] => {
+    const overlays = [...textOverlayItems];
+    if (editingOverlayId) {
+      const idx = overlays.findIndex(o => o.id === editingOverlayId);
+      if (idx !== -1) {
+        overlays[idx] = { ...overlays[idx], ...getFormAsOverlay() };
+      }
+    } else if (formText.trim()) {
+      overlays.push({ id: '__new__', ...getFormAsOverlay() });
+    }
+    return overlays.filter(o => o.text.trim());
+  }, [textOverlayItems, editingOverlayId, formText, getFormAsOverlay]);
+
+  // Generate text overlay preview
+  const generatePreview = useCallback(async () => {
+    const overlays = getOverlaysToRender();
+    if (overlays.length === 0) {
+      setTextPreviewUrl(null);
+      return;
+    }
+
+    const base = cleanBaseImage || loadedImage;
+    if (!base) return;
+
+    setTextLoading(true);
+    try {
+      let currentImage = base;
+      for (const overlay of overlays) {
+        currentImage = await addTextOverlay(currentImage, {
+          text: overlay.text,
+          position: overlay.position,
+          fontSize: overlay.fontSize,
+          fontFamily: overlay.fontFamily,
+          textColor: overlay.textColor,
+          backgroundColor: overlay.bgColor,
+          backgroundStyle: overlay.bgStyle,
+        });
+      }
+      setTextPreviewUrl(currentImage);
+    } catch (err) {
+      console.error('[Studio TextOverlay] Preview error:', err);
+    } finally {
+      setTextLoading(false);
+    }
+  }, [cleanBaseImage, loadedImage, getOverlaysToRender]);
+
+  // Debounced preview — any change to form or overlays triggers re-render
+  useEffect(() => {
+    if (!showTextOverlay) return;
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(generatePreview, 400);
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
+  }, [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle, textOverlayItems, showTextOverlay, generatePreview]);
+
+  // Auto-edit: when text overlay panel opens with existing items, load first into form
+  useEffect(() => {
+    if (showTextOverlay && textOverlayItems.length > 0 && !editingOverlayId) {
+      if (skipAutoEditRef.current) {
+        skipAutoEditRef.current = false;
+        return;
+      }
+      const currentText = formText.trim();
+      if (currentText) {
+        const matching = textOverlayItems.find(item => item.text === currentText);
+        if (matching) {
+          setEditingOverlayId(matching.id);
+          return;
+        }
+      }
+      if (!currentText) {
+        const first = textOverlayItems[0];
+        loadOverlayIntoForm(first);
+        setEditingOverlayId(first.id);
+      }
+    }
+  }, [showTextOverlay, textOverlayItems.length]);
+
+  // === Overlay management ===
+
+  const handleAddOverlay = () => {
+    if (!formText.trim()) return;
+    if (editingOverlayId) {
+      setTextOverlayItems(prev => prev.map(o =>
+        o.id === editingOverlayId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+    } else {
+      const newOverlay: TextOverlayItem = { id: generateId(), ...getFormAsOverlay() };
+      setTextOverlayItems(prev => [...prev, newOverlay]);
+      setEditingOverlayId(newOverlay.id);
+    }
+  };
+
+  const handleEditOverlay = (overlay: TextOverlayItem) => {
+    if (editingOverlayId && formText.trim()) {
+      setTextOverlayItems(prev => prev.map(o =>
+        o.id === editingOverlayId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+    }
+    setEditingOverlayId(overlay.id);
+    loadOverlayIntoForm(overlay);
+  };
+
+  const handleDeleteOverlay = (id: string) => {
+    setTextOverlayItems(prev => prev.filter(o => o.id !== id));
+    if (editingOverlayId === id) {
+      skipAutoEditRef.current = true;
+      setEditingOverlayId(null);
+      setFormText('');
+    }
+  };
+
+  const handleDeleteAllOverlays = () => {
+    setTextOverlayItems([]);
+    skipAutoEditRef.current = true;
+    setEditingOverlayId(null);
+    setFormText('');
+    setTextPreviewUrl(null);
+    // Reset loadedImage to clean base
+    if (cleanBaseImage) {
+      setLoadedImage(cleanBaseImage);
+    }
+  };
+
+  const handleNewOverlay = () => {
+    if (editingOverlayId && formText.trim()) {
+      setTextOverlayItems(prev => prev.map(o =>
+        o.id === editingOverlayId ? { ...o, ...getFormAsOverlay() } : o
+      ));
+    }
+    skipAutoEditRef.current = true;
+    setEditingOverlayId(null);
+    setFormText('');
+    setFormPosition(25);
+    setFormFontSize(60);
+    setFormBgStyle('none');
+  };
+
+  // Apply text overlays to image
+  const handleApplyTextOverlay = async () => {
+    let finalOverlays = [...textOverlayItems];
+    if (editingOverlayId && formText.trim()) {
+      finalOverlays = finalOverlays.map(o =>
+        o.id === editingOverlayId ? { ...o, ...getFormAsOverlay() } : o
+      );
+    } else if (!editingOverlayId && formText.trim()) {
+      finalOverlays.push({ id: generateId(), ...getFormAsOverlay() });
+    }
+
+    if (finalOverlays.length === 0) return;
+
+    setTextLoading(true);
+    try {
+      const base = cleanBaseImage || loadedImage;
+      let currentImage = base;
+      for (const overlay of finalOverlays) {
+        if (!overlay.text.trim()) continue;
+        currentImage = await addTextOverlay(currentImage, {
+          text: overlay.text,
+          position: overlay.position,
+          fontSize: overlay.fontSize,
+          fontFamily: overlay.fontFamily,
+          textColor: overlay.textColor,
+          backgroundColor: overlay.bgColor,
+          backgroundStyle: overlay.bgStyle,
+        });
+      }
+      setTextOverlayItems(finalOverlays);
+      setLoadedImage(currentImage);
+      // cleanBaseImage stays unchanged — it's the clean base without text
+    } catch (err) {
+      console.error('[Studio TextOverlay] Apply error:', err);
+    } finally {
+      setTextLoading(false);
+    }
+  };
+
   // Construire le tableau de toutes les versions (Original + éditées)
   const allVersions = originalImage ? [originalImage, ...editedImages] : [];
+  const hasOverlays = textOverlayItems.length > 0 || formText.trim();
+
+  // Determine which image to display: preview if text panel is open, otherwise loadedImage
+  const displayImage = showTextOverlay && textPreviewUrl ? textPreviewUrl : loadedImage;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-12">
@@ -317,7 +571,7 @@ function StudioContent() {
             </span>
           </h1>
           <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
-            Éditez, retouchez et personnalisez vos images en quelques clics en quelques clics
+            Éditez, retouchez et personnalisez vos images en quelques clics
           </p>
         </div>
 
@@ -428,10 +682,15 @@ function StudioContent() {
               <div className="space-y-6">
                 <div className="relative aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group">
                   <img
-                    src={loadedImage}
+                    src={displayImage}
                     alt="Image à éditer"
                     className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                   />
+                  {textLoading && showTextOverlay && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <button
@@ -440,6 +699,11 @@ function StudioContent() {
                     setOriginalImage("");
                     setCleanBaseImage("");
                     setEditedImages([]);
+                    setTextOverlayItems([]);
+                    setEditingOverlayId(null);
+                    setFormText('');
+                    setTextPreviewUrl(null);
+                    setShowTextOverlay(false);
                   }}
                   className="w-full py-3 border-2 border-neutral-300 rounded-xl hover:bg-neutral-50 hover:border-neutral-400 transition-all font-medium text-neutral-700 flex items-center justify-center gap-2"
                 >
@@ -474,7 +738,14 @@ function StudioContent() {
                           ? "border-blue-500 ring-4 ring-blue-100 shadow-lg scale-105"
                           : "border-neutral-200 hover:border-blue-300 hover:shadow-md hover:scale-102"
                       }`}
-                      onClick={() => { setLoadedImage(img); setCleanBaseImage(img); }}
+                      onClick={() => {
+                        setLoadedImage(img);
+                        setCleanBaseImage(img);
+                        setTextOverlayItems([]);
+                        setEditingOverlayId(null);
+                        setFormText('');
+                        setTextPreviewUrl(null);
+                      }}
                     >
                       <div className="relative">
                         <img
@@ -619,23 +890,284 @@ function StudioContent() {
                       <div className="w-full border-t-2 border-neutral-100"></div>
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="px-4 bg-white text-neutral-500 font-semibold">AUTRES ACTIONS</span>
+                      <span className="px-4 bg-white text-neutral-500 font-semibold">TEXTE & ACTIONS</span>
                     </div>
                   </div>
 
-                  {/* Bouton ajouter texte overlay premium */}
+                  {/* Bouton toggle texte overlay */}
                   <button
-                    onClick={() => setShowTextEditor(true)}
-                    className="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl hover:shadow-xl transition-all font-bold flex items-center justify-center gap-3 hover:scale-[1.02] relative overflow-hidden group"
+                    onClick={() => setShowTextOverlay(!showTextOverlay)}
+                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all relative overflow-hidden group ${
+                      showTextOverlay
+                        ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
+                        : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:shadow-xl hover:scale-[1.02]'
+                    }`}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {!showTextOverlay && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
                     <span className="relative flex items-center gap-3">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                      Ajouter / Personnaliser du texte
+                      {showTextOverlay
+                        ? `Texte overlay${textOverlayItems.length > 0 ? ` (${textOverlayItems.length})` : ''}`
+                        : 'Ajouter / Personnaliser du texte'}
+                      {showTextOverlay && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      )}
                     </span>
                   </button>
+
+                  {/* === INLINE TEXT OVERLAY EDITOR === */}
+                  {showTextOverlay && (
+                    <div className="space-y-4 border-2 border-indigo-200 rounded-xl p-4 bg-indigo-50/30">
+                      {/* Applied overlays list */}
+                      {textOverlayItems.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
+                          <div className="space-y-1.5">
+                            {textOverlayItems.map((overlay) => (
+                              <div
+                                key={overlay.id}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
+                                  editingOverlayId === overlay.id
+                                    ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+                                }`}
+                                onClick={() => handleEditOverlay(overlay)}
+                              >
+                                <span className="text-xs font-medium text-neutral-400 w-10 shrink-0">
+                                  {overlay.position <= 30 ? '⬆️' : overlay.position >= 70 ? '⬇️' : '⏺️'} {overlay.position}%
+                                </span>
+                                <span className="text-sm text-neutral-800 truncate flex-1">
+                                  {overlay.text}
+                                </span>
+                                <span
+                                  className="w-4 h-4 rounded-full border shrink-0"
+                                  style={{ backgroundColor: overlay.textColor }}
+                                />
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
+                                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
+                                  title="Supprimer ce texte"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {editingOverlayId && (
+                            <button
+                              onClick={handleNewOverlay}
+                              className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                            >
+                              + Ajouter un autre texte
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Text form */}
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          {editingOverlayId ? 'Modifier le texte' : 'Nouveau texte'}
+                        </label>
+                        <textarea
+                          value={formText}
+                          onChange={(e) => setFormText(e.target.value)}
+                          placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
+                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          rows={2}
+                        />
+                      </div>
+
+                      {/* Position */}
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          >
+                            ⬆️ Haut +
+                          </button>
+                          <div className="flex-1 flex items-center gap-1.5 justify-center">
+                            <button
+                              onClick={() => setFormPosition(25)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Haut</button>
+                            <button
+                              onClick={() => setFormPosition(50)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Centre</button>
+                            <button
+                              onClick={() => setFormPosition(75)}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                            >Bas</button>
+                          </div>
+                          <button
+                            onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          >
+                            ⬇️ Bas +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Font + Size */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
+                          <select
+                            value={formFontFamily}
+                            onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
+                            className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-sm"
+                          >
+                            {FONTS.map(f => (
+                              <option key={f.value} value={f.value}>{f.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
+                          <input
+                            type="range"
+                            min={24}
+                            max={120}
+                            value={formFontSize}
+                            onChange={(e) => setFormFontSize(Number(e.target.value))}
+                            className="w-full accent-blue-600"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Colors */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={formTextColor}
+                              onChange={(e) => setFormTextColor(e.target.value)}
+                              className="w-8 h-8 rounded border cursor-pointer"
+                            />
+                            <div className="flex gap-1">
+                              {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => setFormTextColor(c)}
+                                  className={`w-6 h-6 rounded-full border-2 transition ${
+                                    formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                                  }`}
+                                  style={{ backgroundColor: c }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={formBgColor.startsWith('rgba') ? '#000000' : formBgColor}
+                              onChange={(e) => {
+                                const hex = e.target.value;
+                                const r = parseInt(hex.slice(1, 3), 16);
+                                const g = parseInt(hex.slice(3, 5), 16);
+                                const b = parseInt(hex.slice(5, 7), 16);
+                                setFormBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
+                              }}
+                              className="w-8 h-8 rounded border cursor-pointer"
+                            />
+                            <div className="flex gap-1">
+                              {[
+                                'rgba(0, 0, 0, 0.6)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(245, 158, 11, 0.8)',
+                              ].map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => setFormBgColor(c)}
+                                  className={`w-6 h-6 rounded-full border-2 transition ${
+                                    formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                                  }`}
+                                  style={{ backgroundColor: c }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Background style */}
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {BG_STYLES.map(s => (
+                            <button
+                              key={s.value}
+                              onClick={() => setFormBgStyle(s.value)}
+                              className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
+                                formBgStyle === s.value
+                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                                  : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
+                              }`}
+                            >
+                              <span>{s.emoji}</span>
+                              <span>{s.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
+                        {formText.trim() && (
+                          <button
+                            onClick={handleAddOverlay}
+                            disabled={textLoading}
+                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50"
+                          >
+                            {editingOverlayId ? 'Valider la modification' : '+ Ajouter ce texte'}
+                          </button>
+                        )}
+                        {editingOverlayId && (
+                          <button
+                            onClick={handleNewOverlay}
+                            className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition"
+                          >
+                            + Nouveau texte
+                          </button>
+                        )}
+                        {hasOverlays && (
+                          <button
+                            onClick={handleApplyTextOverlay}
+                            disabled={textLoading}
+                            className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+                          >
+                            {textLoading ? 'Application...' : 'Appliquer sur l\'image'}
+                          </button>
+                        )}
+                        {textOverlayItems.length > 0 && (
+                          <button
+                            onClick={handleDeleteAllOverlays}
+                            className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition"
+                          >
+                            Tout supprimer
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <a
@@ -706,21 +1238,6 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
-
-      {/* Éditeur de texte overlay avancé */}
-      {showTextEditor && (cleanBaseImage || loadedImage) && (
-        <TextOverlayEditor
-          baseImageUrl={cleanBaseImage || loadedImage}
-          initialConfig={lastTextConfig}
-          onApply={(newImageUrl, config) => {
-            setLoadedImage(newImageUrl); // Afficher l'image avec texte
-            // cleanBaseImage reste inchangé = base propre sans texte
-            setLastTextConfig(config);
-            setShowTextEditor(false);
-          }}
-          onCancel={() => setShowTextEditor(false)}
-        />
-      )}
 
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
       <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />

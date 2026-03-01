@@ -51,6 +51,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* --- Cursor pointer sur tous les éléments cliquables --- */
+button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"], summary {
+  cursor: pointer;
+}
+
 /* --- TEMP FIX: assure le clic --- */
 main, .fix-pointer {
   pointer-events: auto !important;

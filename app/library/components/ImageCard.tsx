@@ -102,6 +102,21 @@ export default function ImageCard({
           </svg>
         </div>
 
+        {/* Favorite button overlay - top right of image */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(image.id, image.is_favorite); }}
+          className={`absolute top-2 right-2 z-10 p-1.5 rounded-full transition-all shadow-md ${
+            image.is_favorite
+              ? 'bg-pink-500 text-white hover:bg-pink-600'
+              : 'bg-white/80 text-neutral-400 hover:bg-white hover:text-pink-500 opacity-0 group-hover:opacity-100'
+          }`}
+          title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+        >
+          <svg className="w-4 h-4" fill={image.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+
         {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-2">
           {image.is_favorite && (
@@ -213,19 +228,8 @@ export default function ImageCard({
               </button>
             )}
           </div>
-          {/* Icônes secondaires */}
+          {/* Icônes secondaires (download + delete only, heart is on image) */}
           <div className="flex items-center justify-end gap-1">
-            <button
-              onClick={() => onToggleFavorite(image.id, image.is_favorite)}
-              className={`p-1.5 rounded-lg transition-all ${
-                image.is_favorite ? 'text-pink-600 hover:bg-pink-50' : 'text-neutral-400 hover:bg-neutral-100'
-              }`}
-              title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-            >
-              <svg className="w-4 h-4" fill={image.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
             <a
               href={image.image_url}
               download

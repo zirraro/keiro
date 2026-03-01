@@ -1854,8 +1854,12 @@ export default function GeneratePage() {
       return;
     }
 
-    // Feedback immédiat pour l'utilisateur
+    // Feedback immédiat pour l'utilisateur — toast visible instantanément
     setSavingToLibrary(true);
+    const savingToast = document.createElement('div');
+    savingToast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#2563eb;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.5rem;';
+    savingToast.innerHTML = '<div style="width:1rem;height:1rem;border:2px solid white;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(savingToast);
 
     // Auto-appliquer les modifications en cours d'édition avant de sauvegarder
     let itemsToRender = [...textOverlayItems];
@@ -1899,6 +1903,7 @@ export default function GeneratePage() {
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
+        savingToast.remove();
         alert('Vous devez être connecté pour sauvegarder dans votre galerie');
         setSavingToLibrary(false);
         return;
@@ -2034,25 +2039,18 @@ export default function GeneratePage() {
         if (data.savedImage?.id) setLastSavedImageId(data.savedImage.id);
         console.log('[SaveToLibrary] ✅ Image saved:', data.savedImage?.id);
 
-        // Toast succès avec fade-out + redirection
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
-        toast.innerHTML = `
-          <div style="display:flex;align-items:center;gap:0.5rem">
-            <svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <span>${isUpdate ? 'Galerie mise à jour !' : 'Sauvegardé dans votre galerie !'}</span>
-          </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0'; }, 300);
-        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 500);
+        // Remplacer le toast "saving" par le toast "succès" + redirection
+        savingToast.style.background = '#16a34a';
+        savingToast.style.transition = 'opacity 0.5s ease';
+        savingToast.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem"><svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>${isUpdate ? 'Galerie mise à jour !' : 'Sauvegardé ! Redirection...'}</span></div>`;
+        setTimeout(() => { savingToast.style.opacity = '0'; }, 300);
+        setTimeout(() => { savingToast.remove(); window.location.href = '/library'; }, 500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error: any) {
       console.error('[SaveToLibrary] ❌ Error:', error);
+      savingToast.remove();
       alert(error.message || 'Erreur lors de la sauvegarde dans la galerie');
     } finally {
       setSavingToLibrary(false);
@@ -2079,46 +2077,59 @@ export default function GeneratePage() {
         finalUrl = publicUrl;
       }
 
+      // Rendre les overlays texte sur la nouvelle version si présents
+      let imageWithOverlays = finalUrl;
+      if (textOverlayItems.length > 0) {
+        try {
+          let rendered = finalUrl;
+          for (const item of textOverlayItems) {
+            rendered = await addTextOverlay(rendered, {
+              text: item.text, position: item.position, fontSize: item.fontSize,
+              fontFamily: item.fontFamily, textColor: item.textColor,
+              backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
+            });
+          }
+          // Upload la version avec texte si c'est un data URL
+          if (rendered.startsWith('data:')) {
+            const blob2 = await fetch(rendered).then(r => r.blob());
+            const fname2 = `${user.id}/${Date.now()}_overlay_${Math.random().toString(36).substring(7)}.png`;
+            const { error: upErr2 } = await supabaseClient.storage
+              .from('generated-images')
+              .upload(fname2, blob2, { contentType: 'image/png', upsert: false });
+            if (!upErr2) {
+              const { data: { publicUrl: pubUrl2 } } = supabaseClient.storage.from('generated-images').getPublicUrl(fname2);
+              imageWithOverlays = pubUrl2;
+            }
+          }
+        } catch (e) {
+          console.warn('[AutoSave] Overlay rendering failed, saving clean version:', e);
+        }
+      }
+
       const { data: { session } } = await supabaseClient.auth.getSession();
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
-      if (lastSavedImageId) {
-        // Mettre à jour l'entrée existante
-        await fetch('/api/library/save', {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            id: lastSavedImageId,
-            imageUrl: finalUrl,
-            textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
-            originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
-          }),
-        });
-        console.log('[AutoSave] Updated existing gallery entry:', lastSavedImageId);
-      } else {
-        // Créer une nouvelle entrée
-        const res = await fetch('/api/library/save', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            imageUrl: finalUrl,
-            originalImageUrl: originalImageUrl?.startsWith('http') ? originalImageUrl : null,
-            title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
-            newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
-            newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
-            textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
-            aiModel: 'seedream',
-            tags: [],
-          }),
-        });
-        const data = await res.json();
-        if (data.ok && data.savedImage?.id) {
-          setLastSavedImageId(data.savedImage.id);
-          // Ne PAS mettre imageSavedToLibrary=true ici — l'auto-save est silencieux
-          // Le bouton "Sauvegarder" doit rester actif pour sauvegarder avec les overlays
-          console.log('[AutoSave] Saved new gallery entry:', data.savedImage.id);
-        }
+      // Toujours créer une NOUVELLE entrée galerie pour chaque version (V2, V3, etc.)
+      const baseTitle = selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image');
+      const versionNumber = editVersions.length;
+      const res = await fetch('/api/library/save', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          imageUrl: imageWithOverlays,
+          originalImageUrl: finalUrl, // La version propre sans overlay
+          title: `${baseTitle} (V${versionNumber})`,
+          newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
+          newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
+          textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
+          aiModel: 'seedream',
+          tags: ['studio-edit'],
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.savedImage?.id) {
+        console.log('[AutoSave] Saved V' + versionNumber + ' as new gallery entry:', data.savedImage.id);
       }
     } catch (err) {
       console.warn('[AutoSave] Error (non-blocking):', err);
@@ -2720,6 +2731,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     const bal = credits.balance;
                     const total = credits.monthlyAllowance;
                     const usedPct = total > 0 ? Math.round(((total - bal) / total) * 100) : 0;
+                    const isCreditsOut = bal < 1;
+                    const cantMakeImage = bal < 5;
+                    const isFree = credits.plan === 'free';
+                    const isSoloOrPromo = credits.plan === 'solo' || credits.plan === 'solo_promo';
 
                     // Niveaux d'usage par feature : combien on peut encore en faire
                     const features = [
@@ -2732,18 +2747,47 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       const maxPossible = total > 0 ? Math.floor(total / cost) : 0;
                       if (maxPossible === 0) return { label: '—', color: 'text-neutral-400', bg: 'bg-neutral-100' };
                       const usedRatio = maxPossible > 0 ? 1 - (remaining / maxPossible) : 1;
+                      if (remaining === 0) return { label: 'Épuisé', color: 'text-red-700', bg: 'bg-red-100' };
                       if (usedRatio < 0.4) return { label: 'Léger', color: 'text-green-700', bg: 'bg-green-100' };
                       if (usedRatio < 0.75) return { label: 'Moyen', color: 'text-amber-700', bg: 'bg-amber-100' };
                       return { label: 'Intensif', color: 'text-red-700', bg: 'bg-red-100' };
                     };
 
-                    const hasIntensive = features.some(f => {
-                      const maxP = total > 0 ? Math.floor(total / f.cost) : 0;
-                      return maxP > 0 && (1 - f.remaining / maxP) >= 0.75;
-                    });
-
                     return (
                       <div>
+                        {/* Bannière crédits épuisés */}
+                        {cantMakeImage && (
+                          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-center">
+                            <p className="text-xs font-bold text-red-700 mb-1">
+                              {isCreditsOut ? 'Crédits épuisés' : `${bal} crédit${bal > 1 ? 's' : ''} restant${bal > 1 ? 's' : ''}`}
+                            </p>
+                            <p className="text-[10px] text-red-600 mb-2">
+                              {isSoloOrPromo
+                                ? 'Votre quota promo est atteint.'
+                                : isFree
+                                ? 'Votre plan gratuit est limité.'
+                                : 'Plus assez de crédits pour générer.'}
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startCheckout('solo')}
+                                className="flex-1 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-100 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
+                              >
+                                Solo — 49€/mois
+                              </button>
+                              <button
+                                onClick={() => startCheckout('fondateurs')}
+                                className="flex-1 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
+                              >
+                                Fondateurs — 149€/mois
+                              </button>
+                            </div>
+                            <p className="text-[9px] text-purple-600 mt-1.5 font-medium">
+                              Fondateurs : TikTok + LinkedIn + 660 crédits/mois
+                            </p>
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Votre usage</span>
                           <span className="text-[10px] text-neutral-400 capitalize">
@@ -2761,14 +2805,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   <span className="text-xs text-neutral-700 font-medium">{f.label}</span>
                                 </div>
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${intensity.bg} ${intensity.color}`}>
-                                  {intensity.label}
+                                  {f.remaining === 0 ? 'Épuisé' : intensity.label}
                                 </span>
                               </div>
                             );
                           })}
                         </div>
 
-                        {/* Barre globale discrète */}
+                        {/* Barre globale */}
                         <div className="flex items-center gap-2 mt-3">
                           <div className="flex-1 bg-neutral-200 rounded-full h-1">
                             <div
@@ -2779,27 +2823,28 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           <span className="text-[9px] text-neutral-400">{usedPct}%</span>
                         </div>
 
-                        {hasIntensive && (
+                        {/* CTA upgrade pour plan gratuit (quand pas déjà en bannière épuisé) */}
+                        {isFree && !cantMakeImage && (
                           <button
                             onClick={() => router.push('/pricing')}
-                            className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                            className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer"
                           >
-                            Débloquer plus de crédits
+                            Plan gratuit limité — Voir les plans
                           </button>
                         )}
 
-                        {/* CTA Solo / Solo Promo → Fondateurs */}
-                        {(credits.plan === 'solo' || credits.plan === 'solo_promo') && (
+                        {/* CTA Solo / Solo Promo → Fondateurs (quand pas déjà en bannière épuisé) */}
+                        {isSoloOrPromo && !cantMakeImage && (
                           <>
                             <button
                               onClick={() => startCheckout('fondateurs')}
-                              className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                              className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
                             >
-                              TikTok + LinkedIn + plus de crédits ? Fondateurs →
+                              TikTok + LinkedIn + 3x plus de crédits ? Fondateurs →
                             </button>
                             {credits.expiresAt && (
                               <p className="text-[10px] text-red-500 mt-1 text-center font-medium">
-                                Accès promo expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline">S'abonner au plan Solo</a>
+                                Accès promo expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline cursor-pointer">S'abonner</a>
                               </p>
                             )}
                           </>
@@ -2810,7 +2855,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             <p className="text-[11px] text-purple-800 font-semibold">Accès Fondateurs expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
                             <button
                               onClick={() => startCheckout('fondateurs')}
-                              className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors"
+                              className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
                             >
                               Garder mes avantages Fondateurs →
                             </button>

@@ -2157,6 +2157,23 @@ function LibraryContent() {
         )}
 
         {/* Navigation par onglets - Visible pour tous */}
+        {/* Rappel versions - bannière douce */}
+        {user && images.length > 3 && (
+          <div className="mb-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200/60 rounded-xl p-4 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-indigo-900">Gardez votre galerie organisée</p>
+              <p className="text-xs text-indigo-700/80 mt-0.5">
+                Pensez à ne garder que la version finale qui vous plait ainsi que l'original, et supprimer les versions intermédiaires pour garder une galerie claire et efficace.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div id="image-gallery">
           <TabNavigation
             activeTab={activeTab}
@@ -2557,6 +2574,7 @@ function LibraryContent() {
       {/* Modal Édition d'image (I2I) */}
       {editingImage && (
         <ImageEditModal
+          key={editingImage.id}
           imageUrl={editingImage.image_url}
           originalImageUrl={editingImage.original_image_url}
           imageId={editingImage.id}
