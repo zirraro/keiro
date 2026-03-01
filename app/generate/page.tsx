@@ -1299,25 +1299,40 @@ export default function GeneratePage() {
         if (emotionToConvey) creativeBridge += `\nCORE EMOTION: "${emotionToConvey}" — The viewer MUST feel this when seeing the image.`;
         if (publicationGoal) creativeBridge += `\nPURPOSE: "${publicationGoal}" — This image must achieve this goal on social media.`;
 
-        promptParts.push(
-          `\n\n🎯 NEWSJACKING SCENE (${focusLabel}):\n` +
-          `\nTHE NEWS: "${selectedNews.title}"\n` +
-          (selectedNews.description ? `Context: ${selectedNews.description.substring(0, 400)}\n` : '') +
-          `\nTHE BUSINESS: ${businessContext}\n` +
-          (businessDepth ? `Business DNA:${businessDepth}\n` : '') +
-          `\n${focusInstruction}\n` +
-          `\n🔗 NEWSJACKING BRIDGE — THE CORE CREATIVE CHALLENGE:\n` +
-          `Create ONE powerful visual that shows ${businessType} SURFING on this news.\n` +
-          `Ask yourself: How does "${selectedNews.title}" DIRECTLY impact, inspire, or connect to ${businessType}?\n` +
-          `The answer is the image. Show the MOMENT of connection — not two separate worlds, but ONE unified scene where the business and the news are inseparable.\n` +
-          (creativeBridge || `\nFind the most CREATIVE, UNEXPECTED, and VISUALLY STRIKING way to link this business to this news.`) +
-          `\n\nVISUAL COMPOSITION:\n` +
-          `FOREGROUND (business — ${businessWeight}%): ${businessType} in action — its products, tools, workspace, team, customers. Immediately recognizable.\n` +
-          `ENVIRONMENT (news — ${newsWeight}%): The news reality visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
-          `INTEGRATION: These elements are WOVEN TOGETHER — news objects in the business space, business products in the news context, people bridging both worlds.\n` +
-          `Camera: close to medium shot, editorial photography quality. ONE unified scene.\n` +
-          `If people are shown, natural diversity in ethnicity, age, and appearance.`
-        );
+        // Construire le prompt visuel — prioriser desiredVisualIdea comme description concrète
+        if (desiredVisualIdea) {
+          // Le concept visuel de Claude est LA scène principale
+          promptParts.push(
+            `\n\n🎯 SCENE TO CREATE:\n` +
+            `${desiredVisualIdea}\n` +
+            `\nCONTEXT — this image connects "${selectedNews.title}" with the business "${businessType}".\n` +
+            (storyToTell ? `NARRATIVE: ${storyToTell}\n` : '') +
+            (emotionToConvey ? `EMOTION: The viewer must feel ${emotionToConvey}.\n` : '') +
+            `\nVISUAL DETAILS:\n` +
+            `- News atmosphere elements: ${newsVisualCues}\n` +
+            `- Business elements: ${businessType} products, tools, workspace — immediately recognizable.\n` +
+            `- ${focusInstruction}\n` +
+            (imageAngle ? `- Camera/framing: ${imageAngle}\n` : `- Camera: close to medium shot, editorial photography quality.\n`) +
+            `- ONE unified scene where business and news coexist naturally.\n` +
+            `If people are shown, natural diversity in ethnicity, age, and appearance.`
+          );
+        } else {
+          // Pas de concept visuel spécifique — construire à partir des éléments
+          promptParts.push(
+            `\n\n🎯 NEWSJACKING SCENE (${focusLabel}):\n` +
+            `Create a single image showing "${businessType}" (${businessDescription || 'a business'}) connected to the news "${selectedNews.title}".\n` +
+            `${focusInstruction}\n` +
+            (contentAngle ? `ANGLE: ${contentAngle}\n` : '') +
+            (storyToTell ? `NARRATIVE: ${storyToTell}\n` : '') +
+            (emotionToConvey ? `EMOTION: ${emotionToConvey}.\n` : '') +
+            `\nVISUAL COMPOSITION:\n` +
+            `FOREGROUND: ${businessType} in action — products, tools, workspace, team. Immediately recognizable.\n` +
+            `ENVIRONMENT: News context visible through CONCRETE OBJECTS: ${newsVisualCues}\n` +
+            `These elements share ONE unified scene — news objects in the business space, business products in the news context.\n` +
+            (imageAngle ? `Camera: ${imageAngle}\n` : `Camera: close to medium shot, editorial photography quality.\n`) +
+            `If people are shown, natural diversity in ethnicity, age, and appearance.`
+          );
+        }
       } else {
         // MODE SANS ACTUALITÉ
         promptParts.push(
