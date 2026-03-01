@@ -70,31 +70,48 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   // === Text Overlay state — array-based ===
   const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => {
     if (initialText) {
-      return [{
+      // Gérer le séparateur | pour les overlays multiples
+      const texts = initialText.includes(' | ')
+        ? initialText.split(' | ').filter(t => t.trim())
+        : [initialText];
+      return texts.map((text, idx) => ({
         id: generateId(),
-        text: initialText,
-        position: 75 as Position,
+        text: text.trim(),
+        position: (texts.length === 1 ? 75 : idx === 0 ? 25 : idx === texts.length - 1 ? 75 : 50) as Position,
         fontSize: 60,
         fontFamily: 'montserrat' as FontFamily,
         textColor: '#ffffff',
         bgColor: 'rgba(0, 0, 0, 0.5)',
-        bgStyle: 'clean' as BgStyle,
-      }];
+        bgStyle: 'none' as BgStyle,
+      }));
     }
     return [];
   });
-  const [editingId, setEditingId] = useState<string | null>(initialText ? textOverlays[0]?.id || null : null);
+  const [editingId, setEditingId] = useState<string | null>(() => {
+    // Auto-entrer en mode édition pour le premier overlay
+    if (initialText) {
+      const texts = initialText.includes(' | ')
+        ? initialText.split(' | ').filter(t => t.trim())
+        : [initialText];
+      if (texts.length > 0) return textOverlays[0]?.id || null;
+    }
+    return null;
+  });
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
 
-  // Form state for current editing overlay
-  const [formText, setFormText] = useState(initialText || '');
+  // Form state for current editing overlay — charger le premier texte (sans séparateur |)
+  const [formText, setFormText] = useState(() => {
+    if (!initialText) return '';
+    const texts = initialText.includes(' | ') ? initialText.split(' | ').filter(t => t.trim()) : [initialText];
+    return texts[0]?.trim() || '';
+  });
   const [formPosition, setFormPosition] = useState<Position>(75);
   const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');
   const [formFontSize, setFormFontSize] = useState(60);
   const [formTextColor, setFormTextColor] = useState('#ffffff');
   const [formBgColor, setFormBgColor] = useState('rgba(0, 0, 0, 0.5)');
-  const [formBgStyle, setFormBgStyle] = useState<BgStyle>('clean');
+  const [formBgStyle, setFormBgStyle] = useState<BgStyle>('none');
 
   const baseImage = originalImageUrl || imageUrl;
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -189,21 +206,16 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   const handleAddOverlay = () => {
     if (!formText.trim()) return;
     if (editingId) {
-      // Update existing
+      // Update existing — garder le formulaire actif pour modifications rapides
       setTextOverlays(prev => prev.map(o =>
         o.id === editingId ? { ...o, ...getFormAsOverlay() } : o
       ));
-      setEditingId(null);
     } else {
-      // Add new
+      // Add new — passer en mode édition pour le nouvel overlay
       const newOverlay: TextOverlayItem = { id: generateId(), ...getFormAsOverlay() };
       setTextOverlays(prev => [...prev, newOverlay]);
+      setEditingId(newOverlay.id);
     }
-    // Reset form for next overlay
-    setFormText('');
-    setFormPosition(75);
-    setFormFontSize(60);
-    setFormBgStyle('clean');
   };
 
   // Select an overlay to edit
@@ -264,7 +276,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     setFormText('');
     setFormPosition(25);
     setFormFontSize(60);
-    setFormBgStyle('clean');
+    setFormBgStyle('none');
   };
 
   // === AI Edit handlers (with retry on network errors) ===
@@ -775,6 +787,16 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {editingId ? 'Valider la modification' : '+ Ajouter ce texte'}
+                </button>
+              )}
+              {/* Nouveau texte — visible quand en mode édition */}
+              {editingId && (
+                <button
+                  onClick={handleNewOverlay}
+                  disabled={saving}
+                  className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition disabled:opacity-50"
+                >
+                  + Nouveau texte
                 </button>
               )}
               {/* Sauvegarder (render final + upload) */}
