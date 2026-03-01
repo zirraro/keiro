@@ -14,7 +14,7 @@ interface ImageEditModalProps {
 }
 
 type TabType = 'ai' | 'text';
-type Position = 'top' | 'center' | 'bottom';
+type Position = number; // 0-100 percentage from top
 type FontFamily = 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
 type BgStyle = 'transparent' | 'clean' | 'none' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
 
@@ -49,11 +49,7 @@ const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
   { value: 'glow', emoji: '✧', label: 'Lumineux' },
 ];
 
-const POSITIONS: { value: Position; label: string }[] = [
-  { value: 'top', label: 'Haut' },
-  { value: 'center', label: 'Centre' },
-  { value: 'bottom', label: 'Bas' },
-];
+// Position presets removed — replaced by up/down controls inline
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
@@ -77,7 +73,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
       return [{
         id: generateId(),
         text: initialText,
-        position: 'bottom' as Position,
+        position: 75 as Position,
         fontSize: 60,
         fontFamily: 'montserrat' as FontFamily,
         textColor: '#ffffff',
@@ -93,7 +89,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
   // Form state for current editing overlay
   const [formText, setFormText] = useState(initialText || '');
-  const [formPosition, setFormPosition] = useState<Position>('bottom');
+  const [formPosition, setFormPosition] = useState<Position>(75);
   const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');
   const [formFontSize, setFormFontSize] = useState(60);
   const [formTextColor, setFormTextColor] = useState('#ffffff');
@@ -205,7 +201,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     }
     // Reset form for next overlay
     setFormText('');
-    setFormPosition('bottom');
+    setFormPosition(75);
     setFormFontSize(60);
     setFormBgStyle('clean');
   };
@@ -266,7 +262,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
     }
     setEditingId(null);
     setFormText('');
-    setFormPosition('top');
+    setFormPosition(25);
     setFormFontSize(60);
     setFormBgStyle('clean');
   };
@@ -503,8 +499,8 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                         }`}
                         onClick={() => handleEditOverlay(overlay)}
                       >
-                        <span className="text-xs font-medium text-neutral-400 uppercase w-10 shrink-0">
-                          {overlay.position === 'top' ? 'Haut' : overlay.position === 'center' ? 'Centre' : 'Bas'}
+                        <span className="text-xs font-medium text-neutral-400 w-10 shrink-0">
+                          {overlay.position <= 30 ? '⬆️' : overlay.position >= 70 ? '⬇️' : '⏺️'} {overlay.position}%
                         </span>
                         <span className="text-sm text-neutral-800 truncate flex-1">
                           {overlay.text}
@@ -551,23 +547,36 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 />
               </div>
 
-              {/* Position */}
+              {/* Position — up/down controls */}
               <div>
-                <label className="block text-xs font-medium text-neutral-600 mb-1">Position</label>
-                <div className="flex gap-1.5">
-                  {POSITIONS.map(p => (
+                <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                  >
+                    ⬆️ Haut +
+                  </button>
+                  <div className="flex-1 flex items-center gap-1.5 justify-center">
                     <button
-                      key={p.value}
-                      onClick={() => setFormPosition(p.value)}
-                      className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
-                        formPosition === p.value
-                          ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                      onClick={() => setFormPosition(20)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Haut</button>
+                    <button
+                      onClick={() => setFormPosition(50)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Centre</button>
+                    <button
+                      onClick={() => setFormPosition(80)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                    >Bas</button>
+                  </div>
+                  <button
+                    onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
+                    className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                  >
+                    ⬇️ Bas +
+                  </button>
                 </div>
               </div>
 

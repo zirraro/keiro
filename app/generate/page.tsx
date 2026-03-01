@@ -1057,6 +1057,21 @@ export default function GeneratePage() {
     return () => clearTimeout(timeoutId);
   }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio, textOverlayItems, editingOverlayId, baseOriginalImageUrl, imageWithWatermarkOnly, originalImageUrl]);
 
+  /* --- Auto-charger le premier overlay dans le formulaire quand on ouvre l'onglet texte --- */
+  useEffect(() => {
+    if (activeTab === 'text' && showEditStudio && textOverlayItems.length > 0 && !editingOverlayId && !overlayText.trim()) {
+      const first = textOverlayItems[0];
+      setOverlayText(first.text);
+      setTextPosition(first.position);
+      setFontSize(first.fontSize);
+      setFontFamily(first.fontFamily as any);
+      setTextColor(first.textColor);
+      setTextBackgroundColor(first.backgroundColor);
+      setBackgroundStyle(first.backgroundStyle as any);
+      setEditingOverlayId(first.id);
+    }
+  }, [activeTab, showEditStudio, textOverlayItems.length]);
+
   /* --- Générer les miniatures avec overlays pour chaque version --- */
   useEffect(() => {
     if (!showEditStudio || textOverlayItems.length === 0 || editVersions.length === 0) {
@@ -1948,8 +1963,8 @@ export default function GeneratePage() {
           </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0'; }, 1000);
-        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 1500);
+        setTimeout(() => { toast.style.opacity = '0'; }, 300);
+        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -2116,8 +2131,8 @@ export default function GeneratePage() {
           </div>
         `;
         document.body.appendChild(toast);
-        setTimeout(() => { toast.style.opacity = '0'; }, 1000);
-        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 1500);
+        setTimeout(() => { toast.style.opacity = '0'; }, 300);
+        setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 500);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -5034,30 +5049,30 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Position */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">Position <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
-                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                           >
                             <span>⬆️</span> Haut +
                           </button>
-                          <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2 justify-center">
                             <button
                               onClick={() => setTextPosition(25)}
-                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                             >Haut</button>
                             <button
                               onClick={() => setTextPosition(50)}
-                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                             >Centre</button>
                             <button
                               onClick={() => setTextPosition(75)}
-                              className={`px-2 py-1.5 rounded text-[10px] font-medium transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                             >Bas</button>
                           </div>
                           <button
                             onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
-                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                           >
                             <span>⬇️</span> Bas +
                           </button>
@@ -5354,8 +5369,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                       toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
                                       toast.innerHTML = 'Sauvegardé dans votre galerie !';
                                       document.body.appendChild(toast);
-                                      setTimeout(() => { toast.style.opacity = '0'; }, 1000);
-                                      setTimeout(() => { toast.remove(); router.push('/library'); }, 1500);
+                                      setTimeout(() => { toast.style.opacity = '0'; }, 300);
+                                      setTimeout(() => { toast.remove(); router.push('/library'); }, 500);
                                     } else {
                                       alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                     }
@@ -5524,8 +5539,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
                                   toast.innerHTML = 'Sauvegardé dans votre galerie !';
                                   document.body.appendChild(toast);
-                                  setTimeout(() => { toast.style.opacity = '0'; }, 1000);
-                                  setTimeout(() => { toast.remove(); router.push('/library'); }, 1500);
+                                  setTimeout(() => { toast.style.opacity = '0'; }, 300);
+                                  setTimeout(() => { toast.remove(); router.push('/library'); }, 500);
                                 } else {
                                   alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
                                 }
@@ -6035,23 +6050,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
-                          className="px-2 py-1.5 rounded text-[9px] font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          className="px-2.5 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                         >⬆️ Haut +</button>
                         <button
                           onClick={() => setTextPosition(25)}
-                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >H</button>
+                          className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >Haut</button>
                         <button
                           onClick={() => setTextPosition(50)}
-                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >C</button>
+                          className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >Centre</button>
                         <button
                           onClick={() => setTextPosition(75)}
-                          className={`px-1.5 py-1 rounded text-[9px] transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >B</button>
+                          className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
+                        >Bas</button>
                         <button
                           onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
-                          className="px-2 py-1.5 rounded text-[9px] font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                          className="px-2.5 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                         >⬇️ Bas +</button>
                       </div>
                     </div>
