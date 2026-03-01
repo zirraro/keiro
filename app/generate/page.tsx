@@ -383,7 +383,7 @@ export default function GeneratePage() {
   const [textBackgroundColor, setTextBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
   const [fontSize, setFontSize] = useState(60);
   const [fontFamily, setFontFamily] = useState<'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair'>('inter');
-  const [backgroundStyle, setBackgroundStyle] = useState<'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow'>('transparent');
+  const [backgroundStyle, setBackgroundStyle] = useState<'clean' | 'none' | 'transparent' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow'>('none');
   const [textTemplate, setTextTemplate] = useState<'headline' | 'cta' | 'minimal' | 'bold' | 'elegant' | 'modern'>('headline');
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
@@ -4141,7 +4141,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             fontFamily: fontFamily || 'inter',
                             textColor: textColor || '#ffffff',
                             backgroundColor: textBackgroundColor || 'rgba(0, 0, 0, 0.5)',
-                            backgroundStyle: backgroundStyle || 'clean',
+                            backgroundStyle: backgroundStyle || 'none',
                           }];
                           setTextOverlayItems(items);
                           // Générer immédiatement la preview avec texte
@@ -4843,6 +4843,22 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             if (data._p) setLastProvider(data._p);
 
                             let newVersion = data.imageUrl;
+
+                            // Convertir en data URL pour compatibilité Canvas (overlays texte)
+                            try {
+                              const convertRes = await fetch('/api/convert-image', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ imageUrl: newVersion }),
+                              });
+                              const convertData = await convertRes.json();
+                              if (convertData.ok && convertData.dataUrl) {
+                                newVersion = convertData.dataUrl;
+                                console.log('[EditStudio] ✅ Converted to data URL for Canvas');
+                              }
+                            } catch (e) {
+                              console.warn('[EditStudio] Convert to data URL failed, using remote URL:', e);
+                            }
 
                             // Mettre à jour la base propre (sans overlay)
                             setOriginalImageUrl(newVersion);
@@ -5821,6 +5837,22 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           if (data._p) setLastProvider(data._p);
 
                           let newVersion = data.imageUrl;
+
+                          // Convertir en data URL pour compatibilité Canvas (overlays texte)
+                          try {
+                            const convertRes = await fetch('/api/convert-image', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ imageUrl: newVersion }),
+                            });
+                            const convertData = await convertRes.json();
+                            if (convertData.ok && convertData.dataUrl) {
+                              newVersion = convertData.dataUrl;
+                              console.log('[EditStudio] ✅ Converted to data URL for Canvas');
+                            }
+                          } catch (e) {
+                            console.warn('[EditStudio] Convert to data URL failed, using remote URL:', e);
+                          }
 
                           // Mettre à jour la base propre
                           setOriginalImageUrl(newVersion);
