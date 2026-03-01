@@ -427,7 +427,8 @@ export default function GeneratePage() {
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
-  const [editVersions, setEditVersions] = useState<string[]>([]);
+  const [editVersions, setEditVersions] = useState<string[]>([]); // Images propres (sans texte)
+  const [versionPreviews, setVersionPreviews] = useState<Record<string, string>>({}); // Previews avec overlays pour miniatures
   const [selectedEditVersion, setSelectedEditVersion] = useState<string | null>(null);
   const [editPrompt, setEditPrompt] = useState('');
   const [editStrength, setEditStrength] = useState(5.5);
@@ -986,7 +987,20 @@ export default function GeneratePage() {
     }
   }
 
-  /* --- Preview en temps réel du texte overlay (array-based, tous les onglets) --- */
+  // Helper: appliquer tous les overlays sur une image propre
+  async function renderOverlaysOnImage(cleanImage: string, items: GenerateTextOverlay[]): Promise<string> {
+    let result = cleanImage;
+    for (const item of items) {
+      result = await addTextOverlay(result, {
+        text: item.text, position: item.position, fontSize: item.fontSize,
+        fontFamily: item.fontFamily, textColor: item.textColor,
+        backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
+      });
+    }
+    return result;
+  }
+
+  /* --- Preview en temps réel du texte overlay (image principale) --- */
   useEffect(() => {
     if (!showEditStudio) {
       setTextPreviewUrl(null);
@@ -1000,8 +1014,8 @@ export default function GeneratePage() {
       return;
     }
 
-    // Toujours partir de l'image de base propre (sans texte overlay)
-    const baseImage = baseOriginalImageUrl || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+    // Utiliser la base de la version sélectionnée ou la base globale
+    const baseImage = selectedEditVersion || baseOriginalImageUrl || imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
     if (!baseImage) {
       setTextPreviewUrl(null);
       return;
@@ -1014,29 +1028,20 @@ export default function GeneratePage() {
 
         // Appliquer tous les overlays existants séquentiellement
         for (const item of textOverlayItems) {
-          // Si on édite un overlay existant, skip (il sera rendu avec les valeurs du formulaire)
           if (item.id === editingOverlayId) continue;
           currentImage = await addTextOverlay(currentImage, {
-            text: item.text,
-            position: item.position,
-            fontSize: item.fontSize,
-            fontFamily: item.fontFamily,
-            textColor: item.textColor,
-            backgroundColor: item.backgroundColor,
-            backgroundStyle: item.backgroundStyle,
+            text: item.text, position: item.position, fontSize: item.fontSize,
+            fontFamily: item.fontFamily, textColor: item.textColor,
+            backgroundColor: item.backgroundColor, backgroundStyle: item.backgroundStyle,
           });
         }
 
         // Appliquer l'overlay en cours d'édition (formulaire actif)
         if (hasCurrentText) {
           currentImage = await addTextOverlay(currentImage, {
-            text: overlayText,
-            position: textPosition,
-            fontSize: fontSize,
-            fontFamily: fontFamily,
-            textColor: textColor,
-            backgroundColor: textBackgroundColor,
-            backgroundStyle: backgroundStyle,
+            text: overlayText, position: textPosition, fontSize: fontSize,
+            fontFamily: fontFamily, textColor: textColor,
+            backgroundColor: textBackgroundColor, backgroundStyle: backgroundStyle,
           });
         }
 
@@ -1051,6 +1056,31 @@ export default function GeneratePage() {
 
     return () => clearTimeout(timeoutId);
   }, [overlayText, textPosition, textColor, textBackgroundColor, fontSize, fontFamily, backgroundStyle, selectedEditVersion, generatedImageUrl, activeTab, showEditStudio, textOverlayItems, editingOverlayId, baseOriginalImageUrl, imageWithWatermarkOnly, originalImageUrl]);
+
+  /* --- Générer les miniatures avec overlays pour chaque version --- */
+  useEffect(() => {
+    if (!showEditStudio || textOverlayItems.length === 0 || editVersions.length === 0) {
+      setVersionPreviews({});
+      return;
+    }
+
+    let cancelled = false;
+    const generatePreviews = async () => {
+      const previews: Record<string, string> = {};
+      for (const version of editVersions) {
+        if (cancelled) return;
+        try {
+          previews[version] = await renderOverlaysOnImage(version, textOverlayItems);
+        } catch {
+          previews[version] = version; // Fallback: image sans overlay
+        }
+      }
+      if (!cancelled) setVersionPreviews(previews);
+    };
+
+    const tid = setTimeout(generatePreviews, 200);
+    return () => { cancelled = true; clearTimeout(tid); };
+  }, [showEditStudio, editVersions, textOverlayItems]);
 
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
@@ -4075,27 +4105,36 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Boutons d'action */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setShowEditStudio(true);
                         // Utiliser l'image PROPRE (sans texte overlay) comme base
                         const cleanBase = imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+                        if (!cleanBase) return;
                         setEditVersions([cleanBase]);
                         setSelectedEditVersion(cleanBase);
                         setBaseOriginalImageUrl(cleanBase);
                         // Pré-charger le texte overlay de la génération comme premier item modifiable
                         if (overlayText.trim()) {
-                          setTextOverlayItems([{
+                          const items: GenerateTextOverlay[] = [{
                             id: `overlay-gen-${Date.now()}`,
                             text: overlayText,
-                            position: 'center' as const,
-                            fontSize: 60,
-                            fontFamily: 'inter',
-                            textColor: '#ffffff',
-                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                            backgroundStyle: 'clean' as const,
-                          }]);
+                            position: textPosition || 'center',
+                            fontSize: fontSize || 60,
+                            fontFamily: fontFamily || 'inter',
+                            textColor: textColor || '#ffffff',
+                            backgroundColor: textBackgroundColor || 'rgba(0, 0, 0, 0.5)',
+                            backgroundStyle: backgroundStyle || 'clean',
+                          }];
+                          setTextOverlayItems(items);
+                          // Générer immédiatement la preview avec texte
+                          try {
+                            const preview = await renderOverlaysOnImage(cleanBase, items);
+                            setTextPreviewUrl(preview);
+                            setVersionPreviews({ [cleanBase]: preview });
+                          } catch (e) { console.warn('[EditStudio] Initial preview failed:', e); }
                         } else {
                           setTextOverlayItems([]);
+                          setVersionPreviews({});
                         }
                         setEditingOverlayId(null);
                       }}
@@ -4541,9 +4580,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Onglet Image */}
                 {activeTab === 'image' && (
                   <div className="h-full bg-neutral-50 flex items-center justify-center p-4">
-                    {selectedEditVersion ? (
+                    {textPreviewUrl ? (
                       <img
-                        src={selectedEditVersion}
+                        src={textPreviewUrl}
+                        alt="Preview avec texte"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                      />
+                    ) : selectedEditVersion ? (
+                      <img
+                        src={(textOverlayItems.length > 0 && versionPreviews[selectedEditVersion]) || selectedEditVersion}
                         alt="Image sélectionnée"
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                       />
@@ -4781,11 +4826,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                             let newVersion = data.imageUrl;
 
-                            // Mettre à jour la base propre (sans overlay) — le preview auto-rend les overlays
+                            // Mettre à jour la base propre (sans overlay)
                             setOriginalImageUrl(newVersion);
                             setBaseOriginalImageUrl(newVersion);
                             setEditVersions([...editVersions, newVersion]);
                             setSelectedEditVersion(newVersion);
+
+                            // Générer immédiatement la preview avec overlays pour la nouvelle version
+                            if (textOverlayItems.length > 0) {
+                              try {
+                                const previewWithText = await renderOverlaysOnImage(newVersion, textOverlayItems);
+                                setTextPreviewUrl(previewWithText);
+                                setVersionPreviews(prev => ({ ...prev, [newVersion]: previewWithText }));
+                              } catch (e) { console.warn('[EditStudio] Preview overlay failed:', e); }
+                            }
 
                             setEditPrompt('');
                             setActiveTab('image');
@@ -5150,7 +5204,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           }`}
                         >
                           <img
-                            src={version}
+                            src={versionPreviews[version] || version}
                             alt={`Version ${idx + 1}`}
                             onClick={() => {
                               setSelectedEditVersion(version);
@@ -5324,7 +5378,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       onClick={() => setSelectedEditVersion(version)}
                     >
                       <img
-                        src={version}
+                        src={versionPreviews[version] || version}
                         alt={`Version ${idx + 1}`}
                         className="w-full aspect-square object-cover"
                       />
@@ -5490,7 +5544,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     />
                   ) : selectedEditVersion ? (
                     <img
-                      src={selectedEditVersion}
+                      src={(textOverlayItems.length > 0 && versionPreviews[selectedEditVersion]) || selectedEditVersion}
                       alt="Image sélectionnée"
                       className="max-w-full max-h-full object-contain"
                     />
@@ -5750,11 +5804,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                           let newVersion = data.imageUrl;
 
-                          // Mettre à jour la base propre — le preview auto-rend les overlays
+                          // Mettre à jour la base propre
                           setOriginalImageUrl(newVersion);
                           setBaseOriginalImageUrl(newVersion);
                           setEditVersions([...editVersions, newVersion]);
                           setSelectedEditVersion(newVersion);
+
+                          // Générer immédiatement la preview avec overlays pour la nouvelle version
+                          if (textOverlayItems.length > 0) {
+                            try {
+                              const previewWithText = await renderOverlaysOnImage(newVersion, textOverlayItems);
+                              setTextPreviewUrl(previewWithText);
+                              setVersionPreviews(prev => ({ ...prev, [newVersion]: previewWithText }));
+                            } catch (e) { console.warn('[EditStudio] Preview overlay failed:', e); }
+                          }
 
                           setEditPrompt('');
 
