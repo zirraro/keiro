@@ -70,23 +70,16 @@ const CATEGORIES = [
   'Les bonnes nouvelles',
   'Dernières news',
   'À la une',
-  'Tech',
-  'Business',
-  'Finance',
+  'Tech & Gaming',
+  'Business & Finance',
   'Santé',
   'Sport',
-  'Culture',
+  'Culture & Divertissement',
   'Politique',
-  'Climat',
-  'Automobile',
-  'Lifestyle',
-  'People',
-  'Gaming',
-  'Restauration',
-  'Science',
+  'Science & Environnement',
   'International',
-  'Musique',
-  'Tendances'
+  'Automobile',
+  'Lifestyle & People',
 ];
 
 /* ---------------- Page principale ---------------- */
@@ -720,44 +713,46 @@ export default function GeneratePage() {
   }, [selectedNews]);
 
   async function fetchAllNews() {
+    const CACHE_KEY = 'keiro_news_cache';
+    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+
+    // 1. Charger le cache immédiatement (même s'il est expiré = stale-while-revalidate)
+    let hasCache = false;
+    let cacheExpired = false;
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { items, ts } = JSON.parse(cached);
+        if (items?.length > 0) {
+          setAllNewsItems(items);
+          setLoading(false);
+          hasCache = true;
+          cacheExpired = Date.now() - ts >= CACHE_TTL;
+          if (!cacheExpired) return; // Cache frais → terminé
+        }
+      }
+    } catch { /* localStorage indisponible */ }
+
+    // 2. Fetch API (loader visible seulement si PAS de cache du tout)
+    if (!hasCache) setLoading(true);
     try {
       setError(null);
-
-      // 1. Charger depuis le cache localStorage immédiatement
-      const CACHE_KEY = 'keiro_news_cache';
-      const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
-      try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { items, ts } = JSON.parse(cached);
-          if (items?.length > 0) {
-            setAllNewsItems(items);
-            // Si cache < 24h, pas besoin de refetch
-            if (Date.now() - ts < CACHE_TTL) {
-              setLoading(false);
-              return;
-            }
-          }
-        }
-      } catch { /* localStorage indisponible */ }
-
-      // 2. Fetch en arrière-plan (si pas de cache ou cache expiré)
-      setLoading(true);
       const res = await fetch('/api/news?all=true');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Erreur de chargement');
       const items = data.items || [];
       setAllNewsItems(items);
-
-      // 3. Mettre à jour le cache localStorage
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({ items, ts: Date.now() }));
       } catch { /* quota exceeded */ }
     } catch (e: any) {
       console.error('fetchAllNews error', e);
-      setError('Impossible de récupérer les actualités.');
-      if (!allNewsItems.length) setAllNewsItems([]);
+      if (!hasCache) {
+        setError('Impossible de récupérer les actualités.');
+        setAllNewsItems([]);
+      }
+      // Si on avait un cache expiré, on garde les anciennes news silencieusement
     } finally {
       setLoading(false);
     }
@@ -1456,6 +1451,7 @@ export default function GeneratePage() {
 
       let finalImageUrl = data.imageUrl;
       let initialOverlays: { text: string; position: number; fontSize: number; fontFamily: string; textColor: string; bgColor: string; bgStyle: string }[] = [];
+      let cleanOriginalDataUrl: string | null = null; // Local var car React state async
 
       try {
         // Vérifier statut premium pour watermark (utiliser le plan depuis profiles, pas user_metadata)
@@ -1506,6 +1502,7 @@ export default function GeneratePage() {
 
         // SAUVEGARDER l'image originale SANS overlays pour l'édition studio
         setOriginalImageUrl(dataUrl);
+        cleanOriginalDataUrl = dataUrl; // Local var pour auto-save (React state pas encore dispo)
 
         // ÉTAPE 2 : Appliquer overlays côté CLIENT avec Canvas
         console.log('[Generate] Step 2: Applying overlays with browser Canvas...');
@@ -1786,11 +1783,13 @@ export default function GeneratePage() {
           if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
           // Uploader l'image originale (sans overlay) pour édition future
+          // Utilise cleanOriginalDataUrl (local) car setOriginalImageUrl React state pas encore dispo
           let originalCleanUrl: string | null = null;
-          if (originalImageUrl) {
+          const origToUpload = cleanOriginalDataUrl || originalImageUrl;
+          if (origToUpload) {
             try {
-              if (originalImageUrl.startsWith('data:')) {
-                const origBlob = await fetch(originalImageUrl).then(r => r.blob());
+              if (origToUpload.startsWith('data:')) {
+                const origBlob = await fetch(origToUpload).then(r => r.blob());
                 const origFname = `${user.id}/${Date.now()}_original_${Math.random().toString(36).substring(7)}.png`;
                 const { error: origUpErr } = await supabaseClient.storage
                   .from('generated-images')
@@ -1799,8 +1798,8 @@ export default function GeneratePage() {
                   const { data: { publicUrl: origPubUrl } } = supabaseClient.storage.from('generated-images').getPublicUrl(origFname);
                   originalCleanUrl = origPubUrl;
                 }
-              } else if (originalImageUrl.startsWith('http')) {
-                originalCleanUrl = originalImageUrl;
+              } else if (origToUpload.startsWith('http')) {
+                originalCleanUrl = origToUpload;
               }
             } catch (e) {
               console.warn('[Generate] Failed to upload original image:', e);

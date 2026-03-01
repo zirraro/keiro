@@ -45,19 +45,19 @@ const RSS_FEEDS = [
   { url: 'https://www.20minutes.fr/feeds/rss-une.xml', category: 'À la une', timeout: 5000 },
 
   // Tech - flux tech fiables
-  { url: 'https://www.numerama.com/feed/', category: 'Tech', timeout: 5000 },
-  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech', timeout: 5000 },
-  { url: 'https://www.clubic.com/feed/', category: 'Tech', timeout: 5000 },
-  { url: 'https://www.journaldunet.com/rss/', category: 'Tech', timeout: 5000 },
+  { url: 'https://www.numerama.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.01net.com/rss/info.xml', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.clubic.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.journaldunet.com/rss/', category: 'Tech & Gaming', timeout: 5000 },
 
   // Business
-  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business', timeout: 5000 },
-  { url: 'https://www.capital.fr/rss', category: 'Business', timeout: 5000 },
-  { url: 'https://www.lesechos.fr/rss.xml', category: 'Business', timeout: 5000 },
+  { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business & Finance', timeout: 5000 },
+  { url: 'https://www.capital.fr/rss', category: 'Business & Finance', timeout: 5000 },
+  { url: 'https://www.lesechos.fr/rss.xml', category: 'Business & Finance', timeout: 5000 },
 
   // Finance
-  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Finance', timeout: 5000 },
-  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Finance', timeout: 5000 },
+  { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Business & Finance', timeout: 5000 },
+  { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Business & Finance', timeout: 5000 },
 
   // Santé
   { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé', timeout: 5000 },
@@ -68,8 +68,8 @@ const RSS_FEEDS = [
   { url: 'https://www.sports.fr/feed/', category: 'Sport', timeout: 5000 },
 
   // Culture
-  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture', timeout: 5000 },
-  { url: 'https://www.premiere.fr/rss', category: 'Culture', timeout: 5000 },
+  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture & Divertissement', timeout: 5000 },
+  { url: 'https://www.premiere.fr/rss', category: 'Culture & Divertissement', timeout: 5000 },
 
   // Politique
   { url: 'https://www.lemonde.fr/politique/rss_full.xml', category: 'Politique', timeout: 5000 },
@@ -85,140 +85,85 @@ const RSS_FEEDS = [
   { url: 'https://www.caradisiac.com/rss/', category: 'Automobile', timeout: 5000 },
 
   // Lifestyle
-  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
-  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
+  { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
 
   // Gaming
-  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Gaming', timeout: 5000 },
-  { url: 'https://www.journaldugeek.com/feed/', category: 'Gaming', timeout: 5000 },
+  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.journaldugeek.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
 
   // Science
-  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science', timeout: 5000 },
-  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science', timeout: 5000 },
+  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science & Environnement', timeout: 5000 },
 
   // Climat
-  { url: 'https://www.geo.fr/rss.xml', category: 'Climat', timeout: 5000 },
-  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Climat', timeout: 5000 },
-  { url: 'https://reporterre.net/spip.php?page=backend', category: 'Climat', timeout: 5000 },
-  { url: 'https://www.actu-environnement.com/flux/rss/actu-environnement.xml', category: 'Climat', timeout: 5000 },
+  { url: 'https://www.geo.fr/rss.xml', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://reporterre.net/spip.php?page=backend', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://www.actu-environnement.com/flux/rss/actu-environnement.xml', category: 'Science & Environnement', timeout: 5000 },
 
   // People
-  { url: 'https://www.purepeople.com/rss.xml', category: 'People', timeout: 5000 },
-  { url: 'https://www.gala.fr/rss.xml', category: 'People', timeout: 5000 },
-  { url: 'https://www.voici.fr/rss.xml', category: 'People', timeout: 5000 },
-  { url: 'https://www.closermag.fr/rss.xml', category: 'People', timeout: 5000 },
+  { url: 'https://www.purepeople.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.gala.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.voici.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.closermag.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
 
   // Musique
-  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Musique', timeout: 5000 },
-  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Musique', timeout: 5000 },
-  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Musique', timeout: 5000 },
-  { url: 'https://www.ticketmaster.fr/discover/feed', category: 'Musique', timeout: 5000 },
+  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Culture & Divertissement', timeout: 5000 },
+  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Culture & Divertissement', timeout: 5000 },
+  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Culture & Divertissement', timeout: 5000 },
+  { url: 'https://www.ticketmaster.fr/discover/feed', category: 'Culture & Divertissement', timeout: 5000 },
 
   // Restauration
-  { url: 'https://www.atabula.com/feed/', category: 'Restauration', timeout: 5000 },
-  { url: 'https://www.lhotellerie-restauration.fr/rss/', category: 'Restauration', timeout: 5000 },
+  { url: 'https://www.atabula.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.lhotellerie-restauration.fr/rss/', category: 'Lifestyle & People', timeout: 5000 },
 
   // Tendances
-  { url: 'https://www.konbini.com/fr/feed/', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.madmoizelle.com/feed/', category: 'Tendances', timeout: 5000 },
-  { url: 'https://www.presse-citron.net/feed/', category: 'Tendances', timeout: 5000 },
+  { url: 'https://www.konbini.com/fr/feed/', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.madmoizelle.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.presse-citron.net/feed/', category: 'Lifestyle & People', timeout: 5000 },
 
   // Lifestyle (flux dédiés supplémentaires)
-  { url: 'https://www.aufeminin.com/rss.xml', category: 'Lifestyle', timeout: 5000 },
-  { url: 'https://www.grazia.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
-  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Lifestyle', timeout: 5000 },
+  { url: 'https://www.aufeminin.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.grazia.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
 
   // Tech (flux supplémentaire)
-  { url: 'https://hitek.fr/feed', category: 'Tech', timeout: 5000 },
+  { url: 'https://hitek.fr/feed', category: 'Tech & Gaming', timeout: 5000 },
 
   // Divers
   { url: 'https://www.demotivateur.fr/feed', category: 'À la une', timeout: 5000 },
 ];
 
-// Mots-clés ENRICHIS pour catégorisation intelligente
+// Mots-clés ENRICHIS pour catégorisation intelligente (11 catégories fusionnées)
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'Automobile': [
-    // Marques voitures
     'renault', 'peugeot', 'citroën', 'citroen', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
     'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
     'byd', 'nio', 'xpeng', 'geely', 'fiat', 'opel', 'nissan', 'mazda', 'honda', 'subaru', 'volvo', 'jaguar', 'land rover', 'mini', 'seat', 'skoda',
-    // F1 et sport auto
     'f1', 'formule 1', 'formule1', 'grand prix', 'gp', 'verstappen', 'hamilton', 'leclerc', 'sainz', 'alonso', 'red bull racing', 'ferrari f1', 'mercedes f1',
-    'mclaren f1', 'alpine f1', 'williams', 'haas', 'alfa romeo', 'alphatauri', 'circuit', 'pole position', 'podium', 'paddock', 'qualification', 'essais libres',
-    // Motos
-    'moto', 'motogp', 'motocross', 'superbike', 'yamaha', 'kawasaki', 'harley', 'ducati', 'bmw motorrad', 'honda moto', 'suzuki', 'ktm', 'triumph', 'scooter', 'deux-roues',
-    // Voitures types
-    'voiture électrique', 'voiture hybride', 'voiture essence', 'voiture diesel', 'suv', 'berline', 'citadine', 'sportive', 'coupé', 'cabriolet', 'monospace', '4x4', 'crossover',
-    // Technologies
-    'batterie', 'autonomie', 'recharge', 'borne', 'superchargeur', 'pile à combustible', 'hydrogène', 'électrique', 'hybride rechargeable',
-    // Événements
-    'salon auto', 'mondial de l\'auto', 'essai', 'comparatif', 'nouveauté', 'lancement', 'sortie', 'concept car',
-    // Général
-    'permis de conduire', 'code de la route', 'sécurité routière', 'accident', 'assurance auto', 'contrôle technique', 'autoroute', 'radar', 'amende'
+    'mclaren f1', 'alpine f1', 'williams', 'haas', 'alfa romeo', 'alphatauri', 'circuit', 'pole position', 'podium', 'paddock',
+    'moto', 'motogp', 'motocross', 'superbike', 'yamaha', 'kawasaki', 'harley', 'ducati', 'ktm',
+    'voiture électrique', 'voiture hybride', 'suv', 'berline', 'citadine', 'sportive', 'coupé', 'cabriolet', '4x4', 'crossover',
+    'batterie', 'autonomie', 'recharge', 'borne', 'superchargeur', 'hybride rechargeable',
+    'salon auto', 'mondial de l\'auto', 'permis de conduire', 'sécurité routière', 'assurance auto', 'contrôle technique', 'autoroute', 'radar'
   ],
 
-  'Musique': [
-    // Artistes français
-    'aya nakamura', 'gims', 'maitre gims', 'stromae', 'angèle', 'angele', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
-    'pnl', 'booba', 'niska', 'dadju', 'damso', 'soolking', 'naps', 'soso maness', 'tiakola', 'ziak', 'gazo', 'freeze corleone',
-    'clara luciani', 'pomme', 'videoclub', 'juliette armanet', 'eddy de pretto', 'louane', 'vianney', 'kendji girac', 'slimane',
-    // Artistes internationaux
-    'taylor swift', 'beyoncé', 'beyonce', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
-    'kanye west', 'travis scott', 'dua lipa', 'harry styles', 'adele', 'bruno mars', 'post malone', 'bad bunny', 'rosalia',
-    'coldplay', 'imagine dragons', 'muse', 'radiohead', 'arctic monkeys', 'daft punk', 'david guetta', 'martin garrix', 'calvin harris',
-    // Genres
-    'rap', 'hip-hop', 'hip hop', 'pop', 'rock', 'électro', 'electro', 'house', 'techno', 'edm', 'r&b', 'rnb', 'soul', 'jazz',
-    'classique', 'metal', 'punk', 'reggae', 'dancehall', 'afrobeat', 'drill', 'trap', 'funk', 'disco',
-    // Événements
-    'concert', 'tournée', 'tournee', 'festival', 'coachella', 'lollapalooza', 'rock en seine', 'hellfest', 'solidays',
-    'printemps de bourges', 'les vieilles charrues', 'festival de cannes', 'olympia', 'zenith', 'bercy', 'accor arena', 'stade de france',
-    // Industrie
-    'album', 'single', 'ep', 'clip', 'clip video', 'streaming', 'spotify', 'deezer', 'apple music', 'youtube music',
-    'charts', 'billboard', 'top 50', 'top chart', 'numero 1', 'disque d\'or', 'disque de platine', 'certifié',
-    // Awards
-    'grammy', 'grammys', 'nrj music awards', 'victoires de la musique', 'mtv awards', 'ama', 'billboard awards',
-    // Termes généraux
-    'featuring', 'feat', 'ft', 'collaboration', 'remix', 'cover', 'acoustique', 'live', 'concert live', 'sortie album',
-    'nouveau titre', 'nouvelle chanson', 'artiste', 'chanteur', 'chanteuse', 'rappeur', 'dj', 'producteur', 'beatmaker'
-  ],
-
-  'People': [
-    // Sportifs français
-    'kylian mbappé', 'kylian mbappe', 'zinedine zidane', 'tony parker', 'teddy riner', 'renaud lavillenie', 'martin fourcade',
-    'camille lacourt', 'florent manaudou', 'clarisse agbegnenou', 'sarah lefort', 'antoine griezmann', 'karim benzema',
-    // Acteurs/Actrices français
-    'marion cotillard', 'léa seydoux', 'lea seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
-    'dany boon', 'isabelle adjani', 'juliette binoche', 'audrey tautou', 'romain duris', 'jean dujardin', 'guillaume canet',
-    // Influenceurs français
-    'squeezie', 'cyprien', 'norman', 'enjoy phoenix', 'caroline receveur', 'léna situations', 'lena situations', 'mcfly et carlito',
-    'tibo inshape', 'natoo', 'mister v', 'amixem', 'gotaga', 'michou', 'inoxtag', 'seb la frite',
-    // TV/Reality
-    'les marseillais', 'les ch\'tis', 'koh-lanta', 'secret story', 'danse avec les stars', 'top chef', 'the voice',
-    'n\'oubliez pas les paroles', 'c\'est canteloup', 'quotidien', 'touche pas à mon poste', 'tpmp', 'hanouna', 'yann barthès',
-    // Célébrités internationales
-    'kim kardashian', 'kylie jenner', 'brad pitt', 'angelina jolie', 'johnny depp', 'leonardo dicaprio', 'jennifer lawrence',
-    'dwayne johnson', 'chris hemsworth', 'scarlett johansson', 'emma watson', 'tom cruise', 'will smith',
-    // Termes people
-    'paparazzi', 'jet-set', 'jet set', 'vie privée', 'vie privee', 'liaison', 'couple', 'relation', 'rupture', 'divorce',
-    'fiançailles', 'fiancailles', 'mariage', 'baby bump', 'grossesse', 'enceinte', 'accouchement', 'naissance', 'bébé', 'bebe',
-    'scandale', 'polémique', 'polemique', 'clash', 'rumeur', 'exclu', 'révélation', 'revelation', 'confession', 'interview',
-    'tapis rouge', 'gala', 'soirée', 'soiree', 'après-ski', 'vacances', 'yacht', 'villa', 'luxe', 'people', 'célébrité', 'celebrite', 'star'
-  ],
-
-  'Tech': [
+  'Tech & Gaming': [
     'ia générative', 'llm', 'gpt', 'gemini', 'bard', 'copilot', 'github', 'gitlab', 'typescript', 'react',
     'next.js', 'vue', 'angular', 'ransomware', 'phishing', 'data breach', 'fuite de données', 'rgpd', 'defi', 'staking',
-    'wallet', 'exchange', 'binance', 'coinbase', 'stablecoin'
+    'wallet', 'exchange', 'binance', 'coinbase', 'stablecoin',
+    'fortnite', 'league of legends', 'valorant', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
+    'epic games', 'battle.net', 'ubisoft connect', 'lec', 'lcs', 'worlds', 'the international', 'équipe esport',
+    'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'gaming', 'esport', 'streamer', 'twitch'
   ],
 
-  'Finance': [
-    'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
-    'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna'
-  ],
-
-  'Business': [
+  'Business & Finance': [
     'blablacar', 'doctolib', 'contentsquare', 'mirakl', 'back market', 'vinted', 'amazon', 'alibaba', 'shopify', 'marketplace',
-    'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'casino', 'lidl', 'aldi'
+    'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'casino', 'lidl', 'aldi',
+    'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
+    'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna',
+    'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'taux', 'banque centrale', 'bce'
   ],
 
   'Sport': [
@@ -228,10 +173,18 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'mercedes', 'grand prix'
   ],
 
-  'Culture': [
+  'Culture & Divertissement': [
     'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'game of thrones', 'stranger things', 'the last of us', 'the mandalorian',
     'wednesday', 'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man', 'best-seller', 'goncourt',
-    'renaudot', 'femina', 'prix littéraire'
+    'renaudot', 'femina', 'prix littéraire',
+    'aya nakamura', 'gims', 'stromae', 'angèle', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
+    'pnl', 'booba', 'damso', 'clara luciani', 'pomme', 'juliette armanet', 'louane', 'vianney', 'slimane',
+    'taylor swift', 'beyoncé', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
+    'coldplay', 'imagine dragons', 'daft punk', 'david guetta',
+    'rap', 'hip-hop', 'pop', 'rock', 'électro', 'house', 'techno', 'r&b', 'jazz', 'metal',
+    'concert', 'tournée', 'festival', 'coachella', 'rock en seine', 'hellfest', 'solidays',
+    'album', 'single', 'clip', 'streaming', 'spotify', 'deezer', 'apple music',
+    'grammy', 'nrj music awards', 'victoires de la musique', 'chanteur', 'chanteuse', 'rappeur', 'dj'
   ],
 
   'Politique': [
@@ -244,30 +197,11 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'sans gluten', 'keto', 'jeûne intermittent', 'yoga', 'méditation', 'mindfulness', 'sommeil', 'stress', 'burn-out'
   ],
 
-  'Climat': [
-    'nucléaire', 'photovoltaïque', 'biomasse', 'géothermie', 'hydrogène vert', 'neutralité carbone', 'empreinte carbone', 'bilan carbone', 'compensation carbone', 'cop28',
-    'cop29', 'giec', 'accord de paris'
-  ],
-
-  'Science': [
+  'Science & Environnement': [
     'spacex', 'blue origin', 'mars', 'lune', 'iss', 'james webb', 'télescope', 'crispr', 'génétique', 'adn',
-    'clonage', 'cellules souches', 'cnrs', 'cern', 'esa', 'nasa', 'mit', 'stanford'
-  ],
-
-  'Gaming': [
-    'fortnite', 'league of legends', 'valorant', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
-    'epic games', 'battle.net', 'origin', 'ubisoft connect', 'lec', 'lcs', 'worlds', 'the international', 'major', 'équipe esport'
-  ],
-
-  'Lifestyle': [
-    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
-    'lancôme', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip',
-    'backpacking'
-  ],
-
-  'Restauration': [
-    'alain ducasse', 'paul bocuse', 'gordon ramsay', 'jamie oliver', 'cyril lignac', 'philippe etchebest', 'top chef', 'masterchef', 'cauchemar en cuisine', 'street food',
-    'food truck', 'fusion', 'bistronomie', 'fermentation'
+    'clonage', 'cellules souches', 'cnrs', 'cern', 'esa', 'nasa', 'mit', 'stanford',
+    'nucléaire', 'photovoltaïque', 'biomasse', 'géothermie', 'hydrogène vert', 'neutralité carbone', 'empreinte carbone', 'bilan carbone', 'compensation carbone', 'cop28',
+    'cop29', 'giec', 'accord de paris', 'réchauffement climatique', 'biodiversité', 'pollution', 'écologie', 'développement durable'
   ],
 
   'International': [
@@ -275,11 +209,19 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'emmanuel macron', 'otan', 'ue', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics'
   ],
 
-  'Tendances': [
-    'tiktok', 'instagram reels', 'youtube shorts', 'snapchat', 'bereal', 'influenceur', 'créateur de contenu', 'ugc', 'pov', 'aesthetic',
-    'vibe', 'mood', 'meme', 'challenge', 'trend', 'filter', 'effect', 'sound viral'
+  'Lifestyle & People': [
+    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
+    'lancôme', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip',
+    'kylian mbappé', 'zinedine zidane', 'tony parker', 'teddy riner', 'antoine griezmann', 'karim benzema',
+    'marion cotillard', 'léa seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
+    'dany boon', 'jean dujardin', 'guillaume canet',
+    'squeezie', 'cyprien', 'léna situations', 'mcfly et carlito', 'tibo inshape', 'inoxtag', 'michou',
+    'les marseillais', 'koh-lanta', 'danse avec les stars', 'top chef', 'the voice', 'tpmp', 'hanouna',
+    'kim kardashian', 'brad pitt', 'angelina jolie', 'leonardo dicaprio', 'tom cruise',
+    'paparazzi', 'jet-set', 'people', 'célébrité', 'star', 'scandale', 'polémique', 'tapis rouge',
+    'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'ugc', 'trend', 'challenge',
+    'alain ducasse', 'cyril lignac', 'philippe etchebest', 'masterchef', 'cauchemar en cuisine', 'street food', 'food truck', 'bistronomie'
   ],
-
 };
 
 // Catégoriser avec scoring pondéré (titre = 3x description)
@@ -350,9 +292,8 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
             const autoCategory = categorizeArticle(title, description);
             detectedCategory = autoCategory;
           }
-          // Pour "Tendances", on garde la catégorie du flux (pas de recatégorisation)
           // Pour les autres flux spécialisés, TOUJOURS garder leur catégorie
-          // (ex: un flux Tech reste Tech, un flux Sport reste Sport, un flux Tendances reste Tendances)
+          // (ex: un flux Tech & Gaming reste Tech & Gaming, un flux Sport reste Sport)
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,
