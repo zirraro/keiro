@@ -571,7 +571,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   </button>
                   <div className="flex-1 flex items-center gap-1.5 justify-center">
                     <button
-                      onClick={() => setFormPosition(20)}
+                      onClick={() => setFormPosition(25)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Haut</button>
                     <button
@@ -579,7 +579,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Centre</button>
                     <button
-                      onClick={() => setFormPosition(80)}
+                      onClick={() => setFormPosition(75)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Bas</button>
                   </div>

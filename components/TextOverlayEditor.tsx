@@ -49,7 +49,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: '#dc2626',
       backgroundStyle: 'solid' as const,
-      position: 20,
+      position: 25,
       fontFamily: 'bebas' as const,
       fontSize: 70,
     }
@@ -77,7 +77,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'rgba(0, 0, 0, 0.75)',
       backgroundStyle: 'outline' as const,
-      position: 20,
+      position: 25,
       fontFamily: 'montserrat' as const,
       fontSize: 80,
     }
@@ -91,7 +91,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
       backgroundStyle: 'gradient' as const,
-      position: 80,
+      position: 75,
       fontFamily: 'montserrat' as const,
       fontSize: 55,
     }
@@ -105,7 +105,7 @@ const TEMPLATES = [
       textColor: '#ffffff',
       backgroundColor: 'transparent',
       backgroundStyle: 'clean' as const,
-      position: 80,
+      position: 75,
       fontFamily: 'bebas' as const,
       fontSize: 75,
     }
@@ -133,7 +133,7 @@ const TEMPLATES = [
       textColor: '#0f172a',
       backgroundColor: 'rgba(255, 255, 255, 0.92)',
       backgroundStyle: 'minimal' as const,
-      position: 80,
+      position: 75,
       fontFamily: 'inter' as const,
       fontSize: 42,
     }
@@ -173,7 +173,7 @@ export default function TextOverlayEditor({
     backgroundColor: initialConfig?.backgroundColor || 'rgba(0, 0, 0, 0.5)',
     fontFamily: initialConfig?.fontFamily || 'inter',
     fontSize: initialConfig?.fontSize || 80,
-    backgroundStyle: initialConfig?.backgroundStyle || 'transparent',
+    backgroundStyle: initialConfig?.backgroundStyle || 'none',
     template: initialConfig?.template || 'scroll-stop',
     logoUrl: initialConfig?.logoUrl || undefined,
     logoPosition: initialConfig?.logoPosition || 'top-left',
@@ -392,7 +392,7 @@ export default function TextOverlayEditor({
                   </button>
                   <div className="flex-1 flex items-center gap-2 justify-center">
                     <button
-                      onClick={() => setConfig(prev => ({ ...prev, position: 20 }))}
+                      onClick={() => setConfig(prev => ({ ...prev, position: 25 }))}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Haut</button>
                     <button
@@ -400,7 +400,7 @@ export default function TextOverlayEditor({
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position > 30 && config.position < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Centre</button>
                     <button
-                      onClick={() => setConfig(prev => ({ ...prev, position: 80 }))}
+                      onClick={() => setConfig(prev => ({ ...prev, position: 75 }))}
                       className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Bas</button>
                   </div>
