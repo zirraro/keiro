@@ -73,6 +73,15 @@ function StudioContent() {
   const [cleanBaseImage, setCleanBaseImage] = useState(searchParams.get("image") || "");
   const [user, setUser] = useState<any>(null);
   const [savingToGallery, setSavingToGallery] = useState(false);
+  const [activeTab, setActiveTab] = useState<'image' | 'text' | 'video'>('image');
+
+  // === Video generation states ===
+  const [videoPrompt, setVideoPrompt] = useState('');
+  const [videoDuration, setVideoDuration] = useState(5);
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState('');
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
 
   // === Parse overlays from search params or DB JSON ===
   function parseOverlaysFromParam(raw: string | null): TextOverlayItem[] {
@@ -448,15 +457,15 @@ function StudioContent() {
 
   // Debounced preview — any change to form or overlays triggers re-render
   useEffect(() => {
-    if (!showTextOverlay) return;
+    if (activeTab !== 'text') return;
     if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     previewTimerRef.current = setTimeout(generatePreview, 400);
     return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
-  }, [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle, textOverlayItems, showTextOverlay, generatePreview]);
+  }, [formText, formPosition, formFontSize, formFontFamily, formTextColor, formBgColor, formBgStyle, textOverlayItems, activeTab, generatePreview]);
 
-  // Auto-edit: when text overlay panel opens with existing items, load first into form
+  // Auto-edit: when text tab opens with existing items, load first into form
   useEffect(() => {
-    if (showTextOverlay && textOverlayItems.length > 0 && !editingOverlayId) {
+    if (activeTab === 'text' && textOverlayItems.length > 0 && !editingOverlayId) {
       if (skipAutoEditRef.current) {
         skipAutoEditRef.current = false;
         return;
@@ -475,7 +484,7 @@ function StudioContent() {
         setEditingOverlayId(first.id);
       }
     }
-  }, [showTextOverlay, textOverlayItems.length]);
+  }, [activeTab, textOverlayItems.length]);
 
   // === Overlay management ===
 
@@ -576,12 +585,99 @@ function StudioContent() {
     }
   };
 
+  // === Video generation ===
+  const handleGenerateVideo = async () => {
+    if (!loadedImage) {
+      alert('Veuillez charger une image d\'abord');
+      return;
+    }
+    if (!videoPrompt.trim()) {
+      alert('Veuillez décrire l\'animation souhaitée');
+      return;
+    }
+
+    setGeneratingVideo(true);
+    setVideoProgress('Création de la tâche vidéo...');
+    setGeneratedVideoUrl(null);
+
+    try {
+      const res = await fetch('/api/seedream/i2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: loadedImage,
+          prompt: videoPrompt,
+          duration: videoDuration,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 402 && data.insufficientCredits) {
+        setGeneratingVideo(false);
+        setShowSubscriptionModal(true);
+        return;
+      }
+      if (res.status === 403 && data.blocked) {
+        setGeneratingVideo(false);
+        setShowSubscriptionModal(true);
+        return;
+      }
+
+      if (!data?.ok) {
+        throw new Error(data?.error || 'Échec de création de la tâche vidéo');
+      }
+
+      setVideoTaskId(data.taskId);
+
+      // Polling
+      const maxAttempts = videoDuration <= 10 ? 60 : 120;
+      const pollVideo = async (attempt: number): Promise<void> => {
+        if (attempt >= maxAttempts) {
+          throw new Error('Timeout: La génération prend trop de temps');
+        }
+
+        setVideoProgress(`Génération en cours... (${attempt * 5}s)`);
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        const statusRes = await fetch('/api/seedream/i2v', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId: data.taskId }),
+        });
+
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'completed' && statusData.videoUrl) {
+          setGeneratedVideoUrl(statusData.videoUrl);
+          setGeneratingVideo(false);
+          setVideoProgress('');
+          return;
+        }
+
+        if (statusData.status === 'failed') {
+          throw new Error(statusData.error || 'Échec de la génération vidéo');
+        }
+
+        return pollVideo(attempt + 1);
+      };
+
+      await pollVideo(0);
+    } catch (error: any) {
+      console.error('[Studio Video] Error:', error);
+      alert('Erreur: ' + error.message);
+      setGeneratingVideo(false);
+      setVideoProgress('');
+    }
+  };
+
   // Construire le tableau de toutes les versions (Original + éditées)
   const allVersions = originalImage ? [originalImage, ...editedImages] : [];
   const hasOverlays = textOverlayItems.length > 0 || formText.trim();
 
-  // Determine which image to display: preview if text panel is open, otherwise loadedImage
-  const displayImage = showTextOverlay && textPreviewUrl ? textPreviewUrl : loadedImage;
+  // Determine which image to display: preview if text tab is active, otherwise loadedImage
+  const displayImage = activeTab === 'text' && textPreviewUrl ? textPreviewUrl : loadedImage;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-12">
@@ -712,19 +808,31 @@ function StudioContent() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="relative aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group">
-                  <img
-                    src={displayImage}
-                    alt="Image à éditer"
-                    className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                  />
-                  {textLoading && showTextOverlay && (
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+                {generatedVideoUrl && activeTab === 'video' ? (
+                  <div className="relative rounded-xl overflow-hidden shadow-lg bg-black">
+                    <video
+                      src={generatedVideoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group">
+                    <img
+                      src={displayImage}
+                      alt="Image à éditer"
+                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {textLoading && activeTab === 'text' && (
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                        <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                )}
                 <button
                   onClick={() => {
                     setLoadedImage("");
@@ -814,393 +922,532 @@ function StudioContent() {
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-                Édition
+                Studio
                 {editProvider && (
                   <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                 )}
               </h2>
             </div>
 
-            <div className="space-y-6">
-              {/* Slider force de modification */}
-              <div>
-                <p className="text-sm font-semibold text-neutral-700 mb-2">
-                  Force de modification : <span className="text-purple-600 font-bold">
-                    {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
-                  </span>
-                </p>
-                <input
-                  type="range"
-                  min={3}
-                  max={10}
-                  step={0.5}
-                  value={editStrength}
-                  onChange={(e) => setEditStrength(Number(e.target.value))}
-                  className="w-full accent-purple-600"
-                />
-                <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-                  <span>Subtile</span>
-                  <span>Modérée</span>
-                  <span>Forte</span>
-                </div>
-                <p className="text-xs text-neutral-500 mt-1">
-                  {editStrength <= 5
-                    ? 'Retouches légères : lumière, couleurs, détails fins'
-                    : editStrength <= 7
-                    ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
-                    : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  Décrivez vos modifications
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={editPrompt}
-                    onChange={(e) => setEditPrompt(e.target.value)}
-                    placeholder={
-                      editStrength <= 5
-                        ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
-                        : editStrength <= 7
-                        ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever un objet...'
-                        : 'Ex: Style vintage 80s, ambiance golden hour, transformer en peinture...'
-                    }
-                    rows={6}
-                    disabled={!loadedImage || editingImage}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all disabled:bg-neutral-100 disabled:cursor-not-allowed resize-none"
-                  />
-                  {editPrompt.length > 0 && (
-                    <div className="absolute bottom-3 right-3 text-xs text-neutral-400 bg-white px-2 py-1 rounded-md shadow-sm">
-                      {editPrompt.length} caractères
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-neutral-500 mt-2 flex items-start gap-2">
-                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Soyez précis pour de meilleurs résultats. Votre demande sera interprétée pour modifier l'image.</span>
-                </p>
-              </div>
-
+            {/* === ONGLETS === */}
+            <div className="flex border-b border-neutral-200 mb-6">
               <button
-                onClick={handleEdit}
-                disabled={!loadedImage || editingImage || !editPrompt.trim()}
-                className="w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white rounded-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg flex items-center justify-center gap-3 hover:scale-[1.02] disabled:hover:scale-100 relative overflow-hidden group"
+                onClick={() => setActiveTab('image')}
+                className={`flex-1 py-3 text-sm font-semibold text-center transition-all relative ${
+                  activeTab === 'image'
+                    ? 'text-purple-700'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="relative flex items-center gap-3">
-                  {editingImage ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Édition en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Transformer
-                    </>
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Retouche
+                </span>
+                {activeTab === 'image' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-full" />}
+              </button>
+              <button
+                onClick={() => { setActiveTab('text'); setShowTextOverlay(true); }}
+                className={`flex-1 py-3 text-sm font-semibold text-center transition-all relative ${
+                  activeTab === 'text'
+                    ? 'text-indigo-700'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Texte
+                  {textOverlayItems.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">{textOverlayItems.length}</span>
                   )}
                 </span>
+                {activeTab === 'text' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />}
               </button>
+              <button
+                onClick={() => setActiveTab('video')}
+                className={`flex-1 py-3 text-sm font-semibold text-center transition-all relative ${
+                  activeTab === 'video'
+                    ? 'text-pink-700'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Video
+                </span>
+                {activeTab === 'video' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 rounded-full" />}
+              </button>
+            </div>
 
-              {loadedImage && (
+            <div className="space-y-6">
+              {/* === ONGLET RETOUCHE IMAGE === */}
+              {activeTab === 'image' && (
                 <>
-                  {/* Divider */}
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t-2 border-neutral-100"></div>
+                  {/* Slider force de modification */}
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-700 mb-2">
+                      Force de modification : <span className="text-purple-600 font-bold">
+                        {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                      </span>
+                    </p>
+                    <input
+                      type="range"
+                      min={3}
+                      max={10}
+                      step={0.5}
+                      value={editStrength}
+                      onChange={(e) => setEditStrength(Number(e.target.value))}
+                      className="w-full accent-purple-600"
+                    />
+                    <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                      <span>Subtile</span>
+                      <span>Modérée</span>
+                      <span>Forte</span>
                     </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="px-4 bg-white text-neutral-500 font-semibold">TEXTE & ACTIONS</span>
-                    </div>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {editStrength <= 5
+                        ? 'Retouches légères : lumière, couleurs, détails fins'
+                        : editStrength <= 7
+                        ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
+                        : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
+                    </p>
                   </div>
 
-                  {/* Bouton toggle texte overlay */}
-                  <button
-                    onClick={() => setShowTextOverlay(!showTextOverlay)}
-                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all relative overflow-hidden group ${
-                      showTextOverlay
-                        ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-300'
-                        : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:shadow-xl hover:scale-[1.02]'
-                    }`}
-                  >
-                    {!showTextOverlay && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    )}
-                    <span className="relative flex items-center gap-3">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      {showTextOverlay
-                        ? `Texte overlay${textOverlayItems.length > 0 ? ` (${textOverlayItems.length})` : ''}`
-                        : 'Ajouter / Personnaliser du texte'}
-                      {showTextOverlay && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
+                      Décrivez vos modifications
+                    </label>
+                    <div className="relative">
+                      <textarea
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        placeholder={
+                          editStrength <= 5
+                            ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
+                            : editStrength <= 7
+                            ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever un objet...'
+                            : 'Ex: Style vintage 80s, ambiance golden hour, transformer en peinture...'
+                        }
+                        rows={6}
+                        disabled={!loadedImage || editingImage}
+                        className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all disabled:bg-neutral-100 disabled:cursor-not-allowed resize-none"
+                      />
+                      {editPrompt.length > 0 && (
+                        <div className="absolute bottom-3 right-3 text-xs text-neutral-400 bg-white px-2 py-1 rounded-md shadow-sm">
+                          {editPrompt.length} caractères
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-2 flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Soyez précis pour de meilleurs résultats. Votre demande sera interprétée pour modifier l'image.</span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleEdit}
+                    disabled={!loadedImage || editingImage || !editPrompt.trim()}
+                    className="w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 text-white rounded-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg flex items-center justify-center gap-3 hover:scale-[1.02] disabled:hover:scale-100 relative overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="relative flex items-center gap-3">
+                      {editingImage ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Édition en cours...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Transformer
+                        </>
                       )}
                     </span>
                   </button>
+                </>
+              )}
 
-                  {/* === INLINE TEXT OVERLAY EDITOR === */}
-                  {showTextOverlay && (
-                    <div className="space-y-4 border-2 border-indigo-200 rounded-xl p-4 bg-indigo-50/30">
-                      {/* Applied overlays list */}
-                      {textOverlayItems.length > 0 && (
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
-                          <div className="space-y-1.5">
-                            {textOverlayItems.map((overlay) => (
-                              <div
-                                key={overlay.id}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
-                                  editingOverlayId === overlay.id
-                                    ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
-                                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
-                                }`}
-                                onClick={() => handleEditOverlay(overlay)}
-                              >
-                                <span className="text-xs font-medium text-neutral-400 w-10 shrink-0">
-                                  {overlay.position <= 30 ? '⬆️' : overlay.position >= 70 ? '⬇️' : '⏺️'} {overlay.position}%
-                                </span>
-                                <span className="text-sm text-neutral-800 truncate flex-1">
-                                  {overlay.text}
-                                </span>
-                                <span
-                                  className="w-4 h-4 rounded-full border shrink-0"
-                                  style={{ backgroundColor: overlay.textColor }}
-                                />
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
-                                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
-                                  title="Supprimer ce texte"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          {editingOverlayId && (
+              {/* === ONGLET TEXTE === */}
+              {activeTab === 'text' && (
+                <div className="space-y-4">
+                  {/* Applied overlays list */}
+                  {textOverlayItems.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
+                      <div className="space-y-1.5">
+                        {textOverlayItems.map((overlay) => (
+                          <div
+                            key={overlay.id}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
+                              editingOverlayId === overlay.id
+                                ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                                : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
+                            }`}
+                            onClick={() => handleEditOverlay(overlay)}
+                          >
+                            <span className="text-xs font-medium text-neutral-400 w-10 shrink-0">
+                              {overlay.position <= 30 ? '⬆️' : overlay.position >= 70 ? '⬇️' : '⏺️'} {overlay.position}%
+                            </span>
+                            <span className="text-sm text-neutral-800 truncate flex-1">
+                              {overlay.text}
+                            </span>
+                            <span
+                              className="w-4 h-4 rounded-full border shrink-0"
+                              style={{ backgroundColor: overlay.textColor }}
+                            />
                             <button
-                              onClick={handleNewOverlay}
-                              className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
+                              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
+                              title="Supprimer ce texte"
                             >
-                              + Ajouter un autre texte
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        ))}
+                      </div>
+                      {editingOverlayId && (
+                        <button
+                          onClick={handleNewOverlay}
+                          className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                        >
+                          + Ajouter un autre texte
+                        </button>
                       )}
-
-                      {/* Text form */}
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">
-                          {editingOverlayId ? 'Modifier le texte' : 'Nouveau texte'}
-                        </label>
-                        <textarea
-                          value={formText}
-                          onChange={(e) => setFormText(e.target.value)}
-                          placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
-                          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          rows={2}
-                        />
-                      </div>
-
-                      {/* Position */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
-                          >
-                            ⬆️ Haut +
-                          </button>
-                          <div className="flex-1 flex items-center gap-1.5 justify-center">
-                            <button
-                              onClick={() => setFormPosition(25)}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Haut</button>
-                            <button
-                              onClick={() => setFormPosition(50)}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Centre</button>
-                            <button
-                              onClick={() => setFormPosition(75)}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Bas</button>
-                          </div>
-                          <button
-                            onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
-                          >
-                            ⬇️ Bas +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Font + Size */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
-                          <select
-                            value={formFontFamily}
-                            onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
-                            className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-sm"
-                          >
-                            {FONTS.map(f => (
-                              <option key={f.value} value={f.value}>{f.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
-                          <input
-                            type="range"
-                            min={24}
-                            max={120}
-                            value={formFontSize}
-                            onChange={(e) => setFormFontSize(Number(e.target.value))}
-                            className="w-full accent-blue-600"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Colors */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              value={formTextColor}
-                              onChange={(e) => setFormTextColor(e.target.value)}
-                              className="w-8 h-8 rounded border cursor-pointer"
-                            />
-                            <div className="flex gap-1">
-                              {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
-                                <button
-                                  key={c}
-                                  onClick={() => setFormTextColor(c)}
-                                  className={`w-6 h-6 rounded-full border-2 transition ${
-                                    formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
-                                  }`}
-                                  style={{ backgroundColor: c }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              value={formBgColor.startsWith('rgba') ? '#000000' : formBgColor}
-                              onChange={(e) => {
-                                const hex = e.target.value;
-                                const r = parseInt(hex.slice(1, 3), 16);
-                                const g = parseInt(hex.slice(3, 5), 16);
-                                const b = parseInt(hex.slice(5, 7), 16);
-                                setFormBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
-                              }}
-                              className="w-8 h-8 rounded border cursor-pointer"
-                            />
-                            <div className="flex gap-1">
-                              {[
-                                'rgba(0, 0, 0, 0.6)',
-                                'rgba(59, 130, 246, 0.8)',
-                                'rgba(239, 68, 68, 0.8)',
-                                'rgba(16, 185, 129, 0.8)',
-                                'rgba(245, 158, 11, 0.8)',
-                              ].map(c => (
-                                <button
-                                  key={c}
-                                  onClick={() => setFormBgColor(c)}
-                                  className={`w-6 h-6 rounded-full border-2 transition ${
-                                    formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
-                                  }`}
-                                  style={{ backgroundColor: c }}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Background style */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {BG_STYLES.map(s => (
-                            <button
-                              key={s.value}
-                              onClick={() => setFormBgStyle(s.value)}
-                              className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
-                                formBgStyle === s.value
-                                  ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                                  : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
-                              }`}
-                            >
-                              <span>{s.emoji}</span>
-                              <span>{s.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
-                        {formText.trim() && (
-                          <button
-                            onClick={handleAddOverlay}
-                            disabled={textLoading}
-                            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50"
-                          >
-                            {editingOverlayId ? 'Valider la modification' : '+ Ajouter ce texte'}
-                          </button>
-                        )}
-                        {editingOverlayId && (
-                          <button
-                            onClick={handleNewOverlay}
-                            className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition"
-                          >
-                            + Nouveau texte
-                          </button>
-                        )}
-                        {hasOverlays && (
-                          <button
-                            onClick={handleApplyTextOverlay}
-                            disabled={textLoading}
-                            className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
-                          >
-                            {textLoading ? 'Application...' : 'Appliquer sur l\'image'}
-                          </button>
-                        )}
-                        {textOverlayItems.length > 0 && (
-                          <button
-                            onClick={handleDeleteAllOverlays}
-                            className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition"
-                          >
-                            Tout supprimer
-                          </button>
-                        )}
-                      </div>
                     </div>
                   )}
 
+                  {/* Text form */}
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                      {editingOverlayId ? 'Modifier le texte' : 'Nouveau texte'}
+                    </label>
+                    <textarea
+                      value={formText}
+                      onChange={(e) => setFormText(e.target.value)}
+                      placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Position */}
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                      >
+                        ⬆️ Haut +
+                      </button>
+                      <div className="flex-1 flex items-center gap-1.5 justify-center">
+                        <button
+                          onClick={() => setFormPosition(25)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                        >Haut</button>
+                        <button
+                          onClick={() => setFormPosition(50)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                        >Centre</button>
+                        <button
+                          onClick={() => setFormPosition(75)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                        >Bas</button>
+                      </div>
+                      <button
+                        onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
+                      >
+                        ⬇️ Bas +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Font + Size */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
+                      <select
+                        value={formFontFamily}
+                        onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
+                        className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-sm"
+                      >
+                        {FONTS.map(f => (
+                          <option key={f.value} value={f.value}>{f.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
+                      <input
+                        type="range"
+                        min={24}
+                        max={120}
+                        value={formFontSize}
+                        onChange={(e) => setFormFontSize(Number(e.target.value))}
+                        className="w-full accent-blue-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Colors */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={formTextColor}
+                          onChange={(e) => setFormTextColor(e.target.value)}
+                          className="w-8 h-8 rounded border cursor-pointer"
+                        />
+                        <div className="flex gap-1">
+                          {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormTextColor(c)}
+                              className={`w-6 h-6 rounded-full border-2 transition ${
+                                formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={formBgColor.startsWith('rgba') ? '#000000' : formBgColor}
+                          onChange={(e) => {
+                            const hex = e.target.value;
+                            const r = parseInt(hex.slice(1, 3), 16);
+                            const g = parseInt(hex.slice(3, 5), 16);
+                            const b = parseInt(hex.slice(5, 7), 16);
+                            setFormBgColor(`rgba(${r}, ${g}, ${b}, 0.6)`);
+                          }}
+                          className="w-8 h-8 rounded border cursor-pointer"
+                        />
+                        <div className="flex gap-1">
+                          {[
+                            'rgba(0, 0, 0, 0.6)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                          ].map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setFormBgColor(c)}
+                              className={`w-6 h-6 rounded-full border-2 transition ${
+                                formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Background style */}
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {BG_STYLES.map(s => (
+                        <button
+                          key={s.value}
+                          onClick={() => setFormBgStyle(s.value)}
+                          className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
+                            formBgStyle === s.value
+                              ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                              : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
+                          }`}
+                        >
+                          <span>{s.emoji}</span>
+                          <span>{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-200">
+                    {formText.trim() && (
+                      <button
+                        onClick={handleAddOverlay}
+                        disabled={textLoading}
+                        className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50"
+                      >
+                        {editingOverlayId ? 'Valider la modification' : '+ Ajouter ce texte'}
+                      </button>
+                    )}
+                    {editingOverlayId && (
+                      <button
+                        onClick={handleNewOverlay}
+                        className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition"
+                      >
+                        + Nouveau texte
+                      </button>
+                    )}
+                    {hasOverlays && (
+                      <button
+                        onClick={handleApplyTextOverlay}
+                        disabled={textLoading}
+                        className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+                      >
+                        {textLoading ? 'Application...' : 'Appliquer sur l\'image'}
+                      </button>
+                    )}
+                    {textOverlayItems.length > 0 && (
+                      <button
+                        onClick={handleDeleteAllOverlays}
+                        className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition"
+                      >
+                        Tout supprimer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* === ONGLET VIDEO === */}
+              {activeTab === 'video' && (
+                <div className="space-y-5">
+                  {generatedVideoUrl ? (
+                    <div className="space-y-4">
+                      <div className="rounded-xl overflow-hidden bg-black">
+                        <video
+                          src={generatedVideoUrl}
+                          controls
+                          autoPlay
+                          loop
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <a
+                          href={generatedVideoUrl}
+                          download
+                          className="flex-1 py-3 bg-neutral-900 text-white text-center rounded-xl hover:bg-neutral-800 transition-all text-sm font-semibold flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Télécharger
+                        </a>
+                        <button
+                          onClick={() => { setGeneratedVideoUrl(null); setVideoPrompt(''); }}
+                          className="px-4 py-3 border-2 border-neutral-300 rounded-xl hover:bg-neutral-50 transition-all text-sm font-medium text-neutral-700"
+                        >
+                          Nouveau
+                        </button>
+                      </div>
+                    </div>
+                  ) : generatingVideo ? (
+                    <div className="text-center py-12 space-y-4">
+                      <div className="relative inline-block">
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-neutral-200 border-t-pink-600 mx-auto" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg className="w-7 h-7 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold text-neutral-700">{videoProgress || 'Préparation...'}</p>
+                      <p className="text-xs text-neutral-500">La génération peut prendre 1 à 5 minutes</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Décrivez l'animation souhaitée
+                        </label>
+                        <textarea
+                          value={videoPrompt}
+                          onChange={(e) => setVideoPrompt(e.target.value)}
+                          placeholder="Ex: Zoom lent vers l'avant, les cheveux bougent au vent, ambiance cinématique..."
+                          rows={4}
+                          disabled={!loadedImage}
+                          className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all disabled:bg-neutral-100 disabled:cursor-not-allowed resize-none"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-neutral-700 mb-2">
+                          Durée : <span className="text-pink-600 font-bold">{videoDuration}s</span>
+                        </p>
+                        <div className="flex gap-3">
+                          {[5, 10].map(d => (
+                            <button
+                              key={d}
+                              onClick={() => setVideoDuration(d)}
+                              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition ${
+                                videoDuration === d
+                                  ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
+                                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                              }`}
+                            >
+                              {d} secondes
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-2">
+                          {videoDuration === 5 ? '25 crédits' : '40 crédits'}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={handleGenerateVideo}
+                        disabled={!loadedImage || !videoPrompt.trim()}
+                        className="w-full py-4 bg-gradient-to-r from-pink-600 via-rose-600 to-red-500 text-white rounded-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg flex items-center justify-center gap-3 hover:scale-[1.02] disabled:hover:scale-100 relative overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-rose-400 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="relative flex items-center gap-3">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Animer l'image ({videoDuration}s)
+                        </span>
+                      </button>
+
+                      {!loadedImage && (
+                        <p className="text-center text-sm text-neutral-500">
+                          Chargez une image pour pouvoir la transformer en vidéo
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* === BOUTONS TELECHARGER / GALERIE (toujours visibles) === */}
+              {loadedImage && (
+                <>
+                  <div className="border-t border-neutral-200 pt-4" />
                   <div className="grid grid-cols-2 gap-3">
                     <a
                       href={loadedImage}

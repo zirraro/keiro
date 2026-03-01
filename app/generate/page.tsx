@@ -54,6 +54,12 @@ const POSITIVE_KEYWORDS = [
   // Social positif
   'gratuité', 'gratuite', 'gratuit', 'accessibilité', 'accessibilite', 'inclusion', 'égalité', 'egalite',
   'entraide', 'communauté', 'communaute', 'ensemble', 'unis',
+  // Joie et émotion
+  'récompense', 'meilleur', 'exceptionnel', 'incroyable', 'formidable', 'magnifique',
+  'sourire', 'rire', 'joie', 'bonheur', 'fête', 'fete', 'célébration', 'celebration', 'cadeau',
+  'offert', 'surprise', 'merveilleux', 'extraordinaire',
+  'adoption', 'miracle', 'touchant', 'émouvant', 'emouvant', 'inspirant',
+  'record du monde', 'première mondiale', 'premiere mondiale', 'jamais vu',
 ];
 
 // Mots à exclure pour les bonnes nouvelles (négatifs)
@@ -64,21 +70,22 @@ const NEGATIVE_KEYWORDS = [
   'accident mortel', 'incendie', 'inondation', 'séisme', 'ouragan', 'tempête', 'alerte', 'danger',
   'pénurie', 'penurie', 'inflation', 'récession', 'recession', 'dette', 'déficit', 'deficit',
   'condamné', 'condamne', 'prison', 'garde à vue', 'mise en examen', 'procès', 'proces',
+  'viol', 'abus', 'harcèlement', 'harcelement', 'disparition', 'enlèvement', 'enlevement', 'otage',
+  'grève', 'greve', 'émeute', 'emeute', 'drogue', 'overdose', 'terrorisme', 'fusillade',
 ];
 
 const CATEGORIES = [
   'Les bonnes nouvelles',
   'Dernières news',
-  'À la une',
   'Tech & Gaming',
   'Business & Finance',
-  'Santé',
+  'Santé & Bien-être',
   'Sport',
   'Culture & Divertissement',
   'Politique',
   'Science & Environnement',
   'International',
-  'Automobile',
+  'Moteurs & Adrénaline',
   'Lifestyle & People',
 ];
 
@@ -147,12 +154,20 @@ export default function GeneratePage() {
         return dateB - dateA;
       });
     } else if (category === 'Dernières news') {
-      // Filtre spécial pour "Dernières news" : toutes les news triées par date
-      items = [...allNewsItems].sort((a, b) => {
-        const dateA = a.date ? new Date(a.date).getTime() : 0;
-        const dateB = b.date ? new Date(b.date).getTime() : 0;
-        return dateB - dateA;
-      });
+      // Filtre spécial pour "Dernières news" : toutes les news triées par date + dédoublonnage
+      const seen = new Set<string>();
+      items = [...allNewsItems]
+        .sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        })
+        .filter(item => {
+          const key = item.title.toLowerCase().substring(0, 50);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     } else {
       // Filtre par catégorie normale
       items = items.filter((item) => item.category === category);

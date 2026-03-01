@@ -60,8 +60,8 @@ const RSS_FEEDS = [
   { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Business & Finance', timeout: 5000 },
 
   // Santé
-  { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé', timeout: 5000 },
-  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé', timeout: 5000 },
+  { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé & Bien-être', timeout: 5000 },
+  { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé & Bien-être', timeout: 5000 },
 
   // Sport
   { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport', timeout: 5000 },
@@ -80,9 +80,9 @@ const RSS_FEEDS = [
   { url: 'https://www.lemonde.fr/international/rss_full.xml', category: 'International', timeout: 5000 },
 
   // Automobile
-  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Automobile', timeout: 5000 },
-  { url: 'https://www.largus.fr/rss.xml', category: 'Automobile', timeout: 5000 },
-  { url: 'https://www.caradisiac.com/rss/', category: 'Automobile', timeout: 5000 },
+  { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
+  { url: 'https://www.largus.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
+  { url: 'https://www.caradisiac.com/rss/', category: 'Moteurs & Adrénaline', timeout: 5000 },
 
   // Lifestyle
   { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
@@ -121,7 +121,7 @@ const RSS_FEEDS = [
   // Tendances
   { url: 'https://www.konbini.com/fr/feed/', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.madmoizelle.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
-  { url: 'https://www.presse-citron.net/feed/', category: 'Lifestyle & People', timeout: 5000 },
+  { url: 'https://www.presse-citron.net/feed/', category: 'Tech & Gaming', timeout: 5000 },
 
   // Lifestyle (flux dédiés supplémentaires)
   { url: 'https://www.aufeminin.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
@@ -131,31 +131,48 @@ const RSS_FEEDS = [
   // Tech (flux supplémentaire)
   { url: 'https://hitek.fr/feed', category: 'Tech & Gaming', timeout: 5000 },
 
-  // Divers
-  { url: 'https://www.demotivateur.fr/feed', category: 'À la une', timeout: 5000 },
+  // Divers (flux généraliste — auto-catégorisé par keywords)
+  { url: 'https://www.demotivateur.fr/feed', category: 'Lifestyle & People', timeout: 5000 },
 ];
 
 // Mots-clés ENRICHIS pour catégorisation intelligente (11 catégories fusionnées)
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
-  'Automobile': [
-    'renault', 'peugeot', 'citroën', 'citroen', 'ds', 'alpine', 'bugatti', 'tesla', 'bmw', 'mercedes', 'audi',
+  'Moteurs & Adrénaline': [
+    // Constructeurs auto
+    'renault', 'peugeot', 'citroën', 'citroen', 'ds automobiles', 'alpine', 'bugatti', 'tesla', 'bmw', 'audi',
     'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
-    'byd', 'nio', 'xpeng', 'geely', 'fiat', 'opel', 'nissan', 'mazda', 'honda', 'subaru', 'volvo', 'jaguar', 'land rover', 'mini', 'seat', 'skoda',
-    'f1', 'formule 1', 'formule1', 'grand prix', 'gp', 'verstappen', 'hamilton', 'leclerc', 'sainz', 'alonso', 'red bull racing', 'ferrari f1', 'mercedes f1',
-    'mclaren f1', 'alpine f1', 'williams', 'haas', 'alfa romeo', 'alphatauri', 'circuit', 'pole position', 'podium', 'paddock',
-    'moto', 'motogp', 'motocross', 'superbike', 'yamaha', 'kawasaki', 'harley', 'ducati', 'ktm',
-    'voiture électrique', 'voiture hybride', 'suv', 'berline', 'citadine', 'sportive', 'coupé', 'cabriolet', '4x4', 'crossover',
-    'batterie', 'autonomie', 'recharge', 'borne', 'superchargeur', 'hybride rechargeable',
-    'salon auto', 'mondial de l\'auto', 'permis de conduire', 'sécurité routière', 'assurance auto', 'contrôle technique', 'autoroute', 'radar'
+    'byd', 'nio', 'xpeng', 'geely', 'fiat', 'opel', 'nissan', 'mazda', 'honda auto', 'subaru', 'volvo', 'jaguar', 'land rover', 'mini cooper', 'seat', 'skoda', 'cupra',
+    // F1 & sport auto
+    'formule 1', 'formule1', 'grand prix auto', 'verstappen', 'hamilton f1', 'leclerc f1', 'sainz', 'alonso f1',
+    'red bull racing', 'ferrari f1', 'mercedes f1', 'mclaren racing', 'alpine f1', 'williams f1', 'haas f1',
+    'circuit automobile', 'pole position', 'podium f1', 'paddock', '24h du mans', 'le mans', 'rallye', 'wrc', 'dakar',
+    'nascar', 'indycar', 'dtm', 'gt3', 'endurance automobile',
+    // Moto
+    'moto', 'motogp', 'motocross', 'superbike', 'yamaha moto', 'kawasaki', 'harley-davidson', 'harley davidson', 'ducati', 'ktm',
+    'aprilia', 'triumph', 'indian motorcycle', 'bmw motorrad', 'scooter', 'trail', 'roadster', 'sportive moto',
+    'marc marquez', 'bagnaia', 'quartararo', 'zarco',
+    // Types de véhicules
+    'voiture électrique', 'voiture hybride', 'suv', 'berline', 'citadine', 'coupé', 'cabriolet', '4x4', 'crossover', 'pick-up',
+    'supercar', 'hypercar', 'voiture de sport', 'tuning', 'préparation auto',
+    // Infrastructure & événements
+    'borne de recharge', 'superchargeur', 'hybride rechargeable',
+    'salon de l\'auto', 'mondial de l\'auto', 'salon de genève', 'salon de munich',
+    'permis de conduire', 'sécurité routière', 'securite routiere', 'contrôle technique', 'controle technique',
+    'essai routier', 'comparatif auto', 'crash test',
   ],
 
   'Tech & Gaming': [
-    'ia générative', 'llm', 'gpt', 'gemini', 'bard', 'copilot', 'github', 'gitlab', 'typescript', 'react',
-    'next.js', 'vue', 'angular', 'ransomware', 'phishing', 'data breach', 'fuite de données', 'rgpd', 'defi', 'staking',
-    'wallet', 'exchange', 'binance', 'coinbase', 'stablecoin',
-    'fortnite', 'league of legends', 'valorant', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
-    'epic games', 'battle.net', 'ubisoft connect', 'lec', 'lcs', 'worlds', 'the international', 'équipe esport',
-    'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'gaming', 'esport', 'streamer', 'twitch'
+    'intelligence artificielle', 'ia générative', 'ia generative', 'llm', 'chatgpt', 'gpt', 'gemini', 'claude', 'copilot',
+    'openai', 'anthropic', 'google ai', 'meta ai', 'mistral ai', 'deepseek',
+    'github', 'gitlab', 'typescript', 'react', 'next.js', 'vue', 'angular', 'python', 'javascript',
+    'apple', 'iphone', 'ipad', 'macbook', 'samsung', 'galaxy', 'pixel', 'android', 'ios',
+    'ransomware', 'phishing', 'data breach', 'fuite de données', 'fuite de donnees', 'rgpd', 'cybersécurité', 'cybersecurite',
+    'crypto', 'bitcoin', 'ethereum', 'defi', 'staking', 'wallet', 'binance', 'coinbase', 'stablecoin', 'nft', 'web3', 'blockchain',
+    'fortnite', 'league of legends', 'valorant', 'cs2', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
+    'epic games', 'ubisoft', 'lec', 'lcs', 'worlds', 'the international', 'esport',
+    'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'jeux video', 'gaming', 'streamer', 'twitch',
+    'robot', 'drone', 'réalité virtuelle', 'realite virtuelle', 'réalité augmentée', 'realite augmentee', 'metaverse',
+    'application', 'app', 'mise à jour', 'mise a jour', 'fonctionnalité', 'fonctionnalite',
   ],
 
   'Business & Finance': [
@@ -167,10 +184,17 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 
   'Sport': [
-    'ligue des champions', 'europa league', 'premier league', 'liga', 'serie a', 'bundesliga', 'mbappé', 'messi', 'ronaldo', 'haaland',
-    'neymar', 'roland-garros', 'wimbledon', 'us open', 'open d\'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'nba',
-    'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'verstappen', 'hamilton', 'leclerc', 'red bull', 'ferrari',
-    'mercedes', 'grand prix'
+    'ligue des champions', 'europa league', 'premier league', 'liga', 'serie a', 'bundesliga',
+    'ligue 1', 'ligue 2', 'coupe de france', 'coupe du monde', 'euro 2024', 'euro 2028',
+    'mbappé', 'mbappe', 'messi', 'ronaldo', 'haaland', 'neymar', 'griezmann', 'dembélé', 'dembele',
+    'psg', 'om', 'ol', 'asse', 'real madrid', 'barcelone', 'manchester', 'liverpool', 'arsenal', 'juventus',
+    'roland-garros', 'wimbledon', 'us open', 'open d\'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'sinner',
+    'nba', 'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'celtics',
+    'rugby', 'top 14', 'six nations', 'coupe du monde rugby', 'dupont',
+    'tour de france', 'cyclisme', 'pogacar', 'vingegaard',
+    'jeux olympiques', 'jo 2024', 'jo 2028', 'paralympiques', 'athlétisme', 'natation',
+    'handball', 'volley', 'basket', 'tennis', 'boxe', 'mma', 'ufc', 'judo', 'escrime',
+    'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
   ],
 
   'Culture & Divertissement': [
@@ -188,13 +212,28 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 
   'Politique': [
-    'renaissance', 'lr', 'ps', 'lfi', 'rn', 'eelv', 'modem', 'emmanuel macron', 'marine le pen', 'jean-luc mélenchon',
-    'édouard philippe', 'bruno le maire', 'motion de censure', '49.3', 'projet de loi', 'plf', 'budget', 'fiscalité'
+    'renaissance', 'lr', 'les républicains', 'ps', 'parti socialiste', 'lfi', 'france insoumise',
+    'rn', 'rassemblement national', 'eelv', 'modem', 'horizons', 'nouveau front populaire',
+    'emmanuel macron', 'marine le pen', 'jean-luc mélenchon', 'jean-luc melenchon',
+    'édouard philippe', 'edouard philippe', 'bruno le maire', 'gabriel attal', 'élisabeth borne', 'elisabeth borne',
+    'gérald darmanin', 'gerald darmanin', 'premier ministre', 'président de la république', 'president',
+    'motion de censure', '49.3', 'projet de loi', 'plf', 'budget', 'fiscalité', 'fiscalite',
+    'assemblée nationale', 'assemblee nationale', 'sénat', 'senat', 'parlement', 'député', 'depute', 'sénateur', 'senateur',
+    'élection', 'election', 'scrutin', 'vote', 'référendum', 'referendum', 'sondage politique',
+    'réforme', 'reforme', 'retraites', 'immigration', 'sécurité', 'securite', 'justice',
+    'mairie', 'région', 'region', 'département', 'departement', 'collectivité', 'collectivite',
   ],
 
-  'Santé': [
-    'alzheimer', 'parkinson', 'diabète', 'avc', 'infarctus', 'hypertension', 'régime', 'végétarien', 'vegan', 'bio',
-    'sans gluten', 'keto', 'jeûne intermittent', 'yoga', 'méditation', 'mindfulness', 'sommeil', 'stress', 'burn-out'
+  'Santé & Bien-être': [
+    'alzheimer', 'parkinson', 'diabète', 'diabete', 'avc', 'infarctus', 'hypertension', 'cholestérol', 'cholesterol',
+    'cancer', 'tumeur', 'chimiothérapie', 'chimiotherapie', 'dépistage', 'depistage', 'diagnostic',
+    'régime', 'végétarien', 'vegetarien', 'vegan', 'bio', 'nutrition', 'diététique', 'dietetique',
+    'sans gluten', 'keto', 'jeûne intermittent', 'yoga', 'méditation', 'meditation', 'mindfulness', 'bien-être', 'bien être',
+    'sommeil', 'stress', 'burn-out', 'burnout', 'anxiété', 'anxiete', 'dépression', 'depression',
+    'hôpital', 'hopital', 'clinique', 'médecin', 'medecin', 'infirmier', 'pharmacie', 'médicament', 'medicament',
+    'assurance maladie', 'sécurité sociale', 'mutuelle', 'oms', 'pandémie', 'pandemie', 'épidémie', 'epidemie',
+    'fitness', 'musculation', 'running', 'marathon', 'pilates', 'stretching', 'sport santé',
+    'dermatologue', 'ophtalmologue', 'dentiste', 'kiné', 'kine', 'ostéopathe', 'osteopathe',
   ],
 
   'Science & Environnement': [
@@ -205,8 +244,14 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 
   'International': [
-    'ukraine', 'gaza', 'taïwan', 'corée du nord', 'iran', 'syrie', 'joe biden', 'donald trump', 'xi jinping', 'vladimir poutine',
-    'emmanuel macron', 'otan', 'ue', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics'
+    'ukraine', 'gaza', 'palestine', 'israël', 'israel', 'taïwan', 'taiwan', 'corée du nord', 'coree du nord',
+    'iran', 'syrie', 'liban', 'irak', 'afghanistan', 'soudan', 'éthiopie', 'ethiopie', 'congo',
+    'joe biden', 'donald trump', 'xi jinping', 'vladimir poutine', 'zelensky', 'netanyahu', 'modi',
+    'otan', 'onu', 'ue', 'union européenne', 'union europeenne', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics',
+    'diplomatie', 'ambassade', 'sanctions', 'embargo', 'traité', 'traite', 'accord international',
+    'migrant', 'réfugié', 'refugie', 'frontière', 'frontiere', 'géopolitique', 'geopolitique',
+    'états-unis', 'etats-unis', 'chine', 'russie', 'inde', 'brésil', 'bresil', 'japon', 'afrique',
+    'moyen-orient', 'asie', 'amérique latine', 'amerique latine',
   ],
 
   'Lifestyle & People': [
@@ -225,11 +270,12 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
 };
 
 // Catégoriser avec scoring pondéré (titre = 3x description)
+// Score minimum de 2 pour éviter les faux positifs sur des mots trop courts
 function categorizeArticle(title: string, description: string): string {
   const titleLower = title.toLowerCase();
   const descLower = description.toLowerCase();
 
-  let bestCategory = 'À la une';
+  let bestCategory = 'Dernières news';
   let bestScore = 0;
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
@@ -243,6 +289,9 @@ function categorizeArticle(title: string, description: string): string {
       bestCategory = category;
     }
   }
+
+  // Score minimum pour éviter de mal catégoriser des articles génériques
+  if (bestScore < 2) return 'Dernières news';
 
   return bestCategory;
 }
