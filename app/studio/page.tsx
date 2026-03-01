@@ -148,6 +148,10 @@ function StudioContent() {
     }
 
     setSavingToGallery(true);
+    const savingToast = document.createElement('div');
+    savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;animation:toastSlideIn 0.3s ease-out;';
+    savingToast.innerHTML = '<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
+    document.body.appendChild(savingToast);
     try {
       const response = await fetch('/api/library/save', {
         method: 'POST',
@@ -157,7 +161,7 @@ function StudioContent() {
           imageUrl: loadedImage,
           title: 'Image éditée depuis Studio',
           tags: ['studio', 'édition'],
-          textOverlay: textOverlayItems.length > 0 ? textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') : undefined,
+          textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.bgColor, bgStyle: i.bgStyle }))) : undefined,
           originalImageUrl: cleanBaseImage || undefined,
         })
       });
@@ -179,20 +183,18 @@ function StudioContent() {
       const data = await response.json();
 
       if (data.ok) {
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-        toast.innerHTML = '✅ Image sauvegardée dans votre galerie ! Redirection...';
-        document.body.appendChild(toast);
-
-        setTimeout(() => {
-          router.push('/library');
-        }, 500);
+        savingToast.style.background = 'linear-gradient(135deg, #16a34a, #059669)';
+        savingToast.style.transition = 'all 0.4s ease';
+        savingToast.innerHTML = '<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>Redirection vers la galerie...</span>';
+        setTimeout(() => { savingToast.style.opacity = '0'; savingToast.style.transform = 'translateX(1rem)'; }, 1200);
+        setTimeout(() => { savingToast.remove(); router.push('/library'); }, 1600);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
     } catch (error: any) {
       console.error('[Studio] Error saving:', error);
-      alert('❌ ' + (error.message || 'Erreur lors de la sauvegarde'));
+      savingToast.remove();
+      alert(error.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSavingToGallery(false);
     }

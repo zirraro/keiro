@@ -1817,7 +1817,7 @@ export default function GeneratePage() {
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
-              textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
+              textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
               aiModel: 'seedream',
               tags: []
             })
@@ -1857,8 +1857,8 @@ export default function GeneratePage() {
     // Feedback immédiat pour l'utilisateur — toast visible instantanément
     setSavingToLibrary(true);
     const savingToast = document.createElement('div');
-    savingToast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#2563eb;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.5rem;';
-    savingToast.innerHTML = '<div style="width:1rem;height:1rem;border:2px solid white;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15),0 8px 10px -6px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;backdrop-filter:blur(8px);animation:toastSlideIn 0.3s ease-out;';
+    savingToast.innerHTML = '<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
     document.body.appendChild(savingToast);
 
     // Auto-appliquer les modifications en cours d'édition avant de sauvegarder
@@ -1983,7 +1983,7 @@ export default function GeneratePage() {
         newsSource: null,
         businessType: null,
         businessDescription: null,
-        textOverlay: itemsToRender.map(i => i.text).filter(Boolean).join(' | ') || null,
+        textOverlay: itemsToRender.length > 0 ? JSON.stringify(itemsToRender.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
         visualStyle: null,
         tone: null,
         generationPrompt: null,
@@ -2040,11 +2040,11 @@ export default function GeneratePage() {
         console.log('[SaveToLibrary] ✅ Image saved:', data.savedImage?.id);
 
         // Remplacer le toast "saving" par le toast "succès" + redirection
-        savingToast.style.background = '#16a34a';
-        savingToast.style.transition = 'opacity 0.5s ease';
-        savingToast.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem"><svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>${isUpdate ? 'Galerie mise à jour !' : 'Sauvegardé ! Redirection...'}</span></div>`;
-        setTimeout(() => { savingToast.style.opacity = '0'; }, 300);
-        setTimeout(() => { savingToast.remove(); window.location.href = '/library'; }, 500);
+        savingToast.style.background = 'linear-gradient(135deg, #16a34a, #059669)';
+        savingToast.style.transition = 'all 0.4s ease';
+        savingToast.innerHTML = `<div style="display:flex;align-items:center;gap:0.75rem"><svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>${isUpdate ? 'Galerie mise à jour !' : 'Redirection vers la galerie...'}</span></div>`;
+        setTimeout(() => { savingToast.style.opacity = '0'; savingToast.style.transform = 'translateX(1rem)'; }, 1200);
+        setTimeout(() => { savingToast.remove(); window.location.href = '/library'; }, 1600);
       } else {
         throw new Error(data.error || 'Erreur lors de la sauvegarde');
       }
@@ -2122,7 +2122,7 @@ export default function GeneratePage() {
           title: `${baseTitle} (V${versionNumber})`,
           newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
           newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
-          textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
+          textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
           aiModel: 'seedream',
           tags: ['studio-edit'],
         }),
@@ -5510,7 +5510,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                       newsSource: null,
                                       businessType: null,
                                       businessDescription: null,
-                                      textOverlay: textOverlayItems.map(i => i.text).filter(Boolean).join(' | ') || null,
+                                      textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
                                       visualStyle: null,
                                       tone: null,
                                       generationPrompt: null,

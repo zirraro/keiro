@@ -67,50 +67,65 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // === Text Overlay state — array-based ===
-  const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => {
-    if (initialText && initialText.trim()) {
-      // Gérer le séparateur | (avec ou sans espaces) pour les overlays multiples
-      const texts = initialText.includes('|')
-        ? initialText.split('|').map(t => t.trim()).filter(Boolean)
-        : [initialText.trim()];
-      return texts.map((text, idx) => ({
-        id: generateId(),
-        text,
-        position: (texts.length === 1 ? 75 : idx === 0 ? 25 : idx === texts.length - 1 ? 75 : 50) as Position,
-        fontSize: 60,
-        fontFamily: 'montserrat' as FontFamily,
-        textColor: '#ffffff',
-        bgColor: 'rgba(0, 0, 0, 0.5)',
-        bgStyle: 'none' as BgStyle,
-      }));
+  // === Parse overlays from DB: JSON format (full data) or pipe-separated (text only, legacy) ===
+  function parseOverlaysFromDB(raw: string): TextOverlayItem[] {
+    if (!raw || !raw.trim()) return [];
+    // Try JSON format first (array of objects with full styling)
+    if (raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => ({
+            id: generateId(),
+            text: item.text || '',
+            position: (typeof item.position === 'number' ? item.position : 75) as Position,
+            fontSize: item.fontSize || 60,
+            fontFamily: (item.fontFamily || 'montserrat') as FontFamily,
+            textColor: item.textColor || '#ffffff',
+            bgColor: item.bgColor || item.backgroundColor || 'rgba(0, 0, 0, 0.5)',
+            bgStyle: (item.bgStyle || item.backgroundStyle || 'none') as BgStyle,
+          })).filter((item: TextOverlayItem) => item.text.trim());
+        }
+      } catch (e) {
+        console.warn('[ImageEditModal] Failed to parse JSON overlays:', e);
+      }
     }
-    return [];
-  });
+    // Fallback: pipe-separated text (legacy format)
+    const texts = raw.includes('|')
+      ? raw.split('|').map(t => t.trim()).filter(Boolean)
+      : [raw.trim()];
+    return texts.map((text, idx) => ({
+      id: generateId(),
+      text,
+      position: (texts.length === 1 ? 75 : idx === 0 ? 25 : idx === texts.length - 1 ? 75 : 50) as Position,
+      fontSize: 60,
+      fontFamily: 'montserrat' as FontFamily,
+      textColor: '#ffffff',
+      bgColor: 'rgba(0, 0, 0, 0.5)',
+      bgStyle: 'none' as BgStyle,
+    }));
+  }
+
+  // === Text Overlay state — array-based ===
+  const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => parseOverlaysFromDB(initialText || ''));
   const [editingId, setEditingId] = useState<string | null>(() => {
-    // Auto-entrer en mode édition pour le premier overlay
     if (initialText && initialText.trim()) {
-      return textOverlays[0]?.id || null;
+      const parsed = parseOverlaysFromDB(initialText);
+      return parsed[0]?.id || null;
     }
     return null;
   });
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
 
-  // Form state for current editing overlay — charger le premier texte (sans séparateur |)
-  const [formText, setFormText] = useState(() => {
-    if (!initialText || !initialText.trim()) return '';
-    const texts = initialText.includes('|')
-      ? initialText.split('|').map(t => t.trim()).filter(Boolean)
-      : [initialText.trim()];
-    return texts[0] || '';
-  });
-  const [formPosition, setFormPosition] = useState<Position>(75);
-  const [formFontFamily, setFormFontFamily] = useState<FontFamily>('montserrat');
-  const [formFontSize, setFormFontSize] = useState(60);
-  const [formTextColor, setFormTextColor] = useState('#ffffff');
-  const [formBgColor, setFormBgColor] = useState('rgba(0, 0, 0, 0.5)');
-  const [formBgStyle, setFormBgStyle] = useState<BgStyle>('none');
+  // Form state — load first overlay's full data
+  const [formText, setFormText] = useState(() => textOverlays[0]?.text || '');
+  const [formPosition, setFormPosition] = useState<Position>(() => textOverlays[0]?.position ?? 75);
+  const [formFontFamily, setFormFontFamily] = useState<FontFamily>(() => textOverlays[0]?.fontFamily ?? 'montserrat');
+  const [formFontSize, setFormFontSize] = useState(() => textOverlays[0]?.fontSize ?? 60);
+  const [formTextColor, setFormTextColor] = useState(() => textOverlays[0]?.textColor ?? '#ffffff');
+  const [formBgColor, setFormBgColor] = useState(() => textOverlays[0]?.bgColor ?? 'rgba(0, 0, 0, 0.5)');
+  const [formBgStyle, setFormBgStyle] = useState<BgStyle>(() => textOverlays[0]?.bgStyle ?? 'none');
 
   const baseImage = originalImageUrl || imageUrl;
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -349,8 +364,11 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         finalUrl = publicUrl;
       }
 
-      // Combine all overlay texts for DB storage
-      const allTexts = textOverlays.map(o => o.text).join(' | ');
+      // Serialize overlays as JSON with full styling data
+      const overlayJson = textOverlays.length > 0 ? JSON.stringify(textOverlays.filter(o => o.text.trim()).map(o => ({
+        text: o.text, position: o.position, fontSize: o.fontSize, fontFamily: o.fontFamily,
+        textColor: o.textColor, bgColor: o.bgColor, bgStyle: o.bgStyle,
+      }))) : null;
 
       // Update in DB if imageId provided
       if (imageId) {
@@ -360,7 +378,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           body: JSON.stringify({
             imageId,
             newImageUrl: finalUrl,
-            textOverlay: allTexts || null,
+            textOverlay: overlayJson,
             originalImageUrl: baseImage,
           }),
         });
@@ -370,7 +388,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         }
       }
 
-      onImageEdited(finalUrl, allTexts || undefined);
+      onImageEdited(finalUrl, overlayJson || undefined);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la sauvegarde');
     } finally {

@@ -182,10 +182,9 @@ export default function ImageCard({
           {image.news_category && <span>{image.news_category}</span>}
         </div>
 
-        {/* Actions visibles */}
-        <div className="pt-3 border-t border-neutral-200 space-y-2">
-          {/* Boutons principaux */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Actions — single compact row */}
+        <div className="pt-3 border-t border-neutral-200">
+          <div className="flex items-center gap-1">
             {/* Poster */}
             {!image.published_to_instagram && !image.published_to_tiktok && (
               <button
@@ -193,9 +192,9 @@ export default function ImageCard({
                   if (onPublishToInstagram) onPublishToInstagram(image);
                   else if (onOpenInstagram) onOpenInstagram(image);
                 }}
-                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
+                className="flex items-center gap-1 px-2 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
               >
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 Poster
@@ -205,10 +204,10 @@ export default function ImageCard({
             {onEditImage && (
               <button
                 onClick={() => onEditImage(image)}
-                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
+                className="flex items-center gap-1 px-2 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200 transition-all"
                 title="Modifier l'image"
               >
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Éditer
@@ -218,18 +217,17 @@ export default function ImageCard({
             {onMoveToFolder && (
               <button
                 onClick={() => onMoveToFolder(image)}
-                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
+                className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-all"
                 title="Ranger dans un dossier"
               >
-                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                Ranger
               </button>
             )}
-          </div>
-          {/* Icônes secondaires (download + delete only, heart is on image) */}
-          <div className="flex items-center justify-end gap-1">
+            {/* Spacer */}
+            <div className="flex-1" />
+            {/* Télécharger */}
             <a
               href={image.image_url}
               download
@@ -240,6 +238,7 @@ export default function ImageCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </a>
+            {/* Supprimer */}
             <button
               onClick={() => { if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) onDelete(image.id); }}
               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
