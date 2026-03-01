@@ -1455,6 +1455,7 @@ export default function GeneratePage() {
       // 2. Client applique overlays avec Canvas natif (garanti de fonctionner)
 
       let finalImageUrl = data.imageUrl;
+      let initialOverlays: { text: string; position: number; fontSize: number; fontFamily: string; textColor: string; bgColor: string; bgStyle: string }[] = [];
 
       try {
         // Vérifier statut premium pour watermark (utiliser le plan depuis profiles, pas user_metadata)
@@ -1694,6 +1695,23 @@ export default function GeneratePage() {
           img.src = dataUrl;
         });
 
+        // Créer un overlay item pour le texte initial (pour le stockage JSON en galerie)
+        if (textToApply) {
+          const overlayItem: GenerateTextOverlay = {
+            id: Math.random().toString(36).substring(2, 9),
+            text: textToApply,
+            position: 50,
+            fontSize: 60,
+            fontFamily: 'inter',
+            textColor: '#ffffff',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundStyle: 'none',
+          };
+          setTextOverlayItems([overlayItem]);
+          setEditingOverlayId(overlayItem.id);
+          initialOverlays = [{ text: overlayItem.text, position: overlayItem.position, fontSize: overlayItem.fontSize, fontFamily: overlayItem.fontFamily, textColor: overlayItem.textColor, bgColor: overlayItem.backgroundColor, bgStyle: overlayItem.backgroundStyle }];
+        }
+
       } catch (overlayError: any) {
         console.error('[Generate] ❌ Overlays FAILED:', overlayError);
         alert('⚠️ ERREUR OVERLAYS:\n' + overlayError.message + '\n\nAffichage de l\'image sans overlay.');
@@ -1817,7 +1835,7 @@ export default function GeneratePage() {
               title: selectedNews?.title ? selectedNews.title.substring(0, 50) : (businessType ? businessType.substring(0, 50) : 'Image'),
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
-              textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
+              textOverlay: initialOverlays.length > 0 ? JSON.stringify(initialOverlays) : null,
               aiModel: 'seedream',
               tags: []
             })
@@ -1851,6 +1869,30 @@ export default function GeneratePage() {
     const baseImage = selectedEditVersion || generatedImageUrl;
     if (!baseImage) {
       console.error('[SaveToLibrary] Missing image data');
+      return;
+    }
+
+    // Si déjà auto-sauvegardé et pas d'éditions, rediriger directement
+    if (lastSavedImageId && !selectedEditVersion) {
+      setSavingToLibrary(true);
+      setImageSavedToLibrary(true);
+      const quickToast = document.createElement('div');
+      quickToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#16a34a,#059669);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;animation:toastSlideIn 0.3s ease-out;';
+      quickToast.innerHTML = '<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>Redirection vers la galerie...</span><style>@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
+      document.body.appendChild(quickToast);
+      // Mettre à jour le text_overlay en arrière-plan si nécessaire
+      if (textOverlayItems.length > 0) {
+        fetch('/api/library/update-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageId: lastSavedImageId,
+            textOverlay: JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))),
+          }),
+        }).catch(e => console.warn('[SaveToLibrary] Background overlay update failed:', e));
+      }
+      setTimeout(() => { quickToast.style.transition = 'all 0.4s ease'; quickToast.style.opacity = '0'; quickToast.style.transform = 'translateX(1rem)'; }, 800);
+      setTimeout(() => { quickToast.remove(); window.location.href = '/library'; }, 1100);
       return;
     }
 

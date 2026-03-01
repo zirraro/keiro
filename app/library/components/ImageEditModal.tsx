@@ -108,13 +108,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
   // === Text Overlay state — array-based ===
   const [textOverlays, setTextOverlays] = useState<TextOverlayItem[]>(() => parseOverlaysFromDB(initialText || ''));
-  const [editingId, setEditingId] = useState<string | null>(() => {
-    if (initialText && initialText.trim()) {
-      const parsed = parseOverlaysFromDB(initialText);
-      return parsed[0]?.id || null;
-    }
-    return null;
-  });
+  const [editingId, setEditingId] = useState<string | null>(() => textOverlays[0]?.id || null);
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
 

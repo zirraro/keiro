@@ -74,9 +74,39 @@ function StudioContent() {
   const [user, setUser] = useState<any>(null);
   const [savingToGallery, setSavingToGallery] = useState(false);
 
+  // === Parse overlays from search params or DB JSON ===
+  function parseOverlaysFromParam(raw: string | null): TextOverlayItem[] {
+    if (!raw || !raw.trim()) return [];
+    if (raw.trim().startsWith('[')) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => ({
+            id: generateId(),
+            text: item.text || '',
+            position: typeof item.position === 'number' ? item.position : 75,
+            fontSize: item.fontSize || 60,
+            fontFamily: (item.fontFamily || 'montserrat') as FontFamily,
+            textColor: item.textColor || '#ffffff',
+            bgColor: item.bgColor || item.backgroundColor || 'rgba(0, 0, 0, 0.5)',
+            bgStyle: (item.bgStyle || item.backgroundStyle || 'none') as BgStyle,
+          })).filter((item: TextOverlayItem) => item.text.trim());
+        }
+      } catch (e) { console.warn('[Studio] Failed to parse overlay JSON:', e); }
+    }
+    // Fallback: pipe-separated text
+    const texts = raw.includes('|') ? raw.split('|').map(t => t.trim()).filter(Boolean) : [raw.trim()];
+    return texts.map((text) => ({
+      id: generateId(), text, position: 50, fontSize: 60,
+      fontFamily: 'montserrat' as FontFamily, textColor: '#ffffff',
+      bgColor: 'rgba(0, 0, 0, 0.5)', bgStyle: 'none' as BgStyle,
+    }));
+  }
+
   // === Multi-overlay text state ===
-  const [showTextOverlay, setShowTextOverlay] = useState(false);
-  const [textOverlayItems, setTextOverlayItems] = useState<TextOverlayItem[]>([]);
+  const initialStudioOverlays = parseOverlaysFromParam(searchParams.get("textOverlay"));
+  const [showTextOverlay, setShowTextOverlay] = useState(initialStudioOverlays.length > 0);
+  const [textOverlayItems, setTextOverlayItems] = useState<TextOverlayItem[]>(initialStudioOverlays);
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
   const [textPreviewUrl, setTextPreviewUrl] = useState<string | null>(null);
   const [textLoading, setTextLoading] = useState(false);
