@@ -436,6 +436,7 @@ export default function GeneratePage() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'text' | 'versions'>('image');
   const prevActiveTabRef = useRef<string>('image');
+  const skipAutoEditRef = useRef(false); // Empêche l'auto-edit après clic "+ Nouveau texte"
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
@@ -1063,6 +1064,11 @@ export default function GeneratePage() {
   /* --- Auto-entrer en mode édition quand on a des overlays existants --- */
   useEffect(() => {
     if (activeTab === 'text' && showEditStudio && textOverlayItems.length > 0 && !editingOverlayId) {
+      // Skip si l'utilisateur a volontairement cliqué "+ Nouveau texte"
+      if (skipAutoEditRef.current) {
+        skipAutoEditRef.current = false;
+        return;
+      }
       // Cas 1: Le formulaire a déjà du texte qui correspond à un overlay existant (ex: texte auto-généré)
       const currentText = overlayText.trim();
       if (currentText) {
@@ -1078,22 +1084,19 @@ export default function GeneratePage() {
           setEditingOverlayId(matching.id);
           return;
         }
-        // Le texte ne correspond à aucun overlay → auto-éditer le premier overlay quand même
-        // pour éviter le doublon (le formulaire remplace l'overlay existant)
-        const first = textOverlayItems[0];
-        setEditingOverlayId(first.id);
-        return;
       }
-      // Cas 2: Formulaire vide → charger le premier overlay dans le formulaire
-      const first = textOverlayItems[0];
-      setOverlayText(first.text);
-      setTextPosition(first.position);
-      setFontSize(first.fontSize);
-      setFontFamily(first.fontFamily as any);
-      setTextColor(first.textColor);
-      setTextBackgroundColor(first.backgroundColor);
-      setBackgroundStyle(first.backgroundStyle as any);
-      setEditingOverlayId(first.id);
+      // Cas 2: Formulaire vide ou texte ne correspond pas → charger le premier overlay
+      if (!currentText) {
+        const first = textOverlayItems[0];
+        setOverlayText(first.text);
+        setTextPosition(first.position);
+        setFontSize(first.fontSize);
+        setFontFamily(first.fontFamily as any);
+        setTextColor(first.textColor);
+        setTextBackgroundColor(first.backgroundColor);
+        setBackgroundStyle(first.backgroundStyle as any);
+        setEditingOverlayId(first.id);
+      }
     }
   }, [activeTab, showEditStudio, textOverlayItems.length]);
 
@@ -5278,6 +5281,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               };
                               setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? updated : item));
                             }
+                            skipAutoEditRef.current = true;
                             setEditingOverlayId(null);
                             setOverlayText('');
                             setTextPosition(25);
@@ -5315,6 +5319,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 onClick={() => {
                                   setTextOverlayItems(prev => prev.filter(i => i.id !== item.id));
                                   if (editingOverlayId === item.id) {
+                                    skipAutoEditRef.current = true;
                                     setEditingOverlayId(null);
                                     setOverlayText('');
                                   }
@@ -5328,6 +5333,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           <button
                             onClick={() => {
                               setTextOverlayItems([]);
+                              skipAutoEditRef.current = true;
                               setEditingOverlayId(null);
                               setOverlayText('');
                             }}
@@ -6295,6 +6301,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             };
                             setTextOverlayItems(prev => prev.map(item => item.id === editingOverlayId ? updated : item));
                           }
+                          skipAutoEditRef.current = true;
                           setEditingOverlayId(null);
                           setOverlayText('');
                           setTextPosition(25);
@@ -6332,6 +6339,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               onClick={() => {
                                 setTextOverlayItems(prev => prev.filter(i => i.id !== item.id));
                                 if (editingOverlayId === item.id) {
+                                  skipAutoEditRef.current = true;
                                   setEditingOverlayId(null);
                                   setOverlayText('');
                                 }
@@ -6345,6 +6353,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         <button
                           onClick={() => {
                             setTextOverlayItems([]);
+                            skipAutoEditRef.current = true;
                             setEditingOverlayId(null);
                             setOverlayText('');
                           }}
