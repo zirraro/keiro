@@ -938,7 +938,7 @@ function HomeKeiroInner() {
           </div></FadeUp>
 
           {/* Plans Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <Plan
               title="🎁 Gratuit"
               price="0€"
@@ -1021,64 +1021,28 @@ function HomeKeiroInner() {
               ctaLabel={billingPeriod === 'annual' ? 'Business annuel (-17%)' : 'Choisir Business'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
+
+            <Plan
+              title="🏆 Elite"
+              price={billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}
+              priceNote={billingPeriod === 'annual' ? 'soit 832€/mois' : undefined}
+              subtitle="5 500 crédits — Volume agence"
+              bullets={[
+                '5 500 crédits/mois',
+                'Tout Business +',
+                'Account Manager dédié',
+                'Consulting 2h/mois',
+                'Features custom',
+                'Formation équipe (20 pers.)'
+              ]}
+              ctaLabel={billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
+            />
           </div>
 
           <p className="text-center text-xs text-neutral-500 mb-6">
             *Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois
           </p>
-
-          {/* Elite Plan - Séparé */}
-          <div className="max-w-4xl mx-auto relative">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full z-10">
-              PREMIUM
-            </div>
-            <div className="rounded-xl p-6 border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl">
-              <h3 className="text-xl font-bold mb-2">🏆 Elite</h3>
-              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}</div>
-              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold mb-1">soit 832€/mois</p>}
-              <p className="text-sm text-neutral-600 mb-6">5 500 crédits/mois — Service premium avec consulting</p>
-              <ul className="grid md:grid-cols-2 gap-3 mb-6">
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>5 500 crédits/mois (~1100 images ou 220 vidéos)</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>Tout Business +</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>Account Manager dédié personnel</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>2h/mois consulting stratégique inclus</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>Développement features custom</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>Formation équipe (jusqu'à 20 personnes)</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>Priority lane (nouveautés en avant-première)</span>
-                </li>
-                <li className="text-sm flex items-start gap-2">
-                  <span className="text-purple-600 font-bold text-lg">✓</span>
-                  <span>SLA 99.9% garanti</span>
-                </li>
-              </ul>
-              <button
-                onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
-                className="block w-full py-3 rounded-lg font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
-              >
-                {billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
-              </button>
-            </div>
-          </div>
 
           {/* Trial Info */}
           <div className="mt-10 text-center">
