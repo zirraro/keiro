@@ -3,6 +3,8 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { ScaleIn } from '@/components/ui/motion';
+import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 
 export default function LoginPage() {
   return (
@@ -337,8 +339,10 @@ function LoginPageInner() {
     const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm";
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8">
+      <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12 overflow-hidden">
+        <AnimatedGradientBG variant="hero" />
+        <ScaleIn className="relative w-full max-w-lg">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -654,19 +658,22 @@ function LoginPageInner() {
               type="button"
               onClick={handleStep2Submit}
               disabled={loading}
-              className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? 'Enregistrement...' : 'Continuer'}
             </button>
           </div>
         </div>
+        </ScaleIn>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12 overflow-hidden">
+      <AnimatedGradientBG variant="hero" />
+      <ScaleIn className="relative w-full max-w-md">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
         {/* Logo / Titre */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -776,7 +783,7 @@ function LoginPageInner() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
@@ -902,7 +909,7 @@ function LoginPageInner() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? 'Création du compte...' : 'Créer mon compte'}
             </button>
@@ -913,6 +920,7 @@ function LoginPageInner() {
           </form>
         )}
       </div>
+      </ScaleIn>
     </div>
   );
 }

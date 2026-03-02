@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import ContactSupportModal from "@/components/ContactSupportModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { href: "/", label: "Accueil" },
@@ -220,7 +221,7 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-neutral-200 bg-white">
+    <header className="sticky top-0 z-40 border-b border-neutral-200/50 bg-white/80 backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo / marque */}
         <Link href="/" className="flex items-center gap-2">
@@ -262,13 +263,16 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm transition ${
+                className={`relative text-sm transition-colors ${
                   isActive
                     ? "font-semibold text-blue-600"
                     : "text-neutral-600 hover:text-neutral-900"
                 }`}
               >
                 {item.label}
+                {isActive && (
+                  <span className="absolute -bottom-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full" />
+                )}
               </Link>
             );
           })}
@@ -316,13 +320,19 @@ export default function Header() {
               </button>
 
               {/* Dropdown Menu */}
+              <AnimatePresence>
               {showMenu && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setShowMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-2xl border border-neutral-200 py-2 z-20">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-neutral-200/50 py-2 z-20">
                     <div className="px-4 py-3 border-b border-neutral-200">
                       <p className="text-sm font-semibold text-neutral-900">
                         {profile.first_name} {profile.last_name}
@@ -520,9 +530,10 @@ export default function Header() {
                       </svg>
                       Se déconnecter
                     </button>
-                  </div>
+                  </motion.div>
                 </>
               )}
+              </AnimatePresence>
             </div>
           ) : (
             <Link

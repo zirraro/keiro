@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
+import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal } from '@/components/ui/motion';
+import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 
 function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
@@ -10,22 +12,31 @@ function HomeKeiroInner() {
   return (
     <main className="min-h-dvh bg-white">
       {/* HERO */}
-      <section className="mx-auto max-w-6xl px-6 pt-16 pb-12">
-        <div className="grid lg:grid-cols-12 gap-8 items-center">
+      <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12 overflow-hidden">
+        <AnimatedGradientBG variant="hero" />
+        <div className="relative grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
+            <ScaleIn>
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700">
               <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
               Nouveau : visuels liés à l'actualité en 5–10 minutes
             </div>
-            <h1 className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold">
-              Des visuels qui surfent sur l'actualité — <span className="bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">en quelques minutes</span>.
-            </h1>
+            </ScaleIn>
+            <HeroTextReveal
+              text="Des visuels qui surfent sur l'actualité — en quelques minutes."
+              className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold"
+              highlightWords={['actualité', 'minutes']}
+              highlightClassName="gradient-text"
+            />
+            <FadeUp delay={0.3}>
             <p className="mt-4 text-lg text-neutral-600">
               Choisis une actu, décris ton activité en 2–3 infos, Keiro te propose un angle,
               rédige un texte propre et génère un visuel cohérent prêt à publier.
             </p>
+            </FadeUp>
+            <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all">
+              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all cta-shimmer">
                 Essayer gratuitement
               </a>
               <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
@@ -33,6 +44,8 @@ function HomeKeiroInner() {
               </a>
               <BookDemoButton variant="outline" size="md" />
             </div>
+            </FadeUp>
+            <FadeUp delay={0.6}>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
               <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
                 <span className="text-blue-500 mr-1">✓</span> Orthographe & accroches soignées
@@ -44,10 +57,11 @@ function HomeKeiroInner() {
                 <span className="text-blue-500 mr-1">✓</span> Ajustements instantanés
               </li>
             </ul>
+            </FadeUp>
           </div>
-          <div className="lg:col-span-5">
+          <SlideInRight delay={0.4} className="lg:col-span-5">
             {/* Assistant IA Preview Card */}
-            <div className="rounded-2xl border-2 border-blue-200 shadow-lg overflow-hidden bg-white">
+            <div className="rounded-2xl border-2 border-blue-200 shadow-lg overflow-hidden bg-white animate-glow">
               <div className="p-5 border-b border-blue-200 bg-blue-50/50">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl">
@@ -100,13 +114,14 @@ function HomeKeiroInner() {
                 </a>
               </div>
             </div>
-          </div>
+          </SlideInRight>
         </div>
       </section>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
-      <section className="bg-blue-600 py-4 border-y border-blue-700">
+      <section className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 py-4 border-y border-blue-700">
         <div className="max-w-6xl mx-auto px-6">
+          <FadeUp>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-3">
               <span className="text-xl">⚡</span>
@@ -119,6 +134,7 @@ function HomeKeiroInner() {
               Essayer maintenant →
             </button>
           </div>
+          </FadeUp>
         </div>
       </section>
 
@@ -154,23 +170,23 @@ function HomeKeiroInner() {
             </div>
 
             {/* Points clés à droite */}
-            <div className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+            <StaggerContainer className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">⚡</div>
                 <div className="font-semibold text-xs mb-0.5">3 minutes</div>
                 <div className="text-[10px] text-neutral-600">Du choix de l'actu au visuel final</div>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+              </div></StaggerItem>
+              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">🎯</div>
                 <div className="font-semibold text-xs mb-0.5">Zéro compétence</div>
                 <div className="text-[10px] text-neutral-600">L'IA fait tout le travail créatif</div>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm">
+              </div></StaggerItem>
+              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">📈</div>
                 <div className="font-semibold text-xs mb-0.5">Résultats mesurables</div>
                 <div className="text-[10px] text-neutral-600">Analytics intégrés pour optimiser</div>
-              </div>
-            </div>
+              </div></StaggerItem>
+            </StaggerContainer>
           </div>
         </div>
       </section>
@@ -178,31 +194,33 @@ function HomeKeiroInner() {
       {/* COMMENT ÇA MARCHE */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <h2 className="text-2xl font-semibold">Comment ça marche</h2>
-          <div className="mt-6 grid md:grid-cols-3 gap-6">
-            <Step num="1" title="Choisis une actu">
+          <FadeUp><h2 className="text-2xl font-semibold">Comment ça marche</h2></FadeUp>
+          <StaggerContainer className="mt-6 grid md:grid-cols-3 gap-6" staggerDelay={0.15}>
+            <StaggerItem><Step num="1" title="Choisis une actu">
               Parcours les catégories (économie, sport, tech, lifestyle…) et sélectionne une actualité.
-            </Step>
-            <Step num="2" title="Décris ton activité">
+            </Step></StaggerItem>
+            <StaggerItem><Step num="2" title="Décris ton activité">
               Type d'offre, cible, ton souhaité. Keiro propose un angle pertinent, sans fautes.
-            </Step>
-            <Step num="3" title="Génère & ajuste">
+            </Step></StaggerItem>
+            <StaggerItem><Step num="3" title="Génère & ajuste">
               Lumière, ambiance, éléments visuels… Export en formats réseaux en 1 clic.
-            </Step>
-          </div>
+            </Step></StaggerItem>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* GALERIE & POSTS MULTI-PLATEFORME */}
       <section className="mx-auto max-w-6xl px-6 py-12">
+        <FadeUp>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold">Galerie & Publication Multi-Plateforme</h2>
           <p className="mt-2 text-neutral-600">Organise tes visuels et publie sur Instagram & TikTok avec descriptions IA</p>
         </div>
+        </FadeUp>
 
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Galerie preview */}
-          <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg">
+          <SlideInLeft><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
             <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📁</span> Ta Galerie Organisée
@@ -268,10 +286,10 @@ function HomeKeiroInner() {
                 </div>
               </div>
             </div>
-          </div>
+          </div></SlideInLeft>
 
           {/* Multi-platform automation preview */}
-          <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg">
+          <SlideInRight><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
             <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📱</span> Posts Instagram & TikTok IA
@@ -322,15 +340,15 @@ function HomeKeiroInner() {
                 Voir ma Galerie & Posts →
               </a>
             </div>
-          </div>
+          </div></SlideInRight>
         </div>
 
-        <div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-6 text-center">
+        <FadeUp><div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-6 text-center">
           <p className="text-sm text-blue-900">
             <strong>🚀 Multi-plateforme automatique :</strong> Publie le même visuel sur Instagram (Post & Story) et TikTok (vidéo) en un clic.
             L'IA génère des descriptions adaptées à chaque plateforme et ton business.
           </p>
-        </div>
+        </div></FadeUp>
 
         {/* CTA après Galerie */}
         <div className="mt-10 text-center">
@@ -345,14 +363,16 @@ function HomeKeiroInner() {
 
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
+        <FadeUp>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold">De la photo smartphone amateur au visuel professionnel Instagram</h2>
           <p className="mt-2 text-neutral-600">Transformation réelle : Coach sportif qui utilise Keiro</p>
         </div>
+        </FadeUp>
 
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           {/* AVANT - Vraiment amateur */}
-          <div className="relative">
+          <SlideInLeft><div className="relative">
             <div className="absolute -top-3 -left-3 bg-neutral-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               ❌ AVANT - Amateur
             </div>
@@ -388,11 +408,11 @@ function HomeKeiroInner() {
                 <p className="text-xs text-neutral-500 mt-1">Le scroll continue... Zéro impact.</p>
               </div>
             </div>
-          </div>
+          </div></SlideInLeft>
 
           {/* APRÈS - Overlay simple et réaliste Keiro */}
-          <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10 animate-pulse">
+          <SlideInRight><div className="relative">
+            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10 animate-glow">
               ✨ APRÈS - Keiro Pro
             </div>
             <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
@@ -446,7 +466,7 @@ function HomeKeiroInner() {
                 <p className="text-xs text-white/90 mt-1">Le scroll s'arrête. Les gens comprennent direct et passent à l'action.</p>
               </div>
             </div>
-          </div>
+          </div></SlideInRight>
         </div>
 
         {/* Explication sous les images */}
@@ -485,106 +505,109 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* ASSISTANT IA MARKETING */}
-      <section className="border-y bg-blue-50">
-        <div className="mx-auto max-w-6xl px-6 py-12">
+      {/* ASSISTANT IA MARKETING — DARK SECTION */}
+      <section className="relative border-y bg-[#0B1120] overflow-hidden">
+        <AnimatedGradientBG variant="dark" />
+        <div className="relative mx-auto max-w-6xl px-6 py-12">
+          <FadeUp>
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium mb-4">
-              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
               Intelligence Artificielle Avancée
             </div>
-            <h2 className="text-3xl font-bold">🤖 Ton Assistant IA Marketing Personnel</h2>
-            <p className="mt-2 text-neutral-600">Analyse tes performances et t'aide à prendre les meilleures décisions stratégiques</p>
+            <h2 className="text-3xl font-bold text-white">🤖 Ton Assistant IA Marketing Personnel</h2>
+            <p className="mt-2 text-blue-200">Analyse tes performances et t'aide à prendre les meilleures décisions stratégiques</p>
           </div>
+          </FadeUp>
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Analytics Dashboard Preview */}
-            <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
-              <div className="bg-blue-600 p-5">
+            <SlideInLeft><div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
+              <div className="bg-white/10 p-5">
                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
                   <span>📊</span> Dashboard Analytics Complet
                 </h3>
-                <p className="text-purple-100 text-sm mt-1">6 graphiques en temps réel</p>
+                <p className="text-blue-300 text-sm mt-1">6 graphiques en temps réel</p>
               </div>
 
               <div className="p-5 space-y-4">
                 {/* Stats cards preview */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                    <div className="text-xs text-blue-700 font-semibold mb-1">Cette semaine</div>
-                    <div className="text-2xl font-bold text-blue-900">12</div>
-                    <div className="text-xs text-blue-600">visuels générés</div>
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="text-xs text-blue-300 font-semibold mb-1">Cette semaine</div>
+                    <div className="text-2xl font-bold text-white"><CountUp target={12} /></div>
+                    <div className="text-xs text-blue-400">visuels générés</div>
                   </div>
-                  <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border border-cyan-200">
-                    <div className="text-xs text-cyan-700 font-semibold mb-1">Engagement</div>
-                    <div className="text-2xl font-bold text-cyan-900">347</div>
-                    <div className="text-xs text-blue-600 font-semibold">↗ +40%</div>
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="text-xs text-blue-300 font-semibold mb-1">Engagement</div>
+                    <div className="text-2xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" /></div>
+                    <div className="text-xs text-blue-400 font-semibold">↗ +40%</div>
                   </div>
                 </div>
 
                 {/* Charts preview */}
                 <div className="space-y-3">
-                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-                    <p className="text-xs font-semibold text-neutral-700 mb-2">📈 Évolution de l'engagement</p>
-                    <div className="h-20 bg-gradient-to-r from-blue-100 to-cyan-100 rounded flex items-end justify-around p-2">
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <p className="text-xs font-semibold text-blue-300 mb-2">📈 Évolution de l'engagement</p>
+                    <div className="h-20 bg-white/5 rounded flex items-end justify-around p-2">
                       {[40, 60, 45, 80, 70, 95].map((h, i) => (
-                        <div key={i} className="bg-blue-500 rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
+                        <div key={i} className="bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-                    <p className="text-xs font-semibold text-neutral-700 mb-2">🕐 Meilleurs horaires de publication</p>
-                    <div className="h-16 bg-gradient-to-r from-cyan-100 to-blue-100 rounded flex items-center justify-center">
-                      <p className="text-xs text-cyan-700 font-semibold">17h-19h = 85% meilleur engagement</p>
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <p className="text-xs font-semibold text-blue-300 mb-2">🕐 Meilleurs horaires de publication</p>
+                    <div className="h-16 bg-white/5 rounded flex items-center justify-center">
+                      <p className="text-xs text-blue-300 font-semibold">17h-19h = 85% meilleur engagement</p>
                     </div>
                   </div>
 
-                  <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-200">
-                    <p className="text-xs font-semibold text-neutral-700 mb-2">🏆 Top catégories</p>
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <p className="text-xs font-semibold text-blue-300 mb-2">🏆 Top catégories</p>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-blue-500 rounded" style={{ width: '80%' }}></div>
-                        <span className="text-[10px] text-neutral-600">Tech</span>
+                        <div className="h-2 bg-gradient-to-r from-blue-500 to-cyan-400 rounded" style={{ width: '80%' }}></div>
+                        <span className="text-[10px] text-blue-400">Tech</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-blue-400 rounded" style={{ width: '60%' }}></div>
-                        <span className="text-[10px] text-neutral-600">Business</span>
+                        <div className="h-2 bg-gradient-to-r from-blue-400 to-cyan-300 rounded" style={{ width: '60%' }}></div>
+                        <span className="text-[10px] text-blue-400">Business</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-center">
-                  <p className="text-xs text-blue-700 font-semibold">+ 3 autres graphiques détaillés</p>
-                  <p className="text-[10px] text-blue-600 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
+                <div className="bg-white/10 rounded-lg p-3 border border-white/10 text-center">
+                  <p className="text-xs text-blue-300 font-semibold">+ 3 autres graphiques détaillés</p>
+                  <p className="text-[10px] text-blue-400 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
                 </div>
               </div>
-            </div>
+            </div></SlideInLeft>
 
             {/* AI Insights Preview */}
-            <div className="space-y-4">
-              <div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-xl">
-                <div className="bg-blue-600 p-5">
+            <SlideInRight><div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
+                <div className="bg-white/10 p-5">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
                     <span>🎯</span> Recommandations Stratégiques
                   </h3>
-                  <p className="text-purple-100 text-sm mt-1">Personnalisées à ton business</p>
+                  <p className="text-blue-300 text-sm mt-1">Personnalisées à ton business</p>
                 </div>
 
                 <div className="p-5 space-y-3">
                   {/* Insight 1 */}
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🎯</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-blue-900 mb-1">Stratégie secteur adaptée</p>
-                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
+                        <p className="text-sm font-bold text-white mb-1">Stratégie secteur adaptée</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
                           Pour ton activité <strong>Business</strong>, les contenus "Tech" génèrent
-                          <strong className="text-blue-600"> 3.2x plus d'engagement</strong> que la moyenne.
+                          <strong className="text-blue-400"> 3.2x plus d'engagement</strong> que la moyenne.
                         </p>
-                        <div className="bg-blue-100 rounded p-2">
-                          <p className="text-[10px] text-blue-800">
+                        <div className="bg-white/10 rounded p-2">
+                          <p className="text-[10px] text-blue-300">
                             💡 Publie 3 posts "Tech" cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>
                           </p>
                         </div>
@@ -593,17 +616,17 @@ function HomeKeiroInner() {
                   </div>
 
                   {/* Insight 2 */}
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">⏰</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-blue-900 mb-1">Timing optimal détecté</p>
-                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
+                        <p className="text-sm font-bold text-white mb-1">Timing optimal détecté</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
                           Posts entre <strong>17h-19h</strong> obtiennent
-                          <strong className="text-blue-600"> +85% d'engagement</strong>
+                          <strong className="text-blue-400"> +85% d'engagement</strong>
                         </p>
-                        <div className="bg-blue-100 rounded p-2">
-                          <p className="text-[10px] text-blue-800">
+                        <div className="bg-white/10 rounded p-2">
+                          <p className="text-[10px] text-blue-300">
                             ⚡ Reprogramme pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>. Impact estimé : <strong>+420 vues/post</strong>
                           </p>
                         </div>
@@ -612,17 +635,17 @@ function HomeKeiroInner() {
                   </div>
 
                   {/* Insight 3 */}
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🔮</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-blue-900 mb-1">Projection de croissance</p>
-                        <p className="text-xs text-neutral-700 leading-relaxed mb-2">
-                          En appliquant ces optimisations : <strong className="text-blue-600">+2 800 abonnés</strong> et
-                          <strong className="text-blue-600"> +15 000 vues</strong> dans 90 jours
+                        <p className="text-sm font-bold text-white mb-1">Projection de croissance</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
+                          En appliquant ces optimisations : <strong className="text-blue-400">+2 800 abonnés</strong> et
+                          <strong className="text-blue-400"> +15 000 vues</strong> dans 90 jours
                         </p>
-                        <div className="bg-blue-100 rounded p-2">
-                          <p className="text-[10px] text-blue-800">
+                        <div className="bg-white/10 rounded p-2">
+                          <p className="text-[10px] text-blue-300">
                             ✨ Potentiel : <strong>+180% de croissance</strong> avec stratégie accélérée
                           </p>
                         </div>
@@ -633,58 +656,62 @@ function HomeKeiroInner() {
               </div>
 
               {/* Features list */}
-              <div className="bg-white rounded-2xl border-2 border-blue-200 p-5 shadow-lg">
-                <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 shadow-lg">
+                <h4 className="font-bold text-white mb-3 flex items-center gap-2">
                   <span>✨</span> Fonctionnalités incluses
                 </h4>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span className="text-neutral-700"><strong>6 graphiques interactifs</strong> mis à jour en temps réel</span>
+                    <span className="text-blue-400 text-lg">✓</span>
+                    <span className="text-blue-200"><strong className="text-white">6 graphiques interactifs</strong> mis à jour en temps réel</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span className="text-neutral-700"><strong>Analyse IA de 30 jours</strong> comparée à 500K+ posts</span>
+                    <span className="text-blue-400 text-lg">✓</span>
+                    <span className="text-blue-200"><strong className="text-white">Analyse IA de 30 jours</strong> comparée à 500K+ posts</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span className="text-neutral-700"><strong>Recommandations horaires</strong> précises par jour</span>
+                    <span className="text-blue-400 text-lg">✓</span>
+                    <span className="text-blue-200"><strong className="text-white">Recommandations horaires</strong> précises par jour</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span className="text-neutral-700"><strong>Benchmark sectoriel</strong> personnalisé</span>
+                    <span className="text-blue-400 text-lg">✓</span>
+                    <span className="text-blue-200"><strong className="text-white">Benchmark sectoriel</strong> personnalisé</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span className="text-neutral-700"><strong>Projections 90 jours</strong> avec plans d'action</span>
+                    <span className="text-blue-400 text-lg">✓</span>
+                    <span className="text-blue-200"><strong className="text-white">Projections 90 jours</strong> avec plans d'action</span>
                   </li>
                 </ul>
               </div>
-            </div>
+            </div></SlideInRight>
           </div>
 
           {/* CTA */}
+          <FadeUp>
           <div className="mt-10 text-center">
-            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-blue-600 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
               Découvrir Mon Assistant IA →
             </a>
-            <p className="mt-3 text-sm text-blue-700">
+            <p className="mt-3 text-sm text-blue-300">
               💡 Disponible dès le plan Starter • Analytics détaillées • Insights quotidiens
             </p>
           </div>
+          </FadeUp>
         </div>
       </section>
 
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
+        <FadeUp>
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-2">Ce que disent nos premiers utilisateurs</h2>
           <p className="text-neutral-600">Retours d'expérience de nos early adopters</p>
         </div>
+        </FadeUp>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <StaggerContainer className="grid md:grid-cols-3 gap-6">
           {/* Témoignage 1 */}
-          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
             <div className="flex items-center gap-1 mb-4 text-purple-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -706,10 +733,10 @@ function HomeKeiroInner() {
                 <div className="text-sm text-neutral-600">Le Bistrot du Port</div>
               </div>
             </div>
-          </div>
+          </div></StaggerItem>
 
           {/* Témoignage 2 */}
-          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
             <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -730,10 +757,10 @@ function HomeKeiroInner() {
                 <div className="text-sm text-neutral-600">Coach Move&Fit</div>
               </div>
             </div>
-          </div>
+          </div></StaggerItem>
 
           {/* Témoignage 3 */}
-          <div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl transition-shadow">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
             <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -755,8 +782,8 @@ function HomeKeiroInner() {
                 <div className="text-sm text-neutral-600">Boutique SophieStyle</div>
               </div>
             </div>
-          </div>
-        </div>
+          </div></StaggerItem>
+        </StaggerContainer>
 
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
@@ -840,8 +867,8 @@ function HomeKeiroInner() {
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-7xl px-6 py-16">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg">
+          <FadeUp><div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg animate-glow">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
               Offre de lancement - 50 places Fondateurs
             </div>
@@ -876,7 +903,7 @@ function HomeKeiroInner() {
             {billingPeriod === 'annual' && (
               <p className="text-sm text-green-600 font-medium mt-2">2 mois offerts sur tous les plans annuels</p>
             )}
-          </div>
+          </div></FadeUp>
 
           {/* Plans Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -1064,7 +1091,10 @@ function HomeKeiroInner() {
       </section>
 
       {/* Footer légal - Terms of Service & Privacy Policy */}
-      <footer className="bg-neutral-900 text-white mt-20">
+      {/* Gradient divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+
+      <footer className="bg-neutral-900 text-white">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Marque */}

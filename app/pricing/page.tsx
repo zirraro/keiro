@@ -6,6 +6,8 @@ import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { startCheckout } from '@/lib/stripe/checkout';
+import { FadeUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/ui/motion';
+import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 
 function ContactFormPricing() {
   const [name, setName] = useState('');
@@ -149,18 +151,20 @@ function PricingPageInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
+      <AnimatedGradientBG variant="pricing" />
 
-      <main className="max-w-7xl mx-auto px-4 py-16">
+      <main className="relative max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
+        <FadeUp>
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 text-sm font-medium mb-6">
+          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 text-sm font-medium mb-6">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </span>
             Offre de lancement - 50 places Fondateurs
-          </div>
+          </div></ScaleIn>
           <h1 className="text-5xl font-bold mb-6">
             Choisissez votre plan et{' '}
             <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
@@ -202,11 +206,12 @@ function PricingPageInner() {
             <p className="mt-3 text-sm text-green-600 font-medium">2 mois offerts sur tous les plans !</p>
           )}
         </div>
+        </FadeUp>
 
         {/* Top Plans - Gratuit & Essai */}
-        <div className="grid md:grid-cols-2 gap-6 mb-10 max-w-4xl mx-auto">
+        <StaggerContainer className="grid md:grid-cols-2 gap-6 mb-10 max-w-4xl mx-auto">
           {/* Plan Gratuit */}
-          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 relative hover:shadow-lg transition-all">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-neutral-100 text-neutral-600 px-3 py-1 rounded-full text-xs font-medium">
                 Pour découvrir
@@ -262,10 +267,10 @@ function PricingPageInner() {
             >
               Essayer gratuitement
             </Link>
-          </div>
+          </div></StaggerItem>
 
           {/* Sprint Fondateur 3 jours */}
-          <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-lg transition-all">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                 ⚡ Sprint intensif
@@ -321,13 +326,14 @@ function PricingPageInner() {
             >
               Démarrer le Sprint 3 jours ⚡
             </button>
-          </div>
-        </div>
+          </div></StaggerItem>
+        </StaggerContainer>
 
         {/* TikTok Unlock Highlight */}
+        <FadeUp>
         <div className="bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-float-slow"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-float-medium"></div>
 
           <div className="relative z-10 max-w-4xl mx-auto">
             <div className="text-center mb-6">
@@ -385,14 +391,15 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
+        </FadeUp>
 
         {/* Premium Plans */}
-        <h3 className="text-2xl font-bold text-center mb-2">Plans Premium</h3>
-        <p className="text-center text-neutral-600 mb-8">Choisissez le plan adapté à vos besoins</p>
+        <FadeUp><h3 className="text-2xl font-bold text-center mb-2">Plans Premium</h3>
+        <p className="text-center text-neutral-600 mb-8">Choisissez le plan adapté à vos besoins</p></FadeUp>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {/* Solo 49€ */}
-          <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-lg transition-all flex flex-col">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🚀</span> Solo
@@ -423,10 +430,10 @@ function PricingPageInner() {
                 Plus de vidéos + TikTok ? <a href="#fondateurs" className="text-cyan-600 hover:underline font-semibold">Upgrade →</a>
               </p>
             </div>
-          </div>
+          </div></StaggerItem>
 
           {/* Fondateurs 149€ - HIGHLIGHT */}
-          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 ⭐ #1
@@ -463,10 +470,10 @@ function PricingPageInner() {
               {billingPeriod === 'annual' ? 'Fondateurs annuel (-17%)' : 'Débloquer TikTok + 3x crédits'}
             </button>
             <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
-          </div>
+          </div></StaggerItem>
 
           {/* Business 349€ */}
-          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <StaggerItem><div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-blue-900 text-blue-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 Agences & Teams
@@ -503,10 +510,10 @@ function PricingPageInner() {
               Choisir Business {billingPeriod === 'annual' ? '(annuel)' : ''}
             </button>
             <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
-          </div>
+          </div></StaggerItem>
 
           {/* Elite 999€ */}
-          <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-lg transition-all flex flex-col">
+          <StaggerItem><div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🏆</span> Elite
@@ -531,8 +538,8 @@ function PricingPageInner() {
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
               Choisir Elite {billingPeriod === 'annual' ? '(annuel)' : ''}
             </button>
-          </div>
-        </div>
+          </div></StaggerItem>
+        </StaggerContainer>
 
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 mb-10">
@@ -682,6 +689,7 @@ function PricingPageInner() {
         </div>
 
         {/* FAQ Section */}
+        <FadeUp>
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-10">Questions fréquentes</h2>
           <div className="space-y-4">
@@ -728,7 +736,10 @@ function PricingPageInner() {
           </div>
         </div>
 
+        </FadeUp>
+
         {/* Section Support */}
+        <FadeUp>
         <div className="mt-16 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full mb-4">
@@ -793,8 +804,10 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
+        </FadeUp>
 
         {/* CTA Final */}
+        <FadeUp>
         <div className="mt-20 text-center bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl p-12">
           <h2 className="text-4xl font-bold text-white mb-4">
             Prêt à transformer votre communication ?
@@ -821,6 +834,7 @@ function PricingPageInner() {
           </div>
           <p className="text-blue-100 text-sm mt-4">3 visuels gratuits • Sans carte bancaire • En 2 minutes</p>
         </div>
+        </FadeUp>
       </main>
 
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />

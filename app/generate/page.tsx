@@ -2690,7 +2690,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           setSelectedNews(item);
                         }
                       }}
-                      className={`rounded-xl border cursor-pointer transition-all hover:shadow-lg ${
+                      className={`rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                         selectedNews?.id === item.id
                           ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500'
                           : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-blue-300'
