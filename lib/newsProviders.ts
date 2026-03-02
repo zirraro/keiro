@@ -39,103 +39,96 @@ const API_PROVIDERS = {
 // ===== FLUX RSS FRANÇAIS - Source principale (pas de quota) =====
 // Timeouts réduits à 5000ms pour chargement plus rapide
 const RSS_FEEDS = [
-  // À la une - flux généraux fiables
+  // Généralistes (auto-catégorisés par keywords)
   { url: 'https://www.lemonde.fr/rss/une.xml', category: 'À la une', timeout: 5000 },
   { url: 'https://www.francetvinfo.fr/titres.rss', category: 'À la une', timeout: 5000 },
   { url: 'https://www.20minutes.fr/feeds/rss-une.xml', category: 'À la une', timeout: 5000 },
 
-  // Tech - flux tech fiables
+  // Bonnes nouvelles (flux feel-good dédiés)
+  { url: 'https://positivr.fr/feed/', category: 'Les bonnes nouvelles', timeout: 5000 },
+  { url: 'https://www.demotivateur.fr/feed', category: 'Les bonnes nouvelles', timeout: 5000 },
+
+  // Tech & Gaming
   { url: 'https://www.numerama.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
   { url: 'https://www.01net.com/rss/info.xml', category: 'Tech & Gaming', timeout: 5000 },
   { url: 'https://www.clubic.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
   { url: 'https://www.journaldunet.com/rss/', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.journaldugeek.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://www.presse-citron.net/feed/', category: 'Tech & Gaming', timeout: 5000 },
+  { url: 'https://hitek.fr/feed', category: 'Tech & Gaming', timeout: 5000 },
 
-  // Business
+  // Business & Finance
   { url: 'https://www.challenges.fr/rss/une.xml', category: 'Business & Finance', timeout: 5000 },
   { url: 'https://www.capital.fr/rss', category: 'Business & Finance', timeout: 5000 },
   { url: 'https://www.lesechos.fr/rss.xml', category: 'Business & Finance', timeout: 5000 },
-
-  // Finance
   { url: 'https://www.boursorama.com/bourse/rss/actualites/toutes', category: 'Business & Finance', timeout: 5000 },
   { url: 'https://www.latribune.fr/rss/a-la-une.html', category: 'Business & Finance', timeout: 5000 },
 
-  // Santé
+  // Santé & Bien-être
   { url: 'https://www.pourquoidocteur.fr/RSS/RSS.xml', category: 'Santé & Bien-être', timeout: 5000 },
   { url: 'https://www.santemagazine.fr/rss.xml', category: 'Santé & Bien-être', timeout: 5000 },
+  { url: 'https://www.psychologies.com/RSS', category: 'Santé & Bien-être', timeout: 5000 },
 
   // Sport
   { url: 'https://www.lequipe.fr/rss/actu_rss.xml', category: 'Sport', timeout: 5000 },
   { url: 'https://www.sports.fr/feed/', category: 'Sport', timeout: 5000 },
+  { url: 'https://rmcsport.bfmtv.com/rss/fil-info/', category: 'Sport', timeout: 5000 },
 
-  // Culture
-  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Culture & Divertissement', timeout: 5000 },
-  { url: 'https://www.premiere.fr/rss', category: 'Culture & Divertissement', timeout: 5000 },
+  // Cinéma & Séries
+  { url: 'https://www.allocine.fr/rss/news.xml', category: 'Cinéma & Séries', timeout: 5000 },
+  { url: 'https://www.premiere.fr/rss', category: 'Cinéma & Séries', timeout: 5000 },
+  { url: 'https://www.ecranlarge.com/rss.xml', category: 'Cinéma & Séries', timeout: 5000 },
+
+  // Musique & Festivals
+  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Musique & Festivals', timeout: 5000 },
+  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Musique & Festivals', timeout: 5000 },
+  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Musique & Festivals', timeout: 5000 },
+  { url: 'https://www.ticketmaster.fr/discover/feed', category: 'Musique & Festivals', timeout: 5000 },
 
   // Politique
   { url: 'https://www.lemonde.fr/politique/rss_full.xml', category: 'Politique', timeout: 5000 },
   { url: 'https://www.francetvinfo.fr/politique.rss', category: 'Politique', timeout: 5000 },
 
+  // Science & Environnement
+  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science & Environnement', timeout: 5000 },
+  { url: 'https://www.actu-environnement.com/flux/rss/actu-environnement.xml', category: 'Science & Environnement', timeout: 5000 },
+
+  // Nature & Animaux
+  { url: 'https://www.geo.fr/rss.xml', category: 'Nature & Animaux', timeout: 5000 },
+  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Nature & Animaux', timeout: 5000 },
+  { url: 'https://reporterre.net/spip.php?page=backend', category: 'Nature & Animaux', timeout: 5000 },
+  { url: 'https://www.30millionsdamis.fr/actualites/rss.xml', category: 'Nature & Animaux', timeout: 5000 },
+
   // International
   { url: 'https://www.france24.com/fr/rss', category: 'International', timeout: 5000 },
   { url: 'https://www.lemonde.fr/international/rss_full.xml', category: 'International', timeout: 5000 },
 
-  // Automobile
+  // Moteurs & Adrénaline
   { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
   { url: 'https://www.largus.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
   { url: 'https://www.caradisiac.com/rss/', category: 'Moteurs & Adrénaline', timeout: 5000 },
 
-  // Lifestyle
+  // Food & Gastronomie
+  { url: 'https://www.atabula.com/feed/', category: 'Food & Gastronomie', timeout: 5000 },
+  { url: 'https://www.lhotellerie-restauration.fr/rss/', category: 'Food & Gastronomie', timeout: 5000 },
+
+  // Lifestyle & People
   { url: 'https://www.elle.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.marieclaire.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
-
-  // Gaming
-  { url: 'https://www.jeuxvideo.com/rss/rss.xml', category: 'Tech & Gaming', timeout: 5000 },
-  { url: 'https://www.journaldugeek.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
-
-  // Science
-  { url: 'https://www.sciencesetavenir.fr/rss.xml', category: 'Science & Environnement', timeout: 5000 },
-  { url: 'https://www.futura-sciences.com/rss/actualites.xml', category: 'Science & Environnement', timeout: 5000 },
-
-  // Climat
-  { url: 'https://www.geo.fr/rss.xml', category: 'Science & Environnement', timeout: 5000 },
-  { url: 'https://www.lemonde.fr/planete/rss_full.xml', category: 'Science & Environnement', timeout: 5000 },
-  { url: 'https://reporterre.net/spip.php?page=backend', category: 'Science & Environnement', timeout: 5000 },
-  { url: 'https://www.actu-environnement.com/flux/rss/actu-environnement.xml', category: 'Science & Environnement', timeout: 5000 },
-
-  // People
   { url: 'https://www.purepeople.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.gala.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.voici.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.closermag.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
-
-  // Musique
-  { url: 'https://www.chartsinfrance.net/rss.xml', category: 'Culture & Divertissement', timeout: 5000 },
-  { url: 'https://www.lesinrocks.com/musique/feed/', category: 'Culture & Divertissement', timeout: 5000 },
-  { url: 'https://www.radiofrance.fr/francemusique/rss', category: 'Culture & Divertissement', timeout: 5000 },
-  { url: 'https://www.ticketmaster.fr/discover/feed', category: 'Culture & Divertissement', timeout: 5000 },
-
-  // Restauration
-  { url: 'https://www.atabula.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
-  { url: 'https://www.lhotellerie-restauration.fr/rss/', category: 'Lifestyle & People', timeout: 5000 },
-
-  // Tendances
   { url: 'https://www.konbini.com/fr/feed/', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.madmoizelle.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
-  { url: 'https://www.presse-citron.net/feed/', category: 'Tech & Gaming', timeout: 5000 },
-
-  // Lifestyle (flux dédiés supplémentaires)
   { url: 'https://www.aufeminin.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.grazia.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
-
-  // Tech (flux supplémentaire)
-  { url: 'https://hitek.fr/feed', category: 'Tech & Gaming', timeout: 5000 },
-
-  // Divers (flux généraliste — auto-catégorisé par keywords)
-  { url: 'https://www.demotivateur.fr/feed', category: 'Lifestyle & People', timeout: 5000 },
 ];
 
-// Mots-clés ENRICHIS pour catégorisation intelligente (11 catégories fusionnées)
+// Mots-clés pour catégorisation intelligente (15 catégories)
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'Moteurs & Adrénaline': [
     // Constructeurs auto
@@ -197,18 +190,52 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
   ],
 
-  'Culture & Divertissement': [
-    'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'game of thrones', 'stranger things', 'the last of us', 'the mandalorian',
-    'wednesday', 'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man', 'best-seller', 'goncourt',
-    'renaudot', 'femina', 'prix littéraire',
+  'Cinéma & Séries': [
+    'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'canal+', 'ocs',
+    'game of thrones', 'stranger things', 'the last of us', 'the mandalorian', 'wednesday', 'squid game',
+    'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man',
+    'best-seller', 'goncourt', 'renaudot', 'femina', 'prix littéraire', 'prix litteraire',
+    'film', 'cinéma', 'cinema', 'réalisateur', 'realisateur', 'acteur', 'actrice', 'oscar', 'césar', 'cesar',
+    'cannes', 'festival de cannes', 'palme d\'or', 'berlinale', 'venise',
+    'série', 'serie', 'saison', 'épisode', 'episode', 'bande-annonce', 'bande annonce', 'trailer',
+    'sortie salle', 'avant-première', 'avant premiere', 'documentaire', 'animation',
+  ],
+
+  'Musique & Festivals': [
     'aya nakamura', 'gims', 'stromae', 'angèle', 'orelsan', 'nekfeu', 'soprano', 'jul', 'sch', 'ninho',
     'pnl', 'booba', 'damso', 'clara luciani', 'pomme', 'juliette armanet', 'louane', 'vianney', 'slimane',
-    'taylor swift', 'beyoncé', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
-    'coldplay', 'imagine dragons', 'daft punk', 'david guetta',
-    'rap', 'hip-hop', 'pop', 'rock', 'électro', 'house', 'techno', 'r&b', 'jazz', 'metal',
-    'concert', 'tournée', 'festival', 'coachella', 'rock en seine', 'hellfest', 'solidays',
-    'album', 'single', 'clip', 'streaming', 'spotify', 'deezer', 'apple music',
-    'grammy', 'nrj music awards', 'victoires de la musique', 'chanteur', 'chanteuse', 'rappeur', 'dj'
+    'taylor swift', 'beyoncé', 'beyonce', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
+    'coldplay', 'imagine dragons', 'daft punk', 'david guetta', 'dua lipa', 'bad bunny', 'kendrick lamar',
+    'rap', 'hip-hop', 'pop', 'rock', 'électro', 'electro', 'house', 'techno', 'r&b', 'jazz', 'metal', 'reggaeton',
+    'concert', 'tournée', 'tournee', 'festival', 'coachella', 'rock en seine', 'hellfest', 'solidays',
+    'vieilles charrues', 'eurockéennes', 'eurockennes', 'francofolies', 'main square', 'lollapalooza',
+    'album', 'single', 'clip', 'spotify', 'deezer', 'apple music', 'musique',
+    'grammy', 'nrj music awards', 'victoires de la musique', 'chanteur', 'chanteuse', 'rappeur', 'dj',
+  ],
+
+  'Nature & Animaux': [
+    'biodiversité', 'biodiversite', 'faune', 'flore', 'espèce', 'espece', 'animal', 'animaux',
+    'chien', 'chat', 'cheval', 'oiseau', 'dauphin', 'baleine', 'loup', 'ours', 'lion', 'tigre', 'éléphant', 'elephant',
+    'panda', 'singe', 'requin', 'tortue', 'abeille', 'papillon', 'insecte',
+    'parc national', 'réserve naturelle', 'reserve naturelle', 'forêt', 'foret', 'océan', 'ocean', 'récif', 'recif',
+    'spa', 'refuge', 'adoption animal', 'bien-être animal', 'bien être animal', 'protection animale',
+    'écologie', 'ecologie', 'climat', 'réchauffement', 'rechauffement', 'pollution', 'plastique',
+    'reforestation', 'déforestation', 'deforestation', 'zone protégée', 'zone protegee',
+    'wwf', 'greenpeace', 'lpo', 'fondation 30 millions', 'extinction', 'espèce menacée', 'espece menacee',
+    'jardin', 'jardinage', 'botanique', 'plante', 'arbre', 'agriculture biologique',
+    'randonnée', 'randonnee', 'montagne', 'mer', 'nature', 'sauvage', 'photographe animalier',
+  ],
+
+  'Food & Gastronomie': [
+    'alain ducasse', 'cyril lignac', 'philippe etchebest', 'hélène darroze', 'helene darroze',
+    'thierry marx', 'anne-sophie pic', 'yannick alléno', 'yannick alleno', 'guy savoy',
+    'masterchef', 'top chef', 'cauchemar en cuisine', 'le meilleur pâtissier', 'le meilleur patissier',
+    'street food', 'food truck', 'bistronomie', 'gastronomie', 'gastro',
+    'restaurant', 'étoilé', 'etoile', 'michelin', 'guide michelin', 'fooding',
+    'recette', 'cuisine', 'chef', 'pâtisserie', 'patisserie', 'boulangerie', 'brasserie', 'bistrot',
+    'vin', 'vignoble', 'cru', 'millésime', 'millesime', 'sommelier', 'oenologie', 'champagne', 'bordeaux', 'bourgogne',
+    'café', 'cafe', 'chocolat', 'fromage', 'terroir', 'aoc', 'aop', 'label rouge',
+    'brunch', 'foodie', 'food porn', 'tendance culinaire', 'ouverture restaurant',
   ],
 
   'Politique': [
@@ -255,22 +282,23 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 
   'Lifestyle & People': [
-    'chanel', 'dior', 'louis vuitton', 'hermès', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
-    'lancôme', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip',
-    'kylian mbappé', 'zinedine zidane', 'tony parker', 'teddy riner', 'antoine griezmann', 'karim benzema',
-    'marion cotillard', 'léa seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
+    'chanel', 'dior', 'louis vuitton', 'hermès', 'hermes', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
+    'lancôme', 'lancome', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'routine beaute',
+    'mode', 'fashion', 'tendance', 'collection', 'défilé', 'defile', 'fashion week',
+    'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip', 'voyage', 'destination', 'vacances',
+    'marion cotillard', 'léa seydoux', 'lea seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
     'dany boon', 'jean dujardin', 'guillaume canet',
-    'squeezie', 'cyprien', 'léna situations', 'mcfly et carlito', 'tibo inshape', 'inoxtag', 'michou',
-    'les marseillais', 'koh-lanta', 'danse avec les stars', 'top chef', 'the voice', 'tpmp', 'hanouna',
-    'kim kardashian', 'brad pitt', 'angelina jolie', 'leonardo dicaprio', 'tom cruise',
-    'paparazzi', 'jet-set', 'people', 'célébrité', 'star', 'scandale', 'polémique', 'tapis rouge',
-    'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'ugc', 'trend', 'challenge',
-    'alain ducasse', 'cyril lignac', 'philippe etchebest', 'masterchef', 'cauchemar en cuisine', 'street food', 'food truck', 'bistronomie'
+    'squeezie', 'cyprien', 'léna situations', 'lena situations', 'mcfly et carlito', 'tibo inshape', 'inoxtag', 'michou',
+    'les marseillais', 'koh-lanta', 'koh lanta', 'danse avec les stars', 'the voice', 'tpmp', 'hanouna',
+    'kim kardashian', 'brad pitt', 'angelina jolie', 'leonardo dicaprio', 'tom cruise', 'zendaya',
+    'paparazzi', 'jet-set', 'people', 'célébrité', 'celebrite', 'tapis rouge',
+    'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'createur de contenu',
+    'ugc', 'trend', 'challenge', 'viral',
+    'décoration', 'decoration', 'déco', 'deco', 'intérieur', 'interieur', 'ikea', 'maison',
   ],
 };
 
-// Catégoriser avec scoring pondéré (titre = 3x description)
-// Score minimum de 2 pour éviter les faux positifs sur des mots trop courts
+// Catégoriser avec scoring pondéré (titre = 3x, description = 1x)
 function categorizeArticle(title: string, description: string): string {
   const titleLower = title.toLowerCase();
   const descLower = description.toLowerCase();
@@ -289,9 +317,6 @@ function categorizeArticle(title: string, description: string): string {
       bestCategory = category;
     }
   }
-
-  // Score minimum pour éviter de mal catégoriser des articles génériques
-  if (bestScore < 2) return 'Dernières news';
 
   return bestCategory;
 }

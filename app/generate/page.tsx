@@ -81,11 +81,14 @@ const CATEGORIES = [
   'Business & Finance',
   'Santé & Bien-être',
   'Sport',
-  'Culture & Divertissement',
+  'Cinéma & Séries',
+  'Musique & Festivals',
   'Politique',
   'Science & Environnement',
+  'Nature & Animaux',
   'International',
   'Moteurs & Adrénaline',
+  'Food & Gastronomie',
   'Lifestyle & People',
 ];
 
@@ -115,33 +118,24 @@ export default function GeneratePage() {
   const uploadSectionRef = useRef<HTMLDivElement>(null);
   const assistantPanelRef = useRef<HTMLDivElement>(null);
 
-  /* --- Calculer les catégories qui ont au moins une news --- */
-  const availableCategories = useMemo(() => {
-    const categoriesWithNews = new Set<string>();
-    allNewsItems.forEach((item) => {
-      if (item.category) {
-        categoriesWithNews.add(item.category);
-      }
-    });
-    // "Les bonnes nouvelles" et "Dernières news" sont toujours disponibles
-    const filtered = CATEGORIES.filter((cat) =>
-      cat === 'Les bonnes nouvelles' || cat === 'Dernières news' || categoriesWithNews.has(cat)
-    );
-    return filtered;
-  }, [allNewsItems]);
+  /* --- Toujours afficher toutes les catégories --- */
+  const availableCategories = CATEGORIES;
 
   /* --- Filtrer les news selon catégorie et recherche --- */
   const filteredNews = useMemo(() => {
     let items = allNewsItems;
 
-    // Filtre spécial pour "Les bonnes nouvelles" : scoring positif
+    // Filtre spécial pour "Les bonnes nouvelles" :
+    // 1) Articles des flux dédiés "Les bonnes nouvelles" (positivr, demotivateur)
+    // 2) Articles de TOUS les flux qui matchent des mots positifs et aucun négatif
     if (category === 'Les bonnes nouvelles') {
       items = allNewsItems.filter((item) => {
         const text = (item.title + ' ' + item.description).toLowerCase();
-        // Exclure les news négatives
+        // Toujours exclure les news négatives
         const hasNegative = NEGATIVE_KEYWORDS.some(kw => text.includes(kw));
         if (hasNegative) return false;
-        // Garder les news positives
+        // Inclure : flux dédié "Les bonnes nouvelles" OU mots positifs détectés
+        if (item.category === 'Les bonnes nouvelles') return true;
         const hasPositive = POSITIVE_KEYWORDS.some(kw => text.includes(kw));
         return hasPositive;
       }).sort((a, b) => {
