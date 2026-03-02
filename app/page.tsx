@@ -808,61 +808,93 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* COMPARATIF AU MOIS */}
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <h2 className="text-2xl font-semibold">Keiro vs. graphiste “par campagne” (au mois)</h2>
-        <p className="mt-2 text-sm text-neutral-600">
-          Hypothèse réaliste&nbsp;: <b>4 campagnes / mois</b> (hebdo) + 1–2 variantes chacune.
-        </p>
-        <div className="mt-6 overflow-x-auto rounded-2xl border">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead className="bg-neutral-50 text-neutral-600">
-              <tr>
-                <th className="text-left p-3">Critère</th>
-                <th className="text-left p-3">Keiro</th>
-                <th className="text-left p-3">Graphiste/Studio (par campagne)</th>
-              </tr>
-            </thead>
-            <tbody className="[&_td]:p-3 [&_tr:nth-child(even)]:bg-neutral-50/40">
-              <tr>
-                <td>Délai de production</td>
-                <td><b>5–10 minutes</b></td>
-                <td>2–5 jours</td>
-              </tr>
-              <tr>
-                <td>Ajustements</td>
-                <td><b>Illimités, instantanés</b></td>
-                <td>Payants ou limités</td>
-              </tr>
-              <tr>
-                <td>Coût au mois</td>
-                <td><b>Forfait</b> (voir offres)</td>
-                <td><b>1 200€ à 4 800€</b> (4× 300–1 200€)</td>
-              </tr>
-              <tr>
-                <td>Réactivité sur l’actu</td>
-                <td><b>Immédiate</b></td>
-                <td>Dépend des dispos</td>
-              </tr>
-              <tr>
-                <td>Cohérence & texte</td>
-                <td>Guidage + relecture</td>
-                <td>À briefer / revoir</td>
-              </tr>
-            </tbody>
-          </table>
+      {/* COMPARATIF AU MOIS — IMPACTANT */}
+      <FadeUp>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Remplacez <span className="line-through text-red-400 decoration-red-400">2 prestataires</span> par{' '}
+            <span className="gradient-text">1 seul outil</span>
+          </h2>
+          <p className="text-lg text-neutral-600">
+            Un graphiste + un community manager = <strong className="text-red-500">2 500 à 5 000€/mois</strong>. KeiroAI fait les deux.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-10">
+          {/* Colonne Graphiste */}
+          <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
+            <div className="absolute -top-3 left-4">
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Graphiste freelance</span>
+            </div>
+            <div className="pt-2">
+              <p className="text-3xl font-bold text-red-500 mb-1">800–2 000€<span className="text-base font-normal text-red-400">/mois</span></p>
+              <ul className="mt-4 space-y-2 text-sm text-neutral-600">
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Délai : 2–5 jours par visuel</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Modifications payantes</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de réactivité sur l{"'"}actu</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune vidéo incluse</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Briefings longs à rédiger</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Colonne CM */}
+          <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
+            <div className="absolute -top-3 left-4">
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Community Manager</span>
+            </div>
+            <div className="pt-2">
+              <p className="text-3xl font-bold text-red-500 mb-1">1 500–3 000€<span className="text-base font-normal text-red-400">/mois</span></p>
+              <ul className="mt-4 space-y-2 text-sm text-neutral-600">
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Rédaction captions manuelle</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Planification basique</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> 1 seul réseau en général</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de génération IA</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, absences, turnover</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Colonne KeiroAI */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-400 p-6 relative shadow-lg shadow-blue-100">
+            <div className="absolute -top-3 left-4">
+              <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI</span>
+            </div>
+            <div className="pt-2">
+              <p className="text-3xl font-bold text-blue-600 mb-1">49–149€<span className="text-base font-normal text-blue-400">/mois</span></p>
+              <ul className="mt-4 space-y-2 text-sm text-neutral-700">
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <strong>5 min</strong> par visuel, instantané</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Modifications <strong>illimitées</strong></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Visuels <strong>sur l{"'"}actu du jour</strong></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Vidéo + audio + texte IA</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Instagram + TikTok + LinkedIn</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Disponible 24/7, jamais en congé</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Barre économie */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 text-center mb-8">
+          <p className="text-sm text-green-700 font-medium mb-1">Économie moyenne constatée</p>
+          <p className="text-4xl font-bold text-green-600">-95%</p>
+          <p className="text-neutral-600 text-sm mt-1">
+            soit <strong>2 350€ à 4 850€ économisés</strong> chaque mois par rapport à un graphiste + community manager
+          </p>
         </div>
 
         {/* CTA après Comparatif */}
-        <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
-            Commencer maintenant →
+        <div className="text-center">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
+            Commencer gratuitement →
           </a>
-          <p className="mt-3 text-sm text-neutral-600">
-            💰 Économise jusqu'à 1,800€/mois vs. graphiste • 7 jours gratuits
+          <p className="mt-3 text-sm text-neutral-500">
+            3 visuels gratuits pour tester la qualité
           </p>
         </div>
       </section>
+      </FadeUp>
 
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
@@ -870,7 +902,7 @@ function HomeKeiroInner() {
           <FadeUp><div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg animate-glow">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
-              Offre de lancement - 50 places Fondateurs
+              Offre de lancement - 50 places Fondateurs Pro
             </div>
             <h2 className="text-4xl font-bold mb-4">Offres & Tarifs</h2>
             <p className="text-lg text-neutral-600">
@@ -924,13 +956,13 @@ function HomeKeiroInner() {
               title="🚀 Solo"
               price={billingPeriod === 'annual' ? '490€ / an' : '49€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 40,83€/mois' : undefined}
-              subtitle="220 crédits — Pour créateurs"
+              subtitle="220 crédits — ~2 campagnes/semaine"
               bullets={[
                 '220 crédits/mois',
                 'Images + vidéos sans watermark',
-                'Instagram + LinkedIn (Post)',
-                '20 msg Assistant IA',
-                'Suggestions texte IA',
+                'Instagram + LinkedIn',
+                'Suggestions texte + Assistant IA',
+                'Toutes catégories actualités',
                 'Calendrier publications'
               ]}
               ctaLabel={billingPeriod === 'annual' ? 'Solo annuel (-17%)' : 'Choisir Solo'}
@@ -938,22 +970,38 @@ function HomeKeiroInner() {
             />
 
             <Plan
-              title="⭐ Fondateurs"
+              title="💎 Pro"
+              price={billingPeriod === 'annual' ? '890€ / an' : '89€ / mois'}
+              priceNote={billingPeriod === 'annual' ? 'soit 74€/mois' : undefined}
+              subtitle="400 crédits — ~3 campagnes/semaine"
+              bullets={[
+                '400 crédits/mois',
+                'Tout Solo +',
+                'TikTok débloqué 🎵',
+                'Stories Instagram',
+                'Audio narration IA',
+                'Analytics Instagram'
+              ]}
+              ctaLabel={billingPeriod === 'annual' ? 'Pro annuel (-17%)' : 'Débloquer TikTok + Audio'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
+            />
+
+            <Plan
+              title="⭐ Fondateurs Pro"
               price={billingPeriod === 'annual' ? '1 490€ / an' : '149€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 124€/mois' : undefined}
-              subtitle="660 crédits — 3x plus que Solo"
+              subtitle="660 crédits — ~4 campagnes/semaine"
               special
               highlight
               bullets={[
-                '660 crédits/mois (3x Solo)',
-                'Instagram + TikTok + LinkedIn',
-                'Stories Instagram incluses',
-                '50 msg Assistant IA Marketing',
-                'Suggestions texte + audio IA',
-                'Analytics + Planification auto',
+                '660 crédits/mois',
+                'Tout Pro +',
+                'Analytics multi-plateforme',
+                'Planification automatique',
+                'Support prioritaire + démo offerte',
                 'Prix verrouillé à vie (50 places)'
               ]}
-              ctaLabel={billingPeriod === 'annual' ? 'Fondateurs annuel (-17%)' : 'Débloquer TikTok + 3x crédits'}
+              ctaLabel={billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
 
@@ -961,14 +1009,14 @@ function HomeKeiroInner() {
               title="🏢 Business"
               price={billingPeriod === 'annual' ? '3 490€ / an' : '349€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 290€/mois' : undefined}
-              subtitle="1 750 crédits — Pour agences"
+              subtitle="1 750 crédits — Contenu quotidien"
               bullets={[
                 '1 750 crédits/mois',
-                '~350 images ou 70 vidéos 5s',
-                'Tout Fondateurs +',
+                'Tout Fondateurs Pro +',
                 'Multi-comptes (1+5 clients)',
                 'Calendrier collaboratif',
-                'Workflow validation + Reporting PDF'
+                'Workflow validation équipe',
+                'Reporting PDF brandé'
               ]}
               ctaLabel={billingPeriod === 'annual' ? 'Business annuel (-17%)' : 'Choisir Business'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
@@ -976,7 +1024,7 @@ function HomeKeiroInner() {
           </div>
 
           <p className="text-center text-xs text-neutral-500 mb-6">
-            *Fondateurs : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois
+            *Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois
           </p>
 
           {/* Elite Plan - Séparé */}
@@ -1213,10 +1261,10 @@ function QuizAndCalculator() {
   };
 
   const getRecommendedPlan = () => {
-    if (quizAnswers.budget === 'large' || quizAnswers.businessType === 'ecommerce') return 'Pro';
-    if (quizAnswers.budget === 'medium') return 'Starter';
-    if (quizAnswers.budget === 'small') return 'Fondateurs';
-    return 'Starter';
+    if (quizAnswers.budget === 'large' || quizAnswers.businessType === 'ecommerce') return 'Business';
+    if (quizAnswers.budget === 'medium') return 'Fondateurs Pro';
+    if (quizAnswers.budget === 'small') return 'Pro';
+    return 'Solo';
   };
 
   const resetQuiz = () => {
@@ -1383,7 +1431,7 @@ function QuizAndCalculator() {
                   </li>
                 </>
               )}
-              {(getRecommendedPlan() === 'Starter' || getRecommendedPlan() === 'Fondateurs') && (
+              {(getRecommendedPlan() === 'Solo' || getRecommendedPlan() === 'Pro' || getRecommendedPlan() === 'Fondateurs Pro') && (
                 <>
                   <li className="flex items-start gap-2 text-sm">
                     <span className="text-blue-500 text-lg">✓</span>

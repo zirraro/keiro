@@ -341,7 +341,7 @@ function PricingPageInner() {
                 <span className="text-4xl">🎵</span> Débloquez TikTok : La Croissance Virale
               </h3>
               <p className="text-xl text-cyan-100 font-medium">
-                Exclusif à partir du plan Fondateurs
+                Débloqué à partir du plan Pro (89€/mois)
               </p>
             </div>
 
@@ -395,7 +395,7 @@ function PricingPageInner() {
 
         {/* Premium Plans */}
         <FadeUp><h3 className="text-2xl font-bold text-center mb-2">Plans Premium</h3>
-        <p className="text-center text-neutral-600 mb-8">Choisissez le plan adapté à vos besoins</p></FadeUp>
+        <p className="text-center text-neutral-600 mb-8">Chaque plan débloque de nouvelles fonctionnalités</p></FadeUp>
 
         <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {/* Solo 49€ */}
@@ -409,67 +409,105 @@ function PricingPageInner() {
                 <span className="text-neutral-500">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 40,83€/mois</span>}
               </div>
-              <p className="text-neutral-600 text-sm"><strong>220 crédits/mois</strong> — ~44 images ou 8 vidéos</p>
+              <p className="text-neutral-600 text-sm"><strong>220 crédits</strong> — ~2 campagnes/semaine</p>
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>220 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos sans watermark</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> 20 messages Assistant IA</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> 10 suggestions texte IA</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication Instagram + LinkedIn</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos <strong>sans watermark</strong></li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Suggestions texte IA</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Assistant IA Marketing</li>
+              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication <strong>Instagram + LinkedIn</strong></li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
               <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
-              <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> <span className="line-through">TikTok (Fondateurs+)</span></li>
+              <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> TikTok, Stories, Audio <span className="text-xs">(Pro+)</span></li>
             </ul>
             <div className="mt-auto space-y-2">
               <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')} className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
                 Choisir Solo {billingPeriod === 'annual' ? '(annuel)' : ''}
               </button>
               <p className="text-xs text-center text-neutral-500">
-                Plus de vidéos + TikTok ? <a href="#fondateurs" className="text-cyan-600 hover:underline font-semibold">Upgrade →</a>
+                3 campagnes/sem + TikTok ? <a href="#pro" className="text-purple-600 hover:underline font-semibold">Passez Pro →</a>
               </p>
             </div>
           </div></StaggerItem>
 
-          {/* Fondateurs 149€ - HIGHLIGHT */}
-          <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
+          {/* Pro 89€ */}
+          <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                ⭐ #1
+              <span className="bg-purple-900 text-purple-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+                Populaire
               </span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>⭐</span> Fondateurs
+                <span>💎</span> Pro
+              </h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '890€' : '89€'}</span>
+                <span className="text-purple-200">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>}
+              </div>
+              <p className="text-purple-200 text-sm font-medium"><strong>400 crédits</strong> — ~3 campagnes/semaine</p>
+            </div>
+
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
+              <p className="text-xs font-semibold">Tout Solo + TikTok + Stories + Audio</p>
+            </div>
+
+            <ul className="space-y-3 mb-6 text-sm flex-1">
+              <li className="flex gap-2"><span className="text-purple-300">✓</span> <strong>400 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-purple-300">✓</span> Tout ce qui est dans Solo +</li>
+              <li className="flex gap-2 items-start"><span className="text-cyan-300 flex-shrink-0">★</span> <span><strong>TikTok débloqué</strong> 🎵</span></li>
+              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Stories Instagram</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Audio narration IA</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Analytics Instagram</strong></li>
+              <li className="flex gap-2 text-purple-300/60"><span className="text-purple-400/40">✗</span> Analytics multi-plateforme <span className="text-xs">(Fondateurs+)</span></li>
+            </ul>
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')} className="block w-full py-3 text-center rounded-xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-all shadow-lg mt-auto">
+              {billingPeriod === 'annual' ? 'Pro annuel (-17%)' : 'Débloquer TikTok + Audio'}
+            </button>
+            <p className="text-xs text-center text-purple-200 mt-2">
+              Plus de volume + analytics ? <a href="#fondateurs" className="text-cyan-300 hover:underline font-semibold">Fondateurs Pro →</a>
+            </p>
+          </div></StaggerItem>
+
+          {/* Fondateurs Pro 149€ - HIGHLIGHT */}
+          <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+                ⭐ #1 — 50 places
+              </span>
+            </div>
+            <div className="mb-4 pt-2">
+              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <span>⭐</span> Fondateurs Pro
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
                 <span className="text-amber-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">soit 124€/mois</span>}
               </div>
-              <p className="text-amber-100 text-sm font-medium"><strong>660 crédits/mois</strong> — ~132 images ou 26 vidéos</p>
+              <p className="text-amber-100 text-sm font-medium"><strong>660 crédits</strong> — ~4 campagnes/semaine</p>
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold mb-1">💰 ROI : 1 client TikTok = plan payé</p>
-              <p className="text-xs text-amber-100">149€ pour 3 plateformes (Instagram + TikTok + LinkedIn)</p>
+              <p className="text-xs font-semibold">Tout Pro + Analytics complet + Planif auto + Prix bloqué</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong> (3x plus que Solo)</li>
-              <li className="flex gap-2 items-start"><span className="text-yellow-300 flex-shrink-0">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> 🎵</span></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Stories Instagram incluses</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> 50 messages Assistant IA Marketing</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Suggestions texte + narrations audio IA</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Analytics Instagram & TikTok</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Calendrier + Planification auto</li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>Prix verrouillé à vie (50 places)</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Tout ce qui est dans Pro +</li>
+              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Analytics Instagram + TikTok + LinkedIn</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Planification automatique</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Support prioritaire</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Démo personnalisée offerte</strong></li>
+              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Prix verrouillé à vie</strong></li>
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              {billingPeriod === 'annual' ? 'Fondateurs annuel (-17%)' : 'Débloquer TikTok + 3x crédits'}
+              {billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
             </button>
-            <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€ après les 50 premiers</p>
+            <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€/mois après les 50 premiers</p>
           </div></StaggerItem>
 
           {/* Business 349€ */}
@@ -488,58 +526,42 @@ function PricingPageInner() {
                 <span className="text-blue-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
-              <p className="text-blue-100 text-sm"><strong>1 750 crédits/mois</strong> — ~350 images ou 70 vidéos</p>
+              <p className="text-blue-100 text-sm"><strong>1 750 crédits</strong> — contenu quotidien multi-clients</p>
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold mb-1">💼 ROI Agence : 150€/client = 750€ revenus</p>
-              <p className="text-xs text-blue-100">Facturez TikTok + Instagram = Valeur premium</p>
+              <p className="text-xs font-semibold">Tout Fondateurs Pro + Multi-comptes + Équipe</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
               <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>1 750 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Tout Fondateurs + volume x3</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> 100 messages Assistant IA</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs +</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>Multi-comptes (1+5 clients)</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Calendrier collaboratif</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Workflow validation équipe</li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Reporting PDF brandé</li>
+              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs Pro +</li>
+              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Multi-comptes (1+5 clients)</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Calendrier collaboratif</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Workflow validation équipe</strong></li>
+              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Reporting PDF brandé</strong></li>
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
               Choisir Business {billingPeriod === 'annual' ? '(annuel)' : ''}
             </button>
             <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
           </div></StaggerItem>
-
-          {/* Elite 999€ */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-amber-200 p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🏆</span> Elite
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '9 990€' : '999€'}</span>
-                <span className="text-neutral-500">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 832€/mois</span>}
-              </div>
-              <p className="text-neutral-600 text-sm"><strong>5 500 crédits/mois</strong> — ~1100 images ou 220 vidéos</p>
-            </div>
-            <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> <strong>5 500 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business + volume x3</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Tout Business +</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Account Manager dédié</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> 2h/mois consulting stratégique</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Features custom développées</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> Formation équipe (20 pers.)</li>
-              <li className="flex gap-2"><span className="text-amber-500">✓</span> SLA 99.9% garanti</li>
-            </ul>
-            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="block w-full py-3 text-center rounded-xl border-2 border-amber-300 text-amber-700 font-semibold hover:bg-amber-50 transition-all mt-auto">
-              Choisir Elite {billingPeriod === 'annual' ? '(annuel)' : ''}
-            </button>
-          </div></StaggerItem>
         </StaggerContainer>
+
+        {/* Elite - Bandeau séparé */}
+        <FadeUp>
+        <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 mb-16 max-w-3xl mx-auto hover:shadow-xl transition-all">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><span>🏆</span> Elite — 999€/mois</h3>
+              <p className="text-neutral-600 text-sm mb-3"><strong>5 500 crédits</strong> — Tout Business + Account Manager dédié, consulting stratégique 2h/mois, features custom, formation équipe, SLA 99.9%</p>
+            </div>
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
+              Contacter pour Elite
+            </button>
+          </div>
+        </div>
+        </FadeUp>
 
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 mb-10">
@@ -572,7 +594,8 @@ function PricingPageInner() {
 
         {/* Comparatif rapide */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-8 mb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">Comparatif rapide</h3>
+          <h3 className="text-2xl font-bold text-center mb-2">Comparatif des plans</h3>
+          <p className="text-center text-neutral-500 text-sm mb-8">Chaque plan débloque de nouvelles fonctionnalités — les crédits s{"'"}utilisent librement</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -580,9 +603,9 @@ function PricingPageInner() {
                   <th className="text-left py-3 px-2">Fonctionnalité</th>
                   <th className="text-center py-3 px-2">Gratuit</th>
                   <th className="text-center py-3 px-2">Solo</th>
-                  <th className="text-center py-3 px-2 bg-amber-50">Fondateurs</th>
+                  <th className="text-center py-3 px-2 bg-purple-50">Pro</th>
+                  <th className="text-center py-3 px-2 bg-amber-50">Fondateurs Pro</th>
                   <th className="text-center py-3 px-2">Business</th>
-                  <th className="text-center py-3 px-2">Elite</th>
                 </tr>
               </thead>
               <tbody>
@@ -590,103 +613,174 @@ function PricingPageInner() {
                   <td className="py-3 px-2 font-medium">Crédits/mois</td>
                   <td className="text-center py-3 px-2">15</td>
                   <td className="text-center py-3 px-2"><strong>220</strong></td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong>400</strong></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>660</strong></td>
                   <td className="text-center py-3 px-2"><strong>1 750</strong></td>
-                  <td className="text-center py-3 px-2"><strong>5 500</strong></td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Images IA</td>
+                  <td className="py-3 px-2 font-medium">Rythme de publication</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">test</td>
+                  <td className="text-center py-3 px-2">~2/semaine</td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong>~3/semaine</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>~4/semaine</strong></td>
+                  <td className="text-center py-3 px-2"><strong>quotidien</strong></td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Images + Vidéos IA</td>
                   <td className="text-center py-3 px-2">3 (watermark)</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Selon crédits</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Vidéos IA</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Selon crédits</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                  <td className="text-center py-3 px-2">Selon crédits</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Audio narration</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓ sans watermark</td>
+                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
                   <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
-                  <td className="text-center py-3 px-2 text-amber-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Suggestions texte + hashtags</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="py-3 px-2 font-medium">Suggestions texte + Assistant IA</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
                   <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
-                  <td className="text-center py-3 px-2 text-amber-600">✓</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Assistant IA Marketing</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2">20 msg</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>50 msg</strong></td>
-                  <td className="text-center py-3 px-2">Illimité</td>
-                  <td className="text-center py-3 px-2">Illimité</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Instagram</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2">Post</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Post + Story</strong></td>
-                  <td className="text-center py-3 px-2">Post + Story</td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">Post + Story</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50">Post + Story</td>
                   <td className="text-center py-3 px-2">Post + Story</td>
                 </tr>
-                <tr className="border-b bg-cyan-50/50">
-                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
-                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
-                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
-                </tr>
-                <tr className="border-b bg-blue-50/50">
+                <tr className="border-b">
                   <td className="py-3 px-2 font-medium">LinkedIn</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓ Post</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-blue-600">✓ Post</strong></td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                </tr>
+                <tr className="border-b bg-cyan-50/30">
+                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-cyan-600">✓</td>
+                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
+                </tr>
+                <tr className="border-b bg-cyan-50/30">
+                  <td className="py-3 px-2 font-medium">🎙️ Audio narration IA</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">✓ Débloqué</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
+                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                </tr>
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Analytics</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 bg-purple-50">Instagram</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">Multi-plateforme</strong></td>
+                  <td className="text-center py-3 px-2">Multi-plateforme</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Calendrier</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">✓ Auto</td>
-                  <td className="text-center py-3 px-2">✓ Collaboratif</td>
-                  <td className="text-center py-3 px-2">✓ Collaboratif</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2">Basique</td>
+                  <td className="text-center py-3 px-2 bg-purple-50">Planning</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">Planif. auto</strong></td>
+                  <td className="text-center py-3 px-2">Collaboratif</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Multi-comptes</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-neutral-400">-</td>
-                  <td className="text-center py-3 px-2">1+5</td>
-                  <td className="text-center py-3 px-2">Illimité</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 bg-purple-50 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 text-neutral-400">—</td>
+                  <td className="text-center py-3 px-2"><strong>1+5 clients</strong></td>
                 </tr>
                 <tr>
                   <td className="py-3 px-2 font-medium">Prix</td>
                   <td className="text-center py-3 px-2 font-bold">0€</td>
-                  <td className="text-center py-3 px-2 font-bold">49€/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€/mois*</td>
-                  <td className="text-center py-3 px-2 font-bold text-blue-600">349€/mois</td>
-                  <td className="text-center py-3 px-2 font-bold text-amber-700">999€/mois</td>
+                  <td className="text-center py-3 px-2 font-bold">49€</td>
+                  <td className="text-center py-3 px-2 bg-purple-50 font-bold text-purple-600">89€</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-neutral-500 text-center mt-4">1 image = 5 cr · 1 retouche = 3 cr · 1 vidéo 5s = 25 cr · 1 suggestion/narration/assistant = 1 cr · Crédits non utilisés reportés 1 mois</p>
+          <p className="text-xs text-neutral-500 text-center mt-4">* Prix Fondateurs Pro : 149€ pour les 50 premiers, puis 199€ · Tous les crédits s{"'"}utilisent librement : 1 image = 5 cr · 1 vidéo 5s = 25 cr · 1 suggestion = 1 cr · Report 1 mois</p>
         </div>
+
+        {/* Comparateur Keiro vs. Prestataires */}
+        <FadeUp>
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 mb-16 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-cyan-500/10 rounded-full -ml-28 -mb-28 blur-3xl"></div>
+
+          <div className="relative z-10">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl md:text-3xl font-bold mb-2">
+                Pourquoi payer <span className="text-red-400">3 300€/mois</span> quand vous pouvez payer <span className="text-cyan-400">149€</span> ?
+              </h3>
+              <p className="text-slate-300">Graphiste freelance + Community Manager vs. KeiroAI Fondateurs</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              {/* Colonne prestataires */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-red-400 text-lg">✗</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold">Graphiste + CM</h4>
+                    <p className="text-2xl font-bold text-red-400">~3 300€<span className="text-sm font-normal text-slate-400">/mois</span></p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5 text-sm text-slate-300">
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> Délai 2-5 jours par visuel</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> Modifications facturées en supplément</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> ~4 campagnes/mois max</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> 0 vidéo incluse (supplément ~500€)</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> 1 seul réseau géré</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, absences, retards</li>
+                  <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune réactivité sur l{"'"}actu</li>
+                </ul>
+              </div>
+
+              {/* Colonne KeiroAI */}
+              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-2xl border border-cyan-400/30 p-6 shadow-lg shadow-cyan-500/10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-cyan-400 text-lg">✓</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold">KeiroAI Fondateurs</h4>
+                    <p className="text-2xl font-bold text-cyan-400">149€<span className="text-sm font-normal text-slate-400">/mois</span></p>
+                  </div>
+                </div>
+                <ul className="space-y-2.5 text-sm text-slate-200">
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>5 minutes</strong> par visuel</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Modifications <strong>illimitées</strong> et instantanées</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>~4 campagnes/semaine</strong> (16/mois)</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Vidéo + audio + texte IA inclus</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>Instagram + TikTok + LinkedIn</strong></li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Disponible 24/7, jamais en congé</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Visuels <strong>basés sur l{"'"}actu</strong> du jour</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Barre économie */}
+            <div className="bg-green-500/15 backdrop-blur-sm rounded-xl border border-green-400/20 p-4 text-center">
+              <p className="text-green-400 font-bold text-lg">
+                Économie : <span className="text-2xl">3 151€/mois</span> <span className="text-green-300 font-normal text-sm">(soit 37 812€/an)</span>
+              </p>
+              <p className="text-slate-400 text-xs mt-1">Basé sur graphiste 1 500€ + CM 1 800€ vs. KeiroAI Fondateurs 149€</p>
+            </div>
+          </div>
+        </div>
+        </FadeUp>
 
         {/* FAQ Section */}
         <FadeUp>
