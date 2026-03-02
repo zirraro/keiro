@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LinkedInIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import ImageEditModal from './ImageEditModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -45,6 +46,7 @@ interface LinkedInModalProps {
 }
 
 export default function LinkedInModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags, linkedinConnected, onPublish }: LinkedInModalProps) {
+  const { t } = useLanguage();
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -136,11 +138,11 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
 
   const handleSave = async (status: 'draft' | 'ready') => {
     if (activeTab === 'text-only') {
-      if (!caption.trim()) { alert('Veuillez écrire du texte pour votre post'); return; }
+      if (!caption.trim()) { alert(t.library.writeTextForPost); return; }
       setSaving(true);
       try {
         await onSave(null, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon texte LinkedIn sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.linkedInTextDraftSaved : t.library.readyToPublishToast);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -149,7 +151,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
       setSaving(true);
       try {
         await onSave(selectedImage, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon LinkedIn sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.linkedInDraftSavedToast : t.library.readyToPublishToast);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -159,7 +161,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
+        if (!user) throw new Error(t.library.createAccountForFeature);
         await supabase.from('linkedin_drafts').insert({
           user_id: user.id,
           video_id: selectedVideo.id,
@@ -170,11 +172,11 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
           hashtags: hashtags || [],
           status: status
         });
-        setSuccessToast('✅ Brouillon vidéo LinkedIn sauvegardé !');
+        setSuccessToast(t.library.linkedInVideoDraftSaved);
         setTimeout(() => setSuccessToast(null), 3000);
       } catch (error) {
         console.error('[LinkedInModal] Error saving video draft:', error);
-        alert('Erreur lors de la sauvegarde');
+        alert(t.library.saveErrorGeneric);
       } finally {
         setSaving(false);
       }
@@ -184,7 +186,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
   const handleSuggest = async () => {
     if (activeTab !== 'text-only') {
       const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
-      if (!hasContent) { alert('Veuillez sélectionner un contenu'); return; }
+      if (!hasContent) { alert(t.library.selectContent); return; }
     }
     setSuggesting(true);
     try {
@@ -209,11 +211,11 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
         setCaption(data.caption);
         setHashtags(data.hashtags?.slice(0, 5) || []);
       } else {
-        alert(data.error || 'Erreur lors de la génération');
+        alert(data.error || t.library.suggestionErrorShort);
       }
     } catch (error) {
       console.error('[LinkedInModal] Error suggesting:', error);
-      alert('Erreur lors de la génération');
+      alert(t.library.suggestionErrorShort);
     } finally {
       setSuggesting(false);
     }
@@ -221,7 +223,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
 
   const handlePublishNow = async () => {
     if (!onPublish) return;
-    if (!caption.trim()) { alert('Veuillez écrire du texte pour votre post'); return; }
+    if (!caption.trim()) { alert(t.library.writeTextForPost); return; }
     setPublishing(true);
     try {
       let mediaUrl: string | null = null;
@@ -236,10 +238,10 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
       }
 
       await onPublish(mediaUrl, mediaType, caption, hashtags);
-      setSuccessToast('✅ Publié sur LinkedIn !');
+      setSuccessToast(t.library.linkedInPublishedSuccess);
       setTimeout(() => { setSuccessToast(null); onClose(); }, 2000);
     } catch (error: any) {
-      alert(error.message || 'Erreur lors de la publication');
+      alert(error.message || t.library.publishError);
     } finally {
       setPublishing(false);
     }
@@ -253,40 +255,40 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#0077B5] to-blue-600 rounded-full mb-4">
             <LinkedInIcon className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-lg font-bold text-neutral-900 mb-2">Préparer un post LinkedIn</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.library.prepareLinkedInPost}</h3>
           <p className="text-neutral-600 text-sm mb-4">
-            Vous n'avez pas encore de visuels dans votre galerie.
+            {t.library.noVisualsYet}
           </p>
           <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
               className="w-full px-5 py-3 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
-              Créer un visuel
+              {t.library.createVisual}
             </button>
             <button
               onClick={() => { window.location.href = '/library'; }}
               className="w-full px-5 py-3 border-2 border-blue-200 text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-all text-sm"
             >
-              Ajouter un visuel à votre galerie
+              {t.library.addVisualToGallery}
             </button>
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-neutral-200"></div>
-              <span className="flex-shrink mx-3 text-xs text-neutral-400">ou</span>
+              <span className="flex-shrink mx-3 text-xs text-neutral-400">{t.library.or}</span>
               <div className="flex-grow border-t border-neutral-200"></div>
             </div>
             <button
               onClick={() => { setActiveTab('text-only'); }}
               className="w-full px-5 py-3 border border-neutral-200 text-neutral-600 font-medium rounded-lg hover:bg-neutral-50 transition-all text-sm"
             >
-              Commencer avec du texte uniquement
+              {t.library.startWithTextOnly}
             </button>
           </div>
           <button
             onClick={onClose}
             className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
           >
-            Fermer
+            {t.library.close}
           </button>
         </div>
       </div>
@@ -303,8 +305,8 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
               <LinkedInIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-neutral-900">Préparer un post LinkedIn</h2>
-              <p className="text-xs text-neutral-500">Post professionnel</p>
+              <h2 className="text-base sm:text-lg font-bold text-neutral-900">{t.library.prepareLinkedInPost}</h2>
+              <p className="text-xs text-neutral-500">{t.library.professionalPost}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/50 transition-colors">
@@ -329,7 +331,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📸 Images ({availableImages.length})
+              {t.library.imagesTab} ({availableImages.length})
             </button>
             <button
               onClick={() => setActiveTab('videos')}
@@ -339,7 +341,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              🎥 Vidéos ({availableVideos.length})
+              {t.library.videosTab} ({availableVideos.length})
             </button>
             <button
               onClick={() => { setActiveTab('text-only'); setSelectedImage(null); setSelectedVideo(null); }}
@@ -349,7 +351,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📝 Texte seul
+              {t.library.textOnlyTab}
             </button>
           </div>
         </div>
@@ -360,7 +362,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
           {activeTab !== 'text-only' && (
             <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
               <div className="p-2 space-y-2">
-                <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">Sélectionner</p>
+                <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">{t.library.selectLabel}</p>
                 {activeTab === 'images' && (
                   <>
                     {loadingImages ? (
@@ -394,7 +396,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                           }`}
                         >
                           {vid.thumbnail_url ? (
-                            <img src={vid.thumbnail_url} alt={vid.title || 'Vidéo'} className="w-full h-full object-cover" />
+                            <img src={vid.thumbnail_url} alt={vid.title || t.library.video} className="w-full h-full object-cover" />
                           ) : (
                             <video src={vid.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                           )}
@@ -464,8 +466,8 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                         <LinkedInIcon className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-neutral-900">Votre profil</p>
-                        <p className="text-xs text-neutral-500">Maintenant</p>
+                        <p className="text-sm font-semibold text-neutral-900">{t.library.linkedInPreviewProfile}</p>
+                        <p className="text-xs text-neutral-500">{t.library.linkedInPreviewNow}</p>
                       </div>
                     </div>
                     {/* Caption preview */}
@@ -475,7 +477,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                       </div>
                     ) : activeTab === 'text-only' ? (
                       <div className="px-3 pb-2">
-                        <p className="text-xs text-neutral-400 italic">Votre texte apparaitra ici...</p>
+                        <p className="text-xs text-neutral-400 italic">{t.library.linkedInPreviewTextPlaceholder}</p>
                       </div>
                     ) : null}
                     {/* Media */}
@@ -497,14 +499,14 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Modifier l'image
+                        {t.library.editImage}
                       </button>
                     )}
                     {/* Engagement bar */}
                     <div className="p-3 flex items-center gap-4 text-neutral-500">
-                      <span className="text-xs">👍 J'aime</span>
-                      <span className="text-xs">💬 Commenter</span>
-                      <span className="text-xs">🔄 Partager</span>
+                      <span className="text-xs">{t.library.linkedInLike}</span>
+                      <span className="text-xs">{t.library.linkedInComment}</span>
+                      <span className="text-xs">{t.library.linkedInShare}</span>
                     </div>
                   </div>
                   {hashtags.length > 0 && (
@@ -522,34 +524,34 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Angle selector */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-900 mb-2">Quel angle pour votre post ?</label>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">{t.library.postAngleLinkedIn}</label>
                 <select
                   value={contentAngle}
                   onChange={(e) => setContentAngle(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#0077B5] focus:border-transparent bg-white"
                 >
-                  <option value="professionnel">💼 Professionnel - Expertise et crédibilité</option>
-                  <option value="thought-leadership">🧠 Thought Leadership - Vision et tendances</option>
-                  <option value="storytelling">📖 Storytelling - Partager une expérience</option>
-                  <option value="informatif">📰 Informatif - Partager des connaissances</option>
-                  <option value="inspirant">✨ Inspirant - Motiver votre réseau</option>
-                  <option value="engagement">💬 Engagement - Lancer un débat</option>
+                  <option value="professionnel">{t.library.angleProfessionalLI}</option>
+                  <option value="thought-leadership">{t.library.angleThoughtLeadership}</option>
+                  <option value="storytelling">{t.library.angleStorytellingLI}</option>
+                  <option value="informatif">{t.library.angleInformativeLI}</option>
+                  <option value="inspirant">{t.library.angleInspiringLI}</option>
+                  <option value="engagement">{t.library.angleEngagement}</option>
                 </select>
               </div>
 
               {/* Mots-clés optionnels pour orienter la suggestion */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-1">
-                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                  {t.library.keywordsLabel} <span className="text-xs font-normal text-neutral-500">{t.library.keywordsOptional}</span>
                 </label>
                 <input
                   type="text"
                   value={userKeywords}
                   onChange={(e) => setUserKeywords(e.target.value)}
-                  placeholder="Ex: leadership, recrutement, innovation tech..."
+                  placeholder={t.library.keywordsPlaceholderLinkedIn}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#0077B5] focus:border-transparent text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">{t.library.keywordsHint}</p>
               </div>
 
               {/* Suggest button */}
@@ -565,30 +567,30 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                 {suggesting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Suggestion en cours...</span>
+                    <span>{t.library.suggestingInProgress}</span>
                   </>
                 ) : (
-                  <span>✨ Suggérer description et hashtags LinkedIn</span>
+                  <span>{t.library.suggestDescAndHashtagsLinkedIn}</span>
                 )}
               </button>
 
               {/* Caption */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-900 mb-2">Description du post</label>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">{t.library.postDescription}</label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   className="w-full h-48 px-4 py-3 border border-neutral-300 rounded-lg resize-none focus:ring-2 focus:ring-[#0077B5] focus:border-transparent"
-                  placeholder="Écrivez un post LinkedIn engageant et professionnel. Utilisez des retours à la ligne pour aérer le texte..."
+                  placeholder={t.library.captionPlaceholderLinkedIn}
                   maxLength={3000}
                 />
-                <p className="mt-1 text-xs text-neutral-500 text-right">{caption.length} / 3 000 caractères</p>
+                <p className="mt-1 text-xs text-neutral-500 text-right">{caption.length} / 3 000 {t.library.characters}</p>
               </div>
 
               {/* Hashtags */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Hashtags <span className="text-neutral-400 font-normal">(3-5 recommandés pour LinkedIn)</span>
+                  {t.library.hashtags} <span className="text-neutral-400 font-normal">{t.library.hashtagsRecommended}</span>
                 </label>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -597,7 +599,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                     onChange={(e) => setHashtagInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
                     className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#0077B5] focus:border-transparent"
-                    placeholder="Ajouter un hashtag..."
+                    placeholder={t.library.addHashtagLinkedInPlaceholder}
                   />
                   <button onClick={addHashtag} className="px-4 py-2 bg-[#0077B5] text-white rounded-lg hover:bg-[#005f8f] transition-colors font-medium">
                     +
@@ -626,7 +628,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   disabled={saving || publishing || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
                   className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-[#0077B5] text-[#0077B5] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {saving ? 'Sauvegarde...' : '📝 Brouillon'}
+                  {saving ? t.library.savingInProgress : t.library.draft}
                 </button>
                 <button
                   onClick={linkedinConnected && onPublish ? handlePublishNow : () => handleSave('ready')}
@@ -636,9 +638,9 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   {publishing ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Publication...
+                      {t.library.publishingInProgress}
                     </span>
-                  ) : saving ? 'Sauvegarde...' : '🚀 Publier'}
+                  ) : saving ? t.library.savingInProgress : t.library.publish}
                 </button>
               </div>
             </div>

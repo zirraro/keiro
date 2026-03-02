@@ -21,6 +21,7 @@ import { addTextOverlay } from '@/lib/canvas-text-overlay';
 import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
 import { computeSocialScore } from '@/lib/news/socialRanker';
 import { startCheckout } from '@/lib/stripe/checkout';
+import { useLanguage } from '@/lib/i18n/context';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -95,6 +96,7 @@ const CATEGORIES = [
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   /* --- Auth user ID for scoped localStorage --- */
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -181,36 +183,36 @@ export default function GeneratePage() {
 
   /* --- Astuce du jour (rotation quotidienne) --- */
   const MARKETING_TIPS = [
-    { icon: '📊', text: 'Les posts avec des visages obtiennent 38% plus d\'engagement que ceux sans.' },
-    { icon: '⏰', text: 'Le meilleur moment pour poster sur TikTok est entre 19h et 21h.' },
-    { icon: '🎨', text: 'Les visuels avec 2-3 couleurs maximum sont plus mémorables.' },
-    { icon: '📱', text: 'Les vidéos de moins de 15 secondes ont 2x plus de chances d\'être vues en entier.' },
-    { icon: '💬', text: 'Poser une question dans votre post augmente les commentaires de 50%.' },
-    { icon: '🔥', text: 'Les carrousels Instagram génèrent en moyenne 3x plus d\'engagement.' },
-    { icon: '✨', text: 'Ajouter un CTA clair augmente les conversions de 80%.' },
-    { icon: '🎯', text: 'Les posts publiés entre 11h-13h et 19h-21h performent le mieux.' },
-    { icon: '💡', text: 'Utiliser 3-5 hashtags ciblés est plus efficace que 30 hashtags génériques.' },
-    { icon: '📈', text: 'Les stories avec des stickers de sondage augmentent l\'engagement de 40%.' },
-    { icon: '🌟', text: 'Le premier mot de votre description est crucial pour capter l\'attention.' },
-    { icon: '🎬', text: 'Les vidéos avec sous-titres ont 80% de vues complètes en plus.' },
-    { icon: '👥', text: 'Mentionner d\'autres comptes peut doubler votre portée organique.' },
-    { icon: '🔔', text: 'Publier à la même heure chaque jour améliore votre visibilité algorithmique.' },
-    { icon: '💎', text: 'Les posts authentiques surperforment les visuels trop retouchés.' },
-    { icon: '🚀', text: 'Les 3 premières secondes d\'une vidéo déterminent 70% de son succès.' },
-    { icon: '🎨', text: 'Utiliser votre palette de couleurs de marque augmente la reconnaissance de 60%.' },
-    { icon: '📝', text: 'Les descriptions de 100-150 caractères obtiennent le plus d\'engagement.' },
-    { icon: '🔄', text: 'Republier votre meilleur contenu peut toucher 90% de nouvelle audience.' },
-    { icon: '👀', text: 'Les posts avec du mouvement captent l\'attention 5x plus vite.' },
-    { icon: '💪', text: 'La cohérence de publication est plus importante que la fréquence.' },
-    { icon: '🎁', text: 'Les concours augmentent le nombre d\'abonnés de 70% en moyenne.' },
-    { icon: '📱', text: 'Les formats verticaux (9:16) ont 40% de taux de complétion en plus.' },
-    { icon: '🌈', text: 'Alterner contenu éducatif et divertissant optimise votre feed.' },
-    { icon: '⚡', text: 'Les Reels de 7-9 secondes ont le meilleur taux de partage.' },
-    { icon: '🎯', text: 'Analysez vos stats chaque semaine pour identifier vos meilleurs contenus.' },
-    { icon: '💫', text: 'Les transitions rapides dans les vidéos retiennent l\'attention 3x plus.' },
-    { icon: '📢', text: 'Les appels à l\'action dans les 3 premières lignes fonctionnent mieux.' },
-    { icon: '🏆', text: 'Montrer les coulisses de votre business booste l\'authenticité perçue.' },
-    { icon: '🎪', text: 'Les émojis dans les descriptions augmentent l\'engagement de 25%.' },
+    { icon: '📊', text: t.generate.tip1 },
+    { icon: '⏰', text: t.generate.tip2 },
+    { icon: '🎨', text: t.generate.tip3 },
+    { icon: '📱', text: t.generate.tip4 },
+    { icon: '💬', text: t.generate.tip5 },
+    { icon: '🔥', text: t.generate.tip6 },
+    { icon: '✨', text: t.generate.tip7 },
+    { icon: '🎯', text: t.generate.tip8 },
+    { icon: '💡', text: t.generate.tip9 },
+    { icon: '📈', text: t.generate.tip10 },
+    { icon: '🌟', text: t.generate.tip11 },
+    { icon: '🎬', text: t.generate.tip12 },
+    { icon: '👥', text: t.generate.tip13 },
+    { icon: '🔔', text: t.generate.tip14 },
+    { icon: '💎', text: t.generate.tip15 },
+    { icon: '🚀', text: t.generate.tip16 },
+    { icon: '🎨', text: t.generate.tip17 },
+    { icon: '📝', text: t.generate.tip18 },
+    { icon: '🔄', text: t.generate.tip19 },
+    { icon: '👀', text: t.generate.tip20 },
+    { icon: '💪', text: t.generate.tip21 },
+    { icon: '🎁', text: t.generate.tip22 },
+    { icon: '📱', text: t.generate.tip23 },
+    { icon: '🌈', text: t.generate.tip24 },
+    { icon: '⚡', text: t.generate.tip25 },
+    { icon: '🎯', text: t.generate.tip26 },
+    { icon: '💫', text: t.generate.tip27 },
+    { icon: '📢', text: t.generate.tip28 },
+    { icon: '🏆', text: t.generate.tip29 },
+    { icon: '🎪', text: t.generate.tip30 },
   ];
 
   const dailyTip = useMemo(() => {
@@ -299,12 +301,12 @@ export default function GeneratePage() {
       imageAngle: 'Storytelling visuel authentique et inspirant',
       marketingAngle: 'Inspirer l\'audience via l\'actualité pour créer une connexion émotionnelle',
       icon: '✨',
-      label: 'Inspirant',
-      description: 'Créez une connexion émotionnelle avec votre audience',
-      details: 'Storytelling, transformation personnelle, valeurs humaines. Parfait pour : coachs, thérapeutes, formations personnelles.',
-      example: 'Ex: "Leur vie a changé en 30 jours..."',
-      marketingStrategy: 'Marketing émotionnel',
-      whenToUse: 'Produits/services à forte valeur émotionnelle ou transformationnelle'
+      label: t.generate.toneInspiringLabel,
+      description: t.generate.toneInspiringDesc,
+      details: t.generate.toneInspiringDetails,
+      example: t.generate.toneInspiringExample,
+      marketingStrategy: t.generate.toneInspiringStrategy,
+      whenToUse: t.generate.toneInspiringWhenToUse
     },
     expert: {
       tone: 'Professionnel et pédagogique',
@@ -315,12 +317,12 @@ export default function GeneratePage() {
       imageAngle: 'Visuel clair avec mots-clés et données visuelles professionnelles',
       marketingAngle: 'Se positionner en expert face à l\'actualité pour établir son autorité',
       icon: '🎯',
-      label: 'Expert',
-      description: 'Positionnez-vous comme référence dans votre domaine',
-      details: 'Pédagogie, données, preuves sociales. Parfait pour : consultants, B2B, services techniques, formateurs.',
-      example: 'Ex: "3 erreurs à éviter selon les experts..."',
-      marketingStrategy: 'Content marketing & Thought leadership',
-      whenToUse: 'Vendre de l\'expertise, du conseil, de la formation avancée'
+      label: t.generate.toneExpertLabel,
+      description: t.generate.toneExpertDesc,
+      details: t.generate.toneExpertDetails,
+      example: t.generate.toneExpertExample,
+      marketingStrategy: t.generate.toneExpertStrategy,
+      whenToUse: t.generate.toneExpertWhenToUse
     },
     urgent: {
       tone: 'Dynamique et percutant',
@@ -331,12 +333,12 @@ export default function GeneratePage() {
       imageAngle: 'Impact visuel maximal avec call-to-action fort et urgence visible',
       marketingAngle: 'Profiter de l\'opportunité créée par l\'actualité pour pousser à l\'action',
       icon: '⚡',
-      label: 'Urgent',
-      description: 'Créez un sentiment d\'urgence pour déclencher l\'action',
-      details: 'Scarcité, offres limitées, FOMO. Parfait pour : e-commerce, événements, lancements, promotions.',
-      example: 'Ex: "Plus que 48h ! Stock limité..."',
-      marketingStrategy: 'Marketing de l\'urgence & Conversion directe',
-      whenToUse: 'Promotions, soldes, lancements, places limitées'
+      label: t.generate.toneUrgentLabel,
+      description: t.generate.toneUrgentDesc,
+      details: t.generate.toneUrgentDetails,
+      example: t.generate.toneUrgentExample,
+      marketingStrategy: t.generate.toneUrgentStrategy,
+      whenToUse: t.generate.toneUrgentWhenToUse
     },
     conversationnel: {
       tone: 'Amical et accessible',
@@ -347,12 +349,12 @@ export default function GeneratePage() {
       imageAngle: 'Visuel naturel et authentique qui invite au dialogue',
       marketingAngle: 'Surfer sur la tendance de l\'actualité de manière conversationnelle',
       icon: '💬',
-      label: 'Dialogue',
-      description: 'Parlez naturellement comme à un ami',
-      details: 'Authenticité, questions, partage. Parfait pour : personal branding, influenceurs, communautés, lifestyle.',
-      example: 'Ex: "J\'ai testé pour vous et franchement..."',
-      marketingStrategy: 'Marketing conversationnel & Community building',
-      whenToUse: 'Construire une communauté engagée et fidèle'
+      label: t.generate.toneDialogLabel,
+      description: t.generate.toneDialogDesc,
+      details: t.generate.toneDialogDetails,
+      example: t.generate.toneDialogExample,
+      marketingStrategy: t.generate.toneDialogStrategy,
+      whenToUse: t.generate.toneDialogWhenToUse
     }
   };
 
@@ -438,7 +440,7 @@ export default function GeneratePage() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'image' | 'edit' | 'text' | 'versions'>('image');
   const prevActiveTabRef = useRef<string>('image');
-  const skipAutoEditRef = useRef(false); // Empêche l'auto-edit après clic "+ Nouveau texte"
+  const skipAutoEditRef = useRef(false); // Empêche l'auto-edit après clic "{t.generate.newText}"
 
   /* --- États pour le système freemium --- */
   const generationLimit = useGenerationLimit();
@@ -758,7 +760,7 @@ export default function GeneratePage() {
     } catch (e: any) {
       console.error('fetchAllNews error', e);
       if (!hasCache) {
-        setError('Impossible de récupérer les actualités.');
+        setError(t.generate.errorLoadingNews);
         setAllNewsItems([]);
       }
       // Si on avait un cache expiré, on garde les anciennes news silencieusement
@@ -784,10 +786,10 @@ export default function GeneratePage() {
         body: formData,
       });
       const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || 'Upload échoué');
+      if (!data?.ok) throw new Error(data?.error || t.generate.errorUploadFailedPrefix);
       setLogoUrl(data.url);
     } catch (e: any) {
-      alert('Impossible d\'uploader le logo. Vérifiez le format (PNG, JPG).');
+      alert(t.generate.alertUploadFailed);
     } finally {
       setUploading(false);
     }
@@ -879,7 +881,7 @@ export default function GeneratePage() {
   /* --- Auto-fill IA contextuel — rempli UNIQUEMENT l'étape demandée --- */
   async function handleAiAutoFill(step: 'direction' | 'creatif' | 'expert') {
     if (!businessType.trim()) {
-      alert('Renseignez d\'abord votre type de business (étape 1)');
+      alert(t.generate.alertBusinessFirst);
       return;
     }
     setAutoFillLoading(true);
@@ -918,7 +920,7 @@ export default function GeneratePage() {
           if (data.fields.desiredVisualIdea) setDesiredVisualIdea(data.fields.desiredVisualIdea);
         }
       } else if (data.insufficientCredits) {
-        alert('Crédits insuffisants pour cette fonctionnalité');
+        alert(t.generate.alertInsufficientCredits);
       }
     } catch (err) {
       console.error('[AutoFill] Error:', err);
@@ -930,23 +932,23 @@ export default function GeneratePage() {
   /* --- Génération de suggestions de texte intelligentes --- */
   async function handleGenerateTextSuggestions() {
     if (useNewsMode && !selectedNews) {
-      alert('Veuillez d\'abord sélectionner une actualité (ou passez en mode "Sans actualité")');
+      alert(t.generate.alertSelectNewsForSuggestions);
       return;
     }
 
     if (!businessType.trim()) {
-      alert('Veuillez d\'abord renseigner votre type de business');
+      alert(t.generate.alertEnterBusinessForSuggestions);
       return;
     }
 
     if (!useNewsMode && !businessDescription.trim()) {
-      alert('En mode sans actualité, décrivez votre business en détail pour de meilleures suggestions');
+      alert(t.generate.alertDescribeBusinessForSuggestions);
       return;
     }
 
     // Générer les suggestions de texte avec IA
     setShowTextSuggestions(true);
-    setTextSuggestions(['⏳ Génération en cours...']);
+    setTextSuggestions([`⏳ ${t.generate.generatingTextSuggestions}`]);
 
     try {
       const response = await fetch('/api/suggest-text', {
@@ -971,7 +973,7 @@ export default function GeneratePage() {
           console.warn('[SuggestText]', data.warning);
         }
       } else {
-        throw new Error(data.error || 'Échec génération suggestions');
+        throw new Error(data.error || t.generate.generatingTextSuggestions);
       }
     } catch (error) {
       console.error('[SuggestText] Error:', error);
@@ -1068,7 +1070,7 @@ export default function GeneratePage() {
   /* --- Auto-entrer en mode édition quand on a des overlays existants --- */
   useEffect(() => {
     if (activeTab === 'text' && showEditStudio && textOverlayItems.length > 0 && !editingOverlayId) {
-      // Skip si l'utilisateur a volontairement cliqué "+ Nouveau texte"
+      // Skip si l'utilisateur a volontairement cliqué "{t.generate.newText}"
       if (skipAutoEditRef.current) {
         skipAutoEditRef.current = false;
         return;
@@ -1154,15 +1156,15 @@ export default function GeneratePage() {
   /* --- Génération de l'image IA avec Seedream 4.0 --- */
   async function handleGenerate() {
     if (useNewsMode && !selectedNews) {
-      alert('Veuillez sélectionner une actualité (ou passez en mode "Sans actualité")');
+      alert(t.generate.alertSelectNews);
       return;
     }
     if (!businessType.trim()) {
-      alert('Veuillez renseigner votre type de business');
+      alert(t.generate.alertEnterBusiness);
       return;
     }
     if (!useNewsMode && !businessDescription.trim()) {
-      alert('En mode sans actualité, veuillez décrire votre business en détail pour enrichir la génération');
+      alert(t.generate.alertDescribeBusiness);
       return;
     }
 
@@ -1428,7 +1430,7 @@ export default function GeneratePage() {
           }
           return;
         }
-        throw new Error(errorData.error || `Erreur serveur: ${res.status}`);
+        throw new Error(errorData.error || `${t.generate.errorServerSuffix}: ${res.status}`);
       }
 
       const data = await res.json();
@@ -1441,7 +1443,7 @@ export default function GeneratePage() {
         credits.refresh();
       }
 
-      if (!data?.ok) throw new Error(data?.error || 'Génération échouée');
+      if (!data?.ok) throw new Error(data?.error || t.generate.generatingInProgress);
 
       // Log provider discret (visible dans la console navigateur)
       if (data._p) {
@@ -1720,7 +1722,7 @@ export default function GeneratePage() {
 
       } catch (overlayError: any) {
         console.error('[Generate] ❌ Overlays FAILED:', overlayError);
-        alert('⚠️ ERREUR OVERLAYS:\n' + overlayError.message + '\n\nAffichage de l\'image sans overlay.');
+        alert(`${t.generate.alertOverlayError}\n${overlayError.message}\n\n${t.generate.alertOverlayFallback}`);
         // Utiliser l'image originale (fallback)
         finalImageUrl = data.imageUrl;
       }
@@ -1861,10 +1863,10 @@ export default function GeneratePage() {
     } catch (e: any) {
       clearInterval(progressInterval);
       console.error('Generation error:', e);
-      const errorMessage = e.message || 'Erreur lors de la génération';
+      const errorMessage = e.message || t.generate.generatingInProgress;
       setGenerationError(
         errorMessage.includes('fetch')
-          ? 'Impossible de contacter le serveur. Vérifiez votre connexion internet.'
+          ? t.generate.errorServerContact
           : errorMessage
       );
     } finally {
@@ -1886,7 +1888,7 @@ export default function GeneratePage() {
       setImageSavedToLibrary(true);
       const quickToast = document.createElement('div');
       quickToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#16a34a,#059669);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;animation:toastSlideIn 0.3s ease-out;';
-      quickToast.innerHTML = '<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>Redirection vers la galerie...</span><style>@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
+      quickToast.innerHTML = `<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>${t.generate.toastRedirecting}</span><style>@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>`;
       document.body.appendChild(quickToast);
       // Mettre à jour le text_overlay en arrière-plan si nécessaire
       if (textOverlayItems.length > 0) {
@@ -1908,7 +1910,7 @@ export default function GeneratePage() {
     setSavingToLibrary(true);
     const savingToast = document.createElement('div');
     savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15),0 8px 10px -6px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;backdrop-filter:blur(8px);animation:toastSlideIn 0.3s ease-out;';
-    savingToast.innerHTML = '<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
+    savingToast.innerHTML = `<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>${t.generate.toastSaving}</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>`;
     document.body.appendChild(savingToast);
 
     // Auto-appliquer les modifications en cours d'édition avant de sauvegarder
@@ -1954,7 +1956,7 @@ export default function GeneratePage() {
 
       if (!user) {
         savingToast.remove();
-        alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+        alert(t.generate.alertLoginRequired);
         setSavingToLibrary(false);
         return;
       }
@@ -1985,7 +1987,7 @@ export default function GeneratePage() {
 
         if (uploadError) {
           console.error('[SaveToLibrary] Upload error:', uploadError);
-          throw new Error('Impossible d\'uploader l\'image. Veuillez réessayer.');
+          throw new Error(t.generate.alertUploadImageFailed);
         }
 
         // Obtenir l'URL publique
@@ -2075,13 +2077,13 @@ export default function GeneratePage() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('[SaveToLibrary] Server error:', errorText);
-          throw new Error(`Erreur serveur (${response.status}): ${errorText.substring(0, 100)}`);
+          throw new Error(`${t.generate.errorServerSuffix} (${response.status}): ${errorText.substring(0, 100)}`);
         }
 
         data = await response.json();
       } catch (jsonError: any) {
         console.error('[SaveToLibrary] Error:', jsonError);
-        throw new Error(jsonError.message || 'Erreur lors de la sauvegarde');
+        throw new Error(jsonError.message || t.generate.errorSaveFailed);
       }
 
       if (data.ok) {
@@ -2092,16 +2094,16 @@ export default function GeneratePage() {
         // Remplacer le toast "saving" par le toast "succès" + redirection
         savingToast.style.background = 'linear-gradient(135deg, #16a34a, #059669)';
         savingToast.style.transition = 'all 0.4s ease';
-        savingToast.innerHTML = `<div style="display:flex;align-items:center;gap:0.75rem"><svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>${isUpdate ? 'Galerie mise à jour !' : 'Redirection vers la galerie...'}</span></div>`;
+        savingToast.innerHTML = `<div style="display:flex;align-items:center;gap:0.75rem"><svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>${isUpdate ? t.generate.toastGalleryUpdated : t.generate.toastRedirecting}</span></div>`;
         setTimeout(() => { savingToast.style.opacity = '0'; savingToast.style.transform = 'translateX(1rem)'; }, 1200);
         setTimeout(() => { savingToast.remove(); window.location.href = '/library'; }, 1600);
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.generate.errorSaveFailed);
       }
     } catch (error: any) {
       console.error('[SaveToLibrary] ❌ Error:', error);
       savingToast.remove();
-      alert(error.message || 'Erreur lors de la sauvegarde dans la galerie');
+      alert(error.message || t.generate.alertSaveError);
     } finally {
       setSavingToLibrary(false);
     }
@@ -2200,7 +2202,7 @@ export default function GeneratePage() {
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
-        alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+        alert(t.generate.alertLoginRequired);
         setSavingToLibrary(false);
         return;
       }
@@ -2210,7 +2212,7 @@ export default function GeneratePage() {
       // Payload pour la vidéo
       const payload = {
         videoUrl: generatedVideoUrl,
-        title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
+        title: selectedNews?.title ? selectedNews.title.substring(0, 50) : t.generate.generatedVideo,
         sourceType: 'seedream_i2v',
         duration: videoDuration || 5,
         thumbnailUrl: null,
@@ -2250,13 +2252,13 @@ export default function GeneratePage() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('[SaveVideoToLibrary] Server error:', errorText);
-          throw new Error(`Erreur serveur (${response.status}): ${errorText.substring(0, 100)}`);
+          throw new Error(`${t.generate.errorServerSuffix} (${response.status}): ${errorText.substring(0, 100)}`);
         }
 
         data = await response.json();
       } catch (jsonError: any) {
         console.error('[SaveVideoToLibrary] Error:', jsonError);
-        throw new Error(jsonError.message || 'Erreur lors de la sauvegarde');
+        throw new Error(jsonError.message || t.generate.errorSaveFailed);
       }
 
       if (data.ok) {
@@ -2271,18 +2273,18 @@ export default function GeneratePage() {
             <svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span>${isUpdate ? 'Vidéo mise à jour !' : 'Vidéo sauvegardée !'}</span>
+            <span>${isUpdate ? t.generate.videoUpdated : t.generate.videoSaved}</span>
           </div>
         `;
         document.body.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; }, 300);
         setTimeout(() => { toast.remove(); window.location.href = '/library'; }, 500);
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.generate.errorSaveFailed);
       }
     } catch (error: any) {
       console.error('[SaveVideoToLibrary] ❌ Error:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde de la vidéo dans la galerie');
+      alert(error.message || t.generate.alertVideoSaveError);
     } finally {
       setSavingToLibrary(false);
     }
@@ -2291,22 +2293,22 @@ export default function GeneratePage() {
   // Génération de vidéo avec Seedream/SeedDance
   async function handleGenerateVideo() {
     if (useNewsMode && !selectedNews) {
-      alert('Veuillez sélectionner une actualité (ou passez en mode "Sans actualité")');
+      alert(t.generate.alertSelectNews);
       return;
     }
     if (!businessType.trim()) {
-      alert('Veuillez renseigner votre type de business');
+      alert(t.generate.alertEnterBusiness);
       return;
     }
     if (!useNewsMode && !businessDescription.trim()) {
-      alert('En mode sans actualité, décrivez votre business en détail');
+      alert(t.generate.alertDescribeBusinessShort);
       return;
     }
 
     setGeneratingVideo(true);
     setGeneratedVideoUrl(null);
     setVideoTaskId(null);
-    setVideoProgress('Création de la tâche vidéo...');
+    setVideoProgress(t.generate.creatingVideoTask);
     setGenerationError(null);
     setVideoSavedToLibrary(false);
     setLastSavedVideoId(null);
@@ -2358,7 +2360,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
           subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
         } else {
           try {
-            setVideoProgress('Préparation de la vidéo...');
+            setVideoProgress(t.generate.preparingVideo);
             const targetWords = Math.ceil(videoDuration * 2.5);
             const context = useNewsMode && selectedNews
               ? `${selectedNews.title}. Business: ${businessType}. ${businessDescription || ''}`
@@ -2432,7 +2434,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
       }
 
       if (!data?.ok) {
-        const errorMsg = data?.error || 'Échec de création de la tâche vidéo';
+        const errorMsg = data?.error || t.generate.creatingVideoTask;
         console.error('[Video] Task creation failed:', errorMsg);
         if (data?.debug) console.log('[Video] Debug info:', data.debug);
         throw new Error(errorMsg);
@@ -2453,10 +2455,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
       const pollWithRetry = async (attempt: number): Promise<void> => {
         if (attempt >= maxAttempts) {
-          throw new Error('Timeout: La génération prend trop de temps (5 min max)');
+          throw new Error(t.generate.errorVideoTimeout);
         }
 
-        setVideoProgress(`Génération en cours... (${attempt * 5}s / 300s max)`);
+        setVideoProgress(`${t.generate.generationInProgressTime} (${attempt * 5}s / 300s max)`);
 
         try {
           const statusRes = await fetch('/api/seedream/t2v', {
@@ -2483,7 +2485,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   let audioUrlForMerge = generatedAudioUrl;
 
                   if (!audioUrlForMerge) {
-                    setVideoProgress('Finalisation de la vidéo...');
+                    setVideoProgress(t.generate.finalizingVideoProgress);
                     let textForAudio = '';
                     if (audioTextSource === 'ai') {
                       textForAudio = useNewsMode && selectedNews
@@ -2510,7 +2512,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                   // Fusionner audio dans la vidéo côté serveur
                   if (audioUrlForMerge) {
-                    setVideoProgress('Finalisation de la vidéo...');
+                    setVideoProgress(t.generate.finalizingVideoProgress);
                     const mergeRes = await fetch('/api/merge-audio-video', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -2546,7 +2548,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     headers: vHeaders,
                     body: JSON.stringify({
                       videoUrl: finalVideoUrl,
-                      title: selectedNews?.title ? selectedNews.title.substring(0, 50) : 'Vidéo générée',
+                      title: selectedNews?.title ? selectedNews.title.substring(0, 50) : t.generate.generatedVideo,
                       sourceType: 'seedream_i2v',
                       duration: videoDuration,
                       subtitleText: generatedSubtitleText || null,
@@ -2570,12 +2572,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               console.error('[Video] Completed but no URL. Full response:', JSON.stringify(statusData, null, 2));
               // Afficher les données debug dans l'erreur
               const debugInfo = statusData.debug ? JSON.stringify(statusData.debug, null, 2) : 'No debug data';
-              throw new Error(`Vidéo générée mais URL non trouvée. Debug: ${debugInfo.substring(0, 500)}`);
+              throw new Error(`${t.generate.errorVideoUrlNotFound} Debug: ${debugInfo.substring(0, 500)}`);
             }
           }
 
           if (statusData.status === 'failed' || !statusData.ok) {
-            throw new Error(statusData.error || 'La génération vidéo a échoué');
+            throw new Error(statusData.error || t.generate.errorVideoGenerationFailed);
           }
 
           // Encore en cours - continuer le polling
@@ -2589,13 +2591,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
       };
 
       // Attendre 5s puis commencer le polling
-      setVideoProgress('Démarrage de la génération...');
+      setVideoProgress(t.generate.startingGeneration);
       await new Promise(resolve => setTimeout(resolve, 5000));
       await pollWithRetry(1);
 
     } catch (e: any) {
       console.error('[Video] Generation error:', e);
-      setGenerationError(e.message || 'Erreur lors de la génération vidéo');
+      setGenerationError(e.message || t.generate.videoGenerationInProgress);
       setGeneratingVideo(false);
       setVideoProgress('');
     }
@@ -2609,8 +2611,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
       <div className="max-w-7xl mx-auto">
         <p className="text-neutral-600 mb-6">
           {useNewsMode
-            ? 'Associez une actualité à votre business pour créer un visuel engageant et augmenter votre visibilité'
-            : 'Décrivez votre business en détail pour créer un visuel percutant basé sur votre identité'}
+            ? t.generate.subtitleWithNews
+            : t.generate.subtitleWithoutNews}
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -2622,12 +2624,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">🎨</div>
                   <div>
-                    <h4 className="font-bold text-purple-900 text-sm mb-1">Mode Création Libre</h4>
+                    <h4 className="font-bold text-purple-900 text-sm mb-1">{t.generate.freeCreationMode}</h4>
                     <p className="text-xs text-purple-700 mb-2">
-                      Vous générez sans actualité. Décrivez votre business en détail dans le panneau de droite pour obtenir un visuel percutant.
+                      {t.generate.freeCreationDesc}
                     </p>
                     <p className="text-[10px] text-purple-600">
-                      Vous pouvez toujours parcourir et sélectionner une actualité ci-dessous si vous le souhaitez (optionnel).
+                      {t.generate.freeCreationHint}
                     </p>
                   </div>
                 </div>
@@ -2641,11 +2643,30 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 onChange={(e) => setCategory(e.target.value)}
                 className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
               >
-                {availableCategories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+                {availableCategories.map((cat) => {
+                  const categoryLabels: Record<string, string> = {
+                    'Les bonnes nouvelles': t.generate.catGoodNews,
+                    'Dernières news': t.generate.catLatestNews,
+                    'Tech & Gaming': t.generate.catTechGaming,
+                    'Business & Finance': t.generate.catBusinessFinance,
+                    'Santé & Bien-être': t.generate.catHealthWellness,
+                    'Sport': t.generate.catSport,
+                    'Cinéma & Séries': t.generate.catMoviesSeries,
+                    'Musique & Festivals': t.generate.catMusicFestivals,
+                    'Politique': t.generate.catPolitics,
+                    'Science & Environnement': t.generate.catScienceEnvironment,
+                    'Nature & Animaux': t.generate.catNatureAnimals,
+                    'International': t.generate.catInternational,
+                    'Moteurs & Adrénaline': t.generate.catMotorsAdrenaline,
+                    'Food & Gastronomie': t.generate.catFoodGastronomy,
+                    'Lifestyle & People': t.generate.catLifestylePeople,
+                  };
+                  return (
+                    <option key={cat} value={cat}>
+                      {categoryLabels[cat] || cat}
+                    </option>
+                  );
+                })}
               </select>
 
               {/* Barre de recherche */}
@@ -2653,7 +2674,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Rechercher dans les actualités..."
+                placeholder={t.generate.searchPlaceholder}
                 className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -2662,7 +2683,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             <div>
               {loading && (
                 <div className="text-center py-8 text-neutral-500">
-                  Chargement des actualités...
+                  {t.generate.loadingNews}
                 </div>
               )}
 
@@ -2674,7 +2695,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
               {!loading && !error && filteredNews.length === 0 && (
                 <div className="text-center py-8 text-neutral-500">
-                  Aucune actualité trouvée
+                  {t.generate.noNewsFound}
                 </div>
               )}
 
@@ -2724,7 +2745,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           </a>
                           {selectedNews?.id === item.id && (
                             <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
-                              Sélectionné
+                              {t.generate.selected}
                             </span>
                           )}
                         </div>
@@ -2752,10 +2773,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm">⏱️</span>
-                      <span className="text-xs font-bold text-amber-900">Sprint Fondateur</span>
+                      <span className="text-xs font-bold text-amber-900">{t.generate.sprintFounder}</span>
                     </div>
                     <p className="text-sm font-bold text-amber-800 mb-2">
-                      {remaining > 0 ? `Il vous reste ${days}j ${hours}h ${mins}min` : 'Sprint terminé !'}
+                      {remaining > 0 ? `${t.generate.sprintTimeRemaining} ${days}j ${hours}h ${mins}min` : t.generate.sprintFinished}
                     </p>
                     <div className="w-full bg-amber-200 rounded-full h-2 mb-3">
                       <div
@@ -2767,9 +2788,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       onClick={() => startCheckout('fondateurs')}
                       className="block w-full py-2 text-center text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:shadow-lg transition-all"
                     >
-                      Passer Fondateurs (149€/mois)
+                      {t.generate.upgradeFounders}
                     </button>
-                    <p className="text-[9px] text-amber-700 text-center mt-1.5">4,99€ déduits du premier mois</p>
+                    <p className="text-[9px] text-amber-700 text-center mt-1.5">{t.generate.sprintDeducted}</p>
                   </div>
                 );
               })()}
@@ -2789,18 +2810,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     // Niveaux d'usage par feature : combien on peut encore en faire
                     const features = [
                       { label: 'Images', icon: '🖼️', cost: 5, remaining: Math.floor(bal / 5) },
-                      { label: 'Vidéos', icon: '🎬', cost: 25, remaining: Math.floor(bal / 25) },
-                      { label: 'Audio / Texte', icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
+                      { label: t.generate.featureVideos, icon: '🎬', cost: 25, remaining: Math.floor(bal / 25) },
+                      { label: t.generate.featureAudioText, icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
                     ];
 
                     const getIntensity = (remaining: number, cost: number) => {
                       const maxPossible = total > 0 ? Math.floor(total / cost) : 0;
                       if (maxPossible === 0) return { label: '—', color: 'text-neutral-400', bg: 'bg-neutral-100' };
                       const usedRatio = maxPossible > 0 ? 1 - (remaining / maxPossible) : 1;
-                      if (remaining === 0) return { label: 'Épuisé', color: 'text-red-700', bg: 'bg-red-100' };
-                      if (usedRatio < 0.4) return { label: 'Léger', color: 'text-green-700', bg: 'bg-green-100' };
-                      if (usedRatio < 0.75) return { label: 'Moyen', color: 'text-amber-700', bg: 'bg-amber-100' };
-                      return { label: 'Intensif', color: 'text-red-700', bg: 'bg-red-100' };
+                      if (remaining === 0) return { label: t.generate.exhausted, color: 'text-red-700', bg: 'bg-red-100' };
+                      if (usedRatio < 0.4) return { label: t.generate.light, color: 'text-green-700', bg: 'bg-green-100' };
+                      if (usedRatio < 0.75) return { label: t.generate.moderate, color: 'text-amber-700', bg: 'bg-amber-100' };
+                      return { label: t.generate.intensive, color: 'text-red-700', bg: 'bg-red-100' };
                     };
 
                     return (
@@ -2809,37 +2830,37 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {cantMakeImage && (
                           <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-center">
                             <p className="text-xs font-bold text-red-700 mb-1">
-                              {isCreditsOut ? 'Crédits épuisés' : `${bal} crédit${bal > 1 ? 's' : ''} restant${bal > 1 ? 's' : ''}`}
+                              {isCreditsOut ? t.generate.creditsExhausted : `${bal} ${t.generate.creditsRemaining}`}
                             </p>
                             <p className="text-[10px] text-red-600 mb-2">
                               {isSoloOrPromo
-                                ? 'Votre quota promo est atteint.'
+                                ? t.generate.promoQuotaReached
                                 : isFree
-                                ? 'Votre plan gratuit est limité.'
-                                : 'Plus assez de crédits pour générer.'}
+                                ? t.generate.freePlanLimited
+                                : t.generate.notEnoughCredits}
                             </p>
                             <div className="flex gap-2">
                               <button
                                 onClick={() => startCheckout('solo')}
                                 className="flex-1 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-100 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
                               >
-                                Solo — 49€/mois
+                                {t.generate.soloPrice}
                               </button>
                               <button
                                 onClick={() => startCheckout('fondateurs')}
                                 className="flex-1 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
                               >
-                                Fondateurs — 149€/mois
+                                {t.generate.foundersPrice}
                               </button>
                             </div>
                             <p className="text-[9px] text-purple-600 mt-1.5 font-medium">
-                              Fondateurs : TikTok + LinkedIn + 660 crédits/mois
+                              {t.generate.foundersFeatures}
                             </p>
                           </div>
                         )}
 
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">Votre usage</span>
+                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
                           <span className="text-[10px] text-neutral-400 capitalize">
                             {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
                           </span>
@@ -2855,7 +2876,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   <span className="text-xs text-neutral-700 font-medium">{f.label}</span>
                                 </div>
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${intensity.bg} ${intensity.color}`}>
-                                  {f.remaining === 0 ? 'Épuisé' : intensity.label}
+                                  {f.remaining === 0 ? t.generate.exhausted : intensity.label}
                                 </span>
                               </div>
                             );
@@ -2879,7 +2900,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             onClick={() => router.push('/pricing')}
                             className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer"
                           >
-                            Plan gratuit limité — Voir les plans
+                            {t.generate.freePlanLimitedCta}
                           </button>
                         )}
 
@@ -2890,11 +2911,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               onClick={() => startCheckout('fondateurs')}
                               className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
                             >
-                              TikTok + LinkedIn + 3x plus de crédits ? Fondateurs →
+                              {t.generate.tiktokLinkedinMore}
                             </button>
                             {credits.expiresAt && (
                               <p className="text-[10px] text-red-500 mt-1 text-center font-medium">
-                                Accès promo expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline cursor-pointer">S'abonner</a>
+                                {t.generate.promoExpiresOn} {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline cursor-pointer">{t.generate.subscribe}</a>
                               </p>
                             )}
                           </>
@@ -2902,12 +2923,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {/* CTA Fondateurs promo → S'abonner */}
                         {credits.plan === 'fondateurs' && credits.expiresAt && (
                           <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg text-center">
-                            <p className="text-[11px] text-purple-800 font-semibold">Accès Fondateurs expire le {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
+                            <p className="text-[11px] text-purple-800 font-semibold">{t.generate.foundersExpiresOn} {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
                             <button
                               onClick={() => startCheckout('fondateurs')}
                               className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
                             >
-                              Garder mes avantages Fondateurs →
+                              {t.generate.keepFoundersAdvantages}
                             </button>
                           </div>
                         )}
@@ -2915,7 +2936,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     );
                   })()
                 ) : (
-                  <p className="text-xs text-neutral-500 text-center">Connectez-vous pour voir votre usage</p>
+                  <p className="text-xs text-neutral-500 text-center">{t.generate.loginToSeeUsage}</p>
                 )}
               </div>
 
@@ -2924,7 +2945,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Widget 2 : Astuce du jour */}
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
                   <div className="text-4xl mb-3">{dailyTip.icon}</div>
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-2">Astuce du jour</h4>
+                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-2">{t.generate.dailyTip}</h4>
                   <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
                 </div>
 
@@ -2932,8 +2953,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-xl">🔥</span>
-                    <h4 className="text-sm font-bold text-green-900">Sujets tendance à exploiter</h4>
-                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">Mis à jour aujourd'hui</span>}
+                    <h4 className="text-sm font-bold text-green-900">{t.generate.trendingTopics}</h4>
+                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">{t.generate.updatedToday}</span>}
                   </div>
                   {trendingNews.length > 0 ? (
                     <div className="space-y-2">
@@ -2964,7 +2985,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
                               <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
                               {selectedNews?.id === item.id && (
-                                <span className="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded ml-auto">Sélectionné</span>
+                                <span className="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded ml-auto">{t.generate.selected}</span>
                               )}
                             </div>
                           </div>
@@ -2972,12 +2993,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-green-600">Chargement des tendances...</p>
+                    <p className="text-xs text-green-600">{t.generate.loadingTrends}</p>
                   )}
                   {/* Hashtags TikTok tendance */}
                   {trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-green-200">
-                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Hashtags TikTok tendance</p>
+                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">{t.generate.tiktokTrendingHashtags}</p>
                       <div className="flex flex-wrap gap-1">
                         {trendingData.tiktokHashtags.slice(0, 8).map((tag: any) => (
                           <span key={tag.hashtag} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
@@ -2990,7 +3011,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Sujets viraux à surfer */}
                   {trendingData?.googleTrends && trendingData.googleTrends.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-green-200">
-                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">Buzz du moment — surfez dessus !</p>
+                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">{t.generate.buzzMoment}</p>
                       <div className="flex flex-wrap gap-1">
                         {trendingData.googleTrends.slice(0, 6).map((t: any, i: number) => (
                           <span key={i} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
@@ -3010,8 +3031,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               >
                 <span className="text-sm">💡</span>
                 <p className="text-[11px] text-purple-700">
-                  Besoin d&apos;idées ?{' '}
-                  <span className="font-semibold group-hover:text-purple-900">Demandez à votre assistant marketing →</span>
+                  {t.generate.needIdeas}{' '}
+                  <span className="font-semibold group-hover:text-purple-900">{t.generate.askAssistant}</span>
                 </p>
               </div>
             </div>
@@ -3046,7 +3067,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                     {/* Options mode logo */}
                     <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">Comment utiliser cette image ?</p>
+                      <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.howToUseImage}</p>
                       <div className="space-y-2">
                         <label className="flex items-start gap-2 cursor-pointer">
                           <input
@@ -3057,8 +3078,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             className="mt-0.5"
                           />
                           <div>
-                            <p className="text-xs font-semibold text-blue-900">🎨 Ajouter comme logo en overlay</p>
-                            <p className="text-[10px] text-blue-700">Votre logo sera ajouté par-dessus l'image générée</p>
+                            <p className="text-xs font-semibold text-blue-900">🎨 {t.generate.addAsOverlay}</p>
+                            <p className="text-[10px] text-blue-700">{t.generate.logoOverlayDesc}</p>
                           </div>
                         </label>
                         <label className="flex items-start gap-2 cursor-pointer">
@@ -3070,8 +3091,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             className="mt-0.5"
                           />
                           <div>
-                            <p className="text-xs font-semibold text-blue-900">✏️ Modifier cette image</p>
-                            <p className="text-[10px] text-blue-700">Transformez votre image selon l'actualité</p>
+                            <p className="text-xs font-semibold text-blue-900">✏️ {t.generate.modifyImage}</p>
+                            <p className="text-[10px] text-blue-700">{t.generate.modifyImageDesc}</p>
                           </div>
                         </label>
                       </div>
@@ -3081,14 +3102,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       onClick={() => setLogoUrl(null)}
                       className="text-xs text-red-600 hover:underline font-medium"
                     >
-                      🗑️ Supprimer
+                      🗑️ {t.generate.deleteImage}
                     </button>
                   </div>
                 ) : (
                   <>
                     <div className="text-2xl mb-1">📸</div>
                     <p className="text-xs text-neutral-600 mb-2">
-                      Glissez ou cliquez un logo/une photo (optionnel)
+                      {t.generate.dropOrClickLogo}
                     </p>
                     <input
                       ref={fileInputRef}
@@ -3105,7 +3126,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       disabled={uploading}
                       className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50"
                     >
-                      {uploading ? 'Upload...' : 'Choisir'}
+                      {uploading ? t.generate.uploading : t.generate.choose}
                     </button>
                   </>
                 )}
@@ -3115,10 +3136,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {/* Panel Assistant Prompt */}
             <div ref={assistantPanelRef} className="bg-white rounded-xl border p-3">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Assistant Marketing</h3>
+                <h3 className="text-sm font-semibold">{t.generate.assistantMarketing}</h3>
                 {/* Switch Actualité / Sans actualité */}
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>Sans actualité</span>
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>{t.generate.withoutNews}</span>
                   <button
                     onClick={() => {
                       setUseNewsMode(!useNewsMode);
@@ -3137,15 +3158,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }`}
                     />
                   </button>
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>Avec actualité</span>
+                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>{t.generate.withNews}</span>
                   {/* Info tooltip */}
                   <div className="relative group">
                     <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold cursor-help hover:bg-blue-100 hover:text-blue-600 transition-colors">i</span>
                     <div className="absolute right-0 top-6 z-50 hidden group-hover:block w-56 p-2.5 bg-neutral-900 text-white text-[10px] rounded-lg shadow-xl leading-relaxed">
-                      <p className="font-semibold mb-1">Avec actualité</p>
-                      <p className="mb-2">Génère du contenu en liant une actualité tendance à votre business. Idéal pour surfer sur le buzz et capter l'attention.</p>
-                      <p className="font-semibold mb-1">Sans actualité</p>
-                      <p>Génère du contenu basé uniquement sur votre business. Parfait pour des posts intemporels (offres, présentation, valeurs...).</p>
+                      <p className="font-semibold mb-1">{t.generate.tooltipWithNews}</p>
+                      <p className="mb-2">{t.generate.tooltipWithNewsDesc}</p>
+                      <p className="font-semibold mb-1">{t.generate.tooltipWithoutNews}</p>
+                      <p>{t.generate.tooltipWithoutNewsDesc}</p>
                       <div className="absolute -top-1 right-3 w-2 h-2 bg-neutral-900 rotate-45"></div>
                     </div>
                   </div>
@@ -3156,7 +3177,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {selectedNews && (
                 <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
                   <p className="text-[10px] font-medium text-blue-900 mb-1">
-                    {useNewsMode ? '✓ Actualité sélectionnée :' : '📰 Actualité optionnelle sélectionnée :'}
+                    {useNewsMode ? `✓ ${t.generate.selectedNews}` : `📰 ${t.generate.optionalSelectedNews}`}
                   </p>
                   <p className="text-xs font-semibold line-clamp-2 text-blue-800">
                     {selectedNews.title}
@@ -3166,7 +3187,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       onClick={() => setSelectedNews(null)}
                       className="text-[10px] text-red-500 hover:underline mt-1"
                     >
-                      Retirer
+                      {t.generate.remove}
                     </button>
                   )}
                 </div>
@@ -3176,18 +3197,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {!useNewsMode && !selectedNews && (
                 <div className="mb-3 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
                   <h4 className="text-xs font-bold text-purple-900 mb-2 flex items-center gap-1">
-                    🎯 Création libre - Décrivez votre business
+                    🎯 {t.generate.freeCreationTitle}
                   </h4>
                   <div className="text-[10px] text-purple-800 space-y-1.5">
-                    <p className="font-medium">Pour un visuel percutant, renseignez :</p>
+                    <p className="font-medium">{t.generate.freeCreationForBestResult}</p>
                     <ul className="list-disc pl-4 space-y-1">
-                      <li><strong>Votre activité :</strong> Que faites-vous exactement ?</li>
-                      <li><strong>Votre spécialité :</strong> Qu'est-ce qui vous rend unique ?</li>
-                      <li><strong>Vos valeurs :</strong> Quelle image voulez-vous transmettre ?</li>
-                      <li><strong>Votre audience :</strong> À qui parlez-vous ?</li>
+                      <li><strong>{t.generate.freeCreationActivity}</strong> {t.generate.freeCreationActivityDesc}</li>
+                      <li><strong>{t.generate.freeCreationSpecialty}</strong> {t.generate.freeCreationSpecialtyDesc}</li>
+                      <li><strong>{t.generate.freeCreationValues}</strong> {t.generate.freeCreationValuesDesc}</li>
+                      <li><strong>{t.generate.freeCreationAudience}</strong> {t.generate.freeCreationAudienceDesc}</li>
                     </ul>
                     <p className="mt-2 text-purple-600 italic">
-                      Plus votre description est détaillée, meilleur sera le résultat !
+                      {t.generate.freeCreationDetailHint}
                     </p>
                   </div>
                 </div>
@@ -3197,21 +3218,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {selectedNews && useNewsMode && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
                   <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
-                    💡 Comment relier cette actu à votre business ?
+                    💡 {t.generate.newsLinkingTitle}
                   </h4>
                   <div className="text-[10px] text-blue-800 space-y-1.5">
-                    <p className="font-medium">Questions à vous poser :</p>
+                    <p className="font-medium">{t.generate.newsLinkingQuestions}</p>
                     <ul className="list-disc pl-4 space-y-1">
-                      <li><strong>Impact direct :</strong> Comment cette actualité affecte-t-elle vos clients ?</li>
-                      <li><strong>Opportunité :</strong> Quel problème de vos clients cette actu révèle-t-elle ?</li>
-                      <li><strong>Solution :</strong> Comment votre produit/service répond-il à ce contexte ?</li>
-                      <li><strong>Valeur ajoutée :</strong> Quelle expertise unique apportez-vous sur ce sujet ?</li>
+                      <li><strong>{t.generate.newsLinkingImpact}</strong> {t.generate.newsLinkingImpactDesc}</li>
+                      <li><strong>{t.generate.newsLinkingOpportunity}</strong> {t.generate.newsLinkingOpportunityDesc}</li>
+                      <li><strong>{t.generate.newsLinkingSolution}</strong> {t.generate.newsLinkingSolutionDesc}</li>
+                      <li><strong>{t.generate.newsLinkingExpertise}</strong> {t.generate.newsLinkingExpertiseDesc}</li>
                     </ul>
                     <div className="mt-2 pt-2 border-t border-blue-300">
-                      <p className="font-medium mb-1">Exemple concret :</p>
+                      <p className="font-medium mb-1">{t.generate.newsLinkingExample}</p>
                       <p className="italic text-blue-700">
-                        Actu : "Hausse du prix de l'essence" → Restaurant local :
-                        "Alors que se déplacer coûte cher, découvrez notre nouveau service de livraison gratuite dans votre quartier"
+                        {t.generate.newsLinkingExampleText}
                       </p>
                     </div>
                   </div>
@@ -3221,7 +3241,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {/* Sélecteur de Profil de Communication - Stratégies Marketing */}
               <div ref={promptSectionRef} className="mb-4">
                 <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                  🎭 Choisissez votre stratégie marketing
+                  🎭 {t.generate.chooseStrategy}
                 </label>
 
                 {/* Sélection simple en ligne */}
@@ -3262,13 +3282,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {/* Points clés inline */}
                         <div className="space-y-1">
                           <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>Stratégie :</strong> {tonePresets[communicationProfile].details}
+                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}
                           </p>
                           <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>Exemple :</strong> {tonePresets[communicationProfile].example}
+                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}
                           </p>
                           <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>Idéal pour :</strong> {tonePresets[communicationProfile].whenToUse}
+                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}
                           </p>
                         </div>
                       </div>
@@ -3281,11 +3301,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {/* === WIZARD STEP INDICATOR === */}
               <div className="flex items-center justify-between mb-3 px-1">
                 {[
-                  { step: 1, label: 'Business' },
-                  { step: 2, label: 'Direction' },
-                  { step: 3, label: 'Créatif' },
-                  { step: 4, label: 'Expert' },
-                  { step: 5, label: 'Générer' },
+                  { step: 1, label: t.generate.stepBusiness },
+                  { step: 2, label: t.generate.stepDirection },
+                  { step: 3, label: t.generate.stepCreative },
+                  { step: 4, label: t.generate.stepExpert },
+                  { step: 5, label: t.generate.stepGenerate },
                 ].map(({ step, label }, i) => (
                   <div key={step} className="flex items-center">
                     <button
@@ -3320,13 +3340,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Type de business */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Business <span className="text-red-500">*</span>
+                    {t.generate.businessLabel} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={businessType}
                     onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder="Ex: Restaurant bio, Agence marketing digital, Coach sportif..."
+                    placeholder={t.generate.businessPlaceholder}
                     autoComplete="off"
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
@@ -3335,15 +3355,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Description business */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Description {!useNewsMode && <span className="text-red-500">*</span>}
-                    {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">(détaillez au max !)</span>}
+                    {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
+                    {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">{t.generate.descriptionRequired}</span>}
                   </label>
                   <textarea
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder={useNewsMode
-                      ? "Spécialité, valeur ajoutée... Ex: Restaurant spécialisé dans les produits locaux et de saison, livraison éco-responsable"
-                      : "Décrivez en détail votre activité, spécialité, ambiance, valeurs, ce qui vous différencie... Ex: Boulangerie artisanale familiale depuis 1985, pain au levain naturel, farines bio locales, ambiance chaleureuse et authentique, livraison vélo dans le quartier"
+                      ? t.generate.descriptionPlaceholderNews
+                      : t.generate.descriptionPlaceholderFree
                     }
                     rows={useNewsMode ? 2 : 4}
                     className={`w-full text-xs rounded-lg border-2 px-3 py-2 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
@@ -3357,13 +3377,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Audience cible */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Audience
+                    {t.generate.audienceLabel}
                   </label>
                   <input
                     type="text"
                     value={targetAudience}
                     onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="Qui sera intéressé ? Ex: Familles soucieuses de bien manger, professionnels pressés..."
+                    placeholder={t.generate.audiencePlaceholder}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
                 </div>
@@ -3374,7 +3394,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   disabled={!businessType.trim()}
                   className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Suivant <span className="text-xs">→</span>
+                  {t.generate.next} <span className="text-xs">→</span>
                 </button>
                 </>)}
 
@@ -3382,7 +3402,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {formStep === 2 && (<>
                 <div className="border-t pt-2 mt-2">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-medium text-neutral-600">📝 Direction du contenu</p>
+                    <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
 
                     {/* Bouton IA pour remplir la direction */}
                     <button
@@ -3392,9 +3412,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                       ) : (
-                        <><span>✨</span> Remplir automatiquement</>
+                        <><span>✨</span> {t.generate.autoFill}</>
                       )}
                     </button>
                   </div>
@@ -3403,10 +3423,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {useNewsMode && selectedNews && (
                   <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
                     <label className="block text-xs font-semibold mb-2 text-neutral-700">
-                      Orientation du visuel
+                      {t.generate.visualOrientation}
                     </label>
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 Business</span>
+                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
                       <input
                         type="range"
                         min={0}
@@ -3419,14 +3439,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)`,
                         }}
                       />
-                      <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 Actualité</span>
+                      <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
                     </div>
                     <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
                       {contentFocus <= 30
-                        ? '🏢 Votre business au premier plan, actualité en toile de fond'
+                        ? `🏢 ${t.generate.focusBusiness}`
                         : contentFocus >= 70
-                        ? '📰 L\'actualité au premier plan, votre business en contexte'
-                        : '⚖️ Équilibre entre votre business et l\'actualité'}
+                        ? `📰 ${t.generate.focusNews}`
+                        : `⚖️ ${t.generate.focusBalance}`}
                     </p>
                   </div>
                   )}
@@ -3434,7 +3454,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Angle de l'image */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Angle de l'image
+                      {t.generate.imageAngleLabel}
                     </label>
                     <select
                       onChange={(e) => {
@@ -3446,19 +3466,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
-                      <option value="">-- Choisir une suggestion --</option>
-                      <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">Intégration harmonieuse</option>
-                      <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">Focus sur la solution</option>
-                      <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">Métaphore visuelle</option>
-                      <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">Composition en profondeur</option>
-                      <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">Environnement narratif</option>
-                      <option value="custom">✏️ Personnalisé</option>
+                      <option value="">{t.generate.chooseSuggestion}</option>
+                      <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">{t.generate.harmonious}</option>
+                      <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">{t.generate.focusSolution}</option>
+                      <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">{t.generate.visualMetaphor}</option>
+                      <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">{t.generate.depthComposition}</option>
+                      <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">{t.generate.narrativeEnvironment}</option>
+                      <option value="custom">✏️ {t.generate.customOption}</option>
                     </select>
                     <input
                       type="text"
                       value={imageAngle}
                       onChange={(e) => setImageAngle(e.target.value)}
-                      placeholder="Personnalisez votre angle visuel..."
+                      placeholder={t.generate.customizeImageAngle}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3466,7 +3486,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Angle marketing */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Angle marketing
+                      {t.generate.marketingAngleLabel}
                     </label>
                     <select
                       onChange={(e) => {
@@ -3478,18 +3498,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
-                      <option value="">-- Choisir une suggestion --</option>
-                      <option value="Profiter de l'opportunité créée par l'actualité">Opportunité créée par l'actu</option>
-                      <option value="Résoudre le problème soulevé par l'actualité">Résoudre le problème de l'actu</option>
-                      <option value="Se positionner en expert face à l'actualité">Expert face à l'actu</option>
-                      <option value="Surfer sur la tendance de l'actualité">Surfer sur la tendance</option>
-                      <option value="Anticiper les conséquences de l'actualité">Anticiper les conséquences</option>
-                      <option value="custom">✏️ Personnalisé</option>
+                      <option value="">{t.generate.chooseSuggestion}</option>
+                      <option value="Profiter de l'opportunité créée par l'actualité">{t.generate.opportunityFromNews}</option>
+                      <option value="Résoudre le problème soulevé par l'actualité">{t.generate.solveProblem}</option>
+                      <option value="Se positionner en expert face à l'actualité">{t.generate.expertFacingNews}</option>
+                      <option value="Surfer sur la tendance de l'actualité">{t.generate.surfTrend}</option>
+                      <option value="Anticiper les conséquences de l'actualité">{t.generate.anticipateConsequences}</option>
+                      <option value="custom">✏️ {t.generate.customOption}</option>
                     </select>
                     <textarea
                       value={marketingAngle}
                       onChange={(e) => setMarketingAngle(e.target.value)}
-                      placeholder="Personnalisez votre angle marketing..."
+                      placeholder={t.generate.customizeMarketingAngle}
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
@@ -3498,7 +3518,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Angle du contenu (éditorial) */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Angle du contenu
+                      {t.generate.contentAngleLabel}
                     </label>
                     <select
                       onChange={(e) => {
@@ -3510,19 +3530,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
-                      <option value="">-- Choisir une suggestion --</option>
-                      <option value="Témoignage client ou étude de cas concret">Témoignage / Cas concret</option>
-                      <option value="Contenu éducatif qui apporte de la valeur au lecteur">Éducatif / Valeur ajoutée</option>
-                      <option value="Behind-the-scenes, coulisses du métier">Coulisses / Behind-the-scenes</option>
-                      <option value="Prise de position forte et opinion tranchée">Opinion / Prise de position</option>
-                      <option value="Contenu inspirant et motivationnel">Inspirant / Motivationnel</option>
-                      <option value="custom">✏️ Personnalisé</option>
+                      <option value="">{t.generate.chooseSuggestion}</option>
+                      <option value="Témoignage client ou étude de cas concret">{t.generate.testimonialCase}</option>
+                      <option value="Contenu éducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
+                      <option value="Behind-the-scenes, coulisses du métier">{t.generate.behindTheScenes}</option>
+                      <option value="Prise de position forte et opinion tranchée">{t.generate.opinionStance}</option>
+                      <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
+                      <option value="custom">✏️ {t.generate.customOption}</option>
                     </select>
                     <input
                       type="text"
                       value={contentAngle}
                       onChange={(e) => setContentAngle(e.target.value)}
-                      placeholder="Personnalisez votre angle éditorial..."
+                      placeholder={t.generate.customizeContentAngle}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3531,14 +3551,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Navigation étape 2 */}
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    ← Retour
+                    ← {t.generate.back}
                   </button>
                   <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    Suivant →
+                    {t.generate.next} →
                   </button>
                 </div>
                 <button onClick={() => setFormStep(3)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  Passer cette étape →
+                  {t.generate.skipStep}
                 </button>
                 </>)}
 
@@ -3546,7 +3566,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {formStep === 3 && (<>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-medium text-neutral-600">Personnalisez votre contenu</p>
+                    <p className="text-[10px] font-medium text-neutral-600">{t.generate.customizeContent}</p>
                     <button
                       type="button"
                       onClick={() => handleAiAutoFill('creatif')}
@@ -3554,9 +3574,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                       ) : (
-                        <><span>✨</span> Remplir automatiquement</>
+                        <><span>✨</span> {t.generate.autoFill}</>
                       )}
                     </button>
                   </div>
@@ -3564,12 +3584,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Histoire à raconter */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Histoire à raconter
+                      {t.generate.storyToTell}
                     </label>
                     <textarea
                       value={storyToTell}
                       onChange={(e) => setStoryToTell(e.target.value)}
-                      placeholder="Ex: Dans un contexte où X (actu), nous proposons Y (solution) pour Z (bénéfice client)"
+                      placeholder={t.generate.storyPlaceholder}
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
@@ -3578,13 +3598,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* But de la publication */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      But de la publication
+                      {t.generate.publicationGoal}
                     </label>
                     <input
                       type="text"
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
-                      placeholder="Ex: Montrer notre expertise sur cette actu, attirer clients concernés par ce sujet..."
+                      placeholder={t.generate.goalPlaceholder}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3592,13 +3612,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Émotion à transmettre */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Émotion à transmettre
+                      {t.generate.emotionToConvey}
                     </label>
                     <input
                       type="text"
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
-                      placeholder="Ex: Rassurance face à l'actu, optimisme, sentiment d'opportunité, empathie..."
+                      placeholder={t.generate.emotionPlaceholder}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3607,14 +3627,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
-                        Texte à ajouter <span className="text-neutral-400 font-normal">(optionnel)</span>
+                        {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
                       </label>
                       <button
                         type="button"
                         onClick={handleGenerateTextSuggestions}
                         className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
                       >
-                        💡 Suggérer un texte
+                        💡 {t.generate.suggestText}
                       </button>
                     </div>
 
@@ -3622,14 +3642,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       type="text"
                       value={optionalText}
                       onChange={(e) => setOptionalText(e.target.value)}
-                      placeholder="Ex: Offre limitée, -20% ce week-end, Nouvelle collection..."
+                      placeholder={t.generate.textPlaceholder}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
 
                     {/* Suggestions intelligentes */}
                     {showTextSuggestions && textSuggestions.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">Suggestions basées sur votre actu + business :</p>
+                        <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.suggestionsBasedOn}</p>
                         <div className="space-y-1.5">
                           {textSuggestions.map((suggestion, index) => (
                             <button
@@ -3642,7 +3662,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
                             >
                               <span className="text-neutral-700">{suggestion}</span>
-                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">Utiliser</span>
+                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">{t.generate.use}</span>
                             </button>
                           ))}
                         </div>
@@ -3651,7 +3671,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           onClick={() => setShowTextSuggestions(false)}
                           className="mt-2 text-[10px] text-neutral-500 hover:text-neutral-700 transition-colors"
                         >
-                          Masquer les suggestions
+                          {t.generate.hideSuggestions}
                         </button>
                       </div>
                     )}
@@ -3662,14 +3682,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Navigation étape 3 */}
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    Retour
+                    {t.generate.back}
                   </button>
                   <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    Suivant
+                    {t.generate.next}
                   </button>
                 </div>
                 <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  Passer les étapes optionnelles
+                  {t.generate.skipOptionalSteps}
                 </button>
                 </>)}
 
@@ -3678,8 +3698,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <p className="text-[10px] font-medium text-neutral-600">Questions expert (optionnel)</p>
-                      <p className="text-[9px] text-neutral-400">Multipliez l'impact de votre visuel</p>
+                      <p className="text-[10px] font-medium text-neutral-600">{t.generate.expertQuestions}</p>
+                      <p className="text-[9px] text-neutral-400">{t.generate.multiplyImpact}</p>
                     </div>
                     <button
                       type="button"
@@ -3688,9 +3708,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyse...</>
+                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                       ) : (
-                        <><span>✨</span> Remplir automatiquement</>
+                        <><span>✨</span> {t.generate.autoFill}</>
                       )}
                     </button>
                   </div>
@@ -3698,13 +3718,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Question 1 : Problème résolu */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Quel problème résolvez-vous face à cette actualité ?
+                      {t.generate.problemSolved}
                     </label>
                     <input
                       type="text"
                       value={problemSolved}
                       onChange={(e) => setProblemSolved(e.target.value)}
-                      placeholder="Ex: L'essence coûte cher → Nos légumes viennent à vélo, pas de transport longue distance"
+                      placeholder={t.generate.problemPlaceholder}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3712,13 +3732,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Question 2 : Avantage unique */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Quel est votre avantage unique face à vos concurrents ?
+                      {t.generate.uniqueAdvantage}
                     </label>
                     <input
                       type="text"
                       value={uniqueAdvantage}
                       onChange={(e) => setUniqueAdvantage(e.target.value)}
-                      placeholder="Ex: Seul restaurant 100% circuits courts dans la région, légumes récoltés le matin même"
+                      placeholder={t.generate.advantagePlaceholder}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3726,12 +3746,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Question 3 : Idée visuelle */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      Avez-vous une idée de visuel en tête ?
+                      {t.generate.visualIdea}
                     </label>
                     <textarea
                       value={desiredVisualIdea}
                       onChange={(e) => setDesiredVisualIdea(e.target.value)}
-                      placeholder="Ex: Un vélo livrant des légumes frais avec en fond subtil une station-service aux prix élevés"
+                      placeholder={t.generate.visualIdeaPlaceholder}
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
@@ -3740,14 +3760,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Navigation étape 4 */}
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    Retour
+                    {t.generate.back}
                   </button>
                   <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    Suivant
+                    {t.generate.next}
                   </button>
                 </div>
                 <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  Passer cette étape
+                  {t.generate.skipThisStep}
                 </button>
                 </>)}
 
@@ -3755,7 +3775,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {formStep === 5 && (<>
                 {/* Plateforme */}
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">Plateforme</label>
+                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.platformLabel}</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
@@ -3771,7 +3791,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Tonalité (auto-géré par profil) */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Tonalité <span className="text-blue-600">(du profil)</span>
+                    {t.generate.toneLabel} <span className="text-blue-600">{t.generate.fromProfile}</span>
                   </label>
                   <input
                     type="text"
@@ -3784,32 +3804,32 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Style visuel */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Style <span className="text-blue-600">(suggéré par profil)</span>
+                    {t.generate.styleLabel} <span className="text-blue-600">{t.generate.suggestedByProfile}</span>
                   </label>
                   <select
                     value={visualStyle}
                     onChange={(e) => setVisualStyle(e.target.value)}
                     className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                   >
-                    <optgroup label="Styles de profil">
-                      <option value="Lumineux et épuré">Lumineux et épuré</option>
-                      <option value="Moderne et structuré">Moderne et structuré</option>
-                      <option value="Énergique et contrasté">Énergique et contrasté</option>
-                      <option value="Naturel et chaleureux">Naturel et chaleureux</option>
+                    <optgroup label={t.generate.profileStyles}>
+                      <option value="Lumineux et épuré">{t.generate.styleBrightClean}</option>
+                      <option value="Moderne et structuré">{t.generate.styleModernStructured}</option>
+                      <option value="Énergique et contrasté">{t.generate.styleEnergeticContrast}</option>
+                      <option value="Naturel et chaleureux">{t.generate.styleWarmNatural}</option>
                     </optgroup>
-                    <optgroup label="Autres styles">
-                      <option value="Minimaliste et clean">Minimaliste et clean</option>
-                      <option value="Coloré et vibrant">Coloré et vibrant</option>
-                      <option value="Sombre et dramatique">Sombre et dramatique</option>
-                      <option value="Pastel et doux">Pastel et doux</option>
-                      <option value="Bold et audacieux">Bold et audacieux</option>
-                      <option value="Vintage et rétro">Vintage et rétro</option>
-                      <option value="Futuriste et tech">Futuriste et tech</option>
-                      <option value="Organique et naturel">Organique et naturel</option>
-                      <option value="Luxe et premium">Luxe et premium</option>
-                      <option value="Playful et fun">Playful et fun</option>
-                      <option value="Élégant et sophistiqué">Élégant et sophistiqué</option>
-                      <option value="Dynamique et sportif">Dynamique et sportif</option>
+                    <optgroup label={t.generate.otherStyles}>
+                      <option value="Minimaliste et clean">{t.generate.styleMinimalist}</option>
+                      <option value="Coloré et vibrant">{t.generate.styleColorful}</option>
+                      <option value="Sombre et dramatique">{t.generate.styleDarkDramatic}</option>
+                      <option value="Pastel et doux">{t.generate.stylePastel}</option>
+                      <option value="Bold et audacieux">{t.generate.styleBold}</option>
+                      <option value="Vintage et rétro">{t.generate.styleVintage}</option>
+                      <option value="Futuriste et tech">{t.generate.styleFuturistic}</option>
+                      <option value="Organique et naturel">{t.generate.styleOrganic}</option>
+                      <option value="Luxe et premium">{t.generate.styleLuxury}</option>
+                      <option value="Playful et fun">{t.generate.stylePlayful}</option>
+                      <option value="Élégant et sophistiqué">{t.generate.styleElegant}</option>
+                      <option value="Dynamique et sportif">{t.generate.styleDynamic}</option>
                     </optgroup>
                   </select>
                 </div>
@@ -3817,7 +3837,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Style de rendu */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Rendu
+                    {t.generate.renderLabel}
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -3828,7 +3848,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       }`}
                     >
-                      Photo réaliste
+                      {t.generate.photoRealistic}
                     </button>
                     <button
                       onClick={() => setRenderStyle('illustration')}
@@ -3838,7 +3858,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       }`}
                     >
-                      Illustration / 3D
+                      {t.generate.illustration3D}
                     </button>
                   </div>
                 </div>
@@ -3846,7 +3866,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Style de personnages */}
                 <div>
                   <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    Personnages
+                    {t.generate.charactersLabel}
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -3857,7 +3877,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       }`}
                     >
-                      Humains
+                      {t.generate.humans}
                     </button>
                     <button
                       onClick={() => setCharacterStyle('fiction')}
@@ -3867,7 +3887,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
                       }`}
                     >
-                      Personnages fiction
+                      {t.generate.fictionCharacters}
                     </button>
                   </div>
                 </div>
@@ -3882,7 +3902,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'text-neutral-500 hover:text-neutral-700'
                     }`}
                   >
-                    🖼️ Visuel
+                    🖼️ {t.generate.visualMode}
                   </button>
                   <button
                     onClick={() => setGenerationMode('video')}
@@ -3892,7 +3912,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'text-neutral-500 hover:text-neutral-700'
                     }`}
                   >
-                    🎬 Vidéo
+                    🎬 {t.generate.videoMode}
                   </button>
                 </div>
 
@@ -3909,7 +3929,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                         />
                         <span className="text-xs font-semibold text-neutral-900">
-                          🎵 Ajouter de l'audio sur votre vidéo
+                          🎵 {t.generate.addAudioToVideo}
                         </span>
                       </label>
 
@@ -3925,7 +3945,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   : 'bg-white text-neutral-700 hover:bg-neutral-50'
                               }`}
                             >
-                              ✨ Automatique
+                              ✨ {t.generate.automatic}
                             </button>
                             <button
                               type="button"
@@ -3936,7 +3956,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   : 'bg-white text-neutral-700 hover:bg-neutral-50'
                               }`}
                             >
-                              ✍️ Écrire votre texte
+                              ✍️ {t.generate.writeYourText}
                             </button>
                           </div>
 
@@ -3945,36 +3965,36 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               <textarea
                                 value={audioText}
                                 onChange={(e) => setAudioText(e.target.value)}
-                                placeholder={`Entrez le texte à narrer (max ~${Math.ceil(videoDuration * 2.5)} mots pour ${videoDuration}s)...`}
+                                placeholder={t.generate.audioTextPlaceholder}
                                 rows={2}
                                 maxLength={150}
                                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                               />
                               <p className="text-[10px] text-neutral-500 mt-1">
-                                ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} mots ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
+                                ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} {t.generate.wordsCount} ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
                               </p>
                             </div>
                           )}
 
                           {audioTextSource === 'ai' && (
                             <p className="text-[10px] text-neutral-600 italic">
-                              💡 Le texte audio sera généré automatiquement à partir de l'actualité
+                              💡 {t.generate.audioAutoGenerated}
                             </p>
                           )}
 
                           {/* Voice Selector (ElevenLabs) */}
                           <div>
-                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">Voix</label>
+                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.voiceLabel}</label>
                             <div className="grid grid-cols-2 gap-1">
                               {([
-                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: '♂ Homme narrateur' },
-                                { value: '21m00Tcm4TlvDq8ikWAM', label: '♀ Femme douce' },
-                                { value: 'EXAVITQu4vr4xnSDxMaL', label: '♀ Femme naturelle' },
-                                { value: 'ErXwobaYiN019PkySvjV', label: '♂ Homme dynamique' },
-                                { value: 'TxGEqnHWrfWFTfGW9XjX', label: '♂ Homme profond' },
-                                { value: 'pNInz6obpgDQGcFmaJgB', label: '♂ Homme autoritaire' },
-                                { value: 'AZnzlk1XvdvUeBnXmlld', label: '♀ Femme énergique' },
-                                { value: 'MF3mGyEYCl7XYWbV9V6O', label: '♀ Femme pro' },
+                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
+                                { value: '21m00Tcm4TlvDq8ikWAM', label: `♀ ${t.generate.femaleSoft}` },
+                                { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
+                                { value: 'ErXwobaYiN019PkySvjV', label: `♂ ${t.generate.maleDynamic}` },
+                                { value: 'TxGEqnHWrfWFTfGW9XjX', label: `♂ ${t.generate.maleDeep}` },
+                                { value: 'pNInz6obpgDQGcFmaJgB', label: `♂ ${t.generate.maleAuthoritative}` },
+                                { value: 'AZnzlk1XvdvUeBnXmlld', label: `♀ ${t.generate.femaleEnergetic}` },
+                                { value: 'MF3mGyEYCl7XYWbV9V6O', label: `♀ ${t.generate.femalePro}` },
                               ]).map((v) => (
                                 <button
                                   key={v.value}
@@ -3994,15 +4014,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                           {/* Background Music */}
                           <div>
-                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">Musique de fond</label>
+                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.backgroundMusic}</label>
                             <div className="flex flex-wrap gap-1">
                               {([
-                                { value: 'none', label: 'Aucune' },
-                                { value: 'corporate', label: 'Corporate' },
-                                { value: 'energetic', label: 'Énergique' },
-                                { value: 'calm', label: 'Calme' },
-                                { value: 'inspiring', label: 'Inspirant' },
-                                { value: 'trendy', label: 'Tendance' },
+                                { value: 'none', label: t.generate.musicNone },
+                                { value: 'corporate', label: t.generate.musicCorporate },
+                                { value: 'energetic', label: t.generate.musicEnergetic },
+                                { value: 'calm', label: t.generate.musicCalm },
+                                { value: 'inspiring', label: t.generate.musicInspiring },
+                                { value: 'trendy', label: t.generate.musicTrendy },
                               ]).map((m) => (
                                 <button
                                   key={m.value}
@@ -4033,22 +4053,22 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                         />
                         <span className="text-xs font-semibold text-purple-900">
-                          ✨ Ajouter des sous-titres / texte animé
+                          ✨ {t.generate.addSubtitles}
                         </span>
-                        <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">Recommandé</span>
+                        <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">{t.generate.recommended}</span>
                       </label>
 
                       {enableAIText && (
                         <div className="mt-2 space-y-2">
-                          <p className="text-[10px] text-purple-700">Style du texte:</p>
+                          <p className="text-[10px] text-purple-700">{t.generate.textStyleLabel}</p>
                           <div className="flex flex-wrap gap-1.5">
                             {[
-                              { key: 'wordflash', label: '⚡ Mot par mot' },
-                              { key: 'wordstay', label: '🎤 Karaoké' },
-                              { key: 'neon', label: '💜 Néon' },
-                              { key: 'cinema', label: '🎬 Cinéma' },
-                              { key: 'impact', label: '💥 Bold' },
-                              { key: 'minimal', label: '✦ Discret' },
+                              { key: 'wordflash', label: t.generate.subtitleWordByWord },
+                              { key: 'wordstay', label: t.generate.subtitleKaraoke },
+                              { key: 'neon', label: t.generate.subtitleNeon },
+                              { key: 'cinema', label: t.generate.subtitleCinema },
+                              { key: 'impact', label: t.generate.subtitleBold },
+                              { key: 'minimal', label: t.generate.subtitleSubtle },
                             ].map((style) => (
                               <button
                                 key={style.key}
@@ -4065,13 +4085,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           </div>
                           {/* Taille du texte */}
                           <div className="mt-1.5">
-                            <p className="text-[9px] text-purple-600 mb-1">Taille:</p>
+                            <p className="text-[9px] text-purple-600 mb-1">{t.generate.sizeLabel}</p>
                             <div className="flex gap-1">
                               {([
-                                { key: 'sm', label: 'Petit' },
-                                { key: 'md', label: 'Moyen' },
-                                { key: 'lg', label: 'Grand' },
-                                { key: 'xl', label: 'Très grand' },
+                                { key: 'sm', label: t.generate.subtitleSizeSmall },
+                                { key: 'md', label: t.generate.subtitleSizeMedium },
+                                { key: 'lg', label: t.generate.subtitleSizeLarge },
+                                { key: 'xl', label: t.generate.subtitleSizeXL },
                               ] as const).map((s) => (
                                 <button
                                   key={s.key}
@@ -4089,12 +4109,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           </div>
                           {/* Position du texte */}
                           <div className="mt-1.5">
-                            <p className="text-[9px] text-purple-600 mb-1">Position:</p>
+                            <p className="text-[9px] text-purple-600 mb-1">{t.generate.positionLabel}</p>
                             <div className="flex gap-1">
                               {([
-                                { key: 'top', label: '⬆ Haut' },
-                                { key: 'center', label: '● Centre' },
-                                { key: 'bottom', label: '⬇ Bas' },
+                                { key: 'top', label: t.generate.subtitlePositionTop },
+                                { key: 'center', label: t.generate.subtitlePositionCenter },
+                                { key: 'bottom', label: t.generate.subtitlePositionBottom },
                               ] as const).map((p) => (
                                 <button
                                   key={p.key}
@@ -4112,8 +4132,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           </div>
                           <p className="text-[9px] text-purple-600 italic mt-1.5">
                             {addAudio
-                              ? '💡 Le texte affiché sera synchronisé avec la narration audio (sous-titres)'
-                              : '💡 Le texte sera généré automatiquement adapté à la vidéo'}
+                              ? `💡 ${t.generate.subtitleSyncAudio}`
+                              : `💡 ${t.generate.subtitleAutoGenerated}`}
                           </p>
                         </div>
                       )}
@@ -4122,7 +4142,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Durée de la vidéo */}
                     <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
                       <label className="block text-xs font-semibold text-neutral-900 mb-2">
-                        ⏱️ Durée de la vidéo: <span className="text-indigo-600">{videoDuration}s</span>
+                        ⏱️ {t.generate.videoDuration} <span className="text-indigo-600">{videoDuration}s</span>
                       </label>
                       <input
                         type="range"
@@ -4139,7 +4159,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         <span>12s</span>
                       </div>
                       <p className="text-[9px] text-indigo-600 mt-1 italic">
-                        💡 5-8s = idéal réseaux sociaux • 10-12s = storytelling
+                        💡 {t.generate.socialMediaIdeal}
                       </p>
                     </div>
                   </>
@@ -4156,24 +4176,24 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   }`}
                 >
                   {generationMode === 'video'
-                    ? (generatingVideo ? videoProgress || 'Génération...' : `🎬 Créer une vidéo (${videoDuration}s) — ${getVideoCreditCost(videoDuration)} cr`)
-                    : (generating ? 'Génération...' : `🖼️ Générer un visuel — ${CREDIT_COSTS.image_t2i} cr`)
+                    ? (generatingVideo ? videoProgress || t.generate.generating : `🎬 ${t.generate.createVideo} (${videoDuration}s) — ${getVideoCreditCost(videoDuration)} cr`)
+                    : (generating ? t.generate.generating : `🖼️ ${t.generate.generateVisual} — ${CREDIT_COSTS.image_t2i} cr`)
                   }
                 </button>
 
                 {useNewsMode && !selectedNews && (
                   <p className="text-[10px] text-amber-600 text-center">
-                    ⚠️ Sélectionnez une actualité
+                    ⚠️ {t.generate.selectNewsWarning}
                   </p>
                 )}
                 {!useNewsMode && !businessDescription.trim() && (
                   <p className="text-[10px] text-amber-600 text-center">
-                    ⚠️ Décrivez votre business en détail
+                    ⚠️ {t.generate.describeBusinessWarning}
                   </p>
                 )}
                 {/* Navigation étape 4 */}
                 <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
-                  ← Modifier les détails
+                  ← {t.generate.modifyDetails}
                 </button>
                 </>)}
               </div>
@@ -4201,7 +4221,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {generatedImageUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  Visuel
+                  {t.generate.visual}
                   {lastProvider && (
                     <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
@@ -4209,7 +4229,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
                   <img
                     src={generatedImageUrl}
-                    alt="Visuel généré"
+                    alt={t.generate.generatedVisualAlt}
                     className="w-full h-full object-contain relative z-10"
                     onLoad={(e) => {
                       (e.target as HTMLImageElement).style.opacity = '1';
@@ -4281,14 +4301,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Texte de statut */}
                       <div className="text-center space-y-2 px-4">
                         <p className="text-base font-semibold text-neutral-900">
-                          {loadingStep === 'api' && 'Génération en cours...'}
-                          {loadingStep === 'download' && 'Chargement de l\'image...'}
-                          {loadingStep === 'ready' && 'Prêt !'}
+                          {loadingStep === 'api' && t.generate.generatingInProgress}
+                          {loadingStep === 'download' && t.generate.loadingImage}
+                          {loadingStep === 'ready' && t.generate.ready}
                         </p>
                         <p className="text-xs text-neutral-500">
-                          {loadingStep === 'api' && 'Création de votre visuel personnalisé'}
-                          {loadingStep === 'download' && 'Optimisation et téléchargement'}
-                          {loadingStep === 'ready' && 'Votre visuel est disponible'}
+                          {loadingStep === 'api' && t.generate.creatingVisual}
+                          {loadingStep === 'download' && t.generate.optimizingDownload}
+                          {loadingStep === 'ready' && t.generate.visualAvailable}
                         </p>
 
                         {/* Barre de progression */}
@@ -4354,14 +4374,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }}
                       className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
                     >
-                      Éditer
+                      {t.generate.edit}
                     </button>
                     <a
                       href={selectedEditVersion || generatedImageUrl}
                       download
                       className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                     >
-                      Télécharger
+                      {t.generate.download}
                     </a>
                   </div>
                   {/* Deuxième ligne de boutons */}
@@ -4377,7 +4397,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'bg-blue-600 hover:bg-blue-700'
                       }`}
                     >
-                      {imageSavedToLibrary ? '✓ Sauvegardé' : savingToLibrary ? 'Sauvegarde...' : '📁 Sauvegarder'}
+                      {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : `📁 ${t.generate.save}`}
                     </button>
                     <button
                       onClick={() => {
@@ -4389,7 +4409,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }}
                       className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                     >
-                      Nouveau
+                      {t.generate.newGeneration}
                     </button>
                   </div>
                 </div>
@@ -4403,7 +4423,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {generatedVideoUrl && !showEditStudio && (
               <div className="bg-white rounded-xl border p-3">
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  Vidéo générée
+                  {t.generate.generatedVideo}
                   {lastVideoProvider && (
                     <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
@@ -4487,14 +4507,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
                       }`}
                     >
-                      {showVideoEditor ? '✕ Fermer l\'éditeur' : 'Éditer'}
+                      {showVideoEditor ? `✕ ${t.generate.closeEditor}` : t.generate.edit}
                     </button>
                     <a
                       href={generatedVideoUrl}
                       download="keiro-video.mp4"
                       className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                     >
-                      Télécharger
+                      {t.generate.download}
                     </a>
                   </div>
                   <div className="flex gap-2">
@@ -4507,13 +4527,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'bg-cyan-600 hover:bg-cyan-700'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {savingToLibrary ? 'Sauvegarde...' : videoSavedToLibrary ? '✓ Sauvegardé' : '📁 Enregistrer dans ma galerie'}
+                      {savingToLibrary ? t.generate.saving : videoSavedToLibrary ? `✓ ${t.generate.saved}` : `📁 ${t.generate.saveToGallery}`}
                     </button>
                     <button
                       onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); }}
                       className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
                     >
-                      Nouveau
+                      {t.generate.newGeneration}
                     </button>
                   </div>
                 </div>
@@ -4524,23 +4544,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Texte / Sous-titres */}
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
                       <label className="block text-xs font-semibold text-neutral-900">
-                        📝 Texte / Sous-titres
+                        📝 {t.generate.textSubtitles}
                       </label>
                       <textarea
                         value={generatedSubtitleText}
                         onChange={(e) => setGeneratedSubtitleText(e.target.value)}
                         rows={2}
                         className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                        placeholder="Texte à afficher sur la vidéo..."
+                        placeholder={t.generate.textOnVideoPlaceholder}
                       />
                       <div className="flex flex-wrap gap-1.5">
                         {[
-                          { key: 'wordflash', label: '⚡ Mot par mot' },
-                          { key: 'wordstay', label: '🎤 Karaoké' },
-                          { key: 'neon', label: '💜 Néon' },
-                          { key: 'cinema', label: '🎬 Cinéma' },
-                          { key: 'impact', label: '💥 Bold' },
-                          { key: 'minimal', label: '✦ Discret' },
+                          { key: 'wordflash', label: t.generate.subtitleWordByWord },
+                          { key: 'wordstay', label: t.generate.subtitleKaraoke },
+                          { key: 'neon', label: t.generate.subtitleNeon },
+                          { key: 'cinema', label: t.generate.subtitleCinema },
+                          { key: 'impact', label: t.generate.subtitleBold },
+                          { key: 'minimal', label: t.generate.subtitleSubtle },
                         ].map((style) => (
                           <button
                             key={style.key}
@@ -4557,13 +4577,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </div>
                       {/* Taille du texte */}
                       <div className="mt-2">
-                        <p className="text-[10px] text-green-700 mb-1">Taille du texte:</p>
+                        <p className="text-[10px] text-green-700 mb-1">{t.generate.textSize}</p>
                         <div className="flex gap-1.5">
                           {([
-                            { key: 'sm', label: 'Petit' },
-                            { key: 'md', label: 'Moyen' },
-                            { key: 'lg', label: 'Grand' },
-                            { key: 'xl', label: 'Très grand' },
+                            { key: 'sm', label: t.generate.subtitleSizeSmall },
+                            { key: 'md', label: t.generate.subtitleSizeMedium },
+                            { key: 'lg', label: t.generate.subtitleSizeLarge },
+                            { key: 'xl', label: t.generate.subtitleSizeXL },
                           ] as const).map((s) => (
                             <button
                               key={s.key}
@@ -4581,12 +4601,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </div>
                       {/* Position du texte */}
                       <div className="mt-2">
-                        <p className="text-[10px] text-green-700 mb-1">Position:</p>
+                        <p className="text-[10px] text-green-700 mb-1">{t.generate.positionLabel}</p>
                         <div className="flex gap-1.5">
                           {([
-                            { key: 'top', label: '⬆ Haut' },
-                            { key: 'center', label: '● Centre' },
-                            { key: 'bottom', label: '⬇ Bas' },
+                            { key: 'top', label: t.generate.subtitlePositionTop },
+                            { key: 'center', label: t.generate.subtitlePositionCenter },
+                            { key: 'bottom', label: t.generate.subtitlePositionBottom },
                           ] as const).map((p) => (
                             <button
                               key={p.key}
@@ -4607,18 +4627,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Audio */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                       <label className="block text-xs font-semibold text-neutral-900">
-                        🎙️ Audio
+                        🎙️ {t.generate.audioLabel}
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
-                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: '♂ Homme narrateur' },
-                          { value: '21m00Tcm4TlvDq8ikWAM', label: '♀ Femme douce' },
-                          { value: 'EXAVITQu4vr4xnSDxMaL', label: '♀ Femme naturelle' },
-                          { value: 'ErXwobaYiN019PkySvjV', label: '♂ Homme dynamique' },
-                          { value: 'TxGEqnHWrfWFTfGW9XjX', label: '♂ Homme profond' },
-                          { value: 'pNInz6obpgDQGcFmaJgB', label: '♂ Homme autoritaire' },
-                          { value: 'AZnzlk1XvdvUeBnXmlld', label: '♀ Femme énergique' },
-                          { value: 'MF3mGyEYCl7XYWbV9V6O', label: '♀ Femme pro' },
+                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
+                          { value: '21m00Tcm4TlvDq8ikWAM', label: `♀ ${t.generate.femaleSoft}` },
+                          { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
+                          { value: 'ErXwobaYiN019PkySvjV', label: `♂ ${t.generate.maleDynamic}` },
+                          { value: 'TxGEqnHWrfWFTfGW9XjX', label: `♂ ${t.generate.maleDeep}` },
+                          { value: 'pNInz6obpgDQGcFmaJgB', label: `♂ ${t.generate.maleAuthoritative}` },
+                          { value: 'AZnzlk1XvdvUeBnXmlld', label: `♀ ${t.generate.femaleEnergetic}` },
+                          { value: 'MF3mGyEYCl7XYWbV9V6O', label: `♀ ${t.generate.femalePro}` },
                         ].map((voice) => (
                           <button
                             key={voice.value}
@@ -4666,10 +4686,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 }).catch(() => {});
                               }
                             } else {
-                              alert(`Erreur: ${mergeData.error}`);
+                              alert(`${t.generate.alertError} ${mergeData.error}`);
                             }
                           } catch (err: any) {
-                            alert(`Erreur: ${err.message}`);
+                            alert(`${t.generate.alertError} ${err.message}`);
                           } finally { setVideoEditorMerging(false); }
                         }}
                         disabled={videoEditorMerging || !generatedSubtitleText.trim()}
@@ -4679,7 +4699,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
                       >
-                        {videoEditorMerging ? '⏳ Finalisation en cours...' : '🎙️ Générer/Modifier l\'audio'}
+                        {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎙️ ${t.generate.generateModifyAudio}`}
                       </button>
                     </div>
                   </div>
@@ -4694,7 +4714,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                   <div>
                     <p className="text-sm font-semibold text-orange-900 flex items-center gap-2">
-                      Génération vidéo en cours
+                      {t.generate.videoGenerationInProgress}
                       {lastVideoProvider && (
                         <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                       )}
@@ -4720,7 +4740,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {/* Header du studio */}
               <div className="flex items-center justify-between border-b px-4 py-3">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                  Studio d'Édition
+                  {t.generate.editStudio}
                   {lastProvider && (
                     <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
@@ -4747,7 +4767,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
-                    🖼️ Image
+                    {t.generate.mobileTabImage}
                   </button>
                   <button
                     onClick={() => {
@@ -4764,7 +4784,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
-                    ✏️ Éditer
+                    {t.generate.mobileTabEdit}
                   </button>
                   <button
                     onClick={() => setActiveTab('text')}
@@ -4774,7 +4794,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
-                    ✨ Texte
+                    {t.generate.mobileTabText}
                   </button>
                   <button
                     onClick={() => setActiveTab('versions')}
@@ -4784,7 +4804,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
-                    📋 Versions ({editVersions.length})
+                    {t.generate.mobileTabVersions} ({editVersions.length})
                   </button>
                 </div>
               </div>
@@ -4797,23 +4817,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {textPreviewUrl ? (
                       <img
                         src={textPreviewUrl}
-                        alt="Preview avec texte"
+                        alt={t.generate.altPreviewWithText}
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                       />
                     ) : selectedEditVersion ? (
                       <img
                         src={(textOverlayItems.length > 0 && versionPreviews[selectedEditVersion]) || selectedEditVersion}
-                        alt="Image sélectionnée"
+                        alt={t.generate.altSelectedImage}
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                       />
                     ) : generatedImageUrl ? (
                       <img
                         src={generatedImageUrl}
-                        alt="Image générée"
+                        alt={t.generate.altGeneratedImage}
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                       />
                     ) : (
-                      <p className="text-neutral-400 text-sm">Aucune image</p>
+                      <p className="text-neutral-400 text-sm">{t.generate.noImage}</p>
                     )}
                   </div>
                 )}
@@ -4822,12 +4842,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {activeTab === 'edit' && (
                   <div className="p-4 space-y-4">
                     <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
-                      <h3 className="text-base font-semibold mb-3">Assistant d'Édition</h3>
+                      <h3 className="text-base font-semibold mb-3">{t.generate.editAssistant}</h3>
 
                       {/* Logo (optionnel) */}
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-neutral-800 mb-2">
-                          🎨 Logo (optionnel)
+                          🎨 {t.generate.logoOptional}
                         </label>
                         {!logoUrl ? (
                           <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 text-center hover:border-purple-400 transition-colors">
@@ -4847,21 +4867,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 }}
                                 className="hidden"
                               />
-                              📤 Ajouter votre logo
+                              📤 {t.generate.addYourLogo}
                             </label>
-                            <p className="text-xs text-neutral-600 mt-2">Optionnel - Pour renforcer votre branding</p>
+                            <p className="text-xs text-neutral-600 mt-2">{t.generate.optionalBranding}</p>
                           </div>
                         ) : (
                           <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-purple-200">
                             <img src={logoUrl} alt="Logo" className="w-12 h-12 object-contain rounded border" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-neutral-700">Logo ajouté</p>
-                              <p className="text-xs text-neutral-500">Sera en overlay sur l'image</p>
+                              <p className="text-sm font-medium text-neutral-700">{t.generate.logoAdded}</p>
+                              <p className="text-xs text-neutral-500">{t.generate.overlayOnImage}</p>
                             </div>
                             <button
                               onClick={() => setLogoUrl('')}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Retirer le logo"
+                              title={t.generate.removeLogo}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -4873,13 +4893,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {/* Position du logo (si logo uploadé) */}
                         {logoUrl && (
                           <div className="mt-3 p-3 bg-white rounded-lg border border-neutral-200">
-                            <label className="block text-sm font-semibold text-neutral-800 mb-2">Position du logo</label>
+                            <label className="block text-sm font-semibold text-neutral-800 mb-2">{t.generate.logoPosition}</label>
                             <div className="grid grid-cols-2 gap-2">
                               {([
-                                { pos: 'top-left', label: '↖️ Haut gauche' },
-                                { pos: 'top-right', label: '↗️ Haut droite' },
-                                { pos: 'bottom-left', label: '↙️ Bas gauche' },
-                                { pos: 'bottom-right', label: '↘️ Bas droite' }
+                                { pos: 'top-left', label: `↖️ ${t.generate.topLeft}` },
+                                { pos: 'top-right', label: `↗️ ${t.generate.topRight}` },
+                                { pos: 'bottom-left', label: `↙️ ${t.generate.bottomLeft}` },
+                                { pos: 'bottom-right', label: `↘️ ${t.generate.bottomRight}` }
                               ] as const).map(({ pos, label }) => (
                                 <button
                                   key={pos}
@@ -4901,8 +4921,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Slider force de modification */}
                       <div className="mb-4">
                         <p className="text-sm font-medium mb-2">
-                          Force de modification : <span className="text-purple-600 font-bold">
-                            {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                          {t.generate.editStrength} <span className="text-purple-600 font-bold">
+                            {editStrength <= 5 ? t.generate.strengthSubtle : editStrength <= 7 ? t.generate.strengthModerate : t.generate.strengthStrong}
                           </span>
                         </p>
                         <input
@@ -4915,23 +4935,23 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           className="w-full accent-purple-600"
                         />
                         <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-                          <span>Subtile</span>
-                          <span>Modérée</span>
-                          <span>Forte</span>
+                          <span>{t.generate.strengthSubtle}</span>
+                          <span>{t.generate.strengthModerate}</span>
+                          <span>{t.generate.strengthStrong}</span>
                         </div>
                         <p className="text-xs text-neutral-500 mt-2">
                           {editStrength <= 5
-                            ? 'Retouches légères : lumière, couleurs, détails fins'
+                            ? t.generate.strengthSubtleDesc
                             : editStrength <= 7
-                            ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
-                            : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
+                            ? t.generate.strengthModerateDesc
+                            : t.generate.strengthStrongDesc}
                         </p>
                       </div>
 
                       {/* Textarea pour prompt */}
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-neutral-800 mb-2">
-                          ✏️ Décrivez vos modifications :
+                          ✏️ {t.generate.describeModifications}
                         </label>
                         <textarea
                           value={editPrompt}
@@ -4940,10 +4960,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           className="w-full text-base rounded-lg border-2 border-purple-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                           placeholder={
                             editStrength <= 5
-                              ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste, flouter l\'arrière-plan...'
+                              ? t.generate.editPlaceholderSubtle
                               : editStrength <= 7
-                              ? 'Ex: Ajouter des plantes, changer le fond en bleu, remplacer le sol par du bois...'
-                              : 'Ex: Style vintage années 80, ambiance golden hour, look magazine luxe, changer complètement l\'ambiance...'
+                              ? t.generate.editPlaceholderModerate
+                              : t.generate.editPlaceholderStrong
                           }
                         />
                         <div className="flex items-start gap-2 mt-2">
@@ -4951,9 +4971,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <p className="text-xs text-neutral-600 leading-relaxed">
-                            <span className="font-semibold text-neutral-800">Astuce :</span> Soyez précis pour de meilleurs résultats.
-                            Décrivez les <span className="font-semibold">couleurs</span>, les <span className="font-semibold">éléments</span> à modifier,
-                            ou le <span className="font-semibold">style</span> souhaité.
+                            <span className="font-semibold text-neutral-800">{t.generate.editTip}</span> {t.generate.editTipDesc}
+                            {' '}<span className="font-semibold">{t.generate.editTipColors}</span>, <span className="font-semibold">{t.generate.editTipElements}</span>,
+                            <span className="font-semibold">{t.generate.editTipStyle}</span>.
                           </p>
                         </div>
                       </div>
@@ -4993,7 +5013,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               try {
                                 const sb = supabaseBrowser();
                                 const { data: { user: currentUser } } = await sb.auth.getUser();
-                                if (!currentUser) throw new Error('Non authentifié');
+                                if (!currentUser) throw new Error(t.generate.errorNotAuthenticated);
                                 // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
                                 const base64Data = imageForApi.split(',')[1];
                                 const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
@@ -5003,13 +5023,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 const blob = new Blob([byteArray], { type: mimeType });
                                 const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
                                 const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
-                                if (upErr) throw new Error(`Upload échoué: ${upErr.message}`);
+                                if (upErr) throw new Error(`${t.generate.errorUploadFailedPrefix} ${upErr.message}`);
                                 const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
                                 imageForApi = publicUrl;
                                 console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
                               } catch (uploadErr: any) {
                                 console.error('[Edit Studio] Upload error:', uploadErr);
-                                throw new Error('Impossible d\'uploader l\'image. Réessayez.');
+                                throw new Error(t.generate.errorUploadFailed);
                               }
                             }
 
@@ -5025,14 +5045,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             });
 
                             if (!res.ok && res.status === 413) {
-                              throw new Error('Image trop volumineuse. Réessayez.');
+                              throw new Error(t.generate.errorImageTooLarge);
                             }
                             const data = await res.json();
                             console.log('[Edit Studio] Response:', data);
 
                             if (!data?.ok) {
                               console.error('[Edit Studio] API Error:', data?.error);
-                              throw new Error(data?.error || 'Édition échouée');
+                              throw new Error(data?.error || t.generate.errorEditFailed);
                             }
 
                             // Capturer le provider pour la pastille
@@ -5081,8 +5101,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             autoSaveEditedVersion(newVersion);
                           } catch (e: any) {
                             console.error('[Edit Studio] Error:', e);
-                            const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
-                            alert(userMessage);
+                            alert(t.generate.alertEditFailed);
                           } finally {
                             setEditingImage(false);
                           }
@@ -5090,21 +5109,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
                         className="w-full py-4 text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] transition-colors"
                       >
-                        {editingImage ? 'Édition en cours...' : '✏️ Éditer l\'image'}
+                        {editingImage ? t.generate.editingInProgress : `✏️ ${t.generate.editImage}`}
                       </button>
                     </div>
 
                     {/* Exemples de modifications */}
                     <div className="bg-neutral-50 rounded-lg border p-4">
-                      <p className="text-sm font-medium mb-3">💡 Exemples concrets :</p>
+                      <p className="text-sm font-medium mb-3">💡 {t.generate.editExamples}</p>
                       <div className="space-y-2">
                         {[
-                          'Rendre l\'arrière-plan flou style bokeh professionnel',
-                          'Ajouter un effet cinématique avec vignette sombre',
-                          'Augmenter la luminosité et le contraste de +30%',
-                          'Style Instagram : filtre chaud avec saturation élevée',
-                          'Faire ressortir le sujet principal avec netteté accrue',
-                          'Appliquer un grain film argentique vintage'
+                          t.generate.editExample1,
+                          t.generate.editExample2,
+                          t.generate.editExample3,
+                          t.generate.editExample4,
+                          t.generate.editExample5,
+                          t.generate.editExample6
                         ].map((example) => (
                           <button
                             key={example}
@@ -5124,11 +5143,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   <div className="p-4 space-y-4">
                     {/* Preview en temps réel */}
                     <div className="bg-white rounded-lg border p-3">
-                      <h3 className="text-xs font-semibold mb-2 text-neutral-700">👁️ Aperçu en temps réel</h3>
+                      <h3 className="text-xs font-semibold mb-2 text-neutral-700">👁️ {t.generate.realtimePreview}</h3>
                       <div className="relative aspect-square bg-neutral-100 rounded overflow-hidden">
                         {isGeneratingPreview && (
                           <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                            <div className="text-xs text-neutral-600">Génération...</div>
+                            <div className="text-xs text-neutral-600">{t.generate.generatingPreview}</div>
                           </div>
                         )}
                         <img
@@ -5140,34 +5159,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     </div>
 
                     <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
-                      <h3 className="text-base font-semibold mb-3">✨ Personnalisation du Texte</h3>
+                      <h3 className="text-base font-semibold mb-3">✨ {t.generate.textCustomization}</h3>
 
                       {/* Texte */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Texte</label>
+                        <label className="block text-sm font-medium mb-2">{t.generate.textLabel}</label>
                         <textarea
                           value={overlayText}
                           onChange={(e) => setOverlayText(e.target.value)}
-                          placeholder="Écrivez votre texte accrocheur..."
+                          placeholder={t.generate.writeCatchyText}
                           rows={3}
                           className="w-full px-4 py-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100 resize-none"
                         />
                         <p className="text-xs text-neutral-500 mt-1">
-                          {overlayText.length} caractères • Max 100 recommandé
+                          {overlayText.length} {t.generate.characters} • {t.generate.maxRecommended}
                         </p>
                       </div>
 
                       {/* Templates */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Templates</label>
+                        <label className="block text-sm font-medium mb-2">{t.generate.templates}</label>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { id: 'headline', icon: '📰', name: 'Headline' },
-                            { id: 'cta', icon: '🎯', name: 'CTA' },
-                            { id: 'minimal', icon: '✨', name: 'Minimal' },
-                            { id: 'bold', icon: '💪', name: 'Bold' },
-                            { id: 'elegant', icon: '👔', name: 'Élégant' },
-                            { id: 'modern', icon: '🚀', name: 'Moderne' },
+                            { id: 'headline', icon: '📰', name: t.generate.templateHeadline },
+                            { id: 'cta', icon: '🎯', name: t.generate.templateCTA },
+                            { id: 'minimal', icon: '✨', name: t.generate.templateMinimal },
+                            { id: 'bold', icon: '💪', name: t.generate.templateBold },
+                            { id: 'elegant', icon: '👔', name: t.generate.templateElegant },
+                            { id: 'modern', icon: '🚀', name: t.generate.templateModern },
                           ].map((template) => (
                             <button
                               key={template.id}
@@ -5215,12 +5234,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               <div className="text-2xl mb-1">{template.icon}</div>
                               <div className="text-xs font-semibold text-neutral-900">{template.name}</div>
                               <div className="text-[10px] text-neutral-500 mt-0.5 leading-tight">
-                                {template.id === 'headline' && 'Titre impactant'}
-                                {template.id === 'cta' && 'Bouton d\'action'}
-                                {template.id === 'minimal' && 'Simple & élégant'}
-                                {template.id === 'bold' && 'Gras & audacieux'}
-                                {template.id === 'elegant' && 'Sophistiqué'}
-                                {template.id === 'modern' && 'Gradient dynamique'}
+                                {template.id === 'headline' && t.generate.templateHeadlineDesc}
+                                {template.id === 'cta' && t.generate.templateCTADesc}
+                                {template.id === 'minimal' && t.generate.templateMinimalDesc}
+                                {template.id === 'bold' && t.generate.templateBoldDesc}
+                                {template.id === 'elegant' && t.generate.templateElegantDesc}
+                                {template.id === 'modern' && t.generate.templateModernDesc}
                               </div>
                             </button>
                           ))}
@@ -5229,33 +5248,33 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                       {/* Position */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Position <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
+                        <label className="block text-sm font-medium mb-2">{t.generate.position} <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
                             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                           >
-                            <span>⬆️</span> Haut +
+                            <span>⬆️</span> {t.generate.topPlus}
                           </button>
                           <div className="flex-1 flex items-center gap-2 justify-center">
                             <button
                               onClick={() => setTextPosition(25)}
                               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Haut</button>
+                            >{t.generate.top}</button>
                             <button
                               onClick={() => setTextPosition(50)}
                               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Centre</button>
+                            >{t.generate.center}</button>
                             <button
                               onClick={() => setTextPosition(75)}
                               className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                            >Bas</button>
+                            >{t.generate.bottom}</button>
                           </div>
                           <button
                             onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
                             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                           >
-                            <span>⬇️</span> Bas +
+                            <span>⬇️</span> {t.generate.bottomPlus}
                           </button>
                         </div>
                       </div>
@@ -5263,7 +5282,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Couleurs */}
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                          <label className="block text-sm font-medium mb-2">Couleur texte</label>
+                          <label className="block text-sm font-medium mb-2">{t.generate.textColor}</label>
                           <input
                             type="color"
                             value={textColor}
@@ -5272,7 +5291,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Couleur fond</label>
+                          <label className="block text-sm font-medium mb-2">{t.generate.backgroundColor}</label>
                           <input
                             type="color"
                             value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
@@ -5285,7 +5304,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Taille police */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium mb-2">
-                          Taille police ({fontSize}pt)
+                          {t.generate.fontSizeLabel} ({fontSize}pt)
                         </label>
                         <input
                           type="range"
@@ -5299,34 +5318,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                       {/* Police */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Police</label>
+                        <label className="block text-sm font-medium mb-2">{t.generate.fontLabel}</label>
                         <select
                           value={fontFamily}
                           onChange={(e) => setFontFamily(e.target.value as any)}
                           className="w-full px-3 py-2 rounded-lg border border-neutral-300 text-sm"
                         >
-                          <option value="inter">🔤 Inter - Moderne</option>
-                          <option value="montserrat">💪 Montserrat - Gras</option>
-                          <option value="bebas">📰 Bebas Neue - Impact</option>
-                          <option value="roboto">⚙️ Roboto - Classique</option>
-                          <option value="playfair">✨ Playfair - Élégant</option>
+                          <option value="inter">🔤 {t.generate.fontInter}</option>
+                          <option value="montserrat">💪 {t.generate.fontMontserrat}</option>
+                          <option value="bebas">📰 {t.generate.fontBebas}</option>
+                          <option value="roboto">⚙️ {t.generate.fontRoboto}</option>
+                          <option value="playfair">✨ {t.generate.fontPlayfair}</option>
                         </select>
                       </div>
 
                       {/* Style de fond */}
                       <div className="mb-4">
-                        <label className="block text-sm font-medium mb-2">Style de fond</label>
+                        <label className="block text-sm font-medium mb-2">{t.generate.bgStyleLabel}</label>
                         <div className="grid grid-cols-3 gap-2">
                           {[
-                            { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-                            { value: 'none', emoji: '🅰', label: 'Contour fort' },
-                            { value: 'minimal', emoji: '✦', label: 'Discret' },
-                            { value: 'transparent', emoji: '👻', label: 'Transparent' },
-                            { value: 'solid', emoji: '⬛', label: 'Solide' },
-                            { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
-                            { value: 'blur', emoji: '💨', label: 'Flou' },
-                            { value: 'outline', emoji: '⭕', label: 'Contour' },
-                            { value: 'glow', emoji: '💫', label: 'Lumineux' }
+                            { value: 'clean', emoji: '🔲', label: t.generate.bgNone },
+                            { value: 'none', emoji: '🅰', label: t.generate.bgStrongOutline },
+                            { value: 'minimal', emoji: '✦', label: t.generate.bgSubtle },
+                            { value: 'transparent', emoji: '👻', label: t.generate.bgTransparent },
+                            { value: 'solid', emoji: '⬛', label: t.generate.bgSolid },
+                            { value: 'gradient', emoji: '🌈', label: t.generate.bgGradient },
+                            { value: 'blur', emoji: '💨', label: t.generate.bgBlur },
+                            { value: 'outline', emoji: '⭕', label: t.generate.bgOutline },
+                            { value: 'glow', emoji: '💫', label: t.generate.bgGlow }
                           ].map((style) => (
                             <button
                               key={style.value}
@@ -5370,7 +5389,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         disabled={!overlayText.trim()}
                         className="w-full py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
+                        {editingOverlayId ? `✓ ${t.generate.modifyText}` : textOverlayItems.length > 0 ? `+ ${t.generate.addText}` : `✓ ${t.generate.applyText}`}
                       </button>
 
                       {/* Bouton Nouveau texte — visible quand on est en mode édition */}
@@ -5398,14 +5417,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           }}
                           className="w-full py-2.5 mt-1 border border-purple-300 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-50 transition"
                         >
-                          + Nouveau texte
+                          {t.generate.newText}
                         </button>
                       )}
 
                       {/* Liste des textes appliqués */}
                       {textOverlayItems.length > 0 && (
                         <div className="mt-3 space-y-2">
-                          <p className="text-xs font-semibold text-neutral-700">Textes appliqués :</p>
+                          <p className="text-xs font-semibold text-neutral-700">{t.generate.appliedTexts}</p>
                           {textOverlayItems.map((item) => (
                             <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
                               <span className="text-[10px] text-neutral-400">{item.position <= 30 ? '⬆️' : item.position >= 70 ? '⬇️' : '⏺️'}</span>
@@ -5423,7 +5442,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 }}
                                 className="px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50 rounded"
                               >
-                                Modifier
+                                {t.generate.modify}
                               </button>
                               <button
                                 onClick={() => {
@@ -5449,7 +5468,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             }}
                             className="w-full py-2 mt-1 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
                           >
-                            Supprimer tout le texte
+                            {t.generate.deleteAllText}
                           </button>
                         </div>
                       )}
@@ -5461,7 +5480,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {activeTab === 'versions' && (
                   <div className="p-4">
                     <h3 className="text-base font-semibold mb-3">
-                      Versions ({editVersions.length})
+                      {t.generate.versionsTab} ({editVersions.length})
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                       {editVersions.map((version, idx) => (
@@ -5495,7 +5514,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                     const { data: { user } } = await supabaseClient.auth.getUser();
 
                                     if (!user) {
-                                      alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+                                      alert(t.generate.alertLoginRequired);
                                       return;
                                     }
 
@@ -5529,7 +5548,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                                       if (uploadError) {
                                         console.error('[EditStudio/Mobile] Upload error:', uploadError);
-                                        alert(`❌ Erreur d'upload : ${uploadError.message}`);
+                                        alert(`${t.generate.alertUploadError} ${uploadError.message}`);
                                         return;
                                       }
 
@@ -5580,21 +5599,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                     if (data.ok) {
                                       const toast = document.createElement('div');
                                       toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
-                                      toast.innerHTML = 'Sauvegardé dans votre galerie !';
+                                      toast.innerHTML = t.generate.alertSavedToGallery;
                                       document.body.appendChild(toast);
                                       setTimeout(() => { toast.style.opacity = '0'; }, 300);
                                       setTimeout(() => { toast.remove(); router.push('/library'); }, 500);
                                     } else {
-                                      alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
+                                      alert(`${t.generate.alertError} ${data.error || t.generate.alertCannotSave}`);
                                     }
                                   } catch (error: any) {
                                     console.error('Error saving to library:', error);
-                                    alert(`Erreur : ${error.message || 'Vérifiez votre connexion'}`);
+                                    alert(`${t.generate.alertError} ${error.message || t.generate.alertCheckConnection}`);
                                   }
                                 }}
                                 className="py-2 text-sm bg-cyan-600 text-white rounded-lg font-medium min-h-[44px] hover:bg-cyan-700 transition-colors"
                               >
-                                💾 Galerie
+                                💾 {t.generate.gallery}
                               </button>
                               <div className="flex gap-2">
                                 <a
@@ -5603,12 +5622,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                   className="flex-1 py-2 text-sm bg-blue-600 text-white text-center rounded-lg font-medium min-h-[44px] hover:bg-blue-700 transition-colors flex items-center justify-center"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  ⬇️ Télécharger
+                                  {t.generate.downloadLabel}
                                 </a>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm('Supprimer cette version ?')) {
+                                    if (confirm(t.generate.deleteVersion)) {
                                       const newVersions = editVersions.filter((_, i) => i !== idx);
                                       setEditVersions(newVersions);
                                       if (selectedEditVersion === version && newVersions.length > 0) {
@@ -5636,7 +5655,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               <div className="hidden lg:flex flex-1 overflow-hidden p-6 gap-6">
                 {/* Gauche : Sidebar Versions */}
                 <div className="w-64 flex-shrink-0 overflow-y-auto space-y-3">
-                  <h3 className="text-sm font-semibold mb-3">Versions ({editVersions.length})</h3>
+                  <h3 className="text-sm font-semibold mb-3">{t.generate.versionsTab} ({editVersions.length})</h3>
                   {editVersions.map((version, idx) => (
                     <div
                       key={idx}
@@ -5665,7 +5684,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 const { data: { user } } = await supabaseClient.auth.getUser();
 
                                 if (!user) {
-                                  alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+                                  alert(t.generate.alertLoginRequired);
                                   return;
                                 }
 
@@ -5699,7 +5718,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                                   if (uploadError) {
                                     console.error('[EditStudio/Desktop] Upload error:', uploadError);
-                                    alert(`❌ Erreur d'upload : ${uploadError.message}`);
+                                    alert(`${t.generate.alertUploadError} ${uploadError.message}`);
                                     return;
                                   }
 
@@ -5750,21 +5769,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 if (data.ok) {
                                   const toast = document.createElement('div');
                                   toast.style.cssText = 'position:fixed;top:1rem;right:1rem;background:#16a34a;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);z-index:50;transition:opacity 0.5s ease;opacity:1;';
-                                  toast.innerHTML = 'Sauvegardé dans votre galerie !';
+                                  toast.innerHTML = t.generate.alertSavedToGallery;
                                   document.body.appendChild(toast);
                                   setTimeout(() => { toast.style.opacity = '0'; }, 300);
                                   setTimeout(() => { toast.remove(); router.push('/library'); }, 500);
                                 } else {
-                                  alert(`Erreur : ${data.error || 'Impossible de sauvegarder'}`);
+                                  alert(`${t.generate.alertError} ${data.error || t.generate.alertCannotSave}`);
                                 }
                               } catch (error: any) {
                                 console.error('Error saving to library:', error);
-                                alert(`Erreur : ${error.message || 'Vérifiez votre connexion'}`);
+                                alert(`${t.generate.alertError} ${error.message || t.generate.alertCheckConnection}`);
                               }
                             }}
                             className="py-1 text-[10px] bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium transition-colors"
                           >
-                            💾 Galerie
+                            💾 {t.generate.gallery}
                           </button>
                           <div className="flex gap-1.5">
                             <a
@@ -5778,7 +5797,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm('Supprimer cette version ?')) {
+                                if (confirm(t.generate.deleteVersion)) {
                                   const newVersions = editVersions.filter((_, i) => i !== idx);
                                   setEditVersions(newVersions);
                                   if (selectedEditVersion === version && newVersions.length > 0) {
@@ -5803,29 +5822,29 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="flex-1 flex items-center justify-center bg-neutral-50 rounded-lg border overflow-hidden relative">
                   {isGeneratingPreview && (
                     <div className="absolute top-2 right-2 bg-white/90 px-3 py-1 rounded-lg text-xs font-medium text-neutral-700 shadow-md z-10">
-                      Génération preview...
+                      {t.generate.generatingPreviewText}
                     </div>
                   )}
                   {textPreviewUrl ? (
                     <img
                       src={textPreviewUrl}
-                      alt="Preview avec texte"
+                      alt={t.generate.altPreviewWithText}
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : selectedEditVersion ? (
                     <img
                       src={(textOverlayItems.length > 0 && versionPreviews[selectedEditVersion]) || selectedEditVersion}
-                      alt="Image sélectionnée"
+                      alt={t.generate.altSelectedImage}
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : generatedImageUrl ? (
                     <img
                       src={generatedImageUrl}
-                      alt="Image générée"
+                      alt={t.generate.altGeneratedImage}
                       className="max-w-full max-h-full object-contain"
                     />
                   ) : (
-                    <p className="text-neutral-400 text-sm">Aucune image</p>
+                    <p className="text-neutral-400 text-sm">{t.generate.noImage}</p>
                   )}
                 </div>
 
@@ -5848,7 +5867,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'text-neutral-600 hover:bg-neutral-100'
                       }`}
                     >
-                      ✏️ Éditer
+                      {t.generate.desktopTabEdit}
                     </button>
                     <button
                       onClick={() => setActiveTab('text')}
@@ -5858,7 +5877,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           : 'text-neutral-600 hover:bg-neutral-100'
                       }`}
                     >
-                      ✨ Texte
+                      {t.generate.desktopTabText}
                     </button>
                   </div>
 
@@ -5866,12 +5885,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {activeTab === 'edit' && (
                   <>
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
-                    <h3 className="text-base font-semibold mb-2">Assistant d'Édition</h3>
+                    <h3 className="text-base font-semibold mb-2">{t.generate.editAssistant}</h3>
 
                     {/* Logo (optionnel) */}
                     <div className="mb-3">
                       <label className="block text-xs font-semibold text-neutral-800 mb-1.5">
-                        🎨 Logo (optionnel)
+                        🎨 {t.generate.logoOptional}
                       </label>
                       {!logoUrl ? (
                         <div className="border-2 border-dashed border-purple-300 rounded-lg p-3 text-center">
@@ -5891,16 +5910,16 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               }}
                               className="hidden"
                             />
-                            📤 Ajouter logo
+                            📤 {t.generate.addLogo}
                           </label>
-                          <p className="text-[9px] text-neutral-600 mt-1.5">Optionnel - Branding</p>
+                          <p className="text-[9px] text-neutral-600 mt-1.5">{t.generate.optionalBrandingShort}</p>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 bg-white rounded-lg p-2 border border-purple-200">
                           <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded border" />
                           <div className="flex-1">
-                            <p className="text-[10px] font-medium text-neutral-700">Logo ajouté</p>
-                            <p className="text-[9px] text-neutral-500">En overlay</p>
+                            <p className="text-[10px] font-medium text-neutral-700">{t.generate.logoAdded}</p>
+                            <p className="text-[9px] text-neutral-500">{t.generate.inOverlay}</p>
                           </div>
                           <button
                             onClick={() => setLogoUrl('')}
@@ -5916,13 +5935,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {/* Position du logo (si logo uploadé) */}
                       {logoUrl && (
                         <div className="mt-2 p-2 bg-white rounded-lg border border-neutral-200">
-                          <label className="block text-[10px] font-semibold text-neutral-800 mb-1.5">Position du logo</label>
+                          <label className="block text-[10px] font-semibold text-neutral-800 mb-1.5">{t.generate.logoPosition}</label>
                           <div className="grid grid-cols-2 gap-1.5">
                             {([
-                              { pos: 'top-left', label: '↖️ Haut gauche' },
-                              { pos: 'top-right', label: '↗️ Haut droite' },
-                              { pos: 'bottom-left', label: '↙️ Bas gauche' },
-                              { pos: 'bottom-right', label: '↘️ Bas droite' }
+                              { pos: 'top-left', label: `↖️ ${t.generate.topLeft}` },
+                              { pos: 'top-right', label: `↗️ ${t.generate.topRight}` },
+                              { pos: 'bottom-left', label: `↙️ ${t.generate.bottomLeft}` },
+                              { pos: 'bottom-right', label: `↘️ ${t.generate.bottomRight}` }
                             ] as const).map(({ pos, label }) => (
                               <button
                                 key={pos}
@@ -5944,8 +5963,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Slider force de modification */}
                     <div className="mb-3">
                       <p className="text-xs font-medium mb-1.5">
-                        Force : <span className="text-purple-600 font-bold">
-                          {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                        {t.generate.editStrengthShort} <span className="text-purple-600 font-bold">
+                          {editStrength <= 5 ? t.generate.strengthSubtle : editStrength <= 7 ? t.generate.strengthModerate : t.generate.strengthStrong}
                         </span>
                       </p>
                       <input
@@ -5958,26 +5977,26 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         className="w-full accent-purple-600"
                       />
                       <div className="flex justify-between text-[9px] text-neutral-400 mt-0.5">
-                        <span>Subtile</span>
-                        <span>Modérée</span>
-                        <span>Forte</span>
+                        <span>{t.generate.strengthSubtle}</span>
+                        <span>{t.generate.strengthModerate}</span>
+                        <span>{t.generate.strengthStrong}</span>
                       </div>
                     </div>
 
                     {/* Prompt de modification */}
                     <div className="mb-3">
                       <label className="block text-xs font-semibold text-neutral-800 mb-1">
-                        ✏️ Décrivez vos modifications :
+                        ✏️ {t.generate.describeModifications}
                       </label>
                       <textarea
                         value={editPrompt}
                         onChange={(e) => setEditPrompt(e.target.value)}
                         placeholder={
                           editStrength <= 5
-                            ? 'Ex: Améliorer lumière, saturer couleurs, ajouter contraste...'
+                            ? t.generate.editPlaceholderSubtleShort
                             : editStrength <= 7
-                            ? 'Ex: Ajouter des plantes, changer le fond en bleu...'
-                            : 'Ex: Style vintage 80s, ambiance golden hour, look magazine luxe...'
+                            ? t.generate.editPlaceholderModerateShort
+                            : t.generate.editPlaceholderStrongShort
                         }
                         rows={4}
                         className="w-full text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -5987,7 +6006,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <p className="text-[9px] text-neutral-600 leading-relaxed">
-                          <span className="font-semibold text-neutral-800">Astuce :</span> Soyez précis (couleurs, éléments, style) pour de meilleurs résultats.
+                          <span className="font-semibold text-neutral-800">{t.generate.editTip}</span> {t.generate.editTipShort}
                         </p>
                       </div>
                     </div>
@@ -6027,7 +6046,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             try {
                               const sb = supabaseBrowser();
                               const { data: { user: currentUser } } = await sb.auth.getUser();
-                              if (!currentUser) throw new Error('Non authentifié');
+                              if (!currentUser) throw new Error(t.generate.errorNotAuthenticated);
                               // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
                               const base64Data = imageForApi.split(',')[1];
                               const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
@@ -6037,13 +6056,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               const blob = new Blob([byteArray], { type: mimeType });
                               const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
                               const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
-                              if (upErr) throw new Error(`Upload échoué: ${upErr.message}`);
+                              if (upErr) throw new Error(`${t.generate.errorUploadFailedPrefix} ${upErr.message}`);
                               const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
                               imageForApi = publicUrl;
                               console.log('[Edit Studio] Uploaded, public URL:', publicUrl);
                             } catch (uploadErr: any) {
                               console.error('[Edit Studio] Upload error:', uploadErr);
-                              throw new Error('Impossible d\'uploader l\'image. Réessayez.');
+                              throw new Error(t.generate.errorUploadFailed);
                             }
                           }
 
@@ -6059,14 +6078,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           });
 
                           if (!res.ok && res.status === 413) {
-                            throw new Error('Image trop volumineuse. Réessayez.');
+                            throw new Error(t.generate.errorImageTooLarge);
                           }
                           const data = await res.json();
                           console.log('[Edit Studio] Response:', data);
 
                           if (!data?.ok) {
                             console.error('[Edit Studio] API Error:', data?.error);
-                            throw new Error(data?.error || 'Édition échouée');
+                            throw new Error(data?.error || t.generate.errorEditFailed);
                           }
 
                           // Capturer le provider pour la pastille
@@ -6114,8 +6133,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           autoSaveEditedVersion(newVersion);
                         } catch (e: any) {
                           console.error('[Edit Studio] Error:', e);
-                          const userMessage = 'Impossible d\'éditer l\'image. Veuillez réessayer.';
-                          alert(userMessage);
+                          alert(t.generate.alertEditFailed);
                         } finally {
                           setEditingImage(false);
                         }
@@ -6123,7 +6141,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
                       className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
-                      {editingImage ? 'Édition en cours...' : '✏️ Éditer'}
+                      {editingImage ? t.generate.editingInProgress : `✏️ ${t.generate.edit}`}
                     </button>
 
                     {/* Actions */}
@@ -6132,44 +6150,44 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         onClick={() => setShowEditStudio(false)}
                         className="w-full py-1.5 text-xs border rounded hover:bg-neutral-50"
                       >
-                        Fermer
+                        {t.generate.close}
                       </button>
                     </div>
                   </div>
 
                   {/* Exemples de modifications */}
                   <div className="bg-neutral-50 rounded-lg border p-2">
-                    <p className="text-[10px] font-medium mb-1.5">💡 Exemples de modifications :</p>
+                    <p className="text-[10px] font-medium mb-1.5">💡 {t.generate.editExamplesShort}</p>
                     <div className="space-y-1">
                       <button
-                        onClick={() => setEditPrompt('Ajouter un filtre chaleureux et lumineux')}
+                        onClick={() => setEditPrompt(t.generate.warmFilterPrompt)}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Filtre chaleureux
+                        • {t.generate.editExampleWarm}
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Rendre l\'arrière-plan flou pour mettre en valeur le sujet')}
+                        onClick={() => setEditPrompt(t.generate.blurBgPrompt)}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Flou d'arrière-plan
+                        • {t.generate.editExampleBlur}
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Augmenter la luminosité et le contraste de +30%')}
+                        onClick={() => setEditPrompt(t.generate.contrastPrompt)}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Contraste luminosité
+                        • {t.generate.editExampleContrast}
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Effet cinématique avec vignette sombre')}
+                        onClick={() => setEditPrompt(t.generate.cinematicPrompt)}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Style cinéma
+                        • {t.generate.editExampleCinema}
                       </button>
                       <button
-                        onClick={() => setEditPrompt('Grain film argentique vintage')}
+                        onClick={() => setEditPrompt(t.generate.vintagePrompt)}
                         className="w-full text-left text-[9px] px-2 py-1 bg-white rounded hover:bg-purple-50 border"
                       >
-                        • Grain vintage
+                        • {t.generate.editExampleVintage}
                       </button>
                     </div>
                   </div>
@@ -6179,34 +6197,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Contenu de l'onglet Texte */}
                   {activeTab === 'text' && (
                   <div className="bg-purple-50 rounded-lg border border-purple-200 p-3">
-                    <h3 className="text-base font-semibold mb-2">✨ Personnalisation du Texte</h3>
+                    <h3 className="text-base font-semibold mb-2">✨ {t.generate.textCustomization}</h3>
 
                     {/* Texte */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1.5">Texte</label>
+                      <label className="block text-xs font-medium mb-1.5">{t.generate.textLabel}</label>
                       <textarea
                         value={overlayText}
                         onChange={(e) => setOverlayText(e.target.value)}
-                        placeholder="Écrivez votre texte accrocheur..."
+                        placeholder={t.generate.writeCatchyText}
                         rows={2}
                         className="w-full px-2 py-1.5 rounded border border-neutral-300 text-[10px] focus:outline-none focus:border-purple-500 resize-none"
                       />
                       <p className="text-[9px] text-neutral-500 mt-1">
-                        {overlayText.length} caractères
+                        {overlayText.length} {t.generate.characters}
                       </p>
                     </div>
 
                     {/* Templates */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1.5">Templates</label>
+                      <label className="block text-xs font-medium mb-1.5">{t.generate.templates}</label>
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { id: 'headline', icon: '📰', label: 'Titre' },
-                          { id: 'cta', icon: '🎯', label: 'CTA' },
-                          { id: 'minimal', icon: '✨', label: 'Simple' },
-                          { id: 'bold', icon: '💪', label: 'Gras' },
-                          { id: 'elegant', icon: '👔', label: 'Élégant' },
-                          { id: 'modern', icon: '🚀', label: 'Moderne' },
+                          { id: 'headline', icon: '📰', label: t.generate.desktopTemplateHeadline },
+                          { id: 'cta', icon: '🎯', label: t.generate.templateCTA },
+                          { id: 'minimal', icon: '✨', label: t.generate.desktopTemplateSimple },
+                          { id: 'bold', icon: '💪', label: t.generate.desktopTemplateBold },
+                          { id: 'elegant', icon: '👔', label: t.generate.templateElegant },
+                          { id: 'modern', icon: '🚀', label: t.generate.templateModern },
                         ].map((template) => (
                           <button
                             key={template.id}
@@ -6259,35 +6277,35 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                     {/* Position */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1.5">Position <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
+                      <label className="block text-xs font-medium mb-1.5">{t.generate.position} <span className="text-neutral-400 font-normal">({textPosition}%)</span></label>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => setTextPosition(Math.max(8, textPosition - 10))}
                           className="px-2.5 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
-                        >⬆️ Haut +</button>
+                        >⬆️ {t.generate.topPlus}</button>
                         <button
                           onClick={() => setTextPosition(25)}
                           className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition <= 30 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >Haut</button>
+                        >{t.generate.top}</button>
                         <button
                           onClick={() => setTextPosition(50)}
                           className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition > 30 && textPosition < 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >Centre</button>
+                        >{t.generate.center}</button>
                         <button
                           onClick={() => setTextPosition(75)}
                           className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition-all ${textPosition >= 70 ? 'bg-purple-500 text-white' : 'bg-neutral-100 text-neutral-500'}`}
-                        >Bas</button>
+                        >{t.generate.bottom}</button>
                         <button
                           onClick={() => setTextPosition(Math.min(92, textPosition + 10))}
                           className="px-2.5 py-2 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
-                        >⬇️ Bas +</button>
+                        >⬇️ {t.generate.bottomPlus}</button>
                       </div>
                     </div>
 
                     {/* Couleurs */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       <div>
-                        <label className="block text-xs font-medium mb-1">Couleur texte</label>
+                        <label className="block text-xs font-medium mb-1">{t.generate.textColor}</label>
                         <input
                           type="color"
                           value={textColor}
@@ -6296,7 +6314,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1">Couleur fond</label>
+                        <label className="block text-xs font-medium mb-1">{t.generate.backgroundColor}</label>
                         <input
                           type="color"
                           value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
@@ -6309,7 +6327,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Taille police */}
                     <div className="mb-3">
                       <label className="block text-xs font-medium mb-1">
-                        Taille ({fontSize}pt)
+                        {t.generate.fontSizeShort} ({fontSize}pt)
                       </label>
                       <input
                         type="range"
@@ -6323,34 +6341,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
                     {/* Police */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1">Police</label>
+                      <label className="block text-xs font-medium mb-1">{t.generate.fontLabel}</label>
                       <select
                         value={fontFamily}
                         onChange={(e) => setFontFamily(e.target.value as any)}
                         className="w-full px-2 py-1 rounded border border-neutral-300 text-[10px]"
                       >
-                        <option value="inter">🔤 Inter - Moderne</option>
-                        <option value="montserrat">💪 Montserrat - Gras</option>
-                        <option value="bebas">📰 Bebas Neue - Impact</option>
-                        <option value="roboto">⚙️ Roboto - Classique</option>
-                        <option value="playfair">✨ Playfair - Élégant</option>
+                        <option value="inter">🔤 {t.generate.fontInter}</option>
+                        <option value="montserrat">💪 {t.generate.fontMontserrat}</option>
+                        <option value="bebas">📰 {t.generate.fontBebas}</option>
+                        <option value="roboto">⚙️ {t.generate.fontRoboto}</option>
+                        <option value="playfair">✨ {t.generate.fontPlayfair}</option>
                       </select>
                     </div>
 
                     {/* Style de fond */}
                     <div className="mb-3">
-                      <label className="block text-xs font-medium mb-1">Style de fond</label>
+                      <label className="block text-xs font-medium mb-1">{t.generate.bgStyleLabel}</label>
                       <div className="grid grid-cols-3 gap-1">
                         {[
-                          { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-                          { value: 'none', emoji: '🅰', label: 'Contour fort' },
-                          { value: 'minimal', emoji: '✦', label: 'Discret' },
-                          { value: 'transparent', emoji: '👻', label: 'Transparent' },
-                          { value: 'solid', emoji: '⬛', label: 'Solide' },
-                          { value: 'gradient', emoji: '🌈', label: 'Dégradé' },
-                          { value: 'blur', emoji: '💨', label: 'Flou' },
-                          { value: 'outline', emoji: '⭕', label: 'Contour' },
-                          { value: 'glow', emoji: '💫', label: 'Lumineux' }
+                          { value: 'clean', emoji: '🔲', label: t.generate.bgNone },
+                          { value: 'none', emoji: '🅰', label: t.generate.bgStrongOutline },
+                          { value: 'minimal', emoji: '✦', label: t.generate.bgSubtle },
+                          { value: 'transparent', emoji: '👻', label: t.generate.bgTransparent },
+                          { value: 'solid', emoji: '⬛', label: t.generate.bgSolid },
+                          { value: 'gradient', emoji: '🌈', label: t.generate.bgGradient },
+                          { value: 'blur', emoji: '💨', label: t.generate.bgBlur },
+                          { value: 'outline', emoji: '⭕', label: t.generate.bgOutline },
+                          { value: 'glow', emoji: '💫', label: t.generate.bgGlow }
                         ].map((style) => (
                           <button
                             key={style.value}
@@ -6392,7 +6410,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       disabled={!overlayText.trim()}
                       className="w-full py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {editingOverlayId ? '✓ Modifier le texte' : textOverlayItems.length > 0 ? '+ Ajouter un texte' : '✓ Appliquer le texte'}
+                      {editingOverlayId ? `✓ ${t.generate.modifyText}` : textOverlayItems.length > 0 ? `+ ${t.generate.addText}` : `✓ ${t.generate.applyText}`}
                     </button>
 
                     {editingOverlayId && (
@@ -6418,14 +6436,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         }}
                         className="w-full py-1.5 mt-1 border border-purple-300 text-purple-600 rounded-lg text-[10px] font-medium hover:bg-purple-50 transition"
                       >
-                        + Nouveau texte
+                        {t.generate.newText}
                       </button>
                     )}
 
                     {/* Liste des textes appliqués */}
                     {textOverlayItems.length > 0 && (
                       <div className="mt-2 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-neutral-700">Textes appliqués :</p>
+                        <p className="text-[10px] font-semibold text-neutral-700">{t.generate.appliedTexts}</p>
                         {textOverlayItems.map((item) => (
                           <div key={item.id} className={`flex items-center gap-1.5 p-1.5 rounded border ${editingOverlayId === item.id ? 'border-purple-400 bg-purple-50' : 'border-neutral-200 bg-white'}`}>
                             <span className="text-[9px] text-neutral-400">{item.position <= 30 ? '⬆️' : item.position >= 70 ? '⬇️' : '⏺️'}</span>
@@ -6443,7 +6461,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               }}
                               className="px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 rounded"
                             >
-                              Modifier
+                              {t.generate.modify}
                             </button>
                             <button
                               onClick={() => {
@@ -6469,7 +6487,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           }}
                           className="w-full py-1.5 mt-1 border border-red-300 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-50 transition"
                         >
-                          Supprimer tout le texte
+                          {t.generate.deleteAllText}
                         </button>
                       </div>
                     )}
@@ -6541,15 +6559,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-neutral-900 mb-2">Crédits insuffisants</h3>
-                <p className="text-sm text-neutral-600 mb-1">Solde actuel : <span className="font-semibold text-red-600">{credits.balance} crédits</span></p>
-                <p className="text-sm text-neutral-600 mb-6">Rechargez vos crédits ou passez à un plan supérieur pour continuer.</p>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.generate.insufficientCredits}</h3>
+                <p className="text-sm text-neutral-600 mb-1">{t.generate.currentBalance} <span className="font-semibold text-red-600">{credits.balance} {t.generate.credits}</span></p>
+                <p className="text-sm text-neutral-600 mb-6">{t.generate.rechargeOrUpgrade}</p>
                 <div className="flex gap-3">
                   <a href="/mon-compte" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
-                    Acheter des crédits
+                    {t.generate.buyCredits}
                   </a>
                   <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
-                    Voir les plans
+                    {t.generate.seePlans}
                   </a>
                 </div>
               </div>
@@ -6568,16 +6586,16 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-neutral-900 mb-2">Créez un compte pour continuer</h3>
-                <p className="text-sm text-neutral-600 mb-2">Cette fonctionnalité nécessite un compte Keiro.</p>
-                <p className="text-sm text-neutral-500 mb-1">30 crédits offerts à l'inscription</p>
-                <p className="text-sm text-neutral-500 mb-6">Code promo ? Activez-le à l'inscription pour des crédits bonus</p>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.generate.createAccountToContinue}</h3>
+                <p className="text-sm text-neutral-600 mb-2">{t.generate.featureRequiresAccount}</p>
+                <p className="text-sm text-neutral-500 mb-1">{t.generate.freeCreditsOnSignup}</p>
+                <p className="text-sm text-neutral-500 mb-6">{t.generate.promoCodeHint}</p>
                 <div className="flex gap-3">
                   <a href="/login" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
-                    Créer un compte
+                    {t.generate.createAccount}
                   </a>
                   <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
-                    Voir les tarifs
+                    {t.generate.seePricing}
                   </a>
                 </div>
               </div>
@@ -6605,13 +6623,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 mb-2">Bienvenue sur KeiroAI !</h2>
-              <p className="text-neutral-600 mb-6">Votre compte est confirmé et actif. Créez votre premier contenu.</p>
+              <h2 className="text-2xl font-bold text-neutral-900 mb-2">{t.generate.welcomeTitle}</h2>
+              <p className="text-neutral-600 mb-6">{t.generate.welcomeDesc}</p>
               <button
                 onClick={() => setShowWelcome(false)}
                 className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
               >
-                Commencer
+                {t.generate.start}
               </button>
             </div>
           </div>

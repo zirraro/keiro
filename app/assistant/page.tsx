@@ -8,9 +8,11 @@ import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+import { useLanguage } from '@/lib/i18n/context';
 
 export default function AssistantPage() {
   const feedback = useFeedbackPopup();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('chat');
@@ -86,7 +88,7 @@ export default function AssistantPage() {
       <div className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-neutral-600">Chargement de votre assistant...</p>
+          <p className="text-neutral-600">{t.assistant.loadingAssistant}</p>
         </div>
       </div>
     );
@@ -101,49 +103,49 @@ export default function AssistantPage() {
           <div className="flex flex-col gap-4">
             <div className="flex-1">
               <h1 className="text-2xl md:text-3xl font-bold mb-2 text-blue-900">
-                👋 Bonjour {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'à vous'} !
+                👋 {t.assistant.greeting} {user?.user_metadata?.full_name || user?.email?.split('@')[0] || t.assistant.greetingDefault} !
               </h1>
               <p className="text-sm md:text-base text-neutral-600 mb-4">
-                Voici votre tableau de bord marketing personnalisé !
+                {t.assistant.dashboardSubtitle}
               </p>
 
               {/* Stats résumé */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-4 md:mt-6">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Cette semaine</div>
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.thisWeek}</div>
                   <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.postsThisWeek}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">visuels générés</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.visualsGenerated}</div>
                   {stats.improvement > 0 && (
                     <div className="text-xs md:text-sm text-green-600 font-semibold flex items-center gap-1">
-                      <span>↗</span> +{stats.improvement}% vs semaine dernière
+                      <span>↗</span> +{stats.improvement}% {t.assistant.vsLastWeek}
                     </div>
                   )}
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Engagement moyen</div>
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.avgEngagement}</div>
                   <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.avgEngagement}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">vues par post</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.viewsPerPost}</div>
                   <div className="text-xs text-blue-700 font-medium">
-                    {stats.avgLikes} likes moyens
+                    {stats.avgLikes} {t.assistant.avgLikes}
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Contenus publiés</div>
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.publishedContent}</div>
                   <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.totalPosts}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">posts au total</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.totalPosts}</div>
                   <div className="text-xs text-blue-700 font-medium">
-                    Thème fort : {stats.topCategory}
+                    {t.assistant.topTheme} {stats.topCategory}
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">Prochain post</div>
-                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">Mardi 18h</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">meilleur moment</div>
+                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.nextPost}</div>
+                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">{t.assistant.bestTime}</div>
+                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.bestMoment}</div>
                   <div className="text-xs text-blue-700 font-medium">
-                    Basé sur vos données
+                    {t.assistant.basedOnData}
                   </div>
                 </div>
               </div>
@@ -162,7 +164,7 @@ export default function AssistantPage() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              📊 Tableau de bord
+              📊 {t.assistant.tabDashboard}
             </button>
             <button
               onClick={() => setActiveTab('chat')}
@@ -172,7 +174,7 @@ export default function AssistantPage() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              💬 Chat Marketing
+              💬 {t.assistant.tabChat}
             </button>
             <button
               onClick={() => setActiveTab('formation')}
@@ -182,7 +184,7 @@ export default function AssistantPage() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              📺 Masterclass
+              📺 {t.assistant.tabMasterclass}
             </button>
           </div>
         </div>
@@ -214,6 +216,7 @@ export default function AssistantPage() {
 
 // Onglet Dashboard
 function DashboardTab({ stats, chartData, user }: any) {
+  const { t } = useLanguage();
   // Données de démo pour afficher des graphiques d'exemple
   const demoEngagementTrend = [
     { date: '2026-01-01', views: 320, likes: 45, comments: 8 },
@@ -225,18 +228,18 @@ function DashboardTab({ stats, chartData, user }: any) {
   ];
 
   const demoBestTimes = [
-    { label: 'Mardi 18h', engagement: 850 },
-    { label: 'Jeudi 12h', engagement: 720 },
-    { label: 'Lundi 9h', engagement: 680 },
-    { label: 'Mercredi 20h', engagement: 650 },
-    { label: 'Vendredi 17h', engagement: 580 }
+    { label: t.assistant.demoTimeTuesday6pm, engagement: 850 },
+    { label: t.assistant.demoTimeThursday12pm, engagement: 720 },
+    { label: t.assistant.demoTimeMonday9am, engagement: 680 },
+    { label: t.assistant.demoTimeWednesday8pm, engagement: 650 },
+    { label: t.assistant.demoTimeFriday5pm, engagement: 580 }
   ];
 
   const demoTopCategories = [
     { category: 'Tech', count: 8, avgEngagement: 450 },
     { category: 'Business', count: 6, avgEngagement: 380 },
     { category: 'Marketing', count: 5, avgEngagement: 520 },
-    { category: 'Santé', count: 4, avgEngagement: 310 }
+    { category: t.assistant.demoCategoryHealth, count: 4, avgEngagement: 310 }
   ];
 
   const demoConversionRate = [
@@ -317,9 +320,9 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="flex items-start gap-3">
               <span className="text-2xl">📊</span>
               <div>
-                <h3 className="font-bold text-blue-900 mb-1">Données d'exemple</h3>
+                <h3 className="font-bold text-blue-900 mb-1">{t.assistant.sampleData}</h3>
                 <p className="text-sm text-blue-800">
-                  Ces graphiques montrent des données fictives. Commencez à créer des visuels pour voir vos vraies performances !
+                  {t.assistant.sampleDataDesc}
                 </p>
               </div>
             </div>
@@ -327,7 +330,7 @@ function DashboardTab({ stats, chartData, user }: any) {
               href="/generate"
               className="shrink-0 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
             >
-              Créer un visuel →
+              {t.assistant.createVisual}
             </a>
           </div>
         </div>
@@ -336,10 +339,10 @@ function DashboardTab({ stats, chartData, user }: any) {
       {/* Section Analytics */}
       <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">📈 Vos performances</h2>
+          <h2 className="text-xl font-bold">📈 {t.assistant.yourPerformance}</h2>
           {!hasRealData && (
             <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
-              EXEMPLE
+              {t.assistant.sampleBadge}
             </span>
           )}
         </div>
@@ -347,7 +350,7 @@ function DashboardTab({ stats, chartData, user }: any) {
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Graphique 1: Évolution engagement */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Évolution de l'engagement</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.engagementTrend}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <LineChart data={displayEngagementTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -368,16 +371,16 @@ function DashboardTab({ stats, chartData, user }: any) {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} name="Vues" />
-                  <Line type="monotone" dataKey="likes" stroke="#ec4899" strokeWidth={2} name="Likes" />
-                  <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name="Commentaires" />
+                  <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} name={t.assistant.views} />
+                  <Line type="monotone" dataKey="likes" stroke="#ec4899" strokeWidth={2} name={t.assistant.likes} />
+                  <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name={t.assistant.comments} />
                 </LineChart>
               </ResponsiveContainer>
           </div>
 
           {/* Graphique 2: Meilleurs moments */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Meilleurs moments pour poster</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.bestPostingTimes}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={displayBestTimes} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -391,7 +394,7 @@ function DashboardTab({ stats, chartData, user }: any) {
 
           {/* Graphique 3: Top catégories */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Top catégories</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.topCategories}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={displayTopCategories}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -405,15 +408,15 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="count" fill="#3b82f6" name="Nombre de posts" />
-                  <Bar dataKey="avgEngagement" fill="#10b981" name="Engagement moyen" />
+                  <Bar dataKey="count" fill="#3b82f6" name={t.assistant.postCount} />
+                  <Bar dataKey="avgEngagement" fill="#10b981" name={t.assistant.avgEngagementChart} />
                 </BarChart>
               </ResponsiveContainer>
           </div>
 
           {/* Graphique 4: Taux de conversion */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Taux de conversion</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.conversionRate}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <LineChart data={demoConversionRate}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -421,14 +424,14 @@ function DashboardTab({ stats, chartData, user }: any) {
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip contentStyle={{ fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="taux" stroke="#10b981" strokeWidth={3} name="Taux (%)" />
+                <Line type="monotone" dataKey="taux" stroke="#10b981" strokeWidth={3} name={t.assistant.ratePercent} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Graphique 5: Croissance d'abonnés */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Croissance d'abonnés</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.followerGrowth}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <LineChart data={demoFollowerGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -436,14 +439,14 @@ function DashboardTab({ stats, chartData, user }: any) {
                 <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip contentStyle={{ fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="followers" stroke="#9333ea" strokeWidth={3} name="Abonnés" />
+                <Line type="monotone" dataKey="followers" stroke="#9333ea" strokeWidth={3} name={t.assistant.followers} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Graphique 6: Performance par heure */}
           <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">Performance par heure de la journée</h3>
+            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.hourlyPerformance}</h3>
             <ResponsiveContainer width="100%" height="90%">
               <BarChart data={demoHourlyPerformance}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -461,10 +464,10 @@ function DashboardTab({ stats, chartData, user }: any) {
       {/* Section Insights personnalisés */}
       <div className="bg-blue-50 rounded-xl shadow border border-blue-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🤖 Insights personnalisés</h2>
+          <h2 className="text-xl font-bold">🤖 {t.assistant.personalizedInsights}</h2>
           {stats.totalPosts > 0 && (
             <span className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full font-bold">
-              ACTIF
+              {t.assistant.active}
             </span>
           )}
         </div>
@@ -475,17 +478,14 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="flex items-start gap-3">
               <span className="text-3xl">🎯</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">Stratégie secteur adaptée</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.sectorStrategy}</p>
                 <p className="text-neutral-700 mb-3">
-                  Pour votre activité <strong>{user?.user_metadata?.business_type || 'Business'}</strong>,
-                  les contenus de type <strong>"{stats.topCategory}"</strong> génèrent 3.2x plus d'engagement
-                  que la moyenne de votre secteur.
+                  {t.assistant.sectorStrategyPrefix} <strong>{user?.user_metadata?.business_type || 'Business'}</strong>{t.assistant.sectorStrategyMiddle} <strong>&quot;{stats.topCategory}&quot;</strong> {t.assistant.sectorStrategySuffix}
                 </p>
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">💡 Action recommandée :</p>
+                  <p className="font-semibold text-blue-900 mb-1">💡 {t.assistant.recommendedAction}</p>
                   <p className="text-blue-800 text-xs">
-                    Publiez 3 posts "{stats.topCategory}" cette semaine avec un angle "avant/après"
-                    pour capitaliser sur cette tendance. Meilleur moment : <strong>Mardi 18h et Jeudi 12h</strong>.
+                    {t.assistant.recommendedActionPrefix}{stats.topCategory}{t.assistant.recommendedActionSuffix} <strong>{t.assistant.recommendedActionTime}</strong>.
                   </p>
                 </div>
               </div>
@@ -497,17 +497,14 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="flex items-start gap-3">
               <span className="text-3xl">⏰</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">Timing optimal détecté</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.optimalTiming}</p>
                 <p className="text-neutral-700 mb-3">
-                  Vos posts publiés entre <strong>17h-19h</strong> obtiennent un taux d'engagement
-                  <strong> 85% supérieur</strong> à ceux publiés le matin.
-                  Votre audience est particulièrement active en fin de journée.
+                  {t.assistant.optimalTimingDesc}
                 </p>
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">⚡ Opportunité immédiate :</p>
+                  <p className="font-semibold text-blue-900 mb-1">⚡ {t.assistant.immediateOpportunity}</p>
                   <p className="text-blue-800 text-xs">
-                    Reprogrammez vos 2 prochains posts pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>.
-                    Basé sur l'analyse de 30 jours, vous pourriez augmenter votre portée de +420 vues par post.
+                    {t.assistant.immediateOpportunityText}
                   </p>
                 </div>
               </div>
@@ -519,18 +516,16 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="flex items-start gap-3">
               <span className="text-3xl">📈</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">Benchmark sectoriel</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.sectorBenchmark}</p>
                 <p className="text-neutral-700 mb-3">
-                  Dans votre niche, les comptes similaires avec <strong>+40% d'engagement</strong> utilisent
-                  en moyenne 8-12 hashtags ciblés et des carrousels de 5-7 slides.
-                  Vous utilisez actuellement une moyenne de 4 hashtags.
+                  {t.assistant.sectorBenchmarkDesc}
                 </p>
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">🚀 Plan d'action :</p>
+                  <p className="font-semibold text-blue-900 mb-1">🚀 {t.assistant.actionPlan}</p>
                   <ul className="text-blue-800 text-xs space-y-1 list-disc list-inside">
-                    <li>Testez des carrousels 6 slides sur vos 3 prochains posts "{stats.topCategory}"</li>
-                    <li>Augmentez à 10 hashtags hyper-ciblés (ex: #businesslocal #entrepreneurfr)</li>
-                    <li>Intégrez un CTA clair dans les 2 premières slides</li>
+                    <li>{t.assistant.actionPlanItem1Prefix}{stats.topCategory}{t.assistant.actionPlanItem1Suffix}</li>
+                    <li>{t.assistant.actionPlanItem2}</li>
+                    <li>{t.assistant.actionPlanItem3}</li>
                   </ul>
                 </div>
               </div>
@@ -542,17 +537,15 @@ function DashboardTab({ stats, chartData, user }: any) {
             <div className="flex items-start gap-3">
               <span className="text-3xl">🔮</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">Projection de croissance</p>
+                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.growthProjection}</p>
                 <p className="text-neutral-700 mb-3">
-                  En maintenant votre rythme actuel ({stats.postsThisWeek} posts/semaine) et en
-                  appliquant les optimisations ci-dessus, vous pourriez atteindre
-                  <strong> +2 800 abonnés</strong> et <strong>+15 000 vues mensuelles</strong> dans les 90 prochains jours.
+                  {t.assistant.growthProjectionPrefix}{stats.postsThisWeek}{t.assistant.growthProjectionMiddle}
+                  <strong> {t.assistant.growthProjectionFollowers}</strong> {t.assistant.growthProjectionAnd} <strong>{t.assistant.growthProjectionViews}</strong> {t.assistant.growthProjectionSuffix}
                 </p>
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">✨ Pour accélérer :</p>
+                  <p className="font-semibold text-blue-900 mb-1">✨ {t.assistant.toAccelerate}</p>
                   <p className="text-blue-800 text-xs">
-                    Passez à 5 posts/semaine avec 2 Reels de 15-30sec sur vos meilleures performances.
-                    Estimation de potentiel de <strong>+180% de croissance</strong> avec cette stratégie.
+                    {t.assistant.toAccelerateText} <strong>{t.assistant.toAccelerateGrowth}</strong> {t.assistant.toAccelerateEnd}
                   </p>
                 </div>
               </div>
@@ -563,29 +556,26 @@ function DashboardTab({ stats, chartData, user }: any) {
           {stats.totalPosts === 0 ? (
             <div className="text-sm bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 p-4 rounded-xl">
               <p className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                <span>💡</span> Ces données sont des exemples pour illustrer les fonctionnalités
+                <span>💡</span> {t.assistant.sampleDataNote}
               </p>
               <p className="text-blue-800 mb-3 text-xs leading-relaxed">
-                Pour obtenir des <strong>insights personnalisés</strong> et des recommandations stratégiques adaptées à <strong>votre business</strong>,
-                commencez à créer vos premiers visuels et à les publier.
+                {t.assistant.sampleDataNoteP1} <strong>{t.assistant.sampleDataNoteP2}</strong> {t.assistant.sampleDataNoteP3} <strong>{t.assistant.sampleDataNoteP4}</strong>{t.assistant.sampleDataNoteP5}
               </p>
               <p className="text-blue-700 text-xs mb-3">
-                L'Assistant analysera vos performances et vous proposera des actions concrètes pour optimiser votre stratégie.
+                {t.assistant.sampleDataNoteP6}
               </p>
               <a
                 href="/generate"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-semibold text-xs hover:shadow-lg transition-all hover:scale-105"
               >
-                Créer mon premier visuel →
+                {t.assistant.createFirstVisual}
               </a>
             </div>
           ) : (
             <div className="text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
-              <p className="font-semibold mb-1">📊 Méthodologie :</p>
+              <p className="font-semibold mb-1">📊 {t.assistant.methodologyLabel}</p>
               <p>
-                Ces insights sont générés par analyse de vos {stats.totalPosts} derniers posts,
-                comparés à notre base de 500K+ posts similaires dans votre secteur.
-                Mise à jour quotidienne.
+                {t.assistant.methodologyPrefix} {stats.totalPosts} {t.assistant.methodologySuffix}
               </p>
             </div>
           )}
@@ -597,52 +587,53 @@ function DashboardTab({ stats, chartData, user }: any) {
 
 // Onglet Masterclass
 function FormationTab() {
+  const { t } = useLanguage();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
   const videos = [
     {
       id: 1,
-      title: '🔥 Comment EXPLOSER sur Instagram en 2024',
+      title: `🔥 ${t.assistant.videoTitle1}`,
       thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=800&auto=format&fit=crop',
       duration: '12:45',
-      views: '250K vues',
-      badge: 'NOUVEAU',
-      youtubeId: '5Z4yAgV5hOg', // TEST - URL fournie par l'utilisateur
-      description: 'Stratégies complètes pour faire exploser votre compte Instagram : algorithme, contenus viraux et engagement',
-      level: 'Débutant',
+      views: '250K',
+      badge: t.assistant.newBadge,
+      youtubeId: '5Z4yAgV5hOg',
+      description: t.assistant.videoDesc1,
+      level: t.assistant.levelBeginner,
     },
     {
       id: 2,
-      title: '📊 Stratégie Instagram Complète pour 2024',
+      title: `📊 ${t.assistant.videoTitle2}`,
       thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
       duration: '18:30',
-      views: '180K vues',
+      views: '180K',
       badge: '',
-      youtubeId: 'XXXXXXX', // À remplacer
-      description: 'Guide complet : Reels, Stories, Posts, Hashtags - Tout pour réussir sur Instagram en 2024',
-      level: 'Intermédiaire',
+      youtubeId: 'XXXXXXX',
+      description: t.assistant.videoDesc2,
+      level: t.assistant.levelIntermediate,
     },
     {
       id: 3,
-      title: '💰 Vendre avec Instagram : La Méthode Complète',
+      title: `💰 ${t.assistant.videoTitle3}`,
       thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
       duration: '25:12',
-      views: '320K vues',
+      views: '320K',
       badge: '',
-      youtubeId: 'XXXXXXX', // À remplacer
-      description: 'Comment transformer votre compte Instagram en machine à vendre : stratégie complète de A à Z',
-      level: 'Avancé',
+      youtubeId: 'XXXXXXX',
+      description: t.assistant.videoDesc3,
+      level: t.assistant.levelAdvanced,
     },
     {
       id: 4,
-      title: '✍️ Copywriting Instagram : Écrire des Légendes qui Vendent',
+      title: `✍️ ${t.assistant.videoTitle4}`,
       thumbnail: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=800&auto=format&fit=crop',
       duration: '14:28',
-      views: '150K vues',
+      views: '150K',
       badge: '',
-      youtubeId: 'XXXXXXX', // À remplacer
-      description: 'Les secrets du copywriting Instagram : formules, hooks, appels à l\'action qui convertissent vraiment',
-      level: 'Débutant',
+      youtubeId: 'XXXXXXX',
+      description: t.assistant.videoDesc4,
+      level: t.assistant.levelBeginner,
     }
   ];
 
@@ -653,15 +644,15 @@ function FormationTab() {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-blue-900">
-              📺 Masterclass Marketing
+              📺 {t.assistant.masterclassTitle}
             </h2>
             <p className="text-neutral-700 text-sm">
-              Stratégies exclusives pour dominer Instagram et multiplier vos ventes
+              {t.assistant.masterclassSubtitle}
             </p>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
             <div className="text-2xl font-bold text-blue-600">{videos.length}</div>
-            <div className="text-xs text-neutral-600">vidéos</div>
+            <div className="text-xs text-neutral-600">{t.assistant.videosCount}</div>
           </div>
         </div>
       </div>
@@ -670,9 +661,9 @@ function FormationTab() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
         <span className="text-xl">🧪</span>
         <div className="text-sm">
-          <p className="font-semibold text-blue-900 mb-1">Test en cours</p>
+          <p className="font-semibold text-blue-900 mb-1">{t.assistant.testInProgress}</p>
           <p className="text-blue-800">
-            Vidéo 1 : <strong>URL YouTube de test</strong> | Vidéos 2-4 : <strong>En attente d'URLs</strong>
+            {t.assistant.testDesc}
           </p>
         </div>
       </div>
@@ -718,7 +709,7 @@ function FormationTab() {
               {/* En attente badge */}
               {video.youtubeId === 'XXXXXXX' && (
                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-bold">
-                  En attente
+                  {t.assistant.pendingBadge}
                 </div>
               )}
             </div>
@@ -744,11 +735,11 @@ function FormationTab() {
               {/* CTA */}
               {video.youtubeId !== 'XXXXXXX' ? (
                 <button className="w-full py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  ▶️ Regarder maintenant
+                  ▶️ {t.assistant.watchNow}
                 </button>
               ) : (
                 <div className="w-full py-2 bg-neutral-200 text-neutral-500 font-semibold rounded-lg text-center">
-                  Bientôt disponible
+                  {t.assistant.comingSoon}
                 </div>
               )}
             </div>
@@ -758,15 +749,15 @@ function FormationTab() {
 
       {/* CTA final */}
       <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6 text-center">
-        <h3 className="text-xl font-bold mb-2">🚀 Prêt à passer à l'action ?</h3>
+        <h3 className="text-xl font-bold mb-2">🚀 {t.assistant.readyForAction}</h3>
         <p className="text-neutral-700 mb-4">
-          Mettez en pratique ces stratégies maintenant avec Keiro
+          {t.assistant.putStrategiesIntoPractice}
         </p>
         <a
           href="/generate"
           className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
         >
-          Créer mon premier visuel viral →
+          {t.assistant.createFirstViralVisual}
         </a>
       </div>
 

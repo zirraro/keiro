@@ -108,11 +108,11 @@ function ContactFormPricing() {
           required
           className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
         >
-          <option value="">Sujet de votre message...</option>
-          <option value="Question tarifs">Question sur les tarifs</option>
-          <option value="Démonstration">Demande de démonstration</option>
-          <option value="Partenariat">Partenariat</option>
-          <option value="Autre">Autre</option>
+          <option value="">{t.pricing.formSubjectPlaceholder}</option>
+          <option value="Question tarifs">{t.pricing.formSubjectPricing}</option>
+          <option value="Démonstration">{t.pricing.formSubjectDemo}</option>
+          <option value="Partenariat">{t.pricing.formSubjectPartnership}</option>
+          <option value="Autre">{t.pricing.formSubjectOther}</option>
         </select>
 
         <textarea
@@ -121,7 +121,7 @@ function ContactFormPricing() {
           required
           rows={3}
           className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          placeholder="Votre message..."
+          placeholder={t.pricing.formMessagePlaceholder}
         />
 
         <button
@@ -132,7 +132,7 @@ function ContactFormPricing() {
           {sending ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Envoi...
+              {t.pricing.formSending}
             </>
           ) : (
             <>
@@ -303,15 +303,15 @@ function PricingPageInner() {
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
                 <div className="text-3xl font-bold mb-1">10x</div>
-                <div className="text-sm text-cyan-100">Plus de reach organique qu'Instagram</div>
+                <div className="text-sm text-cyan-100">{t.pricing.tiktokStat1Desc}</div>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
                 <div className="text-3xl font-bold mb-1">100k+</div>
-                <div className="text-sm text-cyan-100">Vues gratuites sur 1 vidéo virale</div>
+                <div className="text-sm text-cyan-100">{t.pricing.tiktokStat2Desc}</div>
               </div>
               <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
                 <div className="text-3xl font-bold mb-1">2x</div>
-                <div className="text-sm text-cyan-100">Visibilité totale (Instagram + TikTok)</div>
+                <div className="text-sm text-cyan-100">{t.pricing.tiktokStat3Desc}</div>
               </div>
             </div>
 
@@ -515,13 +515,13 @@ function PricingPageInner() {
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
           <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">{t.pricing.creditTitle}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
-            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">5 cr</p><p className="text-xs text-neutral-600">Image</p></div>
-            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">3 cr</p><p className="text-xs text-neutral-600">Retouche image</p></div>
-            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">Vidéo 5s</p></div>
-            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">Vidéo 10s</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Suggestion IA</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Audio narration</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">Assistant marketing</p></div>
+            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
+            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
+            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo5s}</p></div>
+            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo10s}</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAiSuggestion}</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAudioNarration}</p></div>
+            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditMarketingAssistant}</p></div>
           </div>
         </div>
 
@@ -594,7 +594,7 @@ function PricingPageInner() {
                   <td className="py-3 px-2 font-medium">🎵 {t.pricing.comparisonRows[6]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-cyan-600">✓ {t.pricing.compUnlocked}</strong></td>
                   <td className="text-center py-3 px-2 bg-amber-50 text-cyan-600">✓</td>
                   <td className="text-center py-3 px-2 text-cyan-600">✓</td>
                 </tr>
@@ -602,7 +602,7 @@ function PricingPageInner() {
                   <td className="py-3 px-2 font-medium">🎙️ {t.pricing.comparisonRows[3]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">✓ Débloqué</strong></td>
+                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">✓ {t.pricing.compUnlocked}</strong></td>
                   <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
@@ -611,19 +611,19 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 bg-purple-50">Instagram</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">Multi-plateforme</strong></td>
-                  <td className="text-center py-3 px-2">Multi-plateforme</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">{t.pricing.compMultiPlatform}</strong></td>
+                  <td className="text-center py-3 px-2">{t.pricing.compMultiPlatform}</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[9]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2">Basique</td>
-                  <td className="text-center py-3 px-2 bg-purple-50">Planning</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">Planif. auto</strong></td>
-                  <td className="text-center py-3 px-2">Collaboratif</td>
+                  <td className="text-center py-3 px-2">{t.pricing.compBasic}</td>
+                  <td className="text-center py-3 px-2 bg-purple-50">{t.pricing.compPlanning}</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">{t.pricing.compAutoSchedule}</strong></td>
+                  <td className="text-center py-3 px-2">{t.pricing.compCollaborative}</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Multi-comptes</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.compMultiAccounts}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 bg-purple-50 text-neutral-400">—</td>
@@ -631,7 +631,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><strong>1+5 clients</strong></td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-2 font-medium">Prix</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
                   <td className="text-center py-3 px-2 font-bold">0€</td>
                   <td className="text-center py-3 px-2 font-bold">49€</td>
                   <td className="text-center py-3 px-2 bg-purple-50 font-bold text-purple-600">89€</td>
@@ -671,13 +671,9 @@ function PricingPageInner() {
                   </div>
                 </div>
                 <ul className="space-y-2.5 text-sm text-slate-300">
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> Délai 2-5 jours par visuel</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> Modifications facturées en supplément</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> ~4 campagnes/mois max</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> 0 vidéo incluse (supplément ~500€)</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> 1 seul réseau géré</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, absences, retards</li>
-                  <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune réactivité sur l{"'"}actu</li>
+                  {t.pricing.compDarkNeg.map((item, i) => (
+                    <li key={i} className="flex gap-2"><span className="text-red-400">✗</span> {item}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -693,13 +689,9 @@ function PricingPageInner() {
                   </div>
                 </div>
                 <ul className="space-y-2.5 text-sm text-slate-200">
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>5 minutes</strong> par visuel</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Modifications <strong>illimitées</strong> et instantanées</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>~4 campagnes/semaine</strong> (16/mois)</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Vidéo + audio + texte IA inclus</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <strong>Instagram + TikTok + LinkedIn</strong></li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Disponible 24/7, jamais en congé</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> Visuels <strong>basés sur l{"'"}actu</strong> du jour</li>
+                  {t.pricing.compDarkPos.map((item, i) => (
+                    <li key={i} className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: item }} /></li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -812,15 +804,15 @@ function PricingPageInner() {
           <div className="mt-8 grid grid-cols-3 gap-4 max-w-2xl mx-auto text-center">
             <div>
               <p className="text-2xl font-bold text-purple-600">&lt; 2h</p>
-              <p className="text-xs text-neutral-600">Réponse moyenne</p>
+              <p className="text-xs text-neutral-600">{t.pricing.statResponseTime}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-blue-600">98%</p>
-              <p className="text-xs text-neutral-600">Satisfaction client</p>
+              <p className="text-xs text-neutral-600">{t.pricing.statSatisfaction}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-cyan-600">7j/7</p>
-              <p className="text-xs text-neutral-600">Disponibilité</p>
+              <p className="text-xs text-neutral-600">{t.pricing.statAvailability}</p>
             </div>
           </div>
         </div>

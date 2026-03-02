@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import TikTokCarouselModal from './TikTokCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
 import ImageEditModal from './ImageEditModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -49,6 +50,7 @@ interface TikTokModalProps {
 }
 
 export default function TikTokModal({ image, images, video, videos, onClose, onPublishSuccess, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
+  const { t } = useLanguage();
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -343,7 +345,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       setSaving(true);
       try {
         await onSave(selectedImage, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.draftSavedToast : t.library.readyToPublishToast);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -353,7 +355,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
+        if (!user) throw new Error(t.library.createAccountForFeature);
 
         // Sauvegarder directement dans tiktok_drafts pour les vidéos
         const { error: insertError } = await supabase
@@ -371,16 +373,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
         if (insertError) throw new Error(insertError.message);
 
-        setSuccessToast(status === 'draft' ? '✅ Brouillon vidéo sauvegardé !' : '✅ Vidéo prête à publier !');
+        setSuccessToast(status === 'draft' ? t.library.videoDraftSaved : t.library.videoReadyToPublish);
         setTimeout(() => setSuccessToast(null), 3000);
       } catch (err: any) {
         console.error('[TikTokModal] Save video draft error:', err);
-        alert(`❌ Erreur de sauvegarde: ${err.message}`);
+        alert(`${t.library.saveErrorToast}: ${err.message}`);
       } finally {
         setSaving(false);
       }
     } else {
-      alert('Veuillez sélectionner un contenu (image ou vidéo)');
+      alert(t.library.selectContentImageOrVideo);
     }
   };
 
@@ -396,7 +398,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
 
     if (!hasContent) {
-      alert('Veuillez sélectionner un contenu (image ou vidéo)');
+      alert(t.library.selectContentImageOrVideo);
       return;
     }
 
@@ -439,11 +441,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         setCaption(data.caption);
         setHashtags(data.hashtags);
       } else {
-        alert(data.error || 'Erreur lors de la génération des suggestions');
+        alert(data.error || t.library.suggestionError);
       }
     } catch (error) {
       console.error('[TikTokModal] Error suggesting:', error);
-      alert('Erreur lors de la génération des suggestions');
+      alert(t.library.suggestionError);
     } finally {
       setSuggesting(false);
     }
@@ -521,7 +523,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
             body: JSON.stringify({
               videoUrl: data.videoUrl,
               originalImageId: selectedImage?.id,
-              title: `Vidéo TikTok - ${selectedImage?.title || 'Sans titre'}`,
+              title: `${t.library.tiktokVideoTitle} - ${selectedImage?.title || t.library.untitled}`,
               duration: videoDuration,
             })
           });
@@ -563,11 +565,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           setVideoPreview(data.videoUrl);
 
           alert(
-            `⚠️ Vidéo générée mais sauvegarde échouée\n\n` +
-            `Erreur: ${uploadError.message || 'Échec du téléchargement'}\n\n` +
-            `La vidéo est disponible temporairement pour publication,\n` +
-            `mais ne sera pas sauvegardée dans votre galerie.\n\n` +
-            `Conseil: Publiez maintenant ou régénérez la vidéo.`
+            `⚠️ ${t.library.videoGeneratedButSaveFailed}\n\n` +
+            `${uploadError.message || t.library.downloadFailed}\n\n` +
+            `${t.library.videoAvailableTemporarily}\n\n` +
+            `${t.library.tipPublishNowOrRegenerate}`
           );
         }
 
@@ -584,7 +585,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           setPollingInterval(null);
         }
 
-        const errorMessage = data.error || 'Une erreur est survenue lors de la génération';
+        const errorMessage = data.error || t.library.errorOccurredDuringGeneration;
         console.error('[TikTokModal] Video generation failed:', {
           error: data.error,
           status: data.status,
@@ -592,12 +593,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         });
 
         alert(
-          `❌ Échec de la génération vidéo\n\n` +
+          `❌ ${t.library.videoGenerationFailed}\n\n` +
           `${errorMessage}\n\n` +
-          `Suggestions:\n` +
-          `• Réessayez avec une autre image\n` +
-          `• Vérifiez que l'image est accessible\n` +
-          `• Contactez le support si le problème persiste`
+          `${t.library.videoGenSuggestions}`
         );
       } else {
         // Still processing
@@ -615,14 +613,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
   const handleGeneratePreview = async () => {
     if (!selectedImage) {
-      alert('Veuillez sélectionner une image');
+      alert(t.library.selectAnImageFirst);
       return;
     }
 
     // If already a video, use it directly
     if (isVideo(selectedImage.image_url)) {
       setVideoPreview(selectedImage.image_url);
-      alert('✅ Ce fichier est déjà une vidéo, pas de conversion nécessaire.');
+      alert(t.library.fileAlreadyVideo);
       return;
     }
 
@@ -661,7 +659,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
     } catch (error: any) {
       console.error('[TikTokModal] Error generating preview:', error);
-      alert(`❌ Erreur lors de la génération de la vidéo:\n${error.message || 'Une erreur est survenue'}`);
+      alert(`❌ ${t.library.videoGenerationError}:\n${error.message || t.library.errorOccurred}`);
       setGeneratingPreview(false);
     }
   };
@@ -671,23 +669,23 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     // Check what's selected based on active tab
     const hasSelectedItem = activeTab === 'images' ? selectedImage : selectedVideo;
     if (!hasSelectedItem) {
-      alert(`Veuillez sélectionner une ${activeTab === 'images' ? 'image' : 'vidéo'}`);
+      alert(activeTab === 'images' ? t.library.selectAnImageFirst : t.library.selectAVideo);
       return;
     }
 
     if (!caption.trim()) {
-      alert('Veuillez écrire une description pour votre vidéo TikTok');
+      alert(t.library.writeDescriptionForTikTok);
       return;
     }
 
     if (!isTikTokConnected) {
-      alert('Veuillez d\'abord connecter votre compte TikTok');
+      alert(t.library.connectTikTokFirst);
       return;
     }
 
     // If it's an image and no video preview yet, generate one first
     if (activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !videoPreview) {
-      alert('⚠️ Veuillez d\'abord générer la vidéo avant de publier.\n\nCliquez sur "✨ Générer la vidéo" pour créer votre vidéo.');
+      alert(t.library.generateVideoFirst);
       return;
     }
 
@@ -728,7 +726,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             videoUrl: videoUrlToPublish,
-            title: caption.substring(0, 50) || 'Vidéo TikTok'
+            title: caption.substring(0, 50) || t.library.tiktokVideoTitle
           })
         });
 
@@ -742,14 +740,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           }
         } else {
           setPublishing(false);
-          alert(`❌ Erreur de préparation\n\n${storeData.error}\n\nVeuillez réessayer.`);
+          alert(`❌ ${t.library.preparationError}\n\n${storeData.error}\n\n${t.library.pleaseRetry}`);
           return;
         }
       }
     } catch (storeError: any) {
       console.error('[TikTokModal] ❌ Store failed:', storeError);
       setPublishing(false);
-      alert('❌ Impossible de préparer la vidéo.\n\nVérifiez votre connexion et réessayez.');
+      alert(`❌ ${t.library.cannotPrepareVideo}\n\n${t.library.checkConnectionAndRetry}`);
       return;
     }
 
@@ -801,11 +799,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           tiktokReadyVideoUrl = conversionData.convertedUrl;
         } else {
           console.warn('[TikTokModal] ⚠️ CloudConvert échoué:', conversionData.error);
-          const continueAnyway = window.confirm(
-            '⚠️ La conversion de format a échoué.\n\n' +
-            'Voulez-vous essayer de publier quand même ?\n' +
-            '(La vidéo est peut-être déjà compatible)'
-          );
+          const continueAnyway = window.confirm(t.library.conversionFailedContinue);
           if (!continueAnyway) {
             setPublishing(false);
             return;
@@ -818,11 +812,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     }
 
     // STEP 3: Confirm with user
-    const confirm = window.confirm(
-      '🎵 Publier maintenant sur TikTok ?\n\n' +
-      '🚀 La vidéo sera publiée immédiatement sur votre compte\n\n' +
-      'Continuer ?'
-    );
+    const confirm = window.confirm(t.library.publishTikTokConfirm);
 
     if (!confirm) {
       setPublishing(false);
@@ -849,11 +839,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = `🎉 Vidéo publiée avec succès sur TikTok !\n\n✅ Publication réussie\n💬 Les interactions vont commencer\n\nFélicitations ! 🚀`;
+        const successMessage = t.library.tiktokPublishSuccess + '\n\n' + t.library.tiktokPublishSuccessDetails + '\n\n' + t.library.congratulations;
         alert(successMessage);
 
         if (data.post?.share_url) {
-          const openPost = window.confirm('Voulez-vous ouvrir TikTok pour voir votre vidéo ?');
+          const openPost = window.confirm(t.library.openTikTokToSeeVideo);
           if (openPost) {
             window.open(data.post.share_url, '_blank');
           }
@@ -864,11 +854,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
         onClose();
       } else {
-        throw new Error(data.error || 'Erreur lors de la publication');
+        throw new Error(data.error || t.library.publishError);
       }
     } catch (error: any) {
       console.error('[TikTokModal] Error publishing:', error);
-      alert(`❌ Erreur lors de la publication:\n${error.message || 'Une erreur est survenue'}`);
+      alert(`${t.library.publishError}:\n${error.message}`);
     } finally {
       setPublishing(false);
     }
@@ -886,29 +876,29 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
             <span className="text-3xl">🎵</span>
           </div>
-          <h3 className="text-lg font-bold text-neutral-900 mb-2">Préparer un post TikTok</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.library.prepareTikTokPost}</h3>
           <p className="text-neutral-600 text-sm mb-4">
-            Vous n'avez pas encore de visuels dans votre galerie.
+            {t.library.noVisualsYet}
           </p>
           <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
               className="w-full px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
-              Créer un visuel
+              {t.library.createVisual}
             </button>
             <button
               onClick={() => { window.location.href = '/library'; }}
               className="w-full px-5 py-3 border-2 border-cyan-200 text-cyan-700 font-semibold rounded-lg hover:bg-cyan-50 transition-all text-sm"
             >
-              Ajouter un visuel à votre galerie
+              {t.library.addVisualToGallery}
             </button>
           </div>
           <button
             onClick={onClose}
             className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
           >
-            Fermer
+            {t.library.close}
           </button>
         </div>
       </div>
@@ -924,7 +914,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
             <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-xl">🎵</span>
             </div>
-            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Préparer une vidéo TikTok</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">{t.library.prepareTikTokPost}</h2>
           </div>
           <button
             onClick={onClose}
@@ -955,7 +945,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              🎬 Vidéos ({availableVideos.length})
+              🎬 {t.library.videosTab} ({availableVideos.length})
             </button>
             <button
               onClick={() => setActiveTab('images')}
@@ -965,7 +955,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📸 Images ({availableImages.length})
+              📸 {t.library.imagesTab} ({availableImages.length})
             </button>
           </div>
         </div>
@@ -977,7 +967,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">
               <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
-                {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+                {activeTab === 'images' ? t.library.selectAnImage : t.library.selectAVideo}
               </p>
 
               {/* IMAGES TAB */}
@@ -1036,13 +1026,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             : 'ring-1 ring-neutral-300 hover:ring-cyan-300 hover:scale-102'
                           }
                         `}
-                        title={vid.title || 'Vidéo'}
+                        title={vid.title || t.library.video}
                       >
                         {vid.thumbnail_url ? (
                           <>
                             <img
                               src={vid.thumbnail_url}
-                              alt={vid.title || 'Vidéo'}
+                              alt={vid.title || t.library.video}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 // Replace with video fallback
@@ -1085,7 +1075,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             <svg className="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
-                            <span className="text-xs text-neutral-500">Vidéo</span>
+                            <span className="text-xs text-neutral-500">{t.library.video}</span>
                           </div>
                         )}
                       </button>
@@ -1093,7 +1083,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   )}
                   {!loadingVideos && availableVideos.length === 0 && (
                     <p className="text-xs text-neutral-400 text-center py-4">
-                      Aucune vidéo
+                      {t.library.noVideos}
                     </p>
                   )}
                 </>
@@ -1104,7 +1094,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           {/* CARROUSEL MOBILE - En haut sur mobile seulement */}
           <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
             <p className="text-xs font-semibold text-neutral-600 mb-2">
-              {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+              {activeTab === 'images' ? t.library.selectAnImage : t.library.selectAVideo}
             </p>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
               {/* IMAGES TAB */}
@@ -1162,7 +1152,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           <>
                             <img
                               src={vid.thumbnail_url}
-                              alt={vid.title || 'Vidéo'}
+                              alt={vid.title || t.library.video}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 // Replace with video fallback
@@ -1205,7 +1195,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
-                            <span className="text-[10px] text-neutral-500">Vidéo</span>
+                            <span className="text-[10px] text-neutral-500">{t.library.video}</span>
                           </div>
                         )}
                       </button>
@@ -1303,7 +1293,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     {!videoPreview && (
                       <div className="bg-purple-50 rounded-lg border border-purple-200 p-2">
                         <label className="text-xs font-medium text-neutral-700">
-                          Durée : <span className="text-purple-600 font-bold">{videoDuration}s</span>
+                          {t.library.duration} : <span className="text-purple-600 font-bold">{videoDuration}s</span>
                         </label>
                         <input
                           type="range"
@@ -1333,21 +1323,21 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       {generatingPreview ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Génération vidéo...</span>
+                          <span>{t.library.generatingVideo}...</span>
                         </>
                       ) : videoPreview ? (
                         <>
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                          <span>Vidéo générée ✓</span>
+                          <span>{t.library.videoGenerated} ✓</span>
                         </>
                       ) : (
                         <>
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                           </svg>
-                          <span>✨ Générer la vidéo ({videoDuration}s)</span>
+                          <span>✨ {t.library.generateVideo} ({videoDuration}s)</span>
                         </>
                       )}
                     </button>
@@ -1361,12 +1351,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     </svg>
                     <span>
                       {activeTab === 'videos'
-                        ? '✅ Vidéo prête pour publication TikTok'
+                        ? `✅ ${t.library.videoReadyForTikTok}`
                         : activeTab === 'images' && selectedImage && (isVideo(selectedImage.image_url) || selectedImage.title?.includes('Vidéo TikTok'))
-                          ? '✅ Vidéo prête pour publication TikTok'
+                          ? `✅ ${t.library.videoReadyForTikTok}`
                           : videoPreview
-                            ? `✅ Vidéo animée générée (9:16, ${videoDuration}s)`
-                            : '🎬 Votre image sera convertie en vidéo animée'
+                            ? `✅ ${t.library.animatedVideoGenerated.replace('{duration}', String(videoDuration))}`
+                            : `🎬 ${t.library.imageWillBeConverted}`
                       }
                     </span>
                   </p>
@@ -1382,34 +1372,34 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {/* Angle du contenu */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Ton de la vidéo
+                  {t.library.videoTone}
                 </label>
                 <select
                   value={contentAngle}
                   onChange={(e) => setContentAngle(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                 >
-                  <option value="viral">🔥 Viral / Tendance</option>
-                  <option value="fun">😄 Amusant / Léger</option>
-                  <option value="informatif">📚 Informatif</option>
-                  <option value="inspirant">✨ Inspirant</option>
-                  <option value="educatif">🎓 Éducatif</option>
+                  <option value="viral">🔥 {t.library.angleViral}</option>
+                  <option value="fun">😄 {t.library.angleFun}</option>
+                  <option value="informatif">📚 {t.library.angleInformativeTT}</option>
+                  <option value="inspirant">✨ {t.library.angleInspiringTT}</option>
+                  <option value="educatif">🎓 {t.library.angleEducationalTT}</option>
                 </select>
               </div>
 
               {/* Mots-clés optionnels pour orienter la suggestion */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-1">
-                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                  {t.library.keywordsLabel} <span className="text-xs font-normal text-neutral-500">({t.library.keywordsOptional})</span>
                 </label>
                 <input
                   type="text"
                   value={userKeywords}
                   onChange={(e) => setUserKeywords(e.target.value)}
-                  placeholder="Ex: tendance, behind the scenes, astuce rapide..."
+                  placeholder={t.library.keywordsPlaceholderTikTok}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">{t.library.keywordsHint}</p>
               </div>
 
               {/* Bouton suggérer IA */}
@@ -1425,10 +1415,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Suggestion en cours...
+                      {t.library.suggestingInProgress}
                     </span>
                   ) : (
-                    '✨ Suggérer description et hashtags'
+                    `✨ ${t.library.suggestDescAndHashtags}`
                   )}
                 </button>
               </div>
@@ -1436,17 +1426,17 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {/* Description */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Description de la vidéo
+                  {t.library.videoDescription}
                 </label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   rows={6}
-                  placeholder="Écrivez une description engageante pour votre vidéo TikTok..."
+                  placeholder={t.library.captionPlaceholderTikTok}
                   className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none text-sm"
                   maxLength={2200}
                 />
-                <p className="text-xs text-neutral-500 mt-1">{caption.length} / 2200 caractères</p>
+                <p className="text-xs text-neutral-500 mt-1">{caption.length} / 2200 {t.library.characters}</p>
               </div>
 
               {/* Narration Audio (vidéos uniquement) */}
@@ -1454,15 +1444,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
-                    🎙️ Narration Audio
+                    🎙️ {t.library.narrationAudio}
                   </label>
                   {narrationAudioUrl && (
-                    <span className="text-xs text-green-600 font-medium">✅ Audio généré</span>
+                    <span className="text-xs text-green-600 font-medium">✅ {t.library.audioGenerated}</span>
                   )}
                 </div>
 
                 <p className="text-xs text-neutral-600 mb-3">
-                  Générez une narration audio de votre description pour un meilleur engagement TikTok
+                  {t.library.narrationDescTikTok}
                 </p>
 
                 {!showNarrationEditor ? (
@@ -1470,7 +1460,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     onClick={() => setShowNarrationEditor(true)}
                     className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   >
-                    {narrationAudioUrl ? '🎙️ Modifier l\'audio' : '🎙️ Générer l\'audio'}
+                    {narrationAudioUrl ? `🎙️ ${t.library.editAudio}` : `🎙️ ${t.library.generateAudio}`}
                   </button>
                 ) : (
                   <AudioEditorWidget
@@ -1489,14 +1479,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         : videoPreview;
 
                       if (!currentVideoUrl) {
-                        setSuccessToast('🎙️ Audio prêt ! Sélectionnez une vidéo pour fusionner.');
+                        setSuccessToast(`🎙️ ${t.library.audioGenerated}`);
                         setTimeout(() => setSuccessToast(null), 4000);
                         return;
                       }
 
                       // Fusion serveur audio + vidéo
                       setMerging(true);
-                      setSuccessToast('🔄 Fusion audio + vidéo en cours...');
+                      setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
 
                       try {
                         console.log('[TikTokModal] Fusion serveur audio+vidéo...');
@@ -1512,7 +1502,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           setMergedVideoUrl(mergeData.mergedUrl);
                           console.log('[TikTokModal] ✅ Vidéo fusionnée:', mergeData.mergedUrl);
 
-                          setSuccessToast('✅ Audio intégré dans la vidéo — Prêt à publier !');
+                          setSuccessToast(`✅ ${t.library.audioIntegratedReady}`);
                           setTimeout(() => setSuccessToast(null), 5000);
 
                           // Auto-save brouillon "ready" (prêt à publier)
@@ -1537,12 +1527,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           }
                         } else {
                           console.error('[TikTokModal] ❌ Merge failed:', mergeData.error);
-                          setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                          setSuccessToast(`❌ ${mergeData.error}`);
                           setTimeout(() => setSuccessToast(null), 5000);
                         }
                       } catch (err: any) {
                         console.error('[TikTokModal] ❌ Merge request failed:', err);
-                        setSuccessToast('❌ Erreur de fusion audio/vidéo');
+                        setSuccessToast(`❌ ${t.library.mergeFailedDesc}`);
                         setTimeout(() => setSuccessToast(null), 5000);
                       } finally {
                         setMerging(false);
@@ -1561,15 +1551,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
-                      🎬 Audio + Vidéo
+                      🎬 {t.library.audioVideo}
                     </label>
                     {merging ? (
                       <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
                         <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                        Fusion en cours...
+                        {t.library.mergingInProgress}
                       </span>
                     ) : mergedVideoUrl ? (
-                      <span className="text-xs text-green-600 font-medium">✅ Audio intégré — Prêt à publier</span>
+                      <span className="text-xs text-green-600 font-medium">✅ {t.library.audioIntegratedReady}</span>
                     ) : (
                       <button
                         onClick={async () => {
@@ -1577,7 +1567,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             ? selectedVideo.video_url : videoPreview;
                           if (!currentVideoUrl || !narrationAudioUrl) return;
                           setMerging(true);
-                          setSuccessToast('🔄 Fusion audio + vidéo...');
+                          setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
                           try {
                             const mergeRes = await fetch('/api/merge-audio-video', {
                               method: 'POST',
@@ -1587,7 +1577,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             const mergeData = await mergeRes.json();
                             if (mergeData.ok && mergeData.mergedUrl) {
                               setMergedVideoUrl(mergeData.mergedUrl);
-                              setSuccessToast('✅ Audio intégré ! Prêt à publier.');
+                              setSuccessToast(`✅ ${t.library.audioIntegratedReady}`);
                               setTimeout(() => setSuccessToast(null), 4000);
                               const supabase = supabaseBrowser();
                               const { data: { user } } = await supabase.auth.getUser();
@@ -1604,27 +1594,27 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                                 });
                               }
                             } else {
-                              setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                              setSuccessToast(`❌ ${mergeData.error}`);
                               setTimeout(() => setSuccessToast(null), 5000);
                             }
                           } catch (err: any) {
-                            setSuccessToast('❌ Erreur de fusion');
+                            setSuccessToast(`❌ ${t.library.mergeFailedDesc}`);
                             setTimeout(() => setSuccessToast(null), 5000);
                           } finally { setMerging(false); }
                         }}
                         className="text-xs text-red-600 font-medium hover:text-red-700 underline"
                       >
-                        🔄 Relancer la fusion
+                        🔄 {t.library.retryMerge}
                       </button>
                     )}
                   </div>
 
                   <p className="text-[10px] text-neutral-600">
                     {mergedVideoUrl
-                      ? 'L\'audio est intégré dans la vidéo. La publication enverra cette vidéo avec le son.'
+                      ? t.library.mergeSuccessDesc
                       : merging
-                      ? 'Intégration de l\'audio dans le fichier vidéo...'
-                      : 'La fusion a échoué. Cliquez sur "Relancer la fusion" pour réessayer.'}
+                      ? t.library.mergingDesc
+                      : t.library.mergeFailedDesc}
                   </p>
                 </div>
               )}
@@ -1633,7 +1623,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {((activeTab === 'videos' && selectedVideo) || videoPreview) && (
                 <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
                   <label className="block text-sm font-semibold text-neutral-900">
-                    📝 Texte / Sous-titres
+                    📝 {t.library.textSubtitles}
                   </label>
 
                   {/* Checkbox sous-titres */}
@@ -1645,7 +1635,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-xs font-medium text-neutral-800">
-                      Afficher les sous-titres sur la vidéo
+                      {t.library.showSubtitlesOnVideo}
                     </span>
                   </label>
 
@@ -1653,15 +1643,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <>
                       {/* Style de sous-titres */}
                       <div className="space-y-1.5">
-                        <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
+                        <p className="text-[10px] text-neutral-600">{t.library.subtitleStyleLabel}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {([
-                            { key: 'wordflash' as const, label: '⚡ Mot par mot' },
-                            { key: 'wordstay' as const, label: '🎤 Karaoké' },
-                            { key: 'neon' as const, label: '💜 Néon' },
-                            { key: 'cinema' as const, label: '🎬 Cinéma' },
-                            { key: 'impact' as const, label: '💥 Bold' },
-                            { key: 'minimal' as const, label: '✦ Discret' },
+                            { key: 'wordflash' as const, label: `⚡ ${t.library.subtitleWordFlash}` },
+                            { key: 'wordstay' as const, label: `🎤 ${t.library.subtitleKaraoke}` },
+                            { key: 'neon' as const, label: `💜 ${t.library.subtitleNeon}` },
+                            { key: 'cinema' as const, label: `🎬 ${t.library.subtitleCinema}` },
+                            { key: 'impact' as const, label: `💥 ${t.library.subtitleBold}` },
+                            { key: 'minimal' as const, label: `✦ ${t.library.subtitleMinimal}` },
                           ]).map((style) => (
                             <button
                               key={style.key}
@@ -1681,14 +1671,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       {/* Modifier le texte des sous-titres */}
                       <div className="space-y-1.5">
                         <label className="block text-[10px] font-medium text-neutral-700">
-                          Texte affiché (modifiable):
+                          {t.library.displayedText}
                         </label>
                         <textarea
                           value={narrationScript}
                           onChange={(e) => setNarrationScript(e.target.value)}
                           rows={2}
                           className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                          placeholder="Texte à afficher sur la vidéo..."
+                          placeholder={t.library.subtitlePlaceholder}
                         />
                         {narrationAudioUrl && (
                           <button
@@ -1699,7 +1689,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                               if (!currentVideoUrl) return;
 
                               setMerging(true);
-                              setSuccessToast('🔄 Finalisation de la vidéo...');
+                              setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
                               try {
                                 const audioRes = await fetch('/api/generate-audio-tts', {
                                   method: 'POST',
@@ -1720,7 +1710,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                                 const mergeData = await mergeRes.json();
                                 if (mergeData.ok && mergeData.mergedUrl) {
                                   setMergedVideoUrl(mergeData.mergedUrl);
-                                  setSuccessToast('✅ Texte mis à jour !');
+                                  setSuccessToast(`✅ ${t.library.audioIntegratedReady}`);
                                   setTimeout(() => setSuccessToast(null), 4000);
 
                                   const supabase = supabaseBrowser();
@@ -1738,11 +1728,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                                     });
                                   }
                                 } else {
-                                  setSuccessToast(`❌ Fusion échouée: ${mergeData.error}`);
+                                  setSuccessToast(`❌ ${mergeData.error}`);
                                   setTimeout(() => setSuccessToast(null), 5000);
                                 }
                               } catch (err: any) {
-                                setSuccessToast(`❌ Erreur: ${err.message}`);
+                                setSuccessToast(`❌ ${err.message}`);
                                 setTimeout(() => setSuccessToast(null), 5000);
                               } finally { setMerging(false); }
                             }}
@@ -1753,7 +1743,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                                 : 'bg-green-600 text-white hover:bg-green-700'
                             }`}
                           >
-                            {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
+                            {merging ? `⏳ ${t.library.inProgress}` : `🔄 ${t.library.applyModifiedText}`}
                           </button>
                         )}
                       </div>
@@ -1765,7 +1755,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {/* Hashtags suggérés */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Hashtags suggérés
+                  {t.library.suggestedHashtags}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {['#fyp', '#viral', '#trending', '#foryou', '#pourtoi'].map(tag => (
@@ -1783,7 +1773,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {/* Hashtags sélectionnés */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Hashtags ({hashtags.length})
+                  {t.library.hashtags} ({hashtags.length})
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {hashtags.map(tag => (
@@ -1807,7 +1797,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     value={hashtagInput}
                     onChange={(e) => setHashtagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
-                    placeholder="Ajouter un hashtag"
+                    placeholder={t.library.addHashtagTikTokPlaceholder}
                     className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                   />
                   <button
@@ -1832,7 +1822,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Connecté : <strong>@{tiktokUsername}</strong></span>
+                <span>{t.library.connected} : <strong>@{tiktokUsername}</strong></span>
               </div>
             </div>
           )}
@@ -1842,7 +1832,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               onClick={onClose}
               className="px-4 sm:px-6 py-2 sm:py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-sm sm:text-base"
             >
-              Annuler
+              {t.library.cancel}
             </button>
             <button
               onClick={() => handleSave('draft')}
@@ -1856,10 +1846,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Sauvegarde...</span>
+                  <span>{t.library.savingInProgress}</span>
                 </>
               ) : (
-                <span>Brouillon</span>
+                <span>{t.library.draft}</span>
               )}
             </button>
 
@@ -1874,20 +1864,20 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
                   }`}
-                  title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? 'Générez d\'abord la vidéo' : ''}
+                  title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? t.library.generateVideoFirst : ''}
                 >
                   {publishing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Publication...</span>
+                      <span>{t.library.publishingInProgress}</span>
                     </>
                   ) : (
                     <>
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                       </svg>
-                      <span className="hidden sm:inline">Publier vidéo</span>
-                      <span className="sm:hidden">Vidéo</span>
+                      <span className="hidden sm:inline">{t.library.publishVideo}</span>
+                      <span className="sm:hidden">Video</span>
                     </>
                   )}
                 </button>
@@ -1898,8 +1888,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                   </svg>
-                  <span className="hidden sm:inline">Préparer carrousel</span>
-                  <span className="sm:hidden">Carrousel</span>
+                  <span className="hidden sm:inline">{t.library.prepareCarousel}</span>
+                  <span className="sm:hidden">Carousel</span>
                 </button>
               </>
             ) : (
@@ -1915,14 +1905,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 {saving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Sauvegarde...</span>
+                    <span>{t.library.savingInProgress}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
-                    <span>Prêt à publier</span>
+                    <span>{t.library.readyToPublish}</span>
                   </>
                 )}
               </button>

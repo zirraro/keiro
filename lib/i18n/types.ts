@@ -291,6 +291,43 @@ export interface Translations {
     footerContact: string;
     footerRights: string;
     footerDataDeletion: string;
+    // Comparator extra
+    comparatorStrikethrough: string;
+    comparatorWith: string;
+    // Before/After mockup
+    beforeCaption: string;
+    afterOverlay: string;
+    afterBadge: string;
+    afterCaptionTitle: string;
+    afterCaptionBody: string;
+    afterCaptionResult: string;
+    afterCaptionCta: string;
+    afterCaptionLimit: string;
+    afterHashtags: string;
+    afterImageAlt: string;
+    // Pricing CTAs
+    ctaSoloAnnual: string;
+    ctaChooseSolo: string;
+    ctaProAnnual: string;
+    ctaUnlockTikTok: string;
+    ctaFondateursAnnual: string;
+    ctaBecomeFondateur: string;
+    ctaBusinessAnnual: string;
+    ctaChooseBusiness: string;
+    ctaEliteAnnual: string;
+    ctaChooseElite: string;
+    priceNoteSolo: string;
+    priceNotePro: string;
+    priceNoteFondateurs: string;
+    priceNoteBusiness: string;
+    priceNoteElite: string;
+    // Quiz result bullets
+    quizProBullets: string[];
+    quizSoloBullets: string[];
+    quizCommonBullet: string;
+    // Calculator extra
+    calcSavingsPercentLabel: string;
+    calcAnnualPrefix: string;
   };
   pricing: {
     badge: string;
@@ -375,6 +412,42 @@ export interface Translations {
     ctaSubtitle: string;
     ctaCta: string;
     foundersNote: string;
+    // TikTok stats
+    tiktokStat1Desc: string;
+    tiktokStat2Desc: string;
+    tiktokStat3Desc: string;
+    // Credit grid items
+    creditImage: string;
+    creditImageEdit: string;
+    creditVideo5s: string;
+    creditVideo10s: string;
+    creditAiSuggestion: string;
+    creditAudioNarration: string;
+    creditMarketingAssistant: string;
+    // Comparison table values
+    compUnlocked: string;
+    compMultiPlatform: string;
+    compBasic: string;
+    compPlanning: string;
+    compAutoSchedule: string;
+    compCollaborative: string;
+    compMultiAccounts: string;
+    compPrice: string;
+    // Dark comparator bullets
+    compDarkNeg: string[];
+    compDarkPos: string[];
+    // Contact form
+    formSubjectPlaceholder: string;
+    formSubjectPricing: string;
+    formSubjectDemo: string;
+    formSubjectPartnership: string;
+    formSubjectOther: string;
+    formMessagePlaceholder: string;
+    formSending: string;
+    // Support stats
+    statResponseTime: string;
+    statSatisfaction: string;
+    statAvailability: string;
   };
   login: {
     loginTab: string;
@@ -489,4 +562,8 @@ export interface Translations {
     accountExists: string;
     connecting: string;
   };
+  generate: Record<string, string>;
+  library: Record<string, string>;
+  studio: Record<string, string>;
+  assistant: Record<string, string>;
 }

@@ -12,6 +12,7 @@ import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+import { useLanguage } from '@/lib/i18n/context';
 
 type FontFamily = 'inter' | 'montserrat' | 'bebas' | 'roboto' | 'playfair';
 type BgStyle = 'transparent' | 'clean' | 'none' | 'solid' | 'gradient' | 'blur' | 'outline' | 'minimal' | 'glow';
@@ -35,16 +36,16 @@ const FONTS: { value: FontFamily; label: string }[] = [
   { value: 'playfair', label: 'Playfair' },
 ];
 
-const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
-  { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-  { value: 'none', emoji: '🅰', label: 'Contour fort' },
-  { value: 'minimal', emoji: '·', label: 'Discret' },
-  { value: 'transparent', emoji: '▦', label: 'Transparent' },
-  { value: 'solid', emoji: '■', label: 'Solide' },
-  { value: 'gradient', emoji: '◐', label: 'Dégradé' },
-  { value: 'blur', emoji: '☁', label: 'Flou' },
-  { value: 'outline', emoji: '□', label: 'Contour' },
-  { value: 'glow', emoji: '✧', label: 'Lumineux' },
+const BG_STYLES_DATA: { value: BgStyle; emoji: string; labelKey: string }[] = [
+  { value: 'clean', emoji: '🔲', labelKey: 'bgClean' },
+  { value: 'none', emoji: '🅰', labelKey: 'bgStrongOutline' },
+  { value: 'minimal', emoji: '·', labelKey: 'bgSubtle' },
+  { value: 'transparent', emoji: '▦', labelKey: 'bgTransparent' },
+  { value: 'solid', emoji: '■', labelKey: 'bgSolid' },
+  { value: 'gradient', emoji: '◐', labelKey: 'bgGradient' },
+  { value: 'blur', emoji: '☁', labelKey: 'bgBlur' },
+  { value: 'outline', emoji: '□', labelKey: 'bgOutline' },
+  { value: 'glow', emoji: '✧', labelKey: 'bgGlow' },
 ];
 
 function generateId() {
@@ -57,6 +58,7 @@ function StudioContent() {
   const supabase = supabaseBrowser();
   const feedback = useFeedbackPopup();
   const editLimit = useEditLimit();
+  const { t } = useLanguage();
 
   const [imageUrl, setImageUrl] = useState(searchParams.get("image") || "");
   const [originalImage, setOriginalImage] = useState(searchParams.get("image") || "");
@@ -162,7 +164,7 @@ function StudioContent() {
 
   const handleLoadImage = () => {
     if (!imageUrl.trim()) {
-      alert("Veuillez entrer une URL d'image");
+      alert(t.studio.alertEnterImageUrl);
       return;
     }
     setOriginalImage(imageUrl);
@@ -177,19 +179,19 @@ function StudioContent() {
 
   const handleSaveToGallery = async () => {
     if (!user) {
-      alert('Vous devez être connecté pour sauvegarder dans votre galerie');
+      alert(t.studio.alertMustBeLoggedIn);
       return;
     }
 
     if (!loadedImage) {
-      alert('Aucune image à sauvegarder');
+      alert(t.studio.alertNoImageToSave);
       return;
     }
 
     setSavingToGallery(true);
     const savingToast = document.createElement('div');
     savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;animation:toastSlideIn 0.3s ease-out;';
-    savingToast.innerHTML = '<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>Sauvegarde en cours...</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>';
+    savingToast.innerHTML = `<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>${t.studio.alertSavingInProgress}</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>`;
     document.body.appendChild(savingToast);
     try {
       const response = await fetch('/api/library/save', {
@@ -198,8 +200,8 @@ function StudioContent() {
         credentials: 'include',
         body: JSON.stringify({
           imageUrl: loadedImage,
-          title: 'Image éditée depuis Studio',
-          tags: ['studio', 'édition'],
+          title: t.studio.saveTitle,
+          tags: ['studio', 'edit'],
           textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.bgColor, bgStyle: i.bgStyle }))) : undefined,
           originalImageUrl: cleanBaseImage || undefined,
         })
@@ -211,11 +213,11 @@ function StudioContent() {
         console.error('[Studio] Non-JSON response:', errorText);
 
         if (response.status === 413) {
-          throw new Error('Image trop volumineuse. Veuillez utiliser une image plus petite.');
+          throw new Error(t.studio.alertImageTooLarge);
         } else if (response.status === 401) {
-          throw new Error('Créez un compte pour accéder à cette fonctionnalité');
+          throw new Error(t.studio.alertCreateAccount);
         } else {
-          throw new Error('Erreur serveur: ' + (errorText.substring(0, 100) || 'Réponse invalide'));
+          throw new Error(t.studio.alertServerError + (errorText.substring(0, 100) || t.studio.alertInvalidResponse));
         }
       }
 
@@ -224,16 +226,16 @@ function StudioContent() {
       if (data.ok) {
         savingToast.style.background = 'linear-gradient(135deg, #16a34a, #059669)';
         savingToast.style.transition = 'all 0.4s ease';
-        savingToast.innerHTML = '<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>Redirection vers la galerie...</span>';
+        savingToast.innerHTML = `<svg style="width:1.25rem;height:1.25rem" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg><span>${t.studio.alertRedirectingToGallery}</span>`;
         setTimeout(() => { savingToast.style.opacity = '0'; savingToast.style.transform = 'translateX(1rem)'; }, 1200);
         setTimeout(() => { savingToast.remove(); router.push('/library'); }, 1600);
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.studio.alertSaveError);
       }
     } catch (error: any) {
       console.error('[Studio] Error saving:', error);
       savingToast.remove();
-      alert(error.message || 'Erreur lors de la sauvegarde');
+      alert(error.message || t.studio.alertSaveError);
     } finally {
       setSavingToGallery(false);
     }
@@ -241,7 +243,7 @@ function StudioContent() {
 
   const handleFileUpload = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert("Veuillez sélectionner une image");
+      alert(t.studio.alertSelectImage);
       return;
     }
 
@@ -327,11 +329,11 @@ function StudioContent() {
     }
 
     if (!editPrompt.trim()) {
-      alert("Veuillez décrire vos modifications");
+      alert(t.studio.alertDescribeChanges);
       return;
     }
     if (!loadedImage) {
-      alert("Veuillez charger une image d'abord");
+      alert(t.studio.alertLoadImageFirst);
       return;
     }
 
@@ -360,7 +362,7 @@ function StudioContent() {
       });
 
       if (!res.ok) {
-        throw new Error(`Erreur ${res.status}`);
+        throw new Error(`${t.studio.errorPrefix}${res.status}`);
       }
 
       const data = await res.json();
@@ -378,10 +380,10 @@ function StudioContent() {
 
         editLimit.incrementCount();
       } else {
-        throw new Error("Pas d'image retournée");
+        throw new Error(t.studio.alertNoImageReturned);
       }
     } catch (e: any) {
-      alert("Erreur: " + e.message);
+      alert(t.studio.alertError + e.message);
     } finally {
       setEditingImage(false);
     }
@@ -588,16 +590,16 @@ function StudioContent() {
   // === Video generation ===
   const handleGenerateVideo = async () => {
     if (!loadedImage) {
-      alert('Veuillez charger une image d\'abord');
+      alert(t.studio.alertLoadImageFirst);
       return;
     }
     if (!videoPrompt.trim()) {
-      alert('Veuillez décrire l\'animation souhaitée');
+      alert(t.studio.alertDescribeAnimation);
       return;
     }
 
     setGeneratingVideo(true);
-    setVideoProgress('Création de la tâche vidéo...');
+    setVideoProgress(t.studio.creatingVideoTask);
     setGeneratedVideoUrl(null);
 
     try {
@@ -625,7 +627,7 @@ function StudioContent() {
       }
 
       if (!data?.ok) {
-        throw new Error(data?.error || 'Échec de création de la tâche vidéo');
+        throw new Error(data?.error || t.studio.alertVideoTaskFailed);
       }
 
       setVideoTaskId(data.taskId);
@@ -634,10 +636,10 @@ function StudioContent() {
       const maxAttempts = videoDuration <= 10 ? 60 : 120;
       const pollVideo = async (attempt: number): Promise<void> => {
         if (attempt >= maxAttempts) {
-          throw new Error('Timeout: La génération prend trop de temps');
+          throw new Error(t.studio.alertVideoTimeout);
         }
 
-        setVideoProgress(`Génération en cours... (${attempt * 5}s)`);
+        setVideoProgress(`${t.studio.generatingProgress} (${attempt * 5}s)`);
 
         await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -657,7 +659,7 @@ function StudioContent() {
         }
 
         if (statusData.status === 'failed') {
-          throw new Error(statusData.error || 'Échec de la génération vidéo');
+          throw new Error(statusData.error || t.studio.alertVideoFailed);
         }
 
         return pollVideo(attempt + 1);
@@ -666,7 +668,7 @@ function StudioContent() {
       await pollVideo(0);
     } catch (error: any) {
       console.error('[Studio Video] Error:', error);
-      alert('Erreur: ' + error.message);
+      alert(t.studio.alertError + error.message);
       setGeneratingVideo(false);
       setVideoProgress('');
     }
@@ -689,17 +691,17 @@ function StudioContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
             </svg>
             <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              Studio d'Édition
+              {t.studio.badgeLabel}
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-3">
-            Transformez vos visuels<br/>
+            {t.studio.headerTitle}<br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-              en images, vidéos & plus encore
+              {t.studio.headerTitleHighlight}
             </span>
           </h1>
           <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
-            Retouchez vos images, ajoutez du texte et transformez-les en vidéo
+            {t.studio.headerSubtitle}
           </p>
         </div>
 
@@ -712,7 +714,7 @@ function StudioContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Votre média</h2>
+              <h2 className="text-xl font-bold text-neutral-900">{t.studio.yourMedia}</h2>
             </div>
 
             {!loadedImage ? (
@@ -747,10 +749,10 @@ function StudioContent() {
                   </div>
                   <p className="text-base text-neutral-700 mb-3 font-medium">
                     <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                      Glissez une image ici
+                      {t.studio.dragImageHere}
                     </span>
                   </p>
-                  <p className="text-sm text-neutral-500 mb-4">ou</p>
+                  <p className="text-sm text-neutral-500 mb-4">{t.studio.or}</p>
                   <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-105 font-semibold">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -764,9 +766,9 @@ function StudioContent() {
                       }}
                       className="hidden"
                     />
-                    Parcourir vos fichiers
+                    {t.studio.browseFiles}
                   </label>
-                  <p className="text-xs text-neutral-400 mt-4">PNG, JPG, WEBP jusqu'à 10MB</p>
+                  <p className="text-xs text-neutral-400 mt-4">{t.studio.fileFormats}</p>
                 </div>
 
                 <div className="relative">
@@ -774,7 +776,7 @@ function StudioContent() {
                     <div className="w-full border-t border-neutral-200"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-neutral-500 font-medium">ou coller une URL</span>
+                    <span className="px-4 bg-white text-neutral-500 font-medium">{t.studio.orPasteUrl}</span>
                   </div>
                 </div>
 
@@ -784,14 +786,14 @@ function StudioContent() {
                     <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
-                    URL de l'image
+                    {t.studio.imageUrl}
                   </label>
                   <div className="relative">
                     <input
                       type="text"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://exemple.com/image.jpg"
+                      placeholder={t.studio.imageUrlPlaceholder}
                       className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -803,7 +805,7 @@ function StudioContent() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  Charger l'image
+                  {t.studio.loadImage}
                 </button>
               </div>
             ) : (
@@ -822,7 +824,7 @@ function StudioContent() {
                   <div className="relative aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group">
                     <img
                       src={displayImage}
-                      alt="Image à éditer"
+                      alt={t.studio.imageToEdit}
                       className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                     />
                     {textLoading && activeTab === 'text' && (
@@ -850,7 +852,7 @@ function StudioContent() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Changer d'image
+                  {t.studio.changeImage}
                 </button>
               </div>
             )}
@@ -863,10 +865,10 @@ function StudioContent() {
                     <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
-                    Historique des versions
+                    {t.studio.versionHistory}
                   </h3>
                   <span className="px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 rounded-full text-xs font-bold">
-                    {allVersions.length} version{allVersions.length > 1 ? 's' : ''}
+                    {allVersions.length} {allVersions.length > 1 ? t.studio.versions : t.studio.version}
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -890,7 +892,7 @@ function StudioContent() {
                       <div className="relative">
                         <img
                           src={img}
-                          alt={idx === 0 ? "Original" : `Version ${idx}`}
+                          alt={idx === 0 ? t.studio.originalLabel : `V${idx}`}
                           className="w-full aspect-square object-cover"
                         />
                         {loadedImage === img && (
@@ -903,7 +905,7 @@ function StudioContent() {
                       </div>
                       <div className={`p-2 text-center ${loadedImage === img ? 'bg-blue-50' : 'bg-neutral-50'}`}>
                         <div className={`text-xs font-bold ${loadedImage === img ? 'text-blue-700' : 'text-neutral-700'}`}>
-                          {idx === 0 ? "📄 Original" : `✨ V${idx}`}
+                          {idx === 0 ? `📄 ${t.studio.originalLabel}` : `✨ V${idx}`}
                         </div>
                       </div>
                     </div>
@@ -943,7 +945,7 @@ function StudioContent() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Retouche
+                  {t.studio.tabRetouch}
                 </span>
                 {activeTab === 'image' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-full" />}
               </button>
@@ -959,7 +961,7 @@ function StudioContent() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Texte
+                  {t.studio.tabText}
                   {textOverlayItems.length > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full">{textOverlayItems.length}</span>
                   )}
@@ -991,8 +993,8 @@ function StudioContent() {
                   {/* Slider force de modification */}
                   <div>
                     <p className="text-sm font-semibold text-neutral-700 mb-2">
-                      Force de modification : <span className="text-purple-600 font-bold">
-                        {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                      {t.studio.editStrengthLabel} <span className="text-purple-600 font-bold">
+                        {editStrength <= 5 ? t.studio.strengthSubtle : editStrength <= 7 ? t.studio.strengthModerate : t.studio.strengthStrong}
                       </span>
                     </p>
                     <input
@@ -1005,16 +1007,16 @@ function StudioContent() {
                       className="w-full accent-purple-600"
                     />
                     <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
-                      <span>Subtile</span>
-                      <span>Modérée</span>
-                      <span>Forte</span>
+                      <span>{t.studio.strengthSubtle}</span>
+                      <span>{t.studio.strengthModerate}</span>
+                      <span>{t.studio.strengthStrong}</span>
                     </div>
                     <p className="text-xs text-neutral-500 mt-1">
                       {editStrength <= 5
-                        ? 'Retouches légères : lumière, couleurs, détails fins'
+                        ? t.studio.strengthSubtleDesc
                         : editStrength <= 7
-                        ? 'Modifications visibles : ajout/suppression d\'éléments, changement de style'
-                        : 'Transformations créatives : changement complet de style, ambiance, ou composition'}
+                        ? t.studio.strengthModerateDesc
+                        : t.studio.strengthStrongDesc}
                     </p>
                   </div>
 
@@ -1023,7 +1025,7 @@ function StudioContent() {
                       <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      Décrivez vos modifications
+                      {t.studio.describeChanges}
                     </label>
                     <div className="relative">
                       <textarea
@@ -1031,10 +1033,10 @@ function StudioContent() {
                         onChange={(e) => setEditPrompt(e.target.value)}
                         placeholder={
                           editStrength <= 5
-                            ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
+                            ? t.studio.placeholderSubtle
                             : editStrength <= 7
-                            ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever un objet...'
-                            : 'Ex: Style vintage 80s, ambiance golden hour, transformer en peinture...'
+                            ? t.studio.placeholderModerate
+                            : t.studio.placeholderStrong
                         }
                         rows={6}
                         disabled={!loadedImage || editingImage}
@@ -1042,7 +1044,7 @@ function StudioContent() {
                       />
                       {editPrompt.length > 0 && (
                         <div className="absolute bottom-3 right-3 text-xs text-neutral-400 bg-white px-2 py-1 rounded-md shadow-sm">
-                          {editPrompt.length} caractères
+                          {editPrompt.length} {t.studio.characters}
                         </div>
                       )}
                     </div>
@@ -1050,7 +1052,7 @@ function StudioContent() {
                       <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>Soyez précis pour de meilleurs résultats. Votre demande sera interprétée pour modifier l'image.</span>
+                      <span>{t.studio.tipBePrecise}</span>
                     </p>
                   </div>
 
@@ -1067,14 +1069,14 @@ function StudioContent() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Édition en cours...
+                          {t.studio.editingInProgress}
                         </>
                       ) : (
                         <>
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
-                          Transformer
+                          {t.studio.transformBtn}
                         </>
                       )}
                     </span>
@@ -1088,7 +1090,7 @@ function StudioContent() {
                   {/* Applied overlays list */}
                   {textOverlayItems.length > 0 && (
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1.5">{t.studio.appliedTexts}</label>
                       <div className="space-y-1.5">
                         {textOverlayItems.map((overlay) => (
                           <div
@@ -1113,7 +1115,7 @@ function StudioContent() {
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
                               className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
-                              title="Supprimer ce texte"
+                              title={t.studio.deleteThisText}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1127,7 +1129,7 @@ function StudioContent() {
                           onClick={handleNewOverlay}
                           className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
                         >
-                          + Ajouter un autre texte
+                          {t.studio.addAnotherText}
                         </button>
                       )}
                     </div>
@@ -1136,12 +1138,12 @@ function StudioContent() {
                   {/* Text form */}
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-1">
-                      {editingOverlayId ? 'Modifier le texte' : 'Nouveau texte'}
+                      {editingOverlayId ? t.studio.editTextLabel : t.studio.newTextLabel}
                     </label>
                     <textarea
                       value={formText}
                       onChange={(e) => setFormText(e.target.value)}
-                      placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
+                      placeholder={t.studio.textPlaceholder}
                       className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       rows={2}
                     />
@@ -1149,33 +1151,33 @@ function StudioContent() {
 
                   {/* Position */}
                   <div>
-                    <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
+                    <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.position} <span className="text-neutral-400">({formPosition}%)</span></label>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                       >
-                        ⬆️ Haut +
+                        ⬆️ {t.studio.upMore}
                       </button>
                       <div className="flex-1 flex items-center gap-1.5 justify-center">
                         <button
                           onClick={() => setFormPosition(25)}
                           className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                        >Haut</button>
+                        >{t.studio.posTop}</button>
                         <button
                           onClick={() => setFormPosition(50)}
                           className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                        >Centre</button>
+                        >{t.studio.posCenter}</button>
                         <button
                           onClick={() => setFormPosition(75)}
                           className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                        >Bas</button>
+                        >{t.studio.posBottom}</button>
                       </div>
                       <button
                         onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                       >
-                        ⬇️ Bas +
+                        ⬇️ {t.studio.downMore}
                       </button>
                     </div>
                   </div>
@@ -1183,7 +1185,7 @@ function StudioContent() {
                   {/* Font + Size */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.font}</label>
                       <select
                         value={formFontFamily}
                         onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
@@ -1195,7 +1197,7 @@ function StudioContent() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.fontSize} {formFontSize}px</label>
                       <input
                         type="range"
                         min={24}
@@ -1210,7 +1212,7 @@ function StudioContent() {
                   {/* Colors */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.textColor}</label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -1233,7 +1235,7 @@ function StudioContent() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
+                      <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.bgColor}</label>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
@@ -1271,9 +1273,9 @@ function StudioContent() {
 
                   {/* Background style */}
                   <div>
-                    <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
+                    <label className="block text-xs font-medium text-neutral-600 mb-1">{t.studio.bgStyleLabel}</label>
                     <div className="grid grid-cols-3 gap-1.5">
-                      {BG_STYLES.map(s => (
+                      {BG_STYLES_DATA.map(s => (
                         <button
                           key={s.value}
                           onClick={() => setFormBgStyle(s.value)}
@@ -1284,7 +1286,7 @@ function StudioContent() {
                           }`}
                         >
                           <span>{s.emoji}</span>
-                          <span>{s.label}</span>
+                          <span>{t.studio[s.labelKey]}</span>
                         </button>
                       ))}
                     </div>
@@ -1298,7 +1300,7 @@ function StudioContent() {
                         disabled={textLoading}
                         className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50"
                       >
-                        {editingOverlayId ? 'Valider la modification' : '+ Ajouter ce texte'}
+                        {editingOverlayId ? t.studio.confirmEdit : t.studio.addThisText}
                       </button>
                     )}
                     {editingOverlayId && (
@@ -1306,7 +1308,7 @@ function StudioContent() {
                         onClick={handleNewOverlay}
                         className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition"
                       >
-                        + Nouveau texte
+                        {t.studio.newTextBtn}
                       </button>
                     )}
                     {hasOverlays && (
@@ -1315,7 +1317,7 @@ function StudioContent() {
                         disabled={textLoading}
                         className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
                       >
-                        {textLoading ? 'Application...' : 'Appliquer sur l\'image'}
+                        {textLoading ? t.studio.applying : t.studio.applyToImage}
                       </button>
                     )}
                     {textOverlayItems.length > 0 && (
@@ -1323,7 +1325,7 @@ function StudioContent() {
                         onClick={handleDeleteAllOverlays}
                         className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition"
                       >
-                        Tout supprimer
+                        {t.studio.deleteAll}
                       </button>
                     )}
                   </div>
@@ -1353,13 +1355,13 @@ function StudioContent() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Télécharger
+                          {t.studio.downloadBtn}
                         </a>
                         <button
                           onClick={() => { setGeneratedVideoUrl(null); setVideoPrompt(''); }}
                           className="px-4 py-3 border-2 border-neutral-300 rounded-xl hover:bg-neutral-50 transition-all text-sm font-medium text-neutral-700"
                         >
-                          Nouveau
+                          {t.studio.newBtn}
                         </button>
                       </div>
                     </div>
@@ -1373,8 +1375,8 @@ function StudioContent() {
                           </svg>
                         </div>
                       </div>
-                      <p className="text-sm font-semibold text-neutral-700">{videoProgress || 'Préparation...'}</p>
-                      <p className="text-xs text-neutral-500">La génération peut prendre 1 à 5 minutes</p>
+                      <p className="text-sm font-semibold text-neutral-700">{videoProgress || t.studio.preparingVideo}</p>
+                      <p className="text-xs text-neutral-500">{t.studio.videoGenTime}</p>
                     </div>
                   ) : (
                     <>
@@ -1383,12 +1385,12 @@ function StudioContent() {
                           <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
-                          Décrivez l'animation souhaitée
+                          {t.studio.describeAnimation}
                         </label>
                         <textarea
                           value={videoPrompt}
                           onChange={(e) => setVideoPrompt(e.target.value)}
-                          placeholder="Ex: Zoom lent vers l'avant, les cheveux bougent au vent, ambiance cinématique..."
+                          placeholder={t.studio.videoPlaceholder}
                           rows={4}
                           disabled={!loadedImage}
                           className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all disabled:bg-neutral-100 disabled:cursor-not-allowed resize-none"
@@ -1397,7 +1399,7 @@ function StudioContent() {
 
                       <div>
                         <p className="text-sm font-semibold text-neutral-700 mb-2">
-                          Durée : <span className="text-pink-600 font-bold">{videoDuration}s</span>
+                          {t.studio.duration} <span className="text-pink-600 font-bold">{videoDuration}s</span>
                         </p>
                         <div className="flex gap-3">
                           {[5, 10].map(d => (
@@ -1410,12 +1412,12 @@ function StudioContent() {
                                   : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                               }`}
                             >
-                              {d} secondes
+                              {d} {t.studio.seconds}
                             </button>
                           ))}
                         </div>
                         <p className="text-xs text-neutral-500 mt-2">
-                          {videoDuration === 5 ? '25 crédits' : '40 crédits'}
+                          {videoDuration === 5 ? t.studio.credits25 : t.studio.credits40}
                         </p>
                       </div>
 
@@ -1430,13 +1432,13 @@ function StudioContent() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          Animer l'image ({videoDuration}s)
+                          {t.studio.animateImage} ({videoDuration}s)
                         </span>
                       </button>
 
                       {!loadedImage && (
                         <p className="text-center text-sm text-neutral-500">
-                          Chargez une image pour pouvoir la transformer en vidéo
+                          {t.studio.loadImageForVideo}
                         </p>
                       )}
 
@@ -1445,7 +1447,7 @@ function StudioContent() {
                         <div className="relative rounded-xl bg-gradient-to-br from-neutral-50 to-neutral-100 border border-neutral-200 p-5 overflow-hidden">
                           <div className="absolute top-3 right-3">
                             <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                              Bientôt
+                              {t.studio.comingSoon}
                             </span>
                           </div>
                           <div className="flex items-start gap-3">
@@ -1455,9 +1457,9 @@ function StudioContent() {
                               </svg>
                             </div>
                             <div>
-                              <h4 className="font-bold text-neutral-800 text-sm mb-1">Modifier une vidéo</h4>
+                              <h4 className="font-bold text-neutral-800 text-sm mb-1">{t.studio.editVideo}</h4>
                               <p className="text-xs text-neutral-500 leading-relaxed">
-                                Transformez une vidéo existante en une nouvelle version avec l'IA. Changez le style, l'ambiance ou ajoutez des effets.
+                                {t.studio.editVideoDesc}
                               </p>
                             </div>
                           </div>
@@ -1481,7 +1483,7 @@ function StudioContent() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
-                      Télécharger
+                      {t.studio.downloadBtn}
                     </a>
                     <button
                       onClick={user ? handleSaveToGallery : () => setShowSubscriptionModal(true)}
@@ -1498,14 +1500,14 @@ function StudioContent() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Sauvegarde...
+                          {t.studio.saving}
                         </>
                       ) : (
                         <>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                           </svg>
-                          {user ? 'Galerie' : 'Pro'}
+                          {user ? t.studio.gallery : t.studio.pro}
                         </>
                       )}
                     </button>
@@ -1549,6 +1551,7 @@ function StudioContent() {
 }
 
 export default function StudioPage() {
+  const { t } = useLanguage();
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-8 flex items-center justify-center">
@@ -1562,9 +1565,9 @@ export default function StudioPage() {
             </div>
           </div>
           <p className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse">
-            Chargement du studio...
+            {t.studio.loadingStudio}
           </p>
-          <p className="text-sm text-neutral-500 mt-2">Préparation de l'environnement d'édition</p>
+          <p className="text-sm text-neutral-500 mt-2">{t.studio.preparingEnvironment}</p>
         </div>
       </div>
     }>

@@ -43,6 +43,7 @@ import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { useCredits } from '@/hooks/useCredits';
 import { startCheckout } from '@/lib/stripe/checkout';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -201,6 +202,7 @@ function LibraryContent() {
   const supabase = useMemo(() => supabaseBrowser(), []);
   const feedback = useFeedbackPopup();
   const credits = useCredits();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [showTikTokUpgradeModal, setShowTikTokUpgradeModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -725,7 +727,7 @@ function LibraryContent() {
 
   // Supprimer une image
   const deleteImage = async (imageId: string) => {
-    if (!confirm('Supprimer cette image de votre galerie ?')) return;
+    if (!confirm(t.library.confirmDeleteImage)) return;
 
     try {
       const res = await fetch(`/api/library/images?id=${imageId}`, {
@@ -894,7 +896,7 @@ function LibraryContent() {
       if (isGuest) {
         const existingDraft = localStorage.getItem('keiro_guest_instagram_draft');
         if (existingDraft && instagramDrafts.length > 0) {
-          alert('⚠️ Limite atteinte !\n\nVous avez déjà créé votre brouillon Instagram gratuit.\n\nCréez un compte pour créer plus de brouillons et publier automatiquement ! 🚀');
+          alert(t.library.guestDraftLimitTitle + '\n\n' + t.library.guestDraftLimitMsg);
           return;
         }
 
@@ -916,7 +918,7 @@ function LibraryContent() {
         setInstagramDrafts([guestDraft]);
         setStats(prev => ({ ...prev, total_instagram_drafts: 1 }));
 
-        alert('✅ Brouillon Instagram sauvegardé !\n\nCréez un compte pour le publier automatiquement sur Instagram ! 🎉');
+        alert(t.library.guestDraftSaved);
         setShowInstagramModal(false);
         return;
       }
@@ -937,18 +939,18 @@ function LibraryContent() {
 
       if (data.ok) {
         const message = status === 'ready'
-          ? '✅ Post marqué comme prêt à publier !'
-          : '✅ Brouillon Instagram sauvegardé !';
+          ? t.library.postMarkedReady
+          : t.library.instagramDraftSaved;
         alert(message);
         setShowInstagramModal(false);
         // Recharger les brouillons
         await loadInstagramDrafts();
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.library.saveError);
       }
     } catch (error: any) {
       console.error('[Library] Error saving Instagram draft:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+      alert(error.message || t.library.draftSaveError);
     }
   };
 
@@ -959,7 +961,7 @@ function LibraryContent() {
     try {
       // MODE GUEST : Pas de support TikTok en mode guest pour l'instant
       if (isGuest) {
-        alert('⚠️ TikTok n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur TikTok ! 🚀');
+        alert(t.library.tiktokNotAvailableGuest);
         return;
       }
 
@@ -979,18 +981,18 @@ function LibraryContent() {
 
       if (data.ok) {
         const message = status === 'ready'
-          ? '✅ Vidéo TikTok prête à publier !'
-          : '✅ Brouillon TikTok sauvegardé !';
+          ? t.library.tiktokVideoReady
+          : t.library.tiktokDraftSaved;
         alert(message);
         setShowTikTokModal(false);
         // Recharger les brouillons TikTok
         await loadTikTokDrafts();
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.library.saveError);
       }
     } catch (error: any) {
       console.error('[Library] Error saving TikTok draft:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+      alert(error.message || t.library.draftSaveError);
     }
   };
 
@@ -1026,7 +1028,7 @@ function LibraryContent() {
 
   // Supprimer un brouillon Instagram
   const deleteInstagramDraft = async (draftId: string) => {
-    if (!confirm('Supprimer ce brouillon Instagram ?')) return;
+    if (!confirm(t.library.confirmDeleteInstagramDraft)) return;
 
     try {
       const res = await fetch(`/api/library/instagram-drafts?id=${draftId}`, {
@@ -1069,7 +1071,7 @@ function LibraryContent() {
 
   // Supprimer un brouillon TikTok
   const deleteTikTokDraft = async (draftId: string) => {
-    if (!confirm('Supprimer ce brouillon TikTok ?')) return;
+    if (!confirm(t.library.confirmDeleteTikTokDraft)) return;
 
     try {
       const res = await fetch(`/api/library/tiktok-drafts?id=${draftId}`, {
@@ -1099,7 +1101,7 @@ function LibraryContent() {
   const saveLinkedInDraft = async (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
     try {
       if (isGuest) {
-        alert('LinkedIn n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur LinkedIn !');
+        alert(t.library.linkedinNotAvailableGuest);
         return;
       }
 
@@ -1118,15 +1120,15 @@ function LibraryContent() {
       const data = await response.json();
 
       if (data.ok) {
-        alert('Brouillon LinkedIn sauvegardé !');
+        alert(t.library.linkedinDraftSaved);
         setShowLinkedInModal(false);
         await loadLinkedInDrafts();
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.library.saveError);
       }
     } catch (error: any) {
       console.error('[Library] Error saving LinkedIn draft:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+      alert(error.message || t.library.draftSaveError);
     }
   };
 
@@ -1173,7 +1175,7 @@ function LibraryContent() {
 
   // Supprimer un brouillon LinkedIn
   const deleteLinkedInDraft = async (draftId: string) => {
-    if (!confirm('Supprimer ce brouillon LinkedIn ?')) return;
+    if (!confirm(t.library.confirmDeleteLinkedInDraft)) return;
     try {
       const res = await fetch(`/api/library/linkedin-drafts?id=${draftId}`, { method: 'DELETE' });
       if (res.ok) await loadLinkedInDrafts();
@@ -1184,7 +1186,7 @@ function LibraryContent() {
 
   // Publier un brouillon LinkedIn
   const handlePublishToLinkedIn = async (draft: LinkedInDraft) => {
-    if (!confirm('Publier ce post sur LinkedIn ?')) return;
+    if (!confirm(t.library.confirmPublishLinkedIn)) return;
     try {
       const response = await fetch('/api/library/linkedin/publish', {
         method: 'POST',
@@ -1199,14 +1201,14 @@ function LibraryContent() {
       });
       const data = await response.json();
       if (data.ok) {
-        alert('Post publié sur LinkedIn !');
+        alert(t.library.linkedinPublished);
         await loadLinkedInDrafts();
       } else {
-        throw new Error(data.error || 'Erreur lors de la publication');
+        throw new Error(data.error || t.library.publishError);
       }
     } catch (error: any) {
       console.error('[Library] Error publishing to LinkedIn:', error);
-      alert(error.message || 'Erreur lors de la publication sur LinkedIn');
+      alert(error.message || t.library.linkedinPublishError);
     }
   };
 
@@ -1219,7 +1221,7 @@ function LibraryContent() {
     });
     const data = await response.json();
     if (!data.ok) {
-      throw new Error(data.error || 'Erreur lors de la publication');
+      throw new Error(data.error || t.library.publishError);
     }
     await loadLinkedInDrafts();
   };
@@ -1228,7 +1230,7 @@ function LibraryContent() {
   const saveTwitterDraft = async (image: SavedImage | null, caption: string, hashtags: string[], status: 'draft' | 'ready') => {
     try {
       if (isGuest) {
-        alert('Twitter n\'est pas disponible en mode gratuit.\n\nCréez un compte pour publier sur X !');
+        alert(t.library.twitterNotAvailableGuest);
         return;
       }
 
@@ -1241,15 +1243,15 @@ function LibraryContent() {
       const data = await response.json();
 
       if (data.ok) {
-        alert(status === 'ready' ? 'Tweet prêt !' : 'Brouillon X sauvegardé !');
+        alert(status === 'ready' ? t.library.twitterTweetReady : t.library.twitterDraftSaved);
         setShowTwitterModal(false);
         await loadTwitterDrafts();
       } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        throw new Error(data.error || t.library.saveError);
       }
     } catch (error: any) {
       console.error('[Library] Error saving Twitter draft:', error);
-      alert(error.message || 'Erreur lors de la sauvegarde du brouillon');
+      alert(error.message || t.library.draftSaveError);
     }
   };
 
@@ -1269,7 +1271,7 @@ function LibraryContent() {
 
   // Supprimer un brouillon Twitter
   const deleteTwitterDraft = async (draftId: string) => {
-    if (!confirm('Supprimer ce brouillon X ?')) return;
+    if (!confirm(t.library.confirmDeleteTwitterDraft)) return;
     try {
       const res = await fetch(`/api/library/twitter-drafts?id=${draftId}`, { method: 'DELETE' });
       if (res.ok) await loadTwitterDrafts();
@@ -1286,7 +1288,7 @@ function LibraryContent() {
 
   // Supprimer un post planifié
   const handleDeletePost = async (postId: string) => {
-    if (!confirm('Supprimer ce post planifié ?')) return;
+    if (!confirm(t.library.confirmDeleteScheduledPost)) return;
 
     try {
       const res = await fetch(`/api/library/scheduled-posts?id=${postId}`, {
@@ -1298,11 +1300,11 @@ function LibraryContent() {
       if (data.ok) {
         await loadScheduledPosts();
       } else {
-        alert('Erreur lors de la suppression du post');
+        alert(t.library.deletePostError);
       }
     } catch (error) {
       console.error('[Library] Error deleting scheduled post:', error);
-      alert('Erreur lors de la suppression du post');
+      alert(t.library.deletePostError);
     }
   };
 
@@ -1342,16 +1344,16 @@ function LibraryContent() {
       const failedResults = results.filter(r => !r.ok);
 
       if (failedResults.length > 0) {
-        throw new Error(`Erreur lors de la planification sur ${failedResults.length} plateforme(s)`);
+        throw new Error(t.library.schedulingError.replace('{count}', String(failedResults.length)));
       }
 
       const platformNames = data.platforms.join(', ');
-      alert(`✅ Post planifié avec succès sur ${platformNames} !`);
+      alert(t.library.postScheduledSuccess.replace('{platforms}', platformNames));
       await loadScheduledPosts();
       setShowScheduleModal(false);
     } catch (error: any) {
       console.error('[Library] Error scheduling post:', error);
-      alert(error.message || 'Erreur lors de la planification du post');
+      alert(error.message || t.library.schedulingPostError);
       throw error;
     }
   };
@@ -1376,7 +1378,7 @@ function LibraryContent() {
           setStats(prev => ({ ...prev, total_folders: foldersData.folders.length }));
         }
       } else {
-        throw new Error(data.error || 'Erreur lors de la création du dossier');
+        throw new Error(data.error || t.library.folderCreateError);
       }
     } catch (error: any) {
       console.error('[Library] Error creating folder:', error);
@@ -1424,11 +1426,11 @@ function LibraryContent() {
           setFolders(foldersData.folders);
         }
       } else {
-        alert('Erreur lors du déplacement de l\'image');
+        alert(t.library.imageMoveError);
       }
     } catch (error) {
       console.error('[Library] Error moving image:', error);
-      alert('Erreur lors du déplacement de l\'image');
+      alert(t.library.imageMoveError);
     }
   };
 
@@ -1444,11 +1446,11 @@ function LibraryContent() {
       if (res.ok) {
         setMyVideos(prev => prev.filter(v => v.id !== videoId));
       } else {
-        alert('Erreur lors de la suppression');
+        alert(t.library.deleteError);
       }
     } catch (error) {
       console.error('[Library] Error deleting video:', error);
-      alert('Erreur lors de la suppression');
+      alert(t.library.deleteError);
     }
   };
 
@@ -1628,7 +1630,7 @@ function LibraryContent() {
       await handleRefreshAll();
     } catch (error: any) {
       console.error('[Library] Error deleting folder:', error);
-      alert('Erreur lors de la suppression du dossier');
+      alert(t.library.folderDeleteError);
     }
   };
 
@@ -1646,7 +1648,7 @@ function LibraryContent() {
       setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName } : f));
     } catch (error: any) {
       console.error('[Library] Error renaming folder:', error);
-      alert('Erreur lors du renommage du dossier');
+      alert(t.library.folderRenameError);
       throw error;
     }
   };
@@ -1660,7 +1662,7 @@ function LibraryContent() {
       <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-600">Chargement de votre galerie...</p>
+          <p className="text-neutral-600">{t.library.loadingGallery}</p>
         </div>
       </main>
     );
@@ -1689,7 +1691,7 @@ function LibraryContent() {
         console.error('[Library] Error saving waitlist interest:', error);
       }
       setPendingWaitlistFeature(null);
-      alert('Merci ! Vous serez notifié quand cette fonctionnalité sera disponible.');
+      alert(t.library.waitlistThanks);
     } else {
       // Guest mode classique
       setGuestEmail(email);
@@ -1709,7 +1711,7 @@ function LibraryContent() {
       const isVideo = file.type.startsWith('video/');
 
       if (!isImage && !isVideo) {
-        alert(`❌ ${file.name} n'est ni une image ni une vidéo valide`);
+        alert(`${file.name} ${t.library.fileNotValid}`);
         continue;
       }
 
@@ -1720,7 +1722,7 @@ function LibraryContent() {
       console.log(`[Library] File ${file.name}: ${fileSizeMB}MB (max: ${maxSizeText})`);
 
       if (file.size > maxSize) {
-        alert(`❌ ${file.name} est trop volumineux (${fileSizeMB}MB, max ${maxSizeText})`);
+        alert(`${file.name} ${t.library.fileTooLarge} (${fileSizeMB}MB, max ${maxSizeText})`);
         continue;
       }
 
@@ -1728,7 +1730,7 @@ function LibraryContent() {
         if (isVideo) {
           // Upload vidéo (uniquement pour utilisateurs authentifiés)
           if (!user) {
-            alert('❌ L\'upload de vidéos nécessite un compte. Créez un compte gratuit !');
+            alert(t.library.videoUploadRequiresAccount);
             continue;
           }
           await uploadVideoFile(file);
@@ -1738,7 +1740,7 @@ function LibraryContent() {
         }
       } catch (error) {
         console.error('[Library] Upload error for', file.name, ':', error);
-        alert(`❌ Erreur lors du téléchargement de ${file.name}`);
+        alert(`${t.library.uploadError} ${file.name}`);
       }
     }
   };
@@ -1766,7 +1768,7 @@ function LibraryContent() {
                 localStorage.setItem('keiro_guest_images', JSON.stringify(updated));
               } catch (storageError) {
                 console.error('[Library] localStorage error:', storageError);
-                alert('❌ Erreur: Espace de stockage insuffisant. Supprimez des images anciennes.');
+                alert(t.library.storageError);
                 return prev;
               }
               return updated;
@@ -1817,7 +1819,7 @@ function LibraryContent() {
 
     if (!signedUrlResponse.ok) {
       const errorData = await signedUrlResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Impossible d\'obtenir l\'URL d\'upload');
+      throw new Error(errorData.error || t.library.uploadUrlError);
     }
 
     const { signedUrl, token, path } = await signedUrlResponse.json();
@@ -1856,7 +1858,7 @@ function LibraryContent() {
 
     if (!metadataResponse.ok) {
       const errorData = await metadataResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Erreur lors de la sauvegarde des métadonnées');
+      throw new Error(errorData.error || t.library.metadataSaveError);
     }
 
     const metadataData = await metadataResponse.json();
@@ -1926,9 +1928,9 @@ function LibraryContent() {
           <div className="mb-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl p-4 text-white shadow-lg">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="text-center md:text-left">
-                <p className="text-sm font-semibold mb-1">🎉 Mode Gratuit Activé</p>
+                <p className="text-sm font-semibold mb-1">{t.library.guestModeActivated}</p>
                 <p className="text-green-100 text-xs">
-                  {guestEmail} • Upload illimité • 1 brouillon Instagram gratuit
+                  {guestEmail} • {t.library.guestModeInfo}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1936,7 +1938,7 @@ function LibraryContent() {
                   href="/pricing"
                   className="px-4 py-2 rounded-lg bg-white text-green-600 font-semibold text-sm hover:bg-green-50 transition-colors"
                 >
-                  Débloquer toutes les fonctionnalités
+                  {t.library.unlockAllFeatures}
                 </a>
                 <button
                   onClick={() => {
@@ -1948,7 +1950,7 @@ function LibraryContent() {
                   }}
                   className="px-4 py-2 rounded-lg border border-white/30 text-white text-sm font-medium hover:bg-white/10 transition-colors"
                 >
-                  Se déconnecter
+                  {t.library.guestLogout}
                 </button>
               </div>
             </div>
@@ -1972,7 +1974,7 @@ function LibraryContent() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
                 <span className="text-2xl">🚀</span>
-                Vos réseaux sociaux
+                {t.library.yourSocialNetworks}
               </h2>
               <NetworkSelector
                 selectedNetworks={selectedNetworks}
@@ -2073,7 +2075,7 @@ function LibraryContent() {
           <div className="mb-6">
             <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <span className="text-2xl">🎨</span>
-              Studios de création
+              {t.library.creationStudios}
             </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2085,14 +2087,14 @@ function LibraryContent() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">Instagram</h3>
-                    <p className="text-xs text-neutral-600">Posts & Stories</p>
+                    <p className="text-xs text-neutral-600">{t.library.postsAndStories}</p>
                   </div>
                 </div>
                 <p className="text-xs text-neutral-700 mb-3">
-                  Créez et publiez automatiquement sur Instagram.
+                  {t.library.instagramStudioDesc}
                 </p>
                 <button onClick={handleStartFree} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  Essayer gratuitement
+                  {t.library.tryForFree}
                 </button>
               </div>
 
@@ -2104,14 +2106,14 @@ function LibraryContent() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">TikTok</h3>
-                    <p className="text-xs text-neutral-600">Vidéos virales</p>
+                    <p className="text-xs text-neutral-600">{t.library.viralVideos}</p>
                   </div>
                 </div>
                 <p className="text-xs text-neutral-700 mb-3">
-                  Convertissez vos images en vidéos TikTok.
+                  {t.library.tiktokStudioDesc}
                 </p>
                 <button onClick={handleStartFree} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  Essayer gratuitement
+                  {t.library.tryForFree}
                 </button>
               </div>
 
@@ -2123,14 +2125,14 @@ function LibraryContent() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">LinkedIn</h3>
-                    <p className="text-xs text-neutral-600">Posts pro</p>
+                    <p className="text-xs text-neutral-600">{t.library.proPosts}</p>
                   </div>
                 </div>
                 <p className="text-xs text-neutral-700 mb-3">
-                  Posts professionnels avec IA pour LinkedIn.
+                  {t.library.linkedinStudioDesc}
                 </p>
                 <button onClick={handleStartFree} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  Essayer gratuitement
+                  {t.library.tryForFree}
                 </button>
               </div>
 
@@ -2142,14 +2144,14 @@ function LibraryContent() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">X (Twitter)</h3>
-                    <p className="text-xs text-neutral-600">Tweets viraux</p>
+                    <p className="text-xs text-neutral-600">{t.library.viralTweets}</p>
                   </div>
                 </div>
                 <p className="text-xs text-neutral-700 mb-3">
-                  Tweets percutants avec IA pour maximiser l'impact.
+                  {t.library.twitterStudioDesc}
                 </p>
                 <button onClick={handleJoinTwitterWaitlist} className="mt-auto w-full px-3 py-2 text-sm bg-gradient-to-r from-neutral-800 to-black text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  Rejoindre la liste prioritaire
+                  {t.library.joinPriorityList}
                 </button>
               </div>
             </div>
@@ -2166,9 +2168,9 @@ function LibraryContent() {
               </svg>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-indigo-900">Gardez votre galerie organisée</p>
+              <p className="text-sm font-semibold text-indigo-900">{t.library.keepGalleryOrganized}</p>
               <p className="text-xs text-indigo-700/80 mt-0.5">
-                Pensez à ne garder que la version finale qui vous plait ainsi que l'original, et supprimer les versions intermédiaires pour garder une galerie claire et efficace.
+                {t.library.keepGalleryOrganizedDesc}
               </p>
             </div>
           </div>
@@ -2320,7 +2322,7 @@ function LibraryContent() {
                 }}
                 onDownload={handleUnifiedDownload}
                 onMoveToFolder={async () => {
-                  alert('Connectez-vous pour organiser vos créations en dossiers');
+                  alert(t.library.connectToOrganize);
                 }}
               />
             ) : activeTab === 'images' ? (
@@ -2403,8 +2405,8 @@ function LibraryContent() {
 
         {/* Stats footer */}
         <div className="mt-8 pt-6 border-t border-neutral-200 flex justify-between text-sm text-neutral-500">
-          <span>Total: {stats.total_images} visuels</span>
-          <span>{stats.total_folders} dossiers • {stats.total_favorites} favoris</span>
+          <span>Total: {stats.total_images} {t.library.totalVisuals}</span>
+          <span>{stats.total_folders} {t.library.folders} • {stats.total_favorites} {t.library.favorites}</span>
         </div>
       </div>
 
@@ -2476,7 +2478,7 @@ function LibraryContent() {
       {itemToMoveToFolder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setItemToMoveToFolder(null)}>
           <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-neutral-900 mb-4">Ranger dans un dossier</h3>
+            <h3 className="text-lg font-bold text-neutral-900 mb-4">{t.library.moveToFolder}</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               <button
                 onClick={async () => {
@@ -2485,7 +2487,7 @@ function LibraryContent() {
                 }}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-neutral-100 text-sm text-neutral-600"
               >
-                Sans dossier
+                {t.library.noFolder}
               </button>
               {folders.map((folder) => (
                 <button
@@ -2505,7 +2507,7 @@ function LibraryContent() {
               onClick={() => setItemToMoveToFolder(null)}
               className="mt-4 w-full px-3 py-2 rounded-lg border border-neutral-300 text-neutral-600 text-sm hover:bg-neutral-50"
             >
-              Annuler
+              {t.library.cancel}
             </button>
           </div>
         </div>
@@ -2609,22 +2611,22 @@ function LibraryContent() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
               <span className="text-3xl">🎵</span>
             </div>
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">TikTok est disponible avec Fondateurs</h3>
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">{t.library.tiktokAvailableWithFounders}</h3>
             <p className="text-neutral-600 text-sm mb-6">
-              La publication TikTok est incluse a partir du pack <strong>Fondateurs</strong>. Passez au niveau superieur pour debloquer TikTok + LinkedIn + volume de credits.
+              {t.library.tiktokUpgradeDesc}
             </p>
             <div className="space-y-2.5">
               <button
                 onClick={() => startCheckout('fondateurs')}
                 className="block w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm"
               >
-                Passer Fondateurs — 149€/mois
+                {t.library.upgradeToFounders}
               </button>
               <button
                 onClick={() => setShowTikTokUpgradeModal(false)}
                 className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
               >
-                Plus tard
+                {t.library.later}
               </button>
             </div>
           </div>
@@ -2641,7 +2643,7 @@ export default function LibraryPage() {
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-neutral-600">Chargement...</p>
+          <p className="mt-4 text-neutral-600">Loading...</p>
         </div>
       </div>
     }>

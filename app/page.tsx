@@ -387,10 +387,8 @@ function HomeKeiroInner() {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500"></div>
                   <span className="text-sm font-semibold">coach_maxime</span>
                 </div>
-                <p className="text-sm text-neutral-600">
-                  Nouvelle année, nouveaux objectifs 💪<br/>
-                  Venez vous entraîner !<br/><br/>
-                  #sport #fitness #coach
+                <p className="text-sm text-neutral-600 whitespace-pre-line">
+                  {t.home.beforeCaption}
                 </p>
                 <div className="pt-2 border-t border-neutral-200">
                   <p className="text-xs text-neutral-500">{t.home.beforeStats}</p>
@@ -415,14 +413,14 @@ function HomeKeiroInner() {
               <div className="relative">
                 <img
                   src="https://images.unsplash.com/photo-1534258936925-c58bed479fcb?q=95&w=800&auto=format&fit=crop"
-                  alt="Visuel pro créé avec Keiro"
+                  alt={t.home.afterImageAlt}
                   className="w-full aspect-square object-cover"
                 />
                 {/* Overlay Keiro - Style discret et professionnel */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
                   <div className="bg-black/70 backdrop-blur-sm px-8 py-4 rounded-xl">
                     <h3 className="text-2xl md:text-3xl font-bold text-white text-center">
-                      30 jours pour tout changer
+                      {t.home.afterOverlay}
                     </h3>
                   </div>
                 </div>
@@ -433,23 +431,16 @@ function HomeKeiroInner() {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 ring-2 ring-blue-300"></div>
                   <span className="text-sm font-semibold">coach_maxime</span>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Créé avec Keiro</span>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
                 </div>
-                <p className="text-sm text-neutral-800 leading-relaxed">
-                  <span className="font-bold text-blue-600">Nouvelle année = nouveau corps ?</span> 💪<br/><br/>
-
-                  Mon programme Janvier 2026 démarre lundi :<br/>
-                  ✅ 4 séances/semaine<br/>
-                  ✅ Plan nutrition inclus<br/>
-                  ✅ Suivi perso quotidien<br/><br/>
-
-                  <span className="font-bold">Résultats garantis en 30 jours</span><br/>
-                  (ou remboursé)<br/><br/>
-
-                  📲 Réserve ta place (lien en bio)<br/>
-                  <span className="text-xs text-neutral-600">Places limitées - Déjà 8 inscrits</span>
+                <p className="text-sm text-neutral-800 leading-relaxed whitespace-pre-line">
+                  <span className="font-bold text-blue-600">{t.home.afterCaptionTitle}</span> 💪{'\n\n'}
+                  {t.home.afterCaptionBody}{'\n\n'}
+                  <span className="font-bold">{t.home.afterCaptionResult}</span>{'\n'}(ou remboursé){'\n\n'}
+                  {t.home.afterCaptionCta}{'\n'}
+                  <span className="text-xs text-neutral-600">{t.home.afterCaptionLimit}</span>
                 </p>
-                <p className="text-xs text-blue-600 font-medium">#transformation #coaching #fitness #musculation #objectif2026 #motivation #sport #nutrition #resultat</p>
+                <p className="text-xs text-blue-600 font-medium">{t.home.afterHashtags}</p>
                 <div className="pt-2 border-t border-blue-200">
                   <p className="text-xs text-blue-600 font-bold">{t.home.afterStats}</p>
                 </div>
@@ -782,7 +773,7 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
-            {t.home.comparatorTitle} <span className="line-through text-red-400 decoration-red-400">2 prestataires</span> par{' '}
+            {t.home.comparatorTitle} <span className="line-through text-red-400 decoration-red-400">{t.home.comparatorStrikethrough}</span> {t.home.comparatorWith}{' '}
             <span className="gradient-text">{t.home.comparatorTitleHighlight}</span>
           </h2>
           <p className="text-lg text-neutral-600" dangerouslySetInnerHTML={{ __html: t.home.comparatorSubtitle }} />
@@ -795,7 +786,7 @@ function HomeKeiroInner() {
               <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorGraphiste}</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorGraphistePrice}<span className="text-base font-normal text-red-400">/mois</span></p>
+              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorGraphistePrice}<span className="text-base font-normal text-red-400">{t.common.perMonth}</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
                 <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG1}</li>
                 <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG2}</li>
@@ -812,7 +803,7 @@ function HomeKeiroInner() {
               <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorCM}</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorCMPrice}<span className="text-base font-normal text-red-400">/mois</span></p>
+              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorCMPrice}<span className="text-base font-normal text-red-400">{t.common.perMonth}</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
                 <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM1}</li>
                 <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM2}</li>
@@ -829,7 +820,7 @@ function HomeKeiroInner() {
               <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-blue-600 mb-1">{t.home.comparatorKeiroPrice}<span className="text-base font-normal text-blue-400">/mois</span></p>
+              <p className="text-3xl font-bold text-blue-600 mb-1">{t.home.comparatorKeiroPrice}<span className="text-base font-normal text-blue-400">{t.common.perMonth}</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
                 <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK1 }} /></li>
                 <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK2 }} /></li>
@@ -914,34 +905,34 @@ function HomeKeiroInner() {
 
             <Plan
               title={`🚀 ${t.home.planSoloTitle}`}
-              price={billingPeriod === 'annual' ? '490€ / an' : '49€ / mois'}
-              priceNote={billingPeriod === 'annual' ? 'soit 40,83€/mois' : undefined}
+              price={billingPeriod === 'annual' ? `490€ ${t.common.perYear}` : `49€ ${t.common.perMonth}`}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNoteSolo : undefined}
               subtitle={t.home.planSoloSubtitle}
               bullets={t.home.planSoloBullets}
-              ctaLabel={billingPeriod === 'annual' ? 'Solo annuel (-17%)' : 'Choisir Solo'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaSoloAnnual : t.home.ctaChooseSolo}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')}
             />
 
             <Plan
               title={`💎 ${t.home.planProTitle}`}
-              price={billingPeriod === 'annual' ? '890€ / an' : '89€ / mois'}
-              priceNote={billingPeriod === 'annual' ? 'soit 74€/mois' : undefined}
+              price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={t.home.planProSubtitle}
               highlight
               bullets={t.home.planProBullets}
-              ctaLabel={billingPeriod === 'annual' ? 'Pro annuel (-17%)' : 'Débloquer TikTok + Audio'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : t.home.ctaUnlockTikTok}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
             <Plan
               title={`⭐ ${t.home.planFondateursTitle}`}
-              price={billingPeriod === 'annual' ? '1 490€ / an' : '149€ / mois'}
-              priceNote={billingPeriod === 'annual' ? 'soit 124€/mois' : undefined}
+              price={billingPeriod === 'annual' ? `1 490€ ${t.common.perYear}` : `149€ ${t.common.perMonth}`}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNoteFondateurs : undefined}
               subtitle={t.home.planFondateursSubtitle}
               special
               highlight
               bullets={t.home.planFondateursBullets}
-              ctaLabel={billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaFondateursAnnual : t.home.ctaBecomeFondateur}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
           </div>
@@ -950,11 +941,11 @@ function HomeKeiroInner() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
-              price={billingPeriod === 'annual' ? '3 490€ / an' : '349€ / mois'}
-              priceNote={billingPeriod === 'annual' ? 'soit 290€/mois' : undefined}
+              price={billingPeriod === 'annual' ? `3 490€ ${t.common.perYear}` : `349€ ${t.common.perMonth}`}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
               subtitle={t.home.planBusinessSubtitle}
               bullets={t.home.planBusinessBullets}
-              ctaLabel={billingPeriod === 'annual' ? 'Business annuel (-17%)' : 'Choisir Business'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
 
@@ -963,8 +954,8 @@ function HomeKeiroInner() {
                 <h3 className="text-xl font-bold">🏆 {t.home.planEliteTitle}</h3>
                 <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
               </div>
-              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}</div>
-              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">soit 832€/mois</p>}
+              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? `9 990€ ${t.common.perYear}` : `999€ ${t.common.perMonth}`}</div>
+              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">{t.home.priceNoteElite}</p>}
               <p className="text-sm text-neutral-600 mb-4">{t.home.planEliteSubtitle}</p>
               <ul className="grid grid-cols-2 gap-2 mb-6 flex-1">
                 {t.home.planEliteBullets.map((b, i) => (
@@ -978,7 +969,7 @@ function HomeKeiroInner() {
                 onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
                 className="w-full py-3 rounded-xl font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
               >
-                {billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
+                {billingPeriod === 'annual' ? t.home.ctaEliteAnnual : t.home.ctaChooseElite}
               </button>
             </div>
           </div>
@@ -1323,41 +1314,21 @@ function QuizAndCalculator() {
           <div className="bg-white rounded-xl p-6 mb-6">
             <h4 className="font-bold text-neutral-900 mb-4">{t.home.quizResultIncluded}</h4>
             <ul className="space-y-3">
-              {getRecommendedPlan() === 'Pro' && (
-                <>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>Visuels & vidéos illimités</strong> - Aucune limite de production</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>30 vidéos/mois</strong> - Parfait pour TikTok & Reels</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>Calendrier de contenus</strong> - Planification automatisée</span>
-                  </li>
-                </>
-              )}
-              {(getRecommendedPlan() === 'Solo' || getRecommendedPlan() === 'Pro' || getRecommendedPlan() === 'Fondateurs Pro') && (
-                <>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>Visuels illimités</strong> - Génère autant que tu veux</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>10 vidéos/mois</strong> - Pour diversifier ton contenu</span>
-                  </li>
-                  <li className="flex items-start gap-2 text-sm">
-                    <span className="text-blue-500 text-lg">✓</span>
-                    <span><strong>Assistant IA Marketing</strong> - Insights personnalisés</span>
-                  </li>
-                </>
-              )}
+              {getRecommendedPlan() === 'Pro' && t.home.quizProBullets.map((b, i) => (
+                <li key={`pro-${i}`} className="flex items-start gap-2 text-sm">
+                  <span className="text-blue-500 text-lg">✓</span>
+                  <span dangerouslySetInnerHTML={{ __html: b }} />
+                </li>
+              ))}
+              {(getRecommendedPlan() === 'Solo' || getRecommendedPlan() === 'Pro' || getRecommendedPlan() === 'Fondateurs Pro') && t.home.quizSoloBullets.map((b, i) => (
+                <li key={`solo-${i}`} className="flex items-start gap-2 text-sm">
+                  <span className="text-blue-500 text-lg">✓</span>
+                  <span dangerouslySetInnerHTML={{ __html: b }} />
+                </li>
+              ))}
               <li className="flex items-start gap-2 text-sm">
                 <span className="text-blue-500 text-lg">✓</span>
-                <span><strong>Galerie & Posts Instagram</strong> - Captions automatiques</span>
+                <span dangerouslySetInnerHTML={{ __html: t.home.quizCommonBullet }} />
               </li>
             </ul>
           </div>
@@ -1430,11 +1401,11 @@ function QuizAndCalculator() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm opacity-90 mb-1">{t.home.calcSavings}</div>
-                  <div className="text-xs opacity-75">Soit {savings * 12}€{t.home.calcSavingsYear}</div>
+                  <div className="text-xs opacity-75">{t.home.calcAnnualPrefix} {savings * 12}€{t.home.calcSavingsYear}</div>
                 </div>
                 <div>
                   <div className="text-4xl font-bold">{savings.toLocaleString()}€</div>
-                  <div className="text-sm text-right">{savingsPercent}% d'économie</div>
+                  <div className="text-sm text-right">{savingsPercent}% {t.home.calcSavingsPercentLabel}</div>
                 </div>
               </div>
             </div>
@@ -1448,7 +1419,7 @@ function QuizAndCalculator() {
             href="/generate"
             className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
           >
-            {t.home.calcCta} {savings.toLocaleString()}€/mois →
+            {t.home.calcCta} {savings.toLocaleString()}€{t.common.perMonth} →
           </a>
         </div>
       )}

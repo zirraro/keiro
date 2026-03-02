@@ -5,6 +5,7 @@ import ErrorSupportModal from './ErrorSupportModal';
 import InstagramCarouselModal from './InstagramCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
 import ImageEditModal from './ImageEditModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -48,6 +49,7 @@ interface InstagramModalProps {
 }
 
 export default function InstagramModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: InstagramModalProps) {
+  const { t } = useLanguage();
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -314,7 +316,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       setSaving(true);
       try {
         await onSave(selectedImage, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? `✅ ${t.library.draftSavedToast}` : `✅ ${t.library.readyToPublishToast}`);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -324,7 +326,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
+        if (!user) throw new Error(t.library.createAccountForFeature);
 
         // Sauvegarder dans instagram_drafts pour les vidéos (Reels)
         const { error: insertError } = await supabase
@@ -342,16 +344,16 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
         if (insertError) throw new Error(insertError.message);
 
-        setSuccessToast(status === 'draft' ? '✅ Brouillon Reel sauvegardé !' : '✅ Reel prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.reelDraftSaved : t.library.reelReadyToPublish);
         setTimeout(() => setSuccessToast(null), 3000);
       } catch (err: any) {
         console.error('[InstagramModal] Save video draft error:', err);
-        alert(`❌ Erreur de sauvegarde: ${err.message}`);
+        alert(`${t.library.saveErrorToast}: ${err.message}`);
       } finally {
         setSaving(false);
       }
     } else {
-      alert('Veuillez sélectionner un contenu (image ou vidéo)');
+      alert(t.library.selectContentImageOrVideo);
     }
   };
 
@@ -367,7 +369,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
     const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
 
     if (!hasContent) {
-      alert('Veuillez sélectionner un contenu (image ou vidéo)');
+      alert(t.library.selectContentImageOrVideo);
       return;
     }
 
@@ -410,11 +412,11 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         setCaption(data.caption);
         setHashtags(data.hashtags);
       } else {
-        alert(data.error || 'Erreur lors de la génération des suggestions');
+        alert(data.error || t.library.suggestionError);
       }
     } catch (error) {
       console.error('[InstagramModal] Error suggesting:', error);
-      alert('Erreur lors de la génération des suggestions');
+      alert(t.library.suggestionError);
     } finally {
       setSuggesting(false);
     }
@@ -424,25 +426,25 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const handlePublishNow = async () => {
     const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
     if (!hasContent) {
-      alert('Veuillez sélectionner un contenu');
+      alert(t.library.selectContent);
       return;
     }
 
     if (!caption.trim()) {
-      alert('Veuillez écrire une description pour votre post');
+      alert(t.library.writeDescriptionForPost);
       return;
     }
 
     if (!isInstagramConnected) {
-      alert('Veuillez d\'abord connecter votre compte Instagram Business');
+      alert(t.library.connectInstagramFirst);
       return;
     }
 
     const isVideo = activeTab === 'videos';
     const confirm = window.confirm(
       isVideo
-        ? '🚀 Publier ce Reel maintenant sur Instagram ?\n\nVotre vidéo sera publiée immédiatement.'
-        : '🚀 Publier maintenant sur Instagram ?\n\nVotre post sera publié immédiatement sur votre compte Instagram Business.'
+        ? t.library.publishReelNowConfirm
+        : t.library.publishPostNowConfirm
     );
 
     if (!confirm) return;
@@ -472,11 +474,11 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
       if (data.ok) {
         // Message de succès plus engageant
-        const successMessage = `🎉 Post publié avec succès sur Instagram !\n\n✅ Votre contenu est maintenant visible\n📊 Il apparaîtra dans votre feed et profil\n💬 Les interactions commenceront bientôt\n\nFélicitations ! 🚀`;
+        const successMessage = t.library.publishSuccess + '\n\n' + t.library.publishSuccessDetails + '\n\n' + t.library.congratulations;
         alert(successMessage);
 
         // Proposer d'ouvrir Instagram pour voir le post
-        const openPost = window.confirm('Voulez-vous ouvrir Instagram pour voir votre post ?');
+        const openPost = window.confirm(t.library.openInstagramToSeePost);
         if (openPost) {
           const instagramUrl = data.post?.permalink || `https://www.instagram.com/${instagramUsername}/`;
           window.open(instagramUrl, '_blank');
@@ -484,14 +486,14 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
         onClose();
       } else {
-        throw new Error(data.error || 'Erreur lors de la publication');
+        throw new Error(data.error || t.library.publishError);
       }
     } catch (error: any) {
       console.error('[InstagramModal] Error publishing:', error);
 
       // Afficher le modal d'erreur avec support
-      setErrorTitle('Erreur de publication Instagram');
-      setErrorMessage(error.message || 'Une erreur est survenue lors de la publication sur Instagram');
+      setErrorTitle(t.library.instagramPublishErrorTitle);
+      setErrorMessage(error.message || t.library.instagramPublishError);
       setErrorTechnical(JSON.stringify({
         error: error.message,
         imageUrl: selectedImage?.image_url,
@@ -507,18 +509,16 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const handlePublishStory = async () => {
     const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
     if (!hasContent) {
-      alert('Veuillez sélectionner un contenu');
+      alert(t.library.selectContent);
       return;
     }
 
     if (!isInstagramConnected) {
-      alert('Veuillez d\'abord connecter votre compte Instagram Business');
+      alert(t.library.connectInstagramFirst);
       return;
     }
 
-    const confirm = window.confirm(
-      '📱 Publier en Story Instagram ?\n\nVotre visuel sera publié en story (24h) sur votre compte Instagram Business.\n\nNote: Les stories ne supportent pas les descriptions.'
-    );
+    const confirm = window.confirm(t.library.publishStoryConfirm);
 
     if (!confirm) return;
 
@@ -545,25 +545,25 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
       if (data.ok) {
         // Message de succès plus engageant pour la story
-        const confirmMessage = `🎉 Story publiée avec succès sur Instagram !\n\n✨ Votre story est maintenant visible pendant 24h\n📱 Ouvrez l'app Instagram pour la voir en direct\n👀 Elle apparaîtra dans le cercle de votre profil\n\nFélicitations ! 🚀`;
+        const confirmMessage = t.library.storyPublishSuccess + '\n\n' + t.library.storyPublishSuccessDetails + '\n\n' + t.library.congratulations;
         alert(confirmMessage);
 
         // Ouvrir Instagram dans un nouvel onglet (si possible)
-        const openInstagram = window.confirm('Voulez-vous ouvrir Instagram pour voir votre story ?');
+        const openInstagram = window.confirm(t.library.openInstagramToSeeStory);
         if (openInstagram) {
           window.open(`https://www.instagram.com/${instagramUsername}/`, '_blank');
         }
 
         onClose();
       } else {
-        throw new Error(data.error || 'Erreur lors de la publication de la story');
+        throw new Error(data.error || t.library.publishError);
       }
     } catch (error: any) {
       console.error('[InstagramModal] Error publishing story:', error);
 
       // Afficher le modal d'erreur avec support
-      setErrorTitle('Erreur de publication Instagram Story');
-      setErrorMessage(error.message || 'Une erreur est survenue lors de la publication de la story sur Instagram');
+      setErrorTitle(t.library.instagramStoryErrorTitle);
+      setErrorMessage(error.message || t.library.instagramStoryError);
       setErrorTechnical(JSON.stringify({
         error: error.message,
         imageUrl: selectedImage?.image_url
@@ -588,29 +588,29 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
             </svg>
           </div>
-          <h3 className="text-lg font-bold text-neutral-900 mb-2">Préparer un post Instagram</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.library.prepareInstagramPost}</h3>
           <p className="text-neutral-600 text-sm mb-4">
-            Vous n'avez pas encore de visuels dans votre galerie.
+            {t.library.noVisualsYet}
           </p>
           <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
               className="w-full px-5 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
-              Créer un visuel
+              {t.library.createVisual}
             </button>
             <button
               onClick={() => { window.location.href = '/library'; }}
               className="w-full px-5 py-3 border-2 border-purple-200 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 transition-all text-sm"
             >
-              Ajouter un visuel à votre galerie
+              {t.library.addVisualToGallery}
             </button>
           </div>
           <button
             onClick={onClose}
             className="text-neutral-400 hover:text-neutral-600 text-xs transition-colors"
           >
-            Fermer
+            {t.library.close}
           </button>
         </div>
       </div>
@@ -627,7 +627,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
             </svg>
           </div>
-          <p className="text-neutral-600 text-sm">Chargement des images...</p>
+          <p className="text-neutral-600 text-sm">{t.library.loadingImages}</p>
         </div>
       </div>
     );
@@ -645,7 +645,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex items-center gap-2 sm:gap-3">
             <InstagramIcon className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600" />
-            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Préparer un post Instagram</h2>
+            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">{t.library.prepareInstagramPost}</h2>
           </div>
           <button
             onClick={onClose}
@@ -674,7 +674,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📸 Images ({availableImages.length})
+              {t.library.imagesTab} ({availableImages.length})
             </button>
             <button
               onClick={() => setActiveTab('videos')}
@@ -684,7 +684,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              🎥 Reels ({availableVideos.length})
+              {t.library.reelsTab} ({availableVideos.length})
             </button>
           </div>
         </div>
@@ -696,7 +696,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">
               <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">
-                {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+                {activeTab === 'images' ? t.library.selectAnImage : t.library.selectAVideo}
               </p>
 
               {/* IMAGES TAB */}
@@ -793,7 +793,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           {/* CARROUSEL MOBILE - En haut sur mobile seulement */}
           <div className="md:hidden border-b border-neutral-200 bg-neutral-50 p-3">
             <p className="text-xs font-semibold text-neutral-600 mb-2">
-              {activeTab === 'images' ? 'Sélectionner une image' : 'Sélectionner une vidéo'}
+              {activeTab === 'images' ? t.library.selectAnImage : t.library.selectAVideo}
             </p>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
               {/* IMAGES TAB */}
@@ -972,7 +972,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   )}
                   {activeTab === 'videos' && selectedVideo?.duration && (
                     <p className="mt-1 text-xs text-neutral-500 text-center">
-                      Durée: {Math.round(selectedVideo.duration)}s
+                      {t.library.duration}: {Math.round(selectedVideo.duration)}s
                     </p>
                   )}
                 </div>
@@ -984,37 +984,37 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               {/* Sélecteur d'angle/ton */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Quel angle voulez-vous pour votre post ?
+                  {t.library.postAngle}
                 </label>
                 <select
                   value={contentAngle}
                   onChange={(e) => setContentAngle(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white"
                 >
-                  <option value="informatif">📰 Informatif - Donner des faits et informations</option>
-                  <option value="emotionnel">❤️ Émotionnel - Toucher les émotions</option>
-                  <option value="inspirant">✨ Inspirant - Motiver et encourager</option>
-                  <option value="humoristique">😄 Humoristique - Faire rire</option>
-                  <option value="professionnel">💼 Professionnel - Sérieux et expert</option>
-                  <option value="storytelling">📖 Storytelling - Raconter une histoire</option>
-                  <option value="educatif">🎓 Éducatif - Enseigner quelque chose</option>
-                  <option value="provocateur">🔥 Provocateur - Questionner et débattre</option>
+                  <option value="informatif">{t.library.angleInformative}</option>
+                  <option value="emotionnel">{t.library.angleEmotional}</option>
+                  <option value="inspirant">{t.library.angleInspiring}</option>
+                  <option value="humoristique">{t.library.angleHumorous}</option>
+                  <option value="professionnel">{t.library.angleProfessional}</option>
+                  <option value="storytelling">{t.library.angleStorytelling}</option>
+                  <option value="educatif">{t.library.angleEducational}</option>
+                  <option value="provocateur">{t.library.angleProvocative}</option>
                 </select>
               </div>
 
               {/* Mots-clés optionnels pour orienter la suggestion */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-1">
-                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                  {t.library.keywordsLabel} <span className="text-xs font-normal text-neutral-500">{t.library.keywordsOptional}</span>
                 </label>
                 <input
                   type="text"
                   value={userKeywords}
                   onChange={(e) => setUserKeywords(e.target.value)}
-                  placeholder="Ex: promo été, lancement produit, témoignage client..."
+                  placeholder={t.library.keywordsPlaceholderInsta}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">{t.library.keywordsHint}</p>
               </div>
 
               {/* Bouton Suggérer IA */}
@@ -1030,14 +1030,14 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 {suggesting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Suggestion en cours...</span>
+                    <span>{t.library.suggestingInProgress}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    <span>✨ Suggérer description et hashtags</span>
+                    <span>{t.library.suggestDescAndHashtags}</span>
                   </>
                 )}
               </button>
@@ -1045,17 +1045,17 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               {/* Caption textarea */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Description du post
+                  {t.library.postDescription}
                 </label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   className="w-full h-40 px-4 py-3 border border-neutral-300 rounded-lg resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="Écrivez une description engageante pour votre post..."
+                  placeholder={t.library.captionPlaceholderInsta}
                   maxLength={2200}
                 />
                 <p className="mt-1 text-xs text-neutral-500 text-right">
-                  {caption.length} / 2200 caractères
+                  {caption.length} / 2200 {t.library.characters}
                 </p>
               </div>
 
@@ -1064,15 +1064,15 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
-                    🎙️ Narration Audio
+                    {t.library.narrationAudio}
                   </label>
                   {narrationAudioUrl && (
-                    <span className="text-xs text-green-600 font-medium">✅ Audio généré</span>
+                    <span className="text-xs text-green-600 font-medium">{t.library.audioGenerated}</span>
                   )}
                 </div>
 
                 <p className="text-xs text-neutral-600 mb-3">
-                  Générez une narration audio de votre description pour un meilleur engagement sur Instagram Reels
+                  {t.library.narrationDescInsta}
                 </p>
 
                 {!showNarrationEditor ? (
@@ -1080,7 +1080,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                     onClick={() => setShowNarrationEditor(true)}
                     className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
                   >
-                    {narrationAudioUrl ? '🎙️ Modifier l\'audio' : '🎙️ Générer l\'audio'}
+                    {narrationAudioUrl ? t.library.editAudio : t.library.generateAudio}
                   </button>
                 ) : (
                   <AudioEditorWidget
@@ -1171,15 +1171,15 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
-                      🎬 Audio + Vidéo
+                      {t.library.audioVideo}
                     </label>
                     {merging ? (
                       <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
                         <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
-                        Fusion en cours...
+                        {t.library.mergingInProgress}
                       </span>
                     ) : mergedVideoUrl ? (
-                      <span className="text-xs text-green-600 font-medium">✅ Audio intégré — Prêt à publier</span>
+                      <span className="text-xs text-green-600 font-medium">{t.library.audioIntegratedReady}</span>
                     ) : (
                       <button
                         onClick={async () => {
@@ -1223,17 +1223,17 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         }}
                         className="text-xs text-red-600 font-medium hover:text-red-700 underline"
                       >
-                        🔄 Relancer la fusion
+                        {t.library.retryMerge}
                       </button>
                     )}
                   </div>
 
                   <p className="text-[10px] text-neutral-600">
                     {mergedVideoUrl
-                      ? 'L\'audio est intégré dans la vidéo. La publication enverra cette vidéo avec le son.'
+                      ? t.library.mergeSuccessDesc
                       : merging
-                      ? 'Intégration de l\'audio dans le fichier vidéo...'
-                      : 'La fusion a échoué. Cliquez sur "Relancer la fusion" pour réessayer.'}
+                      ? t.library.mergingDesc
+                      : t.library.mergeFailedDesc}
                   </p>
                 </div>
               )}
@@ -1242,7 +1242,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               {activeTab === 'videos' && selectedVideo && (
                 <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-3">
                   <label className="block text-sm font-semibold text-neutral-900">
-                    📝 Texte / Sous-titres
+                    {t.library.textSubtitles}
                   </label>
 
                   {/* Checkbox sous-titres */}
@@ -1254,7 +1254,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                     />
                     <span className="text-xs font-medium text-neutral-800">
-                      Afficher les sous-titres sur la vidéo
+                      {t.library.showSubtitlesOnVideo}
                     </span>
                   </label>
 
@@ -1262,15 +1262,15 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                     <>
                       {/* Style de sous-titres */}
                       <div className="space-y-1.5">
-                        <p className="text-[10px] text-neutral-600">Style des sous-titres:</p>
+                        <p className="text-[10px] text-neutral-600">{t.library.subtitleStyleLabel}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {([
-                            { key: 'wordflash' as const, label: '⚡ Mot par mot' },
-                            { key: 'wordstay' as const, label: '🎤 Karaoké' },
-                            { key: 'neon' as const, label: '💜 Néon' },
-                            { key: 'cinema' as const, label: '🎬 Cinéma' },
-                            { key: 'impact' as const, label: '💥 Bold' },
-                            { key: 'minimal' as const, label: '✦ Discret' },
+                            { key: 'wordflash' as const, label: t.library.subtitleWordFlash },
+                            { key: 'wordstay' as const, label: t.library.subtitleKaraoke },
+                            { key: 'neon' as const, label: t.library.subtitleNeon },
+                            { key: 'cinema' as const, label: t.library.subtitleCinema },
+                            { key: 'impact' as const, label: t.library.subtitleBold },
+                            { key: 'minimal' as const, label: t.library.subtitleMinimal },
                           ]).map((style) => (
                             <button
                               key={style.key}
@@ -1290,14 +1290,14 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                       {/* Modifier le texte des sous-titres */}
                       <div className="space-y-1.5">
                         <label className="block text-[10px] font-medium text-neutral-700">
-                          Texte affiché (modifiable):
+                          {t.library.displayedText}
                         </label>
                         <textarea
                           value={narrationScript}
                           onChange={(e) => setNarrationScript(e.target.value)}
                           rows={2}
                           className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                          placeholder="Texte à afficher sur la vidéo..."
+                          placeholder={t.library.subtitlePlaceholder}
                         />
                         {narrationAudioUrl && (
                           <button
@@ -1360,7 +1360,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                                 : 'bg-green-600 text-white hover:bg-green-700'
                             }`}
                           >
-                            {merging ? '⏳ En cours...' : '🔄 Appliquer le texte modifié'}
+                            {merging ? t.library.inProgress : t.library.applyModifiedText}
                           </button>
                         )}
                       </div>
@@ -1372,7 +1372,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               {/* Hashtags section */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Hashtags
+                  {t.library.hashtags}
                 </label>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -1381,13 +1381,13 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                     onChange={(e) => setHashtagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
                     className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="#hashtag"
+                    placeholder={t.library.addHashtagPlaceholder}
                   />
                   <button
                     onClick={addHashtag}
                     className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium"
                   >
-                    Ajouter
+                    {t.library.addHashtag}
                   </button>
                 </div>
 
@@ -1408,17 +1408,17 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
                 {hashtags.length === 0 && (
                   <p className="text-xs text-neutral-500 mt-2">
-                    Aucun hashtag ajouté
+                    {t.library.noHashtagsAdded}
                   </p>
                 )}
                 <p className="text-xs text-neutral-500 mt-2">
-                  {hashtags.length} / 30 hashtags max
+                  {hashtags.length} {t.library.hashtagsMax}
                 </p>
 
                 {/* Suggestions */}
                 {hashtags.length < 30 && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">💡 Suggestions</p>
+                    <p className="text-xs text-blue-700 font-medium mb-2">{t.library.hashtagSuggestions}</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedImage?.news_category && (
                         <button
@@ -1454,7 +1454,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Connecté : <strong>@{instagramUsername}</strong></span>
+                <span>{t.library.connected} : <strong>@{instagramUsername}</strong></span>
               </div>
             </div>
           )}
@@ -1464,7 +1464,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               onClick={onClose}
               className="px-4 sm:px-6 py-2 sm:py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-sm sm:text-base"
             >
-              Annuler
+              {t.library.cancel}
             </button>
             <button
               onClick={() => handleSave('draft')}
@@ -1478,10 +1478,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Sauvegarde...</span>
+                  <span>{t.library.savingInProgress}</span>
                 </>
               ) : (
-                <span>Brouillon</span>
+                <span>{t.library.draft}</span>
               )}
             </button>
 
@@ -1500,12 +1500,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   {publishing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Publication...</span>
+                      <span>{t.library.publishingInProgress}</span>
                     </>
                   ) : (
                     <>
                       <InstagramIcon className="w-4 h-4" />
-                      <span>Post</span>
+                      <span>{t.library.publish}</span>
                     </>
                   )}
                 </button>
@@ -1516,8 +1516,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
                   </svg>
-                  <span className="hidden sm:inline">Carrousel</span>
-                  <span className="sm:hidden">Carousel</span>
+                  <span>{t.library.prepareCarousel}</span>
                 </button>
                 <button
                   onClick={handlePublishStory}
@@ -1531,7 +1530,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   {publishing ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Publication...</span>
+                      <span>{t.library.publishingInProgress}</span>
                     </>
                   ) : (
                     <>
@@ -1556,12 +1555,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 {saving ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Sauvegarde...</span>
+                    <span>{t.library.savingInProgress}</span>
                   </>
                 ) : (
                   <>
                     <InstagramIcon className="w-4 sm:w-5 h-4 sm:h-5" />
-                    <span>Prêt à publier</span>
+                    <span>{t.library.readyToPublish}</span>
                   </>
                 )}
               </button>
