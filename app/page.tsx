@@ -937,8 +937,8 @@ function HomeKeiroInner() {
             )}
           </div></FadeUp>
 
-          {/* Plans Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          {/* Plans Grid — Ligne 1 : 4 plans principaux */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <Plan
               title="🎁 Gratuit"
               price="0€"
@@ -974,6 +974,7 @@ function HomeKeiroInner() {
               price={billingPeriod === 'annual' ? '890€ / an' : '89€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 74€/mois' : undefined}
               subtitle="400 crédits — ~3 campagnes/semaine"
+              highlight
               bullets={[
                 '400 crédits/mois',
                 'Tout Solo +',
@@ -1004,7 +1005,10 @@ function HomeKeiroInner() {
               ctaLabel={billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
+          </div>
 
+          {/* Ligne 2 : Business + Elite */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
             <Plan
               title="🏢 Business"
               price={billingPeriod === 'annual' ? '3 490€ / an' : '349€ / mois'}
@@ -1022,22 +1026,29 @@ function HomeKeiroInner() {
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
 
-            <Plan
-              title="🏆 Elite"
-              price={billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}
-              priceNote={billingPeriod === 'annual' ? 'soit 832€/mois' : undefined}
-              subtitle="5 500 crédits — Volume agence"
-              bullets={[
-                '5 500 crédits/mois',
-                'Tout Business +',
-                'Account Manager dédié',
-                'Consulting 2h/mois',
-                'Features custom',
-                'Formation équipe (20 pers.)'
-              ]}
-              ctaLabel={billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
-              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
-            />
+            <div className="lg:col-span-2 rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
+              <div className="flex items-center gap-3 mb-3">
+                <h3 className="text-xl font-bold">🏆 Elite</h3>
+                <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
+              </div>
+              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}</div>
+              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">soit 832€/mois</p>}
+              <p className="text-sm text-neutral-600 mb-4">5 500 crédits/mois — Service premium avec consulting</p>
+              <ul className="grid grid-cols-2 gap-2 mb-6 flex-1">
+                {['5 500 crédits/mois', 'Tout Business +', 'Account Manager dédié', 'Consulting 2h/mois', 'Features custom développées', 'Formation équipe (20 pers.)', 'Priority lane nouveautés', 'SLA 99.9% garanti'].map((b, i) => (
+                  <li key={i} className="text-sm flex gap-2">
+                    <span className="text-purple-600 font-bold">✓</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
+                className="w-full py-3 rounded-xl font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
+              >
+                {billingPeriod === 'annual' ? 'Elite annuel (-17%)' : 'Choisir Elite'}
+              </button>
+            </div>
           </div>
 
           <p className="text-center text-xs text-neutral-500 mb-6">
