@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { ScaleIn } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
+import { useLanguage } from '@/lib/i18n/context';
 
 export default function LoginPage() {
   return (
@@ -18,6 +19,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = supabaseBrowser();
+  const { t } = useLanguage();
 
   const stripeSessionId = searchParams.get('stripe_session_id');
   const paymentSuccess = searchParams.get('payment_success') === '1';
@@ -99,7 +101,7 @@ function LoginPageInner() {
       // Lier le paiement Stripe si session_id présent
       if (stripeSessionId) {
         setSuccess(true);
-        setError('Activation de votre plan en cours...');
+        setError(t.login.activatingPlan);
         await claimStripePayment();
         window.location.href = '/generate';
         return;
@@ -116,7 +118,7 @@ function LoginPageInner() {
           const promoData = await promoRes.json();
           if (promoData.ok && promoData.expiresAt) {
             setSuccess(true);
-            setError(`+${promoData.credits} crédits ajoutés ! Vos crédits expirent dans 14 jours.`);
+            setError(`+${promoData.credits} ${t.common.credits} ! ${t.login.promoApplied}`);
             setTimeout(() => { window.location.href = getRedirectUrl(); }, 2500);
             return;
           }
@@ -128,7 +130,7 @@ function LoginPageInner() {
         window.location.href = getRedirectUrl();
       }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Erreur de connexion');
+      setError(err.message || t.login.loginError);
     } finally {
       setLoading(false);
     }
@@ -136,7 +138,7 @@ function LoginPageInner() {
 
   const handleResetPassword = async () => {
     if (!email) {
-      setError('Veuillez entrer votre email');
+      setError(t.login.enterEmail);
       return;
     }
 
@@ -151,9 +153,9 @@ function LoginPageInner() {
       if (error) throw error;
 
       setSuccess(true);
-      setError('Email de réinitialisation envoyé ! Vérifiez votre boîte mail.');
+      setError(t.login.resetEmailSent);
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'envoi de l\'email');
+      setError(err.message || t.login.loginError);
     } finally {
       setLoading(false);
     }
@@ -187,7 +189,7 @@ function LoginPageInner() {
 
       if (signUpError) {
         if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
-          setError('Un compte existe déjà avec cet email. Veuillez vous connecter ou réinitialiser votre mot de passe.');
+          setError(t.login.accountExists);
           setMode('login');
           return;
         }
@@ -239,7 +241,7 @@ function LoginPageInner() {
         // Lier le paiement Stripe si session_id présent
         if (stripeSessionId) {
           setSuccess(true);
-          setError('Activation de votre plan en cours...');
+          setError(t.login.activatingPlan);
           await claimStripePayment();
           window.location.href = '/generate';
           return;
@@ -253,15 +255,15 @@ function LoginPageInner() {
         // Email de confirmation requis
         if (stripeSessionId) {
           setSuccess(true);
-          setError('Vérifiez votre email pour confirmer votre inscription. Votre plan sera activé automatiquement après confirmation.');
+          setError(t.login.signupSuccess);
         } else {
           setSuccess(true);
-          setError('Vérifiez votre email pour confirmer votre inscription !' + promoExpiresMessage);
+          setError(t.login.signupSuccess + promoExpiresMessage);
         }
       }
     } catch (err: any) {
       console.error('[Signup] Error:', err);
-      setError(err.message || 'Erreur lors de l\'inscription');
+      setError(err.message || t.login.signupError);
     } finally {
       setLoading(false);
     }
@@ -351,10 +353,10 @@ function LoginPageInner() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-neutral-900">
-              Personnalisez votre expérience
+              {t.login.step2PersonalizeTitle}
             </h1>
             <p className="text-neutral-500 mt-2 text-sm">
-              Ces infos aident notre IA à mieux vous servir (optionnel)
+              {t.login.step2PersonalizeSub}
             </p>
           </div>
 
@@ -368,35 +370,35 @@ function LoginPageInner() {
             {/* Nom de l'entreprise */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Nom de l{"'"}entreprise
+                {t.login.step2CompanyName}
               </label>
               <input
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 className={inputClass}
-                placeholder="Mon entreprise"
+                placeholder={t.login.step2CompanyNamePlaceholder}
               />
             </div>
 
             {/* Description de l'entreprise - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Description de l{"'"}entreprise
+                {t.login.step2CompanyDesc}
               </label>
               <textarea
                 value={companyDescription}
                 onChange={(e) => setCompanyDescription(e.target.value)}
                 className={`${inputClass} resize-none`}
                 rows={3}
-                placeholder="Décrivez votre activité en quelques phrases..."
+                placeholder={t.login.step2CompanyDescPlaceholder}
               />
             </div>
 
             {/* Site web */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Site web
+                {t.login.step2Website}
               </label>
               <input
                 type="url"
@@ -410,14 +412,14 @@ function LoginPageInner() {
             {/* Produits/services principaux - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Produits / services principaux
+                {t.login.step2Products}
               </label>
               <input
                 type="text"
                 value={mainProducts}
                 onChange={(e) => setMainProducts(e.target.value)}
                 className={inputClass}
-                placeholder="Ex: Formation en ligne, coaching, SaaS..."
+                placeholder={t.login.step2ProductsPlaceholder}
               />
             </div>
 
@@ -425,7 +427,7 @@ function LoginPageInner() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                  Année de création
+                  {t.login.step2YearCreated}
                 </label>
                 <input
                   type="text"
@@ -437,14 +439,14 @@ function LoginPageInner() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                  Nombre d{"'"}employés
+                  {t.login.step2Employees}
                 </label>
                 <select
                   value={teamSize}
                   onChange={(e) => setTeamSize(e.target.value)}
                   className={selectClass}
                 >
-                  <option value="">Sélectionnez...</option>
+                  <option value="">{t.login.step2SelectPlaceholder}</option>
                   <option value="solo">Solo</option>
                   <option value="2-5">2-5</option>
                   <option value="6-20">6-20</option>
@@ -457,29 +459,29 @@ function LoginPageInner() {
             {/* Ton de communication - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Ton de communication
+                {t.login.step2BrandTone}
               </label>
               <select
                 value={brandTone}
                 onChange={(e) => setBrandTone(e.target.value)}
                 className={selectClass}
               >
-                <option value="">Sélectionnez...</option>
-                <option value="professionnel">Professionnel</option>
-                <option value="decontracte">Décontracté</option>
-                <option value="humoristique">Humoristique</option>
-                <option value="inspirant">Inspirant</option>
-                <option value="luxe-premium">Luxe / Premium</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="professionnel">{t.login.step2TonePro}</option>
+                <option value="decontracte">{t.login.step2ToneCasual}</option>
+                <option value="humoristique">{t.login.step2ToneHumor}</option>
+                <option value="inspirant">{t.login.step2ToneInspiring}</option>
+                <option value="luxe-premium">{t.login.step2ToneLuxury}</option>
               </select>
             </div>
 
             {/* Réseaux sociaux */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Réseaux sociaux utilisés
+                {t.login.step2SocialNetworks}
               </label>
               <div className="flex flex-wrap gap-2">
-                {['Instagram', 'TikTok', 'Facebook', 'LinkedIn', 'YouTube', 'Aucun'].map((network) => (
+                {['Instagram', 'TikTok', 'Facebook', 'LinkedIn', 'YouTube', t.login.step2None].map((network) => (
                   <button
                     key={network}
                     type="button"
@@ -499,10 +501,10 @@ function LoginPageInner() {
             {/* Thèmes de contenu préférés - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Thèmes de contenu préférés
+                {t.login.step2ContentThemes}
               </label>
               <div className="flex flex-wrap gap-2">
-                {['Promotions', 'Éducatif', 'Coulisses', 'Témoignages', 'Actualité', 'Storytelling'].map((theme) => (
+                {[t.login.step2ThemePromos, t.login.step2ThemeEducational, t.login.step2ThemeBehindScenes, t.login.step2ThemeTestimonials, t.login.step2ThemeNews, t.login.step2ThemeStorytelling].map((theme) => (
                   <button
                     key={theme}
                     type="button"
@@ -522,37 +524,37 @@ function LoginPageInner() {
             {/* Fréquence de publication */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Fréquence de publication actuelle
+                {t.login.step2PostingFrequency}
               </label>
               <select
                 value={postingFrequency}
                 onChange={(e) => setPostingFrequency(e.target.value)}
                 className={selectClass}
               >
-                <option value="">Sélectionnez...</option>
-                <option value="never">Jamais</option>
-                <option value="less-than-weekly">Moins d{"'"}1x/semaine</option>
-                <option value="1-3-weekly">1-3x/semaine</option>
-                <option value="daily">Quotidien</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="never">{t.login.step2FreqNever}</option>
+                <option value="less-than-weekly">{t.login.step2FreqLessWeekly}</option>
+                <option value="1-3-weekly">{t.login.step2FreqWeekly}</option>
+                <option value="daily">{t.login.step2FreqDaily}</option>
               </select>
             </div>
 
             {/* Objectif principal */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Objectif principal
+                {t.login.step2MainGoal}
               </label>
               <select
                 value={mainGoal}
                 onChange={(e) => setMainGoal(e.target.value)}
                 className={selectClass}
               >
-                <option value="">Sélectionnez...</option>
-                <option value="visibility">Visibilité / notoriété</option>
-                <option value="sales">Ventes / conversions</option>
-                <option value="engagement">Engagement communauté</option>
-                <option value="leads">Génération de leads</option>
-                <option value="recruitment">Recrutement</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="visibility">{t.login.step2GoalVisibility}</option>
+                <option value="sales">{t.login.step2GoalSales}</option>
+                <option value="engagement">{t.login.step2GoalEngagement}</option>
+                <option value="leads">{t.login.step2GoalLeads}</option>
+                <option value="recruitment">{t.login.step2GoalRecruitment}</option>
               </select>
             </div>
 
@@ -560,14 +562,14 @@ function LoginPageInner() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                  Budget marketing/mois
+                  {t.login.step2MarketingBudget}
                 </label>
                 <select
                   value={marketingBudget}
                   onChange={(e) => setMarketingBudget(e.target.value)}
                   className={selectClass}
                 >
-                  <option value="">Sélectionnez...</option>
+                  <option value="">{t.login.step2SelectPlaceholder}</option>
                   <option value="0">0€</option>
                   <option value="under-100">Moins de 100€</option>
                   <option value="100-500">100-500€</option>
@@ -577,18 +579,18 @@ function LoginPageInner() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                  Audience cible
+                  {t.login.step2TargetAudience}
                 </label>
                 <select
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
                   className={selectClass}
                 >
-                  <option value="">Sélectionnez...</option>
-                  <option value="b2c-local">B2C local</option>
-                  <option value="b2c-national">B2C national</option>
-                  <option value="b2b">B2B</option>
-                  <option value="both">Les deux</option>
+                  <option value="">{t.login.step2SelectPlaceholder}</option>
+                  <option value="b2c-local">{t.login.step2AudienceB2CLocal}</option>
+                  <option value="b2c-national">{t.login.step2AudienceB2CNational}</option>
+                  <option value="b2b">{t.login.step2AudienceB2B}</option>
+                  <option value="both">{t.login.step2AudienceBoth}</option>
                 </select>
               </div>
             </div>
@@ -596,15 +598,15 @@ function LoginPageInner() {
             {/* Objectifs réseaux sociaux (mensuel) - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Objectifs réseaux sociaux (mensuel)
+                {t.login.step2SocialGoals}
               </label>
               <select
                 value={socialGoalsMonthly}
                 onChange={(e) => setSocialGoalsMonthly(e.target.value)}
                 className={selectClass}
               >
-                <option value="">Sélectionnez...</option>
-                <option value="debuter">Débuter</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="debuter">{t.login.step2GoalStart}</option>
                 <option value="10-posts">10 posts/mois</option>
                 <option value="20-posts">20 posts/mois</option>
                 <option value="30-plus">30+ posts/mois</option>
@@ -614,33 +616,33 @@ function LoginPageInner() {
             {/* Concurrents principaux - NEW */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Concurrents principaux
+                {t.login.step2Competitors}
               </label>
               <input
                 type="text"
                 value={competitors}
                 onChange={(e) => setCompetitors(e.target.value)}
                 className={inputClass}
-                placeholder="Ex: Canva, Buffer, Hootsuite..."
+                placeholder={t.login.step2CompetitorsPlaceholder}
               />
             </div>
 
             {/* Source d'acquisition */}
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                Comment nous avez-vous connu ?
+                {t.login.step2HowFound}
               </label>
               <select
                 value={acquisitionSource}
                 onChange={(e) => setAcquisitionSource(e.target.value)}
                 className={selectClass}
               >
-                <option value="">Sélectionnez...</option>
-                <option value="google">Google</option>
-                <option value="social-media">Réseaux sociaux</option>
-                <option value="word-of-mouth">Bouche-à-oreille</option>
-                <option value="blog">Article / Blog</option>
-                <option value="other">Autre</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="google">{t.login.step2SourceGoogle}</option>
+                <option value="social-media">{t.login.step2SourceSocial}</option>
+                <option value="word-of-mouth">{t.login.step2SourceWordOfMouth}</option>
+                <option value="blog">{t.login.step2SourceBlog}</option>
+                <option value="other">{t.login.step2SourceOther}</option>
               </select>
             </div>
           </div>
@@ -652,7 +654,7 @@ function LoginPageInner() {
               onClick={handleSkipStep2}
               className="flex-1 py-3 border-2 border-neutral-200 text-neutral-600 font-semibold rounded-lg hover:bg-neutral-50 transition-all"
             >
-              Passer
+              {t.login.step2Skip}
             </button>
             <button
               type="button"
@@ -660,7 +662,7 @@ function LoginPageInner() {
               disabled={loading}
               className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
-              {loading ? 'Enregistrement...' : 'Continuer'}
+              {loading ? t.login.step2Saving : t.login.step2Continue}
             </button>
           </div>
         </div>
@@ -680,7 +682,7 @@ function LoginPageInner() {
             KeiroAI
           </h1>
           <p className="text-neutral-600 mt-2">
-            Créez des visuels qui surfent sur l{"'"}actu
+            {t.login.loginSubtitle}
           </p>
         </div>
 
@@ -688,10 +690,10 @@ function LoginPageInner() {
         {paymentSuccess && (
           <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl">
             <p className="text-green-800 font-semibold text-sm">
-              Paiement reçu !
+              {t.login.paymentReceived}
             </p>
             <p className="text-green-700 text-xs mt-1">
-              {mode === 'login' ? 'Connectez-vous' : 'Créez votre compte'} pour activer votre plan <span className="font-semibold capitalize">{planFromUrl}</span>.
+              {mode === 'login' ? t.login.loginCta : t.login.signupCta} {t.login.paymentActivate} <span className="font-semibold capitalize">{planFromUrl}</span>.
             </p>
           </div>
         )}
@@ -706,7 +708,7 @@ function LoginPageInner() {
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Connexion
+            {t.login.loginTab}
           </button>
           <button
             onClick={() => setMode('signup')}
@@ -716,7 +718,7 @@ function LoginPageInner() {
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Inscription
+            {t.login.signupTab}
           </button>
         </div>
 
@@ -724,7 +726,7 @@ function LoginPageInner() {
         {success && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-700 text-sm font-medium">
-              {mode === 'login' ? 'Connexion réussie !' : 'Compte créé avec succès !'}
+              {mode === 'login' ? t.login.loginSuccess : t.login.signupSuccess}
             </p>
           </div>
         )}
@@ -741,7 +743,7 @@ function LoginPageInner() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Email
+                {t.login.email}
               </label>
               <input
                 type="email"
@@ -755,7 +757,7 @@ function LoginPageInner() {
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Mot de passe
+                {t.login.password}
               </label>
               <input
                 type="password"
@@ -769,7 +771,7 @@ function LoginPageInner() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-500 mb-1">
-                Code promo (optionnel)
+                {t.login.promoCode}
               </label>
               <input
                 type="text"
@@ -785,7 +787,7 @@ function LoginPageInner() {
               disabled={loading}
               className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
+              {loading ? t.login.connecting : t.login.loginCta}
             </button>
 
             <button
@@ -794,7 +796,7 @@ function LoginPageInner() {
               disabled={loading}
               className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
             >
-              Mot de passe oublié ?
+              {t.login.forgotPassword}
             </button>
           </form>
         )}
@@ -805,7 +807,7 @@ function LoginPageInner() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Prénom
+                  {t.login.step2FirstName}
                 </label>
                 <input
                   type="text"
@@ -818,7 +820,7 @@ function LoginPageInner() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Nom
+                  {t.login.step2LastName}
                 </label>
                 <input
                   type="text"
@@ -833,7 +835,7 @@ function LoginPageInner() {
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Email
+                {t.login.email}
               </label>
               <input
                 type="email"
@@ -847,7 +849,7 @@ function LoginPageInner() {
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Mot de passe
+                {t.login.password}
               </label>
               <input
                 type="password"
@@ -858,12 +860,12 @@ function LoginPageInner() {
                 className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                 placeholder="••••••••"
               />
-              <p className="text-xs text-neutral-500 mt-1">Minimum 6 caractères</p>
+              <p className="text-xs text-neutral-500 mt-1">{t.login.passwordMinLength}</p>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                Type d{"'"}activité
+                {t.login.signupBusinessType}
               </label>
               <select
                 required
@@ -871,14 +873,14 @@ function LoginPageInner() {
                 onChange={(e) => setBusinessType(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
               >
-                <option value="">Sélectionnez...</option>
-                <option value="restaurant">Restaurant / Café</option>
-                <option value="retail">Commerce / Retail</option>
-                <option value="services">Services / Conseil</option>
-                <option value="ecommerce">E-commerce</option>
-                <option value="agency">Agence / Marketing</option>
-                <option value="freelance">Freelance</option>
-                <option value="other">Autre</option>
+                <option value="">{t.login.step2SelectPlaceholder}</option>
+                <option value="restaurant">{t.login.signupRestaurant}</option>
+                <option value="retail">{t.login.signupRetail}</option>
+                <option value="services">{t.login.signupServices}</option>
+                <option value="ecommerce">{t.login.signupEcommerce}</option>
+                <option value="agency">{t.login.signupAgency}</option>
+                <option value="freelance">{t.login.signupFreelance}</option>
+                <option value="other">{t.login.signupOther}</option>
               </select>
               {businessType === 'other' && (
                 <input
@@ -887,14 +889,14 @@ function LoginPageInner() {
                   value={customBusinessType}
                   onChange={(e) => setCustomBusinessType(e.target.value)}
                   className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-                  placeholder="Précisez votre activité..."
+                  placeholder={t.login.signupOtherPlaceholder}
                 />
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-neutral-500 mb-1">
-                Code promo (optionnel)
+                {t.login.promoCode}
               </label>
               <input
                 type="text"
@@ -903,7 +905,7 @@ function LoginPageInner() {
                 className="w-full px-4 py-2.5 rounded-lg border-2 border-neutral-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100 transition-all uppercase tracking-wider text-sm"
                 placeholder="MONCODE"
               />
-              <p className="text-xs text-neutral-400 mt-1">Activez un code pour recevoir des crédits bonus</p>
+              <p className="text-xs text-neutral-400 mt-1">{t.login.signupPromoHint}</p>
             </div>
 
             <button
@@ -911,11 +913,11 @@ function LoginPageInner() {
               disabled={loading}
               className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
-              {loading ? 'Création du compte...' : 'Créer mon compte'}
+              {loading ? t.login.signupCreating : t.login.signupCta}
             </button>
 
             <p className="text-xs text-neutral-500 text-center">
-              En créant un compte, vous acceptez nos conditions d{"'"}utilisation
+              {t.login.signupTerms}
             </p>
           </form>
         )}

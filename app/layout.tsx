@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Script from "next/script";
+import { LanguageProvider } from "@/lib/i18n/context";
 
 export const metadata: Metadata = {
   title: {
@@ -128,11 +129,13 @@ export default function RootLayout({
           ></iframe>
         </noscript>
 
-        <Header />
-        <main className="pb-20 lg:pb-0">
-          {children}
-        </main>
-        <BottomNav />
+        <LanguageProvider>
+          <Header />
+          <main className="pb-20 lg:pb-0">
+            {children}
+          </main>
+          <BottomNav />
+        </LanguageProvider>
       </body>
     </html>
   );

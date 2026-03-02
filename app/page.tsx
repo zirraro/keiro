@@ -5,8 +5,10 @@ import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
+import { useLanguage } from '@/lib/i18n/context';
 
 function HomeKeiroInner() {
+  const { t, locale } = useLanguage();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
@@ -19,28 +21,27 @@ function HomeKeiroInner() {
             <ScaleIn>
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700">
               <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-              Nouveau : visuels liés à l'actualité en 5–10 minutes
+              {t.home.heroBadge}
             </div>
             </ScaleIn>
             <HeroTextReveal
-              text="Des visuels qui surfent sur l'actualité — en quelques minutes."
+              text={t.home.heroTitle}
               className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold"
-              highlightWords={['actualité', 'minutes']}
+              highlightWords={locale === 'fr' ? ['actualité', 'minutes'] : ['news', 'minutes']}
               highlightClassName="gradient-text"
             />
             <FadeUp delay={0.3}>
             <p className="mt-4 text-lg text-neutral-600">
-              Choisis une actu, décris ton activité en 2–3 infos, Keiro te propose un angle,
-              rédige un texte propre et génère un visuel cohérent prêt à publier.
+              {t.home.heroSubtitle}
             </p>
             </FadeUp>
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all cta-shimmer">
-                Essayer gratuitement
+                {t.common.tryFree}
               </a>
               <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
-                Voir un exemple
+                {t.common.seeExample}
               </a>
               <BookDemoButton variant="outline" size="md" />
             </div>
@@ -48,13 +49,13 @@ function HomeKeiroInner() {
             <FadeUp delay={0.6}>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
               <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> Orthographe & accroches soignées
+                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck1}
               </li>
               <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> Exports adaptés aux réseaux
+                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck2}
               </li>
               <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> Ajustements instantanés
+                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck3}
               </li>
             </ul>
             </FadeUp>
@@ -68,8 +69,8 @@ function HomeKeiroInner() {
                     🤖
                   </div>
                   <div>
-                    <h3 className="font-bold text-blue-900">Assistant IA Marketing</h3>
-                    <p className="text-xs text-blue-600">Optimise tes posts en temps réel</p>
+                    <h3 className="font-bold text-blue-900">{t.home.heroCardTitle}</h3>
+                    <p className="text-xs text-blue-600">{t.home.heroCardSubtitle}</p>
                   </div>
                 </div>
               </div>
@@ -78,14 +79,14 @@ function HomeKeiroInner() {
                 {/* Stats cards mini */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <div className="text-xs text-blue-600 font-medium">Engagement</div>
+                    <div className="text-xs text-blue-600 font-medium">{t.home.heroCardEngagement}</div>
                     <div className="text-xl font-bold text-blue-900">+347%</div>
                     <div className="text-[10px] text-blue-600">↗ +28% vs semaine</div>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <div className="text-xs text-blue-600 font-medium">Posts analysés</div>
+                    <div className="text-xs text-blue-600 font-medium">{t.home.heroCardPosts}</div>
                     <div className="text-xl font-bold text-blue-900">24</div>
-                    <div className="text-[10px] text-blue-600">6 graphiques live</div>
+                    <div className="text-[10px] text-blue-600">{t.home.heroCardCharts}</div>
                   </div>
                 </div>
 
@@ -94,23 +95,20 @@ function HomeKeiroInner() {
                   <div className="flex items-start gap-2">
                     <span className="text-lg">🎯</span>
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-blue-900 mb-1">Recommandation IA</p>
-                      <p className="text-[11px] text-neutral-700 leading-relaxed">
-                        Tes posts "Tech" génèrent <strong className="text-blue-600">3.2x plus d'engagement</strong>.
-                        Publie 3 posts cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>.
-                      </p>
+                      <p className="text-xs font-semibold text-blue-900 mb-1">{t.home.heroCardRecommendation}</p>
+                      <p className="text-[11px] text-neutral-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-blue-600 rounded-lg p-3 text-center">
-                  <p className="text-xs font-bold text-white">✨ Insights personnalisés à ton business</p>
+                  <p className="text-xs font-bold text-white">✨ {t.home.heroCardInsights}</p>
                 </div>
               </div>
 
               <div className="p-3 bg-white border-t border-blue-200 text-center">
                 <a href="/assistant" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                  Découvrir l'Assistant IA →
+                  {t.home.heroCardDiscover}
                 </a>
               </div>
             </div>
@@ -126,12 +124,12 @@ function HomeKeiroInner() {
             <div className="flex items-center gap-3">
               <span className="text-xl">⚡</span>
               <div>
-                <p className="font-semibold">Sprint Fondateur: 3 jours pour 4.99€</p>
-                <p className="text-xs text-blue-100">Accès complet • 4.99€ déduits si tu continues</p>
+                <p className="font-semibold">{t.home.sprintTitle}</p>
+                <p className="text-xs text-blue-100">{t.home.sprintSubtitle}</p>
               </div>
             </div>
             <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
-              Essayer maintenant →
+              {t.home.sprintCta}
             </button>
           </div>
           </FadeUp>
@@ -149,10 +147,10 @@ function HomeKeiroInner() {
             <div className="md:w-2/5">
               <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
                 <span>🎬</span>
-                <span>Voyez Keiro en action</span>
+                <span>{t.home.videoTitle}</span>
               </h3>
               <p className="text-sm text-neutral-600 mb-4">
-                De l'actualité au post Instagram & TikTok en 3 minutes chrono
+                {t.home.videoSubtitle}
               </p>
 
               {/* Vidéo compacte */}
@@ -173,18 +171,18 @@ function HomeKeiroInner() {
             <StaggerContainer className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">⚡</div>
-                <div className="font-semibold text-xs mb-0.5">3 minutes</div>
-                <div className="text-[10px] text-neutral-600">Du choix de l'actu au visuel final</div>
+                <div className="font-semibold text-xs mb-0.5">{t.home.videoCard1Title}</div>
+                <div className="text-[10px] text-neutral-600">{t.home.videoCard1Desc}</div>
               </div></StaggerItem>
               <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">🎯</div>
-                <div className="font-semibold text-xs mb-0.5">Zéro compétence</div>
-                <div className="text-[10px] text-neutral-600">L'IA fait tout le travail créatif</div>
+                <div className="font-semibold text-xs mb-0.5">{t.home.videoCard2Title}</div>
+                <div className="text-[10px] text-neutral-600">{t.home.videoCard2Desc}</div>
               </div></StaggerItem>
               <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
                 <div className="text-xl mb-1">📈</div>
-                <div className="font-semibold text-xs mb-0.5">Résultats mesurables</div>
-                <div className="text-[10px] text-neutral-600">Analytics intégrés pour optimiser</div>
+                <div className="font-semibold text-xs mb-0.5">{t.home.videoCard3Title}</div>
+                <div className="text-[10px] text-neutral-600">{t.home.videoCard3Desc}</div>
               </div></StaggerItem>
             </StaggerContainer>
           </div>
@@ -194,16 +192,16 @@ function HomeKeiroInner() {
       {/* COMMENT ÇA MARCHE */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <FadeUp><h2 className="text-2xl font-semibold">Comment ça marche</h2></FadeUp>
+          <FadeUp><h2 className="text-2xl font-semibold">{t.home.howTitle}</h2></FadeUp>
           <StaggerContainer className="mt-6 grid md:grid-cols-3 gap-6" staggerDelay={0.15}>
-            <StaggerItem><Step num="1" title="Choisis une actu">
-              Parcours les catégories (économie, sport, tech, lifestyle…) et sélectionne une actualité.
+            <StaggerItem><Step num="1" title={t.home.step1Title}>
+              {t.home.step1Desc}
             </Step></StaggerItem>
-            <StaggerItem><Step num="2" title="Décris ton activité">
-              Type d'offre, cible, ton souhaité. Keiro propose un angle pertinent, sans fautes.
+            <StaggerItem><Step num="2" title={t.home.step2Title}>
+              {t.home.step2Desc}
             </Step></StaggerItem>
-            <StaggerItem><Step num="3" title="Génère & ajuste">
-              Lumière, ambiance, éléments visuels… Export en formats réseaux en 1 clic.
+            <StaggerItem><Step num="3" title={t.home.step3Title}>
+              {t.home.step3Desc}
             </Step></StaggerItem>
           </StaggerContainer>
         </div>
@@ -213,8 +211,8 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">Galerie & Publication Multi-Plateforme</h2>
-          <p className="mt-2 text-neutral-600">Organise tes visuels et publie sur Instagram & TikTok avec descriptions IA</p>
+          <h2 className="text-3xl font-bold">{t.home.galleryTitle}</h2>
+          <p className="mt-2 text-neutral-600">{t.home.gallerySubtitle}</p>
         </div>
         </FadeUp>
 
@@ -223,7 +221,7 @@ function HomeKeiroInner() {
           <SlideInLeft><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
             <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <span>📁</span> Ta Galerie Organisée
+                <span>📁</span> {t.home.galleryOrganized}
               </h3>
             </div>
             <div className="p-5">
@@ -274,15 +272,15 @@ function HomeKeiroInner() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Dossiers personnalisés avec icônes</span>
+                  <span>{t.home.galleryFolder}</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Drag & drop pour organiser</span>
+                  <span>{t.home.galleryDragDrop}</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Édition des titres en 1 clic</span>
+                  <span>{t.home.galleryEditTitle}</span>
                 </div>
               </div>
             </div>
@@ -292,7 +290,7 @@ function HomeKeiroInner() {
           <SlideInRight><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
             <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <span>📱</span> Posts Instagram & TikTok IA
+                <span>📱</span> {t.home.galleryPostsTitle}
               </h3>
             </div>
             <div className="p-5 space-y-3">
@@ -300,7 +298,7 @@ function HomeKeiroInner() {
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-lg">✨</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-900">Caption générée automatiquement</p>
+                    <p className="text-xs font-semibold text-blue-900">{t.home.galleryCaptionTitle}</p>
                     <p className="text-[11px] text-neutral-600 mt-1">
                       "🔥 Cette semaine, on parle de [ton sujet]...<br/>
                       ✅ 3 actions concrètes<br/>
@@ -313,9 +311,9 @@ function HomeKeiroInner() {
                 <div className="flex items-start gap-2">
                   <span className="text-lg">#️⃣</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-900">Hashtags optimisés</p>
+                    <p className="text-xs font-semibold text-blue-900">{t.home.galleryHashtagTitle}</p>
                     <p className="text-[11px] text-blue-600 mt-1">
-                      #businesslocal #entrepreneurfr #marketing2026
+                      {t.home.galleryHashtagOptimized}
                     </p>
                   </div>
                 </div>
@@ -323,40 +321,37 @@ function HomeKeiroInner() {
               <div className="space-y-2 text-xs">
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Publication Instagram (Post & Story)</span>
+                  <span>{t.home.galleryPublishInstagram}</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Publication TikTok (vidéos 9:16)</span>
+                  <span>{t.home.galleryPublishTikTok}</span>
                 </div>
                 <div className="flex items-center gap-2 text-blue-600">
                   <span>✓</span>
-                  <span>Brouillons & édition avant publication</span>
+                  <span>{t.home.galleryDrafts}</span>
                 </div>
               </div>
             </div>
             <div className="p-3 bg-white border-t border-blue-200 text-center">
               <a href="/library" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                Voir ma Galerie & Posts →
+                {t.home.galleryViewCta}
               </a>
             </div>
           </div></SlideInRight>
         </div>
 
         <FadeUp><div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-6 text-center">
-          <p className="text-sm text-blue-900">
-            <strong>🚀 Multi-plateforme automatique :</strong> Publie le même visuel sur Instagram (Post & Story) et TikTok (vidéo) en un clic.
-            L'IA génère des descriptions adaptées à chaque plateforme et ton business.
-          </p>
+          <p className="text-sm text-blue-900" dangerouslySetInnerHTML={{ __html: t.home.galleryMultiPlatform }} />
         </div></FadeUp>
 
         {/* CTA après Galerie */}
         <div className="mt-10 text-center">
           <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
-            Essayer gratuitement →
+            {t.home.galleryCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
-            🚀 Génère ton premier visuel en 5 minutes • 7 jours gratuits
+            {t.home.galleryCtaSub}
           </p>
         </div>
       </section>
@@ -365,8 +360,8 @@ function HomeKeiroInner() {
       <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">De la photo smartphone amateur au visuel professionnel Instagram</h2>
-          <p className="mt-2 text-neutral-600">Transformation réelle : Coach sportif qui utilise Keiro</p>
+          <h2 className="text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
+          <p className="mt-2 text-neutral-600">{t.home.beforeAfterSubtitle}</p>
         </div>
         </FadeUp>
 
@@ -374,7 +369,7 @@ function HomeKeiroInner() {
           {/* AVANT - Vraiment amateur */}
           <SlideInLeft><div className="relative">
             <div className="absolute -top-3 -left-3 bg-neutral-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-              ❌ AVANT - Amateur
+              {t.home.beforeLabel}
             </div>
             <div className="rounded-2xl border-2 border-neutral-300 overflow-hidden bg-white">
               {/* Selfie miroir super amateur */}
@@ -398,14 +393,14 @@ function HomeKeiroInner() {
                   #sport #fitness #coach
                 </p>
                 <div className="pt-2 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-500">👁️ 18 vues • 💬 1 commentaire • 📢 Portée faible</p>
+                  <p className="text-xs text-neutral-500">{t.home.beforeStats}</p>
                 </div>
               </div>
 
               {/* Résultat */}
               <div className="bg-neutral-100 p-4 text-center border-t border-neutral-200">
-                <p className="text-sm font-semibold text-neutral-700">😴 Selfie miroir, lumière horrible, message bateau</p>
-                <p className="text-xs text-neutral-500 mt-1">Le scroll continue... Zéro impact.</p>
+                <p className="text-sm font-semibold text-neutral-700">{t.home.beforeResult}</p>
+                <p className="text-xs text-neutral-500 mt-1">{t.home.beforeResultSub}</p>
               </div>
             </div>
           </div></SlideInLeft>
@@ -413,7 +408,7 @@ function HomeKeiroInner() {
           {/* APRÈS - Overlay simple et réaliste Keiro */}
           <SlideInRight><div className="relative">
             <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10 animate-glow">
-              ✨ APRÈS - Keiro Pro
+              {t.home.afterLabel}
             </div>
             <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
               {/* Image pro avec overlay SIMPLE et RÉALISTE */}
@@ -456,14 +451,14 @@ function HomeKeiroInner() {
                 </p>
                 <p className="text-xs text-blue-600 font-medium">#transformation #coaching #fitness #musculation #objectif2026 #motivation #sport #nutrition #resultat</p>
                 <div className="pt-2 border-t border-blue-200">
-                  <p className="text-xs text-blue-600 font-bold">🔥 1 124 vues • 💬 73 commentaires • 📢 Portée x28 • 🎯 8 inscriptions</p>
+                  <p className="text-xs text-blue-600 font-bold">{t.home.afterStats}</p>
                 </div>
               </div>
 
               {/* Résultat */}
               <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 text-center border-t-2 border-cyan-400">
-                <p className="text-sm font-bold text-white">🚀 Visuel pro + Texte simple et percutant + Résultats</p>
-                <p className="text-xs text-white/90 mt-1">Le scroll s'arrête. Les gens comprennent direct et passent à l'action.</p>
+                <p className="text-sm font-bold text-white">{t.home.afterResult}</p>
+                <p className="text-xs text-white/90 mt-1">{t.home.afterResultSub}</p>
               </div>
             </div>
           </div></SlideInRight>
@@ -471,27 +466,27 @@ function HomeKeiroInner() {
 
         {/* Explication sous les images */}
         <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6">
-          <h3 className="text-lg font-bold text-blue-900 mb-3">🎯 Ce qui change tout :</h3>
+          <h3 className="text-lg font-bold text-blue-900 mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
               <span className="text-blue-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Texte simple dans carré arrondi</p>
-                <p className="text-xs text-blue-700">Réaliste, faisable sur Keiro en 2 clics</p>
+                <p className="text-sm font-semibold text-blue-900">{t.home.change1Title}</p>
+                <p className="text-xs text-blue-700">{t.home.change1Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-blue-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Image pro vs selfie miroir</p>
-                <p className="text-xs text-blue-700">Contraste énorme, crédibilité x10</p>
+                <p className="text-sm font-semibold text-blue-900">{t.home.change2Title}</p>
+                <p className="text-xs text-blue-700">{t.home.change2Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-blue-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Message clair et direct</p>
-                <p className="text-xs text-blue-700">On comprend l'offre en 3 secondes</p>
+                <p className="text-sm font-semibold text-blue-900">{t.home.change3Title}</p>
+                <p className="text-xs text-blue-700">{t.home.change3Desc}</p>
               </div>
             </div>
           </div>
@@ -500,7 +495,7 @@ function HomeKeiroInner() {
         {/* CTA */}
         <div className="mt-10 text-center">
           <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
-            Générer mon premier visuel →
+            {t.home.generateFirstCta}
           </a>
         </div>
       </section>
@@ -513,10 +508,10 @@ function HomeKeiroInner() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-xs font-medium mb-4">
               <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
-              Intelligence Artificielle Avancée
+              {t.home.aiBadge}
             </div>
-            <h2 className="text-3xl font-bold text-white">🤖 Ton Assistant IA Marketing Personnel</h2>
-            <p className="mt-2 text-blue-200">Analyse tes performances et t'aide à prendre les meilleures décisions stratégiques</p>
+            <h2 className="text-3xl font-bold text-white">{t.home.aiTitle}</h2>
+            <p className="mt-2 text-blue-200">{t.home.aiSubtitle}</p>
           </div>
           </FadeUp>
 
@@ -525,21 +520,21 @@ function HomeKeiroInner() {
             <SlideInLeft><div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
               <div className="bg-white/10 p-5">
                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                  <span>📊</span> Dashboard Analytics Complet
+                  <span>📊</span> {t.home.aiDashboardTitle}
                 </h3>
-                <p className="text-blue-300 text-sm mt-1">6 graphiques en temps réel</p>
+                <p className="text-blue-300 text-sm mt-1">{t.home.aiDashboardSub}</p>
               </div>
 
               <div className="p-5 space-y-4">
                 {/* Stats cards preview */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-blue-300 font-semibold mb-1">Cette semaine</div>
+                    <div className="text-xs text-blue-300 font-semibold mb-1">{t.home.aiThisWeek}</div>
                     <div className="text-2xl font-bold text-white"><CountUp target={12} /></div>
-                    <div className="text-xs text-blue-400">visuels générés</div>
+                    <div className="text-xs text-blue-400">{t.home.aiVisualsGenerated}</div>
                   </div>
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-blue-300 font-semibold mb-1">Engagement</div>
+                    <div className="text-xs text-blue-300 font-semibold mb-1">{t.home.aiEngagement}</div>
                     <div className="text-2xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" /></div>
                     <div className="text-xs text-blue-400 font-semibold">↗ +40%</div>
                   </div>
@@ -548,7 +543,7 @@ function HomeKeiroInner() {
                 {/* Charts preview */}
                 <div className="space-y-3">
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">📈 Évolution de l'engagement</p>
+                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiEvolution}</p>
                     <div className="h-20 bg-white/5 rounded flex items-end justify-around p-2">
                       {[40, 60, 45, 80, 70, 95].map((h, i) => (
                         <div key={i} className="bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
@@ -557,14 +552,14 @@ function HomeKeiroInner() {
                   </div>
 
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">🕐 Meilleurs horaires de publication</p>
+                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiBestTimes}</p>
                     <div className="h-16 bg-white/5 rounded flex items-center justify-center">
-                      <p className="text-xs text-blue-300 font-semibold">17h-19h = 85% meilleur engagement</p>
+                      <p className="text-xs text-blue-300 font-semibold">{t.home.aiBestTimesValue}</p>
                     </div>
                   </div>
 
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">🏆 Top catégories</p>
+                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiTopCategories}</p>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <div className="h-2 bg-gradient-to-r from-blue-500 to-cyan-400 rounded" style={{ width: '80%' }}></div>
@@ -579,8 +574,8 @@ function HomeKeiroInner() {
                 </div>
 
                 <div className="bg-white/10 rounded-lg p-3 border border-white/10 text-center">
-                  <p className="text-xs text-blue-300 font-semibold">+ 3 autres graphiques détaillés</p>
-                  <p className="text-[10px] text-blue-400 mt-1">Taux de conversion • Croissance abonnés • Performance horaire</p>
+                  <p className="text-xs text-blue-300 font-semibold">{t.home.aiMoreCharts}</p>
+                  <p className="text-[10px] text-blue-400 mt-1">{t.home.aiMoreChartsSub}</p>
                 </div>
               </div>
             </div></SlideInLeft>
@@ -590,9 +585,9 @@ function HomeKeiroInner() {
               <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
                 <div className="bg-white/10 p-5">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <span>🎯</span> Recommandations Stratégiques
+                    <span>🎯</span> {t.home.aiStrategicTitle}
                   </h3>
-                  <p className="text-blue-300 text-sm mt-1">Personnalisées à ton business</p>
+                  <p className="text-blue-300 text-sm mt-1">{t.home.aiStrategicSub}</p>
                 </div>
 
                 <div className="p-5 space-y-3">
@@ -601,15 +596,10 @@ function HomeKeiroInner() {
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🎯</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">Stratégie secteur adaptée</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
-                          Pour ton activité <strong>Business</strong>, les contenus "Tech" génèrent
-                          <strong className="text-blue-400"> 3.2x plus d'engagement</strong> que la moyenne.
-                        </p>
+                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight1Title}</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300">
-                            💡 Publie 3 posts "Tech" cette semaine <strong>Mardi 18h</strong> et <strong>Jeudi 12h</strong>
-                          </p>
+                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Tip }} />
                         </div>
                       </div>
                     </div>
@@ -620,15 +610,10 @@ function HomeKeiroInner() {
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">⏰</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">Timing optimal détecté</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
-                          Posts entre <strong>17h-19h</strong> obtiennent
-                          <strong className="text-blue-400"> +85% d'engagement</strong>
-                        </p>
+                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight2Title}</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300">
-                            ⚡ Reprogramme pour <strong>Mardi 18h15</strong> et <strong>Jeudi 18h30</strong>. Impact estimé : <strong>+420 vues/post</strong>
-                          </p>
+                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Tip }} />
                         </div>
                       </div>
                     </div>
@@ -639,15 +624,10 @@ function HomeKeiroInner() {
                     <div className="flex items-start gap-2 mb-2">
                       <span className="text-2xl">🔮</span>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">Projection de croissance</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2">
-                          En appliquant ces optimisations : <strong className="text-blue-400">+2 800 abonnés</strong> et
-                          <strong className="text-blue-400"> +15 000 vues</strong> dans 90 jours
-                        </p>
+                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight3Title}</p>
+                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300">
-                            ✨ Potentiel : <strong>+180% de croissance</strong> avec stratégie accélérée
-                          </p>
+                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Tip }} />
                         </div>
                       </div>
                     </div>
@@ -658,28 +638,28 @@ function HomeKeiroInner() {
               {/* Features list */}
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 shadow-lg">
                 <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                  <span>✨</span> Fonctionnalités incluses
+                  <span>✨</span> {t.home.aiFeaturesTitle}
                 </h4>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200"><strong className="text-white">6 graphiques interactifs</strong> mis à jour en temps réel</span>
+                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature1 }} />
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200"><strong className="text-white">Analyse IA de 30 jours</strong> comparée à 500K+ posts</span>
+                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature2 }} />
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200"><strong className="text-white">Recommandations horaires</strong> précises par jour</span>
+                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature3 }} />
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200"><strong className="text-white">Benchmark sectoriel</strong> personnalisé</span>
+                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature4 }} />
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200"><strong className="text-white">Projections 90 jours</strong> avec plans d'action</span>
+                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature5 }} />
                   </li>
                 </ul>
               </div>
@@ -690,10 +670,10 @@ function HomeKeiroInner() {
           <FadeUp>
           <div className="mt-10 text-center">
             <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
-              Découvrir Mon Assistant IA →
+              {t.home.aiCta}
             </a>
             <p className="mt-3 text-sm text-blue-300">
-              💡 Disponible dès le plan Starter • Analytics détaillées • Insights quotidiens
+              {t.home.aiCtaSub}
             </p>
           </div>
           </FadeUp>
@@ -704,8 +684,8 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Ce que disent nos premiers utilisateurs</h2>
-          <p className="text-neutral-600">Retours d'expérience de nos early adopters</p>
+          <h2 className="text-3xl font-bold mb-2">{t.home.testimonialsTitle}</h2>
+          <p className="text-neutral-600">{t.home.testimonialsSub}</p>
         </div>
         </FadeUp>
 
@@ -719,18 +699,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">
-              "Avec Keiro, je publie <strong>3× plus régulièrement</strong> qu'avant.
-              Mes DM ont explosé et j'ai <strong>converti 8 nouveaux clients</strong> ce mois-ci.
-              L'outil indispensable pour mon restaurant !"
-            </p>
+            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial1 }} />
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 M
               </div>
               <div>
-                <div className="font-bold text-neutral-900">Marie Dubois</div>
-                <div className="text-sm text-neutral-600">Le Bistrot du Port</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial1Author}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial1Business}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -744,17 +720,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">
-              "Fini les 2h de galère sur Canva ! Maintenant, je crée un visuel pro en <strong>5 minutes chrono</strong>.
-              L'IA comprend exactement mon business et mes clients. Un gain de temps immense."
-            </p>
+            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial2 }} />
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 T
               </div>
               <div>
-                <div className="font-bold text-neutral-900">Thomas Legrand</div>
-                <div className="text-sm text-neutral-600">Coach Move&Fit</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial2Author}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial2Business}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -768,18 +741,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">
-              "J'ai économisé <strong>1,500€/mois</strong> en arrêtant mon graphiste freelance.
-              Keiro génère des visuels aussi qualitatifs, mais en quelques clics.
-              L'Assistant IA m'aide même à optimiser mes horaires de publication !"
-            </p>
+            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial3 }} />
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
                 S
               </div>
               <div>
-                <div className="font-bold text-neutral-900">Sophie Martin</div>
-                <div className="text-sm text-neutral-600">Boutique SophieStyle</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial3Author}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial3Business}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -788,10 +757,10 @@ function HomeKeiroInner() {
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
           <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
-            Devenir early adopter →
+            {t.home.testimonialCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
-            ✨ 7 jours d'essai gratuit • Sans engagement • Annulation en 1 clic
+            {t.home.testimonialCtaSub}
           </p>
         </div>
       </section>
@@ -799,11 +768,11 @@ function HomeKeiroInner() {
       {/* POURQUOI PUBLIER SUR L'ACTU */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <h2 className="text-2xl font-semibold">Pourquoi publier sur l’actualité ?</h2>
+          <h2 className="text-2xl font-semibold">{t.home.whyTitle}</h2>
           <div className="mt-6 grid md:grid-cols-3 gap-6 text-neutral-700">
-            <Card>Plus de portée naturelle : les plateformes boostent les contenus liés aux tendances.</Card>
-            <Card>Plus de régularité : tu produis vite, donc tu publies souvent.</Card>
-            <Card>Plus de clarté : orthographe, structure, accroche et appel à l’action soignés.</Card>
+            <Card>{t.home.why1}</Card>
+            <Card>{t.home.why2}</Card>
+            <Card>{t.home.why3}</Card>
           </div>
         </div>
       </section>
@@ -813,28 +782,26 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
-            Remplacez <span className="line-through text-red-400 decoration-red-400">2 prestataires</span> par{' '}
-            <span className="gradient-text">1 seul outil</span>
+            {t.home.comparatorTitle} <span className="line-through text-red-400 decoration-red-400">2 prestataires</span> par{' '}
+            <span className="gradient-text">{t.home.comparatorTitleHighlight}</span>
           </h2>
-          <p className="text-lg text-neutral-600">
-            Un graphiste + un community manager = <strong className="text-red-500">2 500 à 5 000€/mois</strong>. KeiroAI fait les deux.
-          </p>
+          <p className="text-lg text-neutral-600" dangerouslySetInnerHTML={{ __html: t.home.comparatorSubtitle }} />
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-10">
           {/* Colonne Graphiste */}
           <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
             <div className="absolute -top-3 left-4">
-              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Graphiste freelance</span>
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorGraphiste}</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">800–2 000€<span className="text-base font-normal text-red-400">/mois</span></p>
+              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorGraphistePrice}<span className="text-base font-normal text-red-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Délai : 2–5 jours par visuel</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Modifications payantes</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de réactivité sur l{"'"}actu</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune vidéo incluse</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Briefings longs à rédiger</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG1}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG2}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG3}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG4}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG5}</li>
               </ul>
             </div>
           </div>
@@ -842,16 +809,16 @@ function HomeKeiroInner() {
           {/* Colonne CM */}
           <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
             <div className="absolute -top-3 left-4">
-              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Community Manager</span>
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorCM}</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">1 500–3 000€<span className="text-base font-normal text-red-400">/mois</span></p>
+              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorCMPrice}<span className="text-base font-normal text-red-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Rédaction captions manuelle</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Planification basique</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> 1 seul réseau en général</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de génération IA</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, absences, turnover</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM1}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM2}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM3}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM4}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM5}</li>
               </ul>
             </div>
           </div>
@@ -862,14 +829,14 @@ function HomeKeiroInner() {
               <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI</span>
             </div>
             <div className="pt-2">
-              <p className="text-3xl font-bold text-blue-600 mb-1">49–149€<span className="text-base font-normal text-blue-400">/mois</span></p>
+              <p className="text-3xl font-bold text-blue-600 mb-1">{t.home.comparatorKeiroPrice}<span className="text-base font-normal text-blue-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <strong>5 min</strong> par visuel, instantané</li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Modifications <strong>illimitées</strong></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Visuels <strong>sur l{"'"}actu du jour</strong></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Vidéo + audio + texte IA</li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Instagram + TikTok + LinkedIn</li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> Disponible 24/7, jamais en congé</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK1 }} /></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK2 }} /></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK3 }} /></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK4}</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK5}</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK6}</li>
               </ul>
             </div>
           </div>
@@ -877,20 +844,18 @@ function HomeKeiroInner() {
 
         {/* Barre économie */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 text-center mb-8">
-          <p className="text-sm text-green-700 font-medium mb-1">Économie moyenne constatée</p>
-          <p className="text-4xl font-bold text-green-600">-95%</p>
-          <p className="text-neutral-600 text-sm mt-1">
-            soit <strong>2 350€ à 4 850€ économisés</strong> chaque mois par rapport à un graphiste + community manager
-          </p>
+          <p className="text-sm text-green-700 font-medium mb-1">{t.home.savingsLabel}</p>
+          <p className="text-4xl font-bold text-green-600">{t.home.savingsPercent}</p>
+          <p className="text-neutral-600 text-sm mt-1" dangerouslySetInnerHTML={{ __html: t.home.savingsDetail }} />
         </div>
 
         {/* CTA après Comparatif */}
         <div className="text-center">
           <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
-            Commencer gratuitement →
+            {t.home.comparatorCta}
           </a>
           <p className="mt-3 text-sm text-neutral-500">
-            3 visuels gratuits pour tester la qualité
+            {t.home.comparatorCtaSub}
           </p>
         </div>
       </section>
@@ -902,11 +867,11 @@ function HomeKeiroInner() {
           <FadeUp><div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg animate-glow">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
-              Offre de lancement - 50 places Fondateurs Pro
+              {t.home.pricingBadge}
             </div>
-            <h2 className="text-4xl font-bold mb-4">Offres & Tarifs</h2>
+            <h2 className="text-4xl font-bold mb-4">{t.home.pricingTitle}</h2>
             <p className="text-lg text-neutral-600">
-              Choisissez le plan qui correspond à vos besoins
+              {t.home.pricingSubtitle}
             </p>
 
             {/* Toggle mensuel/annuel */}
@@ -919,7 +884,7 @@ function HomeKeiroInner() {
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
-                Mensuel
+                {t.common.monthly}
               </button>
               <button
                 onClick={() => setBillingPeriod('annual')}
@@ -929,79 +894,53 @@ function HomeKeiroInner() {
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
-                Annuel <span className="ml-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">-17%</span>
+                {t.common.annual} <span className="ml-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-bold">{t.common.annualDiscount}</span>
               </button>
             </div>
             {billingPeriod === 'annual' && (
-              <p className="text-sm text-green-600 font-medium mt-2">2 mois offerts sur tous les plans annuels</p>
+              <p className="text-sm text-green-600 font-medium mt-2">{t.common.freeMonthsAnnual}</p>
             )}
           </div></FadeUp>
 
           {/* Plans Grid — Ligne 1 : 4 plans principaux */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <Plan
-              title="🎁 Gratuit"
+              title={`🎁 ${t.home.planFreeTitle}`}
               price="0€"
-              subtitle="15 crédits — Pour découvrir"
-              bullets={[
-                '15 crédits (3 images/mois)',
-                'Avec watermark Keiro',
-                'Export réseaux sociaux',
-                'Pas de vidéo ni IA avancée'
-              ]}
-              ctaLabel="Essayer gratuitement"
+              subtitle={t.home.planFreeSubtitle}
+              bullets={t.home.planFreeBullets}
+              ctaLabel={t.home.planFreeCta}
             />
 
             <Plan
-              title="🚀 Solo"
+              title={`🚀 ${t.home.planSoloTitle}`}
               price={billingPeriod === 'annual' ? '490€ / an' : '49€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 40,83€/mois' : undefined}
-              subtitle="220 crédits — ~2 campagnes/semaine"
-              bullets={[
-                '220 crédits/mois',
-                'Images + vidéos sans watermark',
-                'Instagram + LinkedIn',
-                'Suggestions texte + Assistant IA',
-                'Toutes catégories actualités',
-                'Calendrier publications'
-              ]}
+              subtitle={t.home.planSoloSubtitle}
+              bullets={t.home.planSoloBullets}
               ctaLabel={billingPeriod === 'annual' ? 'Solo annuel (-17%)' : 'Choisir Solo'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')}
             />
 
             <Plan
-              title="💎 Pro"
+              title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? '890€ / an' : '89€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 74€/mois' : undefined}
-              subtitle="400 crédits — ~3 campagnes/semaine"
+              subtitle={t.home.planProSubtitle}
               highlight
-              bullets={[
-                '400 crédits/mois',
-                'Tout Solo +',
-                'TikTok débloqué 🎵',
-                'Stories Instagram',
-                'Audio narration IA',
-                'Analytics Instagram'
-              ]}
+              bullets={t.home.planProBullets}
               ctaLabel={billingPeriod === 'annual' ? 'Pro annuel (-17%)' : 'Débloquer TikTok + Audio'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
             <Plan
-              title="⭐ Fondateurs Pro"
+              title={`⭐ ${t.home.planFondateursTitle}`}
               price={billingPeriod === 'annual' ? '1 490€ / an' : '149€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 124€/mois' : undefined}
-              subtitle="660 crédits — ~4 campagnes/semaine"
+              subtitle={t.home.planFondateursSubtitle}
               special
               highlight
-              bullets={[
-                '660 crédits/mois',
-                'Tout Pro +',
-                'Analytics multi-plateforme',
-                'Planification automatique',
-                'Support prioritaire + démo offerte',
-                'Prix verrouillé à vie (50 places)'
-              ]}
+              bullets={t.home.planFondateursBullets}
               ctaLabel={billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
@@ -1010,32 +949,25 @@ function HomeKeiroInner() {
           {/* Ligne 2 : Business + Elite */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
             <Plan
-              title="🏢 Business"
+              title={`🏢 ${t.home.planBusinessTitle}`}
               price={billingPeriod === 'annual' ? '3 490€ / an' : '349€ / mois'}
               priceNote={billingPeriod === 'annual' ? 'soit 290€/mois' : undefined}
-              subtitle="1 750 crédits — Contenu quotidien"
-              bullets={[
-                '1 750 crédits/mois',
-                'Tout Fondateurs Pro +',
-                'Multi-comptes (1+5 clients)',
-                'Calendrier collaboratif',
-                'Workflow validation équipe',
-                'Reporting PDF brandé'
-              ]}
+              subtitle={t.home.planBusinessSubtitle}
+              bullets={t.home.planBusinessBullets}
               ctaLabel={billingPeriod === 'annual' ? 'Business annuel (-17%)' : 'Choisir Business'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
 
             <div className="lg:col-span-2 rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
               <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-xl font-bold">🏆 Elite</h3>
+                <h3 className="text-xl font-bold">🏆 {t.home.planEliteTitle}</h3>
                 <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
               </div>
               <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? '9 990€ / an' : '999€ / mois'}</div>
               {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">soit 832€/mois</p>}
-              <p className="text-sm text-neutral-600 mb-4">5 500 crédits/mois — Service premium avec consulting</p>
+              <p className="text-sm text-neutral-600 mb-4">{t.home.planEliteSubtitle}</p>
               <ul className="grid grid-cols-2 gap-2 mb-6 flex-1">
-                {['5 500 crédits/mois', 'Tout Business +', 'Account Manager dédié', 'Consulting 2h/mois', 'Features custom développées', 'Formation équipe (20 pers.)', 'Priority lane nouveautés', 'SLA 99.9% garanti'].map((b, i) => (
+                {t.home.planEliteBullets.map((b, i) => (
                   <li key={i} className="text-sm flex gap-2">
                     <span className="text-purple-600 font-bold">✓</span>
                     <span>{b}</span>
@@ -1052,26 +984,26 @@ function HomeKeiroInner() {
           </div>
 
           <p className="text-center text-xs text-neutral-500 mb-6">
-            *Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois
+            {t.home.pricingFoundersNote}
           </p>
 
           {/* Trial Info */}
           <div className="mt-10 text-center">
             <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl p-6 max-w-2xl">
               <p className="text-lg font-semibold text-blue-900 mb-2">
-                ⚡ Sprint Fondateur: 3 jours → 4.99€
+                {t.home.sprintTrialTitle}
               </p>
               <p className="text-sm text-blue-700 mb-4">
-                ✅ Accès complet (15 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic
+                {t.home.sprintTrialDesc}
               </p>
               <p className="text-xs text-blue-600 mb-4">
-                💡 4.99€ déduits si tu continues (paye 144.01€ au lieu de 149€ le premier mois)
+                {t.home.sprintTrialNote}
               </p>
               <button
                 onClick={() => startCheckout('sprint')}
                 className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all hover:shadow-lg hover:scale-105"
               >
-                Démarrer mon essai 4.99€ →
+                {t.home.sprintTrialCta}
               </button>
             </div>
           </div>
@@ -1082,33 +1014,33 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid lg:grid-cols-2 gap-8">
           <div>
-            <h2 className="text-2xl font-semibold">Ce que disent nos utilisateurs</h2>
+            <h2 className="text-2xl font-semibold">{t.home.socialProofTitle}</h2>
             <div className="mt-4 grid gap-4">
               <Quote
-                text="On publie 3× plus, avec plus de régularité — les DM augmentent."
-                author="Le Bistrot du Port"
+                text={t.home.socialQuote1}
+                author={t.home.socialQuote1Author}
               />
               <Quote
-                text="Enfin un outil qui comprend la tendance et notre offre."
-                author="Move&Fit"
+                text={t.home.socialQuote2}
+                author={t.home.socialQuote2Author}
               />
             </div>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold">FAQ</h2>
+            <h2 className="text-2xl font-semibold">{t.home.faqTitle}</h2>
             <div className="mt-4 space-y-4 text-sm text-neutral-700">
-              <Faq q="Puis-je retoucher le visuel ?"
-                   a="Oui : lumière, ambiance, éléments visuels et texte sur l’image." />
-              <Faq q="Mes contenus m’appartiennent ?"
-                   a="Oui. Tu peux utiliser librement tes visuels sur tes réseaux." />
-              <Faq q="Je ne suis pas à l’aise avec l’écriture."
-                   a="Keiro propose des accroches claires sans fautes, prêtes à poster." />
+              <Faq q={t.home.faq1Q}
+                   a={t.home.faq1A} />
+              <Faq q={t.home.faq2Q}
+                   a={t.home.faq2A} />
+              <Faq q={t.home.faq3Q}
+                   a={t.home.faq3A} />
             </div>
           </div>
         </div>
         <div className="mt-10 text-center">
           <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all">
-            Essayer maintenant
+            {t.home.tryNow}
           </a>
         </div>
       </section>
@@ -1124,13 +1056,13 @@ function HomeKeiroInner() {
             <div>
               <h3 className="text-lg font-bold mb-2">KeiroAI</h3>
               <p className="text-sm text-neutral-400">
-                Plateforme IA de création de contenu marketing pour les réseaux sociaux.
+                {t.home.footerDesc}
               </p>
             </div>
 
             {/* Liens légaux */}
             <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Legal</h4>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">{t.home.footerLegal}</h4>
               <ul className="space-y-2">
                 <li>
                   <a href="/legal/terms" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
@@ -1144,7 +1076,7 @@ function HomeKeiroInner() {
                 </li>
                 <li>
                   <a href="/legal/data-deletion" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
-                    Suppression des données
+                    {t.home.footerDataDeletion}
                   </a>
                 </li>
               </ul>
@@ -1152,7 +1084,7 @@ function HomeKeiroInner() {
 
             {/* Contact */}
             <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">Contact</h4>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-neutral-400 mb-3">{t.home.footerContact}</h4>
               <ul className="space-y-2">
                 <li>
                   <a href="mailto:contact@keiroai.com" className="text-base text-white hover:text-cyan-400 transition-colors font-medium">
@@ -1170,7 +1102,7 @@ function HomeKeiroInner() {
 
           <div className="border-t border-neutral-700 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-neutral-500">
-              &copy; {new Date().getFullYear()} KeiroAI. All rights reserved.
+              &copy; {new Date().getFullYear()} KeiroAI. {t.home.footerRights}
             </p>
             <div className="flex items-center gap-6">
               <a href="/legal/terms" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
@@ -1180,7 +1112,7 @@ function HomeKeiroInner() {
                 Privacy Policy
               </a>
               <a href="/legal/data-deletion" className="text-sm text-neutral-400 hover:text-white transition-colors underline">
-                Suppression des données
+                {t.home.footerDataDeletion}
               </a>
             </div>
           </div>
@@ -1192,6 +1124,7 @@ function HomeKeiroInner() {
 
 /* --- Quiz & Calculator Component --- */
 function QuizAndCalculator() {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState<'quiz' | 'calculator'>('quiz');
   const [quizStep, setQuizStep] = useState(1);
   const [quizAnswers, setQuizAnswers] = useState({
@@ -1205,25 +1138,25 @@ function QuizAndCalculator() {
   const [visualsPerMonth, setVisualsPerMonth] = useState(8);
 
   const businessTypes = [
-    { id: 'restaurant', label: '🍽️ Restaurant / Café', value: 'restaurant' },
-    { id: 'coach', label: '💪 Coach / Consultant', value: 'coach' },
-    { id: 'ecommerce', label: '🛍️ E-commerce / Boutique', value: 'ecommerce' },
-    { id: 'service', label: '🔧 Service local / Artisan', value: 'service' },
-    { id: 'other', label: '💼 Autre activité', value: 'other' }
+    { id: 'restaurant', label: `🍽️ ${t.home.quizBusiness1}`, value: 'restaurant' },
+    { id: 'coach', label: `💪 ${t.home.quizBusiness2}`, value: 'coach' },
+    { id: 'ecommerce', label: `🛍️ ${t.home.quizBusiness3}`, value: 'ecommerce' },
+    { id: 'service', label: `🔧 ${t.home.quizBusiness4}`, value: 'service' },
+    { id: 'other', label: `💼 ${t.home.quizBusiness5}`, value: 'other' }
   ];
 
   const objectives = [
-    { id: 'awareness', label: '📢 Notoriété / Visibilité', value: 'awareness' },
-    { id: 'leads', label: '🎯 Génération de leads', value: 'leads' },
-    { id: 'sales', label: '💰 Ventes directes', value: 'sales' },
-    { id: 'retention', label: '❤️ Fidélisation clients', value: 'retention' }
+    { id: 'awareness', label: `📢 ${t.home.quizObjective1}`, value: 'awareness' },
+    { id: 'leads', label: `🎯 ${t.home.quizObjective2}`, value: 'leads' },
+    { id: 'sales', label: `💰 ${t.home.quizObjective3}`, value: 'sales' },
+    { id: 'retention', label: `❤️ ${t.home.quizObjective4}`, value: 'retention' }
   ];
 
   const budgets = [
-    { id: 'none', label: '0€ (pas de budget pub)', value: 'none' },
-    { id: 'small', label: 'Moins de 500€/mois', value: 'small' },
-    { id: 'medium', label: '500€ - 2,000€/mois', value: 'medium' },
-    { id: 'large', label: 'Plus de 2,000€/mois', value: 'large' }
+    { id: 'none', label: t.home.quizBudget1, value: 'none' },
+    { id: 'small', label: t.home.quizBudget2, value: 'small' },
+    { id: 'medium', label: t.home.quizBudget3, value: 'medium' },
+    { id: 'large', label: t.home.quizBudget4, value: 'large' }
   ];
 
   const handleQuizAnswer = (step: number, value: string) => {
@@ -1257,8 +1190,8 @@ function QuizAndCalculator() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">Trouve ton plan idéal en 30 secondes</h2>
-        <p className="text-neutral-600">Réponds à 3 questions ou calcule tes économies</p>
+        <h2 className="text-3xl font-bold mb-2">{t.home.quizTitle}</h2>
+        <p className="text-neutral-600">{t.home.quizSubtitle}</p>
       </div>
 
       {/* Tabs */}
@@ -1271,7 +1204,7 @@ function QuizAndCalculator() {
               : 'bg-white border border-neutral-200 text-neutral-700 hover:border-purple-300'
           }`}
         >
-          🎯 Quiz personnalisé
+          {t.home.quizTab}
         </button>
         <button
           onClick={() => setActiveSection('calculator')}
@@ -1281,7 +1214,7 @@ function QuizAndCalculator() {
               : 'bg-white border border-neutral-200 text-neutral-700 hover:border-blue-300'
           }`}
         >
-          💰 Calculer mes économies
+          {t.home.calculatorTab}
         </button>
       </div>
 
@@ -1305,7 +1238,7 @@ function QuizAndCalculator() {
           {/* Question 1 */}
           {quizStep === 1 && (
             <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton type d'activité ?</h3>
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">{t.home.quizQ1}</h3>
               <div className="grid md:grid-cols-2 gap-3">
                 {businessTypes.map((type) => (
                   <button
@@ -1326,7 +1259,7 @@ function QuizAndCalculator() {
           {/* Question 2 */}
           {quizStep === 2 && (
             <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton objectif principal ?</h3>
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">{t.home.quizQ2}</h3>
               <div className="grid md:grid-cols-2 gap-3">
                 {objectives.map((obj) => (
                   <button
@@ -1345,7 +1278,7 @@ function QuizAndCalculator() {
                 onClick={() => setQuizStep(1)}
                 className="mt-4 text-sm text-purple-600 hover:text-purple-700 underline"
               >
-                ← Retour
+                {t.common.back}
               </button>
             </div>
           )}
@@ -1353,7 +1286,7 @@ function QuizAndCalculator() {
           {/* Question 3 */}
           {quizStep === 3 && (
             <div className="space-y-4">
-              <h3 className="text-2xl font-bold text-purple-900 mb-6">Quel est ton budget pub actuel ?</h3>
+              <h3 className="text-2xl font-bold text-purple-900 mb-6">{t.home.quizQ3}</h3>
               <div className="grid md:grid-cols-2 gap-3">
                 {budgets.map((budget) => (
                   <button
@@ -1369,7 +1302,7 @@ function QuizAndCalculator() {
                 onClick={() => setQuizStep(2)}
                 className="mt-4 text-sm text-purple-600 hover:text-purple-700 underline"
               >
-                ← Retour
+                {t.common.back}
               </button>
             </div>
           )}
@@ -1383,12 +1316,12 @@ function QuizAndCalculator() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-3xl mb-4">
               ✓
             </div>
-            <h3 className="text-2xl font-bold text-blue-900 mb-2">Ton plan idéal : {getRecommendedPlan()}</h3>
-            <p className="text-blue-700">Parfait pour ton activité et tes objectifs</p>
+            <h3 className="text-2xl font-bold text-blue-900 mb-2">{t.home.quizResultTitle} {getRecommendedPlan()}</h3>
+            <p className="text-blue-700">{t.home.quizResultSubtitle}</p>
           </div>
 
           <div className="bg-white rounded-xl p-6 mb-6">
-            <h4 className="font-bold text-neutral-900 mb-4">Ce qui est inclus :</h4>
+            <h4 className="font-bold text-neutral-900 mb-4">{t.home.quizResultIncluded}</h4>
             <ul className="space-y-3">
               {getRecommendedPlan() === 'Pro' && (
                 <>
@@ -1434,13 +1367,13 @@ function QuizAndCalculator() {
               href="/generate"
               className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
             >
-              Commencer avec {getRecommendedPlan()} →
+              {t.home.quizStartWith} {getRecommendedPlan()} →
             </a>
             <button
               onClick={resetQuiz}
               className="px-6 py-3 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition-all"
             >
-              Recommencer
+              {t.common.restart}
             </button>
           </div>
         </div>
@@ -1450,13 +1383,13 @@ function QuizAndCalculator() {
       {activeSection === 'calculator' && (
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-8 max-w-3xl mx-auto">
           <h3 className="text-2xl font-bold text-blue-900 mb-6 text-center">
-            Calcule tes économies mensuelles
+            {t.home.calcTitle}
           </h3>
 
           <div className="bg-white rounded-xl p-6 mb-6">
             <label className="block mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-neutral-900">Combien de visuels par mois ?</span>
+                <span className="font-semibold text-neutral-900">{t.home.calcLabel}</span>
                 <span className="text-2xl font-bold text-blue-600">{visualsPerMonth}</span>
               </div>
               <input
@@ -1479,16 +1412,16 @@ function QuizAndCalculator() {
           <div className="space-y-4 mb-6">
             <div className="bg-neutral-100 rounded-xl p-5 flex items-center justify-between">
               <div>
-                <div className="text-sm text-neutral-600 mb-1">Coût graphiste freelance</div>
-                <div className="text-xs text-neutral-500">{visualsPerMonth} visuels × 500€</div>
+                <div className="text-sm text-neutral-600 mb-1">{t.home.calcGraphiste}</div>
+                <div className="text-xs text-neutral-500">{visualsPerMonth} {t.home.calcGraphisteSub}</div>
               </div>
               <div className="text-2xl font-bold text-neutral-900">{costGraphiste.toLocaleString()}€</div>
             </div>
 
             <div className="bg-blue-100 rounded-xl p-5 flex items-center justify-between">
               <div>
-                <div className="text-sm text-blue-900 font-semibold mb-1">Keiro Starter</div>
-                <div className="text-xs text-blue-700">Visuels illimités</div>
+                <div className="text-sm text-blue-900 font-semibold mb-1">{t.home.calcKeiro}</div>
+                <div className="text-xs text-blue-700">{t.home.calcKeiroSub}</div>
               </div>
               <div className="text-2xl font-bold text-blue-900">{costKeiro}€</div>
             </div>
@@ -1496,8 +1429,8 @@ function QuizAndCalculator() {
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm opacity-90 mb-1">💰 Économie mensuelle</div>
-                  <div className="text-xs opacity-75">Soit {savings * 12}€/an</div>
+                  <div className="text-sm opacity-90 mb-1">{t.home.calcSavings}</div>
+                  <div className="text-xs opacity-75">Soit {savings * 12}€{t.home.calcSavingsYear}</div>
                 </div>
                 <div>
                   <div className="text-4xl font-bold">{savings.toLocaleString()}€</div>
@@ -1508,17 +1441,14 @@ function QuizAndCalculator() {
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-900">
-              <strong>💡 Conseil :</strong> Avec Keiro, tu génères <strong>autant de visuels que tu veux</strong>
-              pour un forfait fixe. Plus tu produis, plus tu économises !
-            </p>
+            <p className="text-sm text-blue-900" dangerouslySetInnerHTML={{ __html: t.home.calcTip }} />
           </div>
 
           <a
             href="/generate"
             className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
           >
-            Économiser {savings.toLocaleString()}€/mois →
+            {t.home.calcCta} {savings.toLocaleString()}€/mois →
           </a>
         </div>
       )}

@@ -8,8 +8,10 @@ import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { FadeUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
+import { useLanguage } from '@/lib/i18n/context';
 
 function ContactFormPricing() {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -54,13 +56,13 @@ function ContactFormPricing() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="font-bold text-neutral-900 mb-1">Message envoyé !</h3>
-        <p className="text-sm text-neutral-600">Nous vous répondrons dans les 24h.</p>
+        <h3 className="font-bold text-neutral-900 mb-1">{t.pricing.supportFormTitle}</h3>
+        <p className="text-sm text-neutral-600">{t.pricing.supportFormDesc}</p>
         <button
           onClick={() => setSent(false)}
           className="mt-3 text-sm text-blue-600 hover:underline"
         >
-          Envoyer un autre message
+          {t.pricing.supportFormCta}
         </button>
       </div>
     );
@@ -75,8 +77,8 @@ function ContactFormPricing() {
           </svg>
         </div>
         <div>
-          <h3 className="font-bold text-neutral-900">Écrivez-nous</h3>
-          <p className="text-xs text-neutral-500">Réponse sous 24h</p>
+          <h3 className="font-bold text-neutral-900">{t.pricing.supportFormTitle}</h3>
+          <p className="text-xs text-neutral-500">{t.pricing.supportFormDesc}</p>
         </div>
       </div>
 
@@ -137,7 +139,7 @@ function ContactFormPricing() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Envoyer le message
+              {t.pricing.supportFormCta}
             </>
           )}
         </button>
@@ -147,6 +149,7 @@ function ContactFormPricing() {
 }
 
 function PricingPageInner() {
+  const { t } = useLanguage();
   const feedback = useFeedbackPopup();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
@@ -163,17 +166,13 @@ function PricingPageInner() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
             </span>
-            Offre de lancement - 50 places Fondateurs
+            {t.pricing.badge}
           </div></ScaleIn>
           <h1 className="text-5xl font-bold mb-6">
-            Choisissez votre plan et{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              décuplez votre visibilité
-            </span>
+            <span dangerouslySetInnerHTML={{ __html: t.pricing.title }} />
           </h1>
           <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
-            Commencez gratuitement avec 3 visuels, testez pendant 3 jours à 4.99€,
-            ou rejoignez les Fondateurs pour verrouiller un prix à vie.
+            {t.pricing.subtitle}
           </p>
 
           {/* Toggle Mensuel / Annuel */}
@@ -186,7 +185,7 @@ function PricingPageInner() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              Mensuel
+              {t.common.monthly}
             </button>
             <button
               onClick={() => setBillingPeriod('annual')}
@@ -196,14 +195,14 @@ function PricingPageInner() {
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
-              Annuel
+              {t.common.annual}
               <span className="absolute -top-2.5 -right-2 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                -17%
+                {t.common.annualDiscount}
               </span>
             </button>
           </div>
           {billingPeriod === 'annual' && (
-            <p className="mt-3 text-sm text-green-600 font-medium">2 mois offerts sur tous les plans !</p>
+            <p className="mt-3 text-sm text-green-600 font-medium">{t.common.freeMonthsAnnual}</p>
           )}
         </div>
         </FadeUp>
@@ -214,58 +213,36 @@ function PricingPageInner() {
           <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-neutral-100 text-neutral-600 px-3 py-1 rounded-full text-xs font-medium">
-                Pour découvrir
+                {t.pricing.planFreeSubtitle}
               </span>
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> Gratuit
+                <span>🎁</span> {t.pricing.planFreeTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-5xl font-bold">0€</span>
                 <span className="text-neutral-500">/toujours</span>
               </div>
-              <p className="text-neutral-600 text-sm">15 crédits — 3 images/mois avec watermark</p>
+              <p className="text-neutral-600 text-sm">{t.pricing.planFreeSubtitle}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700"><strong>15 crédits</strong> — 3 images avec watermark</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700">Accès aux actualités par catégories</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700">Export format réseaux sociaux</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-neutral-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span className="text-sm text-neutral-400">Sans watermark</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-neutral-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span className="text-sm text-neutral-400">Génération vidéo</span>
-              </li>
+              {t.pricing.planFreeBullets.map((bullet, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
             </ul>
 
             <Link
               href="/generate"
               className="block w-full py-3 px-6 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:border-neutral-400 hover:bg-neutral-50 transition-all"
             >
-              Essayer gratuitement
+              {t.pricing.planFreeCta}
             </Link>
           </div></StaggerItem>
 
@@ -273,58 +250,36 @@ function PricingPageInner() {
           <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                ⚡ Sprint intensif
+                ⚡ {t.pricing.planSprintTitle}
               </span>
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>⚡</span> Sprint Fondateur
+                <span>⚡</span> {t.pricing.planSprintTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">4.99€</span>
                 <span className="text-neutral-500">/3 jours</span>
               </div>
-              <p className="text-neutral-600 text-sm font-medium">110 crédits — teste intensément, décide vite</p>
+              <p className="text-neutral-600 text-sm font-medium">{t.pricing.planSprintSubtitle}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700"><strong>Toutes les fonctionnalités</strong> Fondateurs</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700"><strong>TikTok débloqué</strong> 🎵 (Instagram + TikTok)</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700"><strong>110 crédits</strong> (~22 images ou 4 vidéos)</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700">Assistant IA + Analytics 2 plateformes</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-sm text-neutral-700"><strong>4.99€ déduits</strong> si tu continues (payes 144.01€ au lieu de 149€)</span>
-              </li>
+              {t.pricing.planSprintBullets.map((bullet, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <svg className={`w-5 h-5 ${i === 1 ? 'text-cyan-500' : i === 4 ? 'text-purple-500' : 'text-blue-500'} flex-shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
             </ul>
 
             <button
               onClick={() => startCheckout('sprint')}
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
-              Démarrer le Sprint 3 jours ⚡
+              {t.pricing.planSprintCta}
             </button>
           </div></StaggerItem>
         </StaggerContainer>
@@ -338,10 +293,10 @@ function PricingPageInner() {
           <div className="relative z-10 max-w-4xl mx-auto">
             <div className="text-center mb-6">
               <h3 className="text-3xl font-bold mb-3 flex items-center justify-center gap-3">
-                <span className="text-4xl">🎵</span> Débloquez TikTok : La Croissance Virale
+                <span className="text-4xl">🎵</span> {t.pricing.tiktokTitle}
               </h3>
               <p className="text-xl text-cyan-100 font-medium">
-                Débloqué à partir du plan Pro (89€/mois)
+                {t.pricing.tiktokSubtitle}
               </p>
             </div>
 
@@ -362,31 +317,21 @@ function PricingPageInner() {
 
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/30">
               <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
-                <span>💎</span> Pourquoi TikTok change tout :
+                <span>💎</span> {t.pricing.tiktokTitle}
               </h4>
               <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-300">✓</span>
-                  <span><strong>Algorithme favorise les nouveaux créateurs</strong> - Tu pars sur un pied d'égalité</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-300">✓</span>
-                  <span><strong>Public jeune + engagé + acheteur</strong> - Taux de conversion supérieur</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-300">✓</span>
-                  <span><strong>1 client via TikTok = abonnement remboursé</strong> - ROI immédiat</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-300">✓</span>
-                  <span><strong>Conversion image → vidéo automatique</strong> - Aucune compétence technique requise</span>
-                </li>
+                {t.pricing.tiktokFeatures.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="text-cyan-300">✓</span>
+                    <span dangerouslySetInnerHTML={{ __html: feature }} />
+                  </li>
+                ))}
               </ul>
             </div>
 
             <div className="text-center mt-6">
               <p className="text-sm text-cyan-100">
-                🔥 Prix Fondateurs verrouillé à vie - TikTok inclus maintenant <strong>ET</strong> dans le futur
+                {t.pricing.tiktokNote}
               </p>
             </div>
           </div>
@@ -394,41 +339,33 @@ function PricingPageInner() {
         </FadeUp>
 
         {/* Premium Plans */}
-        <FadeUp><h3 className="text-2xl font-bold text-center mb-2">Plans Premium</h3>
-        <p className="text-center text-neutral-600 mb-8">Chaque plan débloque de nouvelles fonctionnalités</p></FadeUp>
+        <FadeUp><h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
+        <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
         <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {/* Solo 49€ */}
           <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
             <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🚀</span> Solo
+                <span>🚀</span> {t.pricing.planSoloTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '490€' : '49€'}</span>
-                <span className="text-neutral-500">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                <span className="text-neutral-500">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 40,83€/mois</span>}
               </div>
-              <p className="text-neutral-600 text-sm"><strong>220 crédits</strong> — ~2 campagnes/semaine</p>
+              <p className="text-neutral-600 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planSoloSubtitle }} />
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> <strong>220 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Images + vidéos <strong>sans watermark</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Suggestions texte IA</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Assistant IA Marketing</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Publication <strong>Instagram + LinkedIn</strong></li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Toutes catégories actualités</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Tous styles visuels</li>
-              <li className="flex gap-2"><span className="text-blue-500">✓</span> Calendrier publications</li>
-              <li className="flex gap-2 text-neutral-400"><span className="text-neutral-300">✗</span> TikTok, Stories, Audio <span className="text-xs">(Pro+)</span></li>
+              {t.pricing.planSoloBullets.map((bullet, i) => (
+                <li key={i} className="flex gap-2"><span className="text-blue-500">✓</span> <span dangerouslySetInnerHTML={{ __html: bullet }} /></li>
+              ))}
             </ul>
             <div className="mt-auto space-y-2">
               <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')} className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
-                Choisir Solo {billingPeriod === 'annual' ? '(annuel)' : ''}
+                {t.pricing.planSoloCta} {billingPeriod === 'annual' ? `(${t.common.annual.toLowerCase()})` : ''}
               </button>
-              <p className="text-xs text-center text-neutral-500">
-                3 campagnes/sem + TikTok ? <a href="#pro" className="text-purple-600 hover:underline font-semibold">Passez Pro →</a>
-              </p>
+              <p className="text-xs text-center text-neutral-500" dangerouslySetInnerHTML={{ __html: t.pricing.planSoloUpgrade }} />
             </div>
           </div></StaggerItem>
 
@@ -436,78 +373,74 @@ function PricingPageInner() {
           <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-purple-900 text-purple-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                Populaire
+                {t.common.popular}
               </span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>💎</span> Pro
+                <span>💎</span> {t.pricing.planProTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '890€' : '89€'}</span>
-                <span className="text-purple-200">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                <span className="text-purple-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>}
               </div>
-              <p className="text-purple-200 text-sm font-medium"><strong>400 crédits</strong> — ~3 campagnes/semaine</p>
+              <p className="text-purple-200 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">Tout Solo + TikTok + Stories + Audio</p>
+              <p className="text-xs font-semibold">{t.pricing.planProBullets[1]}</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-purple-300">✓</span> <strong>400 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-purple-300">✓</span> Tout ce qui est dans Solo +</li>
-              <li className="flex gap-2 items-start"><span className="text-cyan-300 flex-shrink-0">★</span> <span><strong>TikTok débloqué</strong> 🎵</span></li>
-              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Stories Instagram</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Audio narration IA</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">★</span> <strong>Analytics Instagram</strong></li>
-              <li className="flex gap-2 text-purple-300/60"><span className="text-purple-400/40">✗</span> Analytics multi-plateforme <span className="text-xs">(Fondateurs+)</span></li>
+              {t.pricing.planProBullets.map((bullet, i) => (
+                <li key={i} className={`flex gap-2 ${i >= 2 ? 'items-start' : ''}`}>
+                  <span className={`${i >= 2 ? 'text-cyan-300 flex-shrink-0' : 'text-purple-300'}`}>{i >= 2 ? '★' : '✓'}</span>
+                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')} className="block w-full py-3 text-center rounded-xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-all shadow-lg mt-auto">
-              {billingPeriod === 'annual' ? 'Pro annuel (-17%)' : 'Débloquer TikTok + Audio'}
+              {billingPeriod === 'annual' ? `${t.pricing.planProTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planProCta}
             </button>
-            <p className="text-xs text-center text-purple-200 mt-2">
-              Plus de volume + analytics ? <a href="#fondateurs" className="text-cyan-300 hover:underline font-semibold">Fondateurs Pro →</a>
-            </p>
+            <p className="text-xs text-center text-purple-200 mt-2" dangerouslySetInnerHTML={{ __html: t.pricing.planProUpgrade }} />
           </div></StaggerItem>
 
           {/* Fondateurs Pro 149€ - HIGHLIGHT */}
           <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                ⭐ #1 — 50 places
+                ⭐ {t.pricing.planFondateursBadge}
               </span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>⭐</span> Fondateurs Pro
+                <span>⭐</span> {t.pricing.planFondateursTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
-                <span className="text-amber-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                <span className="text-amber-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">soit 124€/mois</span>}
               </div>
-              <p className="text-amber-100 text-sm font-medium"><strong>660 crédits</strong> — ~4 campagnes/semaine</p>
+              <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planFondateursSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">Tout Pro + Analytics complet + Planif auto + Prix bloqué</p>
+              <p className="text-xs font-semibold">{t.pricing.planFondateursBullets[1]}</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> <strong>660 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-300">✓</span> Tout ce qui est dans Pro +</li>
-              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Analytics Instagram + TikTok + LinkedIn</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Planification automatique</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Support prioritaire</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Démo personnalisée offerte</strong></li>
-              <li className="flex gap-2"><span className="text-yellow-200">★</span> <strong>Prix verrouillé à vie</strong></li>
+              {t.pricing.planFondateursBullets.map((bullet, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className={i >= 2 ? 'text-yellow-200' : 'text-yellow-300'}>{i >= 2 ? '★' : '✓'}</span>
+                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              {billingPeriod === 'annual' ? 'Fondateurs Pro annuel (-17%)' : 'Devenir Fondateur Pro'}
+              {billingPeriod === 'annual' ? `${t.pricing.planFondateursTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planFondateursCta}
             </button>
-            <p className="text-center text-amber-100 text-xs mt-2">🎯 Puis 199€/mois après les 50 premiers</p>
+            <p className="text-center text-amber-100 text-xs mt-2">{t.pricing.foundersNote}</p>
           </div></StaggerItem>
 
           {/* Business 349€ */}
@@ -519,32 +452,32 @@ function PricingPageInner() {
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🏢</span> Business
+                <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
-                <span className="text-blue-100">{billingPeriod === 'annual' ? '/an' : '/mois'}</span>
+                <span className="text-blue-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
-              <p className="text-blue-100 text-sm"><strong>1 750 crédits</strong> — contenu quotidien multi-clients</p>
+              <p className="text-blue-100 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">Tout Fondateurs Pro + Multi-comptes + Équipe</p>
+              <p className="text-xs font-semibold">{t.pricing.planBusinessBullets[1]}</p>
             </div>
 
             <ul className="space-y-3 mb-6 text-sm flex-1">
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> <strong>1 750 crédits/mois</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-300">✓</span> Tout Fondateurs Pro +</li>
-              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Multi-comptes (1+5 clients)</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Calendrier collaboratif</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Workflow validation équipe</strong></li>
-              <li className="flex gap-2"><span className="text-cyan-200">★</span> <strong>Reporting PDF brandé</strong></li>
+              {t.pricing.planBusinessBullets.map((bullet, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className={i >= 2 ? 'text-cyan-200' : 'text-cyan-300'}>{i >= 2 ? '★' : '✓'}</span>
+                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
-              Choisir Business {billingPeriod === 'annual' ? '(annuel)' : ''}
+              {t.pricing.planBusinessCta} {billingPeriod === 'annual' ? `(${t.common.annual.toLowerCase()})` : ''}
             </button>
-            <p className="text-center text-blue-100 text-xs mt-2">Démo personnalisée incluse</p>
+            <p className="text-center text-blue-100 text-xs mt-2">{t.pricing.supportCallDesc}</p>
           </div></StaggerItem>
         </StaggerContainer>
 
@@ -553,11 +486,11 @@ function PricingPageInner() {
         <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 mb-16 max-w-3xl mx-auto hover:shadow-xl transition-all">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-1">
-              <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><span>🏆</span> Elite — 999€/mois</h3>
-              <p className="text-neutral-600 text-sm mb-3"><strong>5 500 crédits</strong> — Tout Business + Account Manager dédié, consulting stratégique 2h/mois, features custom, formation équipe, SLA 99.9%</p>
+              <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><span>🏆</span> {t.pricing.planEliteTitle} — 999€{t.common.perMonth}</h3>
+              <p className="text-neutral-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
             </div>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
-              Contacter pour Elite
+              {t.pricing.planEliteCta}
             </button>
           </div>
         </div>
@@ -566,10 +499,10 @@ function PricingPageInner() {
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 mb-10">
           <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
-            <span>🎁</span> Inclus gratuitement avec tous les plans
+            <span>🎁</span> {t.pricing.freeTitle}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {['Dashboard analytics', 'Masterclass marketing', 'Galerie & bibliothèque', 'Publication réseaux sociaux', 'Conversion vidéo'].map((item) => (
+            {t.pricing.freeFeatures.map((item) => (
               <div key={item} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
                 <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 <span className="text-xs font-medium text-green-800">{item}</span>
@@ -580,7 +513,7 @@ function PricingPageInner() {
 
         {/* Grille crédits */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
-          <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">Coût en crédits par action</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">{t.pricing.creditTitle}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
             <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">5 cr</p><p className="text-xs text-neutral-600">Image</p></div>
             <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">3 cr</p><p className="text-xs text-neutral-600">Retouche image</p></div>
@@ -594,23 +527,23 @@ function PricingPageInner() {
 
         {/* Comparatif rapide */}
         <div className="bg-white rounded-2xl border border-neutral-200 p-8 mb-16">
-          <h3 className="text-2xl font-bold text-center mb-2">Comparatif des plans</h3>
-          <p className="text-center text-neutral-500 text-sm mb-8">Chaque plan débloque de nouvelles fonctionnalités — les crédits s{"'"}utilisent librement</p>
+          <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
+          <p className="text-center text-neutral-500 text-sm mb-8">{t.pricing.subtitle}</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-2">Fonctionnalité</th>
-                  <th className="text-center py-3 px-2">Gratuit</th>
-                  <th className="text-center py-3 px-2">Solo</th>
-                  <th className="text-center py-3 px-2 bg-purple-50">Pro</th>
-                  <th className="text-center py-3 px-2 bg-amber-50">Fondateurs Pro</th>
-                  <th className="text-center py-3 px-2">Business</th>
+                  <th className="text-left py-3 px-2">{t.pricing.comparisonHeaders[0]}</th>
+                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[1]}</th>
+                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[2]}</th>
+                  <th className="text-center py-3 px-2 bg-purple-50">{t.pricing.comparisonHeaders[3]}</th>
+                  <th className="text-center py-3 px-2 bg-amber-50">{t.pricing.comparisonHeaders[4]}</th>
+                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[5]}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b bg-blue-50/30">
-                  <td className="py-3 px-2 font-medium">Crédits/mois</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[0]}</td>
                   <td className="text-center py-3 px-2">15</td>
                   <td className="text-center py-3 px-2"><strong>220</strong></td>
                   <td className="text-center py-3 px-2 bg-purple-50"><strong>400</strong></td>
@@ -618,7 +551,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><strong>1 750</strong></td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Rythme de publication</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[1]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">test</td>
                   <td className="text-center py-3 px-2">~2/semaine</td>
                   <td className="text-center py-3 px-2 bg-purple-50"><strong>~3/semaine</strong></td>
@@ -626,7 +559,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><strong>quotidien</strong></td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Images + Vidéos IA</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[2]}</td>
                   <td className="text-center py-3 px-2">3 (watermark)</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓ sans watermark</td>
                   <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
@@ -634,7 +567,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Suggestions texte + Assistant IA</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[4]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                   <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
@@ -642,7 +575,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Instagram</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[5]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2">Post</td>
                   <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">Post + Story</strong></td>
@@ -650,7 +583,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2">Post + Story</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">LinkedIn</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[7]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                   <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
@@ -658,7 +591,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
+                  <td className="py-3 px-2 font-medium">🎵 {t.pricing.comparisonRows[6]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-cyan-600">✓ Débloqué</strong></td>
@@ -666,7 +599,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-cyan-600">✓</td>
                 </tr>
                 <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">🎙️ Audio narration IA</td>
+                  <td className="py-3 px-2 font-medium">🎙️ {t.pricing.comparisonRows[3]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">✓ Débloqué</strong></td>
@@ -674,7 +607,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 text-blue-600">✓</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Analytics</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[8]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2 bg-purple-50">Instagram</td>
@@ -682,7 +615,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2">Multi-plateforme</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Calendrier</td>
+                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[9]}</td>
                   <td className="text-center py-3 px-2 text-neutral-400">—</td>
                   <td className="text-center py-3 px-2">Basique</td>
                   <td className="text-center py-3 px-2 bg-purple-50">Planning</td>
@@ -708,7 +641,7 @@ function PricingPageInner() {
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-neutral-500 text-center mt-4">* Prix Fondateurs Pro : 149€ pour les 50 premiers, puis 199€ · Tous les crédits s{"'"}utilisent librement : 1 image = 5 cr · 1 vidéo 5s = 25 cr · 1 suggestion = 1 cr · Report 1 mois</p>
+          <p className="text-xs text-neutral-500 text-center mt-4">{t.pricing.foundersNote}</p>
         </div>
 
         {/* Comparateur Keiro vs. Prestataires */}
@@ -720,9 +653,9 @@ function PricingPageInner() {
           <div className="relative z-10">
             <div className="text-center mb-8">
               <h3 className="text-2xl md:text-3xl font-bold mb-2">
-                Pourquoi payer <span className="text-red-400">3 300€/mois</span> quand vous pouvez payer <span className="text-cyan-400">149€</span> ?
+                {t.pricing.comparatorTitle} <span className="text-red-400">3 300€/mois</span> {t.pricing.comparatorSubtitle} <span className="text-cyan-400">149€</span> ?
               </h3>
-              <p className="text-slate-300">Graphiste freelance + Community Manager vs. KeiroAI Fondateurs</p>
+              <p className="text-slate-300">{t.pricing.comparatorGraphiste} + {t.pricing.comparatorCM} vs. KeiroAI {t.pricing.planFondateursTitle}</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -733,8 +666,8 @@ function PricingPageInner() {
                     <span className="text-red-400 text-lg">✗</span>
                   </div>
                   <div>
-                    <h4 className="font-bold">Graphiste + CM</h4>
-                    <p className="text-2xl font-bold text-red-400">~3 300€<span className="text-sm font-normal text-slate-400">/mois</span></p>
+                    <h4 className="font-bold">{t.pricing.comparatorGraphiste} + CM</h4>
+                    <p className="text-2xl font-bold text-red-400">~3 300€<span className="text-sm font-normal text-slate-400">{t.common.perMonth}</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2.5 text-sm text-slate-300">
@@ -755,8 +688,8 @@ function PricingPageInner() {
                     <span className="text-cyan-400 text-lg">✓</span>
                   </div>
                   <div>
-                    <h4 className="font-bold">KeiroAI Fondateurs</h4>
-                    <p className="text-2xl font-bold text-cyan-400">149€<span className="text-sm font-normal text-slate-400">/mois</span></p>
+                    <h4 className="font-bold">KeiroAI {t.pricing.planFondateursTitle}</h4>
+                    <p className="text-2xl font-bold text-cyan-400">{t.pricing.comparatorKeiroPrice}<span className="text-sm font-normal text-slate-400"></span></p>
                   </div>
                 </div>
                 <ul className="space-y-2.5 text-sm text-slate-200">
@@ -773,10 +706,8 @@ function PricingPageInner() {
 
             {/* Barre économie */}
             <div className="bg-green-500/15 backdrop-blur-sm rounded-xl border border-green-400/20 p-4 text-center">
-              <p className="text-green-400 font-bold text-lg">
-                Économie : <span className="text-2xl">3 151€/mois</span> <span className="text-green-300 font-normal text-sm">(soit 37 812€/an)</span>
-              </p>
-              <p className="text-slate-400 text-xs mt-1">Basé sur graphiste 1 500€ + CM 1 800€ vs. KeiroAI Fondateurs 149€</p>
+              <p className="text-green-400 font-bold text-lg" dangerouslySetInnerHTML={{ __html: t.pricing.comparatorSavings }} />
+              <p className="text-slate-400 text-xs mt-1">{t.pricing.comparatorGraphiste} {t.pricing.comparatorGraphistePrice} + {t.pricing.comparatorCM} {t.pricing.comparatorCMPrice} vs. KeiroAI {t.pricing.comparatorKeiroPrice}</p>
             </div>
           </div>
         </div>
@@ -785,46 +716,41 @@ function PricingPageInner() {
         {/* FAQ Section */}
         <FadeUp>
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-10">Questions fréquentes</h2>
+          <h2 className="text-3xl font-bold text-center mb-10">{t.pricing.faqTitle}</h2>
           <div className="space-y-4">
             <details className="bg-white rounded-xl p-6 border border-neutral-200">
               <summary className="font-semibold cursor-pointer text-neutral-900">
-                Comment fonctionne l'essai 3 jours à 4.99€ ?
+                {t.pricing.faq1Q}
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Vous payez 4.99€ pour accéder à toutes les fonctionnalités Fondateurs pendant 3 jours. Si vous continuez,
-                ces 4.99€ sont déduits de votre premier mois (vous payez 144.01€ au lieu de 149€). Sinon, aucun engagement - vous gardez vos créations.
+                {t.pricing.faq1A}
               </p>
             </details>
 
             <details className="bg-white rounded-xl p-6 border border-neutral-200">
               <summary className="font-semibold cursor-pointer text-neutral-900">
-                Qu'est-ce que l'offre Fondateurs ?
+                {t.pricing.faq2Q}
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                <strong>Les 50 premières places bénéficient du tarif de 149€/mois verrouillé à vie.</strong>
-                Après les 50 premiers, le prix passera à 199€/mois. Tant que vous restez abonné parmi les 50 premiers,
-                votre prix de 149€ ne changera jamais. Vous bénéficiez également d'une démo personnalisée offerte pour vous accompagner.
+                {t.pricing.faq2A}
               </p>
             </details>
 
             <details className="bg-white rounded-xl p-6 border border-neutral-200">
               <summary className="font-semibold cursor-pointer text-neutral-900">
-                Puis-je annuler à tout moment ?
+                {t.pricing.faq3Q}
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Oui, absolument ! Tous nos plans sont sans engagement. Vous pouvez annuler à tout moment en 1 clic depuis votre espace.
-                Tous les plans incluent une garantie satisfait ou remboursé 30 jours.
+                {t.pricing.faq3A}
               </p>
             </details>
 
             <details className="bg-white rounded-xl p-6 border border-neutral-200">
               <summary className="font-semibold cursor-pointer text-neutral-900">
-                Les visuels m'appartiennent-ils ?
+                {t.pricing.faq4Q}
               </summary>
               <p className="mt-3 text-neutral-600 text-sm">
-                Oui ! Tous les visuels et vidéos que vous générez avec Keiro vous appartiennent. Vous pouvez les utiliser librement
-                pour vos réseaux sociaux, votre site web, vos campagnes publicitaires, etc.
+                {t.pricing.faq4A}
               </p>
             </details>
           </div>
@@ -842,10 +768,10 @@ function PricingPageInner() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-neutral-900 mb-3">
-              Une question ? Besoin d'aide ?
+              {t.pricing.supportTitle}
             </h2>
             <p className="text-neutral-600 max-w-2xl mx-auto">
-              Notre équipe est là pour vous accompagner dans votre choix et répondre à toutes vos questions. Contactez-nous gratuitement.
+              {t.pricing.supportCallDesc}
             </p>
           </div>
 
@@ -859,9 +785,9 @@ function PricingPageInner() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-neutral-900 mb-2">Appel téléphonique</h3>
+                  <h3 className="font-bold text-neutral-900 mb-2">{t.pricing.supportCallTitle}</h3>
                   <p className="text-sm text-neutral-600 mb-3">
-                    Bookez un appel gratuit de 15-30 minutes pour discuter de vos besoins et découvrir comment Keiro peut vous aider.
+                    {t.pricing.supportCallDesc}
                   </p>
                   <a
                     href="https://calendly.com/contact-keiroai/30min"
@@ -872,7 +798,7 @@ function PricingPageInner() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    Prendre rendez-vous
+                    {t.pricing.supportCallCta}
                   </a>
                 </div>
               </div>
@@ -904,17 +830,17 @@ function PricingPageInner() {
         <FadeUp>
         <div className="mt-20 text-center bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl p-12">
           <h2 className="text-4xl font-bold text-white mb-4">
-            Prêt à transformer votre communication ?
+            {t.pricing.ctaTitle}
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Rejoignez les créateurs qui utilisent déjà Keiro pour booster leur présence en ligne.
+            {t.pricing.ctaSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/generate"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              Commencer gratuitement
+              {t.pricing.ctaCta}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -923,10 +849,10 @@ function PricingPageInner() {
               href="/generate"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
             >
-              Devenir Fondateur ⭐
+              {t.pricing.planFondateursCta} ⭐
             </Link>
           </div>
-          <p className="text-blue-100 text-sm mt-4">3 visuels gratuits • Sans carte bancaire • En 2 minutes</p>
+          <p className="text-blue-100 text-sm mt-4">{t.pricing.foundersNote}</p>
         </div>
         </FadeUp>
       </main>
