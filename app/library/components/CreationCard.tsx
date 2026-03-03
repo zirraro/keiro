@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 export interface CreationItem {
   id: string;
@@ -41,11 +42,11 @@ export default function CreationCard({
   onMoveToFolder,
   onEditImage
 }: CreationCardProps) {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(item.title || '');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Close preview on Escape
   useEffect(() => {
     if (!showPreview) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -77,15 +78,14 @@ export default function CreationCard({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 60) return t.library.ccAgoMin.replace('{n}', String(diffMins));
+    if (diffHours < 24) return t.library.ccAgoHours.replace('{n}', String(diffHours));
+    if (diffDays < 7) return t.library.ccAgoDays.replace('{n}', String(diffDays));
+    return date.toLocaleDateString();
   };
 
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
-      {/* Media preview - Format vidéo pour uniformité */}
       <div className={`relative aspect-video bg-neutral-900 overflow-hidden${item.type === 'image' ? ' cursor-pointer' : ''}`} onClick={item.type === 'image' ? () => setShowPreview(true) : undefined}>
         {item.type === 'image' ? (
           <>
@@ -95,7 +95,6 @@ export default function CreationCard({
               className="w-full h-full object-cover"
               loading="lazy"
             />
-            {/* Zoom overlay on hover */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
               <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-80 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
@@ -111,7 +110,6 @@ export default function CreationCard({
           />
         )}
 
-        {/* Badges */}
         <div className="absolute top-2 left-2 flex gap-2">
           {item.is_favorite && (
             <span className="bg-pink-500 text-white text-xs px-1.5 py-1 rounded-full flex items-center">
@@ -121,18 +119,13 @@ export default function CreationCard({
             </span>
           )}
           {item.published_to_instagram && (
-            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
-              ✓ Instagram
-            </span>
+            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">✓ Instagram</span>
           )}
           {item.published_to_tiktok && (
-            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-              ✓ TikTok
-            </span>
+            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">✓ TikTok</span>
           )}
         </div>
 
-        {/* Duration for videos */}
         {item.type === 'video' && item.duration && (
           <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {formatDuration(item.duration)}
@@ -140,9 +133,7 @@ export default function CreationCard({
         )}
       </div>
 
-      {/* Info */}
       <div className="p-4 space-y-2">
-        {/* Title */}
         {isEditing ? (
           <div className="flex gap-2">
             <input
@@ -151,64 +142,43 @@ export default function CreationCard({
               onChange={(e) => setEditedTitle(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSaveTitle()}
               className="flex-1 px-2 py-1 border border-neutral-300 rounded text-sm"
-              placeholder={item.type === 'image' ? "Titre de l'image" : "Titre de la vidéo"}
+              placeholder={item.type === 'image' ? t.library.ccImageTitlePlaceholder : t.library.ccVideoTitlePlaceholder}
               autoFocus
             />
-            <button
-              onClick={handleSaveTitle}
-              className="text-green-600 hover:text-green-700"
-            >
-              ✓
-            </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="text-red-600 hover:text-red-700"
-            >
-              ✕
-            </button>
+            <button onClick={handleSaveTitle} className="text-green-600 hover:text-green-700">✓</button>
+            <button onClick={() => setIsEditing(false)} className="text-red-600 hover:text-red-700">✕</button>
           </div>
         ) : (
           <h4
             onClick={() => setIsEditing(true)}
             className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
-            title="Cliquer pour modifier le titre"
+            title={t.library.ccClickToEditTitle}
           >
-            {item.title || 'Sans titre'}
+            {item.title || t.library.ccUntitled}
           </h4>
         )}
 
-        {/* Metadata */}
         <div className="flex items-center justify-between text-xs text-neutral-500">
           <span>{formatDate(item.created_at)}</span>
-          <span className="text-neutral-400">{item.type === 'image' ? '📸 Image' : '🎬 Vidéo'}</span>
+          <span className="text-neutral-400">{item.type === 'image' ? `📸 ${t.library.ccImage}` : `🎬 ${t.library.ccVideoLabel}`}</span>
         </div>
 
-        {/* Source badge pour vidéos */}
         {item.type === 'video' && item.source_type && (
           <div className="flex items-center gap-2 text-xs">
             {item.source_type === 'seedream_i2v' && (
-              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                ✨ Généré par Keiro
-              </span>
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">{t.library.ccGeneratedByKeiro}</span>
             )}
             {item.source_type === 'upload' && (
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                📤 Upload
-              </span>
+              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">{t.library.ccUpload}</span>
             )}
             {item.source_type === 'tiktok_sync' && (
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
-                🎵 TikTok
-              </span>
+              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">TikTok</span>
             )}
           </div>
         )}
 
-        {/* Actions - Layout responsive */}
         <div className="pt-3 border-t border-neutral-200">
-          {/* Boutons d'action */}
           <div className="flex items-center gap-1.5">
-            {/* Poster */}
             {!item.published_to_instagram && !item.published_to_tiktok && (
               <button
                 onClick={() => onPublish(item)}
@@ -217,63 +187,58 @@ export default function CreationCard({
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                Poster
+                {t.library.ccPost}
               </button>
             )}
-            {/* Éditer (images only) */}
             {onEditImage && item.type === 'image' && (
               <button
                 onClick={() => onEditImage(item)}
                 className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
-                title="Modifier l'image"
+                title={t.library.ccEditImage}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Éditer
+                {t.library.ccEdit}
               </button>
             )}
-            {/* Ranger */}
             {onMoveToFolder && (
               <button
                 onClick={() => onMoveToFolder(item)}
                 className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
-                title="Ranger dans un dossier"
+                title={t.library.ccOrganizeInFolder}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                Ranger
+                {t.library.ccOrganize}
               </button>
             )}
             <div className="flex-1" />
-            {/* Favoris - icone seule */}
             <button
               onClick={() => onToggleFavorite(item.id, !item.is_favorite)}
               className={`p-1.5 rounded-lg transition-all ${
                 item.is_favorite ? 'text-pink-600 hover:bg-pink-50' : 'text-neutral-400 hover:bg-neutral-100'
               }`}
-              title={item.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              title={item.is_favorite ? t.library.ccRemoveFromFav : t.library.ccAddToFav}
             >
               <svg className="w-4 h-4" fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
             </button>
-            {/* Telecharger - icone seule */}
             <button
               onClick={() => onDownload(item)}
               className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
-              title="Télécharger"
+              title={t.library.ccDownload}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </button>
-            {/* Supprimer - icone seule */}
             <button
-              onClick={() => { if (confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) onDelete(item.id); }}
+              onClick={() => { if (confirm(t.library.ccConfirmDelete)) onDelete(item.id); }}
               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
-              title="Supprimer"
+              title={t.library.ccDeleteTitle}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -283,7 +248,6 @@ export default function CreationCard({
         </div>
       </div>
 
-      {/* Lightbox preview (images only) */}
       {showPreview && item.type === 'image' && (
         <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"

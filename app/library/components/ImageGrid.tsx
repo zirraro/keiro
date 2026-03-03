@@ -1,7 +1,10 @@
+'use client';
+
 import ImageCard from './ImageCard';
 import { PhotoIcon } from './Icons';
 import LoadingSkeleton from './LoadingSkeleton';
 import UploadZone from './UploadZone';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -50,6 +53,8 @@ export default function ImageGrid({
   onTitleEdit,
   onRefresh
 }: ImageGridProps) {
+  const { t } = useLanguage();
+
   const handleUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -82,12 +87,12 @@ export default function ImageGrid({
           <PhotoIcon className="w-10 h-10 text-neutral-400" />
         </div>
         <h3 className="text-2xl font-bold text-neutral-900 mb-3">
-          {isFiltering ? 'Aucun visuel trouvé' : 'Votre galerie est vide'}
+          {isFiltering ? t.library.igNoVisualFound : t.library.igGalleryEmpty}
         </h3>
         <p className="text-neutral-700 mb-8 max-w-lg mx-auto text-base leading-relaxed">
           {isFiltering
-            ? 'Aucun visuel ne correspond à vos critères de recherche. Essayez de modifier vos filtres ou lancez une nouvelle recherche.'
-            : 'Propulsez votre présence sur les réseaux sociaux avec des visuels professionnels créés en quelques secondes. Générez du contenu engageant qui convertit vos visiteurs en clients et maximise votre impact digital.'}
+            ? t.library.igNoVisualMatchFilter
+            : t.library.igBoostPresence}
         </p>
         {!isFiltering && (
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -98,7 +103,7 @@ export default function ImageGrid({
               <svg className="w-6 h-6 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              <span>Générer mes visuels maintenant</span>
+              <span>{t.library.igGenerateNow}</span>
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -110,7 +115,7 @@ export default function ImageGrid({
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
-              Découvrir les actualités
+              {t.library.igDiscoverNews}
             </a>
           </div>
         )}

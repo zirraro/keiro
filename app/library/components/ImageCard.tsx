@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -50,6 +51,7 @@ export default function ImageCard({
   onEditImage,
   formatDate
 }: ImageCardProps) {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(image.title || image.news_title || '');
   const [showPreview, setShowPreview] = useState(false);
@@ -79,15 +81,15 @@ export default function ImageCard({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 60) return t.library.icAgoMin.replace('{n}', String(diffMins));
+    if (diffHours < 24) return t.library.icAgoHours.replace('{n}', String(diffHours));
+    if (diffDays < 7) return t.library.icAgoDays.replace('{n}', String(diffDays));
+    return date.toLocaleDateString();
   };
 
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
-      {/* Image preview - Format vidéo comme Mes vidéos */}
+      {/* Image preview */}
       <div className="relative aspect-video bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
         <img
           src={image.thumbnail_url || image.image_url}
@@ -110,7 +112,7 @@ export default function ImageCard({
               ? 'bg-pink-500 text-white hover:bg-pink-600'
               : 'bg-white/80 text-neutral-400 hover:bg-white hover:text-pink-500 opacity-0 group-hover:opacity-100'
           }`}
-          title={image.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          title={image.is_favorite ? t.library.icRemoveFromFavorites : t.library.icAddToFavorites}
         >
           <svg className="w-4 h-4" fill={image.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -150,7 +152,7 @@ export default function ImageCard({
               onChange={(e) => setEditedTitle(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSaveTitle()}
               className="flex-1 px-2 py-1 border border-neutral-300 rounded text-sm"
-              placeholder="Titre de l'image"
+              placeholder={t.library.icImageTitle}
               autoFocus
             />
             <button
@@ -170,9 +172,9 @@ export default function ImageCard({
           <h4
             onClick={() => setIsEditing(true)}
             className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
-            title="Cliquer pour modifier le titre"
+            title={t.library.icClickToEdit}
           >
-            {image.title || image.news_title || 'Sans titre'}
+            {image.title || image.news_title || t.library.icUntitled}
           </h4>
         )}
 
@@ -182,10 +184,10 @@ export default function ImageCard({
           {image.news_category && <span>{image.news_category}</span>}
         </div>
 
-        {/* Actions — single compact row */}
+        {/* Actions */}
         <div className="pt-3 border-t border-neutral-200">
           <div className="flex items-center gap-1">
-            {/* Poster */}
+            {/* Post */}
             {!image.published_to_instagram && !image.published_to_tiktok && (
               <button
                 onClick={() => {
@@ -197,28 +199,28 @@ export default function ImageCard({
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                Poster
+                {t.library.icPreparePost}
               </button>
             )}
-            {/* Éditer */}
+            {/* Edit */}
             {onEditImage && (
               <button
                 onClick={() => onEditImage(image)}
                 className="flex items-center gap-1 px-2 py-1.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200 transition-all"
-                title="Modifier l'image"
+                title={t.library.icEditImage}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Éditer
+                {t.library.icEdit}
               </button>
             )}
-            {/* Ranger */}
+            {/* Move to folder */}
             {onMoveToFolder && (
               <button
                 onClick={() => onMoveToFolder(image)}
                 className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-all"
-                title="Ranger dans un dossier"
+                title={t.library.icMoveToFolder}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -227,22 +229,22 @@ export default function ImageCard({
             )}
             {/* Spacer */}
             <div className="flex-1" />
-            {/* Télécharger */}
+            {/* Download */}
             <a
               href={image.image_url}
               download
               className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
-              title="Télécharger"
+              title={t.library.icDownload}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
             </a>
-            {/* Supprimer */}
+            {/* Delete */}
             <button
-              onClick={() => { if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) onDelete(image.id); }}
+              onClick={() => { if (confirm(t.library.icConfirmDelete)) onDelete(image.id); }}
               className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
-              title="Supprimer"
+              title={t.library.icDelete}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

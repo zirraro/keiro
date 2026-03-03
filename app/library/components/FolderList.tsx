@@ -2,6 +2,7 @@
 
 import FolderDropZone from './FolderDropZone';
 import { FolderIcon } from './Icons';
+import { useLanguage } from '@/lib/i18n/context';
 
 type Folder = {
   id: string;
@@ -18,9 +19,11 @@ interface FolderListProps {
 }
 
 export default function FolderList({ folders, selectedFolder, onSelectFolder }: FolderListProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="space-y-2">
-      {/* Tous les dossiers (root) */}
+      {/* All folders (root) */}
       <FolderDropZone folderId={null}>
         <button
           onClick={() => onSelectFolder(null)}
@@ -31,14 +34,14 @@ export default function FolderList({ folders, selectedFolder, onSelectFolder }: 
           }`}
         >
           <FolderIcon className="w-5 h-5" />
-          <span className="flex-1 text-left font-medium">Tous les dossiers</span>
+          <span className="flex-1 text-left font-medium">{t.library.flAllImages}</span>
           <span className="text-xs text-neutral-500">
             {folders.reduce((sum, f) => sum + (f.image_count || 0), 0)}
           </span>
         </button>
       </FolderDropZone>
 
-      {/* Dossiers individuels */}
+      {/* Individual folders */}
       {folders.map((folder) => (
         <FolderDropZone key={folder.id} folderId={folder.id}>
           <button

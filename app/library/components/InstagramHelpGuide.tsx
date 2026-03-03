@@ -1,6 +1,10 @@
 'use client';
 
+import { useLanguage } from '@/lib/i18n/context';
+
 export default function InstagramHelpGuide() {
+  const { t } = useLanguage();
+
   const openCalendly = () => {
     window.open('https://calendly.com/contact-keiroai/30min', '_blank');
   };
@@ -18,22 +22,21 @@ export default function InstagramHelpGuide() {
         {/* Content */}
         <div className="flex-1">
           <h3 className="text-lg font-bold text-neutral-900 mb-2">
-            📱 Comment connecter votre Instagram ?
+            {t.library.ihgTitle}
           </h3>
           <p className="text-sm text-neutral-700 mb-4">
-            Pour publier automatiquement sur Instagram, vous devez connecter votre compte via Meta Business API
+            {t.library.ihgDesc}
           </p>
 
-          {/* Étapes */}
           <div className="space-y-3 mb-4">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">
                 1
               </div>
               <div>
-                <p className="font-semibold text-neutral-900 text-sm">Convertir en compte professionnel</p>
+                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep1Title}</p>
                 <p className="text-xs text-neutral-600">
-                  Allez dans Paramètres Instagram → Type de compte → Passer au compte professionnel
+                  {t.library.ihgStep1Desc}
                 </p>
               </div>
             </div>
@@ -43,9 +46,9 @@ export default function InstagramHelpGuide() {
                 2
               </div>
               <div>
-                <p className="font-semibold text-neutral-900 text-sm">Créer une Page Facebook</p>
+                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep2Title}</p>
                 <p className="text-xs text-neutral-600">
-                  Votre compte Instagram doit être lié à une Page Facebook Business
+                  {t.library.ihgStep2Desc}
                 </p>
               </div>
             </div>
@@ -55,9 +58,9 @@ export default function InstagramHelpGuide() {
                 3
               </div>
               <div>
-                <p className="font-semibold text-neutral-900 text-sm">Configurer Meta Business Suite</p>
+                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep3Title}</p>
                 <p className="text-xs text-neutral-600">
-                  Accédez à business.facebook.com et liez votre Instagram
+                  {t.library.ihgStep3Desc}
                 </p>
               </div>
             </div>
@@ -67,9 +70,9 @@ export default function InstagramHelpGuide() {
                 4
               </div>
               <div>
-                <p className="font-semibold text-neutral-900 text-sm">Connecter sur Keiro</p>
+                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep4Title}</p>
                 <p className="text-xs text-neutral-600">
-                  Retournez sur Keiro et connectez votre Instagram via OAuth
+                  {t.library.ihgStep4Desc}
                 </p>
               </div>
             </div>
@@ -84,7 +87,7 @@ export default function InstagramHelpGuide() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              Booker un appel d'accompagnement
+              {t.library.ihgBookCall}
             </button>
             <a
               href="https://developers.facebook.com/docs/instagram-api"
@@ -95,13 +98,13 @@ export default function InstagramHelpGuide() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-              Documentation Meta API
+              {t.library.ihgMetaDocs}
             </a>
           </div>
 
           {/* Note */}
           <p className="text-xs text-neutral-500 mt-4 italic">
-            💡 Astuce : Notre équipe peut vous accompagner dans la configuration. Bookez un appel gratuit de 15 minutes !
+            {t.library.ihgTip}
           </p>
         </div>
       </div>

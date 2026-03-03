@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, DragEvent, useRef } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface UploadZoneProps {
   type: 'image' | 'video';
@@ -9,6 +10,7 @@ interface UploadZoneProps {
 }
 
 export default function UploadZone({ type, onUpload, className = '' }: UploadZoneProps) {
+  const { t } = useLanguage();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -16,15 +18,15 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
   const config = {
     image: {
       icon: '📸',
-      title: 'Déposez vos images ici ou cliquez pour sélectionner',
-      subtitle: 'JPEG, PNG, WebP, GIF - max 8MB',
+      title: t.library.uzDropImages,
+      subtitle: t.library.uzImageFormats,
       accept: 'image/jpeg,image/jpg,image/png,image/webp,image/gif',
       maxSize: 8 * 1024 * 1024
     },
     video: {
       icon: '🎬',
-      title: 'Déposez vos vidéos ici ou cliquez pour sélectionner',
-      subtitle: 'MP4, MOV, WebM, AVI - max 100MB',
+      title: t.library.uzDropVideos,
+      subtitle: t.library.uzVideoFormats,
       accept: 'video/mp4,video/quicktime,video/webm,video/x-msvideo',
       maxSize: 100 * 1024 * 1024
     }
@@ -75,7 +77,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
     // Validate file size
     if (file.size > currentConfig.maxSize) {
       const maxMB = currentConfig.maxSize / (1024 * 1024);
-      alert(`Fichier trop volumineux (max ${maxMB}MB)`);
+      alert(t.library.uzFileTooLarge.replace('{n}', String(maxMB)));
       return;
     }
 
@@ -87,7 +89,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
     );
 
     if (!isValidType) {
-      alert(`Type de fichier non supporté. Utilisez: ${currentConfig.subtitle.split('-')[0].trim()}`);
+      alert(t.library.uzUnsupportedType.replace('{types}', currentConfig.subtitle.split('-')[0].trim()));
       return;
     }
 
@@ -97,7 +99,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
       await onUpload(file);
     } catch (error: any) {
       console.error('[UploadZone] Upload error:', error);
-      alert(`Erreur lors de l'upload: ${error.message}`);
+      alert(t.library.uzUploadError.replace('{msg}', error.message));
     } finally {
       setUploading(false);
       // Reset file input
@@ -139,7 +141,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
         {uploading ? (
           <>
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm font-semibold text-neutral-700">Upload en cours...</p>
+            <p className="text-sm font-semibold text-neutral-700">{t.library.uzUploading}</p>
           </>
         ) : (
           <>

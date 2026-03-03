@@ -1,23 +1,27 @@
 'use client';
 
+import { useLanguage } from '@/lib/i18n/context';
+
 interface DropZoneProps {
   isDragging: boolean;
   onCancel?: () => void;
 }
 
 export default function DropZone({ isDragging, onCancel }: DropZoneProps) {
+  const { t } = useLanguage();
+
   if (!isDragging) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-blue-500/20 backdrop-blur-sm flex items-center justify-center">
-      {/* Bouton fermer - en haut à droite */}
+      {/* Close button - top right */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           onCancel?.();
         }}
         className="fixed top-4 right-4 z-[60] w-10 h-10 rounded-full bg-white shadow-lg hover:bg-neutral-100 transition-colors flex items-center justify-center"
-        aria-label="Fermer"
+        aria-label="Close"
       >
         <svg className="w-6 h-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -32,11 +36,11 @@ export default function DropZone({ isDragging, onCancel }: DropZoneProps) {
             </svg>
           </div>
           <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-            Déposez vos fichiers ici
+            {t.library.dzDropFilesHere}
           </h3>
           <p className="text-neutral-600 text-sm">
-            <strong>Images :</strong> JPG, PNG, GIF, WebP (max 8MB)<br />
-            <strong>Vidéos :</strong> MP4, MOV, WebM (max 287MB)
+            <strong>{t.library.dzImageFormats}</strong><br />
+            <strong>{t.library.dzVideoFormats}</strong>
           </p>
         </div>
       </div>

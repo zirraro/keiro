@@ -1,4 +1,7 @@
+'use client';
+
 import type { Network } from './NetworkSelector';
+import { useLanguage } from '@/lib/i18n/context';
 
 export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'linkedin-drafts' | 'twitter-drafts' | 'calendar';
 
@@ -16,6 +19,7 @@ interface TabNavigationProps {
 }
 
 export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount, visibleNetworks }: TabNavigationProps) {
+  const { t } = useLanguage();
   const totalCount = imageCount + videoCount;
   const showNetwork = (network: Network) => !visibleNetworks || visibleNetworks.includes(network);
 
@@ -30,7 +34,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          🎨 Mes créations
+          {t.library.tabMyCreations}
           {totalCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'all-creations'
@@ -50,7 +54,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          📸 Mes images
+          {t.library.tabMyImages}
           {imageCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'images'
@@ -70,7 +74,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          🎬 Mes vidéos
+          {t.library.tabMyVideos}
           {videoCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'videos'
@@ -91,7 +95,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Brouillons Instagram
+            {t.library.tabInstagramDrafts}
             {draftCount > 0 && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === 'drafts'
@@ -113,7 +117,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Brouillons TikTok
+            {t.library.tabTikTokDrafts}
             {tiktokDraftCount > 0 && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === 'tiktok-drafts'
@@ -135,7 +139,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Brouillons LinkedIn
+            {t.library.tabLinkedInDrafts}
             {linkedinDraftCount > 0 && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === 'linkedin-drafts'
@@ -157,7 +161,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Brouillons X
+            {t.library.tabXDrafts}
             {twitterDraftCount > 0 && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === 'twitter-drafts'
@@ -178,7 +182,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
-          📅 Calendrier
+          {t.library.tabCalendar}
           {scheduledCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'calendar'

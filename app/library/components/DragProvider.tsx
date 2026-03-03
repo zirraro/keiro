@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from 'react';
 import { DndContext, DragOverlay, closestCenter, DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface DragProviderProps {
   children: ReactNode;
@@ -9,6 +10,7 @@ interface DragProviderProps {
 }
 
 export default function DragProvider({ children, onDragEnd }: DragProviderProps) {
+  const { t } = useLanguage();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -20,7 +22,6 @@ export default function DragProvider({ children, onDragEnd }: DragProviderProps)
 
     if (over && active.id !== over.id) {
       const imageId = active.id as string;
-      // 'root' signifie dossier racine (aucun dossier)
       const folderId = over.id === 'root' ? null : (over.id as string);
       onDragEnd(imageId, folderId);
     }
@@ -39,7 +40,7 @@ export default function DragProvider({ children, onDragEnd }: DragProviderProps)
         {activeId && (
           <div className="bg-white rounded-lg border-2 border-blue-500 shadow-2xl p-3 opacity-80">
             <div className="w-48 h-48 bg-neutral-100 rounded flex items-center justify-center">
-              <p className="text-sm text-neutral-500">Déplacement...</p>
+              <p className="text-sm text-neutral-500">{t.library.dpMoving}</p>
             </div>
           </div>
         )}

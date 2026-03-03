@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import UploadZone from './UploadZone';
 import ImageCard from './ImageCard';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -51,6 +52,7 @@ export default function MyImagesTab({
   onMoveToFolder,
   onEditImage
 }: MyImagesTabProps) {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
   const [filterBy, setFilterBy] = useState<'all' | 'favorites' | 'instagram' | 'tiktok'>('all');
@@ -58,12 +60,10 @@ export default function MyImagesTab({
   // Filter and sort images
   const filteredImages = images
     .filter(image => {
-      // Search filter
       const matchesSearch = !searchQuery ||
         image.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         image.news_title?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Category filter
       const matchesFilter =
         filterBy === 'all' ||
         (filterBy === 'favorites' && image.is_favorite) ||
@@ -89,10 +89,10 @@ export default function MyImagesTab({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 60) return t.library.mitAgoMin.replace('{n}', String(diffMins));
+    if (diffHours < 24) return t.library.mitAgoHours.replace('{n}', String(diffHours));
+    if (diffDays < 7) return t.library.mitAgoDays.replace('{n}', String(diffDays));
+    return date.toLocaleDateString();
   };
 
   const handleUpload = async (file: File) => {
@@ -113,7 +113,6 @@ export default function MyImagesTab({
       throw new Error(data.error || 'Upload failed');
     }
 
-    // Refresh images list
     onRefresh();
   };
 
@@ -122,29 +121,27 @@ export default function MyImagesTab({
       {/* Upload Zone */}
       {user && <UploadZone type="image" onUpload={handleUpload} />}
 
-      {/* Recherche, filtres et actualiser - EN DESSOUS de la zone upload */}
+      {/* Search, filters */}
       <div className="bg-white rounded-xl border border-neutral-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Recherche */}
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Rechercher une image..."
+              placeholder={t.library.mitSearchImage}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Filtres */}
           <div className="flex gap-2">
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value as any)}
               className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">Toutes ({images.length})</option>
-              <option value="favorites">Favorites ({images.filter(i => i.is_favorite).length})</option>
+              <option value="all">{t.library.mitAllImages} ({images.length})</option>
+              <option value="favorites">{t.library.mitFavorites} ({images.filter(i => i.is_favorite).length})</option>
               <option value="instagram">Instagram ({images.filter(i => i.published_to_instagram).length})</option>
               <option value="tiktok">TikTok ({images.filter(i => i.published_to_tiktok).length})</option>
             </select>
@@ -154,24 +151,24 @@ export default function MyImagesTab({
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="date">Plus récentes</option>
-              <option value="title">Titre A-Z</option>
+              <option value="date">{t.library.mitMostRecent}</option>
+              <option value="title">{t.library.mitTitleAZ}</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Grille d'images */}
+      {/* Image grid */}
       {filteredImages.length === 0 ? (
         <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
           <div className="text-6xl mb-4">📸</div>
           <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-            {searchQuery || filterBy !== 'all' ? 'Aucune image trouvée' : 'Aucune image pour le moment'}
+            {searchQuery || filterBy !== 'all' ? t.library.mitNoImageFound : t.library.mitNoImageYet}
           </h3>
           <p className="text-neutral-500 mb-6">
             {searchQuery || filterBy !== 'all'
-              ? 'Essayez de modifier vos filtres de recherche'
-              : 'Créez votre première image avec Keiro AI'}
+              ? t.library.mitTryChangingFilters
+              : t.library.mitCreateFirstImage}
           </p>
         </div>
       ) : (

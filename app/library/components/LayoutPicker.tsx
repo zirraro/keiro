@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 type LayoutOption = 'both-open' | 'instagram-open' | 'tiktok-open';
 
@@ -10,10 +11,12 @@ interface LayoutPickerProps {
 }
 
 export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPickerProps) {
+  const { t } = useLanguage();
+
   const layouts: { id: LayoutOption; label: string; icon: React.ReactElement }[] = [
     {
       id: 'both-open',
-      label: 'Les deux ouverts',
+      label: t.library.lpBothOpen,
       icon: (
         <div className="flex gap-0.5">
           <div className="w-2 h-3 bg-purple-400 rounded-sm"></div>
@@ -23,7 +26,7 @@ export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPi
     },
     {
       id: 'instagram-open',
-      label: 'Instagram ouvert',
+      label: t.library.lpInstagramOpen,
       icon: (
         <div className="flex gap-0.5">
           <div className="w-3.5 h-3 bg-purple-400 rounded-sm"></div>
@@ -33,7 +36,7 @@ export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPi
     },
     {
       id: 'tiktok-open',
-      label: 'TikTok ouvert',
+      label: t.library.lpTikTokOpen,
       icon: (
         <div className="flex gap-0.5">
           <div className="w-0.5 h-3 bg-purple-200 rounded-sm"></div>
@@ -45,7 +48,7 @@ export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPi
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-neutral-500">Affichage:</span>
+      <span className="text-xs text-neutral-500">{t.library.lpDisplay}</span>
       <div className="flex gap-1.5">
         {layouts.map((layout) => (
           <button

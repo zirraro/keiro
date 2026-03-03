@@ -1,5 +1,8 @@
+'use client';
+
 import BookDemoButton from '@/components/BookDemoButton';
 import AddContentButton from './AddContentButton';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface GalleryHeaderProps {
   user: any;
@@ -15,6 +18,8 @@ interface GalleryHeaderProps {
 }
 
 export default function GalleryHeader({ user, stats, isGuest, onUpload, onUploadComplete }: GalleryHeaderProps) {
+  const { t } = useLanguage();
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0 && onUpload) {
@@ -27,23 +32,20 @@ export default function GalleryHeader({ user, stats, isGuest, onUpload, onUpload
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            {user || isGuest ? 'Galerie & Posts' : 'Aperçu Galerie & Posts'}
+            {user || isGuest ? t.library.ghTitle : t.library.ghPreviewTitle}
           </h1>
           {!(user || isGuest) && (
             <p className="text-neutral-600">
-              Exemples de visuels générés avec Keiro AI
+              {t.library.ghPreviewDesc}
             </p>
           )}
         </div>
 
-        {/* Boutons d'action */}
+        {/* Action buttons */}
         <div className="flex items-center gap-3">
-          {/* Bouton Ajouter du contenu (Images/Vidéos) */}
           {(user || isGuest) && onUploadComplete && (
             <AddContentButton onUploadComplete={onUploadComplete} />
           )}
-
-          {/* Bouton Démo */}
           <BookDemoButton variant="outline" size="md" />
         </div>
       </div>

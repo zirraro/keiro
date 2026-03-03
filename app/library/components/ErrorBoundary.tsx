@@ -5,6 +5,9 @@ import { Component, ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  errorTitle?: string;
+  unexpectedErrorMsg?: string;
+  reloadLabel?: string;
 }
 
 interface State {
@@ -32,6 +35,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const errorTitle = this.props.errorTitle || 'Une erreur est survenue';
+      const unexpectedMsg = this.props.unexpectedErrorMsg || 'Une erreur inattendue s\'est produite';
+      const reloadLabel = this.props.reloadLabel || 'Recharger la page';
+
       return (
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -40,16 +47,16 @@ export default class ErrorBoundary extends Component<Props, State> {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-neutral-900 mb-2">
-            Une erreur est survenue
+            {errorTitle}
           </h3>
           <p className="text-neutral-600 mb-4">
-            {this.state.error?.message || 'Une erreur inattendue s\'est produite'}
+            {this.state.error?.message || unexpectedMsg}
           </p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            Recharger la page
+            {reloadLabel}
           </button>
         </div>
       );
