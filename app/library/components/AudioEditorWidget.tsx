@@ -1,27 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-
-// ElevenLabs voices (multilingual, work well in French)
-const VOICE_OPTIONS: { value: string; label: string; description: string; gender: 'female' | 'male' }[] = [
-  { value: 'JBFqnCBsd6RMkjVDRZzb', label: 'Homme narrateur', description: 'Voix masculine britannique, posée et professionnelle', gender: 'male' },
-  { value: '21m00Tcm4TlvDq8ikWAM', label: 'Femme douce', description: 'Voix féminine calme et chaleureuse', gender: 'female' },
-  { value: 'EXAVITQu4vr4xnSDxMaL', label: 'Femme naturelle', description: 'Voix féminine douce et authentique', gender: 'female' },
-  { value: 'ErXwobaYiN019PkySvjV', label: 'Homme dynamique', description: 'Voix masculine énergique et engageante', gender: 'male' },
-  { value: 'TxGEqnHWrfWFTfGW9XjX', label: 'Homme profond', description: 'Voix masculine grave et confiante', gender: 'male' },
-  { value: 'pNInz6obpgDQGcFmaJgB', label: 'Homme autoritaire', description: 'Voix masculine profonde et imposante', gender: 'male' },
-  { value: 'AZnzlk1XvdvUeBnXmlld', label: 'Femme énergique', description: 'Voix féminine forte et dynamique', gender: 'female' },
-  { value: 'MF3mGyEYCl7XYWbV9V6O', label: 'Femme pro', description: 'Voix féminine claire et professionnelle', gender: 'female' },
-];
-
-const MUSIC_OPTIONS: { value: string; label: string; emoji: string }[] = [
-  { value: 'none', label: 'Aucune', emoji: '🔇' },
-  { value: 'corporate', label: 'Corporate', emoji: '💼' },
-  { value: 'energetic', label: 'Énergique', emoji: '⚡' },
-  { value: 'calm', label: 'Calme', emoji: '🌊' },
-  { value: 'inspiring', label: 'Inspirant', emoji: '✨' },
-  { value: 'trendy', label: 'Tendance', emoji: '🔥' },
-];
+import { useLanguage } from '@/lib/i18n/context';
 
 interface AudioEditorWidgetProps {
   initialScript?: string;
@@ -44,6 +24,29 @@ export default function AudioEditorWidget({
   onSave,
   onCancel,
 }: AudioEditorWidgetProps) {
+  const { t } = useLanguage();
+
+  // ElevenLabs voices (multilingual, work well in French)
+  const VOICE_OPTIONS: { value: string; label: string; description: string; gender: 'female' | 'male' }[] = [
+    { value: 'JBFqnCBsd6RMkjVDRZzb', label: t.library.aewVoiceMaleNarrator, description: t.library.aewVoiceMaleNarratorDesc, gender: 'male' },
+    { value: '21m00Tcm4TlvDq8ikWAM', label: t.library.aewVoiceFemaleSoft, description: t.library.aewVoiceFemaleSoftDesc, gender: 'female' },
+    { value: 'EXAVITQu4vr4xnSDxMaL', label: t.library.aewVoiceFemaleNatural, description: t.library.aewVoiceFemaleNaturalDesc, gender: 'female' },
+    { value: 'ErXwobaYiN019PkySvjV', label: t.library.aewVoiceMaleDynamic, description: t.library.aewVoiceMaleDynamicDesc, gender: 'male' },
+    { value: 'TxGEqnHWrfWFTfGW9XjX', label: t.library.aewVoiceMaleDeep, description: t.library.aewVoiceMaleDeepDesc, gender: 'male' },
+    { value: 'pNInz6obpgDQGcFmaJgB', label: t.library.aewVoiceMaleAuthority, description: t.library.aewVoiceMaleAuthorityDesc, gender: 'male' },
+    { value: 'AZnzlk1XvdvUeBnXmlld', label: t.library.aewVoiceFemaleEnergetic, description: t.library.aewVoiceFemaleEnergeticDesc, gender: 'female' },
+    { value: 'MF3mGyEYCl7XYWbV9V6O', label: t.library.aewVoiceFemalePro, description: t.library.aewVoiceFemaleProDesc, gender: 'female' },
+  ];
+
+  const MUSIC_OPTIONS: { value: string; label: string; emoji: string }[] = [
+    { value: 'none', label: t.library.aewMusicNone, emoji: '🔇' },
+    { value: 'corporate', label: t.library.aewMusicCorporate, emoji: '💼' },
+    { value: 'energetic', label: t.library.aewMusicEnergetic, emoji: '⚡' },
+    { value: 'calm', label: t.library.aewMusicCalm, emoji: '🌊' },
+    { value: 'inspiring', label: t.library.aewMusicInspiring, emoji: '✨' },
+    { value: 'trendy', label: t.library.aewMusicTrendy, emoji: '🔥' },
+  ];
+
   const [script, setScript] = useState(initialScript);
   const [audioUrl, setAudioUrl] = useState<string | null>(initialAudioUrl);
   const [generating, setGenerating] = useState(false);
@@ -58,7 +61,7 @@ export default function AudioEditorWidget({
 
   const handleGenerate = async () => {
     if (!script.trim()) {
-      alert('Veuillez entrer un texte à narrer');
+      alert(t.library.aewAlertEnterText);
       return;
     }
 
@@ -82,11 +85,11 @@ export default function AudioEditorWidget({
         setAudioUrl(data.audioUrl);
         setScript(data.condensedText);
       } else {
-        alert(data.error || 'Erreur lors de la génération audio');
+        alert(data.error || t.library.aewAlertAudioError);
       }
     } catch (error) {
       console.error('[AudioEditor] Error:', error);
-      alert('Erreur lors de la génération audio');
+      alert(t.library.aewAlertAudioError);
     } finally {
       setGenerating(false);
     }
@@ -94,7 +97,7 @@ export default function AudioEditorWidget({
 
   const handleSuggest = async () => {
     if (!caption && !script) {
-      alert('Aucun contexte disponible pour les suggestions');
+      alert(t.library.aewAlertNoContext);
       return;
     }
 
@@ -116,11 +119,11 @@ export default function AudioEditorWidget({
         setSuggestions(data.suggestions);
         setShowSuggestions(true);
       } else {
-        alert(data.error || 'Erreur lors de la génération de suggestions');
+        alert(data.error || t.library.aewAlertSuggestionError);
       }
     } catch (error) {
       console.error('[AudioEditor] Error:', error);
-      alert('Erreur lors de la génération de suggestions');
+      alert(t.library.aewAlertSuggestionError);
     } finally {
       setLoadingSuggestions(false);
     }
@@ -159,7 +162,7 @@ export default function AudioEditorWidget({
 
   const handleSaveClick = () => {
     if (!audioUrl) {
-      alert('Veuillez d\'abord générer l\'audio');
+      alert(t.library.aewAlertGenerateFirst);
       return;
     }
     onSave(script, audioUrl, selectedMusic !== 'none' ? selectedMusic : undefined);
@@ -171,14 +174,14 @@ export default function AudioEditorWidget({
       <div>
         <div className="flex items-center justify-between mb-1">
           <label className="block text-xs font-medium text-neutral-700">
-            Script de narration
+            {t.library.aewScriptLabel}
           </label>
           <button
             onClick={handleSuggest}
             disabled={loadingSuggestions}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:text-neutral-400"
           >
-            {loadingSuggestions ? 'Chargement...' : 'Suggestions'}
+            {loadingSuggestions ? t.library.aewLoading : t.library.aewSuggestions}
           </button>
         </div>
 
@@ -186,18 +189,17 @@ export default function AudioEditorWidget({
           value={script}
           onChange={(e) => setScript(e.target.value)}
           rows={3}
-          placeholder="Entrez le texte à narrer (ex: Découvrez les 3 tendances marketing de 2026...)
-Max ~15 mots pour 5 secondes"
+          placeholder={t.library.aewScriptPlaceholder}
           className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
         />
 
         <div className="flex items-center justify-between mt-1">
           <p className="text-xs text-neutral-500">
-            ~{wordCount} mots ({estimatedDuration}s)
+            ~{wordCount} {t.library.aewWordCount} ({estimatedDuration}s)
           </p>
           {wordCount > 20 && (
             <p className="text-xs text-orange-600">
-              Trop long, le texte sera condensé
+              {t.library.aewTooLong}
             </p>
           )}
         </div>
@@ -206,7 +208,7 @@ Max ~15 mots pour 5 secondes"
       {/* Voice Selector */}
       <div>
         <label className="block text-xs font-medium text-neutral-700 mb-1.5">
-          Voix
+          {t.library.aewVoiceLabel}
         </label>
         <div className="grid grid-cols-2 gap-1.5">
           {VOICE_OPTIONS.map((voice) => (
@@ -229,7 +231,7 @@ Max ~15 mots pour 5 secondes"
       {/* Background Music */}
       <div>
         <label className="block text-xs font-medium text-neutral-700 mb-1.5">
-          Musique de fond
+          {t.library.aewMusicLabel}
         </label>
         <div className="flex flex-wrap gap-1.5">
           {MUSIC_OPTIONS.map((music) => (
@@ -253,7 +255,7 @@ Max ~15 mots pour 5 secondes"
         <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-neutral-700">
-              Suggestions
+              {t.library.aewSuggestions}
             </p>
             <button
               onClick={() => setShowSuggestions(false)}
@@ -278,7 +280,7 @@ Max ~15 mots pour 5 secondes"
                 onClick={() => handleUseSuggestion(suggestion)}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
-                Utiliser et générer audio
+                {t.library.aewUseSuggestion}
               </button>
             </div>
           ))}
@@ -289,7 +291,7 @@ Max ~15 mots pour 5 secondes"
       {audioUrl && (
         <div className="bg-white rounded-lg p-2 border border-neutral-200">
           <p className="text-xs font-medium text-neutral-700 mb-1">
-            Audio généré
+            {t.library.aewAudioGenerated}
           </p>
           <audio
             src={audioUrl}
@@ -316,10 +318,10 @@ Max ~15 mots pour 5 secondes"
           {generating ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              Génération...
+              {t.library.aewGenerating}
             </span>
           ) : (
-            'Générer audio'
+            t.library.aewGenerateAudio
           )}
         </button>
 
@@ -332,7 +334,7 @@ Max ~15 mots pour 5 secondes"
               : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
           }`}
         >
-          Ajouter à la vidéo
+          {t.library.aewAddToVideo}
         </button>
 
         <button
@@ -344,7 +346,7 @@ Max ~15 mots pour 5 secondes"
       </div>
 
       <p className="text-xs text-neutral-500 italic">
-        Astuce: Utilisez "Suggestions" pour des scripts optimisés
+        {t.library.aewTip}
       </p>
     </div>
   );

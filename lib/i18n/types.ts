@@ -27,6 +27,10 @@ export interface Translations {
     directPublish: string;
     seePreview: string;
     disconnecting: string;
+    confirmDisconnect: string;
+    disconnectedSuccess: string;
+    errorDisconnect: string;
+    errorPrefix: string;
   };
   common: {
     tryFree: string;
@@ -46,6 +50,25 @@ export interface Translations {
     free: string;
     popular: string;
     recommended: string;
+    // Contact Support Modal
+    supportTitle: string;
+    supportReplyTime: string;
+    supportSent: string;
+    supportSentSub: string;
+    supportName: string;
+    supportNamePlaceholder: string;
+    supportEmail: string;
+    supportSubject: string;
+    supportSubjectPlaceholder: string;
+    supportMessage: string;
+    supportMessagePlaceholder: string;
+    supportCancel: string;
+    supportSending: string;
+    supportSend: string;
+    supportEmailAlt: string;
+    supportErrorSending: string;
+    supportErrorDefault: string;
+    supportErrorPrefix: string;
   };
   home: {
     heroBadge: string;

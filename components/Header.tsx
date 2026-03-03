@@ -136,7 +136,7 @@ export default function Header() {
   };
 
   const handleInstagramDisconnect = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir déconnecter votre compte Instagram ?')) {
+    if (!confirm(`${t.nav.confirmDisconnect} Instagram ?`)) {
       return;
     }
 
@@ -149,22 +149,21 @@ export default function Header() {
       const data = await response.json();
 
       if (data.ok) {
-        alert('Instagram déconnecté avec succès');
-        // Recharger la page pour mettre à jour tous les composants
+        alert(`Instagram ${t.nav.disconnectedSuccess}`);
         window.location.reload();
       } else {
-        alert(`Erreur: ${data.error}`);
+        alert(`${t.nav.errorPrefix} ${data.error}`);
       }
     } catch (error) {
       console.error('[Header] Error disconnecting Instagram:', error);
-      alert('Erreur lors de la déconnexion Instagram');
+      alert(`${t.nav.errorDisconnect} Instagram`);
     } finally {
       setDisconnectingInstagram(false);
     }
   };
 
   const handleTikTokDisconnect = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir déconnecter votre compte TikTok ?')) {
+    if (!confirm(`${t.nav.confirmDisconnect} TikTok ?`)) {
       return;
     }
 
@@ -177,22 +176,21 @@ export default function Header() {
       const data = await response.json();
 
       if (data.ok) {
-        alert('TikTok déconnecté avec succès');
-        // Recharger la page pour mettre à jour tous les composants
+        alert(`TikTok ${t.nav.disconnectedSuccess}`);
         window.location.reload();
       } else {
-        alert(`Erreur: ${data.error}`);
+        alert(`${t.nav.errorPrefix} ${data.error}`);
       }
     } catch (error) {
       console.error('[Header] Error disconnecting TikTok:', error);
-      alert('Erreur lors de la déconnexion TikTok');
+      alert(`${t.nav.errorDisconnect} TikTok`);
     } finally {
       setDisconnectingTikTok(false);
     }
   };
 
   const handleLinkedInDisconnect = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir déconnecter votre compte LinkedIn ?')) {
+    if (!confirm(`${t.nav.confirmDisconnect} LinkedIn ?`)) {
       return;
     }
 
@@ -210,14 +208,14 @@ export default function Header() {
         .eq('id', user.id);
 
       if (!error) {
-        alert('LinkedIn déconnecté avec succès');
+        alert(`LinkedIn ${t.nav.disconnectedSuccess}`);
         window.location.reload();
       } else {
-        alert(`Erreur: ${error.message}`);
+        alert(`${t.nav.errorPrefix} ${error.message}`);
       }
     } catch (error) {
       console.error('[Header] Error disconnecting LinkedIn:', error);
-      alert('Erreur lors de la déconnexion LinkedIn');
+      alert(`${t.nav.errorDisconnect} LinkedIn`);
     } finally {
       setDisconnectingLinkedIn(false);
     }
@@ -238,8 +236,8 @@ export default function Header() {
           <span className="text-lg font-bold text-neutral-900">KeiroAI</span>
         </Link>
 
-        {/* Language Toggle — desktop */}
-        <div className="hidden lg:flex">
+        {/* Language Toggle — always visible */}
+        <div className="flex">
           <LanguageToggle />
         </div>
 

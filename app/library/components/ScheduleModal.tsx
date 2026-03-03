@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 type Platform = 'instagram' | 'tiktok' | 'facebook' | 'twitter';
 
@@ -21,6 +22,7 @@ interface ScheduleModalProps {
 }
 
 export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: ScheduleModalProps) {
+  const { t } = useLanguage();
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['instagram']);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -28,7 +30,6 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
   const [hashtags, setHashtags] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Générer caption auto au chargement
   useEffect(() => {
     if (isOpen && !caption) {
       generateCaption();
@@ -36,12 +37,11 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
   }, [isOpen]);
 
   const generateCaption = async () => {
-    // Caption simple basée sur le titre de l'image
-    const title = image.title || 'Nouveau contenu';
+    const title = image.title || t.library.smNewContent;
     const defaultCaptions = [
-      `✨ ${title}\n\nDécouvrez notre dernière création ! 🚀`,
-      `🎯 ${title}\n\nOn partage avec vous cette nouvelle inspiration 💡`,
-      `📢 ${title}\n\nÀ ne pas manquer ! 👀`,
+      `✨ ${title}\n\n${t.library.smCaptionDiscover} 🚀`,
+      `🎯 ${title}\n\n${t.library.smCaptionShare} 💡`,
+      `📢 ${title}\n\n${t.library.smCaptionDontMiss} 👀`,
     ];
     setCaption(defaultCaptions[Math.floor(Math.random() * defaultCaptions.length)]);
   };
@@ -65,12 +65,12 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
 
   const handleSchedule = async () => {
     if (!date || !time) {
-      alert('Veuillez sélectionner une date et heure');
+      alert(t.library.smAlertDateTime);
       return;
     }
 
     if (selectedPlatforms.length === 0) {
-      alert('Veuillez sélectionner au moins une plateforme');
+      alert(t.library.smAlertPlatform);
       return;
     }
 
@@ -92,13 +92,12 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
       onClose();
     } catch (error) {
       console.error('Error scheduling post:', error);
-      alert('Erreur lors de la planification');
+      alert(t.library.smAlertError);
     } finally {
       setSaving(false);
     }
   };
 
-  // Générer date min (demain) et max (3 mois)
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
@@ -116,10 +115,10 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
         <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
-              📅 Planifier la publication
+              📅 {t.library.smTitle}
             </h2>
             <p className="text-sm text-neutral-600 mt-1">
-              Préparez votre contenu pour publication ultérieure
+              {t.library.smSubtitle}
             </p>
           </div>
           <button
@@ -141,15 +140,15 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               className="w-20 h-20 object-cover rounded-lg"
             />
             <div>
-              <p className="font-semibold text-neutral-900">{image.title || 'Sans titre'}</p>
-              <p className="text-sm text-neutral-600">Image sélectionnée</p>
+              <p className="font-semibold text-neutral-900">{image.title || t.library.smUntitled}</p>
+              <p className="text-sm text-neutral-600">{t.library.smSelectedImage}</p>
             </div>
           </div>
 
           {/* Platform Selection */}
           <div>
             <label className="block text-sm font-semibold text-neutral-900 mb-3">
-              Plateformes (sélection multiple)
+              {t.library.smPlatformsLabel}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {(['instagram', 'tiktok', 'facebook', 'twitter'] as Platform[]).map((p) => {
@@ -191,7 +190,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               })}
             </div>
             <p className="text-xs text-neutral-500 mt-2">
-              Sélectionnez une ou plusieurs plateformes pour publier simultanément
+              {t.library.smPlatformsHint}
             </p>
           </div>
 
@@ -199,7 +198,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Date
+                {t.library.smDateLabel}
               </label>
               <input
                 type="date"
@@ -212,7 +211,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Heure
+                {t.library.smTimeLabel}
               </label>
               <input
                 type="time"
@@ -227,36 +226,36 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-semibold text-neutral-900">
-                Caption
+                {t.library.smCaptionLabel}
               </label>
               <button
                 onClick={generateCaption}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
-                ✨ Régénérer
+                ✨ {t.library.smRegenerate}
               </button>
             </div>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
-              placeholder="Écrivez votre caption..."
+              placeholder={t.library.smCaptionPlaceholder}
               className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
-            <p className="text-xs text-neutral-500 mt-1">{caption.length} caractères</p>
+            <p className="text-xs text-neutral-500 mt-1">{t.library.smCharsCount.replace('{n}', String(caption.length))}</p>
           </div>
 
           {/* Hashtags */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-semibold text-neutral-900">
-                Hashtags
+                {t.library.smHashtagsLabel}
               </label>
               <button
                 onClick={generateHashtags}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
-                ✨ Suggérer
+                ✨ {t.library.smSuggest}
               </button>
             </div>
             <input
@@ -267,7 +266,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-xs text-neutral-500 mt-1">
-              Séparez les hashtags par des espaces
+              {t.library.smHashtagsHint}
             </p>
           </div>
 
@@ -278,10 +277,10 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                 <span className="text-2xl">✅</span>
                 <div>
                   <p className="text-sm font-semibold text-green-900 mb-1">
-                    Publication automatique activée
+                    {t.library.smAutoPublishTitle}
                   </p>
                   <p className="text-xs text-green-800">
-                    Votre post sera publié automatiquement sur{' '}
+                    {t.library.smAutoPublishDesc}{' '}
                     <strong>
                       {selectedPlatforms.map((p, i) => (
                         <span key={p}>
@@ -290,10 +289,10 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                         </span>
                       ))}
                     </strong>{' '}
-                    à la date et heure choisies.
+                    {t.library.smAutoPublishTime}
                     {selectedPlatforms.includes('tiktok') && (
                       <span className="block mt-1">
-                        🎵 Pour TikTok : Votre image sera automatiquement convertie en vidéo de 5 secondes.
+                        🎵 {t.library.smTikTokNote}
                       </span>
                     )}
                   </p>
@@ -310,14 +309,14 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
             disabled={saving}
             className="flex-1 px-6 py-3 border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-50"
           >
-            Annuler
+            {t.library.smCancel}
           </button>
           <button
             onClick={handleSchedule}
             disabled={saving || !date || !time || selectedPlatforms.length === 0}
             className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Planification...' : `📅 Planifier (${selectedPlatforms.length})`}
+            {saving ? t.library.smScheduling : `📅 ${t.library.smScheduleBtn.replace('{n}', String(selectedPlatforms.length))}`}
           </button>
         </div>
       </div>

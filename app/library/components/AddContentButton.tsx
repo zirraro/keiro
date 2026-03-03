@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface AddContentButtonProps {
   onUploadComplete?: () => void;
 }
 
 export default function AddContentButton({ onUploadComplete }: AddContentButtonProps) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -51,7 +53,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
       const maxSize = type === 'image' ? 8 * 1024 * 1024 : 287 * 1024 * 1024; // 8MB images, 287MB videos (TikTok limit)
       if (file.size > maxSize) {
         const maxSizeMB = type === 'image' ? '8MB' : '287MB';
-        throw new Error(`Fichier trop volumineux. Taille max: ${maxSizeMB}`);
+        throw new Error(`${t.library.acbFileTooLarge} ${maxSizeMB}`);
       }
 
       // Pour les vidéos, utiliser l'upload direct vers Supabase (bypass Vercel)
@@ -73,7 +75,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
 
     } catch (error: any) {
       console.error('[AddContentButton] Upload error:', error);
-      alert(`Erreur lors de l'upload: ${error.message}`);
+      alert(`${t.library.acbUploadError} ${error.message}`);
       setUploading(false);
       setProgress(0);
       setUploadType(null);
@@ -103,8 +105,8 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
         }));
       });
 
-      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+      xhr.addEventListener('error', () => reject(new Error(t.library.acbNetworkError)));
+      xhr.addEventListener('abort', () => reject(new Error(t.library.acbUploadCancelled)));
 
       xhr.open('POST', '/api/upload');
       xhr.send(formData);
@@ -112,7 +114,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erreur serveur (${response.status})`);
+      throw new Error(errorData.error || `${t.library.acbServerError} (${response.status})`);
     }
 
     const data = await response.json();
@@ -136,7 +138,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
 
     if (!signedUrlResponse.ok) {
       const errorData = await signedUrlResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Impossible d\'obtenir l\'URL d\'upload');
+      throw new Error(errorData.error || t.library.acbCannotGetUploadUrl);
     }
 
     const { signedUrl, token, path } = await signedUrlResponse.json();
@@ -163,8 +165,8 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
         }
       });
 
-      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+      xhr.addEventListener('error', () => reject(new Error(t.library.acbNetworkError)));
+      xhr.addEventListener('abort', () => reject(new Error(t.library.acbUploadCancelled)));
 
       xhr.open('PUT', signedUrl);
       xhr.setRequestHeader('Content-Type', file.type);
@@ -194,7 +196,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
 
     if (!metadataResponse.ok) {
       const errorData = await metadataResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Erreur lors de la sauvegarde des métadonnées');
+      throw new Error(errorData.error || t.library.acbMetadataError);
     }
 
     const metadataData = await metadataResponse.json();
@@ -229,14 +231,14 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
         {uploading ? (
           <>
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Upload en cours...</span>
+            <span>{t.library.acbUploading}</span>
           </>
         ) : (
           <>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span>Ajouter du contenu</span>
+            <span>{t.library.acbAddContent}</span>
           </>
         )}
       </button>
@@ -250,8 +252,8 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
           >
             <span className="text-2xl">📸</span>
             <div>
-              <div className="text-sm font-semibold text-neutral-900">Ajouter une image</div>
-              <div className="text-xs text-neutral-500">JPEG, PNG, WebP, GIF (max 8MB)</div>
+              <div className="text-sm font-semibold text-neutral-900">{t.library.acbAddImage}</div>
+              <div className="text-xs text-neutral-500">{t.library.acbImageFormats}</div>
             </div>
           </button>
 
@@ -263,8 +265,8 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
           >
             <span className="text-2xl">🎬</span>
             <div>
-              <div className="text-sm font-semibold text-neutral-900">Ajouter une vidéo</div>
-              <div className="text-xs text-neutral-500">MP4, MOV, WebM (max 287MB)</div>
+              <div className="text-sm font-semibold text-neutral-900">{t.library.acbAddVideo}</div>
+              <div className="text-xs text-neutral-500">{t.library.acbVideoFormats}</div>
             </div>
           </button>
         </div>
@@ -277,7 +279,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
             <span className="text-xl">{uploadType === 'image' ? '📸' : '🎬'}</span>
             <div className="flex-1">
               <div className="text-sm font-semibold text-neutral-900">
-                Upload {uploadType === 'image' ? "de l'image" : 'de la vidéo'}
+                {uploadType === 'image' ? t.library.acbUploadImage : t.library.acbUploadVideo}
               </div>
               <div className="text-xs text-neutral-500">{progress}%</div>
             </div>

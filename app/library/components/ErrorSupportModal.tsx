@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ContactSupportModal from './ContactSupportModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface ErrorSupportModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function ErrorSupportModal({
   errorMessage,
   technicalError
 }: ErrorSupportModalProps) {
+  const { t } = useLanguage();
   const [showContactModal, setShowContactModal] = useState(false);
 
   const openCalendly = () => {
@@ -31,7 +33,7 @@ export default function ErrorSupportModal({
   const copyTechnicalError = () => {
     if (technicalError) {
       navigator.clipboard.writeText(technicalError);
-      alert('Erreur technique copiée dans le presse-papier');
+      alert(t.library.esmCopiedToClipboard);
     }
   };
 
@@ -50,7 +52,7 @@ export default function ErrorSupportModal({
             </div>
             <div>
               <h2 className="text-xl font-bold">{title}</h2>
-              <p className="text-sm text-red-100">Une erreur s'est produite</p>
+              <p className="text-sm text-red-100">{t.library.esmErrorOccurred}</p>
             </div>
           </div>
         </div>
@@ -60,7 +62,7 @@ export default function ErrorSupportModal({
           {/* User-friendly message */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-red-900">
-              <strong>❌ Erreur :</strong> {errorMessage}
+              <strong>❌ {t.library.esmErrorLabel}</strong> {errorMessage}
             </p>
           </div>
 
@@ -68,7 +70,7 @@ export default function ErrorSupportModal({
           {technicalError && (
             <details className="mb-4 text-xs">
               <summary className="cursor-pointer text-neutral-600 hover:text-neutral-900 font-medium mb-2">
-                📋 Détails techniques (pour le support)
+                📋 {t.library.esmTechnicalDetails}
               </summary>
               <div className="bg-neutral-100 rounded-lg p-3 font-mono text-xs text-neutral-700 overflow-auto max-h-32">
                 {technicalError}
@@ -77,7 +79,7 @@ export default function ErrorSupportModal({
                 onClick={copyTechnicalError}
                 className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
               >
-                📋 Copier l'erreur technique
+                📋 {t.library.esmCopyTechnicalError}
               </button>
             </details>
           )}
@@ -85,10 +87,10 @@ export default function ErrorSupportModal({
           {/* Support section */}
           <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
             <h3 className="font-bold text-neutral-900 mb-2 flex items-center gap-2">
-              <span>💬</span> Besoin d'aide ?
+              <span>💬</span> {t.library.esmNeedHelp}
             </h3>
             <p className="text-sm text-neutral-700 mb-3">
-              Notre équipe peut vous aider à résoudre ce problème rapidement. Choisissez votre moyen de contact préféré :
+              {t.library.esmHelpDesc}
             </p>
             <div className="space-y-2">
               <button
@@ -98,7 +100,7 @@ export default function ErrorSupportModal({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                 </svg>
-                <span>Appel téléphonique (15 min gratuit)</span>
+                <span>{t.library.esmPhoneCall}</span>
               </button>
               <button
                 onClick={openContactForm}
@@ -107,18 +109,18 @@ export default function ErrorSupportModal({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span>Email (réponse sous 24h)</span>
+                <span>{t.library.esmEmailResponse}</span>
               </button>
             </div>
           </div>
 
           {/* Instructions */}
           <div className="mt-4 text-xs text-neutral-500">
-            <p className="font-semibold mb-1">Lors de l'appel, partagez :</p>
+            <p className="font-semibold mb-1">{t.library.esmShareDuringCall}</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Le message d'erreur ci-dessus</li>
-              {technicalError && <li>Les détails techniques (copiez-les)</li>}
-              <li>Ce que vous essayiez de faire</li>
+              <li>{t.library.esmShareErrorMsg}</li>
+              {technicalError && <li>{t.library.esmShareTechDetails}</li>}
+              <li>{t.library.esmShareWhatYouDid}</li>
             </ul>
           </div>
         </div>
@@ -129,13 +131,13 @@ export default function ErrorSupportModal({
             onClick={onClose}
             className="flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-100 transition-colors"
           >
-            Fermer
+            {t.library.esmClose}
           </button>
           <button
             onClick={openContactForm}
             className="flex-1 px-4 py-2 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors"
           >
-            Contacter le support
+            {t.library.esmContactSupport}
           </button>
         </div>
       </div>

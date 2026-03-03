@@ -1,18 +1,8 @@
 import { useState } from 'react';
 import { XIcon, FolderIcon } from './Icons';
+import { useLanguage } from '@/lib/i18n/context';
 
 const ICON_OPTIONS = ['📁', '🎨', '📸', '💼', '🎯', '⭐', '🔥', '💡', '🚀', '📊', '🎬', '🎭', '💰', '🏆', '🎪', '🌟'];
-
-const COLOR_OPTIONS = [
-  { name: 'Bleu', value: '#3b82f6' },
-  { name: 'Violet', value: '#9333ea' },
-  { name: 'Rose', value: '#ec4899' },
-  { name: 'Rouge', value: '#ef4444' },
-  { name: 'Orange', value: '#f97316' },
-  { name: 'Jaune', value: '#eab308' },
-  { name: 'Vert', value: '#22c55e' },
-  { name: 'Cyan', value: '#06b6d4' },
-];
 
 interface CreateFolderModalProps {
   onClose: () => void;
@@ -20,14 +10,26 @@ interface CreateFolderModalProps {
 }
 
 export default function CreateFolderModal({ onClose, onSave }: CreateFolderModalProps) {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('📁');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
   const [saving, setSaving] = useState(false);
 
+  const COLOR_OPTIONS = [
+    { name: t.library.cfmColorBlue, value: '#3b82f6' },
+    { name: t.library.cfmColorPurple, value: '#9333ea' },
+    { name: t.library.cfmColorPink, value: '#ec4899' },
+    { name: t.library.cfmColorRed, value: '#ef4444' },
+    { name: t.library.cfmColorOrange, value: '#f97316' },
+    { name: t.library.cfmColorYellow, value: '#eab308' },
+    { name: t.library.cfmColorGreen, value: '#22c55e' },
+    { name: t.library.cfmColorCyan, value: '#06b6d4' },
+  ];
+
   const handleSave = async () => {
     if (!name.trim()) {
-      alert('Veuillez entrer un nom pour le dossier');
+      alert(t.library.cfmAlertEmptyName);
       return;
     }
 
@@ -37,7 +39,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
       onClose();
     } catch (error) {
       console.error('Error creating folder:', error);
-      alert('Erreur lors de la création du dossier');
+      alert(t.library.cfmAlertError);
     } finally {
       setSaving(false);
     }
@@ -52,7 +54,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
               <FolderIcon className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-neutral-900">Nouveau dossier</h2>
+            <h2 className="text-2xl font-bold text-neutral-900">{t.library.cfmTitle}</h2>
           </div>
           <button
             onClick={onClose}
@@ -67,7 +69,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
           <div className="space-y-6">
             {/* Preview */}
             <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl p-6 border-2 border-neutral-200">
-              <p className="text-sm text-neutral-600 mb-3 font-medium">Aperçu</p>
+              <p className="text-sm text-neutral-600 mb-3 font-medium">{t.library.cfmPreview}</p>
               <div className="flex items-center gap-3">
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl shadow-md"
@@ -77,9 +79,9 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-neutral-900">
-                    {name || 'Nom du dossier'}
+                    {name || t.library.cfmFolderName}
                   </p>
-                  <p className="text-sm text-neutral-500">0 image</p>
+                  <p className="text-sm text-neutral-500">{t.library.cfm0Image}</p>
                 </div>
               </div>
             </div>
@@ -87,26 +89,26 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             {/* Nom */}
             <div>
               <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                Nom du dossier *
+                {t.library.cfmFolderNameRequired}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Mes projets, Clients, Instagram..."
+                placeholder={t.library.cfmPlaceholder}
                 className="w-full px-4 py-3 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 maxLength={50}
                 autoFocus
               />
               <p className="text-xs text-neutral-500 mt-1">
-                {name.length} / 50 caractères
+                {t.library.cfmCharCount.replace('{n}', String(name.length))}
               </p>
             </div>
 
             {/* Icône */}
             <div>
               <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                Icône
+                {t.library.cfmIcon}
               </label>
               <div className="grid grid-cols-8 gap-2">
                 {ICON_OPTIONS.map((icon) => (
@@ -128,7 +130,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             {/* Couleur */}
             <div>
               <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                Couleur
+                {t.library.cfmColor}
               </label>
               <div className="grid grid-cols-4 gap-3">
                 {COLOR_OPTIONS.map((color) => (
@@ -171,7 +173,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             disabled={saving}
             className="px-6 py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors disabled:opacity-50"
           >
-            Annuler
+            {t.library.cfmCancel}
           </button>
           <button
             onClick={handleSave}
@@ -185,12 +187,12 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             {saving ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Création...</span>
+                <span>{t.library.cfmCreating}</span>
               </>
             ) : (
               <>
                 <FolderIcon className="w-5 h-5" />
-                <span>Créer le dossier</span>
+                <span>{t.library.cfmCreate}</span>
               </>
             )}
           </button>

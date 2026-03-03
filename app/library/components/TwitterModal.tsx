@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TwitterXIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import ImageEditModal from './ImageEditModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 type SavedImage = {
   id: string;
@@ -41,6 +42,7 @@ interface TwitterModalProps {
 }
 
 export default function TwitterModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: TwitterModalProps) {
+  const { t } = useLanguage();
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -136,11 +138,11 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
 
   const handleSave = async (status: 'draft' | 'ready') => {
     if (activeTab === 'text-only') {
-      if (!caption.trim()) { alert('Veuillez écrire du texte pour votre tweet'); return; }
+      if (!caption.trim()) { alert(t.library.tmAlertWriteText); return; }
       setSaving(true);
       try {
         await onSave(null, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon texte X sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.tmTextDraftSaved : t.library.readyToPublishToast);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -149,7 +151,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
       setSaving(true);
       try {
         await onSave(selectedImage, caption, hashtags, status);
-        setSuccessToast(status === 'draft' ? '✅ Brouillon X sauvegardé !' : '✅ Prêt à publier !');
+        setSuccessToast(status === 'draft' ? t.library.tmDraftSaved : t.library.readyToPublishToast);
         setTimeout(() => setSuccessToast(null), 3000);
       } finally {
         setSaving(false);
@@ -159,7 +161,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
       try {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Créez un compte pour accéder à cette fonctionnalité');
+        if (!user) throw new Error(t.library.createAccountForFeature);
         await supabase.from('twitter_drafts').insert({
           user_id: user.id,
           video_id: selectedVideo.id,
@@ -170,11 +172,11 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
           hashtags: hashtags || [],
           status: status
         });
-        setSuccessToast('✅ Brouillon vidéo X sauvegardé !');
+        setSuccessToast(t.library.tmVideoDraftSaved);
         setTimeout(() => setSuccessToast(null), 3000);
       } catch (error) {
         console.error('[TwitterModal] Error saving video draft:', error);
-        alert('Erreur lors de la sauvegarde');
+        alert(t.library.saveErrorGeneric);
       } finally {
         setSaving(false);
       }
@@ -184,7 +186,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
   const handleSuggest = async () => {
     if (activeTab !== 'text-only') {
       const hasContent = activeTab === 'images' ? selectedImage : selectedVideo;
-      if (!hasContent) { alert('Veuillez sélectionner un contenu'); return; }
+      if (!hasContent) { alert(t.library.tmSelectContent); return; }
     }
     setSuggesting(true);
     try {
@@ -210,11 +212,11 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
         setCaption(data.caption?.substring(0, 250) || '');
         setHashtags(data.hashtags?.slice(0, 3) || []);
       } else {
-        alert(data.error || 'Erreur lors de la génération');
+        alert(data.error || t.library.suggestionErrorShort);
       }
     } catch (error) {
       console.error('[TwitterModal] Error suggesting:', error);
-      alert('Erreur lors de la génération');
+      alert(t.library.suggestionErrorShort);
     } finally {
       setSuggesting(false);
     }
@@ -230,8 +232,8 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
               <TwitterXIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-neutral-900">Préparer un tweet</h2>
-              <p className="text-xs text-neutral-500">280 caractères max</p>
+              <h2 className="text-base sm:text-lg font-bold text-neutral-900">{t.library.tmTitle}</h2>
+              <p className="text-xs text-neutral-500">{t.library.tmMaxChars}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-neutral-200 transition-colors">
@@ -256,7 +258,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📸 Images ({availableImages.length})
+              📸 {t.library.imagesTab} ({availableImages.length})
             </button>
             <button
               onClick={() => setActiveTab('videos')}
@@ -266,7 +268,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              🎥 Vidéos ({availableVideos.length})
+              🎥 {t.library.videosTab} ({availableVideos.length})
             </button>
             <button
               onClick={() => { setActiveTab('text-only'); setSelectedImage(null); setSelectedVideo(null); }}
@@ -276,7 +278,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
-              📝 Texte seul
+              📝 {t.library.textOnlyTab}
             </button>
           </div>
         </div>
@@ -287,7 +289,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
           {activeTab !== 'text-only' && (
             <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
               <div className="p-2 space-y-2">
-                <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">Sélectionner</p>
+                <p className="text-xs font-semibold text-neutral-500 px-2 mb-2">{t.library.selectLabel}</p>
                 {activeTab === 'images' && (
                   <>
                     {loadingImages ? (
@@ -321,7 +323,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                           }`}
                         >
                           {vid.thumbnail_url ? (
-                            <img src={vid.thumbnail_url} alt={vid.title || 'Vidéo'} className="w-full h-full object-cover" />
+                            <img src={vid.thumbnail_url} alt={vid.title || t.library.video} className="w-full h-full object-cover" />
                           ) : (
                             <video src={vid.video_url} className="w-full h-full object-cover" muted preload="metadata" />
                           )}
@@ -390,15 +392,15 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                         <TwitterXIcon className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-neutral-900">Votre compte</p>
-                        <p className="text-xs text-neutral-500">@vous · maintenant</p>
+                        <p className="text-sm font-bold text-neutral-900">{t.library.tmYourAccount}</p>
+                        <p className="text-xs text-neutral-500">@vous · {t.library.tmNow}</p>
                       </div>
                     </div>
                     {/* Tweet text */}
                     {caption ? (
                       <p className="text-sm text-neutral-900 mb-3 whitespace-pre-line">{caption}</p>
                     ) : activeTab === 'text-only' ? (
-                      <p className="text-sm text-neutral-400 italic mb-3">Votre tweet apparaitra ici...</p>
+                      <p className="text-sm text-neutral-400 italic mb-3">{t.library.tmTweetPreview}</p>
                     ) : null}
                     {hashtags.length > 0 && (
                       <p className="text-sm text-[#1DA1F2] mb-3">{hashtags.join(' ')}</p>
@@ -422,7 +424,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        Modifier l'image
+                        {t.library.tmEditImage}
                       </button>
                     )}
                     {/* Engagement */}
@@ -441,34 +443,34 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Angle */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-900 mb-2">Quel angle pour votre tweet ?</label>
+                <label className="block text-sm font-semibold text-neutral-900 mb-2">{t.library.tmAngleLabel}</label>
                 <select
                   value={contentAngle}
                   onChange={(e) => setContentAngle(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent bg-white"
                 >
-                  <option value="viral">🔥 Viral - Percutant et partageable</option>
-                  <option value="humoristique">😄 Humoristique - Faire rire</option>
-                  <option value="informatif">📰 Informatif - Facts et données</option>
-                  <option value="provocateur">💥 Provocateur - Interpeller</option>
-                  <option value="conversationnel">💬 Conversationnel - Engager un échange</option>
-                  <option value="inspirant">✨ Inspirant - Motiver</option>
+                  <option value="viral">🔥 {t.library.tmAngleViral}</option>
+                  <option value="humoristique">😄 {t.library.tmAngleHumorous}</option>
+                  <option value="informatif">📰 {t.library.tmAngleInformative}</option>
+                  <option value="provocateur">💥 {t.library.tmAngleProvocative}</option>
+                  <option value="conversationnel">💬 {t.library.tmAngleConversational}</option>
+                  <option value="inspirant">✨ {t.library.tmAngleInspiring}</option>
                 </select>
               </div>
 
               {/* Mots-clés optionnels */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-1">
-                  Mots-clés / phrase directrice <span className="text-xs font-normal text-neutral-500">(optionnel)</span>
+                  {t.library.keywordsLabel} <span className="text-xs font-normal text-neutral-500">{t.library.keywordsOptional}</span>
                 </label>
                 <input
                   type="text"
                   value={userKeywords}
                   onChange={(e) => setUserKeywords(e.target.value)}
-                  placeholder="Ex: breaking news, opinion, thread..."
+                  placeholder={t.library.tmKeywordsPlaceholder}
                   className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent text-sm"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Orientez avec vos mots-clés pour personnaliser la suggestion</p>
+                <p className="text-xs text-neutral-400 mt-1">{t.library.keywordsHint}</p>
               </div>
 
               {/* Suggest */}
@@ -484,17 +486,17 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                 {suggesting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Suggestion en cours...</span>
+                    <span>{t.library.suggestingInProgress}</span>
                   </>
                 ) : (
-                  <span>✨ Suggérer un tweet</span>
+                  <span>✨ {t.library.tmSuggestTweet}</span>
                 )}
               </button>
 
               {/* Caption with char counter */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-neutral-900">Votre tweet</label>
+                  <label className="block text-sm font-semibold text-neutral-900">{t.library.tmYourTweet}</label>
                   <span className={`text-sm font-bold ${
                     remainingChars < 0 ? 'text-red-600' : remainingChars < 20 ? 'text-amber-500' : 'text-neutral-400'
                   }`}>
@@ -509,7 +511,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                       ? 'border-red-400 focus:ring-red-500'
                       : 'border-neutral-300 focus:ring-neutral-900'
                   }`}
-                  placeholder="Écrivez un tweet percutant..."
+                  placeholder={t.library.tmTweetPlaceholder}
                 />
                 {/* Progress bar */}
                 <div className="mt-2 h-1 bg-neutral-200 rounded-full overflow-hidden">
@@ -525,7 +527,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
               {/* Hashtags */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-900 mb-2">
-                  Hashtags <span className="text-neutral-400 font-normal">(comptent dans les 280 car.)</span>
+                  {t.library.hashtags} <span className="text-neutral-400 font-normal">{t.library.tmHashtagsNote}</span>
                 </label>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -534,7 +536,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                     onChange={(e) => setHashtagInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
                     className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
-                    placeholder="Ajouter un hashtag..."
+                    placeholder={t.library.tmAddHashtagPlaceholder}
                   />
                   <button onClick={addHashtag} className="px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-black transition-colors font-medium">
                     +
@@ -563,14 +565,14 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                   disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
                   className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-neutral-800 text-neutral-800 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {saving ? 'Sauvegarde...' : '📝 Sauvegarder brouillon'}
+                  {saving ? t.library.savingInProgress : `📝 ${t.library.tmSaveDraft}`}
                 </button>
                 <button
                   onClick={() => handleSave('ready')}
                   disabled={saving || (activeTab !== 'text-only' && !selectedImage && !selectedVideo) || !caption.trim() || remainingChars < 0}
                   className="flex-1 py-3 px-4 rounded-lg font-medium bg-neutral-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                 >
-                  {saving ? 'Sauvegarde...' : '✅ Marquer prêt à publier'}
+                  {saving ? t.library.savingInProgress : `✅ ${t.library.tmMarkReady}`}
                 </button>
               </div>
             </div>

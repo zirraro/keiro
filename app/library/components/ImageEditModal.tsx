@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { addTextOverlay, type TextOverlayOptions } from '@/lib/canvas-text-overlay';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface ImageEditModalProps {
   imageUrl: string;
@@ -37,18 +38,6 @@ const FONTS: { value: FontFamily; label: string }[] = [
   { value: 'playfair', label: 'Playfair' },
 ];
 
-const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
-  { value: 'clean', emoji: '🔲', label: 'Sans fond' },
-  { value: 'none', emoji: '🅰', label: 'Contour fort' },
-  { value: 'minimal', emoji: '·', label: 'Discret' },
-  { value: 'transparent', emoji: '▦', label: 'Transparent' },
-  { value: 'solid', emoji: '■', label: 'Solide' },
-  { value: 'gradient', emoji: '◐', label: 'Dégradé' },
-  { value: 'blur', emoji: '☁', label: 'Flou' },
-  { value: 'outline', emoji: '□', label: 'Contour' },
-  { value: 'glow', emoji: '✧', label: 'Lumineux' },
-];
-
 // Position presets removed — replaced by up/down controls inline
 
 function generateId() {
@@ -56,6 +45,20 @@ function generateId() {
 }
 
 export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, initialText, onClose, onImageEdited }: ImageEditModalProps) {
+  const { t } = useLanguage();
+
+  const BG_STYLES: { value: BgStyle; emoji: string; label: string }[] = [
+    { value: 'clean', emoji: '🔲', label: t.library.iemBgClean },
+    { value: 'none', emoji: '🅰', label: t.library.iemBgStrongOutline },
+    { value: 'minimal', emoji: '·', label: t.library.iemBgSubtle },
+    { value: 'transparent', emoji: '▦', label: t.library.iemBgTransparent },
+    { value: 'solid', emoji: '■', label: t.library.iemBgSolid },
+    { value: 'gradient', emoji: '◐', label: t.library.iemBgGradient },
+    { value: 'blur', emoji: '☁', label: t.library.iemBgBlur },
+    { value: 'outline', emoji: '□', label: t.library.iemBgOutline },
+    { value: 'glow', emoji: '✧', label: t.library.iemBgGlow },
+  ];
+
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [editProvider, setEditProvider] = useState<string>('');
 
@@ -304,7 +307,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
         });
         const data = await res.json();
         if (!data.ok) {
-          setError(data.error || 'Erreur lors de la modification');
+          setError(data.error || t.library.iemErrorModification);
           break;
         }
         setAiEditedUrl(data.imageUrl);
@@ -315,7 +318,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
           continue;
         }
-        setError('Erreur réseau. Vérifiez votre connexion et réessayez.');
+        setError(t.library.iemErrorNetwork);
       }
     }
     setAiLoading(false);
@@ -333,7 +336,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
       if (resultUrl.startsWith('data:')) {
         const supabase = supabaseBrowser();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Non authentifié');
+        if (!user) throw new Error(t.library.iemNotAuthenticated);
 
         // Conversion base64 → Blob directe
         const base64Data = resultUrl.split(',')[1];
@@ -384,7 +387,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
       onImageEdited(finalUrl, overlayJson || undefined);
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la sauvegarde');
+      setError(err.message || t.library.iemErrorSave);
     } finally {
       setSaving(false);
     }
@@ -424,7 +427,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
       await handleUse(currentImage);
     } catch (err) {
       console.error('[TextOverlay] Save error:', err);
-      setError('Erreur lors de la sauvegarde');
+      setError(t.library.iemErrorSave);
     } finally {
       setTextLoading(false);
     }
@@ -449,7 +452,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                {textOverlays.length > 0 ? `Textes (${textOverlays.length})` : 'Ajouter du texte'}
+                {textOverlays.length > 0 ? `${t.library.iemTextsTab} (${textOverlays.length})` : t.library.iemAddTextTab}
               </button>
               <button
                 onClick={() => setActiveTab('ai')}
@@ -459,7 +462,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
-                Modifier
+                {t.library.iemModifyTab}
               </button>
             </div>
             <button onClick={onClose} className="p-1 hover:bg-neutral-100 rounded-lg transition mb-2">
@@ -475,15 +478,15 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           {/* Image preview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <p className="text-xs font-medium text-neutral-500 mb-1">Original</p>
+              <p className="text-xs font-medium text-neutral-500 mb-1">{t.library.iemOriginal}</p>
               <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border">
-                <img src={imageUrl} alt="Original" className="w-full h-full object-cover" />
+                <img src={imageUrl} alt={t.library.iemOriginal} className="w-full h-full object-cover" />
               </div>
             </div>
             {(currentResult || activeTab === 'text') && (
               <div>
                 <p className="text-xs font-medium text-emerald-600 mb-1 flex items-center gap-1.5">
-                  {activeTab === 'text' ? 'Aperçu' : 'Modifié'}
+                  {activeTab === 'text' ? t.library.iemPreview : t.library.iemModified}
                   {activeTab === 'ai' && editProvider && (
                     <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
@@ -491,7 +494,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <div className="aspect-square bg-neutral-100 rounded-lg overflow-hidden border border-emerald-300 relative">
                   <img
                     src={activeTab === 'text' ? (textPreviewUrl || baseImage) : currentResult || baseImage}
-                    alt="Résultat"
+                    alt={t.library.iemResult}
                     className="w-full h-full object-cover"
                   />
                   {activeTab === 'text' && textLoading && (
@@ -510,7 +513,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {/* Applied overlays list — each one clickable to edit, with delete button */}
               {textOverlays.length > 0 && (
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1.5">Textes appliqués</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1.5">{t.library.iemAppliedTexts}</label>
                   <div className="space-y-1.5">
                     {textOverlays.map((overlay) => (
                       <div
@@ -535,7 +538,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteOverlay(overlay.id); }}
                           className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition shrink-0"
-                          title="Supprimer ce texte"
+                          title={t.library.iemDeleteThisText}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -550,7 +553,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                       onClick={handleNewOverlay}
                       className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
                     >
-                      + Ajouter un autre texte
+                      {t.library.iemAddAnotherText}
                     </button>
                   )}
                 </div>
@@ -559,12 +562,12 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {/* Text form */}
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  {editingId ? 'Modifier le texte' : 'Nouveau texte'}
+                  {editingId ? t.library.iemEditText : t.library.iemNewText}
                 </label>
                 <textarea
                   value={formText}
                   onChange={(e) => setFormText(e.target.value)}
-                  placeholder="Ex: -20% ce weekend ! / Nouvelle collection / Offre spéciale..."
+                  placeholder={t.library.iemTextPlaceholder}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   rows={2}
                 />
@@ -572,33 +575,33 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
               {/* Position — up/down controls */}
               <div>
-                <label className="block text-xs font-medium text-neutral-600 mb-1">Position <span className="text-neutral-400">({formPosition}%)</span></label>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemPosition} <span className="text-neutral-400">({formPosition}%)</span></label>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setFormPosition(Math.max(8, formPosition - 10))}
                     className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                   >
-                    ⬆️ Haut +
+                    ⬆️ {t.library.iemTopPlus}
                   </button>
                   <div className="flex-1 flex items-center gap-1.5 justify-center">
                     <button
                       onClick={() => setFormPosition(25)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                    >Haut</button>
+                    >{t.library.iemTop}</button>
                     <button
                       onClick={() => setFormPosition(50)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                    >Centre</button>
+                    >{t.library.iemCenter}</button>
                     <button
                       onClick={() => setFormPosition(75)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
-                    >Bas</button>
+                    >{t.library.iemBottom}</button>
                   </div>
                   <button
                     onClick={() => setFormPosition(Math.min(92, formPosition + 10))}
                     className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-all"
                   >
-                    ⬇️ Bas +
+                    ⬇️ {t.library.iemBottomPlus}
                   </button>
                 </div>
               </div>
@@ -606,7 +609,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {/* Font + Size */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1">Police</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemFont}</label>
                   <select
                     value={formFontFamily}
                     onChange={(e) => setFormFontFamily(e.target.value as FontFamily)}
@@ -618,7 +621,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1">Taille: {formFontSize}px</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemSize}: {formFontSize}px</label>
                   <input
                     type="range"
                     min={24}
@@ -633,7 +636,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {/* Colors */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur texte</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemTextColor}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -656,7 +659,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-600 mb-1">Couleur fond</label>
+                  <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemBgColor}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -694,7 +697,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
 
               {/* Background style */}
               <div>
-                <label className="block text-xs font-medium text-neutral-600 mb-1">Style de fond</label>
+                <label className="block text-xs font-medium text-neutral-600 mb-1">{t.library.iemBgStyle}</label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {BG_STYLES.map(s => (
                     <button
@@ -721,8 +724,8 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {/* Slider force de modification */}
               <div>
                 <p className="text-sm font-medium mb-1.5">
-                  Force : <span className="text-purple-600 font-bold">
-                    {editStrength <= 5 ? 'Subtile' : editStrength <= 7 ? 'Modérée' : 'Forte'}
+                  {t.library.iemStrength} <span className="text-purple-600 font-bold">
+                    {editStrength <= 5 ? t.library.iemStrengthSubtle : editStrength <= 7 ? t.library.iemStrengthModerate : t.library.iemStrengthStrong}
                   </span>
                 </p>
                 <input
@@ -735,32 +738,32 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   className="w-full accent-purple-600"
                 />
                 <div className="flex justify-between text-[10px] text-neutral-400 mt-0.5">
-                  <span>Subtile</span>
-                  <span>Modérée</span>
-                  <span>Forte</span>
+                  <span>{t.library.iemStrengthSubtle}</span>
+                  <span>{t.library.iemStrengthModerate}</span>
+                  <span>{t.library.iemStrengthStrong}</span>
                 </div>
                 <p className="text-[11px] text-neutral-500 mt-1">
                   {editStrength <= 5
-                    ? 'Retouches légères : lumière, couleurs, détails'
+                    ? t.library.iemStrengthSubtleDesc
                     : editStrength <= 7
-                    ? 'Modifications visibles : ajout/suppression d\'éléments'
-                    : 'Transformations créatives : changement de style ou composition'}
+                    ? t.library.iemStrengthModerateDesc
+                    : t.library.iemStrengthStrongDesc}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">
-                  Décrivez les modifications souhaitées
+                  {t.library.iemDescribeChanges}
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={
                     editStrength <= 5
-                      ? 'Ex: Améliorer la lumière, saturer les couleurs, ajouter du contraste...'
+                      ? t.library.iemPlaceholderSubtle
                       : editStrength <= 7
-                      ? 'Ex: Ajouter des plantes, changer le fond en bleu, enlever le texte...'
-                      : 'Ex: Style vintage, ambiance golden hour, transformer en peinture...'
+                      ? t.library.iemPlaceholderModerate
+                      : t.library.iemPlaceholderStrong
                   }
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   rows={3}
@@ -771,7 +774,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
               {aiLoading && (
                 <div className="flex items-center justify-center gap-3 py-6">
                   <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-neutral-600">Modification en cours... (~15-30s)</span>
+                  <span className="text-sm text-neutral-600">{t.library.iemModifying}</span>
                 </div>
               )}
             </div>
@@ -797,7 +800,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={saving || textLoading}
                   className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingId ? 'Valider la modification' : '+ Ajouter ce texte'}
+                  {editingId ? t.library.iemValidateChange : t.library.iemAddThisText}
                 </button>
               )}
               {/* Nouveau texte — visible quand en mode édition */}
@@ -807,7 +810,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={saving}
                   className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition disabled:opacity-50"
                 >
-                  + Nouveau texte
+                  {t.library.iemNewTextBtn}
                 </button>
               )}
               {/* Sauvegarder (render final + upload) */}
@@ -817,7 +820,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={saving || textLoading}
                   className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  {saving ? t.library.iemSaving : t.library.iemSaveOverlays}
                 </button>
               )}
               {/* Supprimer tout */}
@@ -827,7 +830,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={saving}
                   className="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-sm hover:bg-red-100 transition disabled:opacity-50"
                 >
-                  Tout supprimer
+                  {t.library.iemDeleteAll}
                 </button>
               )}
             </>
@@ -841,13 +844,13 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     disabled={saving}
                     className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold text-sm hover:bg-emerald-700 transition disabled:opacity-50"
                   >
-                    {saving ? 'Sauvegarde...' : 'Utiliser cette version'}
+                    {saving ? t.library.iemSaving : t.library.iemUseThisVersion}
                   </button>
                   <button
                     onClick={() => { setAiEditedUrl(null); setError(null); }}
                     className="px-4 py-2.5 bg-neutral-100 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-200 transition"
                   >
-                    Réessayer
+                    {t.library.iemRetry}
                   </button>
                 </>
               ) : (
@@ -856,7 +859,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   disabled={aiLoading || !prompt.trim()}
                   className="flex-1 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-semibold text-sm hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {aiLoading ? 'Modification...' : 'Modifier'}
+                  {aiLoading ? t.library.iemModifyingBtn : t.library.iemModifyBtn}
                 </button>
               )}
             </>
@@ -866,7 +869,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
             disabled={aiLoading || saving}
             className="px-4 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg font-medium text-sm hover:bg-neutral-50 transition disabled:opacity-50"
           >
-            Fermer
+            {t.library.iemCloseBtn}
           </button>
         </div>
       </div>

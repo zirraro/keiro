@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 type ScheduledPost = {
   id: string;
@@ -18,14 +19,14 @@ interface CalendarTabProps {
   scheduledPosts: ScheduledPost[];
   onEditPost: (post: ScheduledPost) => void;
   onDeletePost: (postId: string) => void;
-  isVisitor?: boolean; // Indique si l'utilisateur est en mode visiteur
+  isVisitor?: boolean;
 }
 
 export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, isVisitor = false }: CalendarTabProps) {
+  const { t, locale } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
 
-  // Générer les jours du mois
   const { daysInMonth, firstDayOfMonth, prevMonthDays, nextMonthDays } = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -33,8 +34,8 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
-    const firstDayOfWeek = firstDay.getDay(); // 0 = Dimanche
-    const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Lundi = 0
+    const firstDayOfWeek = firstDay.getDay();
+    const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
 
     const daysInCurrentMonth = lastDay.getDate();
     const prevMonth = new Date(year, month, 0);
@@ -69,7 +70,6 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
   const allDays = [...prevMonthDays, ...daysInMonth, ...nextMonthDays];
 
-  // Grouper les posts par jour
   const postsByDay = useMemo(() => {
     const groups: Record<string, ScheduledPost[]> = {};
 
@@ -98,11 +98,16 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
   };
 
   const monthNames = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    t.library.calMonthJan, t.library.calMonthFeb, t.library.calMonthMar,
+    t.library.calMonthApr, t.library.calMonthMay, t.library.calMonthJun,
+    t.library.calMonthJul, t.library.calMonthAug, t.library.calMonthSep,
+    t.library.calMonthOct, t.library.calMonthNov, t.library.calMonthDec
   ];
 
-  const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const weekDays = [
+    t.library.calDayMon, t.library.calDayTue, t.library.calDayWed,
+    t.library.calDayThu, t.library.calDayFri, t.library.calDaySat, t.library.calDaySun
+  ];
 
   const getPlatformEmoji = (platform: string) => {
     switch (platform) {
@@ -121,29 +126,28 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
       date.getFullYear() === today.getFullYear();
   };
 
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
+
   return (
     <div className="space-y-6">
-      {/* Calendrier réel - Mode utilisateur connecté uniquement */}
       {!isVisitor && (
         <>
-          {/* Auto-Publish Banner avec aperçu */}
           {scheduledPosts.length > 0 && (
         <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
           <div className="flex items-start gap-3 mb-4">
             <span className="text-2xl">🤖</span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-blue-900 mb-1">
-                Publication automatique activée
+                {t.library.calAutoPublishEnabled}
               </p>
               <p className="text-xs text-blue-800">
-                Keiro publiera automatiquement vos posts aux dates et heures programmées. Vous recevrez une confirmation par email.
+                {t.library.calAutoPublishDesc}
               </p>
             </div>
           </div>
 
-          {/* Aperçu des 3 prochaines publications */}
           <div className="bg-white rounded-lg p-3 border border-blue-200">
-            <p className="text-xs font-semibold text-blue-900 mb-2">📆 Prochaines publications automatiques :</p>
+            <p className="text-xs font-semibold text-blue-900 mb-2">📆 {t.library.calNextAutoPublish}</p>
             <div className="space-y-2">
               {scheduledPosts
                 .filter(post => new Date(post.scheduled_for) > new Date())
@@ -153,11 +157,11 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   <div key={post.id} className="flex items-center gap-2 text-xs">
                     <span className="text-blue-500">→</span>
                     <span className="font-medium text-neutral-900">
-                      {new Date(post.scheduled_for).toLocaleDateString('fr-FR', {
+                      {new Date(post.scheduled_for).toLocaleDateString(dateLocale, {
                         weekday: 'short',
                         day: 'numeric',
                         month: 'short'
-                      })} à {new Date(post.scheduled_for).toLocaleTimeString('fr-FR', {
+                      })} {locale === 'fr' ? 'à' : 'at'} {new Date(post.scheduled_for).toLocaleTimeString(dateLocale, {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
@@ -180,7 +184,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h2>
           <p className="text-sm text-neutral-600 mt-1">
-            {scheduledPosts.length} publication{scheduledPosts.length > 1 ? 's' : ''} planifiée{scheduledPosts.length > 1 ? 's' : ''}
+            {scheduledPosts.length} {t.library.calPublicationsScheduled}
           </p>
         </div>
 
@@ -197,7 +201,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
             onClick={() => setCurrentDate(new Date())}
             className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-sm font-medium"
           >
-            Aujourd'hui
+            {t.library.calToday}
           </button>
           <button
             onClick={nextMonth}
@@ -212,7 +216,6 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
       {/* Calendar Grid */}
       <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
-        {/* Week Days Header */}
         <div className="grid grid-cols-7 bg-neutral-50 border-b border-neutral-200">
           {weekDays.map(day => (
             <div key={day} className="p-3 text-center text-sm font-semibold text-neutral-700">
@@ -221,7 +224,6 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
           ))}
         </div>
 
-        {/* Days Grid */}
         <div className="grid grid-cols-7">
           {allDays.map((dayInfo, idx) => {
             const posts = getPostsForDay(dayInfo.date);
@@ -240,7 +242,6 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   {dayInfo.day}
                 </div>
 
-                {/* Posts for this day */}
                 <div className="space-y-1">
                   {posts.slice(0, 3).map(post => (
                     <button
@@ -251,7 +252,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                       <div className="flex items-center gap-1">
                         <span>{getPlatformEmoji(post.platform)}</span>
                         <span className="truncate flex-1">
-                          {new Date(post.scheduled_for).toLocaleTimeString('fr-FR', {
+                          {new Date(post.scheduled_for).toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
@@ -262,7 +263,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
                   {posts.length > 3 && (
                     <div className="text-xs text-neutral-500 text-center">
-                      +{posts.length - 3} autre{posts.length - 3 > 1 ? 's' : ''}
+                      +{posts.length - 3} {t.library.calMore}
                     </div>
                   )}
                 </div>
@@ -280,10 +281,10 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
-                    {getPlatformEmoji(selectedPost.platform)} Publication planifiée
+                    {getPlatformEmoji(selectedPost.platform)} {t.library.calScheduledPost}
                   </h3>
                   <p className="text-sm text-neutral-600 mt-1">
-                    {new Date(selectedPost.scheduled_for).toLocaleDateString('fr-FR', {
+                    {new Date(selectedPost.scheduled_for).toLocaleDateString(dateLocale, {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -328,8 +329,8 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                     selectedPost.status === 'published' ? 'bg-green-100 text-green-700' :
                     'bg-neutral-100 text-neutral-700'
                   }`}>
-                    {selectedPost.status === 'scheduled' ? '📅 Planifié' :
-                     selectedPost.status === 'published' ? '✅ Publié' : selectedPost.status}
+                    {selectedPost.status === 'scheduled' ? '📅 ' + t.library.calStatusScheduled :
+                     selectedPost.status === 'published' ? '✅ ' + t.library.calStatusPublished : selectedPost.status}
                   </span>
                 </div>
               </div>
@@ -342,18 +343,18 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                 >
-                  Modifier
+                  {t.library.calEdit}
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm('Supprimer cette publication planifiée ?')) {
+                    if (confirm(t.library.calConfirmDelete)) {
                       onDeletePost(selectedPost.id);
                       setSelectedPost(null);
                     }
                   }}
                   className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
                 >
-                  Supprimer
+                  {t.library.calDelete}
                 </button>
               </div>
             </div>
@@ -363,41 +364,37 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
         </>
       )}
 
-      {/* Aperçu avec exemple de calendrier - Mode visiteur uniquement */}
+      {/* Visitor preview */}
       {isVisitor && (
         <div>
-          {/* Bannière info */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-6">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🤖</span>
               <div>
                 <h3 className="text-base font-bold text-blue-900 mb-1">
-                  Planification automatique de vos publications
+                  {t.library.calVisitorTitle}
                 </h3>
                 <p className="text-sm text-blue-800">
-                  Voici un aperçu de ce à quoi ressemblera votre calendrier une fois que vous aurez planifié vos posts.
-                  Keiro publiera automatiquement vos contenus aux dates et heures choisies !
+                  {t.library.calVisitorDesc}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Exemple de calendrier avec données fictives */}
           <div className="bg-white rounded-xl border-2 border-blue-200 p-4 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold text-neutral-900">Janvier 2026 (Exemple)</h3>
-                <p className="text-sm text-neutral-600">3 publications planifiées</p>
+                <h3 className="text-lg font-bold text-neutral-900">{t.library.calExampleTitle}</h3>
+                <p className="text-sm text-neutral-600">{t.library.calExampleCount}</p>
               </div>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
-                APERÇU
+                {t.library.calPreview}
               </span>
             </div>
 
-            {/* Grille calendrier avec exemples */}
             <div className="border border-neutral-200 rounded-lg overflow-hidden">
               <div className="grid grid-cols-7 bg-neutral-50 border-b border-neutral-200">
-                {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
+                {weekDays.map(day => (
                   <div key={day} className="p-2 text-center text-xs font-semibold text-neutral-700">
                     {day}
                   </div>
@@ -430,49 +427,47 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
               </div>
             </div>
 
-            {/* Liste des posts exemples */}
             <div className="mt-4 space-y-2">
-              <p className="text-xs font-semibold text-neutral-700 mb-2">📋 Publications programmées :</p>
+              <p className="text-xs font-semibold text-neutral-700 mb-2">📋 {t.library.calScheduledPublications}</p>
               <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
                 <span className="text-blue-500">→</span>
-                <span className="font-medium">Lun 8 jan à 18h00</span>
+                <span className="font-medium">{t.library.calExPost1Date}</span>
                 <span className="text-neutral-600">•</span>
-                <span className="truncate flex-1">Nouveau produit : Découvrez notre innovation...</span>
+                <span className="truncate flex-1">{t.library.calExPost1Text}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
                 <span className="text-blue-500">→</span>
-                <span className="font-medium">Lun 15 jan à 12h30</span>
+                <span className="font-medium">{t.library.calExPost2Date}</span>
                 <span className="text-neutral-600">•</span>
-                <span className="truncate flex-1">Promo exclusive : -30% ce week-end uniquement...</span>
+                <span className="truncate flex-1">{t.library.calExPost2Text}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
                 <span className="text-blue-500">→</span>
-                <span className="font-medium">Lun 22 jan à 19h15</span>
+                <span className="font-medium">{t.library.calExPost3Date}</span>
                 <span className="text-neutral-600">•</span>
-                <span className="truncate flex-1">Témoignage client : Sophie partage son expérience...</span>
+                <span className="truncate flex-1">{t.library.calExPost3Text}</span>
               </div>
             </div>
           </div>
 
-          {/* Instructions */}
           <div className="bg-white rounded-xl border border-neutral-200 p-5">
-            <h4 className="font-bold text-neutral-900 mb-3">🎯 Comment planifier vos posts :</h4>
+            <h4 className="font-bold text-neutral-900 mb-3">🎯 {t.library.calHowToTitle}</h4>
             <div className="space-y-2">
               <div className="flex items-start gap-2 text-sm text-neutral-700">
                 <span className="font-semibold text-blue-600">1.</span>
-                <span>Allez dans l'onglet <strong>"Mes images"</strong></span>
+                <span dangerouslySetInnerHTML={{ __html: t.library.calStep1 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
                 <span className="font-semibold text-blue-600">2.</span>
-                <span>Survolez une image et cliquez sur <strong>"Préparer post"</strong></span>
+                <span dangerouslySetInnerHTML={{ __html: t.library.calStep2 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
                 <span className="font-semibold text-blue-600">3.</span>
-                <span>Ajoutez description et hashtags, puis cliquez sur <strong>"Planifier la publication"</strong></span>
+                <span dangerouslySetInnerHTML={{ __html: t.library.calStep3 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
                 <span className="font-semibold text-blue-600">4.</span>
-                <span>Choisissez date et heure → Keiro publiera automatiquement !</span>
+                <span>{t.library.calStep4}</span>
               </div>
             </div>
           </div>
