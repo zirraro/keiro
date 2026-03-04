@@ -418,7 +418,7 @@ export default function AdminCRMPage() {
 
   const loadReminders = async () => {
     try {
-      const res = await fetch('/api/admin/crm/activities?rappels=true');
+      const res = await fetch('/api/admin/crm?type=activities&rappels=true');
       if (!res.ok) return;
       const data = await res.json();
       setPendingReminders(data.reminders || []);
@@ -427,7 +427,7 @@ export default function AdminCRMPage() {
 
   const loadWeeklyReminders = async () => {
     try {
-      const res = await fetch('/api/admin/crm/activities?rappels=semaine');
+      const res = await fetch('/api/admin/crm?type=activities&rappels=semaine');
       if (!res.ok) return;
       const data = await res.json();
       setWeeklyReminders(data.reminders || []);
@@ -437,7 +437,7 @@ export default function AdminCRMPage() {
   const loadActivities = async (prospectId: string) => {
     setLoadingActivities(true);
     try {
-      const res = await fetch(`/api/admin/crm/activities?prospect_id=${prospectId}`);
+      const res = await fetch(`/api/admin/crm?type=activities&prospect_id=${prospectId}`);
       if (!res.ok) return;
       const data = await res.json();
       setActivities(data.activities || []);
@@ -447,10 +447,10 @@ export default function AdminCRMPage() {
 
   const addActivity = async (data: { prospect_id: string; type: string; description?: string; resultat?: string; date_rappel?: string; heure_rappel?: string }) => {
     try {
-      const res = await fetch('/api/admin/crm/activities', {
+      const res = await fetch('/api/admin/crm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, action: 'add_activity' }),
       });
       if (!res.ok) throw new Error('Failed');
       await loadActivities(data.prospect_id);
@@ -465,7 +465,7 @@ export default function AdminCRMPage() {
 
   const markReminderDone = async (activityId: string, prospectId: string) => {
     try {
-      const res = await fetch(`/api/admin/crm/activities/${activityId}`, {
+      const res = await fetch(`/api/admin/crm/${activityId}?type=activity`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rappel_fait: true }),

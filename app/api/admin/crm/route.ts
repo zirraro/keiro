@@ -11,7 +11,16 @@ function getAdminClient() {
   });
 }
 
-// GET: Liste des prospects avec filtres
+async function checkAdmin(supabase: ReturnType<typeof getAdminClient>, userId: string) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userId)
+    .single();
+  return profile?.is_admin === true;
+}
+
+// GET: Liste des prospects OU activités/rappels
 export async function GET(req: NextRequest) {
   try {
     const { user, error: authError } = await getAuthUser();
@@ -20,47 +29,85 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getAdminClient();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    if (!(await checkAdmin(supabase, user.id))) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type');
+
+    // ─── Activities & Reminders ────────────────────────────────────────
+    if (type === 'activities') {
+      const prospectId = searchParams.get('prospect_id');
+      const rappels = searchParams.get('rappels');
+
+      if (rappels === 'true' || rappels === 'jour' || rappels === 'semaine') {
+        let cutoffDate: Date;
+        if (rappels === 'semaine') {
+          const now = new Date();
+          const dayOfWeek = now.getDay();
+          const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+          cutoffDate = new Date(now);
+          cutoffDate.setDate(now.getDate() + daysUntilSunday);
+          cutoffDate.setHours(23, 59, 59, 999);
+        } else {
+          cutoffDate = new Date();
+          cutoffDate.setHours(23, 59, 59, 999);
+        }
+
+        const { data: reminders, error } = await supabase
+          .from('crm_activities')
+          .select('*, crm_prospects!inner(id, first_name, last_name, company, instagram)')
+          .eq('rappel_fait', false)
+          .not('date_rappel', 'is', null)
+          .lte('date_rappel', cutoffDate.toISOString())
+          .order('date_rappel', { ascending: true });
+
+        if (error) {
+          console.error('[CRM Activities] Reminders error:', error);
+          return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        }
+        return NextResponse.json({ ok: true, reminders: reminders || [] });
+      }
+
+      if (prospectId) {
+        const { data: activities, error } = await supabase
+          .from('crm_activities')
+          .select('*')
+          .eq('prospect_id', prospectId)
+          .order('date_activite', { ascending: false })
+          .limit(50);
+
+        if (error) {
+          console.error('[CRM Activities] List error:', error);
+          return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        }
+        return NextResponse.json({ ok: true, activities: activities || [] });
+      }
+
+      return NextResponse.json({ error: 'Paramètre prospect_id ou rappels requis' }, { status: 400 });
+    }
+
+    // ─── Prospects list ────────────────────────────────────────────────
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const source = searchParams.get('source') || '';
     const sort = searchParams.get('sort') || 'created_at';
     const order = searchParams.get('order') || 'desc';
 
-    // Build query
     let query = supabase
       .from('crm_prospects')
       .select('*')
       .order(sort, { ascending: order === 'asc' });
 
-    // Text search on multiple fields
     if (search) {
       const s = `%${search}%`;
       query = query.or(
         `first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s},company.ilike.${s},notes.ilike.${s}`
       );
     }
-
-    // Filter by status
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    // Filter by source
-    if (source) {
-      query = query.eq('source', source);
-    }
+    if (status) query = query.eq('status', status);
+    if (source) query = query.eq('source', source);
 
     const { data: prospects, error } = await query.limit(5000);
 
@@ -69,7 +116,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des prospects' }, { status: 500 });
     }
 
-    // Compute stats
     const allProspects = prospects || [];
     const byStatus: Record<string, number> = {
       identifie: 0, contacte: 0, repondu: 0, demo: 0, sprint: 0, client: 0, perdu: 0,
@@ -77,24 +123,15 @@ export async function GET(req: NextRequest) {
     const byChannel: Record<string, number> = {};
     const byPriorite: Record<string, number> = { A: 0, B: 0, C: 0 };
     for (const p of allProspects) {
-      const s = p.status || 'identifie';
-      byStatus[s] = (byStatus[s] || 0) + 1;
-      if (p.source) {
-        byChannel[p.source] = (byChannel[p.source] || 0) + 1;
-      }
-      const prio = p.priorite || 'B';
-      byPriorite[prio] = (byPriorite[prio] || 0) + 1;
+      byStatus[p.status || 'identifie'] = (byStatus[p.status || 'identifie'] || 0) + 1;
+      if (p.source) byChannel[p.source] = (byChannel[p.source] || 0) + 1;
+      byPriorite[p.priorite || 'B'] = (byPriorite[p.priorite || 'B'] || 0) + 1;
     }
 
     return NextResponse.json({
       ok: true,
       prospects: allProspects,
-      stats: {
-        total: allProspects.length,
-        byStatus,
-        byChannel,
-        byPriorite,
-      },
+      stats: { total: allProspects.length, byStatus, byChannel, byPriorite },
     });
   } catch (error: any) {
     console.error('[Admin CRM] Error:', error);
@@ -102,7 +139,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Créer un nouveau prospect
+// POST: Créer un prospect OU une activité
 export async function POST(req: NextRequest) {
   try {
     const { user, error: authError } = await getAuthUser();
@@ -111,58 +148,99 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getAdminClient();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    if (!(await checkAdmin(supabase, user.id))) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
     const body = await req.json();
+
+    // ─── Create Activity ───────────────────────────────────────────────
+    if (body.action === 'add_activity') {
+      const { prospect_id, type, description, resultat, date_rappel, heure_rappel } = body;
+      if (!prospect_id || !type) {
+        return NextResponse.json({ error: 'prospect_id et type requis' }, { status: 400 });
+      }
+
+      const { data: activity, error } = await supabase
+        .from('crm_activities')
+        .insert({
+          prospect_id,
+          type,
+          description: description || null,
+          resultat: resultat || null,
+          date_activite: new Date().toISOString(),
+          date_rappel: date_rappel || null,
+          heure_rappel: heure_rappel || null,
+          rappel_fait: false,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[CRM Activities] Create error:', error);
+        return NextResponse.json({ error: 'Erreur lors de la création' }, { status: 500 });
+      }
+
+      // Auto-advance pipeline status
+      const CONTACT_TYPES = ['appel', 'appel_manque', 'message', 'email', 'dm_instagram', 'visite', 'relance'];
+      const STATUS_ORDER: Record<string, number> = {
+        identifie: 0, contacte: 1, repondu: 2, demo: 3, sprint: 4, client: 5, perdu: -1,
+      };
+
+      const { data: prospect } = await supabase
+        .from('crm_prospects')
+        .select('status')
+        .eq('id', prospect_id)
+        .single();
+
+      if (prospect && prospect.status !== 'perdu') {
+        const currentOrder = STATUS_ORDER[prospect.status] ?? 0;
+        let newStatus: string | null = null;
+
+        if (CONTACT_TYPES.includes(type) && currentOrder < 1) newStatus = 'contacte';
+        if ((resultat === 'interesse' || resultat === 'demande_infos') && currentOrder < 2) newStatus = 'repondu';
+        if (resultat === 'rdv_pris' && currentOrder < 3) newStatus = 'demo';
+        if (type === 'rdv' && currentOrder < 3) newStatus = 'demo';
+
+        if (newStatus) {
+          await supabase.from('crm_prospects').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', prospect_id);
+        }
+        await supabase.from('crm_prospects').update({ date_contact: new Date().toISOString().slice(0, 10) }).eq('id', prospect_id);
+      }
+
+      return NextResponse.json({ ok: true, activity });
+    }
+
+    // ─── Create Prospect ───────────────────────────────────────────────
     const {
       first_name, last_name, email, phone, company, status, source, notes, tags,
       type, quartier, instagram, abonnes, note_google, avis_google,
       priorite, score, freq_posts, qualite_visuelle, date_contact, angle_approche,
     } = body;
 
-    // Build prospect data
     const prospectData: any = {
-      first_name: first_name || null,
-      last_name: last_name || null,
-      email: email || null,
-      phone: phone || null,
-      company: company || null,
-      status: status || 'identifie',
-      source: source || null,
-      notes: notes || null,
-      tags: tags || null,
-      type: type || null,
-      quartier: quartier || null,
+      first_name: first_name || null, last_name: last_name || null,
+      email: email || null, phone: phone || null, company: company || null,
+      status: status || 'identifie', source: source || null,
+      notes: notes || null, tags: tags || null,
+      type: type || null, quartier: quartier || null,
       instagram: instagram || null,
       abonnes: abonnes != null ? Number(abonnes) : null,
       note_google: note_google != null ? Number(note_google) : null,
       avis_google: avis_google != null ? Number(avis_google) : null,
-      priorite: priorite || 'B',
-      score: score != null ? Number(score) : 0,
-      freq_posts: freq_posts || null,
-      qualite_visuelle: qualite_visuelle || null,
-      date_contact: date_contact || null,
-      angle_approche: angle_approche || null,
+      priorite: priorite || 'B', score: score != null ? Number(score) : 0,
+      freq_posts: freq_posts || null, qualite_visuelle: qualite_visuelle || null,
+      date_contact: date_contact || null, angle_approche: angle_approche || null,
       created_by: user.id,
     };
 
-    // Auto-match email with profiles
     if (email) {
       const { data: matchedProfile } = await supabase
         .from('profiles')
         .select('id, subscription_plan')
         .eq('email', email)
         .single();
-
       if (matchedProfile) {
         prospectData.matched_user_id = matchedProfile.id;
         prospectData.matched_plan = matchedProfile.subscription_plan;

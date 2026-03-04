@@ -11,7 +11,16 @@ function getAdminClient() {
   });
 }
 
-// PUT: Mettre à jour un prospect
+async function checkAdmin(supabase: ReturnType<typeof getAdminClient>, userId: string) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userId)
+    .single();
+  return profile?.is_admin === true;
+}
+
+// PUT: Update a prospect OR an activity
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,27 +32,33 @@ export async function PUT(
     }
 
     const supabase = getAdminClient();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    if (!(await checkAdmin(supabase, user.id))) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
     const { id } = await params;
     const body = await req.json();
+    const isActivity = new URL(req.url).searchParams.get('type') === 'activity';
 
-    // Set updated_at
-    const updateData: any = {
-      ...body,
-      updated_at: new Date().toISOString(),
-    };
+    if (isActivity) {
+      // ─── Update Activity ─────────────────────────────────────────────
+      const { data: activity, error } = await supabase
+        .from('crm_activities')
+        .update(body)
+        .eq('id', id)
+        .select()
+        .single();
 
-    // If email changed, re-match with profiles
+      if (error) {
+        console.error('[CRM Activities] Update error:', error);
+        return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, activity });
+    }
+
+    // ─── Update Prospect ───────────────────────────────────────────────
+    const updateData: any = { ...body, updated_at: new Date().toISOString() };
+
     if (body.email !== undefined) {
       if (body.email) {
         const { data: matchedProfile } = await supabase
@@ -51,7 +66,6 @@ export async function PUT(
           .select('id, subscription_plan')
           .eq('email', body.email)
           .single();
-
         if (matchedProfile) {
           updateData.matched_user_id = matchedProfile.id;
           updateData.matched_plan = matchedProfile.subscription_plan;
@@ -84,7 +98,7 @@ export async function PUT(
   }
 }
 
-// DELETE: Supprimer un prospect
+// DELETE: Delete a prospect OR an activity
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -96,27 +110,19 @@ export async function DELETE(
     }
 
     const supabase = getAdminClient();
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
+    if (!(await checkAdmin(supabase, user.id))) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
     const { id } = await params;
+    const isActivity = new URL(req.url).searchParams.get('type') === 'activity';
 
-    const { error } = await supabase
-      .from('crm_prospects')
-      .delete()
-      .eq('id', id);
+    const table = isActivity ? 'crm_activities' : 'crm_prospects';
+    const { error } = await supabase.from(table).delete().eq('id', id);
 
     if (error) {
-      console.error('[Admin CRM] Delete error:', error);
-      return NextResponse.json({ error: 'Erreur lors de la suppression du prospect' }, { status: 500 });
+      console.error(`[Admin CRM] Delete error (${table}):`, error);
+      return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
