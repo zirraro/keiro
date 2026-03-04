@@ -1686,7 +1686,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
   const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.id === prospect.status);
 
   return (
-    <div className="w-full lg:w-[400px] flex-shrink-0 bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden self-start lg:sticky lg:top-20">
+    <div className="w-full lg:w-[400px] flex-shrink-0 bg-white rounded-xl border border-neutral-200 shadow-sm self-start lg:sticky lg:top-20 overflow-y-auto max-h-[calc(100vh-96px)]">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200">
         <div className="flex items-start justify-between">
