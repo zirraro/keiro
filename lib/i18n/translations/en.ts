@@ -599,7 +599,7 @@ export const en: Translations = {
     step2Skip: 'Skip',
     step2Continue: 'Continue',
     loginSuccess: 'Successfully signed in!',
-    signupSuccess: 'Account created! Check your email.',
+    signupSuccess: 'Click the link sent to your email to finalize your account creation.',
     loginError: 'Incorrect email or password',
     signupError: 'Error creating account',
     emailRequired: 'Email required',

@@ -600,7 +600,7 @@ export const fr: Translations = {
     step2Skip: 'Passer',
     step2Continue: 'Continuer',
     loginSuccess: 'Connexion réussie !',
-    signupSuccess: 'Compte créé ! Vérifiez votre email.',
+    signupSuccess: 'Cliquez sur le lien reçu par email pour finaliser la création de votre compte.',
     loginError: 'Email ou mot de passe incorrect',
     signupError: 'Erreur lors de la création du compte',
     emailRequired: 'Email requis',
