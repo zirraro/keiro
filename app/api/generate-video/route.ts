@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = 'edge';
 
 /**
  * Démo: renvoie une URL vidéo publique (placeholder)

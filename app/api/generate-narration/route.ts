@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateAudioWithElevenLabs, estimateAudioDuration, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
 import { condenseText } from '@/lib/audio/condense-text';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/generate-narration
  * Generate audio narration for TikTok video from news text

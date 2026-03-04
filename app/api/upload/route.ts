@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = 'edge';
 import { NextRequest } from "next/server";
 import { uploadPublicBlob } from "@/lib/blob";
 import { createClient } from '@supabase/supabase-js';

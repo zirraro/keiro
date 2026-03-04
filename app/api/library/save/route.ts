@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
  * Configuration pour augmenter la limite de taille du body
  * Note: Next.js App Router n'a pas de limite de body par défaut
  */
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 

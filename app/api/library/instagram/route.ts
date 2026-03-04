@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * API Route: Workspace Instagram - Préparer les posts
  * GET /api/library/instagram?savedImageId=xxx

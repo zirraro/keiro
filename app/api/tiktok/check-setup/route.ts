@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/tiktok/check-setup
  * Diagnostic endpoint to verify TikTok integration setup

@@ -4,6 +4,8 @@ import { PLAN_CREDITS } from '@/lib/credits/constants';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
+export const runtime = 'edge';
+
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

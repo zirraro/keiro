@@ -3,6 +3,8 @@ import { getAuthUser } from '@/lib/auth-server';
 import { generateNarrationSuggestions } from '@/lib/audio/condense-text';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
+export const runtime = 'edge';
+
 export async function POST(req: NextRequest) {
   try {
     const { user, error: authError } = await getAuthUser();

@@ -3,6 +3,8 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getStripe } from '@/lib/stripe';
 import { createClient } from '@supabase/supabase-js';
 
+export const runtime = 'edge';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
 
 export async function POST() {

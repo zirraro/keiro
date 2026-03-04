@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/tiktok/disconnect
  * Disconnect user's TikTok account

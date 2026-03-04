@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { initTikTokPhotoUpload, refreshTikTokToken } from '@/lib/tiktok';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/tiktok/publish-carousel
  * Publish multiple images as carousel (photo post) to TikTok

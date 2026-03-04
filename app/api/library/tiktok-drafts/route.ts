@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/library/tiktok-drafts
  * Récupérer tous les brouillons TikTok de l'utilisateur

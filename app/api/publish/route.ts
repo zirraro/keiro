@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = 'edge';
 import { NextRequest } from "next/server";
 
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL!;

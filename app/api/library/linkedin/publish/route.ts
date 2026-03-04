@@ -9,6 +9,8 @@ import {
   publishLinkedInVideoPost,
 } from '@/lib/linkedin';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/library/linkedin/publish
  * Publish a LinkedIn post (text, image, or video)

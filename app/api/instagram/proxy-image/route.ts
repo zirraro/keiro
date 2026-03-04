@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 /**
  * Proxy pour les images Instagram
  * Contourne les restrictions CORS du CDN Instagram

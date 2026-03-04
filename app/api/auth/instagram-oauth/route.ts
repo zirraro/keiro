@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/auth/instagram-oauth
  * Initie le flux OAuth Instagram/Meta en redirigeant vers Meta

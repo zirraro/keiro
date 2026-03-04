@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/library/tiktok/validate-video
  * Validate video meets TikTok requirements

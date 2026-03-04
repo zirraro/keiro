@@ -3,7 +3,7 @@ import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGe
 import { generateKlingT2I } from '@/lib/kling';
 import { optimizePromptForImage } from '@/lib/prompt-optimizer';
 
-export const runtime = "nodejs";
+export const runtime = 'edge';
 export const maxDuration = 120;
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';

@@ -1,5 +1,7 @@
 import { supabaseServer } from '@/lib/supabase/server'
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   const supabase = await supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()

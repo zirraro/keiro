@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/auth/tiktok-callback
  * Handle TikTok OAuth callback

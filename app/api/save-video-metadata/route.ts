@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/save-video-metadata
  * Sauvegarde les métadonnées d'une vidéo uploadée directement vers Supabase Storage

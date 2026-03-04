@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getTikTokVideos, refreshTikTokToken, cacheTikTokThumbnail } from '@/lib/tiktok';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/tiktok/sync-media
  * Sync published TikTok videos to database

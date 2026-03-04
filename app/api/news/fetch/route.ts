@@ -1,6 +1,8 @@
 import { supabaseServer } from '@/lib/supabase/server'
 import { fetchGoogleNews } from '@/lib/news/sources'
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   const supabase = await supabaseServer()
   let body: any = {}

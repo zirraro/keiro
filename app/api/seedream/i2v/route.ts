@@ -2,7 +2,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { createI2VTask, checkI2VTask } from '@/lib/kling';
 
-export const runtime = "nodejs";
+export const runtime = 'edge';
 export const maxDuration = 300; // 5 minutes max pour le polling
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';

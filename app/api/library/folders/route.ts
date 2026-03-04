@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+export const runtime = 'edge';
+
 /**
  * Helper: Extraire le access_token depuis les cookies Supabase
  */

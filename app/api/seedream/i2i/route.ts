@@ -2,7 +2,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingI2I } from '@/lib/kling';
 
-export const runtime = "nodejs";
+export const runtime = 'edge';
 export const maxDuration = 120;
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';

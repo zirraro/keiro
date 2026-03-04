@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
+export const runtime = 'edge';
+
 export async function POST(request: Request) {
   try {
     // Initialiser le client Supabase à l'intérieur de la fonction pour éviter les erreurs au build

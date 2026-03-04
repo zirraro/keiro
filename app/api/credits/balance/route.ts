@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCreditsProfile } from '@/lib/credits/server';
 
+export const runtime = 'edge';
+
 export async function GET() {
   try {
     const { user, error: authError } = await getAuthUser();

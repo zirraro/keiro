@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/convert-video-tiktok
  * Convert video to TikTok-compatible format using CloudConvert API

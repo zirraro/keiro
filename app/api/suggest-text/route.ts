@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 
+export const runtime = 'edge';
+
 export async function POST(req: NextRequest) {
   try {
     // --- Auth optionnelle (fonctionne aussi sans compte) ---

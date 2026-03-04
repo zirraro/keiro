@@ -1,5 +1,7 @@
 import { supabaseServer } from '@/lib/supabase/server'
 
+export const runtime = 'edge';
+
 /**
  * GET /api/brand
  * Récupère le profil de marque de l'utilisateur connecté

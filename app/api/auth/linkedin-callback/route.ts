@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeLinkedInCode, getLinkedInUserInfo } from '@/lib/linkedin';
 
+export const runtime = 'edge';
+
 /**
  * GET /api/auth/linkedin-callback
  * Handle LinkedIn OAuth callback

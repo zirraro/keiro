@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 
+export const runtime = 'edge';
+
 // Configuration pour augmenter la limite de body size (Vercel Pro max: 50MB)
 export const maxDuration = 60; // 60 secondes max pour l'upload
 export const dynamic = 'force-dynamic';

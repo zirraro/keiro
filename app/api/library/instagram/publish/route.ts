@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { publishImageToInstagram } from '@/lib/meta';
 
+export const runtime = 'edge';
+
 /**
  * Helper: Extract access token from Supabase cookies
  */

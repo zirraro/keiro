@@ -4,6 +4,8 @@ import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
 import { checkCredits, deductCredits, isAdmin as checkIsAdmin } from '@/lib/credits/server';
 
+export const runtime = 'edge';
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });

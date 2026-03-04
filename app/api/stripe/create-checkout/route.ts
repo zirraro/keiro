@@ -11,6 +11,8 @@ import {
   ANNUAL_PLAN_SUFFIX,
 } from '@/lib/stripe';
 
+export const runtime = 'edge';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
 
 export async function POST(request: NextRequest) {

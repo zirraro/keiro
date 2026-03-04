@@ -1,5 +1,7 @@
 import { supabaseServer } from '@/lib/supabase/server'
 
+export const runtime = 'edge';
+
 export async function GET() {
   const supabase = await supabaseServer()
   const { data: { user }, error } = await supabase.auth.getUser()

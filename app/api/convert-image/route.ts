@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 /**
  * API Route pour convertir une URL d'image externe en data URL
  * Résout les problèmes CORS en téléchargeant l'image côté serveur

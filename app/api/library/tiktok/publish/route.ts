@@ -10,6 +10,8 @@ import {
   refreshTikTokToken
 } from '@/lib/tiktok';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/library/tiktok/publish
  * Publish video to TikTok

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getUserPages, getPageInstagramAccount } from '@/lib/meta';
 
+export const runtime = 'edge';
+
 /**
  * POST /api/auth/instagram-callback
  * Échange le code OAuth contre un token d'accès et sauvegarde les infos Instagram

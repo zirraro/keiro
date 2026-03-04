@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = 'edge';
 import { NextRequest } from "next/server";
 
 type Heat = "very_hot" | "hot" | "warm" | "watch";
