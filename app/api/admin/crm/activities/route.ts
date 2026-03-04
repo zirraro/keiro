@@ -143,6 +143,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la création' }, { status: 500 });
     }
 
+    // ─── Auto-advance pipeline status based on activity type + result ────
+    const CONTACT_TYPES = ['appel', 'appel_manque', 'message', 'email', 'dm_instagram', 'visite', 'relance'];
+    const STATUS_ORDER: Record<string, number> = {
+      identifie: 0, contacte: 1, repondu: 2, demo: 3, sprint: 4, client: 5, perdu: -1,
+    };
+
+    const { data: prospect } = await supabase
+      .from('crm_prospects')
+      .select('status')
+      .eq('id', prospect_id)
+      .single();
+
+    if (prospect && prospect.status !== 'perdu') {
+      const currentOrder = STATUS_ORDER[prospect.status] ?? 0;
+      let newStatus: string | null = null;
+
+      // Activity = contact type → at least "contacte"
+      if (CONTACT_TYPES.includes(type) && currentOrder < 1) {
+        newStatus = 'contacte';
+      }
+      // Result = interested/replied → at least "repondu"
+      if (resultat === 'interesse' || resultat === 'demande_infos') {
+        if (currentOrder < 2) newStatus = 'repondu';
+      }
+      // Result = RDV pris → at least "demo"
+      if (resultat === 'rdv_pris') {
+        if (currentOrder < 3) newStatus = 'demo';
+      }
+      // Activity type = RDV → at least "demo"
+      if (type === 'rdv' && currentOrder < 3) {
+        newStatus = 'demo';
+      }
+
+      if (newStatus) {
+        await supabase
+          .from('crm_prospects')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', prospect_id);
+      }
+
+      // Also update date_contact
+      await supabase
+        .from('crm_prospects')
+        .update({ date_contact: new Date().toISOString().slice(0, 10) })
+        .eq('id', prospect_id);
+    }
+
     return NextResponse.json({ ok: true, activity });
   } catch (error: any) {
     console.error('[CRM Activities] Error:', error);

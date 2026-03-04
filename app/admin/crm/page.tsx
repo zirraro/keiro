@@ -455,6 +455,8 @@ export default function AdminCRMPage() {
       if (!res.ok) throw new Error('Failed');
       await loadActivities(data.prospect_id);
       await loadReminders();
+      // Reload prospects in case status was auto-advanced
+      await loadProspects();
     } catch (e) {
       console.error('[CRM] Add activity error:', e);
       alert("Erreur lors de l'ajout.");

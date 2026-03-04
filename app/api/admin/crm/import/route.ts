@@ -30,7 +30,7 @@ const FIELD_RULES: { keywords: string[]; field: string }[] = [
   { keywords: ['nb avis google', 'nombre avis google', 'avis google', 'nb avis', 'nombre avis'], field: 'avis_google' },
   { keywords: ['priorite', 'priorité', 'priority', 'prio'], field: 'priorite' },
   { keywords: ['score prospect', 'score', 'points'], field: 'score' },
-  { keywords: ['frequence posts', 'fréquence posts', 'frequence', 'fréquence', 'freq post'], field: 'freq_posts' },
+  { keywords: ['frequence posts', 'fréquence posts', 'freq. posts', 'freq posts', 'frequence', 'fréquence', 'freq post', 'freq.'], field: 'freq_posts' },
   { keywords: ['qualite visuelle', 'qualité visuelle', 'qualite', 'qualité'], field: 'qualite_visuelle' },
   { keywords: ['date 1er contact', 'date premier contact', 'date contact', 'date_contact', '1er contact', 'premier contact'], field: 'date_contact' },
   { keywords: ['notes / angle', 'notes/angle', 'angle approche', "angle d'approche", 'angle', 'approche', 'pitch'], field: 'angle_approche' },
@@ -362,10 +362,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Pre-load ALL existing prospects + profiles (2 queries total) ────
-    const { data: allProspects } = await supabase.from('crm_prospects').select('*');
+    const { data: allProspects } = await supabase.from('crm_prospects').select('*').limit(10000);
     const prospectIdx = buildProspectIndex(allProspects || []);
 
-    const { data: allProfiles } = await supabase.from('profiles').select('id, email, subscription_plan');
+    const { data: allProfiles } = await supabase.from('profiles').select('id, email, subscription_plan').limit(10000);
     const profilesByEmail = new Map<string, { id: string; subscription_plan: string }>();
     for (const p of allProfiles || []) {
       if (p.email) profilesByEmail.set(p.email.toLowerCase().trim(), p);
@@ -479,34 +479,48 @@ export async function POST(req: NextRequest) {
       if (existing) {
         const updates = mergeProspect(existing, prospectData);
         if (Object.keys(updates).length > 0) {
-          toUpdate.push({ id: existing.id, updates });
-          // Update the in-memory index with merged data
-          Object.assign(existing, updates);
+          const existingId = existing.id as string;
+          if (existingId.startsWith('pending-')) {
+            // Duplicate within same file — merge into the pending insert
+            Object.assign(existing, updates);
+            skipped++;
+          } else {
+            // Existing in DB — schedule an update
+            toUpdate.push({ id: existingId, updates });
+            Object.assign(existing, updates);
+          }
         } else {
           skipped++;
         }
       } else {
+        const insertIdx = toInsert.length;
         toInsert.push(prospectData);
         // Add to in-memory index to detect duplicates within the same import file
-        const fakeExisting = { ...prospectData, id: `pending-${rowIdx}` };
+        // Use the same reference as toInsert so merges update the actual insert data
+        const indexRef = toInsert[insertIdx];
+        (indexRef as any).id = `pending-${rowIdx}`;
         if (prospectData.company && typeof prospectData.company === 'string') {
-          prospectIdx.byCompany.set(prospectData.company.toLowerCase().trim(), fakeExisting);
+          prospectIdx.byCompany.set(prospectData.company.toLowerCase().trim(), indexRef);
         }
         if (prospectData.instagram && typeof prospectData.instagram === 'string') {
           const ig = normalizeInstagram(prospectData.instagram);
-          if (ig) prospectIdx.byInstagram.set(ig, fakeExisting);
+          if (ig) prospectIdx.byInstagram.set(ig, indexRef);
         }
         if (prospectData.phone && typeof prospectData.phone === 'string') {
           const digits = normalizePhone(prospectData.phone);
-          if (digits.length >= 8) prospectIdx.byPhone.set(digits.slice(-9), fakeExisting);
+          if (digits.length >= 8) prospectIdx.byPhone.set(digits.slice(-9), indexRef);
         }
         if (prospectData.email && typeof prospectData.email === 'string') {
-          prospectIdx.byEmail.set(prospectData.email.toLowerCase().trim(), fakeExisting);
+          prospectIdx.byEmail.set(prospectData.email.toLowerCase().trim(), indexRef);
         }
       }
     }
 
     // ─── Batch insert new prospects (chunks of 100) ─────────────────────
+    // Strip fake IDs used for in-memory dedup
+    for (const rec of toInsert) {
+      delete (rec as any).id;
+    }
     const BATCH_SIZE = 100;
     for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
       const batch = toInsert.slice(i, i + BATCH_SIZE);

@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       query = query.eq('source', source);
     }
 
-    const { data: prospects, error } = await query;
+    const { data: prospects, error } = await query.limit(5000);
 
     if (error) {
       console.error('[Admin CRM] List error:', error);
