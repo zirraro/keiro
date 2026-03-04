@@ -170,14 +170,20 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    // ─── Purge all prospects ──────────────────────────────────────────
-    if (body.action === 'purge_all') {
-      const { error } = await supabase.from('crm_prospects').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // ─── Purge prospects (all or by status) ─────────────────────────────
+    if (body.action === 'purge' || body.action === 'purge_all') {
+      let query = supabase.from('crm_prospects').delete();
+      if (body.status) {
+        query = query.eq('status', body.status);
+      } else {
+        query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+      }
+      const { data, error } = await query.select('id');
       if (error) {
         console.error('[Admin CRM] Purge error:', error);
         return NextResponse.json({ error: 'Erreur lors de la purge' }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, message: 'Tous les prospects supprimés' });
+      return NextResponse.json({ ok: true, deleted: data?.length || 0 });
     }
 
     // ─── Create Activity ───────────────────────────────────────────────

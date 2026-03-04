@@ -729,28 +729,40 @@ export default function AdminCRMPage() {
               📤 Exporter
             </button>
 
-            <button
-              onClick={async () => {
-                if (!confirm('Supprimer TOUS les prospects ? Cette action est irréversible.')) return;
-                if (!confirm('Vraiment tout supprimer ? Dernier avertissement.')) return;
-                try {
-                  const res = await fetch('/api/admin/crm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'purge_all' }),
-                  });
-                  if (res.ok) {
-                    alert('Tous les prospects supprimés.');
-                    loadProspects();
-                  } else {
-                    alert('Erreur lors de la suppression.');
-                  }
-                } catch { alert('Erreur réseau.'); }
-              }}
-              className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
-            >
-              🗑 Tout supprimer
-            </button>
+            <div className="relative">
+              <select
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  e.target.value = '';
+                  const label = val === 'all' ? 'TOUS les prospects' : `les prospects "${PIPELINE_STAGES.find(s => s.id === val)?.label || val}"`;
+                  if (!confirm(`Supprimer ${label} ? Cette action est irréversible.`)) return;
+                  if (!confirm(`Vraiment supprimer ${label} ? Dernier avertissement.`)) return;
+                  try {
+                    const res = await fetch('/api/admin/crm', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'purge', status: val === 'all' ? undefined : val }),
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                      alert(`${data.deleted || 0} prospect(s) supprimé(s).`);
+                      loadProspects();
+                    } else {
+                      alert('Erreur: ' + (data.error || 'inconnue'));
+                    }
+                  } catch { alert('Erreur réseau.'); }
+                }}
+                className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors cursor-pointer appearance-none bg-white pr-6"
+                defaultValue=""
+              >
+                <option value="" disabled>🗑 Purger...</option>
+                <option value="all">Tout supprimer</option>
+                {PIPELINE_STAGES.map(s => (
+                  <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
+                ))}
+              </select>
+            </div>
 
             <button
               onClick={openNewModal}
