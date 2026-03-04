@@ -14,6 +14,7 @@ export const fr: Translations = {
     clientFeedback: 'Retours clients',
     logout: 'Se déconnecter',
     loginSignup: 'Se connecter / S\'inscrire',
+    loginShort: 'Connexion',
     connectInstagram: 'Connecter Instagram',
     connectedInstagram: 'Instagram connecté',
     disconnectInstagram: 'Déconnecter Instagram',

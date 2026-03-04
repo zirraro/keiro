@@ -236,8 +236,8 @@ export default function Header() {
           <span className="text-lg font-bold text-neutral-900">KeiroAI</span>
         </Link>
 
-        {/* Language Toggle — always visible */}
-        <div className="flex">
+        {/* Language Toggle — desktop only */}
+        <div className="hidden lg:flex">
           <LanguageToggle />
         </div>
 
@@ -552,9 +552,10 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all"
+              className="px-3 py-2 text-xs sm:text-sm font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
             >
-              {t.nav.loginSignup}
+              <span className="sm:hidden">{t.nav.loginShort}</span>
+              <span className="hidden sm:inline">{t.nav.loginSignup}</span>
             </Link>
           )}
         </div>

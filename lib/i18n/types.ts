@@ -14,6 +14,7 @@ export interface Translations {
     clientFeedback: string;
     logout: string;
     loginSignup: string;
+    loginShort: string;
     connectInstagram: string;
     connectedInstagram: string;
     disconnectInstagram: string;
