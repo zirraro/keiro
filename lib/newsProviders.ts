@@ -136,6 +136,25 @@ const RSS_FEEDS_BE = [
   { url: 'https://www.7sur7.be/rss.xml', category: 'À la une', timeout: 5000 },
 ];
 
+// ===== FLUX RSS MOYEN-ORIENT (anglophone) =====
+const RSS_FEEDS_ME = [
+  { url: 'https://www.aljazeera.com/xml/rss/all.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.arabnews.com/rss.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://gulfnews.com/rss', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.middleeasteye.net/rss', category: 'À la une', timeout: 5000 },
+  { url: 'https://english.alarabiya.net/tools/rss', category: 'À la une', timeout: 5000 },
+];
+
+// ===== FLUX RSS EUROPE DU NORD (anglophone) =====
+const RSS_FEEDS_NORD = [
+  { url: 'https://www.thelocal.se/feed', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.thelocal.no/feed', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.thelocal.dk/feed', category: 'À la une', timeout: 5000 },
+  { url: 'https://nltimes.nl/feed/rss.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.icelandreview.com/feed/', category: 'À la une', timeout: 5000 },
+  { url: 'https://yle.fi/rss/uutiset.rss?publisherIds=YLE_UUTISET', category: 'À la une', timeout: 5000 },
+];
+
 // ===== RÉGIONS DISPONIBLES =====
 export const NEWS_REGIONS = [
   { code: 'fr', nameFr: 'France', nameEn: 'France' },
@@ -628,16 +647,18 @@ export async function fetchNews(region: string = 'fr'): Promise<NewsArticle[]> {
       const apiArticles = await fetchFromAPIs('be', 'fr');
       articles = [...articles, ...apiArticles];
     } else if (region === 'me') {
-      // Moyen-Orient: principaux pays, lang=en pour avoir des résultats
-      const countries = ['ae', 'sa', 'kw', 'bh', 'qa', 'om', 'jo', 'lb', 'ir', 'iq', 'eg'];
-      for (const c of countries.slice(0, 5)) {
+      // Moyen-Orient: RSS dédiés + API pays arabes
+      articles = await fetchFromRSS(RSS_FEEDS_ME);
+      const countries = ['ae', 'sa', 'kw', 'qa', 'eg'];
+      for (const c of countries.slice(0, 3)) {
         const apiArticles = await fetchFromAPIs(c, 'en');
         articles = [...articles, ...apiArticles];
       }
     } else if (region === 'nord') {
-      // Europe du Nord: pays nordiques + Pays-Bas
-      const countries = ['se', 'no', 'dk', 'fi', 'nl', 'is'];
-      for (const c of countries.slice(0, 4)) {
+      // Europe du Nord: RSS dédiés + API pays nordiques
+      articles = await fetchFromRSS(RSS_FEEDS_NORD);
+      const countries = ['se', 'no', 'nl', 'dk'];
+      for (const c of countries.slice(0, 2)) {
         const apiArticles = await fetchFromAPIs(c, 'en');
         articles = [...articles, ...apiArticles];
       }

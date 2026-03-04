@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Script from "next/script";
 import { LanguageProvider } from "@/lib/i18n/context";
+import NewsPrefetcher from "@/components/NewsPrefetcher";
 
 export const metadata: Metadata = {
   title: {
@@ -131,6 +132,7 @@ export default function RootLayout({
 
         <LanguageProvider>
           <Header />
+          <NewsPrefetcher />
           <main className="pb-20 lg:pb-0">
             {children}
           </main>

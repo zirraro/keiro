@@ -2641,30 +2641,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 </div>
               </div>
             )}
-            {/* Pays/Régions — pills horizontales scrollables */}
-            <div className="mb-3 -mx-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-1.5 px-1 pb-1">
-                {NEWS_REGIONS.map((r) => {
-                  const isActive = newsRegion === r.code;
-                  return (
-                    <button
-                      key={r.code}
-                      onClick={() => setNewsRegion(r.code)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      {locale === 'fr' ? r.nameFr : r.nameEn}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Filtres : Catégorie + Recherche */}
-            <div className="mb-4 flex gap-2">
+            <div className="mb-3 flex gap-2">
               {/* Dropdown Catégories */}
               <select
                 value={category}
@@ -2705,6 +2683,28 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 placeholder={t.generate.searchPlaceholder}
                 className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Pays/Régions — pills horizontales scrollables */}
+            <div className="mb-4 -mx-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5 px-1 pb-1">
+                {NEWS_REGIONS.map((r) => {
+                  const isActive = newsRegion === r.code;
+                  return (
+                    <button
+                      key={r.code}
+                      onClick={() => setNewsRegion(r.code)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {locale === 'fr' ? r.nameFr : r.nameEn}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Cartes d'actualités (3 colonnes) */}
