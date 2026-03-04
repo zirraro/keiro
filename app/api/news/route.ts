@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 import { fetchNews, NewsArticle } from "@/lib/newsProviders";
 
 export async function GET(request: Request) {
