@@ -2641,34 +2641,36 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 </div>
               </div>
             )}
-            {/* Filtres : Région + Recherche */}
-            <div className="mb-3 flex gap-2">
-              {/* Sélecteur de région — compact */}
-              <select
-                value={newsRegion}
-                onChange={(e) => setNewsRegion(e.target.value)}
-                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[140px]"
-              >
-                {NEWS_REGIONS.map((r) => (
-                  <option key={r.code} value={r.code}>
-                    {locale === 'fr' ? r.nameFr : r.nameEn}
-                  </option>
-                ))}
-              </select>
-
-              {/* Barre de recherche */}
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={t.generate.searchPlaceholder}
-                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            {/* Pays/Régions — pills horizontales scrollables */}
+            <div className="mb-3 -mx-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5 px-1 pb-1">
+                {NEWS_REGIONS.map((r) => {
+                  const isActive = newsRegion === r.code;
+                  return (
+                    <button
+                      key={r.code}
+                      onClick={() => setNewsRegion(r.code)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {locale === 'fr' ? r.nameFr : r.nameEn}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Catégories — pills horizontales scrollables */}
-            <div className="mb-4 -mx-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-1.5 px-1 pb-1">
+            {/* Filtres : Catégorie + Recherche */}
+            <div className="mb-4 flex gap-2">
+              {/* Dropdown Catégories */}
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+              >
                 {availableCategories.map((cat) => {
                   const categoryLabels: Record<string, string> = {
                     'Les bonnes nouvelles': t.generate.catGoodNews,
@@ -2687,22 +2689,22 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     'Food & Gastronomie': t.generate.catFoodGastronomy,
                     'Lifestyle & People': t.generate.catLifestylePeople,
                   };
-                  const isActive = category === cat;
                   return (
-                    <button
-                      key={cat}
-                      onClick={() => setCategory(cat)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
+                    <option key={cat} value={cat}>
                       {categoryLabels[cat] || cat}
-                    </button>
+                    </option>
                   );
                 })}
-              </div>
+              </select>
+
+              {/* Barre de recherche */}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={t.generate.searchPlaceholder}
+                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
 
             {/* Cartes d'actualités (3 colonnes) */}
