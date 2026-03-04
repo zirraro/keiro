@@ -77,6 +77,18 @@ export async function GET(req: NextRequest) {
       'Plan Keiro': p.matched_plan || '',
       'Notes': p.notes || '',
       'Tags': Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || ''),
+      'Type': p.type || '',
+      'Quartier': p.quartier || '',
+      'Instagram': p.instagram || '',
+      'Abonnés': p.abonnes != null ? p.abonnes : '',
+      'Note Google': p.note_google != null ? p.note_google : '',
+      'Avis Google': p.avis_google != null ? p.avis_google : '',
+      'Priorité': p.priorite || '',
+      'Score': p.score != null ? p.score : '',
+      'Fréq. Posts': p.freq_posts || '',
+      'Qualité Visuelle': p.qualite_visuelle || '',
+      'Date Contact': p.date_contact || '',
+      "Angle d'approche": p.angle_approche || '',
       'Créé le': p.created_at ? new Date(p.created_at).toLocaleDateString('fr-FR') : '',
     }));
 
@@ -96,6 +108,18 @@ export async function GET(req: NextRequest) {
       { wch: 15 }, // Plan Keiro
       { wch: 40 }, // Notes
       { wch: 25 }, // Tags
+      { wch: 15 }, // Type
+      { wch: 12 }, // Quartier
+      { wch: 18 }, // Instagram
+      { wch: 10 }, // Abonnés
+      { wch: 12 }, // Note Google
+      { wch: 12 }, // Avis Google
+      { wch: 10 }, // Priorité
+      { wch: 8 },  // Score
+      { wch: 15 }, // Fréq. Posts
+      { wch: 18 }, // Qualité Visuelle
+      { wch: 14 }, // Date Contact
+      { wch: 30 }, // Angle d'approche
       { wch: 12 }, // Créé le
     ];
 
