@@ -2641,26 +2641,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 </div>
               </div>
             )}
-            {/* Filtres : Catégories + Recherche (sans labels) */}
-            <div className="mb-4 flex flex-col sm:flex-row gap-3">
-              {/* Sélecteur de région */}
+            {/* Filtres : Région + Recherche */}
+            <div className="mb-3 flex gap-2">
+              {/* Sélecteur de région — compact */}
               <select
                 value={newsRegion}
                 onChange={(e) => setNewsRegion(e.target.value)}
-                className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[140px]"
               >
                 {NEWS_REGIONS.map((r) => (
                   <option key={r.code} value={r.code}>
-                    {r.flag} {locale === 'fr' ? r.nameFr : r.nameEn}
+                    {locale === 'fr' ? r.nameFr : r.nameEn}
                   </option>
                 ))}
               </select>
-              {/* Dropdown Catégories */}
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]"
-              >
+
+              {/* Barre de recherche */}
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={t.generate.searchPlaceholder}
+                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Catégories — pills horizontales scrollables */}
+            <div className="mb-4 -mx-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5 px-1 pb-1">
                 {availableCategories.map((cat) => {
                   const categoryLabels: Record<string, string> = {
                     'Les bonnes nouvelles': t.generate.catGoodNews,
@@ -2679,22 +2687,22 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     'Food & Gastronomie': t.generate.catFoodGastronomy,
                     'Lifestyle & People': t.generate.catLifestylePeople,
                   };
+                  const isActive = category === cat;
                   return (
-                    <option key={cat} value={cat}>
+                    <button
+                      key={cat}
+                      onClick={() => setCategory(cat)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
                       {categoryLabels[cat] || cat}
-                    </option>
+                    </button>
                   );
                 })}
-              </select>
-
-              {/* Barre de recherche */}
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={t.generate.searchPlaceholder}
-                className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              </div>
             </div>
 
             {/* Cartes d'actualités (3 colonnes) */}

@@ -714,7 +714,7 @@ export const fr: Translations = {
     regionUSA: 'États-Unis',
     regionPortugal: 'Portugal',
     regionMiddleEast: 'Moyen-Orient',
-    regionNordics: 'Pays du Nord',
+    regionNordics: 'Europe du Nord',
     // Free creation mode banner
     freeCreationMode: 'Mode Cr\u00e9ation Libre',
     freeCreationDesc: 'Vous g\u00e9n\u00e9rez sans actualit\u00e9. D\u00e9crivez votre business en d\u00e9tail dans le panneau de droite pour obtenir un visuel percutant.',

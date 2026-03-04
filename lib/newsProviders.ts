@@ -138,14 +138,14 @@ const RSS_FEEDS_BE = [
 
 // ===== RÉGIONS DISPONIBLES =====
 export const NEWS_REGIONS = [
-  { code: 'fr', flag: '\u{1F1EB}\u{1F1F7}', nameFr: 'France', nameEn: 'France' },
-  { code: 'be', flag: '\u{1F1E7}\u{1F1EA}', nameFr: 'Belgique', nameEn: 'Belgium' },
-  { code: 'es', flag: '\u{1F1EA}\u{1F1F8}', nameFr: 'Espagne', nameEn: 'Spain' },
-  { code: 'gb', flag: '\u{1F1EC}\u{1F1E7}', nameFr: 'Royaume-Uni', nameEn: 'United Kingdom' },
-  { code: 'us', flag: '\u{1F1FA}\u{1F1F8}', nameFr: '\u00C9tats-Unis', nameEn: 'United States' },
-  { code: 'pt', flag: '\u{1F1F5}\u{1F1F9}', nameFr: 'Portugal', nameEn: 'Portugal' },
-  { code: 'me', flag: '\u{1F30D}', nameFr: 'Moyen-Orient', nameEn: 'Middle East' },
-  { code: 'nord', flag: '\u{1F310}', nameFr: 'Pays du Nord', nameEn: 'Northern Europe' },
+  { code: 'fr', nameFr: 'France', nameEn: 'France' },
+  { code: 'be', nameFr: 'Belgique', nameEn: 'Belgium' },
+  { code: 'es', nameFr: 'Espagne', nameEn: 'Spain' },
+  { code: 'gb', nameFr: 'Royaume-Uni', nameEn: 'United Kingdom' },
+  { code: 'us', nameFr: 'États-Unis', nameEn: 'United States' },
+  { code: 'pt', nameFr: 'Portugal', nameEn: 'Portugal' },
+  { code: 'me', nameFr: 'Moyen-Orient', nameEn: 'Middle East' },
+  { code: 'nord', nameFr: 'Europe du Nord', nameEn: 'Northern Europe' },
 ] as const;
 
 // Mots-clés pour catégorisation intelligente (15 catégories)
@@ -172,6 +172,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'salon de l\'auto', 'mondial de l\'auto', 'salon de genève', 'salon de munich',
     'permis de conduire', 'sécurité routière', 'securite routiere', 'contrôle technique', 'controle technique',
     'essai routier', 'comparatif auto', 'crash test',
+    // English keywords
+    'car', 'automobile', 'electric vehicle', 'ev', 'self-driving', 'autonomous', 'formula one', 'racing', 'motorcycle', 'driver', 'engine', 'fuel', 'sedan', 'coupe', 'convertible', 'pickup truck', 'sports car', 'supercar race', 'motorbike', 'gp racing',
   ],
 
   'Tech & Gaming': [
@@ -186,6 +188,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'jeux video', 'gaming', 'streamer', 'twitch',
     'robot', 'drone', 'réalité virtuelle', 'realite virtuelle', 'réalité augmentée', 'realite augmentee', 'metaverse',
     'application', 'app', 'mise à jour', 'mise a jour', 'fonctionnalité', 'fonctionnalite',
+    // English keywords
+    'artificial intelligence', 'machine learning', 'smartphone', 'cybersecurity', 'software', 'hardware', 'technology', 'computer', 'internet', 'digital', 'device', 'gadget', 'innovation', 'data breach', 'hacking', 'privacy', 'video game', 'console', 'virtual reality', 'augmented reality', 'wearable',
   ],
 
   'Business & Finance': [
@@ -193,7 +197,9 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'casino', 'lidl', 'aldi',
     'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
     'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna',
-    'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'taux', 'banque centrale', 'bce'
+    'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'taux', 'banque centrale', 'bce',
+    // English keywords
+    'stock market', 'investment', 'economy', 'gdp', 'trade', 'market', 'business', 'finance', 'banking', 'economic', 'revenue', 'profit', 'shares', 'bonds', 'interest rate', 'central bank', 'recession', 'growth', 'unemployment', 'inflation rate', 'tax', 'corporate',
   ],
 
   'Sport': [
@@ -209,6 +215,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'handball', 'volley', 'basket', 'tennis', 'boxe', 'mma', 'ufc', 'judo', 'escrime',
     'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
     'fitness', 'musculation', 'running', 'marathon', 'sport santé',
+    // English keywords
+    'soccer', 'football match', 'basketball', 'championship', 'tournament', 'athlete', 'coach', 'league', 'goal', 'world cup', 'olympics', 'boxing', 'cricket', 'baseball', 'hockey', 'swimming', 'gold medal', 'trophy', 'playoff', 'final score',
   ],
 
   'Cinéma & Séries': [
@@ -219,6 +227,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'cannes', 'festival de cannes', 'palme d\'or', 'berlinale', 'venise',
     'série', 'serie', 'saison', 'épisode', 'episode', 'bande-annonce', 'bande annonce', 'trailer',
     'sortie salle', 'avant-première', 'avant premiere', 'documentaire', 'animation',
+    // English keywords
+    'movie', 'tv show', 'television', 'streaming', 'director', 'box office', 'premiere', 'entertainment', 'screenplay', 'sequel', 'franchise', 'cinema release', 'award show', 'golden globe', 'emmy', 'bafta', 'sundance',
   ],
 
   'Musique & Festivals': [
@@ -231,6 +241,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'vieilles charrues', 'eurockéennes', 'eurockennes', 'francofolies', 'main square', 'lollapalooza',
     'album', 'single', 'clip', 'spotify', 'deezer', 'apple music', 'musique',
     'grammy', 'nrj music awards', 'victoires de la musique', 'chanteur', 'chanteuse', 'rappeur', 'dj',
+    // English keywords
+    'music', 'singer', 'rapper', 'band', 'tour', 'award', 'grammy', 'billboard', 'hit song', 'chart', 'record label', 'music video', 'live performance', 'headliner', 'sold out',
   ],
 
   'Nature & Animaux': [
@@ -243,6 +255,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'wwf', 'lpo', 'fondation 30 millions', 'extinction', 'espèce menacée', 'espece menacee',
     'jardin', 'jardinage', 'botanique', 'plante', 'arbre', 'agriculture biologique',
     'randonnée', 'randonnee', 'montagne', 'mer', 'nature', 'sauvage', 'photographe animalier',
+    // English keywords
+    'wildlife', 'species', 'conservation', 'zoo', 'endangered', 'forest', 'ocean', 'biodiversity', 'pet', 'dog', 'cat', 'bird', 'whale', 'dolphin', 'national park', 'habitat', 'ecosystem', 'marine life',
   ],
 
   'Food & Gastronomie': [
@@ -255,6 +269,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'vin', 'vignoble', 'cru', 'millésime', 'millesime', 'sommelier', 'oenologie', 'champagne', 'bordeaux', 'bourgogne',
     'café', 'cafe', 'chocolat', 'fromage', 'terroir', 'aoc', 'aop', 'label rouge',
     'brunch', 'foodie', 'food porn', 'tendance culinaire', 'ouverture restaurant',
+    // English keywords
+    'restaurant', 'chef', 'recipe', 'cooking', 'food', 'cuisine', 'dining', 'gastronomy', 'gourmet', 'bakery', 'culinary', 'food truck', 'tasting', 'menu', 'dish',
   ],
 
   'Politique': [
@@ -268,6 +284,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'élection', 'election', 'scrutin', 'vote', 'référendum', 'referendum', 'sondage politique',
     'réforme', 'reforme', 'retraites', 'immigration', 'sécurité', 'securite', 'justice',
     'mairie', 'région', 'region', 'département', 'departement', 'collectivité', 'collectivite',
+    // English keywords
+    'election', 'president', 'parliament', 'government', 'policy', 'political', 'minister', 'congress', 'senate', 'vote', 'democracy', 'campaign', 'legislation', 'law', 'prime minister', 'opposition', 'coalition',
   ],
 
   'Santé & Bien-être': [
@@ -280,13 +298,17 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'assurance maladie', 'sécurité sociale', 'mutuelle', 'oms', 'pandémie', 'pandemie', 'épidémie', 'epidemie',
     'pilates', 'stretching',
     'dermatologue', 'ophtalmologue', 'dentiste', 'kiné', 'kine', 'ostéopathe', 'osteopathe',
+    // English keywords
+    'hospital', 'vaccine', 'disease', 'treatment', 'medicine', 'health', 'medical', 'doctor', 'patient', 'surgery', 'therapy', 'mental health', 'wellness', 'drug', 'clinical trial', 'pandemic', 'epidemic', 'diagnosis',
   ],
 
   'Science & Environnement': [
     'spacex', 'blue origin', 'mars', 'lune', 'iss', 'james webb', 'télescope', 'crispr', 'génétique', 'adn',
     'clonage', 'cellules souches', 'cnrs', 'cern', 'esa', 'nasa', 'mit', 'stanford',
     'nucléaire', 'photovoltaïque', 'biomasse', 'géothermie', 'hydrogène vert', 'neutralité carbone', 'empreinte carbone', 'bilan carbone', 'compensation carbone', 'cop28',
-    'cop29', 'giec', 'accord de paris', 'réchauffement climatique', 'biodiversité', 'pollution', 'écologie', 'développement durable'
+    'cop29', 'giec', 'accord de paris', 'réchauffement climatique', 'biodiversité', 'pollution', 'écologie', 'développement durable',
+    // English keywords
+    'space', 'climate', 'research', 'scientist', 'discovery', 'study', 'laboratory', 'climate change', 'global warming', 'renewable energy', 'carbon', 'emissions', 'solar', 'wind power', 'fossil fuel', 'sustainability', 'experiment', 'breakthrough',
   ],
 
   'International': [
@@ -298,6 +320,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'migrant', 'réfugié', 'refugie', 'frontière', 'frontiere', 'géopolitique', 'geopolitique',
     'états-unis', 'etats-unis', 'chine', 'russie', 'inde', 'brésil', 'bresil', 'japon', 'afrique',
     'moyen-orient', 'asie', 'amérique latine', 'amerique latine',
+    // English keywords
+    'war', 'conflict', 'treaty', 'diplomacy', 'sanctions', 'refugee', 'border', 'military', 'peace talks', 'ceasefire', 'humanitarian', 'foreign policy', 'embassy', 'summit', 'alliance',
   ],
 
   'Lifestyle & People': [
@@ -314,6 +338,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'createur de contenu',
     'ugc', 'trend', 'challenge', 'viral',
     'décoration', 'decoration', 'déco', 'deco', 'intérieur', 'interieur', 'ikea', 'maison',
+    // English keywords
+    'fashion', 'celebrity', 'beauty', 'travel', 'vacation', 'luxury', 'influencer', 'trend', 'design', 'lifestyle', 'wedding', 'red carpet', 'paparazzi', 'royal family', 'reality show', 'social media star',
   ],
 };
 
@@ -602,22 +628,22 @@ export async function fetchNews(region: string = 'fr'): Promise<NewsArticle[]> {
       const apiArticles = await fetchFromAPIs('be', 'fr');
       articles = [...articles, ...apiArticles];
     } else if (region === 'me') {
-      // Moyen-Orient: plusieurs pays, limiter les appels API
-      const countries = ['eg', 'ae', 'sa', 'lb', 'ma', 'tn', 'dz'];
-      for (const c of countries.slice(0, 3)) {
-        const apiArticles = await fetchFromAPIs(c, 'fr');
+      // Moyen-Orient: principaux pays, lang=en pour avoir des résultats
+      const countries = ['ae', 'sa', 'kw', 'bh', 'qa', 'om', 'jo', 'lb', 'ir', 'iq', 'eg'];
+      for (const c of countries.slice(0, 5)) {
+        const apiArticles = await fetchFromAPIs(c, 'en');
         articles = [...articles, ...apiArticles];
       }
     } else if (region === 'nord') {
-      // Pays du Nord: plusieurs pays
-      const countries = ['se', 'no', 'dk', 'fi'];
-      for (const c of countries.slice(0, 2)) {
+      // Europe du Nord: pays nordiques + Pays-Bas
+      const countries = ['se', 'no', 'dk', 'fi', 'nl', 'is'];
+      for (const c of countries.slice(0, 4)) {
         const apiArticles = await fetchFromAPIs(c, 'en');
         articles = [...articles, ...apiArticles];
       }
     } else {
-      // Pays unique: utiliser API avec mapping de langue
-      const langMap: Record<string, string> = { es: 'es', gb: 'en', us: 'en', pt: 'pt' };
+      // Pays unique: utiliser API avec lang=en pour meilleure couverture
+      const langMap: Record<string, string> = { es: 'en', gb: 'en', us: 'en', pt: 'en' };
       const apiArticles = await fetchFromAPIs(region, langMap[region] || 'en');
       articles = [...articles, ...apiArticles];
     }
