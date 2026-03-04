@@ -169,7 +169,7 @@ export default function AdminCRMPage() {
 
   // Import/Export
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[]; debug?: { headersDetected: string[]; columnMapping: Record<string, string>; unmappedHeaders: string[] } } | null>(null);
   const [matching, setMatching] = useState(false);
 
   // Sort (list view)
@@ -284,7 +284,7 @@ export default function AdminCRMPage() {
       const res = await fetch('/api/admin/crm/import', { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Import failed');
       const data = await res.json();
-      setImportResult({ imported: data.imported || 0, skipped: data.skipped || 0 });
+      setImportResult({ imported: data.imported || 0, skipped: data.skipped || 0, errors: data.errors || [], debug: data.debug });
       await loadProspects();
     } catch (e) {
       console.error('[CRM] Import error:', e);
@@ -453,7 +453,7 @@ export default function AdminCRMPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -463,7 +463,7 @@ export default function AdminCRMPage() {
 
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <th
-      className="px-3 py-3 text-left text-xs font-semibold text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-white transition-colors select-none"
+      className="px-3 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider cursor-pointer hover:text-neutral-900 transition-colors select-none"
       onClick={() => handleSort(field)}
     >
       <span className="inline-flex items-center gap-1">
@@ -480,30 +480,30 @@ export default function AdminCRMPage() {
   // ─── Render ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
+    <div className="min-h-screen bg-gray-50 text-neutral-900">
       {/* ── Header Bar ─────────────────────────────────────────────────── */}
-      <header className="border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-30">
+      <header className="border-b border-neutral-200 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               KeiroAI CRM
             </h1>
-            <div className="flex items-center bg-neutral-800 rounded-lg p-0.5">
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               <button
                 onClick={() => setView('pipeline')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'pipeline' ? 'bg-purple-600 text-white shadow' : 'text-neutral-400 hover:text-white'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'pipeline' ? 'bg-purple-600 text-white shadow' : 'text-neutral-500 hover:text-neutral-900'}`}
               >
                 🔀 Pipeline
               </button>
               <button
                 onClick={() => setView('canaux')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'canaux' ? 'bg-purple-600 text-white shadow' : 'text-neutral-400 hover:text-white'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'canaux' ? 'bg-purple-600 text-white shadow' : 'text-neutral-500 hover:text-neutral-900'}`}
               >
                 📡 Canaux
               </button>
               <button
                 onClick={() => setView('liste')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'liste' ? 'bg-purple-600 text-white shadow' : 'text-neutral-400 hover:text-white'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'liste' ? 'bg-purple-600 text-white shadow' : 'text-neutral-500 hover:text-neutral-900'}`}
               >
                 📋 Liste
               </button>
@@ -514,7 +514,7 @@ export default function AdminCRMPage() {
             <button
               onClick={handleMatch}
               disabled={matching}
-              className="px-3 py-1.5 text-xs font-medium text-neutral-300 border border-neutral-700 rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-neutral-600 border border-neutral-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
             >
               {matching ? '...' : '🔀 Matcher'}
             </button>
@@ -529,14 +529,14 @@ export default function AdminCRMPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
-              className="px-3 py-1.5 text-xs font-medium text-neutral-300 border border-neutral-700 rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-neutral-600 border border-neutral-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
             >
               {importing ? '...' : '📥 Importer'}
             </button>
 
             <button
               onClick={handleExport}
-              className="px-3 py-1.5 text-xs font-medium text-neutral-300 border border-neutral-700 rounded-lg hover:bg-neutral-800 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-neutral-600 border border-neutral-300 rounded-lg hover:bg-gray-100 transition-colors"
             >
               📤 Exporter
             </button>
@@ -553,12 +553,29 @@ export default function AdminCRMPage() {
 
       {/* ── Import Result Banner ───────────────────────────────────────── */}
       {importResult && (
-        <div className="max-w-[1600px] mx-auto px-4 pt-3">
-          <div className="flex items-center justify-between bg-emerald-900/40 border border-emerald-700 rounded-lg px-4 py-2.5">
-            <span className="text-sm text-emerald-300">
-              ✅ {importResult.imported} importe{importResult.imported > 1 ? 's' : ''}, {importResult.skipped} ignore{importResult.skipped > 1 ? 's' : ''}
-            </span>
-            <button onClick={() => setImportResult(null)} className="text-emerald-400 hover:text-white transition-colors text-lg leading-none">&times;</button>
+        <div className="max-w-[1600px] mx-auto px-4 pt-3 space-y-2">
+          <div className={`rounded-lg px-4 py-2.5 border ${importResult.imported > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${importResult.imported > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {importResult.imported > 0 ? '✅' : '⚠️'} {importResult.imported} importé{importResult.imported > 1 ? 's' : ''}, {importResult.skipped} ignoré{importResult.skipped > 1 ? 's' : ''}
+                {importResult.errors.length > 0 && `, ${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
+              </span>
+              <button onClick={() => setImportResult(null)} className="text-neutral-400 hover:text-neutral-700 transition-colors text-lg leading-none">&times;</button>
+            </div>
+            {importResult.debug && (
+              <div className="mt-2 text-xs text-neutral-500 space-y-1">
+                <p><span className="font-medium">Colonnes détectées :</span> {Object.entries(importResult.debug.columnMapping).map(([h, f]) => `${h} → ${f}`).join(', ') || 'aucune'}</p>
+                {importResult.debug.unmappedHeaders.length > 0 && (
+                  <p><span className="font-medium">Non reconnues :</span> {importResult.debug.unmappedHeaders.join(', ')}</p>
+                )}
+              </div>
+            )}
+            {importResult.errors.length > 0 && (
+              <div className="mt-2 text-xs text-red-600 max-h-24 overflow-y-auto">
+                {importResult.errors.slice(0, 10).map((e, i) => <p key={i}>{e}</p>)}
+                {importResult.errors.length > 10 && <p>... et {importResult.errors.length - 10} autres erreurs</p>}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -569,21 +586,21 @@ export default function AdminCRMPage() {
           {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map(stage => (
             <div
               key={stage.id}
-              className={`bg-neutral-900 rounded-xl border-t-2 ${stage.borderColor} p-3 cursor-pointer hover:bg-neutral-800 transition-colors`}
+              className={`bg-white rounded-xl border-t-2 ${stage.borderColor} p-3 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm`}
               onClick={() => { setFilterStatus(filterStatus === stage.id ? '' : stage.id); }}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-neutral-400">{stage.icon} {stage.label}</span>
+                <span className="text-xs text-neutral-500">{stage.icon} {stage.label}</span>
                 {filterStatus === stage.id && <span className="w-2 h-2 rounded-full bg-purple-500" />}
               </div>
-              <p className="text-2xl font-bold text-white">{stageStats[stage.id] || 0}</p>
+              <p className="text-2xl font-bold text-neutral-900">{stageStats[stage.id] || 0}</p>
             </div>
           ))}
         </div>
 
         {/* ── Filter Row ──────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
-          <div className="flex items-center gap-1.5 bg-neutral-900 rounded-lg p-1">
+          <div className="flex items-center gap-1.5 bg-white rounded-lg p-1">
             {([
               { key: 'all' as const, label: 'Tous' },
               { key: 'A' as const, label: '🔥 Chaud' },
@@ -593,7 +610,7 @@ export default function AdminCRMPage() {
               <button
                 key={p.key}
                 onClick={() => setFilterPrio(p.key)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterPrio === p.key ? 'bg-neutral-700 text-white' : 'text-neutral-500 hover:text-neutral-300'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterPrio === p.key ? 'bg-gray-200 text-neutral-900' : 'text-neutral-400 hover:text-neutral-600'}`}
               >
                 {p.label}
               </button>
@@ -601,7 +618,7 @@ export default function AdminCRMPage() {
           </div>
 
           <div className="relative flex-1 w-full sm:w-auto">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -609,14 +626,14 @@ export default function AdminCRMPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher nom, entreprise, instagram..."
-              className="w-full pl-10 pr-4 py-2 text-sm bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors text-lg leading-none">&times;</button>
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-900 transition-colors text-lg leading-none">&times;</button>
             )}
           </div>
 
-          <span className="text-xs text-neutral-500">{filtered.length} prospect{filtered.length > 1 ? 's' : ''}</span>
+          <span className="text-xs text-neutral-400">{filtered.length} prospect{filtered.length > 1 ? 's' : ''}</span>
         </div>
 
         {/* ── Main Content Area ───────────────────────────────────────── */}
@@ -626,7 +643,7 @@ export default function AdminCRMPage() {
             {loadingData ? (
               <div className="flex items-center justify-center py-20">
                 <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                <span className="ml-3 text-sm text-neutral-400">Chargement...</span>
+                <span className="ml-3 text-sm text-neutral-500">Chargement...</span>
               </div>
             ) : view === 'pipeline' ? (
               /* ── Pipeline Kanban ──────────────────────────────────────── */
@@ -642,9 +659,9 @@ export default function AdminCRMPage() {
                             <span className="text-xs font-bold text-white/80 bg-white/20 px-2 py-0.5 rounded-full">{stageProspects.length}</span>
                           </div>
                         </div>
-                        <div className="bg-neutral-900 rounded-b-lg border border-neutral-800 border-t-0 min-h-[200px] max-h-[calc(100vh-350px)] overflow-y-auto p-2 space-y-2">
+                        <div className="bg-white rounded-b-lg border border-neutral-200 border-t-0 min-h-[200px] max-h-[calc(100vh-350px)] overflow-y-auto p-2 space-y-2">
                           {stageProspects.length === 0 ? (
-                            <p className="text-xs text-neutral-600 text-center py-8">Aucun prospect</p>
+                            <p className="text-xs text-neutral-400 text-center py-8">Aucun prospect</p>
                           ) : stageProspects.map(p => {
                             const prioBadge = getPriorityBadge(p.priorite);
                             const channel = getChannelInfo(p.source);
@@ -653,15 +670,15 @@ export default function AdminCRMPage() {
                               <div
                                 key={p.id}
                                 onClick={() => setSelected(isSelected ? null : p)}
-                                className={`p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-950/30' : 'border-neutral-800 bg-neutral-800/50 hover:border-neutral-600'}`}
+                                className={`p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-neutral-200 bg-gray-50 hover:border-neutral-300'}`}
                               >
-                                <p className="text-sm font-semibold text-white truncate">{prospectName(p)}</p>
+                                <p className="text-sm font-semibold text-neutral-900 truncate">{prospectName(p)}</p>
                                 <div className="flex flex-wrap gap-1 mt-1.5">
-                                  {p.type && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-700 text-neutral-300 rounded">{p.type}</span>}
-                                  {p.quartier && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-700 text-neutral-300 rounded">{p.quartier}</span>}
+                                  {p.type && <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-neutral-600 rounded">{p.type}</span>}
+                                  {p.quartier && <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-neutral-600 rounded">{p.quartier}</span>}
                                 </div>
                                 {p.instagram && (
-                                  <p className="text-xs text-purple-400 mt-1 truncate">@{p.instagram.replace('@', '')}</p>
+                                  <p className="text-xs text-purple-600 mt-1 truncate">@{p.instagram.replace('@', '')}</p>
                                 )}
                                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
@@ -669,7 +686,7 @@ export default function AdminCRMPage() {
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getPlanBadge(p.matched_plan)?.classes}`}>{p.matched_plan}</span>
                                   )}
                                   {channel && (
-                                    <span className="text-[10px] text-neutral-500">{channel.icon}</span>
+                                    <span className="text-[10px] text-neutral-400">{channel.icon}</span>
                                   )}
                                 </div>
                               </div>
@@ -697,15 +714,15 @@ export default function AdminCRMPage() {
                         <div className="flex items-baseline gap-3 mb-2">
                           <div>
                             <p className="text-2xl font-bold text-neutral-900">{s.total}</p>
-                            <p className="text-[10px] text-neutral-500 uppercase">Prospects</p>
+                            <p className="text-[10px] text-neutral-400 uppercase">Prospects</p>
                           </div>
                           <div>
                             <p className="text-lg font-bold text-emerald-600">{s.clients}</p>
-                            <p className="text-[10px] text-neutral-500 uppercase">Clients</p>
+                            <p className="text-[10px] text-neutral-400 uppercase">Clients</p>
                           </div>
                           <div className="ml-auto">
                             <p className="text-lg font-bold text-neutral-700">{rate}%</p>
-                            <p className="text-[10px] text-neutral-500 uppercase">Conv.</p>
+                            <p className="text-[10px] text-neutral-400 uppercase">Conv.</p>
                           </div>
                         </div>
                         <ProgressBar value={rate} />
@@ -715,14 +732,14 @@ export default function AdminCRMPage() {
                 </div>
 
                 {/* Prospects list below channels */}
-                <div className="bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-neutral-800">
-                    <h3 className="text-sm font-semibold text-white">Tous les prospects par canal</h3>
+                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
+                  <div className="px-4 py-3 border-b border-neutral-200">
+                    <h3 className="text-sm font-semibold text-neutral-900">Tous les prospects par canal</h3>
                   </div>
                   {filtered.length === 0 ? (
-                    <p className="text-sm text-neutral-500 text-center py-8">Aucun prospect</p>
+                    <p className="text-sm text-neutral-400 text-center py-8">Aucun prospect</p>
                   ) : (
-                    <div className="divide-y divide-neutral-800">
+                    <div className="divide-y divide-neutral-200">
                       {filtered.map(p => {
                         const channel = getChannelInfo(p.source);
                         const stg = getStageInfo(p.status);
@@ -731,14 +748,14 @@ export default function AdminCRMPage() {
                           <div
                             key={p.id}
                             onClick={() => setSelected(isSelected ? null : p)}
-                            className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-purple-950/30' : 'hover:bg-neutral-800/50'}`}
+                            className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                           >
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-700 to-blue-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                               {prospectInitials(p)}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">{prospectName(p)}</p>
-                              <p className="text-xs text-neutral-500 truncate">{p.company || p.instagram || '--'}</p>
+                              <p className="text-sm font-medium text-neutral-900 truncate">{prospectName(p)}</p>
+                              <p className="text-xs text-neutral-400 truncate">{p.company || p.instagram || '--'}</p>
                             </div>
                             {channel && <span className="text-sm flex-shrink-0" title={channel.label}>{channel.icon}</span>}
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${stg.color} text-white flex-shrink-0`}>{stg.label}</span>
@@ -752,9 +769,9 @@ export default function AdminCRMPage() {
               </div>
             ) : (
               /* ── List View ──────────────────────────────────────────── */
-              <div className="bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden">
+              <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
                 {filtered.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-neutral-500">
+                  <div className="flex flex-col items-center justify-center py-16 text-neutral-400">
                     <svg className="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -763,7 +780,7 @@ export default function AdminCRMPage() {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-neutral-800/50 border-b border-neutral-700">
+                      <thead className="bg-gray-100 border-b border-neutral-300">
                         <tr>
                           <SortHeader field="name" label="Nom" />
                           <SortHeader field="type" label="Type" />
@@ -776,7 +793,7 @@ export default function AdminCRMPage() {
                           <SortHeader field="date_contact" label="Date Contact" />
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-neutral-800">
+                      <tbody className="divide-y divide-neutral-200">
                         {sorted.map((p, idx) => {
                           const stg = getStageInfo(p.status);
                           const prioBadge = getPriorityBadge(p.priorite);
@@ -786,21 +803,21 @@ export default function AdminCRMPage() {
                             <tr
                               key={p.id}
                               onClick={() => setSelected(isSelected ? null : p)}
-                              className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-950/30' : idx % 2 === 0 ? 'bg-neutral-900' : 'bg-neutral-900/50'} hover:bg-neutral-800`}
+                              className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
                             >
                               <td className="px-3 py-3">
                                 <div className="flex items-center gap-2">
                                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-700 to-blue-700 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
                                     {prospectInitials(p)}
                                   </div>
-                                  <span className="font-medium text-white truncate max-w-[140px]">{prospectName(p)}</span>
+                                  <span className="font-medium text-neutral-900 truncate max-w-[140px]">{prospectName(p)}</span>
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-neutral-400 text-xs">{p.type || '--'}</td>
-                              <td className="px-3 py-3 text-neutral-400 text-xs">{p.quartier || '--'}</td>
-                              <td className="px-3 py-3 text-purple-400 text-xs truncate max-w-[120px]">{p.instagram ? `@${p.instagram.replace('@', '')}` : '--'}</td>
+                              <td className="px-3 py-3 text-neutral-500 text-xs">{p.type || '--'}</td>
+                              <td className="px-3 py-3 text-neutral-500 text-xs">{p.quartier || '--'}</td>
+                              <td className="px-3 py-3 text-purple-600 text-xs truncate max-w-[120px]">{p.instagram ? `@${p.instagram.replace('@', '')}` : '--'}</td>
                               <td className="px-3 py-3">
-                                <span className="text-sm font-bold text-white">{p.score}</span>
+                                <span className="text-sm font-bold text-neutral-900">{p.score}</span>
                               </td>
                               <td className="px-3 py-3">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
@@ -808,8 +825,8 @@ export default function AdminCRMPage() {
                               <td className="px-3 py-3">
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${stg.color} text-white`}>{stg.icon} {stg.label}</span>
                               </td>
-                              <td className="px-3 py-3 text-xs text-neutral-400">{channel ? `${channel.icon} ${channel.label}` : '--'}</td>
-                              <td className="px-3 py-3 text-xs text-neutral-500 whitespace-nowrap">{formatDate(p.date_contact)}</td>
+                              <td className="px-3 py-3 text-xs text-neutral-500">{channel ? `${channel.icon} ${channel.label}` : '--'}</td>
+                              <td className="px-3 py-3 text-xs text-neutral-400 whitespace-nowrap">{formatDate(p.date_contact)}</td>
                             </tr>
                           );
                         })}
@@ -818,9 +835,9 @@ export default function AdminCRMPage() {
                   </div>
                 )}
                 {filtered.length > 0 && (
-                  <div className="px-4 py-2.5 bg-neutral-800/50 border-t border-neutral-700 flex items-center justify-between">
-                    <span className="text-xs text-neutral-500">{filtered.length} prospect{filtered.length > 1 ? 's' : ''}</span>
-                    <button onClick={loadProspects} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">Actualiser</button>
+                  <div className="px-4 py-2.5 bg-gray-100 border-t border-neutral-300 flex items-center justify-between">
+                    <span className="text-xs text-neutral-400">{filtered.length} prospect{filtered.length > 1 ? 's' : ''}</span>
+                    <button onClick={loadProspects} className="text-xs text-purple-600 hover:text-purple-700 transition-colors">Actualiser</button>
                   </div>
                 )}
               </div>
@@ -842,21 +859,21 @@ export default function AdminCRMPage() {
       {/* ── Add/Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
-          <div className="relative w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-700">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-neutral-200">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-neutral-900 border-b border-neutral-700 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
-              <h2 className="text-lg font-bold text-white">
+            <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-neutral-900">
                 {editingProspect ? 'Modifier prospect' : 'Nouveau prospect'}
               </h2>
-              <button onClick={closeModal} className="text-neutral-400 hover:text-white transition-colors text-xl leading-none">&times;</button>
+              <button onClick={closeModal} className="text-neutral-500 hover:text-neutral-900 transition-colors text-xl leading-none">&times;</button>
             </div>
 
             {/* Modal Body */}
             <div className="px-6 py-5 space-y-5">
               {editingProspect?.matched_plan && (
-                <div className="flex items-center gap-2 p-3 bg-purple-900/30 rounded-lg border border-purple-700">
-                  <span className="text-sm text-purple-300">Plan Keiro : <span className="font-semibold">{editingProspect.matched_plan}</span></span>
+                <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <span className="text-sm text-purple-700">Plan Keiro : <span className="font-semibold">{editingProspect.matched_plan}</span></span>
                 </div>
               )}
 
@@ -893,7 +910,7 @@ export default function AdminCRMPage() {
 
               {/* Priorite pills */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">Priorite</label>
+                <label className="block text-xs font-medium text-neutral-500 mb-2">Priorite</label>
                 <div className="flex gap-2">
                   {(['A', 'B', 'C'] as const).map(p => {
                     const badge = getPriorityBadge(p);
@@ -902,7 +919,7 @@ export default function AdminCRMPage() {
                         key={p}
                         type="button"
                         onClick={() => setForm(f => ({ ...f, priorite: p }))}
-                        className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${form.priorite === p ? badge.classes + ' ring-2 ring-offset-1 ring-offset-neutral-900 ring-purple-500' : 'bg-neutral-800 text-neutral-500 hover:text-neutral-300'}`}
+                        className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${form.priorite === p ? badge.classes + ' ring-2 ring-offset-1 ring-offset-white ring-purple-500' : 'bg-gray-100 text-neutral-400 hover:text-neutral-600'}`}
                       >
                         {badge.label}
                       </button>
@@ -916,14 +933,14 @@ export default function AdminCRMPage() {
 
               {/* Statut pills */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">Statut</label>
+                <label className="block text-xs font-medium text-neutral-500 mb-2">Statut</label>
                 <div className="flex flex-wrap gap-2">
                   {PIPELINE_STAGES.map(s => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setForm(f => ({ ...f, status: s.id }))}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.status === s.id ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-neutral-900 ring-purple-500' : 'bg-neutral-800 text-neutral-500 hover:text-neutral-300'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.status === s.id ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-purple-500' : 'bg-gray-100 text-neutral-400 hover:text-neutral-600'}`}
                     >
                       {s.icon} {s.label}
                     </button>
@@ -933,14 +950,14 @@ export default function AdminCRMPage() {
 
               {/* Canal pills */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">Canal</label>
+                <label className="block text-xs font-medium text-neutral-500 mb-2">Canal</label>
                 <div className="flex flex-wrap gap-2">
                   {CHANNELS.map(c => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => setForm(f => ({ ...f, source: f.source === c.id ? '' : c.id }))}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.source === c.id ? 'bg-purple-600 text-white ring-2 ring-offset-1 ring-offset-neutral-900 ring-purple-500' : 'bg-neutral-800 text-neutral-500 hover:text-neutral-300'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${form.source === c.id ? 'bg-purple-600 text-white ring-2 ring-offset-1 ring-offset-white ring-purple-500' : 'bg-gray-100 text-neutral-400 hover:text-neutral-600'}`}
                     >
                       {c.icon} {c.label}
                     </button>
@@ -962,30 +979,30 @@ export default function AdminCRMPage() {
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">Notes</label>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
                   rows={3}
                   placeholder="Notes internes..."
-                  className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-all"
+                  className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-all"
                 />
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-1">Tags <span className="text-neutral-600 font-normal">(separes par des virgules)</span></label>
+                <label className="block text-xs font-medium text-neutral-500 mb-1">Tags <span className="text-neutral-400 font-normal">(separes par des virgules)</span></label>
                 <input
                   type="text"
                   value={form.tags}
                   onChange={(e) => setForm(f => ({ ...f, tags: e.target.value }))}
                   placeholder="immobilier, premium, urgent"
-                  className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
                 {form.tags && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {form.tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                      <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded-full">{tag}</span>
+                      <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">{tag}</span>
                     ))}
                   </div>
                 )}
@@ -993,12 +1010,12 @@ export default function AdminCRMPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-neutral-900 border-t border-neutral-700 px-6 py-4 rounded-b-2xl flex items-center justify-between gap-3">
+            <div className="sticky bottom-0 bg-white border-t border-neutral-200 px-6 py-4 rounded-b-2xl flex items-center justify-between gap-3">
               <div>
                 {editingProspect && (
                   <button
                     onClick={() => deleteProspect(editingProspect.id)}
-                    className="px-3 py-2 text-sm font-medium text-red-400 border border-red-800 rounded-lg hover:bg-red-900/30 transition-colors"
+                    className="px-3 py-2 text-sm font-medium text-red-500 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     Supprimer
                   </button>
@@ -1007,7 +1024,7 @@ export default function AdminCRMPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-neutral-400 border border-neutral-700 rounded-lg hover:bg-neutral-800 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-neutral-500 border border-neutral-300 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Annuler
                 </button>
@@ -1052,13 +1069,13 @@ function ModalField({ label, value, onChange, placeholder, type = 'text' }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-neutral-400 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-neutral-500 mb-1">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+        className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
       />
     </div>
   );
@@ -1073,27 +1090,27 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
   const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.id === prospect.status);
 
   return (
-    <div className="w-full lg:w-[400px] flex-shrink-0 bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden self-start lg:sticky lg:top-20">
+    <div className="w-full lg:w-[400px] flex-shrink-0 bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden self-start lg:sticky lg:top-20">
       {/* Header */}
-      <div className="p-4 border-b border-neutral-800">
+      <div className="p-4 border-b border-neutral-200">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
               {prospectInitials(prospect)}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">{prospectName(prospect)}</h3>
+              <h3 className="text-sm font-bold text-neutral-900">{prospectName(prospect)}</h3>
               <div className="flex items-center gap-2 mt-0.5">
-                {prospect.type && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-800 text-neutral-400 rounded">{prospect.type}</span>}
-                {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-800 text-neutral-400 rounded">{prospect.quartier}</span>}
+                {prospect.type && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-neutral-500 rounded">{prospect.type}</span>}
+                {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-neutral-500 rounded">{prospect.quartier}</span>}
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white transition-colors text-lg leading-none">&times;</button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 transition-colors text-lg leading-none">&times;</button>
         </div>
         <div className="flex items-center gap-2 mt-3">
-          <span className="text-xl font-bold text-white">{prospect.score}</span>
-          <span className="text-xs text-neutral-500">pts</span>
+          <span className="text-xl font-bold text-neutral-900">{prospect.score}</span>
+          <span className="text-xs text-neutral-400">pts</span>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ml-auto ${prioBadge.classes}`}>{prioBadge.label}</span>
           {prospect.matched_plan && (
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPlanBadge(prospect.matched_plan)?.classes}`}>{prospect.matched_plan}</span>
@@ -1102,18 +1119,18 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
       </div>
 
       {/* Pipeline visual */}
-      <div className="px-4 py-3 border-b border-neutral-800">
+      <div className="px-4 py-3 border-b border-neutral-200">
         <div className="flex items-center gap-1">
           {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map((s, idx) => {
             const isActive = idx <= currentStageIdx && prospect.status !== 'perdu';
             const isCurrent = s.id === prospect.status;
             return (
               <div key={s.id} className="flex items-center flex-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 transition-all ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-neutral-900 ring-white/30' : isActive ? s.color + ' text-white' : 'bg-neutral-800 text-neutral-600'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 transition-all ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-neutral-300' : isActive ? s.color + ' text-white' : 'bg-gray-100 text-neutral-400'}`}>
                   {s.icon}
                 </div>
                 {idx < 5 && (
-                  <div className={`flex-1 h-0.5 ${isActive && idx < currentStageIdx ? 'bg-emerald-500' : 'bg-neutral-800'}`} />
+                  <div className={`flex-1 h-0.5 ${isActive && idx < currentStageIdx ? 'bg-emerald-500' : 'bg-gray-200'}`} />
                 )}
               </div>
             );
@@ -1127,33 +1144,33 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
       </div>
 
       {/* Info grid */}
-      <div className="px-4 py-3 border-b border-neutral-800 space-y-2.5">
+      <div className="px-4 py-3 border-b border-neutral-200 space-y-2.5">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           {/* Left column */}
           <div className="space-y-2">
             {prospect.instagram && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Instagram</p>
-                <p className="text-xs text-purple-400">@{prospect.instagram.replace('@', '')}</p>
-                {prospect.abonnes != null && <p className="text-[10px] text-neutral-500">{prospect.abonnes.toLocaleString('fr-FR')} abonnes</p>}
+                <p className="text-[10px] text-neutral-400 uppercase">Instagram</p>
+                <p className="text-xs text-purple-600">@{prospect.instagram.replace('@', '')}</p>
+                {prospect.abonnes != null && <p className="text-[10px] text-neutral-400">{prospect.abonnes.toLocaleString('fr-FR')} abonnes</p>}
               </div>
             )}
             {prospect.phone && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Telephone</p>
-                <p className="text-xs text-white">{prospect.phone}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Telephone</p>
+                <p className="text-xs text-neutral-900">{prospect.phone}</p>
               </div>
             )}
             {prospect.email && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Email</p>
-                <p className="text-xs text-white truncate">{prospect.email}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Email</p>
+                <p className="text-xs text-neutral-900 truncate">{prospect.email}</p>
               </div>
             )}
             {prospect.note_google != null && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Google</p>
-                <p className="text-xs text-white">{prospect.note_google}/5 ({prospect.avis_google || 0} avis)</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Google</p>
+                <p className="text-xs text-neutral-900">{prospect.note_google}/5 ({prospect.avis_google || 0} avis)</p>
               </div>
             )}
           </div>
@@ -1162,26 +1179,26 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
           <div className="space-y-2">
             {prospect.freq_posts && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Freq. posts</p>
-                <p className="text-xs text-white">{prospect.freq_posts}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Freq. posts</p>
+                <p className="text-xs text-neutral-900">{prospect.freq_posts}</p>
               </div>
             )}
             {prospect.qualite_visuelle && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Qualite visuelle</p>
-                <p className="text-xs text-white">{prospect.qualite_visuelle}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Qualite visuelle</p>
+                <p className="text-xs text-neutral-900">{prospect.qualite_visuelle}</p>
               </div>
             )}
             {prospect.date_contact && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Date contact</p>
-                <p className="text-xs text-white">{formatDate(prospect.date_contact)}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Date contact</p>
+                <p className="text-xs text-neutral-900">{formatDate(prospect.date_contact)}</p>
               </div>
             )}
             {prospect.angle_approche && (
               <div>
-                <p className="text-[10px] text-neutral-500 uppercase">Angle</p>
-                <p className="text-xs text-white">{prospect.angle_approche}</p>
+                <p className="text-[10px] text-neutral-400 uppercase">Angle</p>
+                <p className="text-xs text-neutral-900">{prospect.angle_approche}</p>
               </div>
             )}
           </div>
@@ -1189,14 +1206,14 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
 
         {/* Active channel */}
         <div>
-          <p className="text-[10px] text-neutral-500 uppercase mb-1.5">Canal</p>
+          <p className="text-[10px] text-neutral-400 uppercase mb-1.5">Canal</p>
           <div className="flex flex-wrap gap-1.5">
             {CHANNELS.map(c => {
               const isActive = prospect.source === c.id;
               return (
                 <span
                   key={c.id}
-                  className={`text-[10px] px-2 py-0.5 rounded-full transition-all ${isActive ? 'bg-purple-600 text-white font-semibold' : 'bg-neutral-800 text-neutral-600'}`}
+                  className={`text-[10px] px-2 py-0.5 rounded-full transition-all ${isActive ? 'bg-purple-600 text-white font-semibold' : 'bg-gray-100 text-neutral-400'}`}
                 >
                   {c.icon} {c.label}
                 </span>
@@ -1208,20 +1225,20 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
 
       {/* Notes */}
       {prospect.notes && (
-        <div className="px-4 py-3 border-b border-neutral-800">
-          <p className="text-[10px] text-neutral-500 uppercase mb-1">Notes</p>
-          <div className="bg-yellow-900/20 border border-yellow-800/30 rounded-lg p-2.5">
-            <p className="text-xs text-yellow-200/80 whitespace-pre-wrap">{prospect.notes}</p>
+        <div className="px-4 py-3 border-b border-neutral-200">
+          <p className="text-[10px] text-neutral-400 uppercase mb-1">Notes</p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5">
+            <p className="text-xs text-yellow-800 whitespace-pre-wrap">{prospect.notes}</p>
           </div>
         </div>
       )}
 
       {/* Tags */}
       {prospect.tags && prospect.tags.length > 0 && (
-        <div className="px-4 py-3 border-b border-neutral-800">
+        <div className="px-4 py-3 border-b border-neutral-200">
           <div className="flex flex-wrap gap-1">
             {prospect.tags.map(tag => (
-              <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-900/40 text-purple-300 rounded-full">{tag}</span>
+              <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">{tag}</span>
             ))}
           </div>
         </div>
@@ -1241,8 +1258,8 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
           </button>
         </div>
         <div className="flex items-center justify-between pt-1">
-          <button onClick={onEdit} className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors">Modifier</button>
-          <button onClick={onDelete} className="text-[10px] text-red-400 hover:text-red-300 transition-colors">Supprimer</button>
+          <button onClick={onEdit} className="text-[10px] text-purple-600 hover:text-purple-700 transition-colors">Modifier</button>
+          <button onClick={onDelete} className="text-[10px] text-red-500 hover:text-red-600 transition-colors">Supprimer</button>
         </div>
       </div>
     </div>

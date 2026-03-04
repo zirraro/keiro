@@ -12,82 +12,91 @@ function getAdminClient() {
   });
 }
 
-// Column mapping: normalized header → field name
-const COLUMN_MAPPINGS: Record<string, string> = {
-  'prénom': 'first_name',
-  'prenom': 'first_name',
-  'first_name': 'first_name',
-  'first name': 'first_name',
-  'nom': 'last_name',
-  'last_name': 'last_name',
-  'last name': 'last_name',
-  'name': 'last_name',
-  'email': 'email',
-  'e-mail': 'email',
-  'mail': 'email',
-  'téléphone': 'phone',
-  'telephone': 'phone',
-  'phone': 'phone',
-  'tel': 'phone',
-  'tél': 'phone',
-  'entreprise': 'company',
-  'société': 'company',
-  'societe': 'company',
-  'company': 'company',
-  'notes': 'notes',
-  'note': 'notes',
-  'commentaire': 'notes',
-  'comment': 'notes',
-  'source': 'source',
-  'statut': 'status',
-  'status': 'status',
-  'type': 'type',
-  'catégorie': 'type',
-  'category': 'type',
-  'quartier': 'quartier',
-  'arrondissement': 'quartier',
-  'district': 'quartier',
-  'zone': 'quartier',
-  'instagram': 'instagram',
-  'insta': 'instagram',
-  '@': 'instagram',
-  'abonnés': 'abonnes',
-  'abonnes': 'abonnes',
-  'followers': 'abonnes',
-  'note google': 'note_google',
-  'rating': 'note_google',
-  'avis': 'avis_google',
-  'reviews': 'avis_google',
-  'avis google': 'avis_google',
-  'priorité': 'priorite',
-  'priorite': 'priorite',
-  'priority': 'priorite',
-  'prio': 'priorite',
-  'score': 'score',
-  'fréquence': 'freq_posts',
-  'frequence': 'freq_posts',
-  'freq': 'freq_posts',
-  'frequency': 'freq_posts',
-  'qualité': 'qualite_visuelle',
-  'qualite': 'qualite_visuelle',
-  'quality': 'qualite_visuelle',
-  'date contact': 'date_contact',
-  'date_contact': 'date_contact',
-  '1er contact': 'date_contact',
-  'angle': 'angle_approche',
-  'approche': 'angle_approche',
-  'angle approche': 'angle_approche',
-};
+// Keyword-based column detection (order matters: more specific first)
+// Each entry: [keywords that the header must CONTAIN, target field]
+const FIELD_RULES: { keywords: string[]; field: string; exact?: boolean }[] = [
+  // Prenom BEFORE nom (because "prenom" contains "nom")
+  { keywords: ['prénom', 'prenom', 'first name', 'first_name', 'firstname'], field: 'first_name' },
+  // "nom" alone = last_name, but "nom de l'etablissement/restaurant/commerce" = company
+  { keywords: ['nom de', 'nom du', 'raison sociale', 'enseigne'], field: 'company', exact: false },
+  { keywords: ['nom', 'last name', 'last_name', 'lastname', 'surname'], field: 'last_name' },
+  // Email
+  { keywords: ['email', 'e-mail', 'mail', 'courriel', 'adresse mail', 'adresse email'], field: 'email' },
+  // Phone
+  { keywords: ['telephone', 'téléphone', 'phone', 'tel', 'tél', 'portable', 'mobile', 'numero', 'numéro'], field: 'phone' },
+  // Company (less specific, after "nom de...")
+  { keywords: ['entreprise', 'company', 'societe', 'société', 'etablissement', 'établissement', 'restaurant', 'commerce', 'boutique', 'salon', 'magasin'], field: 'company' },
+  // Type
+  { keywords: ['type', 'catégorie', 'categorie', 'category', 'activite', 'activité', 'secteur', 'metier', 'métier'], field: 'type' },
+  // Quartier
+  { keywords: ['quartier', 'arrondissement', 'district', 'zone', 'ville', 'city', 'adresse', 'address', 'location', 'localisation'], field: 'quartier' },
+  // Instagram
+  { keywords: ['instagram', 'insta', 'ig', 'compte instagram', 'compte insta'], field: 'instagram' },
+  // Followers
+  { keywords: ['abonné', 'abonne', 'abonnés', 'abonnes', 'follower', 'followers', 'subscriber'], field: 'abonnes' },
+  // Google rating
+  { keywords: ['note google', 'rating google', 'google rating', 'note'], field: 'note_google' },
+  // Google reviews
+  { keywords: ['avis google', 'google reviews', 'avis', 'reviews', 'nb avis', 'nombre avis'], field: 'avis_google' },
+  // Priority
+  { keywords: ['priorité', 'priorite', 'priority', 'prio'], field: 'priorite' },
+  // Score
+  { keywords: ['score', 'points', 'note prospect'], field: 'score' },
+  // Freq posts
+  { keywords: ['fréquence', 'frequence', 'freq', 'frequency', 'post', 'publication'], field: 'freq_posts' },
+  // Visual quality
+  { keywords: ['qualité', 'qualite', 'quality', 'visuel', 'visuelle'], field: 'qualite_visuelle' },
+  // Date contact
+  { keywords: ['date contact', 'date_contact', '1er contact', 'premier contact', 'date'], field: 'date_contact' },
+  // Angle
+  { keywords: ['angle', 'approche', 'pitch', 'angle approche'], field: 'angle_approche' },
+  // Status
+  { keywords: ['statut', 'status', 'état', 'etat', 'etape', 'étape', 'pipeline'], field: 'status' },
+  // Source / Canal
+  { keywords: ['source', 'canal', 'channel', 'origine', 'provenance', 'acquisition'], field: 'source' },
+  // Notes (last, catches remaining text columns)
+  { keywords: ['notes', 'commentaire', 'comment', 'remarque', 'observation', 'info', 'description', 'detail', 'détail'], field: 'notes' },
+];
 
-function detectColumnMapping(headers: string[]): Record<number, string> {
+// Normalize: lowercase + remove accents
+function normalize(str: string): string {
+  return str.toString().trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function detectColumnMapping(headers: string[]): { mapping: Record<number, string>; unmapped: string[] } {
   const mapping: Record<number, string> = {};
+  const usedFields = new Set<string>();
+  const unmapped: string[] = [];
+
   for (let i = 0; i < headers.length; i++) {
-    const normalized = (headers[i] || '').toString().trim().toLowerCase();
-    if (COLUMN_MAPPINGS[normalized]) {
-      mapping[i] = COLUMN_MAPPINGS[normalized];
+    const raw = (headers[i] || '').toString().trim();
+    if (!raw) continue;
+    const h = normalize(raw);
+    if (!h) continue;
+
+    let matched = false;
+    for (const rule of FIELD_RULES) {
+      if (usedFields.has(rule.field)) continue;
+      for (const kw of rule.keywords) {
+        const nkw = normalize(kw);
+        // Check if header contains keyword or keyword contains header
+        if (h.includes(nkw) || (nkw.length > 3 && nkw.includes(h))) {
+          mapping[i] = rule.field;
+          usedFields.add(rule.field);
+          matched = true;
+          break;
+        }
+      }
+      if (matched) break;
+    }
+
+    if (!matched) {
+      unmapped.push(raw);
     }
   }
-  return mapping;
+
+  return { mapping, unmapped };
 }
 
 // POST: Importer des prospects depuis Excel/CSV
@@ -119,18 +128,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type
-    const validTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/csv',
-    ];
     const validExtensions = ['.xlsx', '.xls', '.csv'];
     const fileName = file.name.toLowerCase();
     const hasValidExtension = validExtensions.some((ext) => fileName.endsWith(ext));
 
-    if (!validTypes.includes(file.type) && !hasValidExtension) {
+    if (!hasValidExtension) {
       return NextResponse.json(
-        { error: 'Format de fichier non supporté. Utilisez .xlsx, .xls ou .csv' },
+        { error: 'Format non supporté. Utilisez .xlsx, .xls ou .csv' },
         { status: 400 }
       );
     }
@@ -155,14 +159,23 @@ export async function POST(req: NextRequest) {
 
     // Detect column mapping from headers
     const headers = rows[0] as string[];
-    const columnMapping = detectColumnMapping(headers);
+    const { mapping: columnMapping, unmapped } = detectColumnMapping(headers);
+
+    const mappedFields = Object.values(columnMapping);
+    const mappedHeaders: Record<string, string> = {};
+    for (const [colIdx, field] of Object.entries(columnMapping)) {
+      mappedHeaders[String(headers[parseInt(colIdx)])] = field;
+    }
 
     if (Object.keys(columnMapping).length === 0) {
-      return NextResponse.json(
-        { error: 'Impossible de détecter les colonnes. Vérifiez les en-têtes du fichier.' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: `Aucune colonne reconnue. En-têtes détectés : ${headers.filter(Boolean).join(', ')}`,
+      }, { status: 400 });
     }
+
+    // Check if we have first_name/last_name separate or combined "nom"
+    const hasFirstName = mappedFields.includes('first_name');
+    const hasLastName = mappedFields.includes('last_name');
 
     let imported = 0;
     let skipped = 0;
@@ -171,30 +184,56 @@ export async function POST(req: NextRequest) {
     // Process each data row (skip header)
     for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
       const row = rows[rowIdx];
-      if (!row || row.length === 0) {
+      if (!row || row.every(v => v === undefined || v === null || v === '')) {
         skipped++;
         continue;
       }
 
       // Map columns to fields
-      const record: any = {};
-      for (const [colIdx, field] of Object.entries(columnMapping)) {
-        const value = row[parseInt(colIdx)];
-        if (value !== undefined && value !== null && value !== '') {
-          record[field] = String(value).trim();
+      const record: Record<string, string> = {};
+      // Also collect unmapped column values for notes
+      const extraData: string[] = [];
+
+      for (let colIdx = 0; colIdx < row.length; colIdx++) {
+        const value = row[colIdx];
+        if (value === undefined || value === null || value === '') continue;
+        const strValue = String(value).trim();
+        if (!strValue) continue;
+
+        if (columnMapping[colIdx]) {
+          record[columnMapping[colIdx]] = strValue;
+        } else if (headers[colIdx]) {
+          // Unmapped column: save for notes
+          extraData.push(`${headers[colIdx]}: ${strValue}`);
         }
       }
 
-      // Skip rows without at least a name or email
-      const hasName = record.first_name || record.last_name;
-      const hasEmail = record.email;
-      if (!hasName && !hasEmail) {
+      // Handle combined "nom" field: if we have last_name but no first_name,
+      // try to split "Jean Dupont" into first/last
+      if (record.last_name && !hasFirstName) {
+        const parts = record.last_name.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          record.first_name = parts[0];
+          record.last_name = parts.slice(1).join(' ');
+        }
+      }
+
+      // Skip only truly empty rows (no useful data at all)
+      const hasAnyData = record.first_name || record.last_name || record.email ||
+        record.phone || record.company || record.instagram || record.type;
+      if (!hasAnyData) {
         skipped++;
         continue;
       }
 
+      // Append extra data to notes if any
+      let notes = record.notes || '';
+      if (extraData.length > 0) {
+        notes = notes ? `${notes}\n---\n${extraData.join(' | ')}` : extraData.join(' | ');
+      }
+
       // Build prospect data
-      const prospectData: any = {
+      const prospectData: Record<string, unknown> = {
         first_name: record.first_name || null,
         last_name: record.last_name || null,
         email: record.email || null,
@@ -202,7 +241,7 @@ export async function POST(req: NextRequest) {
         company: record.company || null,
         status: record.status || 'identifie',
         source: record.source || 'import',
-        notes: record.notes || null,
+        notes: notes || null,
         type: record.type || null,
         quartier: record.quartier || null,
         instagram: record.instagram || null,
@@ -239,7 +278,6 @@ export async function POST(req: NextRequest) {
 
       if (insertError) {
         errors.push(`Ligne ${rowIdx + 1}: ${insertError.message}`);
-        skipped++;
       } else {
         imported++;
       }
@@ -250,6 +288,12 @@ export async function POST(req: NextRequest) {
       imported,
       skipped,
       errors,
+      debug: {
+        totalRows: rows.length - 1,
+        headersDetected: headers.filter(Boolean),
+        columnMapping: mappedHeaders,
+        unmappedHeaders: unmapped,
+      },
     });
   } catch (error: any) {
     console.error('[Admin CRM Import] Error:', error);
