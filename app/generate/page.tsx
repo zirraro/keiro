@@ -301,7 +301,9 @@ export default function GeneratePage() {
       story: 'Transformation et réussite humaine',
       visualStyle: 'Lumineux et épuré',
       imageAngle: 'Storytelling visuel authentique et inspirant',
-      marketingAngle: 'Inspirer l\'audience via l\'actualité pour créer une connexion émotionnelle',
+      marketingAngle: useNewsMode
+        ? 'Inspirer l\'audience via l\'actualité pour créer une connexion émotionnelle'
+        : 'Inspirer l\'audience avec un moment authentique et une histoire humaine',
       icon: '✨',
       label: t.generate.toneInspiringLabel,
       description: t.generate.toneInspiringDesc,
@@ -317,7 +319,9 @@ export default function GeneratePage() {
       story: 'Expertise et valeur apportée',
       visualStyle: 'Moderne et structuré',
       imageAngle: 'Visuel clair avec mots-clés et données visuelles professionnelles',
-      marketingAngle: 'Se positionner en expert face à l\'actualité pour établir son autorité',
+      marketingAngle: useNewsMode
+        ? 'Se positionner en expert face à l\'actualité pour établir son autorité'
+        : 'Démontrer son expertise et son savoir-faire unique pour établir son autorité',
       icon: '🎯',
       label: t.generate.toneExpertLabel,
       description: t.generate.toneExpertDesc,
@@ -333,7 +337,9 @@ export default function GeneratePage() {
       story: 'Opportunité limitée et bénéfices concrets',
       visualStyle: 'Énergique et contrasté',
       imageAngle: 'Impact visuel maximal avec call-to-action fort et urgence visible',
-      marketingAngle: 'Profiter de l\'opportunité créée par l\'actualité pour pousser à l\'action',
+      marketingAngle: useNewsMode
+        ? 'Profiter de l\'opportunité créée par l\'actualité pour pousser à l\'action'
+        : 'Créer un sentiment d\'urgence et de rareté pour pousser à l\'action',
       icon: '⚡',
       label: t.generate.toneUrgentLabel,
       description: t.generate.toneUrgentDesc,
@@ -349,7 +355,9 @@ export default function GeneratePage() {
       story: 'Expériences partagées et humanité',
       visualStyle: 'Naturel et chaleureux',
       imageAngle: 'Visuel naturel et authentique qui invite au dialogue',
-      marketingAngle: 'Surfer sur la tendance de l\'actualité de manière conversationnelle',
+      marketingAngle: useNewsMode
+        ? 'Surfer sur la tendance de l\'actualité de manière conversationnelle'
+        : 'Engager la conversation avec authenticité et proximité',
       icon: '💬',
       label: t.generate.toneDialogLabel,
       description: t.generate.toneDialogDesc,
@@ -819,25 +827,33 @@ export default function GeneratePage() {
         goal: 'Augmenter la visibilité et le référencement naturel',
         imageAngle: 'Visuel clair avec mots-clés visuels du secteur',
         story: 'Expertise et autorité dans le domaine',
-        marketingAngle: 'Se positionner en expert face à l\'actualité',
+        marketingAngle: useNewsMode
+          ? 'Se positionner en expert face à l\'actualité'
+          : 'Se positionner en expert de son domaine avec un contenu éducatif',
       },
       marketing: {
         goal: 'Générer de l\'engagement et des conversions',
         imageAngle: 'Visuel accrocheur avec call-to-action visuel',
         story: 'Bénéfices concrets pour le client',
-        marketingAngle: 'Profiter de l\'opportunité créée par l\'actualité',
+        marketingAngle: useNewsMode
+          ? 'Profiter de l\'opportunité créée par l\'actualité'
+          : 'Mettre en avant les bénéfices concrets pour déclencher l\'action',
       },
       content: {
         goal: 'Éduquer et créer du lien avec l\'audience',
         imageAngle: 'Storytelling visuel authentique',
         story: 'Valeurs de la marque et authenticité',
-        marketingAngle: 'Surfer sur la tendance de l\'actualité',
+        marketingAngle: useNewsMode
+          ? 'Surfer sur la tendance de l\'actualité'
+          : 'Raconter une histoire authentique qui crée du lien',
       },
       copywriter: {
         goal: 'Convaincre et pousser à l\'action',
         imageAngle: 'Impact visuel maximal avec hiérarchie claire',
         story: 'Transformation et résultats',
-        marketingAngle: 'Résoudre le problème soulevé par l\'actualité',
+        marketingAngle: useNewsMode
+          ? 'Résoudre le problème soulevé par l\'actualité'
+          : 'Résoudre un problème concret du client avec impact',
       },
     };
 
