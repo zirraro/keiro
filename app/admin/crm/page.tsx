@@ -211,6 +211,12 @@ export default function AdminCRMPage() {
   const [search, setSearch] = useState('');
   const [filterPrio, setFilterPrio] = useState<'all' | 'A' | 'B' | 'C'>('all');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterSource, setFilterSource] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterQuartier, setFilterQuartier] = useState('');
+
+  // Export modal
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -378,9 +384,16 @@ export default function AdminCRMPage() {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (filters?: { status?: string; source?: string; type?: string; quartier?: string; priorite?: string }) => {
     try {
-      const res = await fetch('/api/admin/crm/export');
+      const params = new URLSearchParams();
+      if (filters?.status) params.set('status', filters.status);
+      if (filters?.source) params.set('source', filters.source);
+      if (filters?.type) params.set('type', filters.type);
+      if (filters?.quartier) params.set('quartier', filters.quartier);
+      if (filters?.priorite) params.set('priorite', filters.priorite);
+      const qs = params.toString();
+      const res = await fetch(`/api/admin/crm/export${qs ? `?${qs}` : ''}`);
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -391,6 +404,7 @@ export default function AdminCRMPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      setShowExportModal(false);
     } catch (e) {
       console.error('[CRM] Export error:', e);
       alert("Erreur lors de l'export.");
@@ -565,6 +579,15 @@ export default function AdminCRMPage() {
     if (filterStatus) {
       list = list.filter(p => p.status === filterStatus);
     }
+    if (filterSource) {
+      list = list.filter(p => p.source === filterSource);
+    }
+    if (filterType) {
+      list = list.filter(p => p.type === filterType);
+    }
+    if (filterQuartier) {
+      list = list.filter(p => p.quartier === filterQuartier);
+    }
     if (filterRappels) {
       list = list.filter(p => prospectIdsWithReminders.has(p.id));
     }
@@ -577,7 +600,7 @@ export default function AdminCRMPage() {
       list = list.filter(p => weekIds.has(p.id));
     }
     return list;
-  }, [prospects, search, filterPrio, filterStatus, filterRappels, prospectIdsWithReminders, filterSuivi, weeklyReminders, pendingReminders]);
+  }, [prospects, search, filterPrio, filterStatus, filterSource, filterType, filterQuartier, filterRappels, prospectIdsWithReminders, filterSuivi, weeklyReminders, pendingReminders]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -617,6 +640,18 @@ export default function AdminCRMPage() {
     PIPELINE_STAGES.forEach(s => { counts[s.id] = 0; });
     prospects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
     return counts;
+  }, [prospects]);
+
+  const uniqueTypes = useMemo(() => {
+    const types = new Set<string>();
+    prospects.forEach(p => { if (p.type) types.add(p.type); });
+    return Array.from(types).sort();
+  }, [prospects]);
+
+  const uniqueQuartiers = useMemo(() => {
+    const quartiers = new Set<string>();
+    prospects.forEach(p => { if (p.quartier) quartiers.add(p.quartier); });
+    return Array.from(quartiers).sort();
   }, [prospects]);
 
   const channelStats = useMemo(() => {
@@ -723,7 +758,7 @@ export default function AdminCRMPage() {
             </button>
 
             <button
-              onClick={handleExport}
+              onClick={() => setShowExportModal(true)}
               className="px-3 py-1.5 text-xs font-medium text-neutral-600 border border-neutral-300 rounded-lg hover:bg-gray-100 transition-colors"
             >
               📤 Exporter
@@ -982,11 +1017,17 @@ export default function AdminCRMPage() {
                   {CHANNELS.map(ch => {
                     const s = channelStats[ch.id] || { total: 0, clients: 0 };
                     const rate = s.total > 0 ? Math.round((s.clients / s.total) * 100) : 0;
+                    const isActive = filterSource === ch.id;
                     return (
-                      <div key={ch.id} className={`rounded-xl border ${ch.border} ${ch.bg} p-4`}>
+                      <div
+                        key={ch.id}
+                        onClick={() => { setFilterSource(isActive ? '' : ch.id); }}
+                        className={`rounded-xl border ${isActive ? 'border-purple-500 ring-2 ring-purple-200' : ch.border} ${ch.bg} p-4 cursor-pointer hover:shadow-md transition-all`}
+                      >
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xl">{ch.icon}</span>
                           <span className="text-sm font-semibold text-neutral-800">{ch.label}</span>
+                          {isActive && <span className="ml-auto w-2 h-2 rounded-full bg-purple-500" />}
                         </div>
                         <div className="flex items-baseline gap-3 mb-2">
                           <div>
@@ -1007,11 +1048,23 @@ export default function AdminCRMPage() {
                     );
                   })}
                 </div>
+                {filterSource && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xs text-neutral-500">Filtre actif :</span>
+                    <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                      {CHANNELS.find(c => c.id === filterSource)?.icon} {CHANNELS.find(c => c.id === filterSource)?.label}
+                    </span>
+                    <button onClick={() => setFilterSource('')} className="text-xs text-neutral-400 hover:text-neutral-700">&times; Effacer</button>
+                  </div>
+                )}
 
                 {/* Prospects list below channels */}
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
-                  <div className="px-4 py-3 border-b border-neutral-200">
-                    <h3 className="text-sm font-semibold text-neutral-900">Tous les prospects par canal</h3>
+                  <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-neutral-900">
+                      {filterSource ? `${CHANNELS.find(c => c.id === filterSource)?.icon} ${CHANNELS.find(c => c.id === filterSource)?.label} — ${filtered.length} prospect${filtered.length > 1 ? 's' : ''}` : `Tous les prospects par canal`}
+                    </h3>
+                    <span className="text-xs text-neutral-400">{filtered.length} résultat{filtered.length > 1 ? 's' : ''}</span>
                   </div>
                   {filtered.length === 0 ? (
                     <p className="text-sm text-neutral-400 text-center py-8">Aucun prospect</p>
@@ -1240,6 +1293,59 @@ export default function AdminCRMPage() {
               </div>
             ) : (
               /* ── List View ──────────────────────────────────────────── */
+              <div className="space-y-3">
+                {/* Liste filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={filterSource}
+                    onChange={e => setFilterSource(e.target.value)}
+                    className="px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-700"
+                  >
+                    <option value="">Tous les canaux</option>
+                    {CHANNELS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+                  </select>
+                  <select
+                    value={filterType}
+                    onChange={e => setFilterType(e.target.value)}
+                    className="px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-700"
+                  >
+                    <option value="">Tous les types</option>
+                    {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <select
+                    value={filterQuartier}
+                    onChange={e => setFilterQuartier(e.target.value)}
+                    className="px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-700"
+                  >
+                    <option value="">Tous les quartiers</option>
+                    {uniqueQuartiers.map(q => <option key={q} value={q}>{q}</option>)}
+                  </select>
+                  {!filterStatus && (
+                    <select
+                      value=""
+                      onChange={e => setFilterStatus(e.target.value)}
+                      className="px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-700"
+                    >
+                      <option value="">Tous les statuts</option>
+                      {PIPELINE_STAGES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}
+                    </select>
+                  )}
+                  {(filterSource || filterType || filterQuartier || filterStatus) && (
+                    <button
+                      onClick={() => { setFilterSource(''); setFilterType(''); setFilterQuartier(''); setFilterStatus(''); }}
+                      className="px-2 py-1.5 text-xs text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      &times; Effacer filtres
+                    </button>
+                  )}
+                  {/* Active filter badges */}
+                  {filterStatus && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium flex items-center gap-1">
+                      {PIPELINE_STAGES.find(s => s.id === filterStatus)?.icon} {PIPELINE_STAGES.find(s => s.id === filterStatus)?.label}
+                      <button onClick={() => setFilterStatus('')} className="hover:text-red-500">&times;</button>
+                    </span>
+                  )}
+                </div>
               <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
                 {filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 text-neutral-400">
@@ -1312,6 +1418,7 @@ export default function AdminCRMPage() {
                   </div>
                 )}
               </div>
+              </div>
             )}
           </div>
 
@@ -1330,6 +1437,17 @@ export default function AdminCRMPage() {
           )}
         </div>
       </main>
+
+      {/* ── Export Modal ──────────────────────────────────────────────── */}
+      {showExportModal && (
+        <ExportModal
+          onClose={() => setShowExportModal(false)}
+          onExport={handleExport}
+          uniqueTypes={uniqueTypes}
+          uniqueQuartiers={uniqueQuartiers}
+          prospects={prospects}
+        />
+      )}
 
       {/* ── Add/Edit Modal ─────────────────────────────────────────────── */}
       {showModal && (
@@ -1865,6 +1983,130 @@ function QuickActivityForm({ prospectId, onAdd }: {
       >
         {adding ? '...' : '+ Ajouter'}
       </button>
+    </div>
+  );
+}
+
+// ─── Export Modal Component ───────────────────────────────────────────────
+
+function ExportModal({ onClose, onExport, uniqueTypes, uniqueQuartiers, prospects }: {
+  onClose: () => void;
+  onExport: (filters?: { status?: string; source?: string; type?: string; quartier?: string; priorite?: string }) => void;
+  uniqueTypes: string[];
+  uniqueQuartiers: string[];
+  prospects: Prospect[];
+}) {
+  const [expStatus, setExpStatus] = useState('');
+  const [expSource, setExpSource] = useState('');
+  const [expType, setExpType] = useState('');
+  const [expQuartier, setExpQuartier] = useState('');
+  const [expPriorite, setExpPriorite] = useState('');
+
+  const previewCount = useMemo(() => {
+    let list = [...prospects];
+    if (expStatus) list = list.filter(p => p.status === expStatus);
+    if (expSource) list = list.filter(p => p.source === expSource);
+    if (expType) list = list.filter(p => p.type === expType);
+    if (expQuartier) list = list.filter(p => p.quartier === expQuartier);
+    if (expPriorite) list = list.filter(p => p.priorite === expPriorite);
+    return list.length;
+  }, [prospects, expStatus, expSource, expType, expQuartier, expPriorite]);
+
+  const hasFilters = expStatus || expSource || expType || expQuartier || expPriorite;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl border border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-neutral-900">📤 Exporter les prospects</h2>
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 transition-colors text-xl leading-none">&times;</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {/* Quick export */}
+          <button
+            onClick={() => onExport()}
+            className="w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow"
+          >
+            Exporter tout ({prospects.length} prospects)
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-neutral-200" />
+            <span className="text-xs text-neutral-400">ou filtrer</span>
+            <div className="flex-1 h-px bg-neutral-200" />
+          </div>
+
+          {/* Filter options */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">Statut</label>
+              <select value={expStatus} onChange={e => setExpStatus(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900">
+                <option value="">Tous les statuts</option>
+                {PIPELINE_STAGES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">Canal</label>
+              <select value={expSource} onChange={e => setExpSource(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900">
+                <option value="">Tous les canaux</option>
+                {CHANNELS.map(c => <option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">Type</label>
+              <select value={expType} onChange={e => setExpType(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900">
+                <option value="">Tous les types</option>
+                {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">Quartier</label>
+              <select value={expQuartier} onChange={e => setExpQuartier(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900">
+                <option value="">Tous les quartiers</option>
+                {uniqueQuartiers.map(q => <option key={q} value={q}>{q}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1">Priorite</label>
+              <select value={expPriorite} onChange={e => setExpPriorite(e.target.value)} className="w-full px-3 py-2 text-sm bg-white border border-neutral-300 rounded-lg text-neutral-900">
+                <option value="">Toutes les priorites</option>
+                <option value="A">🔥 Chaud (A)</option>
+                <option value="B">⭐ Tiede (B)</option>
+                <option value="C">❄️ Froid (C)</option>
+              </select>
+            </div>
+          </div>
+
+          {hasFilters && (
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={() => { setExpStatus(''); setExpSource(''); setExpType(''); setExpQuartier(''); setExpPriorite(''); }}
+                className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+              >
+                Effacer filtres
+              </button>
+              <button
+                onClick={() => onExport({
+                  status: expStatus || undefined,
+                  source: expSource || undefined,
+                  type: expType || undefined,
+                  quartier: expQuartier || undefined,
+                  priorite: expPriorite || undefined,
+                })}
+                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow"
+              >
+                Exporter {previewCount} prospect{previewCount > 1 ? 's' : ''}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const source = searchParams.get('source') || '';
+    const type = searchParams.get('type') || '';
+    const quartier = searchParams.get('quartier') || '';
+    const priorite = searchParams.get('priorite') || '';
 
     // Build query with same filters as list
     let query = supabase
@@ -52,13 +55,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    if (source) {
-      query = query.eq('source', source);
-    }
+    if (status) query = query.eq('status', status);
+    if (source) query = query.eq('source', source);
+    if (type) query = query.eq('type', type);
+    if (quartier) query = query.eq('quartier', quartier);
+    if (priorite) query = query.eq('priorite', priorite);
 
     const { data: prospects, error } = await query;
 
