@@ -10,7 +10,7 @@
  * API docs: https://api.klingai.com
  */
 
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 
 const KLING_API_BASE = 'https://api.klingai.com';
 
@@ -19,7 +19,7 @@ const KLING_API_BASE = 'https://api.klingai.com';
  * Uses HS256 with access_key as issuer and secret_key for signing.
  * Token valid for 30 minutes.
  */
-export function generateKlingToken(): string {
+export async function generateKlingToken(): Promise<string> {
   const accessKey = process.env.KLING_ACCESS_KEY;
   const secretKey = process.env.KLING_SECRET_KEY;
 
@@ -28,22 +28,20 @@ export function generateKlingToken(): string {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: accessKey,
-    exp: now + 1800,
-    nbf: now - 5,
-  };
+  const secret = new TextEncoder().encode(secretKey);
 
-  return jwt.sign(payload, secretKey, { algorithm: 'HS256' });
+  return new SignJWT({ iss: accessKey, exp: now + 1800, nbf: now - 5 })
+    .setProtectedHeader({ alg: 'HS256' })
+    .sign(secret);
 }
 
 /**
  * Get auth headers for Kling API requests.
  */
-export function getKlingHeaders(): Record<string, string> {
+export async function getKlingHeaders(): Promise<Record<string, string>> {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${generateKlingToken()}`,
+    'Authorization': `Bearer ${await generateKlingToken()}`,
   };
 }
 
@@ -142,7 +140,7 @@ export async function generateKlingT2I(params: {
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/generations`, {
     method: 'POST',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -196,7 +194,7 @@ export async function generateKlingI2I(params: {
 
   const createRes = await fetch(`${KLING_API_BASE}/v1/images/omni-image`, {
     method: 'POST',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -228,7 +226,7 @@ async function pollKlingImageTask(pollPath: string, tag: string): Promise<{ imag
 
     const pollRes = await fetch(`${KLING_API_BASE}${pollPath}`, {
       method: 'GET',
-      headers: getKlingHeaders(),
+      headers: await getKlingHeaders(),
     });
 
     const pollText = await pollRes.text();
@@ -285,7 +283,7 @@ export async function createT2VTask(params: KlingT2VRequest): Promise<string> {
 
   const response = await fetch(`${KLING_API_BASE}/v1/videos/text2video`, {
     method: 'POST',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -314,7 +312,7 @@ export async function createT2VTask(params: KlingT2VRequest): Promise<string> {
 export async function checkT2VTask(taskId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
   const response = await fetch(`${KLING_API_BASE}/v1/videos/text2video/${taskId}`, {
     method: 'GET',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
   });
 
   const responseText = await response.text();
@@ -357,7 +355,7 @@ export async function createI2VTask(params: KlingI2VRequest): Promise<string> {
 
   const response = await fetch(`${KLING_API_BASE}/v1/videos/image2video`, {
     method: 'POST',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -386,7 +384,7 @@ export async function createI2VTask(params: KlingI2VRequest): Promise<string> {
 export async function checkI2VTask(taskId: string): Promise<{ status: string; videoUrl?: string; error?: string }> {
   const response = await fetch(`${KLING_API_BASE}/v1/videos/image2video/${taskId}`, {
     method: 'GET',
-    headers: getKlingHeaders(),
+    headers: await getKlingHeaders(),
   });
 
   const responseText = await response.text();
