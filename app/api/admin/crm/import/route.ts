@@ -3,6 +3,8 @@ import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 
+export const maxDuration = 60; // Allow up to 60s for large imports
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -240,65 +242,60 @@ function mergeProspect(
   return updates;
 }
 
-// ─── Find existing prospect by matching identifiers ──────────────────────
+// ─── In-memory prospect index for fast duplicate detection ───────────────
 
-async function findExistingProspect(
-  supabase: ReturnType<typeof getAdminClient>,
-  data: Record<string, unknown>,
-): Promise<Record<string, any> | null> {
-  // 1. Match by company name (case-insensitive)
+type ProspectIndex = {
+  byCompany: Map<string, Record<string, any>>;
+  byInstagram: Map<string, Record<string, any>>;
+  byPhone: Map<string, Record<string, any>>;
+  byEmail: Map<string, Record<string, any>>;
+};
+
+function buildProspectIndex(prospects: Record<string, any>[]): ProspectIndex {
+  const idx: ProspectIndex = {
+    byCompany: new Map(),
+    byInstagram: new Map(),
+    byPhone: new Map(),
+    byEmail: new Map(),
+  };
+  for (const p of prospects) {
+    if (p.company) idx.byCompany.set(p.company.toLowerCase().trim(), p);
+    if (p.instagram) {
+      const ig = normalizeInstagram(p.instagram);
+      if (ig) idx.byInstagram.set(ig, p);
+    }
+    if (p.phone) {
+      const digits = normalizePhone(p.phone);
+      if (digits.length >= 8) idx.byPhone.set(digits.slice(-9), p);
+    }
+    if (p.email) idx.byEmail.set(p.email.toLowerCase().trim(), p);
+  }
+  return idx;
+}
+
+function findExistingInMemory(idx: ProspectIndex, data: Record<string, unknown>): Record<string, any> | null {
   if (data.company && typeof data.company === 'string') {
-    const { data: match } = await supabase
-      .from('crm_prospects')
-      .select('*')
-      .ilike('company', data.company as string)
-      .limit(1)
-      .maybeSingle();
+    const match = idx.byCompany.get(data.company.toLowerCase().trim());
     if (match) return match;
   }
-
-  // 2. Match by Instagram handle
   if (data.instagram && typeof data.instagram === 'string') {
-    const igNorm = normalizeInstagram(data.instagram as string);
-    if (igNorm) {
-      const { data: match } = await supabase
-        .from('crm_prospects')
-        .select('*')
-        .or(`instagram.ilike.${igNorm},instagram.ilike.@${igNorm}`)
-        .limit(1)
-        .maybeSingle();
+    const ig = normalizeInstagram(data.instagram);
+    if (ig) {
+      const match = idx.byInstagram.get(ig);
       if (match) return match;
     }
   }
-
-  // 3. Match by phone (digits only)
   if (data.phone && typeof data.phone === 'string') {
-    const phoneDigits = normalizePhone(data.phone as string);
-    if (phoneDigits.length >= 8) {
-      // Match last 9 digits to handle +33 vs 0 prefix differences
-      const suffix = phoneDigits.slice(-9);
-      const { data: matches } = await supabase
-        .from('crm_prospects')
-        .select('*')
-        .not('phone', 'is', null);
-      if (matches) {
-        const found = matches.find(m => m.phone && normalizePhone(m.phone).slice(-9) === suffix);
-        if (found) return found;
-      }
+    const digits = normalizePhone(data.phone);
+    if (digits.length >= 8) {
+      const match = idx.byPhone.get(digits.slice(-9));
+      if (match) return match;
     }
   }
-
-  // 4. Match by email
   if (data.email && typeof data.email === 'string') {
-    const { data: match } = await supabase
-      .from('crm_prospects')
-      .select('*')
-      .ilike('email', data.email as string)
-      .limit(1)
-      .maybeSingle();
+    const match = idx.byEmail.get(data.email.toLowerCase().trim());
     if (match) return match;
   }
-
   return null;
 }
 
@@ -364,10 +361,22 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // ─── Pre-load ALL existing prospects + profiles (2 queries total) ────
+    const { data: allProspects } = await supabase.from('crm_prospects').select('*');
+    const prospectIdx = buildProspectIndex(allProspects || []);
+
+    const { data: allProfiles } = await supabase.from('profiles').select('id, email, subscription_plan');
+    const profilesByEmail = new Map<string, { id: string; subscription_plan: string }>();
+    for (const p of allProfiles || []) {
+      if (p.email) profilesByEmail.set(p.email.toLowerCase().trim(), p);
+    }
+
     let created = 0;
     let updated = 0;
     let skipped = 0;
     const errors: string[] = [];
+    const toInsert: Record<string, unknown>[] = [];
+    const toUpdate: { id: string; updates: Record<string, unknown> }[] = [];
 
     for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
       const row = rows[rowIdx];
@@ -455,55 +464,76 @@ export async function POST(req: NextRequest) {
         created_by: user.id,
       };
 
-      // Auto-match email with profiles
+      // Auto-match email with profiles (in-memory)
       if (record.email) {
-        const { data: matchedProfile } = await supabase
-          .from('profiles')
-          .select('id, subscription_plan')
-          .eq('email', record.email)
-          .single();
+        const matchedProfile = profilesByEmail.get(record.email.toLowerCase().trim());
         if (matchedProfile) {
           prospectData.matched_user_id = matchedProfile.id;
           prospectData.matched_plan = matchedProfile.subscription_plan;
         }
       }
 
-      try {
-        // Check for existing prospect (duplicate detection)
-        const existing = await findExistingProspect(supabase, prospectData);
+      // Check for existing prospect (in-memory, zero queries)
+      const existing = findExistingInMemory(prospectIdx, prospectData);
 
-        if (existing) {
-          // Merge: fill empty fields, advance status, never remove data
-          const updates = mergeProspect(existing, prospectData);
-
-          if (Object.keys(updates).length > 0) {
-            const { error: updateError } = await supabase
-              .from('crm_prospects')
-              .update(updates)
-              .eq('id', existing.id);
-
-            if (updateError) {
-              errors.push(`Ligne ${rowIdx + 1}: mise à jour échouée — ${updateError.message}`);
-            } else {
-              updated++;
-            }
-          } else {
-            skipped++; // Nothing new to update
-          }
+      if (existing) {
+        const updates = mergeProspect(existing, prospectData);
+        if (Object.keys(updates).length > 0) {
+          toUpdate.push({ id: existing.id, updates });
+          // Update the in-memory index with merged data
+          Object.assign(existing, updates);
         } else {
-          // New prospect
-          const { error: insertError } = await supabase
-            .from('crm_prospects')
-            .insert(prospectData);
-
-          if (insertError) {
-            errors.push(`Ligne ${rowIdx + 1}: ${insertError.message}`);
-          } else {
-            created++;
-          }
+          skipped++;
         }
-      } catch (e: any) {
-        errors.push(`Ligne ${rowIdx + 1}: ${e.message || 'Erreur inconnue'}`);
+      } else {
+        toInsert.push(prospectData);
+        // Add to in-memory index to detect duplicates within the same import file
+        const fakeExisting = { ...prospectData, id: `pending-${rowIdx}` };
+        if (prospectData.company && typeof prospectData.company === 'string') {
+          prospectIdx.byCompany.set(prospectData.company.toLowerCase().trim(), fakeExisting);
+        }
+        if (prospectData.instagram && typeof prospectData.instagram === 'string') {
+          const ig = normalizeInstagram(prospectData.instagram);
+          if (ig) prospectIdx.byInstagram.set(ig, fakeExisting);
+        }
+        if (prospectData.phone && typeof prospectData.phone === 'string') {
+          const digits = normalizePhone(prospectData.phone);
+          if (digits.length >= 8) prospectIdx.byPhone.set(digits.slice(-9), fakeExisting);
+        }
+        if (prospectData.email && typeof prospectData.email === 'string') {
+          prospectIdx.byEmail.set(prospectData.email.toLowerCase().trim(), fakeExisting);
+        }
+      }
+    }
+
+    // ─── Batch insert new prospects (chunks of 100) ─────────────────────
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE);
+      const { error: insertError } = await supabase.from('crm_prospects').insert(batch);
+      if (insertError) {
+        errors.push(`Batch insert ${i + 1}-${i + batch.length}: ${insertError.message}`);
+      } else {
+        created += batch.length;
+      }
+    }
+
+    // ─── Batch update existing prospects (individual updates needed for different data per row) ──
+    // Group updates to minimize queries - but each update has unique data, so we parallel them
+    const UPDATE_BATCH = 50;
+    for (let i = 0; i < toUpdate.length; i += UPDATE_BATCH) {
+      const batch = toUpdate.slice(i, i + UPDATE_BATCH);
+      const results = await Promise.all(
+        batch.map(({ id, updates }) =>
+          supabase.from('crm_prospects').update(updates).eq('id', id).then(r => r.error)
+        )
+      );
+      for (let j = 0; j < results.length; j++) {
+        if (results[j]) {
+          errors.push(`Update ${batch[j].id}: ${results[j]!.message}`);
+        } else {
+          updated++;
+        }
       }
     }
 
