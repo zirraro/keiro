@@ -169,7 +169,7 @@ export default function AdminCRMPage() {
 
   // Import/Export
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[]; debug?: { headersDetected: string[]; columnMapping: Record<string, string>; unmappedHeaders: string[] } } | null>(null);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[]; debug?: { headersDetected: string[]; columnMapping: Record<string, string>; unmappedHeaders: string[] } } | null>(null);
   const [matching, setMatching] = useState(false);
 
   // Sort (list view)
@@ -284,7 +284,7 @@ export default function AdminCRMPage() {
       const res = await fetch('/api/admin/crm/import', { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Import failed');
       const data = await res.json();
-      setImportResult({ imported: data.imported || 0, skipped: data.skipped || 0, errors: data.errors || [], debug: data.debug });
+      setImportResult({ created: data.created || 0, updated: data.updated || 0, skipped: data.skipped || 0, errors: data.errors || [], debug: data.debug });
       await loadProspects();
     } catch (e) {
       console.error('[CRM] Import error:', e);
@@ -554,10 +554,16 @@ export default function AdminCRMPage() {
       {/* ── Import Result Banner ───────────────────────────────────────── */}
       {importResult && (
         <div className="max-w-[1600px] mx-auto px-4 pt-3 space-y-2">
-          <div className={`rounded-lg px-4 py-2.5 border ${importResult.imported > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+          <div className={`rounded-lg px-4 py-2.5 border ${(importResult.created > 0 || importResult.updated > 0) ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
             <div className="flex items-center justify-between">
-              <span className={`text-sm font-medium ${importResult.imported > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
-                {importResult.imported > 0 ? '✅' : '⚠️'} {importResult.imported} importé{importResult.imported > 1 ? 's' : ''}, {importResult.skipped} ignoré{importResult.skipped > 1 ? 's' : ''}
+              <span className={`text-sm font-medium ${(importResult.created > 0 || importResult.updated > 0) ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {(importResult.created > 0 || importResult.updated > 0) ? '✅' : '⚠️'}{' '}
+                {importResult.created > 0 && <>{importResult.created} créé{importResult.created > 1 ? 's' : ''}</>}
+                {importResult.created > 0 && importResult.updated > 0 && ', '}
+                {importResult.updated > 0 && <>{importResult.updated} mis à jour</>}
+                {(importResult.created > 0 || importResult.updated > 0) && importResult.skipped > 0 && ', '}
+                {importResult.skipped > 0 && <>{importResult.skipped} ignoré{importResult.skipped > 1 ? 's' : ''}</>}
+                {importResult.created === 0 && importResult.updated === 0 && importResult.skipped === 0 && 'Aucun changement'}
                 {importResult.errors.length > 0 && `, ${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
               </span>
               <button onClick={() => setImportResult(null)} className="text-neutral-400 hover:text-neutral-700 transition-colors text-lg leading-none">&times;</button>
