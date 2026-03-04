@@ -7,10 +7,11 @@ export async function GET(request: Request) {
     const fetchAll = searchParams.get('all') === 'true';
     const category = searchParams.get('cat') || '';
     const query = searchParams.get('q') || '';
+    const region = searchParams.get('region') || 'fr';
 
     // fetchNews() gère déjà son propre cache 24h et la catégorisation
-    console.log('[API /news] Fetching news (with internal 24h cache)...');
-    const cachedNews = await fetchNews();
+    console.log(`[API /news] Fetching news for region=${region}...`);
+    const cachedNews = await fetchNews(region);
 
     let items = cachedNews || [];
 

@@ -13,9 +13,8 @@ export type NewsArticle = {
   category?: string;
 };
 
-// ===== CACHE MÉMOIRE CÔTÉ SERVEUR (24 heures - optimisé pour max 1-2 appels/jour) =====
-let cachedArticles: NewsArticle[] | null = null;
-let cacheTimestamp: number = 0;
+// ===== CACHE MÉMOIRE CÔTÉ SERVEUR PAR RÉGION (24 heures - optimisé pour max 1-2 appels/jour) =====
+const cachedByRegion: { [region: string]: { articles: NewsArticle[]; timestamp: number } } = {};
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures (au lieu de 1h)
 
 const parser = new Parser();
@@ -128,6 +127,27 @@ const RSS_FEEDS = [
   { url: 'https://www.cosmopolitan.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
 ];
 
+// ===== FLUX RSS BELGES (francophone) =====
+const RSS_FEEDS_BE = [
+  { url: 'https://www.rtbf.be/article/rss', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.lesoir.be/rss/1/rubriques/18', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.lalibre.be/rss/section/actu.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.dhnet.be/rss/section/actu.xml', category: 'À la une', timeout: 5000 },
+  { url: 'https://www.7sur7.be/rss.xml', category: 'À la une', timeout: 5000 },
+];
+
+// ===== RÉGIONS DISPONIBLES =====
+export const NEWS_REGIONS = [
+  { code: 'fr', flag: '\u{1F1EB}\u{1F1F7}', nameFr: 'France', nameEn: 'France' },
+  { code: 'be', flag: '\u{1F1E7}\u{1F1EA}', nameFr: 'Belgique', nameEn: 'Belgium' },
+  { code: 'es', flag: '\u{1F1EA}\u{1F1F8}', nameFr: 'Espagne', nameEn: 'Spain' },
+  { code: 'gb', flag: '\u{1F1EC}\u{1F1E7}', nameFr: 'Royaume-Uni', nameEn: 'United Kingdom' },
+  { code: 'us', flag: '\u{1F1FA}\u{1F1F8}', nameFr: '\u00C9tats-Unis', nameEn: 'United States' },
+  { code: 'pt', flag: '\u{1F1F5}\u{1F1F9}', nameFr: 'Portugal', nameEn: 'Portugal' },
+  { code: 'me', flag: '\u{1F30D}', nameFr: 'Moyen-Orient', nameEn: 'Middle East' },
+  { code: 'nord', flag: '\u{1F310}', nameFr: 'Pays du Nord', nameEn: 'Northern Europe' },
+] as const;
+
 // Mots-clés pour catégorisation intelligente (15 catégories)
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'Moteurs & Adrénaline': [
@@ -188,13 +208,13 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'jeux olympiques', 'jo 2024', 'jo 2028', 'paralympiques', 'athlétisme', 'natation',
     'handball', 'volley', 'basket', 'tennis', 'boxe', 'mma', 'ufc', 'judo', 'escrime',
     'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
+    'fitness', 'musculation', 'running', 'marathon', 'sport santé',
   ],
 
   'Cinéma & Séries': [
     'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'canal+', 'ocs',
     'game of thrones', 'stranger things', 'the last of us', 'the mandalorian', 'wednesday', 'squid game',
     'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man',
-    'best-seller', 'goncourt', 'renaudot', 'femina', 'prix littéraire', 'prix litteraire',
     'film', 'cinéma', 'cinema', 'réalisateur', 'realisateur', 'acteur', 'actrice', 'oscar', 'césar', 'cesar',
     'cannes', 'festival de cannes', 'palme d\'or', 'berlinale', 'venise',
     'série', 'serie', 'saison', 'épisode', 'episode', 'bande-annonce', 'bande annonce', 'trailer',
@@ -219,9 +239,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'panda', 'singe', 'requin', 'tortue', 'abeille', 'papillon', 'insecte',
     'parc national', 'réserve naturelle', 'reserve naturelle', 'forêt', 'foret', 'océan', 'ocean', 'récif', 'recif',
     'spa', 'refuge', 'adoption animal', 'bien-être animal', 'bien être animal', 'protection animale',
-    'écologie', 'ecologie', 'climat', 'réchauffement', 'rechauffement', 'pollution', 'plastique',
-    'reforestation', 'déforestation', 'deforestation', 'zone protégée', 'zone protegee',
-    'wwf', 'greenpeace', 'lpo', 'fondation 30 millions', 'extinction', 'espèce menacée', 'espece menacee',
+    'plastique océan', 'pollution plastique',
+    'wwf', 'lpo', 'fondation 30 millions', 'extinction', 'espèce menacée', 'espece menacee',
     'jardin', 'jardinage', 'botanique', 'plante', 'arbre', 'agriculture biologique',
     'randonnée', 'randonnee', 'montagne', 'mer', 'nature', 'sauvage', 'photographe animalier',
   ],
@@ -259,7 +278,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'sommeil', 'stress', 'burn-out', 'burnout', 'anxiété', 'anxiete', 'dépression', 'depression',
     'hôpital', 'hopital', 'clinique', 'médecin', 'medecin', 'infirmier', 'pharmacie', 'médicament', 'medicament',
     'assurance maladie', 'sécurité sociale', 'mutuelle', 'oms', 'pandémie', 'pandemie', 'épidémie', 'epidemie',
-    'fitness', 'musculation', 'running', 'marathon', 'pilates', 'stretching', 'sport santé',
+    'pilates', 'stretching',
     'dermatologue', 'ophtalmologue', 'dentiste', 'kiné', 'kine', 'ostéopathe', 'osteopathe',
   ],
 
@@ -322,13 +341,13 @@ function categorizeArticle(title: string, description: string): string {
 }
 
 // ===== FETCH RSS (source principale) avec timeout et retry =====
-async function fetchFromRSS(): Promise<NewsArticle[]> {
+async function fetchFromRSS(feeds: typeof RSS_FEEDS = RSS_FEEDS): Promise<NewsArticle[]> {
   console.log('[RSS] Fetching from RSS feeds...');
   const allArticles: NewsArticle[] = [];
   let articleCounter = 0;
 
   const results = await Promise.allSettled(
-    RSS_FEEDS.map(async (feed, feedIndex) => {
+    feeds.map(async (feed, feedIndex) => {
       try {
         // Timeout pour éviter les blocages
         const controller = new AbortController();
@@ -412,15 +431,14 @@ async function fetchFromRSS(): Promise<NewsArticle[]> {
 }
 
 // ===== FETCH API PROVIDERS (fallback) =====
-async function fetchFromAPIs(): Promise<NewsArticle[]> {
-  console.log('[API] Fetching from API providers (fallback)...');
+async function fetchFromAPIs(country: string = 'fr', lang: string = 'fr'): Promise<NewsArticle[]> {
+  console.log(`[API] Fetching from API providers (country=${country}, lang=${lang})...`);
   const allArticles: NewsArticle[] = [];
 
   // GNews API
   try {
-    const response = await fetch(
-      `${API_PROVIDERS.gnews.baseUrl}/top-headlines?token=${API_PROVIDERS.gnews.key}&lang=fr&max=50`
-    );
+    const gnewsUrl = `${API_PROVIDERS.gnews.baseUrl}/top-headlines?token=${API_PROVIDERS.gnews.key}&country=${country}&lang=${lang}&max=50`;
+    const response = await fetch(gnewsUrl);
     const data = await response.json();
 
     if (data.articles) {
@@ -430,7 +448,7 @@ async function fetchFromAPIs(): Promise<NewsArticle[]> {
         const detectedCategory = categorizeArticle(title, description);
 
         allArticles.push({
-          id: `gnews-${idx}`,
+          id: `gnews-${country}-${idx}`,
           title,
           description,
           url: article.url,
@@ -441,16 +459,15 @@ async function fetchFromAPIs(): Promise<NewsArticle[]> {
         });
       });
     }
-    console.log(`[API] GNews: ${data.articles?.length || 0} articles`);
+    console.log(`[API] GNews (${country}): ${data.articles?.length || 0} articles`);
   } catch (error: any) {
-    console.error('[API] GNews error:', error.message);
+    console.error(`[API] GNews (${country}) error:`, error.message);
   }
 
   // NewsData.io API
   try {
-    const response = await fetch(
-      `${API_PROVIDERS.newsdata.baseUrl}/news?apikey=${API_PROVIDERS.newsdata.key}&language=fr&size=50`
-    );
+    const newsdataUrl = `${API_PROVIDERS.newsdata.baseUrl}/news?apikey=${API_PROVIDERS.newsdata.key}&country=${country}&language=${lang}&size=50`;
+    const response = await fetch(newsdataUrl);
     const data = await response.json();
 
     if (data.results) {
@@ -460,7 +477,7 @@ async function fetchFromAPIs(): Promise<NewsArticle[]> {
         const detectedCategory = categorizeArticle(title, description);
 
         allArticles.push({
-          id: `newsdata-${idx}`,
+          id: `newsdata-${country}-${idx}`,
           title,
           description,
           url: article.link,
@@ -471,12 +488,12 @@ async function fetchFromAPIs(): Promise<NewsArticle[]> {
         });
       });
     }
-    console.log(`[API] NewsData: ${data.results?.length || 0} articles`);
+    console.log(`[API] NewsData (${country}): ${data.results?.length || 0} articles`);
   } catch (error: any) {
-    console.error('[API] NewsData error:', error.message);
+    console.error(`[API] NewsData (${country}) error:`, error.message);
   }
 
-  console.log(`[API] Total from APIs: ${allArticles.length} articles`);
+  console.log(`[API] Total from APIs (${country}): ${allArticles.length} articles`);
   return allArticles;
 }
 
@@ -548,33 +565,60 @@ function filterArticles(articles: NewsArticle[]): NewsArticle[] {
 }
 
 // ===== FONCTION PRINCIPALE =====
-export async function fetchNews(): Promise<NewsArticle[]> {
-  // Vérifier le cache
+export async function fetchNews(region: string = 'fr'): Promise<NewsArticle[]> {
+  // Vérifier le cache par région
   const now = Date.now();
-  if (cachedArticles && (now - cacheTimestamp) < CACHE_DURATION) {
-    const ageMinutes = Math.round((now - cacheTimestamp) / 1000 / 60);
-    console.log(`[Cache] ✅ Returning ${cachedArticles.length} cached articles (age: ${ageMinutes}min / ${Math.round(ageMinutes / 60)}h)`);
+  const cached = cachedByRegion[region];
+  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    const ageMinutes = Math.round((now - cached.timestamp) / 1000 / 60);
+    console.log(`[Cache] Returning ${cached.articles.length} cached articles for region '${region}' (age: ${ageMinutes}min / ${Math.round(ageMinutes / 60)}h)`);
 
     // Log du nombre d'articles par catégorie dans le cache
     const byCategory: { [key: string]: number } = {};
-    cachedArticles.forEach(article => {
+    cached.articles.forEach(article => {
       byCategory[article.category || 'Unknown'] = (byCategory[article.category || 'Unknown'] || 0) + 1;
     });
-    console.log('[Cache] Articles par catégorie:', byCategory);
+    console.log(`[Cache] Articles par catégorie (${region}):`, byCategory);
 
-    return cachedArticles;
+    return cached.articles;
   }
 
-  console.log('[Fetch] 🔄 Cache expired or empty, fetching fresh news...');
+  console.log(`[Fetch] Cache expired or empty for region '${region}', fetching fresh news...`);
 
   try {
-    // Essayer RSS d'abord
-    let articles = await fetchFromRSS();
+    let articles: NewsArticle[] = [];
 
-    // Si RSS échoue ou retourne peu de résultats, fallback vers APIs
-    if (articles.length < 30) {
-      console.log(`[Fallback] RSS returned only ${articles.length} articles, trying APIs...`);
-      const apiArticles = await fetchFromAPIs();
+    if (region === 'fr') {
+      // France: RSS primary + API fallback (comportement existant)
+      articles = await fetchFromRSS(RSS_FEEDS);
+      if (articles.length < 30) {
+        console.log(`[Fallback] RSS returned only ${articles.length} articles, trying APIs...`);
+        const apiArticles = await fetchFromAPIs('fr', 'fr');
+        articles = [...articles, ...apiArticles];
+      }
+    } else if (region === 'be') {
+      // Belgique: RSS belges + API
+      articles = await fetchFromRSS(RSS_FEEDS_BE);
+      const apiArticles = await fetchFromAPIs('be', 'fr');
+      articles = [...articles, ...apiArticles];
+    } else if (region === 'me') {
+      // Moyen-Orient: plusieurs pays, limiter les appels API
+      const countries = ['eg', 'ae', 'sa', 'lb', 'ma', 'tn', 'dz'];
+      for (const c of countries.slice(0, 3)) {
+        const apiArticles = await fetchFromAPIs(c, 'fr');
+        articles = [...articles, ...apiArticles];
+      }
+    } else if (region === 'nord') {
+      // Pays du Nord: plusieurs pays
+      const countries = ['se', 'no', 'dk', 'fi'];
+      for (const c of countries.slice(0, 2)) {
+        const apiArticles = await fetchFromAPIs(c, 'en');
+        articles = [...articles, ...apiArticles];
+      }
+    } else {
+      // Pays unique: utiliser API avec mapping de langue
+      const langMap: Record<string, string> = { es: 'es', gb: 'en', us: 'en', pt: 'pt' };
+      const apiArticles = await fetchFromAPIs(region, langMap[region] || 'en');
       articles = [...articles, ...apiArticles];
     }
 
@@ -592,23 +636,23 @@ export async function fetchNews(): Promise<NewsArticle[]> {
 
     const emptyCategories = Object.keys(CATEGORY_KEYWORDS).filter(cat => !byCategory[cat] || byCategory[cat] === 0);
     if (emptyCategories.length > 0) {
-      console.warn(`[Warning] Catégories vides: ${emptyCategories.join(', ')}`);
+      console.warn(`[Warning] Catégories vides (${region}): ${emptyCategories.join(', ')}`);
     }
 
-    // Mettre en cache
-    cachedArticles = articles;
-    cacheTimestamp = now;
+    // Mettre en cache par région
+    cachedByRegion[region] = { articles, timestamp: now };
 
-    console.log(`[Success] ✅ Cached ${articles.length} articles for 24h`);
-    console.log('[Success] Articles par catégorie:', byCategory);
+    console.log(`[Success] Cached ${articles.length} articles for region '${region}' for 24h`);
+    console.log(`[Success] Articles par catégorie (${region}):`, byCategory);
     return articles;
   } catch (error: any) {
-    console.error('[Error] ❌ Failed to fetch news:', error.message);
+    console.error(`[Error] Failed to fetch news for region '${region}':`, error.message);
 
     // En cas d'erreur, retourner cache même périmé si disponible
-    if (cachedArticles) {
-      console.log('[Fallback] ⚠️ Returning stale cache');
-      return cachedArticles;
+    const staleCache = cachedByRegion[region];
+    if (staleCache) {
+      console.log(`[Fallback] Returning stale cache for region '${region}'`);
+      return staleCache.articles;
     }
 
     return [];

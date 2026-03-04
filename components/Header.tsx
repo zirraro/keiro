@@ -14,7 +14,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => supabaseBrowser(), []);
-  const { t } = useLanguage();
+  const { t, locale, setLocale } = useLanguage();
 
   const navItems = [
     { href: "/", label: t.nav.home },
@@ -236,11 +236,6 @@ export default function Header() {
           <span className="text-lg font-bold text-neutral-900">KeiroAI</span>
         </Link>
 
-        {/* Language Toggle — desktop only */}
-        <div className="hidden lg:flex">
-          <LanguageToggle />
-        </div>
-
         {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
           {navItems.map((item) => {
@@ -290,6 +285,18 @@ export default function Header() {
               Contact
             </button>
           )}
+
+          {/* Language — compact globe icon */}
+          <button
+            onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
+            className="flex items-center gap-1 text-neutral-400 hover:text-neutral-700 transition-colors"
+            title={locale === 'fr' ? 'Switch to English' : 'Passer en français'}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+            </svg>
+            <span className="text-[11px] font-medium uppercase">{locale === 'fr' ? 'en' : 'fr'}</span>
+          </button>
         </nav>
 
         {/* Bouton connexion/inscription OU Menu utilisateur */}

@@ -22,6 +22,7 @@ import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
 import { computeSocialScore } from '@/lib/news/socialRanker';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { useLanguage } from '@/lib/i18n/context';
+import { NEWS_REGIONS } from '@/lib/newsProviders';
 
 /* ---------------- Types ---------------- */
 type NewsCard = {
@@ -96,7 +97,7 @@ const CATEGORIES = [
 /* ---------------- Page principale ---------------- */
 export default function GeneratePage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   /* --- Auth user ID for scoped localStorage --- */
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -106,6 +107,7 @@ export default function GeneratePage() {
 
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('Les bonnes nouvelles');
+  const [newsRegion, setNewsRegion] = useState<string>('fr');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
   const [loading, setLoading] = useState(true); // TRUE au départ pour afficher "Chargement..."
@@ -477,6 +479,10 @@ export default function GeneratePage() {
     fetchTrends();
   }, []);
 
+  useEffect(() => {
+    fetchAllNews();
+  }, [newsRegion]);
+
   /* --- Fetch tendances réelles (Google Trends + TikTok, cache localStorage 24h) --- */
   async function fetchTrends() {
     const TRENDS_CACHE_KEY = 'keiro_trends_data';
@@ -724,7 +730,7 @@ export default function GeneratePage() {
   }, [selectedNews]);
 
   async function fetchAllNews() {
-    const CACHE_KEY = 'keiro_news_cache';
+    const CACHE_KEY = 'keiro_news_cache_' + newsRegion;
     const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
 
     // 1. Charger le cache immédiatement (même s'il est expiré = stale-while-revalidate)
@@ -748,7 +754,7 @@ export default function GeneratePage() {
     if (!hasCache) setLoading(true);
     try {
       setError(null);
-      const res = await fetch('/api/news?all=true');
+      const res = await fetch('/api/news?all=true&region=' + newsRegion);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (!data?.ok) throw new Error(data?.error || 'Erreur de chargement');
@@ -2637,6 +2643,18 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             )}
             {/* Filtres : Catégories + Recherche (sans labels) */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
+              {/* Sélecteur de région */}
+              <select
+                value={newsRegion}
+                onChange={(e) => setNewsRegion(e.target.value)}
+                className="rounded-lg border border-neutral-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+              >
+                {NEWS_REGIONS.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.flag} {locale === 'fr' ? r.nameFr : r.nameEn}
+                  </option>
+                ))}
+              </select>
               {/* Dropdown Catégories */}
               <select
                 value={category}
