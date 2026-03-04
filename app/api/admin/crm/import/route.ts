@@ -13,49 +13,55 @@ function getAdminClient() {
 }
 
 // Keyword-based column detection (order matters: more specific first)
-// Each entry: [keywords that the header must CONTAIN, target field]
-const FIELD_RULES: { keywords: string[]; field: string; exact?: boolean }[] = [
+const FIELD_RULES: { keywords: string[]; field: string }[] = [
   // Prenom BEFORE nom (because "prenom" contains "nom")
-  { keywords: ['prénom', 'prenom', 'first name', 'first_name', 'firstname'], field: 'first_name' },
-  // "nom" alone = last_name, but "nom de l'etablissement/restaurant/commerce" = company
-  { keywords: ['nom de', 'nom du', 'raison sociale', 'enseigne'], field: 'company', exact: false },
+  { keywords: ['prenom', 'prénom', 'first name', 'first_name', 'firstname'], field: 'first_name' },
+  // "nom de/du" = company
+  { keywords: ['nom de', 'nom du', 'raison sociale', 'enseigne'], field: 'company' },
+  // "nom" alone = last_name
   { keywords: ['nom', 'last name', 'last_name', 'lastname', 'surname'], field: 'last_name' },
-  // Email
-  { keywords: ['email', 'e-mail', 'mail', 'courriel', 'adresse mail', 'adresse email'], field: 'email' },
+  // Email — specific keywords only, NOT "adresse" alone
+  { keywords: ['email', 'e-mail', 'adresse mail', 'adresse email', 'adresse e-mail', 'courriel'], field: 'email' },
   // Phone
-  { keywords: ['telephone', 'téléphone', 'phone', 'tel', 'tél', 'portable', 'mobile', 'numero', 'numéro'], field: 'phone' },
-  // Company (less specific, after "nom de...")
+  { keywords: ['telephone', 'téléphone', 'phone', 'portable', 'mobile'], field: 'phone' },
+  // Company
   { keywords: ['entreprise', 'company', 'societe', 'société', 'etablissement', 'établissement', 'restaurant', 'commerce', 'boutique', 'salon', 'magasin'], field: 'company' },
   // Type
-  { keywords: ['type', 'catégorie', 'categorie', 'category', 'activite', 'activité', 'secteur', 'metier', 'métier'], field: 'type' },
+  { keywords: ['type activite', 'type activité', 'type', 'categorie', 'catégorie', 'category', 'activite', 'activité', 'secteur', 'metier', 'métier', 'sous-categorie', 'sous-catégorie'], field: 'type' },
   // Quartier
-  { keywords: ['quartier', 'arrondissement', 'district', 'zone', 'ville', 'city', 'adresse', 'address', 'location', 'localisation'], field: 'quartier' },
+  { keywords: ['ville / quartier', 'ville/quartier', 'quartier', 'arrondissement', 'ville', 'city', 'adresse', 'address', 'localisation'], field: 'quartier' },
   // Instagram
-  { keywords: ['instagram', 'insta', 'ig', 'compte instagram', 'compte insta'], field: 'instagram' },
+  { keywords: ['instagram', 'insta', 'compte instagram', 'compte insta'], field: 'instagram' },
   // Followers
-  { keywords: ['abonné', 'abonne', 'abonnés', 'abonnes', 'follower', 'followers', 'subscriber'], field: 'abonnes' },
+  { keywords: ['abonnes ig', 'abonnés ig', 'abonne', 'abonné', 'abonnes', 'abonnés', 'follower', 'followers'], field: 'abonnes' },
   // Google rating
-  { keywords: ['note google', 'rating google', 'google rating', 'note'], field: 'note_google' },
+  { keywords: ['note google', 'rating google', 'google rating'], field: 'note_google' },
   // Google reviews
-  { keywords: ['avis google', 'google reviews', 'avis', 'reviews', 'nb avis', 'nombre avis'], field: 'avis_google' },
+  { keywords: ['nb avis google', 'nombre avis google', 'avis google', 'nb avis', 'nombre avis', 'google reviews'], field: 'avis_google' },
   // Priority
-  { keywords: ['priorité', 'priorite', 'priority', 'prio'], field: 'priorite' },
+  { keywords: ['priorite', 'priorité', 'priority', 'prio'], field: 'priorite' },
   // Score
-  { keywords: ['score', 'points', 'note prospect'], field: 'score' },
+  { keywords: ['score prospect', 'score', 'points'], field: 'score' },
   // Freq posts
-  { keywords: ['fréquence', 'frequence', 'freq', 'frequency', 'post', 'publication'], field: 'freq_posts' },
+  { keywords: ['frequence posts', 'fréquence posts', 'frequence', 'fréquence', 'freq post', 'freq'], field: 'freq_posts' },
   // Visual quality
-  { keywords: ['qualité', 'qualite', 'quality', 'visuel', 'visuelle'], field: 'qualite_visuelle' },
+  { keywords: ['qualite visuelle', 'qualité visuelle', 'qualite', 'qualité', 'quality'], field: 'qualite_visuelle' },
   // Date contact
-  { keywords: ['date contact', 'date_contact', '1er contact', 'premier contact', 'date'], field: 'date_contact' },
+  { keywords: ['date 1er contact', 'date premier contact', 'date contact', 'date_contact', '1er contact', 'premier contact'], field: 'date_contact' },
   // Angle
-  { keywords: ['angle', 'approche', 'pitch', 'angle approche'], field: 'angle_approche' },
+  { keywords: ['angle approche', 'angle d\'approche', 'angle', 'approche', 'pitch'], field: 'angle_approche' },
   // Status
-  { keywords: ['statut', 'status', 'état', 'etat', 'etape', 'étape', 'pipeline'], field: 'status' },
+  { keywords: ['statut pipeline', 'statut', 'status', 'pipeline', 'etape', 'étape'], field: 'status' },
   // Source / Canal
-  { keywords: ['source', 'canal', 'channel', 'origine', 'provenance', 'acquisition'], field: 'source' },
-  // Notes (last, catches remaining text columns)
-  { keywords: ['notes', 'commentaire', 'comment', 'remarque', 'observation', 'info', 'description', 'detail', 'détail'], field: 'notes' },
+  { keywords: ['canal contact', 'canal', 'source', 'channel', 'origine', 'provenance', 'acquisition'], field: 'source' },
+  // Plan
+  { keywords: ['plan souscrit', 'plan', 'abonnement', 'subscription'], field: 'matched_plan' },
+  // Notes (last)
+  { keywords: ['notes', 'commentaire', 'comment', 'remarque', 'observation', 'motif refus'], field: 'notes' },
+  // Site web → goes to notes via extra data, but let's map it
+  { keywords: ['site web', 'site internet', 'website', 'url', 'site'], field: '_site_web' },
+  // Recommandé par
+  { keywords: ['recommande par', 'recommandé par', 'parrain', 'referral'], field: '_recommande_par' },
 ];
 
 // Normalize: lowercase + remove accents
@@ -80,8 +86,8 @@ function detectColumnMapping(headers: string[]): { mapping: Record<number, strin
       if (usedFields.has(rule.field)) continue;
       for (const kw of rule.keywords) {
         const nkw = normalize(kw);
-        // Check if header contains keyword or keyword contains header
-        if (h.includes(nkw) || (nkw.length > 3 && nkw.includes(h))) {
+        // Only forward match: header contains keyword
+        if (h.includes(nkw)) {
           mapping[i] = rule.field;
           usedFields.add(rule.field);
           matched = true;
@@ -97,6 +103,62 @@ function detectColumnMapping(headers: string[]): { mapping: Record<number, strin
   }
 
   return { mapping, unmapped };
+}
+
+// ─── Value normalization ──────────────────────────────────────────────────
+
+function normalizePriority(val: string): string {
+  const v = normalize(val);
+  // A = hot/high
+  if (['a', 'haute', 'elevee', 'élevée', 'high', 'hot', 'chaud', 'chaude', 'urgente', 'urgent', '🔥'].some(k => v.includes(k))) return 'A';
+  // C = cold/low
+  if (['c', 'basse', 'faible', 'low', 'cold', 'froid', 'froide', '❄️', '❄'].some(k => v.includes(k))) return 'C';
+  // B = medium/warm (default)
+  if (['b', 'moyenne', 'moyen', 'medium', 'warm', 'tiede', 'tiède', '⭐'].some(k => v.includes(k))) return 'B';
+  // Try exact single letter
+  if (v === 'a' || v === '1') return 'A';
+  if (v === 'c' || v === '3') return 'C';
+  return 'B';
+}
+
+function normalizeStatus(val: string): string {
+  const v = normalize(val);
+  const STATUS_MAP: [string[], string][] = [
+    [['identifie', 'identifié', 'nouveau', 'new', 'prospect', 'a contacter'], 'identifie'],
+    [['contacte', 'contacté', 'contacted', 'en attente', 'message envoye'], 'contacte'],
+    [['repondu', 'répondu', 'replied', 'reponse', 'réponse', 'interesse', 'intéressé'], 'repondu'],
+    [['demo', 'démo', 'demonstration', 'démonstration', 'rdv', 'rendez-vous'], 'demo'],
+    [['sprint', 'essai', 'trial', 'test', 'en cours'], 'sprint'],
+    [['client', 'converti', 'converted', 'gagne', 'gagné', 'won', 'signe', 'signé'], 'client'],
+    [['perdu', 'lost', 'refuse', 'refusé', 'annule', 'annulé', 'churne', 'churné'], 'perdu'],
+  ];
+  for (const [keywords, status] of STATUS_MAP) {
+    for (const kw of keywords) {
+      if (v.includes(kw)) return status;
+    }
+  }
+  return 'identifie';
+}
+
+function normalizeSource(val: string): string {
+  const v = normalize(val);
+  const SOURCE_MAP: [string[], string][] = [
+    [['dm instagram', 'dm insta', 'instagram dm', 'message instagram', 'msg instagram', 'msg insta'], 'dm_instagram'],
+    [['email', 'e-mail', 'mail', 'courriel'], 'email'],
+    [['telephone', 'téléphone', 'tel', 'tél', 'appel', 'phone', 'sms'], 'telephone'],
+    [['linkedin', 'linked in'], 'linkedin'],
+    [['terrain', 'porte a porte', 'porte-a-porte', 'visite', 'en personne', 'physique', 'sur place'], 'terrain'],
+    [['facebook', 'fb', 'meta', 'messenger'], 'facebook'],
+    [['tiktok', 'tik tok', 'tt'], 'tiktok'],
+    [['recommandation', 'recommande', 'recommandé', 'referral', 'bouche a oreille', 'parrainage', 'parrain'], 'recommandation'],
+  ];
+  for (const [keywords, source] of SOURCE_MAP) {
+    for (const kw of keywords) {
+      if (v.includes(kw)) return source;
+    }
+  }
+  // If not recognized, keep as 'import'
+  return 'import';
 }
 
 // POST: Importer des prospects depuis Excel/CSV
@@ -175,7 +237,6 @@ export async function POST(req: NextRequest) {
 
     // Check if we have first_name/last_name separate or combined "nom"
     const hasFirstName = mappedFields.includes('first_name');
-    const hasLastName = mappedFields.includes('last_name');
 
     let imported = 0;
     let skipped = 0;
@@ -191,7 +252,6 @@ export async function POST(req: NextRequest) {
 
       // Map columns to fields
       const record: Record<string, string> = {};
-      // Also collect unmapped column values for notes
       const extraData: string[] = [];
 
       for (let colIdx = 0; colIdx < row.length; colIdx++) {
@@ -203,12 +263,11 @@ export async function POST(req: NextRequest) {
         if (columnMapping[colIdx]) {
           record[columnMapping[colIdx]] = strValue;
         } else if (headers[colIdx]) {
-          // Unmapped column: save for notes
           extraData.push(`${headers[colIdx]}: ${strValue}`);
         }
       }
 
-      // Handle combined "nom" field: if we have last_name but no first_name,
+      // Handle combined "nom" field: if we have last_name but no first_name column,
       // try to split "Jean Dupont" into first/last
       if (record.last_name && !hasFirstName) {
         const parts = record.last_name.trim().split(/\s+/);
@@ -218,13 +277,29 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Skip only truly empty rows (no useful data at all)
+      // Handle special mapped fields
+      // _site_web and _recommande_par go to extra notes
+      if (record._site_web) {
+        extraData.unshift(`Site web: ${record._site_web}`);
+        delete record._site_web;
+      }
+      if (record._recommande_par) {
+        extraData.unshift(`Recommandé par: ${record._recommande_par}`);
+        delete record._recommande_par;
+      }
+
+      // Skip only truly empty rows
       const hasAnyData = record.first_name || record.last_name || record.email ||
         record.phone || record.company || record.instagram || record.type;
       if (!hasAnyData) {
         skipped++;
         continue;
       }
+
+      // Normalize values
+      const normalizedPriority = record.priorite ? normalizePriority(record.priorite) : 'B';
+      const normalizedStatus = record.status ? normalizeStatus(record.status) : 'identifie';
+      const normalizedSource = record.source ? normalizeSource(record.source) : 'import';
 
       // Append extra data to notes if any
       let notes = record.notes || '';
@@ -239,21 +314,22 @@ export async function POST(req: NextRequest) {
         email: record.email || null,
         phone: record.phone || null,
         company: record.company || null,
-        status: record.status || 'identifie',
-        source: record.source || 'import',
+        status: normalizedStatus,
+        source: normalizedSource,
         notes: notes || null,
         type: record.type || null,
         quartier: record.quartier || null,
         instagram: record.instagram || null,
-        abonnes: record.abonnes ? Number(record.abonnes) : null,
-        note_google: record.note_google ? Number(record.note_google) : null,
-        avis_google: record.avis_google ? Number(record.avis_google) : null,
-        priorite: record.priorite || 'B',
-        score: record.score ? Number(record.score) : 0,
+        abonnes: record.abonnes ? Number(String(record.abonnes).replace(/[^\d]/g, '')) : null,
+        note_google: record.note_google ? Number(String(record.note_google).replace(',', '.')) : null,
+        avis_google: record.avis_google ? Number(String(record.avis_google).replace(/[^\d]/g, '')) : null,
+        priorite: normalizedPriority,
+        score: record.score ? Number(String(record.score).replace(/[^\d]/g, '')) : 0,
         freq_posts: record.freq_posts || null,
         qualite_visuelle: record.qualite_visuelle || null,
         date_contact: record.date_contact || null,
         angle_approche: record.angle_approche || null,
+        matched_plan: record.matched_plan || null,
         created_by: user.id,
       };
 
