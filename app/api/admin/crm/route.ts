@@ -97,28 +97,42 @@ export async function GET(req: NextRequest) {
     const sort = searchParams.get('sort') || 'created_at';
     const order = searchParams.get('order') || 'desc';
 
-    let query = supabase
-      .from('crm_prospects')
-      .select('*')
-      .order(sort, { ascending: order === 'asc' });
+    // Supabase PostgREST caps at 1000 rows per request regardless of .limit()
+    // Paginate to fetch ALL prospects
+    const PAGE_SIZE = 1000;
+    let allProspects: any[] = [];
+    let from = 0;
+    let hasMore = true;
 
-    if (search) {
-      const s = `%${search}%`;
-      query = query.or(
-        `first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s},company.ilike.${s},notes.ilike.${s}`
-      );
+    while (hasMore) {
+      let pageQuery = supabase
+        .from('crm_prospects')
+        .select('*')
+        .order(sort, { ascending: order === 'asc' })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (search) {
+        const s = `%${search}%`;
+        pageQuery = pageQuery.or(
+          `first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s},company.ilike.${s},notes.ilike.${s}`
+        );
+      }
+      if (status) pageQuery = pageQuery.eq('status', status);
+      if (source) pageQuery = pageQuery.eq('source', source);
+
+      const { data, error } = await pageQuery;
+      if (error) {
+        console.error('[Admin CRM] List error:', error);
+        return NextResponse.json({ error: 'Erreur lors de la récupération des prospects' }, { status: 500 });
+      }
+
+      allProspects = allProspects.concat(data || []);
+      hasMore = (data?.length || 0) === PAGE_SIZE;
+      from += PAGE_SIZE;
+
+      // Safety: max 10 pages (10,000 prospects)
+      if (from >= 10000) break;
     }
-    if (status) query = query.eq('status', status);
-    if (source) query = query.eq('source', source);
-
-    const { data: prospects, error } = await query.limit(5000);
-
-    if (error) {
-      console.error('[Admin CRM] List error:', error);
-      return NextResponse.json({ error: 'Erreur lors de la récupération des prospects' }, { status: 500 });
-    }
-
-    const allProspects = prospects || [];
     const byStatus: Record<string, number> = {
       identifie: 0, contacte: 0, repondu: 0, demo: 0, sprint: 0, client: 0, perdu: 0,
     };
