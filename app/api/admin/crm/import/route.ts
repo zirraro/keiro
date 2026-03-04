@@ -31,7 +31,7 @@ const FIELD_RULES: { keywords: string[]; field: string }[] = [
   { keywords: ['frequence posts', 'fréquence posts', 'frequence', 'fréquence', 'freq post'], field: 'freq_posts' },
   { keywords: ['qualite visuelle', 'qualité visuelle', 'qualite', 'qualité'], field: 'qualite_visuelle' },
   { keywords: ['date 1er contact', 'date premier contact', 'date contact', 'date_contact', '1er contact', 'premier contact'], field: 'date_contact' },
-  { keywords: ['angle approche', "angle d'approche", 'angle', 'approche', 'pitch'], field: 'angle_approche' },
+  { keywords: ['notes / angle', 'notes/angle', 'angle approche', "angle d'approche", 'angle', 'approche', 'pitch'], field: 'angle_approche' },
   { keywords: ['statut pipeline', 'statut', 'status', 'pipeline', 'etape', 'étape'], field: 'status' },
   { keywords: ['canal contact', 'canal', 'source', 'channel', 'origine', 'provenance', 'acquisition'], field: 'source' },
   { keywords: ['plan souscrit', 'plan', 'abonnement', 'subscription'], field: 'matched_plan' },
@@ -148,7 +148,8 @@ function normalizeSource(val: string): string {
     [['facebook', 'fb', 'messenger'], 'facebook'],
     [['tiktok', 'tik tok'], 'tiktok'],
     [['recommandation', 'recommande', 'referral', 'bouche a oreille', 'parrainage'], 'recommandation'],
-    [['google', 'maps', 'site', 'web', 'internet', 'organique', 'seo'], 'other'],
+    [['instagram', 'insta'], 'dm_instagram'],
+    [['google', 'maps', 'thefork', 'the fork', 'tripadvisor', 'site', 'web', 'internet', 'organique', 'seo'], 'other'],
   ];
   for (const [keywords, source] of SOURCE_MAP) {
     for (const kw of keywords) {

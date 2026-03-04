@@ -92,7 +92,46 @@ const emptyForm: ProspectForm = {
   notes: '', tags: '',
 };
 
-type ViewType = 'pipeline' | 'canaux' | 'liste';
+type Activity = {
+  id: string;
+  prospect_id: string;
+  type: string;
+  description: string | null;
+  resultat: string | null;
+  date_activite: string;
+  date_rappel: string | null;
+  heure_rappel: string | null;
+  rappel_fait: boolean;
+  created_at: string;
+  // Joined from reminder query
+  crm_prospects?: { id: string; first_name: string | null; last_name: string | null; company: string | null; instagram: string | null };
+};
+
+const ACTIVITY_TYPES = [
+  { id: 'appel', label: 'Appel', icon: '📞' },
+  { id: 'appel_manque', label: 'Appel manqué', icon: '📵' },
+  { id: 'message', label: 'Message', icon: '💬' },
+  { id: 'email', label: 'Email', icon: '✉️' },
+  { id: 'dm_instagram', label: 'DM Instagram', icon: '📷' },
+  { id: 'rdv', label: 'RDV', icon: '📅' },
+  { id: 'visite', label: 'Visite', icon: '🚶' },
+  { id: 'relance', label: 'Relance', icon: '🔄' },
+  { id: 'note', label: 'Note', icon: '📝' },
+  { id: 'autre', label: 'Autre', icon: '•' },
+];
+
+const QUICK_RESULTS = [
+  { id: 'pas_de_reponse', label: 'Pas de réponse' },
+  { id: 'interesse', label: 'Intéressé' },
+  { id: 'rappeler', label: 'Rappeler plus tard' },
+  { id: 'rdv_pris', label: 'RDV pris' },
+  { id: 'demande_infos', label: 'Demande infos' },
+  { id: 'pas_interesse', label: 'Pas intéressé' },
+  { id: 'mauvais_moment', label: 'Mauvais moment' },
+  { id: 'numero_incorrect', label: 'Numéro incorrect' },
+];
+
+type ViewType = 'pipeline' | 'canaux' | 'liste' | 'dashboard';
 type SortField = 'name' | 'type' | 'quartier' | 'instagram' | 'score' | 'priorite' | 'status' | 'source' | 'date_contact';
 type SortDir = 'asc' | 'desc';
 
@@ -110,6 +149,18 @@ function getChannelInfo(id: string | null) {
 function formatDate(iso: string | null) {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatDateRelative(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return `Il y a ${diffDays}j`;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
 
 function prospectName(p: Prospect) {
@@ -176,6 +227,18 @@ export default function AdminCRMPage() {
   const [sortField, setSortField] = useState<SortField>('score');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  // Activities
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [pendingReminders, setPendingReminders] = useState<Activity[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  // Rappels filter
+  const [filterRappels, setFilterRappels] = useState(false);
+
+  // Suivi filter
+  const [filterSuivi, setFilterSuivi] = useState<'none' | 'jour' | 'semaine'>('none');
+  const [weeklyReminders, setWeeklyReminders] = useState<Activity[]>([]);
+
   // ─── Auth Check ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -199,6 +262,26 @@ export default function AdminCRMPage() {
     loadProspects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  // Load reminders on mount + refresh every 5min
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadReminders();
+    loadWeeklyReminders();
+    const interval = setInterval(() => { loadReminders(); loadWeeklyReminders(); }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  // Load activities when prospect selected
+  useEffect(() => {
+    if (selected) {
+      loadActivities(selected.id);
+    } else {
+      setActivities([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   // ─── API Calls ─────────────────────────────────────────────────────────
 
@@ -331,6 +414,87 @@ export default function AdminCRMPage() {
     }
   };
 
+  // ─── Activity API Calls ────────────────────────────────────────────────
+
+  const loadReminders = async () => {
+    try {
+      const res = await fetch('/api/admin/crm/activities?rappels=true');
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingReminders(data.reminders || []);
+    } catch (e) { console.error('[CRM] Reminders error:', e); }
+  };
+
+  const loadWeeklyReminders = async () => {
+    try {
+      const res = await fetch('/api/admin/crm/activities?rappels=semaine');
+      if (!res.ok) return;
+      const data = await res.json();
+      setWeeklyReminders(data.reminders || []);
+    } catch (e) { console.error('[CRM] Weekly reminders error:', e); }
+  };
+
+  const loadActivities = async (prospectId: string) => {
+    setLoadingActivities(true);
+    try {
+      const res = await fetch(`/api/admin/crm/activities?prospect_id=${prospectId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setActivities(data.activities || []);
+    } catch (e) { console.error('[CRM] Activities error:', e); }
+    finally { setLoadingActivities(false); }
+  };
+
+  const addActivity = async (data: { prospect_id: string; type: string; description?: string; resultat?: string; date_rappel?: string; heure_rappel?: string }) => {
+    try {
+      const res = await fetch('/api/admin/crm/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await loadActivities(data.prospect_id);
+      await loadReminders();
+    } catch (e) {
+      console.error('[CRM] Add activity error:', e);
+      alert("Erreur lors de l'ajout.");
+    }
+  };
+
+  const markReminderDone = async (activityId: string, prospectId: string) => {
+    try {
+      const res = await fetch(`/api/admin/crm/activities/${activityId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rappel_fait: true }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await loadReminders();
+      if (selected?.id === prospectId) await loadActivities(prospectId);
+    } catch (e) { console.error('[CRM] Mark done error:', e); }
+  };
+
+  const exportReminders = async () => {
+    // Export today's reminders as a simple list
+    if (pendingReminders.length === 0) { alert('Aucun rappel en attente.'); return; }
+    const lines = ['Prospect,Type,Heure,Téléphone,Instagram,Description'];
+    for (const r of pendingReminders) {
+      const p = r.crm_prospects;
+      const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
+      const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
+      lines.push([name, actType?.label || r.type, r.heure_rappel || '', '', p?.instagram || '', r.description || ''].join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rappels-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   // ─── Modal Helpers ─────────────────────────────────────────────────────
 
   const openNewModal = () => {
@@ -375,6 +539,11 @@ export default function AdminCRMPage() {
 
   // ─── Filtered + Sorted prospects ──────────────────────────────────────
 
+  const prospectIdsWithReminders = useMemo(() =>
+    new Set(pendingReminders.map(r => r.prospect_id)),
+    [pendingReminders]
+  );
+
   const filtered = useMemo(() => {
     let list = [...prospects];
     if (search) {
@@ -394,8 +563,19 @@ export default function AdminCRMPage() {
     if (filterStatus) {
       list = list.filter(p => p.status === filterStatus);
     }
+    if (filterRappels) {
+      list = list.filter(p => prospectIdsWithReminders.has(p.id));
+    }
+    if (filterSuivi === 'jour') {
+      const dayIds = new Set(pendingReminders.map(r => r.prospect_id));
+      list = list.filter(p => dayIds.has(p.id));
+    }
+    if (filterSuivi === 'semaine') {
+      const weekIds = new Set(weeklyReminders.map(r => r.prospect_id));
+      list = list.filter(p => weekIds.has(p.id));
+    }
     return list;
-  }, [prospects, search, filterPrio, filterStatus]);
+  }, [prospects, search, filterPrio, filterStatus, filterRappels, prospectIdsWithReminders, filterSuivi, weeklyReminders, pendingReminders]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -507,6 +687,12 @@ export default function AdminCRMPage() {
               >
                 📋 Liste
               </button>
+              <button
+                onClick={() => setView('dashboard')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'dashboard' ? 'bg-purple-600 text-white shadow' : 'text-neutral-500 hover:text-neutral-900'}`}
+              >
+                📊 Dashboard
+              </button>
             </div>
           </div>
 
@@ -587,6 +773,35 @@ export default function AdminCRMPage() {
       )}
 
       <main className="max-w-[1600px] mx-auto px-4 py-4">
+        {/* ── Reminders Banner ──────────────────────────────────────── */}
+        {pendingReminders.length > 0 && (
+          <div className="mb-4 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-orange-800">🔔 {pendingReminders.length} rappel{pendingReminders.length > 1 ? 's' : ''} en attente</span>
+              <button onClick={exportReminders} className="text-xs text-orange-600 hover:text-orange-800 transition-colors">📤 Exporter CSV</button>
+            </div>
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+              {pendingReminders.map(r => {
+                const p = r.crm_prospects;
+                const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
+                const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
+                const isOverdue = r.date_rappel && new Date(r.date_rappel) < new Date(new Date().toDateString());
+                return (
+                  <div key={r.id} className={`flex items-center gap-2 text-xs ${isOverdue ? 'text-red-700' : 'text-orange-700'}`}>
+                    <span>{actType?.icon || '🔔'}</span>
+                    <button onClick={() => { const prospect = prospects.find(pp => pp.id === r.prospect_id); if (prospect) setSelected(prospect); }} className="font-semibold hover:underline truncate max-w-[200px]">{name}</button>
+                    <span className="text-neutral-400">—</span>
+                    <span className="truncate flex-1">{r.description || actType?.label || 'Rappel'}</span>
+                    {r.heure_rappel && <span className="text-neutral-500 whitespace-nowrap">{r.heure_rappel}</span>}
+                    {isOverdue && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-medium whitespace-nowrap">En retard</span>}
+                    <button onClick={() => markReminderDone(r.id, r.prospect_id)} className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-medium hover:bg-emerald-200 transition-colors whitespace-nowrap">✓ Fait</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── KPI Bar ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
           {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map(stage => (
@@ -621,6 +836,25 @@ export default function AdminCRMPage() {
                 {p.label}
               </button>
             ))}
+            <div className="h-4 w-px bg-neutral-300 mx-1" />
+            <button
+              onClick={() => { setFilterRappels(!filterRappels); setFilterSuivi('none'); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterRappels ? 'bg-orange-500 text-white' : 'text-neutral-500 hover:text-neutral-700'}`}
+            >
+              🔔 Rappels
+            </button>
+            <button
+              onClick={() => { setFilterSuivi(filterSuivi === 'jour' ? 'none' : 'jour'); setFilterRappels(false); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSuivi === 'jour' ? 'bg-blue-600 text-white' : 'text-neutral-500 hover:text-neutral-700'}`}
+            >
+              📋 Suivi jour
+            </button>
+            <button
+              onClick={() => { setFilterSuivi(filterSuivi === 'semaine' ? 'none' : 'semaine'); setFilterRappels(false); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSuivi === 'semaine' ? 'bg-indigo-600 text-white' : 'text-neutral-500 hover:text-neutral-700'}`}
+            >
+              📅 Suivi semaine
+            </button>
           </div>
 
           <div className="relative flex-1 w-full sm:w-auto">
@@ -773,6 +1007,200 @@ export default function AdminCRMPage() {
                   )}
                 </div>
               </div>
+            ) : view === 'dashboard' ? (
+              /* ── Dashboard View ──────────────────────────────────────── */
+              <div className="space-y-6">
+                {/* KPI Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
+                    <p className="text-xs text-neutral-500 mb-1">Total prospects</p>
+                    <p className="text-3xl font-bold text-neutral-900">{prospects.length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
+                    <p className="text-xs text-neutral-500 mb-1">🔥 Chauds (A)</p>
+                    <p className="text-3xl font-bold text-red-600">{prospects.filter(p => p.priorite === 'A').length}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
+                    <p className="text-xs text-neutral-500 mb-1">✅ Clients</p>
+                    <p className="text-3xl font-bold text-emerald-600">{prospects.filter(p => p.status === 'client').length}</p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">
+                      Taux: {prospects.length > 0 ? Math.round((prospects.filter(p => p.status === 'client').length / prospects.length) * 100) : 0}%
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
+                    <p className="text-xs text-neutral-500 mb-1">🔔 Rappels en attente</p>
+                    <p className="text-3xl font-bold text-orange-600">{pendingReminders.length}</p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">{weeklyReminders.length} cette semaine</p>
+                  </div>
+                </div>
+
+                {/* Pipeline Funnel */}
+                <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-neutral-900 mb-4">Pipeline</h3>
+                  <div className="space-y-2.5">
+                    {PIPELINE_STAGES.map(stage => {
+                      const count = stageStats[stage.id] || 0;
+                      const maxCount = Math.max(...Object.values(stageStats), 1);
+                      const pct = Math.round((count / maxCount) * 100);
+                      return (
+                        <div key={stage.id} className="flex items-center gap-3">
+                          <span className="text-xs w-20 text-neutral-600 flex-shrink-0">{stage.icon} {stage.label}</span>
+                          <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
+                            <div
+                              className={`h-6 rounded-full ${stage.color} flex items-center justify-end px-2 transition-all`}
+                              ref={(el) => { if (el) el.style.width = `${Math.max(pct, 4)}%`; }}
+                            >
+                              <span className="text-[10px] font-bold text-white">{count}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-neutral-400 w-10 text-right">{prospects.length > 0 ? Math.round((count / prospects.length) * 100) : 0}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Priority Distribution */}
+                  <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-4">Répartition par priorité</h3>
+                    <div className="space-y-3">
+                      {[
+                        { key: 'A', label: '🔥 Chaud', color: 'bg-red-500', bgLight: 'bg-red-50 text-red-700' },
+                        { key: 'B', label: '⭐ Tiède', color: 'bg-yellow-500', bgLight: 'bg-yellow-50 text-yellow-700' },
+                        { key: 'C', label: '❄️ Froid', color: 'bg-blue-500', bgLight: 'bg-blue-50 text-blue-700' },
+                      ].map(p => {
+                        const count = prospects.filter(pr => pr.priorite === p.key).length;
+                        const pct = prospects.length > 0 ? Math.round((count / prospects.length) * 100) : 0;
+                        return (
+                          <div key={p.key} className="flex items-center gap-3">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${p.bgLight} w-24 text-center`}>{p.label}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                              <div
+                                className={`h-4 rounded-full ${p.color} transition-all`}
+                                ref={(el) => { if (el) el.style.width = `${pct}%`; }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-neutral-700 w-8 text-right">{count}</span>
+                            <span className="text-xs text-neutral-400 w-10 text-right">{pct}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Channel Performance */}
+                  <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-4">Performance par canal</h3>
+                    <div className="space-y-2.5">
+                      {CHANNELS.filter(ch => (channelStats[ch.id]?.total || 0) > 0).sort((a, b) => (channelStats[b.id]?.total || 0) - (channelStats[a.id]?.total || 0)).map(ch => {
+                        const s = channelStats[ch.id] || { total: 0, clients: 0 };
+                        const rate = s.total > 0 ? Math.round((s.clients / s.total) * 100) : 0;
+                        return (
+                          <div key={ch.id} className="flex items-center gap-2">
+                            <span className="text-sm w-6 text-center flex-shrink-0">{ch.icon}</span>
+                            <span className="text-xs text-neutral-600 w-28 flex-shrink-0 truncate">{ch.label}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                              <div
+                                className="h-4 rounded-full bg-purple-500 transition-all"
+                                ref={(el) => { if (el) el.style.width = `${Math.max(Math.round((s.total / Math.max(...Object.values(channelStats).map(x => x.total), 1)) * 100), 4)}%`; }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-neutral-700 w-8 text-right">{s.total}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${rate > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-neutral-400'} w-12 text-center flex-shrink-0`}>{rate}% conv</span>
+                          </div>
+                        );
+                      })}
+                      {CHANNELS.every(ch => (channelStats[ch.id]?.total || 0) === 0) && (
+                        <p className="text-xs text-neutral-400 text-center py-4">Aucune donnée de canal</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Suivi du jour - Today's action list */}
+                <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-neutral-900">📋 Suivi du jour</h3>
+                    <button onClick={exportReminders} className="text-xs text-purple-600 hover:text-purple-700 transition-colors">📤 Exporter CSV</button>
+                  </div>
+                  {pendingReminders.length === 0 ? (
+                    <p className="text-xs text-neutral-400 text-center py-4">Aucun rappel pour aujourd&apos;hui</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {pendingReminders.map(r => {
+                        const p = r.crm_prospects;
+                        const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
+                        const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
+                        const isOverdue = r.date_rappel && new Date(r.date_rappel) < new Date(new Date().toDateString());
+                        return (
+                          <div key={r.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isOverdue ? 'bg-red-50 border border-red-200' : 'bg-orange-50 border border-orange-200'}`}>
+                            <span className="text-sm">{actType?.icon || '🔔'}</span>
+                            <button onClick={() => { const prospect = prospects.find(pp => pp.id === r.prospect_id); if (prospect) { setSelected(prospect); setView('liste'); } }} className="text-xs font-semibold text-neutral-900 hover:underline truncate max-w-[200px]">{name}</button>
+                            <span className="text-xs text-neutral-500 flex-1 truncate">{r.description || actType?.label || 'Rappel'}</span>
+                            {r.heure_rappel && <span className="text-xs text-neutral-500 whitespace-nowrap">{r.heure_rappel}</span>}
+                            {isOverdue && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-medium">En retard</span>}
+                            <button onClick={() => markReminderDone(r.id, r.prospect_id)} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200 transition-colors whitespace-nowrap">✓ Fait</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Suivi de la semaine */}
+                {weeklyReminders.filter(r => !pendingReminders.some(pr => pr.id === r.id)).length > 0 && (
+                  <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-4">📅 Reste de la semaine</h3>
+                    <div className="space-y-2">
+                      {weeklyReminders.filter(r => !pendingReminders.some(pr => pr.id === r.id)).map(r => {
+                        const p = r.crm_prospects;
+                        const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
+                        const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
+                        return (
+                          <div key={r.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200">
+                            <span className="text-sm">{actType?.icon || '🔔'}</span>
+                            <button onClick={() => { const prospect = prospects.find(pp => pp.id === r.prospect_id); if (prospect) { setSelected(prospect); setView('liste'); } }} className="text-xs font-semibold text-neutral-900 hover:underline truncate max-w-[200px]">{name}</button>
+                            <span className="text-xs text-neutral-500 flex-1 truncate">{r.description || actType?.label}</span>
+                            <span className="text-xs text-indigo-600 whitespace-nowrap">{formatDate(r.date_rappel)}</span>
+                            {r.heure_rappel && <span className="text-xs text-neutral-500">{r.heure_rappel}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Prospects to Contact */}
+                <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                  <h3 className="text-sm font-bold text-neutral-900 mb-4">🎯 Prospects prioritaires à contacter</h3>
+                  <div className="space-y-2">
+                    {prospects
+                      .filter(p => p.priorite === 'A' && ['identifie', 'contacte', 'repondu', 'demo'].includes(p.status))
+                      .sort((a, b) => b.score - a.score)
+                      .slice(0, 10)
+                      .map(p => {
+                        const stg = getStageInfo(p.status);
+                        return (
+                          <div key={p.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => { setSelected(p); setView('liste'); }}>
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                              {prospectInitials(p)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-neutral-900 truncate">{prospectName(p)}</p>
+                              <p className="text-[10px] text-neutral-400 truncate">{p.company || p.instagram || p.type || ''}</p>
+                            </div>
+                            <span className="text-xs font-bold text-neutral-900">{p.score} pts</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${stg.color} text-white`}>{stg.label}</span>
+                          </div>
+                        );
+                      })}
+                    {prospects.filter(p => p.priorite === 'A' && ['identifie', 'contacte', 'repondu', 'demo'].includes(p.status)).length === 0 && (
+                      <p className="text-xs text-neutral-400 text-center py-4">Aucun prospect chaud en attente</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             ) : (
               /* ── List View ──────────────────────────────────────────── */
               <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm">
@@ -857,6 +1285,10 @@ export default function AdminCRMPage() {
               onClose={() => setSelected(null)}
               onEdit={() => openEditModal(selected)}
               onDelete={() => deleteProspect(selected.id)}
+              activities={activities}
+              loadingActivities={loadingActivities}
+              onAddActivity={addActivity}
+              onMarkReminder={markReminderDone}
             />
           )}
         </div>
@@ -1089,8 +1521,11 @@ function ModalField({ label, value, onChange, placeholder, type = 'text' }: {
 
 // ─── Detail Panel Component ────────────────────────────────────────────────
 
-function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
+function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingActivities, onAddActivity, onMarkReminder }: {
   prospect: Prospect; onClose: () => void; onEdit: () => void; onDelete: () => void;
+  activities: Activity[]; loadingActivities: boolean;
+  onAddActivity: (data: { prospect_id: string; type: string; description?: string; resultat?: string; date_rappel?: string; heure_rappel?: string }) => void;
+  onMarkReminder: (activityId: string, prospectId: string) => void;
 }) {
   const prioBadge = getPriorityBadge(prospect.priorite);
   const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.id === prospect.status);
@@ -1250,6 +1685,51 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
         </div>
       )}
 
+      {/* Activity History */}
+      <div className="px-4 py-3 border-b border-neutral-200">
+        <p className="text-[10px] text-neutral-500 uppercase mb-2">Historique</p>
+        {loadingActivities ? (
+          <p className="text-xs text-neutral-400 py-2">Chargement...</p>
+        ) : activities.length === 0 ? (
+          <p className="text-xs text-neutral-400 py-2">Aucune activité</p>
+        ) : (
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {activities.slice(0, 10).map(a => {
+              const actType = ACTIVITY_TYPES.find(t => t.id === a.type);
+              const resultLabel = QUICK_RESULTS.find(r => r.id === a.resultat)?.label || a.resultat;
+              return (
+                <div key={a.id} className="flex gap-2 text-xs">
+                  <span className="flex-shrink-0 mt-0.5">{actType?.icon || '•'}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-neutral-500">{formatDateRelative(a.date_activite)}</span>
+                      <span className="font-medium text-neutral-700">{actType?.label || a.type}</span>
+                    </div>
+                    {(a.description || resultLabel) && (
+                      <p className="text-neutral-500 mt-0.5 truncate">{[resultLabel, a.description].filter(Boolean).join(' — ')}</p>
+                    )}
+                    {a.date_rappel && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className={`text-[10px] ${a.rappel_fait ? 'text-emerald-600' : 'text-orange-600'}`}>
+                          🔔 {formatDate(a.date_rappel)}{a.heure_rappel ? ` ${a.heure_rappel}` : ''}
+                          {a.rappel_fait ? ' ✓' : ''}
+                        </span>
+                        {!a.rappel_fait && (
+                          <button onClick={() => onMarkReminder(a.id, prospect.id)} className="text-[10px] px-1 py-0.5 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100">✓</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {activities.length > 10 && (
+              <p className="text-[10px] text-neutral-400 text-center">+{activities.length - 10} autres</p>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Action buttons */}
       <div className="px-4 py-3 space-y-2">
         <div className="grid grid-cols-3 gap-2">
@@ -1268,6 +1748,86 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete }: {
           <button onClick={onDelete} className="text-[10px] text-red-500 hover:text-red-600 transition-colors">Supprimer</button>
         </div>
       </div>
+
+      {/* Quick Add Activity */}
+      <div className="px-4 py-3 border-t border-neutral-200">
+        <QuickActivityForm prospectId={prospect.id} onAdd={onAddActivity} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick Activity Form Component ──────────────────────────────────────────
+
+function QuickActivityForm({ prospectId, onAdd }: {
+  prospectId: string;
+  onAdd: (data: { prospect_id: string; type: string; description?: string; resultat?: string; date_rappel?: string; heure_rappel?: string }) => void;
+}) {
+  const [type, setType] = useState('appel');
+  const [resultat, setResultat] = useState('');
+  const [description, setDescription] = useState('');
+  const [showRappel, setShowRappel] = useState(false);
+  const [dateRappel, setDateRappel] = useState('');
+  const [heureRappel, setHeureRappel] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const handleAdd = async () => {
+    setAdding(true);
+    await onAdd({
+      prospect_id: prospectId,
+      type,
+      description: description || undefined,
+      resultat: resultat || undefined,
+      date_rappel: dateRappel ? new Date(dateRappel + 'T' + (heureRappel || '09:00')).toISOString() : undefined,
+      heure_rappel: heureRappel || undefined,
+    });
+    // Reset form
+    setDescription('');
+    setResultat('');
+    setShowRappel(false);
+    setDateRappel('');
+    setHeureRappel('');
+    setAdding(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] text-neutral-500 uppercase">+ Activité</p>
+      <div className="flex gap-1.5">
+        <select value={type} onChange={e => setType(e.target.value)} className="flex-1 px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-900">
+          {ACTIVITY_TYPES.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+        </select>
+        <select value={resultat} onChange={e => setResultat(e.target.value)} className="flex-1 px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-900">
+          <option value="">Résultat...</option>
+          {QUICK_RESULTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+        </select>
+      </div>
+      <input
+        type="text"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        placeholder="Note rapide..."
+        className="w-full px-2 py-1.5 text-xs bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400"
+      />
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer">
+          <input type="checkbox" checked={showRappel} onChange={e => setShowRappel(e.target.checked)} className="rounded" />
+          🔔 Rappel
+        </label>
+        {showRappel && (
+          <>
+            <input type="date" value={dateRappel} onChange={e => setDateRappel(e.target.value)} className="px-2 py-1 text-xs bg-white border border-neutral-300 rounded text-neutral-900" />
+            <input type="time" value={heureRappel} onChange={e => setHeureRappel(e.target.value)} className="px-2 py-1 text-xs bg-white border border-neutral-300 rounded text-neutral-900 w-20" />
+          </>
+        )}
+      </div>
+      <button
+        onClick={handleAdd}
+        disabled={adding}
+        className="w-full px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
+      >
+        {adding ? '...' : '+ Ajouter'}
+      </button>
     </div>
   );
 }
