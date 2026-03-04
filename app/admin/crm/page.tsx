@@ -730,6 +730,29 @@ export default function AdminCRMPage() {
             </button>
 
             <button
+              onClick={async () => {
+                if (!confirm('Supprimer TOUS les prospects ? Cette action est irréversible.')) return;
+                if (!confirm('Vraiment tout supprimer ? Dernier avertissement.')) return;
+                try {
+                  const res = await fetch('/api/admin/crm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'purge_all' }),
+                  });
+                  if (res.ok) {
+                    alert('Tous les prospects supprimés.');
+                    loadProspects();
+                  } else {
+                    alert('Erreur lors de la suppression.');
+                  }
+                } catch { alert('Erreur réseau.'); }
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              🗑 Tout supprimer
+            </button>
+
+            <button
               onClick={openNewModal}
               className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow"
             >
