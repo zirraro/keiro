@@ -14,54 +14,57 @@ function getAdminClient() {
 
 // Keyword-based column detection (order matters: more specific first)
 const FIELD_RULES: { keywords: string[]; field: string }[] = [
-  // Prenom BEFORE nom (because "prenom" contains "nom")
+  // Prenom BEFORE nom
   { keywords: ['prenom', 'prénom', 'first name', 'first_name', 'firstname'], field: 'first_name' },
   // "nom de/du" = company
   { keywords: ['nom de', 'nom du', 'raison sociale', 'enseigne'], field: 'company' },
-  // "nom" alone = last_name
-  { keywords: ['nom', 'last name', 'last_name', 'lastname', 'surname'], field: 'last_name' },
-  // Email — specific keywords only, NOT "adresse" alone
+  // "nom" alone — will be routed to company or last_name based on context (see below)
+  { keywords: ['nom'], field: 'last_name' },
+  // Email — NOT "adresse" alone
   { keywords: ['email', 'e-mail', 'adresse mail', 'adresse email', 'adresse e-mail', 'courriel'], field: 'email' },
   // Phone
   { keywords: ['telephone', 'téléphone', 'phone', 'portable', 'mobile'], field: 'phone' },
   // Company
   { keywords: ['entreprise', 'company', 'societe', 'société', 'etablissement', 'établissement', 'restaurant', 'commerce', 'boutique', 'salon', 'magasin'], field: 'company' },
-  // Type
-  { keywords: ['type activite', 'type activité', 'type', 'categorie', 'catégorie', 'category', 'activite', 'activité', 'secteur', 'metier', 'métier', 'sous-categorie', 'sous-catégorie'], field: 'type' },
-  // Quartier
-  { keywords: ['ville / quartier', 'ville/quartier', 'quartier', 'arrondissement', 'ville', 'city', 'adresse', 'address', 'localisation'], field: 'quartier' },
+  // Type — specific first
+  { keywords: ['type activite', 'type activité', 'sous-categorie', 'sous-catégorie', 'sous categorie', 'type', 'categorie', 'catégorie', 'activite', 'activité', 'secteur', 'metier', 'métier'], field: 'type' },
+  // Quartier — "ville" and "quartier" only, NOT "adresse"
+  { keywords: ['ville / quartier', 'ville/quartier', 'quartier', 'arrondissement', 'ville', 'city'], field: 'quartier' },
   // Instagram
   { keywords: ['instagram', 'insta', 'compte instagram', 'compte insta'], field: 'instagram' },
   // Followers
-  { keywords: ['abonnes ig', 'abonnés ig', 'abonne', 'abonné', 'abonnes', 'abonnés', 'follower', 'followers'], field: 'abonnes' },
+  { keywords: ['abonnes ig', 'abonnés ig', 'abonne ig', 'abonné ig', 'abonnes', 'abonnés', 'follower', 'followers'], field: 'abonnes' },
   // Google rating
   { keywords: ['note google', 'rating google', 'google rating'], field: 'note_google' },
   // Google reviews
-  { keywords: ['nb avis google', 'nombre avis google', 'avis google', 'nb avis', 'nombre avis', 'google reviews'], field: 'avis_google' },
+  { keywords: ['nb avis google', 'nombre avis google', 'avis google', 'nb avis', 'nombre avis'], field: 'avis_google' },
   // Priority
   { keywords: ['priorite', 'priorité', 'priority', 'prio'], field: 'priorite' },
   // Score
   { keywords: ['score prospect', 'score', 'points'], field: 'score' },
   // Freq posts
-  { keywords: ['frequence posts', 'fréquence posts', 'frequence', 'fréquence', 'freq post', 'freq'], field: 'freq_posts' },
+  { keywords: ['frequence posts', 'fréquence posts', 'frequence', 'fréquence', 'freq post'], field: 'freq_posts' },
   // Visual quality
-  { keywords: ['qualite visuelle', 'qualité visuelle', 'qualite', 'qualité', 'quality'], field: 'qualite_visuelle' },
-  // Date contact
+  { keywords: ['qualite visuelle', 'qualité visuelle', 'qualite', 'qualité'], field: 'qualite_visuelle' },
+  // Date contact — specific first
   { keywords: ['date 1er contact', 'date premier contact', 'date contact', 'date_contact', '1er contact', 'premier contact'], field: 'date_contact' },
   // Angle
-  { keywords: ['angle approche', 'angle d\'approche', 'angle', 'approche', 'pitch'], field: 'angle_approche' },
+  { keywords: ['angle approche', "angle d'approche", 'angle', 'approche', 'pitch'], field: 'angle_approche' },
   // Status
   { keywords: ['statut pipeline', 'statut', 'status', 'pipeline', 'etape', 'étape'], field: 'status' },
   // Source / Canal
   { keywords: ['canal contact', 'canal', 'source', 'channel', 'origine', 'provenance', 'acquisition'], field: 'source' },
   // Plan
   { keywords: ['plan souscrit', 'plan', 'abonnement', 'subscription'], field: 'matched_plan' },
+  // Motif refus → goes to notes as extra data
+  { keywords: ['motif refus', 'motif', 'raison refus'], field: '_motif_refus' },
   // Notes (last)
-  { keywords: ['notes', 'commentaire', 'comment', 'remarque', 'observation', 'motif refus'], field: 'notes' },
-  // Site web → goes to notes via extra data, but let's map it
-  { keywords: ['site web', 'site internet', 'website', 'url', 'site'], field: '_site_web' },
-  // Recommandé par
+  { keywords: ['notes', 'commentaire', 'comment', 'remarque', 'observation'], field: 'notes' },
+  // Extra fields → go to notes
+  { keywords: ['site web', 'site internet', 'website', 'url'], field: '_site_web' },
   { keywords: ['recommande par', 'recommandé par', 'parrain', 'referral'], field: '_recommande_par' },
+  // Adresse physique → goes to notes (not quartier)
+  { keywords: ['adresse'], field: '_adresse' },
 ];
 
 // Normalize: lowercase + remove accents
@@ -70,10 +73,16 @@ function normalize(str: string): string {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-function detectColumnMapping(headers: string[]): { mapping: Record<number, string>; unmapped: string[] } {
+function detectColumnMapping(headers: string[]): { mapping: Record<number, string>; unmapped: string[]; hasPrenom: boolean } {
   const mapping: Record<number, string> = {};
   const usedFields = new Set<string>();
   const unmapped: string[] = [];
+
+  // Pre-scan: check if "Prénom" exists to determine if "Nom" = person or business
+  const hasPrenom = headers.some(h => {
+    const n = normalize(h || '');
+    return n === 'prenom' || n === 'prénom' || n.includes('prenom') || n.includes('prénom');
+  });
 
   for (let i = 0; i < headers.length; i++) {
     const raw = (headers[i] || '').toString().trim();
@@ -88,8 +97,14 @@ function detectColumnMapping(headers: string[]): { mapping: Record<number, strin
         const nkw = normalize(kw);
         // Only forward match: header contains keyword
         if (h.includes(nkw)) {
-          mapping[i] = rule.field;
-          usedFields.add(rule.field);
+          let field = rule.field;
+          // Special: if "Nom" matches last_name but no Prénom column → route to company
+          if (field === 'last_name' && !hasPrenom) {
+            field = 'company';
+            if (usedFields.has('company')) continue;
+          }
+          mapping[i] = field;
+          usedFields.add(field);
           matched = true;
           break;
         }
@@ -102,35 +117,35 @@ function detectColumnMapping(headers: string[]): { mapping: Record<number, strin
     }
   }
 
-  return { mapping, unmapped };
+  return { mapping, unmapped, hasPrenom };
 }
 
 // ─── Value normalization ──────────────────────────────────────────────────
 
 function normalizePriority(val: string): string {
   const v = normalize(val);
-  // A = hot/high
-  if (['a', 'haute', 'elevee', 'élevée', 'high', 'hot', 'chaud', 'chaude', 'urgente', 'urgent', '🔥'].some(k => v.includes(k))) return 'A';
-  // C = cold/low
-  if (['c', 'basse', 'faible', 'low', 'cold', 'froid', 'froide', '❄️', '❄'].some(k => v.includes(k))) return 'C';
-  // B = medium/warm (default)
-  if (['b', 'moyenne', 'moyen', 'medium', 'warm', 'tiede', 'tiède', '⭐'].some(k => v.includes(k))) return 'B';
-  // Try exact single letter
-  if (v === 'a' || v === '1') return 'A';
-  if (v === 'c' || v === '3') return 'C';
+  // Check for keywords (no single-letter matching to avoid false positives)
+  if (['haute', 'elevee', 'high', 'hot', 'chaud', 'chaude', 'urgente', 'urgent'].some(k => v.includes(k))) return 'A';
+  if (['basse', 'faible', 'low', 'cold', 'froid', 'froide'].some(k => v.includes(k))) return 'C';
+  if (['moyenne', 'moyen', 'medium', 'warm', 'tiede'].some(k => v.includes(k))) return 'B';
+  // Exact single-letter or number check (after removing spaces and dashes)
+  const clean = v.replace(/[^a-z0-9]/g, '');
+  if (clean.startsWith('a') || clean === '1') return 'A';
+  if (clean.startsWith('c') || clean === '3') return 'C';
+  if (clean.startsWith('b') || clean === '2') return 'B';
   return 'B';
 }
 
 function normalizeStatus(val: string): string {
   const v = normalize(val);
   const STATUS_MAP: [string[], string][] = [
-    [['identifie', 'identifié', 'nouveau', 'new', 'prospect', 'a contacter'], 'identifie'],
-    [['contacte', 'contacté', 'contacted', 'en attente', 'message envoye'], 'contacte'],
-    [['repondu', 'répondu', 'replied', 'reponse', 'réponse', 'interesse', 'intéressé'], 'repondu'],
-    [['demo', 'démo', 'demonstration', 'démonstration', 'rdv', 'rendez-vous'], 'demo'],
+    [['identifie', 'nouveau', 'new', 'prospect', 'a contacter'], 'identifie'],
+    [['contacte', 'contacted', 'en attente', 'message envoye'], 'contacte'],
+    [['repondu', 'replied', 'reponse', 'interesse'], 'repondu'],
+    [['demo', 'demonstration', 'rdv', 'rendez-vous'], 'demo'],
     [['sprint', 'essai', 'trial', 'test', 'en cours'], 'sprint'],
-    [['client', 'converti', 'converted', 'gagne', 'gagné', 'won', 'signe', 'signé'], 'client'],
-    [['perdu', 'lost', 'refuse', 'refusé', 'annule', 'annulé', 'churne', 'churné'], 'perdu'],
+    [['client', 'converti', 'converted', 'gagne', 'won', 'signe'], 'client'],
+    [['perdu', 'lost', 'refuse', 'annule', 'churne'], 'perdu'],
   ];
   for (const [keywords, status] of STATUS_MAP) {
     for (const kw of keywords) {
@@ -143,22 +158,23 @@ function normalizeStatus(val: string): string {
 function normalizeSource(val: string): string {
   const v = normalize(val);
   const SOURCE_MAP: [string[], string][] = [
-    [['dm instagram', 'dm insta', 'instagram dm', 'message instagram', 'msg instagram', 'msg insta'], 'dm_instagram'],
+    [['dm instagram', 'dm insta', 'instagram dm', 'message instagram', 'msg insta'], 'dm_instagram'],
     [['email', 'e-mail', 'mail', 'courriel'], 'email'],
-    [['telephone', 'téléphone', 'tel', 'tél', 'appel', 'phone', 'sms'], 'telephone'],
+    [['telephone', 'tel', 'appel', 'phone', 'sms'], 'telephone'],
     [['linkedin', 'linked in'], 'linkedin'],
-    [['terrain', 'porte a porte', 'porte-a-porte', 'visite', 'en personne', 'physique', 'sur place'], 'terrain'],
-    [['facebook', 'fb', 'meta', 'messenger'], 'facebook'],
-    [['tiktok', 'tik tok', 'tt'], 'tiktok'],
-    [['recommandation', 'recommande', 'recommandé', 'referral', 'bouche a oreille', 'parrainage', 'parrain'], 'recommandation'],
+    [['terrain', 'porte a porte', 'visite', 'en personne', 'physique', 'sur place'], 'terrain'],
+    [['facebook', 'fb', 'messenger'], 'facebook'],
+    [['tiktok', 'tik tok'], 'tiktok'],
+    [['recommandation', 'recommande', 'referral', 'bouche a oreille', 'parrainage'], 'recommandation'],
+    // Google Maps, site web, etc. → other
+    [['google', 'maps', 'site', 'web', 'internet', 'organique', 'seo'], 'other'],
   ];
   for (const [keywords, source] of SOURCE_MAP) {
     for (const kw of keywords) {
       if (v.includes(kw)) return source;
     }
   }
-  // If not recognized, keep as 'import'
-  return 'import';
+  return 'other';
 }
 
 // POST: Importer des prospects depuis Excel/CSV
@@ -221,7 +237,7 @@ export async function POST(req: NextRequest) {
 
     // Detect column mapping from headers
     const headers = rows[0] as string[];
-    const { mapping: columnMapping, unmapped } = detectColumnMapping(headers);
+    const { mapping: columnMapping, unmapped, hasPrenom } = detectColumnMapping(headers);
 
     const mappedFields = Object.values(columnMapping);
     const mappedHeaders: Record<string, string> = {};
@@ -234,9 +250,6 @@ export async function POST(req: NextRequest) {
         error: `Aucune colonne reconnue. En-têtes détectés : ${headers.filter(Boolean).join(', ')}`,
       }, { status: 400 });
     }
-
-    // Check if we have first_name/last_name separate or combined "nom"
-    const hasFirstName = mappedFields.includes('first_name');
 
     let imported = 0;
     let skipped = 0;
@@ -267,9 +280,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Handle combined "nom" field: if we have last_name but no first_name column,
-      // try to split "Jean Dupont" into first/last
-      if (record.last_name && !hasFirstName) {
+      // Handle combined "nom" for person names (when Prénom column exists)
+      if (record.last_name && !hasPrenom) {
+        // No prénom column → "Nom" was already routed to company
+        // (handled in detectColumnMapping)
+      } else if (record.last_name && hasPrenom && !record.first_name) {
+        // Has prénom column but it wasn't filled → try to split
         const parts = record.last_name.trim().split(/\s+/);
         if (parts.length >= 2) {
           record.first_name = parts[0];
@@ -277,8 +293,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Handle special mapped fields
-      // _site_web and _recommande_par go to extra notes
+      // Handle special mapped fields → add to extra notes
       if (record._site_web) {
         extraData.unshift(`Site web: ${record._site_web}`);
         delete record._site_web;
@@ -286,6 +301,14 @@ export async function POST(req: NextRequest) {
       if (record._recommande_par) {
         extraData.unshift(`Recommandé par: ${record._recommande_par}`);
         delete record._recommande_par;
+      }
+      if (record._adresse) {
+        extraData.unshift(`Adresse: ${record._adresse}`);
+        delete record._adresse;
+      }
+      if (record._motif_refus) {
+        extraData.unshift(`Motif refus: ${record._motif_refus}`);
+        delete record._motif_refus;
       }
 
       // Skip only truly empty rows
@@ -320,11 +343,11 @@ export async function POST(req: NextRequest) {
         type: record.type || null,
         quartier: record.quartier || null,
         instagram: record.instagram || null,
-        abonnes: record.abonnes ? Number(String(record.abonnes).replace(/[^\d]/g, '')) : null,
-        note_google: record.note_google ? Number(String(record.note_google).replace(',', '.')) : null,
-        avis_google: record.avis_google ? Number(String(record.avis_google).replace(/[^\d]/g, '')) : null,
+        abonnes: record.abonnes ? Number(String(record.abonnes).replace(/[^\d]/g, '')) || null : null,
+        note_google: record.note_google ? Number(String(record.note_google).replace(',', '.')) || null : null,
+        avis_google: record.avis_google ? Number(String(record.avis_google).replace(/[^\d]/g, '')) || null : null,
         priorite: normalizedPriority,
-        score: record.score ? Number(String(record.score).replace(/[^\d]/g, '')) : 0,
+        score: record.score ? Number(String(record.score).replace(/[^\d]/g, '')) || 0 : 0,
         freq_posts: record.freq_posts || null,
         qualite_visuelle: record.qualite_visuelle || null,
         date_contact: record.date_contact || null,
