@@ -1479,13 +1479,10 @@ export default function GeneratePage() {
         const userEmail = user?.email || generationLimit.email || null;
         const isUserFreemium = isFreemiumUser(hasProvidedEmail, hasCreatedAccount, hasPremiumPlan, userEmail);
 
-        // Préparer le texte overlay
-        const fallbackTitle = selectedNews?.title || businessType || 'Votre business';
+        // Préparer le texte overlay — seulement si le client a saisi un texte
         let textToApply = optionalText && optionalText.trim()
           ? optionalText.trim()
-          : fallbackTitle.length > 60
-            ? fallbackTitle.substring(0, 60) + '...'
-            : fallbackTitle;
+          : '';
 
         // Sauvegarder pour l'édition
         setOverlayText(textToApply);
@@ -3495,11 +3492,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
                       <option value="">{t.generate.chooseSuggestion}</option>
-                      <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">{t.generate.harmonious}</option>
-                      <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">{t.generate.focusSolution}</option>
-                      <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">{t.generate.visualMetaphor}</option>
-                      <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">{t.generate.depthComposition}</option>
-                      <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">{t.generate.narrativeEnvironment}</option>
+                      {useNewsMode ? (<>
+                        <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">{t.generate.harmonious}</option>
+                        <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">{t.generate.focusSolution}</option>
+                        <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">{t.generate.visualMetaphor}</option>
+                        <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">{t.generate.depthComposition}</option>
+                        <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">{t.generate.narrativeEnvironment}</option>
+                      </>) : (<>
+                        <option value="Gros plan sur un détail clé du métier : texture, outil, geste précis">{t.generate.freeAngleMacro}</option>
+                        <option value="Montrer les coulisses de l'activité, le travail en cours, l'énergie du métier">{t.generate.freeAngleBehindScenes}</option>
+                        <option value="Transformation spectaculaire : l'état avant et le résultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
+                        <option value="Capturer l'ambiance unique du lieu ou de l'activité, lumière et décor">{t.generate.freeAngleAmbiance}</option>
+                        <option value="Mettre en valeur le produit ou la création phare dans une composition soignée">{t.generate.freeAngleProduct}</option>
+                      </>)}
                       <option value="custom">✏️ {t.generate.customOption}</option>
                     </select>
                     <input
@@ -3527,11 +3532,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
                     >
                       <option value="">{t.generate.chooseSuggestion}</option>
-                      <option value="Profiter de l'opportunité créée par l'actualité">{t.generate.opportunityFromNews}</option>
-                      <option value="Résoudre le problème soulevé par l'actualité">{t.generate.solveProblem}</option>
-                      <option value="Se positionner en expert face à l'actualité">{t.generate.expertFacingNews}</option>
-                      <option value="Surfer sur la tendance de l'actualité">{t.generate.surfTrend}</option>
-                      <option value="Anticiper les conséquences de l'actualité">{t.generate.anticipateConsequences}</option>
+                      {useNewsMode ? (<>
+                        <option value="Profiter de l'opportunité créée par l'actualité">{t.generate.opportunityFromNews}</option>
+                        <option value="Résoudre le problème soulevé par l'actualité">{t.generate.solveProblem}</option>
+                        <option value="Se positionner en expert face à l'actualité">{t.generate.expertFacingNews}</option>
+                        <option value="Surfer sur la tendance de l'actualité">{t.generate.surfTrend}</option>
+                        <option value="Anticiper les conséquences de l'actualité">{t.generate.anticipateConsequences}</option>
+                      </>) : (<>
+                        <option value="Démontrer le savoir-faire unique et la maîtrise du métier">{t.generate.freeMarketingExpertise}</option>
+                        <option value="Toucher le public avec un moment authentique et sincère">{t.generate.freeMarketingEmotion}</option>
+                        <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
+                        <option value="Montrer l'expérience que vivent les clients, le résultat obtenu">{t.generate.freeMarketingClient}</option>
+                        <option value="Partager les valeurs, la passion ou le parcours derrière l'activité">{t.generate.freeMarketingStory}</option>
+                      </>)}
                       <option value="custom">✏️ {t.generate.customOption}</option>
                     </select>
                     <textarea
@@ -3617,7 +3630,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <textarea
                       value={storyToTell}
                       onChange={(e) => setStoryToTell(e.target.value)}
-                      placeholder={t.generate.storyPlaceholder}
+                      placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree}
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
@@ -3632,7 +3645,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       type="text"
                       value={publicationGoal}
                       onChange={(e) => setPublicationGoal(e.target.value)}
-                      placeholder={t.generate.goalPlaceholder}
+                      placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3646,7 +3659,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       type="text"
                       value={emotionToConvey}
                       onChange={(e) => setEmotionToConvey(e.target.value)}
-                      placeholder={t.generate.emotionPlaceholder}
+                      placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3746,13 +3759,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {/* Question 1 : Problème résolu */}
                   <div className="mb-2">
                     <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.problemSolved}
+                      {useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}
                     </label>
                     <input
                       type="text"
                       value={problemSolved}
                       onChange={(e) => setProblemSolved(e.target.value)}
-                      placeholder={t.generate.problemPlaceholder}
+                      placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -3779,7 +3792,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <textarea
                       value={desiredVisualIdea}
                       onChange={(e) => setDesiredVisualIdea(e.target.value)}
-                      placeholder={t.generate.visualIdeaPlaceholder}
+                      placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree}
                       rows={2}
                       className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                     />
