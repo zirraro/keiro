@@ -102,6 +102,32 @@ export default function AuthCallbackPage() {
             }
           }
 
+          // Vérifier s'il y a un code promo en attente (sauvé lors de l'inscription)
+          const pendingPromoCode = localStorage.getItem('pending_promo_code');
+          if (pendingPromoCode) {
+            console.log('[Auth Callback] Redeeming pending promo code:', pendingPromoCode);
+            try {
+              const promoRes = await fetch('/api/credits/redeem', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ code: pendingPromoCode }),
+              });
+              const promoData = await promoRes.json();
+              if (promoData.ok) {
+                console.log('[Auth Callback] Promo code redeemed:', pendingPromoCode, '→', promoData.credits, 'credits');
+                localStorage.removeItem('pending_promo_code');
+              } else {
+                console.error('[Auth Callback] Promo code error:', promoData.error);
+                localStorage.removeItem('pending_promo_code');
+              }
+            } catch (err) {
+              console.error('[Auth Callback] Failed to redeem promo code:', err);
+            }
+          }
+
           setStatus('success');
           setTimeout(() => { window.location.href = '/generate?welcome=true'; }, 1000);
           return;

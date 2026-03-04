@@ -107,22 +107,30 @@ function LoginPageInner() {
         return;
       }
 
-      // Activer code promo si fourni
-      if (promoCode.trim()) {
+      // Activer code promo si fourni — passer le token explicitement car le cookie peut ne pas être encore dispo
+      if (promoCode.trim() && data.session?.access_token) {
         try {
           const promoRes = await fetch('/api/credits/redeem', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${data.session.access_token}`,
+            },
             body: JSON.stringify({ code: promoCode.trim() }),
           });
           const promoData = await promoRes.json();
-          if (promoData.ok && promoData.expiresAt) {
+          if (promoData.ok) {
             setSuccess(true);
             setError(`+${promoData.credits} ${t.common.credits} ! ${t.login.promoApplied}`);
             setTimeout(() => { window.location.href = getRedirectUrl(); }, 2500);
             return;
+          } else {
+            console.error('[Login] Promo code error:', promoData.error);
+            setError(promoData.error || 'Erreur code promo');
           }
-        } catch {}
+        } catch (promoErr) {
+          console.error('[Login] Promo code fetch error:', promoErr);
+        }
       }
 
       setSuccess(true);
@@ -169,6 +177,11 @@ function LoginPageInner() {
     // Sauvegarder le stripe_session_id pour le récupérer après confirmation email
     if (stripeSessionId) {
       localStorage.setItem('pending_stripe_session', stripeSessionId);
+    }
+
+    // Sauvegarder le code promo pour le récupérer après confirmation email
+    if (promoCode.trim()) {
+      localStorage.setItem('pending_promo_code', promoCode.trim().toUpperCase());
     }
 
     const finalBusinessType = businessType === 'other' ? customBusinessType : businessType;
@@ -220,21 +233,27 @@ function LoginPageInner() {
 
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Activer code promo si fourni
+      // Activer code promo si fourni ET session existe (pas de confirmation email)
       let promoExpiresMessage = '';
-      if (promoCode.trim() && session) {
+      if (promoCode.trim() && session?.access_token) {
         try {
           const promoRes = await fetch('/api/credits/redeem', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
             body: JSON.stringify({ code: promoCode.trim() }),
           });
           const promoData = await promoRes.json();
-          if (promoData.ok && promoData.expiresAt) {
-            promoExpiresMessage = ` +${promoData.credits} crédits ajoutés — expirent dans 14 jours.`;
+          if (promoData.ok) {
+            promoExpiresMessage = ` +${promoData.credits} crédits ajoutés${promoData.expiresAt ? ' — expirent dans 14 jours' : ''}.`;
+            localStorage.removeItem('pending_promo_code'); // Déjà activé, pas besoin du callback
           }
-          console.log('[Signup] Promo code redeemed');
-        } catch {}
+          console.log('[Signup] Promo code redeemed:', promoData);
+        } catch (promoErr) {
+          console.error('[Signup] Promo code error:', promoErr);
+        }
       }
 
       if (session) {
