@@ -949,6 +949,7 @@ export const fr: Translations = {
     suggestText: 'Sugg\u00e9rer un texte',
     textPlaceholder: 'Ex: Offre limit\u00e9e, -20% ce week-end, Nouvelle collection...',
     suggestionsBasedOn: 'Suggestions bas\u00e9es sur votre actu + business :',
+    suggestionsBasedOnBusiness: 'Suggestions bas\u00e9es sur votre activit\u00e9 :',
     use: 'Utiliser',
     hideSuggestions: 'Masquer les suggestions',
     skipOptionalSteps: 'Passer les \u00e9tapes optionnelles',

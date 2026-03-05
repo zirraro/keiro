@@ -226,7 +226,7 @@ export default function AdminCRMPage() {
 
   // Import/Export
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; errors: string[]; debug?: { headersDetected: string[]; columnMapping: Record<string, string>; unmappedHeaders: string[] } } | null>(null);
+  const [importResult, setImportResult] = useState<{ created: number; updated: number; skipped: number; alreadyUpToDate?: number; mergedInFile?: number; errors: string[]; debug?: { headersDetected: string[]; columnMapping: Record<string, string>; unmappedHeaders: string[] } } | null>(null);
   const [matching, setMatching] = useState(false);
 
   // Sort (list view)
@@ -819,9 +819,11 @@ export default function AdminCRMPage() {
                 {importResult.created > 0 && <>{importResult.created} créé{importResult.created > 1 ? 's' : ''}</>}
                 {importResult.created > 0 && importResult.updated > 0 && ', '}
                 {importResult.updated > 0 && <>{importResult.updated} mis à jour</>}
-                {(importResult.created > 0 || importResult.updated > 0) && importResult.skipped > 0 && ', '}
-                {importResult.skipped > 0 && <>{importResult.skipped} ignoré{importResult.skipped > 1 ? 's' : ''}</>}
-                {importResult.created === 0 && importResult.updated === 0 && importResult.skipped === 0 && 'Aucun changement'}
+                {(importResult.created > 0 || importResult.updated > 0) && (importResult.alreadyUpToDate || 0) > 0 && ', '}
+                {(importResult.alreadyUpToDate || 0) > 0 && <>{importResult.alreadyUpToDate} déjà à jour</>}
+                {(importResult.mergedInFile || 0) > 0 && <>, {importResult.mergedInFile} fusionné{(importResult.mergedInFile || 0) > 1 ? 's' : ''} (doublons fichier)</>}
+                {importResult.skipped > 0 && <>, {importResult.skipped} ligne{importResult.skipped > 1 ? 's' : ''} vide{importResult.skipped > 1 ? 's' : ''}</>}
+                {importResult.created === 0 && importResult.updated === 0 && (importResult.alreadyUpToDate || 0) === 0 && importResult.skipped === 0 && 'Aucun changement'}
                 {importResult.errors.length > 0 && `, ${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
               </span>
               <button onClick={() => setImportResult(null)} className="text-neutral-400 hover:text-neutral-700 transition-colors text-lg leading-none">&times;</button>
@@ -893,7 +895,7 @@ export default function AdminCRMPage() {
 
         {/* ── Filter Row ──────────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
-          <div className="flex items-center gap-1.5 bg-white rounded-lg p-1">
+          <div className="flex items-center gap-1.5 bg-white rounded-lg p-1 overflow-x-auto max-w-full">
             {([
               { key: 'all' as const, label: 'Tous' },
               { key: 'A' as const, label: '🔥 Chaud' },
@@ -1078,7 +1080,7 @@ export default function AdminCRMPage() {
                           <div
                             key={p.id}
                             onClick={() => setSelected(isSelected ? null : p)}
-                            className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
+                            className={`px-4 py-3.5 sm:py-3 flex items-center gap-3 cursor-pointer transition-colors active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                           >
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-700 to-blue-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                               {prospectInitials(p)}
@@ -1422,18 +1424,24 @@ export default function AdminCRMPage() {
             )}
           </div>
 
-          {/* Right: Detail Panel */}
+          {/* Right: Detail Panel (desktop: side panel, mobile: full overlay) */}
           {selected && (
-            <DetailPanel
-              prospect={selected}
-              onClose={() => setSelected(null)}
-              onEdit={() => openEditModal(selected)}
-              onDelete={() => deleteProspect(selected.id)}
-              activities={activities}
-              loadingActivities={loadingActivities}
-              onAddActivity={addActivity}
-              onMarkReminder={markReminderDone}
-            />
+            <>
+              {/* Mobile overlay backdrop */}
+              <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setSelected(null)} />
+              <div className="lg:contents fixed inset-x-0 bottom-0 top-0 z-50 lg:static lg:z-auto">
+                <DetailPanel
+                  prospect={selected}
+                  onClose={() => setSelected(null)}
+                  onEdit={() => openEditModal(selected)}
+                  onDelete={() => deleteProspect(selected.id)}
+                  activities={activities}
+                  loadingActivities={loadingActivities}
+                  onAddActivity={addActivity}
+                  onMarkReminder={markReminderDone}
+                />
+              </div>
+            </>
           )}
         </div>
       </main>
@@ -1686,7 +1694,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
   const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.id === prospect.status);
 
   return (
-    <div className="w-full lg:w-[400px] flex-shrink-0 bg-white rounded-xl border border-neutral-200 shadow-sm self-start lg:sticky lg:top-20 overflow-y-auto max-h-[calc(100vh-96px)]">
+    <div className="w-full h-full lg:h-auto lg:w-[400px] flex-shrink-0 bg-white lg:rounded-xl border-0 lg:border border-neutral-200 shadow-sm self-start lg:sticky lg:top-20 overflow-y-auto max-h-full lg:max-h-[calc(100vh-96px)]">
       {/* Header */}
       <div className="p-4 border-b border-neutral-200">
         <div className="flex items-start justify-between">

@@ -40,6 +40,15 @@ const FIELD_RULES: { keywords: string[]; field: string }[] = [
   { keywords: ['site web', 'site internet', 'website', 'url'], field: '_site_web' },
   { keywords: ['recommande par', 'recommandé par', 'parrain', 'referral'], field: '_recommande_par' },
   { keywords: ['adresse'], field: '_adresse' },
+  // Colonnes terrain / visite
+  { keywords: ['date visite', 'date de visite'], field: '_date_visite' },
+  { keywords: ['resultat visite', 'résultat visite', 'resultat de visite', 'résultat de visite'], field: '_resultat_visite' },
+  { keywords: ['zone terrain', 'zone de terrain', 'zone prospection'], field: '_zone_terrain' },
+  { keywords: ['meilleur creneau', 'meilleur créneau', 'creneau visite', 'créneau visite', 'creneau', 'créneau'], field: '_creneau_visite' },
+  { keywords: ['whatsapp recupere', 'whatsapp récupéré', 'whatsapp', 'numero whatsapp', 'numéro whatsapp'], field: '_whatsapp' },
+  { keywords: ['sprint vendu', 'sprint'], field: '_sprint_vendu' },
+  { keywords: ['converti pro', 'converti fond', 'converti', 'conversion', 'converted'], field: '_converti' },
+  { keywords: ['sous-categorie', 'sous-catégorie', 'sous categorie', 'sous catégorie'], field: '_sous_categorie' },
 ];
 
 // Pipeline stage order (for preventing status regression)
@@ -372,6 +381,8 @@ export async function POST(req: NextRequest) {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let alreadyUpToDate = 0;
+    let mergedInFile = 0;
     const errors: string[] = [];
     const toInsert: Record<string, unknown>[] = [];
     const toUpdate: { id: string; updates: Record<string, unknown> }[] = [];
@@ -409,13 +420,79 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Special fields → extra notes
-      for (const key of ['_site_web', '_recommande_par', '_adresse', '_motif_refus']) {
+      // Special fields → extra notes or smart field mapping
+      const SPECIAL_LABELS: Record<string, string> = {
+        '_site_web': 'Site web', '_recommande_par': 'Recommandé par', '_adresse': 'Adresse',
+        '_motif_refus': 'Motif refus', '_zone_terrain': 'Zone terrain',
+        '_creneau_visite': 'Meilleur créneau visite', '_sous_categorie': 'Sous-catégorie',
+      };
+      for (const [key, label] of Object.entries(SPECIAL_LABELS)) {
         if (record[key]) {
-          const label = key === '_site_web' ? 'Site web' : key === '_recommande_par' ? 'Recommandé par' : key === '_adresse' ? 'Adresse' : 'Motif refus';
           extraData.unshift(`${label}: ${record[key]}`);
           delete record[key];
         }
+      }
+
+      // Date visite → date_contact (si pas déjà rempli)
+      if (record['_date_visite']) {
+        if (!record.date_contact) record.date_contact = record['_date_visite'];
+        else extraData.unshift(`Date visite: ${record['_date_visite']}`);
+        delete record['_date_visite'];
+      }
+
+      // Résultat visite → notes + smart status detection
+      if (record['_resultat_visite']) {
+        const rv = normalize(record['_resultat_visite']);
+        extraData.unshift(`Résultat visite: ${record['_resultat_visite']}`);
+        // Smart status: si le résultat indique un intérêt/vente
+        if (['interesse', 'a rappeler', 'rappeler', 'rdv', 'positif'].some(k => rv.includes(k))) {
+          if (!record.status || normalizeStatus(record.status) === 'identifie') {
+            record.status = 'repondu';
+          }
+        }
+        delete record['_resultat_visite'];
+      }
+
+      // WhatsApp → phone (si pas de phone) ou notes
+      if (record['_whatsapp']) {
+        const wa = record['_whatsapp'].trim();
+        if (wa && wa.toLowerCase() !== 'non' && wa !== '0' && wa !== '-') {
+          if (!record.phone) {
+            record.phone = wa;
+          } else {
+            extraData.unshift(`WhatsApp: ${wa}`);
+          }
+        }
+        delete record['_whatsapp'];
+      }
+
+      // Sprint vendu → matched_plan + status
+      if (record['_sprint_vendu']) {
+        const sv = normalize(record['_sprint_vendu']);
+        if (['oui', 'yes', '1', 'vrai', 'true', 'vendu', 'ok', 'fait'].some(k => sv.includes(k))) {
+          record.matched_plan = record.matched_plan || 'sprint';
+          if (!record.status || ['identifie', 'contacte', 'repondu', 'demo'].includes(normalizeStatus(record.status || ''))) {
+            record.status = 'sprint';
+          }
+        }
+        delete record['_sprint_vendu'];
+      }
+
+      // Converti Pro/Fond → matched_plan + status client
+      if (record['_converti']) {
+        const cv = normalize(record['_converti']);
+        if (['oui', 'yes', '1', 'vrai', 'true', 'converti', 'ok'].some(k => cv.includes(k))) {
+          // Détecter le plan depuis la valeur
+          if (cv.includes('fond') || cv.includes('fondateur')) {
+            record.matched_plan = 'fondateurs';
+          } else if (cv.includes('pro') || cv.includes('standard')) {
+            record.matched_plan = 'standard';
+          } else if (!record.matched_plan) {
+            record.matched_plan = 'client';
+          }
+          record.status = 'client';
+        }
+        delete record['_converti'];
       }
 
       // Skip empty rows
@@ -481,14 +558,14 @@ export async function POST(req: NextRequest) {
           if (existingId.startsWith('pending-')) {
             // Duplicate within same file — merge into the pending insert
             Object.assign(existing, updates);
-            skipped++;
+            mergedInFile++;
           } else {
             // Existing in DB — schedule an update
             toUpdate.push({ id: existingId, updates });
             Object.assign(existing, updates);
           }
         } else {
-          skipped++;
+          alreadyUpToDate++;
         }
       } else {
         const insertIdx = toInsert.length;
@@ -554,6 +631,8 @@ export async function POST(req: NextRequest) {
       created,
       updated,
       skipped,
+      alreadyUpToDate,
+      mergedInFile,
       errors,
       debug: {
         totalRows: rows.length - 1,

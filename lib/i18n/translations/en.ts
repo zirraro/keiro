@@ -928,6 +928,7 @@ export const en: Translations = {
     suggestText: 'Suggest text',
     textPlaceholder: 'E.g.: Limited offer, -20% this weekend, New collection...',
     suggestionsBasedOn: 'Suggestions based on your news + business:',
+    suggestionsBasedOnBusiness: 'Suggestions based on your business:',
     use: 'Use',
     hideSuggestions: 'Hide suggestions',
     skipOptionalSteps: 'Skip optional steps',

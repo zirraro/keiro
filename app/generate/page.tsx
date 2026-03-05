@@ -222,8 +222,8 @@ export default function GeneratePage() {
     return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
   }, []);
 
-  /* --- Trending news (3 plus tendance, enrichi par Google Trends + TikTok) --- */
-  const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; _score: number; _matchedTrends?: string[] }> = useMemo(() => {
+  /* --- Trending news (3 plus tendance, diversifié: 1 fun/viral, 1 politique, 1 sport) --- */
+  const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; category?: string; _score: number; _matchedTrends?: string[] }> = useMemo(() => {
     if (allNewsItems.length === 0) return [];
 
     const trendKeywords = trendingData?.keywords || [];
@@ -251,7 +251,39 @@ export default function GeneratePage() {
       };
     });
     scored.sort((a: any, b: any) => b._score - a._score);
-    return scored.slice(0, 3);
+
+    // Diversité: 1 fun/viral, 1 politique/international, 1 sport
+    const FUN_CATS = ['Lifestyle & People', 'Musique & Festivals', 'Cinéma & Séries', 'Food & Gastronomie', 'Nature & Animaux', 'Tech & Gaming'];
+    const POLITIQUE_CATS = ['Politique', 'International', 'Business & Finance'];
+    const SPORT_CATS = ['Sport', 'Moteurs & Adrénaline'];
+
+    const pickBest = (cats: string[]) => scored.find((item: any) =>
+      cats.some(c => (item.category || '').includes(c) || c.includes(item.category || ''))
+    );
+
+    const fun = pickBest(FUN_CATS);
+    const politique = pickBest(POLITIQUE_CATS);
+    const sport = pickBest(SPORT_CATS);
+
+    // Assembler les 3, fallback au top 3 si une catégorie manque
+    const diverse: typeof scored = [];
+    const usedIds = new Set<string>();
+    for (const pick of [fun, sport, politique]) {
+      if (pick && !usedIds.has(pick.id)) {
+        diverse.push(pick);
+        usedIds.add(pick.id);
+      }
+    }
+    // Compléter avec les meilleurs restants si < 3
+    for (const item of scored) {
+      if (diverse.length >= 3) break;
+      if (!usedIds.has(item.id)) {
+        diverse.push(item);
+        usedIds.add(item.id);
+      }
+    }
+
+    return diverse.slice(0, 3);
   }, [allNewsItems, trendingData]);
 
   /* --- États pour l'upload logo/photo --- */
@@ -3723,7 +3755,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {/* Suggestions intelligentes */}
                     {showTextSuggestions && textSuggestions.length > 0 && (
                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.suggestionsBasedOn}</p>
+                        <p className="text-xs font-semibold text-blue-900 mb-2">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
                         <div className="space-y-1.5">
                           {textSuggestions.map((suggestion, index) => (
                             <button
