@@ -905,8 +905,8 @@ function HomeKeiroInner() {
 
             <Plan
               title={`🚀 ${t.home.planSoloTitle}`}
-              price={billingPeriod === 'annual' ? `490€ ${t.common.perYear}` : `49€ ${t.common.perMonth}`}
-              priceNote={billingPeriod === 'annual' ? t.home.priceNoteSolo : undefined}
+              price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNoteSolo : '1er mois à 49€'}
               subtitle={t.home.planSoloSubtitle}
               bullets={t.home.planSoloBullets}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaSoloAnnual : t.home.ctaChooseSolo}

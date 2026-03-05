@@ -15,7 +15,7 @@ export function getStripe(): Stripe {
 // ====== LEGACY: Mapping montant → plan (fallback pour anciens payment links) ======
 export const AMOUNT_TO_PLAN: Record<number, string> = {
   499: 'sprint',       // 4,99€
-  4900: 'solo',        // 49€
+  8900: 'solo',        // 89€
   14900: 'fondateurs', // 149€
   19900: 'standard',   // 199€
   34900: 'business',   // 349€

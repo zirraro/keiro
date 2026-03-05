@@ -350,10 +350,15 @@ function PricingPageInner() {
                 <span>🚀</span> {t.pricing.planSoloTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '490€' : '49€'}</span>
+                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '890€' : '89€'}</span>
                 <span className="text-neutral-500">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 40,83€/mois</span>}
+                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 74€/mois</span>}
               </div>
+              {billingPeriod !== 'annual' && (
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold mt-1">
+                  🎉 1er mois à 49€
+                </div>
+              )}
               <p className="text-neutral-600 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planSoloSubtitle }} />
             </div>
             <ul className="space-y-3 mb-6 text-sm flex-1">
@@ -633,7 +638,7 @@ function PricingPageInner() {
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
                   <td className="text-center py-3 px-2 font-bold">0€</td>
-                  <td className="text-center py-3 px-2 font-bold">49€</td>
+                  <td className="text-center py-3 px-2 font-bold">89€<br/><span className="text-xs text-green-600 font-normal">1er mois 49€</span></td>
                   <td className="text-center py-3 px-2 bg-purple-50 font-bold text-purple-600">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>

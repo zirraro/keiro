@@ -33,8 +33,8 @@ export const PLAN_CREDITS: Record<string, number> = {
 export const PLAN_PRICES: Record<string, string> = {
   free: '0€',
   sprint: '4,99€',
-  solo: '49€',
-  solo_promo: '49€',
+  solo: '89€',
+  solo_promo: '89€',
   pro: '89€',
   fondateurs: '149€',
   standard: '199€',
