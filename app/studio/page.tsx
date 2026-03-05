@@ -362,7 +362,10 @@ function StudioContent() {
       });
 
       if (!res.ok) {
-        throw new Error(`${t.studio.errorPrefix}${res.status}`);
+        if (res.status === 504) throw new Error('Le serveur a mis trop de temps. Veuillez réessayer.');
+        let errMsg;
+        try { errMsg = (await res.json())?.error; } catch { errMsg = `${t.studio.errorPrefix}${res.status}`; }
+        throw new Error(errMsg || `${t.studio.errorPrefix}${res.status}`);
       }
 
       const data = await res.json();

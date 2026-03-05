@@ -2637,164 +2637,181 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-8">
-            {/* Banner mode sans actualité */}
-            {!useNewsMode && (
-              <div className="mb-4 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">🎨</div>
-                  <div>
-                    <h4 className="font-bold text-purple-900 text-sm mb-1">{t.generate.freeCreationMode}</h4>
-                    <p className="text-xs text-purple-700 mb-2">
-                      {t.generate.freeCreationDesc}
+            {/* Section actualités — grisée en mode "Sans actualité" */}
+            <div className="relative">
+              {/* Overlay mode sans actualité */}
+              {!useNewsMode && (
+                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-[2px] rounded-xl flex items-start justify-center pt-16">
+                  <div className="text-center max-w-sm px-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                    </div>
+                    <h4 className="font-bold text-neutral-900 text-sm mb-2">
+                      {locale === 'fr' ? 'Boostez votre visibilité' : 'Boost your visibility'}
+                    </h4>
+                    <p className="text-xs text-neutral-600 mb-4 leading-relaxed">
+                      {locale === 'fr'
+                        ? 'Activez le mode actualité pour surfer sur les tendances du moment. Les algorithmes favorisent les contenus liés à l\'actualité — profitez-en pour être mis en avant !'
+                        : 'Enable news mode to ride the latest trends. Algorithms favor content tied to current events — take advantage to get featured!'}
                     </p>
-                    <p className="text-[10px] text-purple-600">
-                      {t.generate.freeCreationHint}
-                    </p>
+                    <button
+                      onClick={() => setUseNewsMode(true)}
+                      className="px-5 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
+                    >
+                      {locale === 'fr' ? 'Activer le mode actualité' : 'Enable news mode'}
+                    </button>
                   </div>
                 </div>
+              )}
+
+              {/* Filtres : Catégorie + Recherche */}
+              <div className={`mb-3 flex gap-2 ${!useNewsMode ? 'opacity-30' : ''}`}>
+                {/* Dropdown Catégories */}
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+                  disabled={!useNewsMode}
+                >
+                  {availableCategories.map((cat) => {
+                    const categoryLabels: Record<string, string> = {
+                      'Les bonnes nouvelles': t.generate.catGoodNews,
+                      'Dernières news': t.generate.catLatestNews,
+                      'Tech & Gaming': t.generate.catTechGaming,
+                      'Business & Finance': t.generate.catBusinessFinance,
+                      'Santé & Bien-être': t.generate.catHealthWellness,
+                      'Sport': t.generate.catSport,
+                      'Cinéma & Séries': t.generate.catMoviesSeries,
+                      'Musique & Festivals': t.generate.catMusicFestivals,
+                      'Politique': t.generate.catPolitics,
+                      'Science & Environnement': t.generate.catScienceEnvironment,
+                      'Nature & Animaux': t.generate.catNatureAnimals,
+                      'International': t.generate.catInternational,
+                      'Moteurs & Adrénaline': t.generate.catMotorsAdrenaline,
+                      'Food & Gastronomie': t.generate.catFoodGastronomy,
+                      'Lifestyle & People': t.generate.catLifestylePeople,
+                    };
+                    return (
+                      <option key={cat} value={cat}>
+                        {categoryLabels[cat] || cat}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                {/* Barre de recherche */}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t.generate.searchPlaceholder}
+                  className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!useNewsMode}
+                />
               </div>
-            )}
-            {/* Filtres : Catégorie + Recherche */}
-            <div className="mb-3 flex gap-2">
-              {/* Dropdown Catégories */}
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
-              >
-                {availableCategories.map((cat) => {
-                  const categoryLabels: Record<string, string> = {
-                    'Les bonnes nouvelles': t.generate.catGoodNews,
-                    'Dernières news': t.generate.catLatestNews,
-                    'Tech & Gaming': t.generate.catTechGaming,
-                    'Business & Finance': t.generate.catBusinessFinance,
-                    'Santé & Bien-être': t.generate.catHealthWellness,
-                    'Sport': t.generate.catSport,
-                    'Cinéma & Séries': t.generate.catMoviesSeries,
-                    'Musique & Festivals': t.generate.catMusicFestivals,
-                    'Politique': t.generate.catPolitics,
-                    'Science & Environnement': t.generate.catScienceEnvironment,
-                    'Nature & Animaux': t.generate.catNatureAnimals,
-                    'International': t.generate.catInternational,
-                    'Moteurs & Adrénaline': t.generate.catMotorsAdrenaline,
-                    'Food & Gastronomie': t.generate.catFoodGastronomy,
-                    'Lifestyle & People': t.generate.catLifestylePeople,
-                  };
-                  return (
-                    <option key={cat} value={cat}>
-                      {categoryLabels[cat] || cat}
-                    </option>
-                  );
-                })}
-              </select>
 
-              {/* Barre de recherche */}
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder={t.generate.searchPlaceholder}
-                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Pays/Régions — pills horizontales scrollables */}
-            <div className="mb-4 -mx-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-1.5 px-1 pb-1">
-                {NEWS_REGIONS.map((r) => {
-                  const isActive = newsRegion === r.code;
-                  return (
-                    <button
-                      key={r.code}
-                      onClick={() => setNewsRegion(r.code)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      {locale === 'fr' ? r.nameFr : r.nameEn}
-                    </button>
-                  );
-                })}
+              {/* Pays/Régions — pills horizontales scrollables */}
+              <div className={`mb-4 -mx-1 overflow-x-auto scrollbar-hide ${!useNewsMode ? 'opacity-30' : ''}`}>
+                <div className="flex gap-1.5 px-1 pb-1">
+                  {NEWS_REGIONS.map((r) => {
+                    const isActive = newsRegion === r.code;
+                    return (
+                      <button
+                        key={r.code}
+                        onClick={() => useNewsMode && setNewsRegion(r.code)}
+                        className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-blue-500 text-white shadow-sm'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        }`}
+                        disabled={!useNewsMode}
+                      >
+                        {locale === 'fr' ? r.nameFr : r.nameEn}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Cartes d'actualités (3 colonnes) */}
-            <div>
-              {loading && (
-                <div className="text-center py-8 text-neutral-500">
-                  {t.generate.loadingNews}
-                </div>
-              )}
+              {/* Cartes d'actualités (3 colonnes) */}
+              <div className={!useNewsMode ? 'opacity-30' : ''}>
+                {loading && (
+                  <div className="text-center py-8 text-neutral-500">
+                    {t.generate.loadingNews}
+                  </div>
+                )}
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-                  {error}
-                </div>
-              )}
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                    {error}
+                  </div>
+                )}
 
-              {!loading && !error && filteredNews.length === 0 && (
-                <div className="text-center py-8 text-neutral-500">
-                  {t.generate.noNewsFound}
-                </div>
-              )}
+                {!loading && !error && filteredNews.length === 0 && (
+                  <div className="text-center py-8 text-neutral-500">
+                    {t.generate.noNewsFound}
+                  </div>
+                )}
 
-              {!loading && filteredNews.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredNews.map((item) => (
-                    <article
-                      key={item.id}
-                      onClick={() => {
-                        if (!useNewsMode && selectedNews?.id === item.id) {
-                          setSelectedNews(null);
-                        } else {
-                          setSelectedNews(item);
-                        }
-                      }}
-                      className={`rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-                        selectedNews?.id === item.id
-                          ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500'
-                          : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-blue-300'
-                      }`}
-                    >
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-44 object-cover rounded-t-xl"
-                        />
-                      )}
-                      <div className="p-3">
-                        <h3 className="font-semibold text-sm line-clamp-2 mb-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
-                          {item.description}
-                        </p>
+                {!loading && filteredNews.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filteredNews.map((item) => (
+                      <article
+                        key={item.id}
+                        onClick={() => {
+                          if (!useNewsMode) return;
+                          if (selectedNews?.id === item.id) {
+                            setSelectedNews(null);
+                          } else {
+                            setSelectedNews(item);
+                          }
+                        }}
+                        className={`rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                          selectedNews?.id === item.id
+                            ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500'
+                            : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-blue-300'
+                        }`}
+                      >
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-44 object-cover rounded-t-xl"
+                          />
+                        )}
+                        <div className="p-3">
+                          <h3 className="font-semibold text-sm line-clamp-2 mb-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
+                            {item.description}
+                          </p>
 
-                        {/* Footer avec source et badge sélectionné */}
-                        <div className="flex items-center justify-between mt-auto">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[10px] text-blue-600 hover:underline"
-                          >
-                            Source
-                          </a>
-                          {selectedNews?.id === item.id && (
-                            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
-                              {t.generate.selected}
-                            </span>
-                          )}
+                          {/* Footer avec source et badge sélectionné */}
+                          <div className="flex items-center justify-between mt-auto">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] text-blue-600 hover:underline"
+                            >
+                              Source
+                            </a>
+                            {selectedNews?.id === item.id && (
+                              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
+                                {t.generate.selected}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
@@ -5063,23 +5080,46 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             console.log('[Edit Studio] Image URL:', cleanImageForEdit?.substring(0, 100));
                             console.log('[Edit Studio] Prompt:', editPrompt);
 
-                            // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
+                            // Si l'image est un data URL (base64), compresser puis uploader
                             let imageForApi = cleanImageForEdit;
                             if (imageForApi.startsWith('data:')) {
-                              console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
+                              console.log('[Edit Studio] Compressing & uploading base64 image...');
                               try {
+                                // Compresser l'image avant upload (max 1536px, JPEG 85%)
+                                const compressed = await new Promise<string>((resolve, reject) => {
+                                  const img = new window.Image();
+                                  img.onload = () => {
+                                    const canvas = document.createElement('canvas');
+                                    let w = img.width, h = img.height;
+                                    const MAX = 1536;
+                                    if (w > MAX || h > MAX) {
+                                      const ratio = Math.min(MAX / w, MAX / h);
+                                      w = Math.round(w * ratio);
+                                      h = Math.round(h * ratio);
+                                    }
+                                    canvas.width = w;
+                                    canvas.height = h;
+                                    const ctx = canvas.getContext('2d');
+                                    if (!ctx) { reject(new Error('Canvas context')); return; }
+                                    ctx.drawImage(img, 0, 0, w, h);
+                                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                  };
+                                  img.onerror = () => reject(new Error('Image load failed'));
+                                  img.src = imageForApi;
+                                });
+                                imageForApi = compressed;
+                                console.log('[Edit Studio] Image compressed to JPEG');
+
                                 const sb = supabaseBrowser();
                                 const { data: { user: currentUser } } = await sb.auth.getUser();
                                 if (!currentUser) throw new Error(t.generate.errorNotAuthenticated);
-                                // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
                                 const base64Data = imageForApi.split(',')[1];
-                                const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
                                 const byteChars = atob(base64Data);
                                 const byteArray = new Uint8Array(byteChars.length);
                                 for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
-                                const blob = new Blob([byteArray], { type: mimeType });
-                                const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                                const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
+                                const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                                const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                                const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/jpeg', upsert: false });
                                 if (upErr) throw new Error(`${t.generate.errorUploadFailedPrefix} ${upErr.message}`);
                                 const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
                                 imageForApi = publicUrl;
@@ -5101,8 +5141,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               }),
                             });
 
-                            if (!res.ok && res.status === 413) {
-                              throw new Error(t.generate.errorImageTooLarge);
+                            if (!res.ok) {
+                              if (res.status === 413) throw new Error(t.generate.errorImageTooLarge);
+                              if (res.status === 504) throw new Error('Le serveur a mis trop de temps. Veuillez réessayer.');
+                              // Tenter de parser le JSON, sinon erreur générique
+                              let errText;
+                              try { errText = (await res.json())?.error; } catch { errText = `Erreur ${res.status}`; }
+                              throw new Error(errText || t.generate.errorEditFailed);
                             }
                             const data = await res.json();
                             console.log('[Edit Studio] Response:', data);
@@ -6096,23 +6141,46 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           console.log('[Edit Studio] Image URL:', cleanImageForEdit?.substring(0, 100));
                           console.log('[Edit Studio] Prompt:', editPrompt);
 
-                          // Si l'image est un data URL (base64), l'uploader sur Supabase Storage d'abord
+                          // Si l'image est un data URL (base64), compresser puis uploader
                           let imageForApi = cleanImageForEdit;
                           if (imageForApi.startsWith('data:')) {
-                            console.log('[Edit Studio] Uploading base64 image to Supabase Storage...');
+                            console.log('[Edit Studio] Compressing & uploading base64 image...');
                             try {
+                              // Compresser l'image avant upload (max 1536px, JPEG 85%)
+                              const compressed = await new Promise<string>((resolve, reject) => {
+                                const img = new window.Image();
+                                img.onload = () => {
+                                  const canvas = document.createElement('canvas');
+                                  let w = img.width, h = img.height;
+                                  const MAX = 1536;
+                                  if (w > MAX || h > MAX) {
+                                    const ratio = Math.min(MAX / w, MAX / h);
+                                    w = Math.round(w * ratio);
+                                    h = Math.round(h * ratio);
+                                  }
+                                  canvas.width = w;
+                                  canvas.height = h;
+                                  const ctx = canvas.getContext('2d');
+                                  if (!ctx) { reject(new Error('Canvas context')); return; }
+                                  ctx.drawImage(img, 0, 0, w, h);
+                                  resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                };
+                                img.onerror = () => reject(new Error('Image load failed'));
+                                img.src = imageForApi;
+                              });
+                              imageForApi = compressed;
+                              console.log('[Edit Studio] Image compressed to JPEG');
+
                               const sb = supabaseBrowser();
                               const { data: { user: currentUser } } = await sb.auth.getUser();
                               if (!currentUser) throw new Error(t.generate.errorNotAuthenticated);
-                              // Conversion base64 → Blob directe (plus fiable que fetch(dataURL))
                               const base64Data = imageForApi.split(',')[1];
-                              const mimeType = imageForApi.match(/data:([^;]+)/)?.[1] || 'image/png';
                               const byteChars = atob(base64Data);
                               const byteArray = new Uint8Array(byteChars.length);
                               for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
-                              const blob = new Blob([byteArray], { type: mimeType });
-                              const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
-                              const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: mimeType, upsert: false });
+                              const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                              const fname = `${currentUser.id}/edit_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                              const { error: upErr } = await sb.storage.from('generated-images').upload(fname, blob, { contentType: 'image/jpeg', upsert: false });
                               if (upErr) throw new Error(`${t.generate.errorUploadFailedPrefix} ${upErr.message}`);
                               const { data: { publicUrl } } = sb.storage.from('generated-images').getPublicUrl(fname);
                               imageForApi = publicUrl;
@@ -6134,8 +6202,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             }),
                           });
 
-                          if (!res.ok && res.status === 413) {
-                            throw new Error(t.generate.errorImageTooLarge);
+                          if (!res.ok) {
+                            if (res.status === 413) throw new Error(t.generate.errorImageTooLarge);
+                            if (res.status === 504) throw new Error('Le serveur a mis trop de temps. Veuillez réessayer.');
+                            let errText;
+                            try { errText = (await res.json())?.error; } catch { errText = `Erreur ${res.status}`; }
+                            throw new Error(errText || t.generate.errorEditFailed);
                           }
                           const data = await res.json();
                           console.log('[Edit Studio] Response:', data);

@@ -124,6 +124,10 @@ export async function POST(request: Request) {
 
       console.log(`[I2I] ${label} — model: ${body.model}, size: ${body.size}, image: ${img.substring(0, 50)}...`);
 
+      // Timeout 90s pour éviter le 504 Vercel
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000);
+
       const res = await fetch(SEEDREAM_API_URL, {
         method: 'POST',
         headers: {
@@ -131,7 +135,10 @@ export async function POST(request: Request) {
           'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
         },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       const data = await res.json();
       console.log(`[I2I] ${label} — status: ${res.status}`);

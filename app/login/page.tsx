@@ -98,6 +98,42 @@ function LoginPageInner() {
 
       if (error) throw error;
 
+      // S'assurer que le profil existe (peut manquer si supprimé manuellement)
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .single();
+
+        if (!profile) {
+          console.log('[Login] Profile missing, creating...');
+          await supabase.from('profiles').insert([{
+            id: data.user.id,
+            email: data.user.email || '',
+            first_name: data.user.user_metadata?.first_name || '',
+            last_name: data.user.user_metadata?.last_name || '',
+            business_type: data.user.user_metadata?.business_type || '',
+          }]);
+
+          // Réassocier les données orphelines
+          if (data.user.email) {
+            try {
+              await fetch('/api/auth/reassociate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: data.user.id,
+                  email: data.user.email,
+                }),
+              });
+            } catch (err) {
+              console.error('[Login] Reassociation error:', err);
+            }
+          }
+        }
+      }
+
       // Lier le paiement Stripe si session_id présent
       if (stripeSessionId) {
         setSuccess(true);

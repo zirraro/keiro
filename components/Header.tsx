@@ -68,13 +68,25 @@ export default function Header() {
           .eq('id', user.id)
           .single();
 
-        if (profileError) {
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profil n'existe pas — le créer automatiquement
+          console.log('[Header] Profile not found, creating...');
+          const { data: newProfile } = await supabase.from('profiles').insert([{
+            id: user.id,
+            email: user.email || '',
+            first_name: user.user_metadata?.first_name || '',
+            last_name: user.user_metadata?.last_name || '',
+            business_type: user.user_metadata?.business_type || '',
+          }]).select('*').single();
+          setProfile(newProfile as any);
+        } else if (profileError) {
           console.error('[Header] Error loading profile:', profileError);
+          // Fallback: afficher le dropdown avec les infos basiques
+          setProfile({ id: user.id, email: user.email } as any);
         } else {
           console.log('[Header] Profile loaded:', profileData);
+          setProfile(profileData as any);
         }
-
-        setProfile(profileData as any);
       } else {
         setProfile(null);
       }

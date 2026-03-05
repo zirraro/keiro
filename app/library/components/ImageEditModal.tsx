@@ -305,6 +305,13 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: prompt.trim(), imageUrl, guidance_scale: editStrength }),
         });
+        if (!res.ok) {
+          if (res.status === 504) { setError('Le serveur a mis trop de temps. Veuillez réessayer.'); break; }
+          let errMsg;
+          try { errMsg = (await res.json())?.error; } catch { errMsg = `Erreur ${res.status}`; }
+          setError(errMsg || t.library.iemErrorModification);
+          break;
+        }
         const data = await res.json();
         if (!data.ok) {
           setError(data.error || t.library.iemErrorModification);

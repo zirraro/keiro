@@ -83,6 +83,27 @@ export default function AuthCallbackPage() {
               last_name: session.user.user_metadata?.last_name || '',
               business_type: session.user.user_metadata?.business_type || '',
             }]);
+
+            // Réassocier les données orphelines (ancien compte supprimé avec le même email)
+            if (session.user.email) {
+              try {
+                console.log('[Auth Callback] Checking for orphaned data to reassociate...');
+                const reassocRes = await fetch('/api/auth/reassociate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: session.user.id,
+                    email: session.user.email,
+                  }),
+                });
+                const reassocData = await reassocRes.json();
+                if (reassocData.ok && reassocData.reassociated) {
+                  console.log('[Auth Callback] Data reassociated:', reassocData.reassociated);
+                }
+              } catch (err) {
+                console.error('[Auth Callback] Reassociation error:', err);
+              }
+            }
           }
 
           // Vérifier s'il y a un paiement Stripe en attente
