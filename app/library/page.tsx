@@ -2176,6 +2176,30 @@ function LibraryContent() {
           </div>
         )}
 
+        {/* Bannière CTA pour plan gratuit */}
+        {user && credits.plan === 'free' && (
+          <div className="mb-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-3">
+            <div className="flex-1 text-center sm:text-left">
+              <p className="text-sm font-bold text-neutral-900">{t.generate.freePlanLimited}</p>
+              <p className="text-xs text-neutral-600 mt-0.5">Images avec watermark, pas de vidéo ni TikTok. Passez Pro pour tout débloquer.</p>
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => startCheckout('pro')}
+                className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:shadow-lg transition-all"
+              >
+                Pro — 49€ le 1er mois
+              </button>
+              <button
+                onClick={() => startCheckout('fondateurs')}
+                className="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 transition-all"
+              >
+                Fondateurs — 149€
+              </button>
+            </div>
+          </div>
+        )}
+
         <div id="image-gallery">
           <TabNavigation
             activeTab={activeTab}
