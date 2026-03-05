@@ -436,7 +436,7 @@ export default function AdminCRMPage() {
       const res = await fetch('/api/admin/crm/recategorize', { method: 'POST' });
       if (!res.ok) throw new Error('Recategorize failed');
       const data = await res.json();
-      alert(`Recatégorisation terminée :\n- ${data.sourceFixed} source(s) corrigée(s)\n- ${data.statusFixed} statut(s) mis à jour\n- ${data.planFixed} plan(s) détecté(s)\n- ${data.updated}/${data.total} prospects modifiés`);
+      alert(`Recatégorisation terminée :\n- ${data.total} prospects analysés\n- ${data.sourceFixed} canal corrigé(s)\n- ${data.statusFixed} statut(s) avancé(s)\n- ${data.statusReset || 0} statut(s) réinitialisé(s) (faux contactés)\n- ${data.planFixed} plan(s) détecté(s)\n- ${data.updated} prospect(s) modifié(s)`);
       await loadProspects();
     } catch (e) {
       console.error('[CRM] Recategorize error:', e);

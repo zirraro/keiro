@@ -18,7 +18,21 @@ function normalize(str: string): string {
 
 /**
  * POST /api/admin/crm/recategorize
- * Batch-fix source and status for all prospects based on their notes content + data
+ *
+ * Logique CRM experte :
+ *
+ * SOURCE (canal d'acquisition) :
+ * - Notes contiennent "Résultat visite" / "Créneau visite" → terrain (une visite terrain a eu lieu ou est planifiée)
+ * - Sinon on ne devine PAS le canal, on laisse tel quel
+ *
+ * STATUS (avancement pipeline) — uniquement avec preuve explicite :
+ * - "Sprint vendu: Oui" → sprint + matched_plan
+ * - "Converti: Oui" → client + matched_plan
+ * - "Résultat visite" avec mots positifs EXPLICITES (intéressé, rdv pris, demo) → repondu
+ * - PAS de changement pour "Zone terrain" seul, "Date visite" seul, ou résultat neutre/négatif
+ *
+ * RESET : prospects incorrectement passés en "contacté" par la version précédente
+ * sont remis en "identifié" s'ils n'ont aucune preuve de contact réel
  */
 export async function POST(req: NextRequest) {
   try {
@@ -39,7 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
-    // Load ALL prospects (Supabase default limit = 1000, so paginate)
+    // Load ALL prospects (paginated)
     const prospects: any[] = [];
     const PAGE_SIZE = 1000;
     let from = 0;
@@ -61,49 +75,78 @@ export async function POST(req: NextRequest) {
 
     let sourceFixed = 0;
     let statusFixed = 0;
+    let statusReset = 0;
     let planFixed = 0;
     const updates: { id: string; data: Record<string, unknown> }[] = [];
 
-    for (const p of (prospects || [])) {
+    // Mots-clés positifs EXPLICITES pour Résultat visite (preuve de réponse/intérêt)
+    const POSITIVE_RESULTS = ['interesse', 'interessé', 'interessee', 'positif', 'rdv', 'rendez-vous', 'rappeler', 'a rappeler', 'demo', 'demonstration', 'ok partant', 'partant', 'veut essayer', 'enthousiaste', 'curieux', 'curieuse', 'motivé', 'motivee'];
+
+    // Mots-clés négatifs / neutres pour Résultat visite (PAS de changement de statut)
+    const NEGATIVE_NEUTRAL_RESULTS = ['non', 'absent', 'absente', 'ferme', 'fermé', 'fermee', 'refuse', 'refusé', 'refusee', 'pas interesse', 'pas intéressé', 'pas la', 'rien', 'porte fermee', 'pas ouvert', 'trop petit', 'deja client', 'deja equipe', 'ne repond pas', 'injoignable', 'pas de reponse', 'raccroche', 'occupe'];
+
+    for (const p of prospects) {
       const changes: Record<string, unknown> = {};
-      const notes = (p.notes || '').toLowerCase();
       const notesRaw = p.notes || '';
+      const notesLower = notesRaw.toLowerCase();
+      const notesNorm = normalize(notesRaw);
 
-      // ─── Fix source ───────────────────────────────────────────
+      // ═══════════════════════════════════════════════════════════
+      // 1. FIX SOURCE (canal d'acquisition)
+      // ═══════════════════════════════════════════════════════════
       if (!p.source || p.source === 'import' || p.source === 'other') {
-        // Detect from notes content
-        if (notes.includes('zone terrain') || notes.includes('date visite') || notes.includes('résultat visite') || notes.includes('resultat visite') || notes.includes('créneau visite') || notes.includes('creneau visite')) {
-          changes.source = 'terrain';
-        }
-        // Detect from data: has instagram + no other clue → dm_instagram
-        else if (p.instagram && !p.phone && !p.email) {
-          changes.source = 'dm_instagram';
-        }
-        // Has phone → telephone
-        else if (p.phone && !p.instagram && !p.email) {
-          changes.source = 'telephone';
-        }
-        // Has email → email
-        else if (p.email && !p.instagram && !p.phone) {
-          changes.source = 'email';
-        }
-        // Has instagram (even with other data) → default to dm_instagram
-        else if (p.instagram) {
-          changes.source = 'dm_instagram';
-        }
+        // Terrain : preuve d'activité terrain dans les notes
+        const hasTerrainActivity = notesLower.includes('résultat visite') || notesLower.includes('resultat visite') ||
+          notesLower.includes('créneau visite') || notesLower.includes('creneau visite') ||
+          notesLower.includes('meilleur créneau') || notesLower.includes('meilleur creneau');
 
-        if (changes.source) sourceFixed++;
+        // Zone terrain seule = le prospect VIENT d'un fichier terrain
+        const hasZoneTerrain = notesLower.includes('zone terrain');
+
+        if (hasTerrainActivity || hasZoneTerrain) {
+          changes.source = 'terrain';
+          sourceFixed++;
+        }
       }
 
-      // ─── Fix status from notes ────────────────────────────────
-      if (p.status === 'identifie') {
-        // Sprint vendu
+      // ═══════════════════════════════════════════════════════════
+      // 2. FIX STATUS (uniquement avec preuve explicite)
+      // ═══════════════════════════════════════════════════════════
+
+      // 2a. RESET : annuler les "contacté" incorrects de la version précédente
+      // Un prospect "contacté" sans preuve réelle → retour en "identifié"
+      if (p.status === 'contacte') {
+        const hasSprintVendu = notesNorm.includes('sprint vendu') && POSITIVE_RESULTS.some(k => {
+          const match = notesRaw.match(/Sprint vendu[:\s]*([^\n|]+)/i);
+          return match && ['oui', 'yes', '1', 'vendu', 'ok', 'fait'].some(v => normalize(match[1]).includes(v));
+        });
+        const hasConverti = notesNorm.includes('converti') && (() => {
+          const match = notesRaw.match(/Converti[^:\n]*[:\s]*([^\n|]+)/i);
+          return match && ['oui', 'yes', '1', 'converti', 'ok'].some(v => normalize(match[1]).includes(v));
+        })();
+        const hasPositiveVisite = (() => {
+          const match = notesRaw.match(/[Rr][eé]sultat visite[:\s]*([^\n|]+)/i);
+          if (!match) return false;
+          const val = normalize(match[1]);
+          return POSITIVE_RESULTS.some(k => val.includes(normalize(k)));
+        })();
+
+        // Si aucune preuve réelle de contact → reset en identifié
+        if (!hasSprintVendu && !hasConverti && !hasPositiveVisite) {
+          changes.status = 'identifie';
+          statusReset++;
+        }
+      }
+
+      // 2b. Avancer le statut uniquement avec preuve EXPLICITE
+      if (p.status === 'identifie' || changes.status === 'identifie') {
+        // Sprint vendu = Oui → status sprint
         const sprintMatch = notesRaw.match(/Sprint vendu[:\s]*([^\n|]+)/i);
         if (sprintMatch) {
           const val = normalize(sprintMatch[1]);
-          if (['oui', 'yes', '1', 'vrai', 'true', 'vendu', 'ok', 'fait'].some(k => val.includes(k))) {
+          if (['oui', 'yes', '1', 'vendu', 'ok', 'fait'].some(k => val.includes(k))) {
             changes.status = 'sprint';
-            if (!p.matched_plan) {
+            if (!p.matched_plan && !changes.matched_plan) {
               changes.matched_plan = 'sprint';
               planFixed++;
             }
@@ -111,13 +154,13 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Converti Pro/Fond
+        // Converti Pro/Fond = Oui → status client (priorité sur sprint)
         const convertiMatch = notesRaw.match(/Converti[^:\n]*[:\s]*([^\n|]+)/i);
         if (convertiMatch) {
           const val = normalize(convertiMatch[1]);
-          if (['oui', 'yes', '1', 'vrai', 'true', 'converti', 'ok'].some(k => val.includes(k))) {
+          if (['oui', 'yes', '1', 'converti', 'ok'].some(k => val.includes(k))) {
             changes.status = 'client';
-            if (!p.matched_plan) {
+            if (!p.matched_plan && !changes.matched_plan) {
               if (val.includes('fond') || val.includes('fondateur')) {
                 changes.matched_plan = 'fondateurs';
               } else if (val.includes('pro') || val.includes('standard')) {
@@ -131,35 +174,34 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Résultat visite positive → at least 'contacte'
-        if (!changes.status) {
-          const rvMatch = notesRaw.match(/[Rr][ée]sultat visite[:\s]*([^\n|]+)/);
+        // Résultat visite POSITIF UNIQUEMENT → repondu
+        if (!changes.status || changes.status === 'identifie') {
+          const rvMatch = notesRaw.match(/[Rr][eé]sultat visite[:\s]*([^\n|]+)/i);
           if (rvMatch) {
-            const val = normalize(rvMatch[1]);
-            if (['interesse', 'positif', 'rdv', 'rappeler', 'a rappeler', 'ok', 'demo'].some(k => val.includes(k))) {
+            const val = normalize(rvMatch[1]).trim();
+            // Seulement si le résultat est EXPLICITEMENT positif
+            const isPositive = POSITIVE_RESULTS.some(k => val.includes(normalize(k)));
+            const isNegative = NEGATIVE_NEUTRAL_RESULTS.some(k => val.includes(normalize(k)));
+
+            if (isPositive && !isNegative) {
               changes.status = 'repondu';
               statusFixed++;
-            } else if (val && !['non', 'absent', 'ferme', 'refuse', 'rien', '-', ''].includes(val.trim())) {
-              changes.status = 'contacte';
-              statusFixed++;
             }
+            // Résultat négatif/neutre → on ne change PAS le statut
           }
-        }
-
-        // Has Date visite but no résultat → at least 'contacte' (visite = contact)
-        if (!changes.status && (notes.includes('date visite') || notes.includes('zone terrain'))) {
-          changes.status = 'contacte';
-          statusFixed++;
         }
       }
 
+      // ═══════════════════════════════════════════════════════════
+      // 3. Appliquer les changements
+      // ═══════════════════════════════════════════════════════════
       if (Object.keys(changes).length > 0) {
         changes.updated_at = new Date().toISOString();
         updates.push({ id: p.id, data: changes });
       }
     }
 
-    // Batch update (50 at a time)
+    // Batch update (50 at a time, parallel)
     let errors = 0;
     const BATCH = 50;
     for (let i = 0; i < updates.length; i += BATCH) {
@@ -176,10 +218,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      total: (prospects || []).length,
+      total: prospects.length,
       updated: updates.length,
       sourceFixed,
       statusFixed,
+      statusReset,
       planFixed,
       errors,
     });
