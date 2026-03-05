@@ -207,47 +207,10 @@ function PricingPageInner() {
         </div>
         </FadeUp>
 
-        {/* Top Plans - Gratuit & Essai */}
-        <StaggerContainer className="grid md:grid-cols-2 gap-6 mb-10 max-w-4xl mx-auto">
-          {/* Plan Gratuit */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-            <div className="absolute -top-3 left-4">
-              <span className="bg-neutral-100 text-neutral-600 px-3 py-1 rounded-full text-xs font-medium">
-                {t.pricing.planFreeSubtitle}
-              </span>
-            </div>
-            <div className="mb-6 pt-2">
-              <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> {t.pricing.planFreeTitle}
-              </h3>
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold">0€</span>
-                <span className="text-neutral-500">/toujours</span>
-              </div>
-              <p className="text-neutral-600 text-sm">{t.pricing.planFreeSubtitle}</p>
-            </div>
-
-            <ul className="space-y-4 mb-8">
-              {t.pricing.planFreeBullets.map((bullet, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="/generate"
-              className="block w-full py-3 px-6 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:border-neutral-400 hover:bg-neutral-50 transition-all"
-            >
-              {t.pricing.planFreeCta}
-            </Link>
-          </div></StaggerItem>
-
-          {/* Sprint Fondateur 3 jours */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+        {/* Top Plan - Sprint Essai */}
+        <div className="max-w-lg mx-auto mb-10">
+          <FadeUp>
+          <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                 ⚡ {t.pricing.planSprintTitle}
@@ -281,8 +244,9 @@ function PricingPageInner() {
             >
               {t.pricing.planSprintCta}
             </button>
-          </div></StaggerItem>
-        </StaggerContainer>
+          </div>
+          </FadeUp>
+        </div>
 
         {/* TikTok Unlock Highlight */}
         <FadeUp>
@@ -342,55 +306,32 @@ function PricingPageInner() {
         <FadeUp><h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
-        <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {/* Solo 49€ */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 flex flex-col">
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🚀</span> {t.pricing.planSoloTitle}
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '890€' : '89€'}</span>
-                <span className="text-neutral-500">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-green-600 font-semibold">soit 74€/mois</span>}
-              </div>
-              {billingPeriod !== 'annual' && (
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold mt-1">
-                  🎉 1er mois à 49€
-                </div>
-              )}
-              <p className="text-neutral-600 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planSoloSubtitle }} />
-            </div>
-            <ul className="space-y-3 mb-6 text-sm flex-1">
-              {t.pricing.planSoloBullets.map((bullet, i) => (
-                <li key={i} className="flex gap-2"><span className="text-blue-500">✓</span> <span dangerouslySetInnerHTML={{ __html: bullet }} /></li>
-              ))}
-            </ul>
-            <div className="mt-auto space-y-2">
-              <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')} className="block w-full py-3 text-center rounded-xl border-2 border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-all">
-                {t.pricing.planSoloCta} {billingPeriod === 'annual' ? `(${t.common.annual.toLowerCase()})` : ''}
-              </button>
-              <p className="text-xs text-center text-neutral-500" dangerouslySetInnerHTML={{ __html: t.pricing.planSoloUpgrade }} />
-            </div>
-          </div></StaggerItem>
-
-          {/* Pro 89€ */}
+        <StaggerContainer className="grid md:grid-cols-3 gap-6 mb-16">
+          {/* Pro 89€ (1er mois à 49€) */}
           <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-purple-900 text-purple-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                {t.common.popular}
-              </span>
-            </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>💎</span> {t.pricing.planProTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '890€' : '89€'}</span>
-                <span className="text-purple-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>}
+                {billingPeriod === 'annual' ? (
+                  <>
+                    <span className="text-4xl font-bold">890€</span>
+                    <span className="text-purple-200">{t.common.perYear}</span>
+                    <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="line-through text-purple-300 text-2xl">89€</span>
+                    <span className="text-4xl font-bold">49€</span>
+                    <span className="text-purple-200">{t.common.perMonth}</span>
+                  </>
+                )}
               </div>
-              <p className="text-purple-200 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
+              {billingPeriod !== 'annual' && (
+                <p className="text-purple-200 text-xs font-medium">puis 89€/mois</p>
+              )}
+              <p className="text-purple-200 text-sm font-medium mt-1" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
@@ -411,11 +352,11 @@ function PricingPageInner() {
             <p className="text-xs text-center text-purple-200 mt-2" dangerouslySetInnerHTML={{ __html: t.pricing.planProUpgrade }} />
           </div></StaggerItem>
 
-          {/* Fondateurs Pro 149€ - HIGHLIGHT */}
+          {/* Fondateurs Pro 149€ - POPULAIRE */}
           <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                ⭐ {t.pricing.planFondateursBadge}
+                ⭐ Populaire
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -494,9 +435,14 @@ function PricingPageInner() {
               <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><span>🏆</span> {t.pricing.planEliteTitle} — 999€{t.common.perMonth}</h3>
               <p className="text-neutral-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
             </div>
-            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
-              {t.pricing.planEliteCta}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href="https://calendly.com/contact-keiroai/30min" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all whitespace-nowrap">
+                Contactez-nous
+              </a>
+              <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
+                {t.pricing.planEliteCta}
+              </button>
+            </div>
           </div>
         </div>
         </FadeUp>
@@ -538,108 +484,171 @@ function PricingPageInner() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-2">{t.pricing.comparisonHeaders[0]}</th>
-                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[1]}</th>
-                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[2]}</th>
-                  <th className="text-center py-3 px-2 bg-purple-50">{t.pricing.comparisonHeaders[3]}</th>
-                  <th className="text-center py-3 px-2 bg-amber-50">{t.pricing.comparisonHeaders[4]}</th>
-                  <th className="text-center py-3 px-2">{t.pricing.comparisonHeaders[5]}</th>
+                  <th className="text-left py-3 px-2">Fonctionnalité</th>
+                  <th className="text-center py-3 px-2">Sprint 4.99€</th>
+                  <th className="text-center py-3 px-2">Pro 89€</th>
+                  <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs 149€ ⭐</th>
+                  <th className="text-center py-3 px-2">Business 349€</th>
                 </tr>
               </thead>
               <tbody>
+                {/* Crédits */}
                 <tr className="border-b bg-blue-50/30">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[0]}</td>
-                  <td className="text-center py-3 px-2">15</td>
-                  <td className="text-center py-3 px-2"><strong>220</strong></td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong>400</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>660</strong></td>
-                  <td className="text-center py-3 px-2"><strong>1 750</strong></td>
+                  <td className="py-3 px-2 font-medium">Crédits</td>
+                  <td className="text-center py-3 px-2">110/3j</td>
+                  <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>700/mois</strong></td>
+                  <td className="text-center py-3 px-2"><strong>1750/mois</strong></td>
                 </tr>
+                {/* Posts/semaine */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[1]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">test</td>
-                  <td className="text-center py-3 px-2">~2/semaine</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong>~3/semaine</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>~4/semaine</strong></td>
-                  <td className="text-center py-3 px-2"><strong>quotidien</strong></td>
+                  <td className="py-3 px-2 font-medium">Posts/semaine</td>
+                  <td className="text-center py-3 px-2">~7/jour (3j)</td>
+                  <td className="text-center py-3 px-2">~3/sem</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>~5-6/sem</strong></td>
+                  <td className="text-center py-3 px-2"><strong>Quotidien</strong></td>
                 </tr>
+                {/* Images IA */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[2]}</td>
-                  <td className="text-center py-3 px-2">3 (watermark)</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓ sans watermark</td>
-                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="py-3 px-2 font-medium">Images IA</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Vidéos IA */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[4]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
-                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="py-3 px-2 font-medium">Vidéos IA</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Audio narration */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[5]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2">Post</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">Post + Story</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Post + Story</td>
-                  <td className="text-center py-3 px-2">Post + Story</td>
+                  <td className="py-3 px-2 font-medium">Audio narration</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Assistant IA */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[7]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
-                  <td className="text-center py-3 px-2 bg-purple-50 text-purple-600">✓</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
+                  <td className="py-3 px-2 font-medium">Assistant IA</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Instagram Posts */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Instagram Posts</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* Instagram Stories */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Instagram Stories</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* LinkedIn */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">LinkedIn</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* TikTok */}
                 <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">🎵 {t.pricing.comparisonRows[6]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-cyan-600">✓ {t.pricing.compUnlocked}</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-cyan-600">✓</td>
-                  <td className="text-center py-3 px-2 text-cyan-600">✓</td>
+                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
-                <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">🎙️ {t.pricing.comparisonRows[3]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50"><strong className="text-purple-600">✓ {t.pricing.compUnlocked}</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-amber-600">✓</td>
-                  <td className="text-center py-3 px-2 text-blue-600">✓</td>
-                </tr>
+                {/* Branding */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[8]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50">Instagram</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">{t.pricing.compMultiPlatform}</strong></td>
-                  <td className="text-center py-3 px-2">{t.pricing.compMultiPlatform}</td>
+                  <td className="py-3 px-2 font-medium">Branding (logo+couleurs)</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Multi-format */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.comparisonRows[9]}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2">{t.pricing.compBasic}</td>
-                  <td className="text-center py-3 px-2 bg-purple-50">{t.pricing.compPlanning}</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-amber-600">{t.pricing.compAutoSchedule}</strong></td>
-                  <td className="text-center py-3 px-2">{t.pricing.compCollaborative}</td>
+                  <td className="py-3 px-2 font-medium">Multi-format (3 en 1)</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                 </tr>
+                {/* Calendrier */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">{t.pricing.compMultiAccounts}</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-purple-50 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 text-neutral-400">—</td>
-                  <td className="text-center py-3 px-2"><strong>1+5 clients</strong></td>
+                  <td className="py-3 px-2 font-medium">Calendrier</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2">Manuel</td>
+                  <td className="text-center py-3 px-2 bg-amber-50">Manuel</td>
+                  <td className="text-center py-3 px-2"><strong>Collaboratif</strong></td>
                 </tr>
+                {/* Stats Instagram */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Stats Instagram</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* Stats multi-plateforme */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Stats multi-plateforme</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* Multi-comptes */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Multi-comptes</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><strong>1+5</strong></td>
+                </tr>
+                {/* Support */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Support</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2">Email 48h</td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Prioritaire 12h</strong></td>
+                  <td className="text-center py-3 px-2"><strong>Premium 4h</strong></td>
+                </tr>
+                {/* Appel onboarding */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Appel onboarding</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ Offert</strong></td>
+                  <td className="text-center py-3 px-2"><strong className="text-green-600">✓ Offert</strong></td>
+                </tr>
+                {/* Prix verrouillé */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">Prix verrouillé à vie</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ (50 places)</strong></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                </tr>
+                {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
-                  <td className="text-center py-3 px-2 font-bold">0€</td>
+                  <td className="text-center py-3 px-2 font-bold">4.99€/3j</td>
                   <td className="text-center py-3 px-2 font-bold">89€<br/><span className="text-xs text-green-600 font-normal">1er mois 49€</span></td>
-                  <td className="text-center py-3 px-2 bg-purple-50 font-bold text-purple-600">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>
                 </tr>

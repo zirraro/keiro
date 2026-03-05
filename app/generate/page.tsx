@@ -2882,10 +2882,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             </p>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => startCheckout('solo')}
+                                onClick={() => startCheckout('pro')}
                                 className="flex-1 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-100 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
                               >
-                                {t.generate.soloPrice}
+                                {t.generate.proPrice}
                               </button>
                               <button
                                 onClick={() => startCheckout('fondateurs')}

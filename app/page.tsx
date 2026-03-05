@@ -893,32 +893,13 @@ function HomeKeiroInner() {
             )}
           </div></FadeUp>
 
-          {/* Plans Grid — Ligne 1 : 4 plans principaux */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <Plan
-              title={`🎁 ${t.home.planFreeTitle}`}
-              price="0€"
-              subtitle={t.home.planFreeSubtitle}
-              bullets={t.home.planFreeBullets}
-              ctaLabel={t.home.planFreeCta}
-            />
-
-            <Plan
-              title={`🚀 ${t.home.planSoloTitle}`}
-              price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
-              priceNote={billingPeriod === 'annual' ? t.home.priceNoteSolo : '1er mois à 49€'}
-              subtitle={t.home.planSoloSubtitle}
-              bullets={t.home.planSoloBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaSoloAnnual : t.home.ctaChooseSolo}
-              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'solo_annual' : 'solo')}
-            />
-
+          {/* Plans Grid — Ligne 1 : 3 plans principaux */}
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
             <Plan
               title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
-              priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : '1er mois à 49€'}
               subtitle={t.home.planProSubtitle}
-              highlight
               bullets={t.home.planProBullets}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : t.home.ctaUnlockTikTok}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
@@ -935,10 +916,7 @@ function HomeKeiroInner() {
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaFondateursAnnual : t.home.ctaBecomeFondateur}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
-          </div>
 
-          {/* Ligne 2 : Business + Elite */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-8">
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
               price={billingPeriod === 'annual' ? `3 490€ ${t.common.perYear}` : `349€ ${t.common.perMonth}`}
@@ -948,8 +926,11 @@ function HomeKeiroInner() {
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
+          </div>
 
-            <div className="lg:col-span-2 rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
+          {/* Ligne 2 : Elite */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
               <div className="flex items-center gap-3 mb-3">
                 <h3 className="text-xl font-bold">🏆 {t.home.planEliteTitle}</h3>
                 <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
@@ -1172,7 +1153,7 @@ function QuizAndCalculator() {
     if (quizAnswers.budget === 'large' || quizAnswers.businessType === 'ecommerce') return 'Business';
     if (quizAnswers.budget === 'medium') return 'Fondateurs Pro';
     if (quizAnswers.budget === 'small') return 'Pro';
-    return 'Solo';
+    return 'Pro';
   };
 
   const resetQuiz = () => {
@@ -1325,12 +1306,6 @@ function QuizAndCalculator() {
             <ul className="space-y-3">
               {getRecommendedPlan() === 'Pro' && t.home.quizProBullets.map((b, i) => (
                 <li key={`pro-${i}`} className="flex items-start gap-2 text-sm">
-                  <span className="text-blue-500 text-lg">✓</span>
-                  <span dangerouslySetInnerHTML={{ __html: b }} />
-                </li>
-              ))}
-              {(getRecommendedPlan() === 'Solo' || getRecommendedPlan() === 'Pro' || getRecommendedPlan() === 'Fondateurs Pro') && t.home.quizSoloBullets.map((b, i) => (
-                <li key={`solo-${i}`} className="flex items-start gap-2 text-sm">
                   <span className="text-blue-500 text-lg">✓</span>
                   <span dangerouslySetInnerHTML={{ __html: b }} />
                 </li>

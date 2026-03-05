@@ -22,7 +22,7 @@ export const PLAN_CREDITS: Record<string, number> = {
   solo: 220,
   solo_promo: 220,
   pro: 400,
-  fondateurs: 660,
+  fondateurs: 700,
   standard: 880,
   business: 1750,
   elite: 5500,
@@ -81,7 +81,7 @@ export const FREE_FEATURES = [
 ] as const;
 
 // Packs crédits à l'achat (plus cher que l'abonnement pour pousser vers l'abo)
-// Référence : Fondateurs = 660cr/149€ = 0,23€/cr
+// Référence : Fondateurs = 700cr/149€ = 0,21€/cr
 export const CREDIT_PACKS = [
   { id: 'starter', name: 'Starter', credits: 50, price: 14.99, priceLabel: '14,99€', perCredit: '0,30€' },
   { id: 'pro', name: 'Pro', credits: 150, price: 39.99, priceLabel: '39,99€', perCredit: '0,27€' },
@@ -89,7 +89,7 @@ export const CREDIT_PACKS = [
 ] as const;
 
 // Crédits offerts code promo (= Fondateurs)
-export const PROMO_CODE_CREDITS = 660;
+export const PROMO_CODE_CREDITS = 700;
 
 // Crédits offerts à l'inscription
 export const SIGNUP_BONUS_CREDITS = 30;

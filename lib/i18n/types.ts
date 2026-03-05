@@ -243,9 +243,6 @@ export interface Translations {
     planFreeSubtitle: string;
     planFreeBullets: string[];
     planFreeCta: string;
-    planSoloTitle: string;
-    planSoloSubtitle: string;
-    planSoloBullets: string[];
     planProTitle: string;
     planProSubtitle: string;
     planProBullets: string[];
@@ -330,8 +327,6 @@ export interface Translations {
     afterHashtags: string;
     afterImageAlt: string;
     // Pricing CTAs
-    ctaSoloAnnual: string;
-    ctaChooseSolo: string;
     ctaProAnnual: string;
     ctaUnlockTikTok: string;
     ctaFondateursAnnual: string;
@@ -340,14 +335,12 @@ export interface Translations {
     ctaChooseBusiness: string;
     ctaEliteAnnual: string;
     ctaChooseElite: string;
-    priceNoteSolo: string;
     priceNotePro: string;
     priceNoteFondateurs: string;
     priceNoteBusiness: string;
     priceNoteElite: string;
     // Quiz result bullets
     quizProBullets: string[];
-    quizSoloBullets: string[];
     quizCommonBullet: string;
     // Calculator extra
     calcSavingsPercentLabel: string;
@@ -366,11 +359,6 @@ export interface Translations {
     planSprintSubtitle: string;
     planSprintBullets: string[];
     planSprintCta: string;
-    planSoloTitle: string;
-    planSoloSubtitle: string;
-    planSoloBullets: string[];
-    planSoloCta: string;
-    planSoloUpgrade: string;
     planProTitle: string;
     planProSubtitle: string;
     planProBullets: string[];
