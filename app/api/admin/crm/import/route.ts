@@ -374,11 +374,28 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // ─── Pre-load ALL existing prospects + profiles (2 queries total) ────
-    const { data: allProspects } = await supabase.from('crm_prospects').select('*').limit(10000);
-    const prospectIdx = buildProspectIndex(allProspects || []);
+    // ─── Pre-load ALL existing prospects + profiles (paginated, Supabase max 1000/page) ────
+    const allProspects: any[] = [];
+    let pgFrom = 0;
+    const PG_SIZE = 1000;
+    while (true) {
+      const { data: pg } = await supabase.from('crm_prospects').select('*').range(pgFrom, pgFrom + PG_SIZE - 1).order('created_at', { ascending: true });
+      if (!pg || pg.length === 0) break;
+      allProspects.push(...pg);
+      if (pg.length < PG_SIZE) break;
+      pgFrom += PG_SIZE;
+    }
+    const prospectIdx = buildProspectIndex(allProspects);
 
-    const { data: allProfiles } = await supabase.from('profiles').select('id, email, subscription_plan').limit(10000);
+    const allProfiles: any[] = [];
+    let pfFrom = 0;
+    while (true) {
+      const { data: pf } = await supabase.from('profiles').select('id, email, subscription_plan').range(pfFrom, pfFrom + PG_SIZE - 1);
+      if (!pf || pf.length === 0) break;
+      allProfiles.push(...pf);
+      if (pf.length < PG_SIZE) break;
+      pfFrom += PG_SIZE;
+    }
     const profilesByEmail = new Map<string, { id: string; subscription_plan: string }>();
     for (const p of allProfiles || []) {
       if (p.email) profilesByEmail.set(p.email.toLowerCase().trim(), p);

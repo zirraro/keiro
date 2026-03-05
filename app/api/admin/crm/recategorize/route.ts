@@ -39,14 +39,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
-    // Load all prospects
-    const { data: prospects, error: loadError } = await supabase
-      .from('crm_prospects')
-      .select('id, source, status, notes, instagram, phone, email, matched_plan')
-      .limit(10000);
+    // Load ALL prospects (Supabase default limit = 1000, so paginate)
+    const prospects: any[] = [];
+    const PAGE_SIZE = 1000;
+    let from = 0;
+    while (true) {
+      const { data: page, error: loadError } = await supabase
+        .from('crm_prospects')
+        .select('id, source, status, notes, instagram, phone, email, matched_plan')
+        .range(from, from + PAGE_SIZE - 1)
+        .order('created_at', { ascending: true });
 
-    if (loadError) {
-      return NextResponse.json({ error: loadError.message }, { status: 500 });
+      if (loadError) {
+        return NextResponse.json({ error: loadError.message }, { status: 500 });
+      }
+      if (!page || page.length === 0) break;
+      prospects.push(...page);
+      if (page.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
 
     let sourceFixed = 0;
