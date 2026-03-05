@@ -222,11 +222,31 @@ export default function GeneratePage() {
     return MARKETING_TIPS[dayOfYear % MARKETING_TIPS.length];
   }, []);
 
+  /* --- Hot topics curatés (sujets réels Google Trends + TikTok, mis à jour régulièrement) --- */
+  const HOT_BOOST_KEYWORDS = [
+    // Politique/International — sujets dominants
+    'iran', 'khamenei', 'frappe', 'missile', 'hezbollah', 'conflit', 'moyen-orient', 'moyen orient',
+    'municipales', 'élections municipales', 'elections municipales', 'premier tour', 'macron',
+    'dissuasion', 'nucléaire', 'nucleaire',
+    'taxe shein', 'taxe temu', 'taxe colis', 'petits colis',
+    // Sport — événements en cours
+    'six nations', '6 nations', 'grand chelem', 'xv de france', 'france rugby',
+    'formule 1', 'gp australie', 'norris', 'verstappen', 'hamilton ferrari',
+    'ligue des champions', 'champions league', 'huitièmes', 'huitiemes',
+    'indian wells', 'masters 1000',
+    'coupe du monde 2026',
+    // Fun/Viral — tendances TikTok + culture
+    'fashion week', 'défilé', 'defile', 'paris fashion',
+    'tiktok trend', 'mc courgette', 'ballerine', 'trend viral',
+    'shein', 'temu', 'aliexpress',
+  ];
+
   /* --- Trending news (3 plus tendance, diversifié: 1 fun/viral, 1 politique, 1 sport) --- */
   const trendingNews: Array<{ id: string; title: string; description: string; url: string; image?: string; source: string; date?: string; category?: string; _score: number; _matchedTrends?: string[] }> = useMemo(() => {
     if (allNewsItems.length === 0) return [];
 
     const trendKeywords = trendingData?.keywords || [];
+    const allBoostKeywords = [...new Set([...trendKeywords, ...HOT_BOOST_KEYWORDS])];
     const withImages = allNewsItems.filter((item: any) => item.image);
     const scored = withImages.map((item: any) => {
       const baseScore = computeSocialScore({
@@ -239,10 +259,10 @@ export default function GeneratePage() {
         publishedAt: item.date,
       });
 
-      // Bonus si l'article matche des tendances réelles Google/TikTok
+      // Bonus si l'article matche des tendances réelles Google/TikTok + hot topics curatés
       const text = (item.title + ' ' + item.description).toLowerCase();
-      const matched = trendKeywords.filter((kw: string) => text.includes(kw));
-      const trendBonus = Math.min(0.3, matched.length * 0.08);
+      const matched = allBoostKeywords.filter((kw: string) => text.includes(kw.toLowerCase()));
+      const trendBonus = Math.min(0.4, matched.length * 0.1);
 
       return {
         ...item,

@@ -207,8 +207,12 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'jeux video', 'gaming', 'streamer', 'twitch',
     'robot', 'drone', 'réalité virtuelle', 'realite virtuelle', 'réalité augmentée', 'realite augmentee', 'metaverse',
     'application', 'app', 'mise à jour', 'mise a jour', 'fonctionnalité', 'fonctionnalite',
+    // Ajouts: streaming gaming, quantique, puces, 5G/6G
+    'streaming jeu', 'stream gaming', 'twitch stream', 'quantique', 'quantum', '5g', '6g',
+    'semi-conducteur', 'puce', 'tsmc', 'intel', 'nvidia', 'amd', 'processeur',
+    'impression 3d', '3d printing', 'deepfake', 'prompt engineering',
     // English keywords
-    'artificial intelligence', 'machine learning', 'smartphone', 'cybersecurity', 'software', 'hardware', 'technology', 'computer', 'internet', 'digital', 'device', 'gadget', 'innovation', 'data breach', 'hacking', 'privacy', 'video game', 'console', 'virtual reality', 'augmented reality', 'wearable',
+    'artificial intelligence', 'machine learning', 'smartphone', 'cybersecurity', 'software', 'hardware', 'technology', 'computer', 'internet', 'digital', 'device', 'gadget', 'data breach', 'hacking', 'privacy', 'video game', 'console', 'virtual reality', 'augmented reality', 'wearable', 'chip manufacturing',
   ],
 
   'Business & Finance': [
@@ -217,8 +221,13 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
     'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna',
     'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'taux', 'banque centrale', 'bce',
+    // Ajouts: M&A, résultats, capital-risque, immobilier
+    'acquisition', 'fusion', 'rachat', 'résultats financiers', 'résultats trimestriels', 'chiffre d\'affaires',
+    'capital-risque', 'venture capital', 'private equity', 'fonds d\'investissement', 'valorisation',
+    'immobilier', 'logement', 'loyer', 'propriétaire', 'locataire', 'prix immobilier',
+    'pouvoir d\'achat', 'consommation', 'prix', 'coût de la vie', 'cout de la vie',
     // English keywords
-    'stock market', 'investment', 'economy', 'gdp', 'trade', 'market', 'business', 'finance', 'banking', 'economic', 'revenue', 'profit', 'shares', 'bonds', 'interest rate', 'central bank', 'recession', 'growth', 'unemployment', 'inflation rate', 'tax', 'corporate',
+    'stock market', 'investment', 'economy', 'gdp', 'trade', 'market cap', 'finance', 'banking', 'economic', 'revenue', 'profit', 'shares', 'bonds', 'interest rate', 'central bank', 'recession', 'growth', 'unemployment', 'inflation rate', 'tax', 'corporate', 'merger', 'earnings', 'venture capital',
   ],
 
   'Sport': [
@@ -227,15 +236,22 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'mbappé', 'mbappe', 'messi', 'ronaldo', 'haaland', 'neymar', 'griezmann', 'dembélé', 'dembele',
     'psg', 'om', 'ol', 'asse', 'real madrid', 'barcelone', 'manchester', 'liverpool', 'arsenal', 'juventus',
     'roland-garros', 'wimbledon', 'us open', 'open d\'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'sinner',
+    'indian wells', 'masters 1000', 'atp', 'wta',
     'nba', 'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'celtics',
-    'rugby', 'top 14', 'six nations', 'coupe du monde rugby', 'dupont',
+    'rugby', 'top 14', 'six nations', 'coupe du monde rugby', 'dupont', 'grand chelem rugby',
     'tour de france', 'cyclisme', 'pogacar', 'vingegaard',
     'jeux olympiques', 'jo 2024', 'jo 2028', 'paralympiques', 'athlétisme', 'natation',
     'handball', 'volley', 'basket', 'tennis', 'boxe', 'mma', 'ufc', 'judo', 'escrime',
     'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
     'fitness', 'musculation', 'running', 'marathon', 'sport santé',
+    // Ajouts: golf, equitation, sports d'hiver, challenge sportif
+    'golf', 'ryder cup', 'pga', 'masters augusta',
+    'ski', 'biathlon', 'patinage', 'hockey sur glace',
+    'équitation', 'equitation', 'hippisme', 'course hippique',
+    'badminton', 'ping-pong', 'tennis de table', 'triathlon', 'ironman',
+    'défi sportif', 'record du monde', 'champion du monde', 'championnat',
     // English keywords
-    'soccer', 'football match', 'basketball', 'championship', 'tournament', 'athlete', 'coach', 'league', 'goal', 'world cup', 'olympics', 'boxing', 'cricket', 'baseball', 'hockey', 'swimming', 'gold medal', 'trophy', 'playoff', 'final score',
+    'soccer', 'football match', 'basketball', 'championship', 'tournament', 'athlete', 'coach', 'league', 'goal', 'world cup', 'olympics', 'boxing', 'cricket', 'baseball', 'hockey', 'swimming', 'gold medal', 'trophy', 'playoff', 'final score', 'sports challenge', 'grand slam',
   ],
 
   'Cinéma & Séries': [
@@ -246,8 +262,9 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'cannes', 'festival de cannes', 'palme d\'or', 'berlinale', 'venise',
     'série', 'serie', 'saison', 'épisode', 'episode', 'bande-annonce', 'bande annonce', 'trailer',
     'sortie salle', 'avant-première', 'avant premiere', 'documentaire', 'animation',
+    'streaming netflix', 'streaming disney', 'streaming prime', 'plateforme streaming',
     // English keywords
-    'movie', 'tv show', 'television', 'streaming', 'director', 'box office', 'premiere', 'entertainment', 'screenplay', 'sequel', 'franchise', 'cinema release', 'award show', 'golden globe', 'emmy', 'bafta', 'sundance',
+    'movie', 'tv show', 'television', 'director', 'box office', 'premiere', 'entertainment', 'screenplay', 'sequel', 'franchise', 'cinema release', 'award show', 'golden globe', 'emmy', 'bafta', 'sundance',
   ],
 
   'Musique & Festivals': [
@@ -303,6 +320,11 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'élection', 'election', 'scrutin', 'vote', 'référendum', 'referendum', 'sondage politique',
     'réforme', 'reforme', 'retraites', 'immigration', 'sécurité', 'securite', 'justice',
     'mairie', 'région', 'region', 'département', 'departement', 'collectivité', 'collectivite',
+    // Ajouts: municipales, dissuasion, taxe, pouvoir d'achat politique
+    'municipales', 'élections municipales', 'elections municipales', 'premier tour', 'second tour',
+    'dissuasion', 'nucléaire français', 'nucleaire francais', 'politique étrangère', 'politique etrangere',
+    'carte grise', 'taxe', 'impôt', 'impot', 'cotisation', 'dette publique',
+    'manifestation', 'grève', 'greve', 'syndicat', 'cgt', 'cfdt',
     // English keywords
     'election', 'president', 'parliament', 'government', 'policy', 'political', 'minister', 'congress', 'senate', 'vote', 'democracy', 'campaign', 'legislation', 'law', 'prime minister', 'opposition', 'coalition',
   ],
@@ -334,6 +356,8 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'ukraine', 'gaza', 'palestine', 'israël', 'israel', 'taïwan', 'taiwan', 'corée du nord', 'coree du nord',
     'iran', 'syrie', 'liban', 'irak', 'afghanistan', 'soudan', 'éthiopie', 'ethiopie', 'congo',
     'joe biden', 'donald trump', 'xi jinping', 'vladimir poutine', 'zelensky', 'netanyahu', 'modi',
+    'khamenei', 'hezbollah', 'hamas', 'conflit', 'frappe', 'missile', 'drone militaire', 'opération militaire', 'operation militaire',
+    'cessez-le-feu', 'cessez le feu', 'négociations de paix', 'négociation', 'escalade',
     'otan', 'onu', 'ue', 'union européenne', 'union europeenne', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics',
     'diplomatie', 'ambassade', 'sanctions', 'embargo', 'traité', 'traite', 'accord international',
     'migrant', 'réfugié', 'refugie', 'frontière', 'frontiere', 'géopolitique', 'geopolitique',
@@ -355,10 +379,11 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'kim kardashian', 'brad pitt', 'angelina jolie', 'leonardo dicaprio', 'tom cruise', 'zendaya',
     'paparazzi', 'jet-set', 'people', 'célébrité', 'celebrite', 'tapis rouge',
     'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'createur de contenu',
-    'ugc', 'trend', 'challenge', 'viral',
+    'ugc', 'trend tiktok', 'challenge tiktok', 'challenge viral', 'vidéo virale',
     'décoration', 'decoration', 'déco', 'deco', 'intérieur', 'interieur', 'ikea', 'maison',
+    'mariage', 'fiançailles', 'fiancailles', 'couple célèbre', 'couple celebre',
     // English keywords
-    'fashion', 'celebrity', 'beauty', 'travel', 'vacation', 'luxury', 'influencer', 'trend', 'design', 'lifestyle', 'wedding', 'red carpet', 'paparazzi', 'royal family', 'reality show', 'social media star',
+    'fashion', 'celebrity', 'beauty', 'travel', 'vacation', 'luxury', 'influencer', 'lifestyle', 'wedding', 'red carpet', 'paparazzi', 'royal family', 'reality show', 'social media star',
   ],
 };
 
