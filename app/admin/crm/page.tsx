@@ -428,6 +428,24 @@ export default function AdminCRMPage() {
     }
   };
 
+  const [recategorizing, setRecategorizing] = useState(false);
+  const handleRecategorize = async () => {
+    if (!confirm('Recatégoriser automatiquement les sources et statuts de tous les prospects ?\n\nCette action analyse les notes et données pour :\n- Détecter le canal (terrain, DM Instagram, etc.)\n- Mettre à jour le statut (Sprint vendu → Sprint, Converti → Client)\n- Remonter les prospects contactés/visités dans le pipeline')) return;
+    setRecategorizing(true);
+    try {
+      const res = await fetch('/api/admin/crm/recategorize', { method: 'POST' });
+      if (!res.ok) throw new Error('Recategorize failed');
+      const data = await res.json();
+      alert(`Recatégorisation terminée :\n- ${data.sourceFixed} source(s) corrigée(s)\n- ${data.statusFixed} statut(s) mis à jour\n- ${data.planFixed} plan(s) détecté(s)\n- ${data.updated}/${data.total} prospects modifiés`);
+      await loadProspects();
+    } catch (e) {
+      console.error('[CRM] Recategorize error:', e);
+      alert('Erreur lors de la recatégorisation.');
+    } finally {
+      setRecategorizing(false);
+    }
+  };
+
   // ─── Activity API Calls ────────────────────────────────────────────────
 
   const loadReminders = async () => {
@@ -734,6 +752,13 @@ export default function AdminCRMPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleRecategorize}
+              disabled={recategorizing}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-purple-600 border border-purple-700 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+            >
+              {recategorizing ? '...' : '🔄 Recatégoriser'}
+            </button>
             <button
               onClick={handleMatch}
               disabled={matching}

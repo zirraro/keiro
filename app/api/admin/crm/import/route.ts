@@ -358,9 +358,15 @@ export async function POST(req: NextRequest) {
     const { mapping: columnMapping, unmapped, hasPrenom } = detectColumnMapping(headers);
 
     const mappedHeaders: Record<string, string> = {};
+    const mappedFields = new Set<string>();
     for (const [colIdx, field] of Object.entries(columnMapping)) {
       mappedHeaders[String(headers[parseInt(colIdx)])] = field;
+      mappedFields.add(field);
     }
+
+    // Auto-detect file type for source default
+    const isTerrainFile = mappedFields.has('_zone_terrain') || mappedFields.has('_date_visite') || mappedFields.has('_resultat_visite') || mappedFields.has('_creneau_visite');
+    const defaultSource = isTerrainFile ? 'terrain' : 'import';
 
     if (Object.keys(columnMapping).length === 0) {
       return NextResponse.json({
@@ -506,7 +512,7 @@ export async function POST(req: NextRequest) {
       // Normalize values
       const normalizedPriority = record.priorite ? normalizePriority(record.priorite) : 'B';
       const normalizedStatus = record.status ? normalizeStatus(record.status) : 'identifie';
-      const normalizedSource = record.source ? normalizeSource(record.source) : 'import';
+      const normalizedSource = record.source ? normalizeSource(record.source) : defaultSource;
 
       let notes = record.notes || '';
       if (extraData.length > 0) {
