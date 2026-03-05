@@ -893,15 +893,43 @@ function HomeKeiroInner() {
             )}
           </div></FadeUp>
 
-          {/* Plans Grid — Ligne 1 : 3 plans principaux */}
+          {/* Sprint — Essai 3 jours */}
+          <div className="max-w-lg mx-auto mb-8">
+            <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute -top-3 left-4">
+                <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                  ⚡ {t.home.sprintTitle || 'Sprint Fondateur'}
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <span>⚡</span> {t.home.sprintTrialTitle}
+                  </h3>
+                  <p className="text-sm text-neutral-600 mt-1">{t.home.sprintTrialDesc}</p>
+                  <p className="text-xs text-neutral-500 mt-1">{t.home.sprintTrialNote}</p>
+                </div>
+                <button
+                  onClick={() => startCheckout('sprint')}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105 whitespace-nowrap"
+                >
+                  {t.home.sprintTrialCta}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Plans Grid — 3 plans principaux */}
           <div className="grid md:grid-cols-3 gap-6 mb-6">
             <Plan
               title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
-              priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : '1er mois à 49€'}
+              priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
+              promoPrice={billingPeriod !== 'annual' ? '49€' : undefined}
+              promoNote={billingPeriod !== 'annual' ? 'puis 89€/mois' : undefined}
               subtitle={t.home.planProSubtitle}
               bullets={t.home.planProBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : t.home.ctaUnlockTikTok}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : 'Commencer à 49€'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
@@ -959,26 +987,6 @@ function HomeKeiroInner() {
             {t.home.pricingFoundersNote}
           </p>
 
-          {/* Trial Info */}
-          <div className="mt-10 text-center">
-            <div className="inline-block bg-blue-50 border-2 border-blue-200 rounded-xl p-6 max-w-2xl">
-              <p className="text-lg font-semibold text-blue-900 mb-2">
-                {t.home.sprintTrialTitle}
-              </p>
-              <p className="text-sm text-blue-700 mb-4">
-                {t.home.sprintTrialDesc}
-              </p>
-              <p className="text-xs text-blue-600 mb-4">
-                {t.home.sprintTrialNote}
-              </p>
-              <button
-                onClick={() => startCheckout('sprint')}
-                className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all hover:shadow-lg hover:scale-105"
-              >
-                {t.home.sprintTrialCta}
-              </button>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1429,11 +1437,13 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, priceNote, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
+  title, price, priceNote, promoPrice, promoNote, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
 }: {
   title: string;
   price: string;
   priceNote?: string;
+  promoPrice?: string;
+  promoNote?: string;
   subtitle?: string;
   bullets: string[];
   ctaLabel: string;
@@ -1453,7 +1463,20 @@ function Plan({
       highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''
     }`}>
       <h3 className="text-base font-semibold">{title}</h3>
-      <div className="text-xl font-bold mt-1">{price}</div>
+      {promoPrice ? (
+        <div className="mt-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-green-600">{promoPrice}</span>
+            <span className="text-lg text-neutral-400 line-through">{price}</span>
+          </div>
+          {promoNote && <p className="text-xs text-neutral-500 font-medium">{promoNote}</p>}
+          <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold mt-1">
+            1er mois à {promoPrice}
+          </div>
+        </div>
+      ) : (
+        <div className="text-xl font-bold mt-1">{price}</div>
+      )}
       {priceNote && <p className="text-xs text-green-600 font-semibold">{priceNote}</p>}
       {subtitle && <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>}
       <ul className="mt-4 space-y-2 text-sm text-neutral-700 flex-1">
