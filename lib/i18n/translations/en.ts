@@ -225,10 +225,10 @@ export const en: Translations = {
     pricingTitle: 'Plans & Pricing',
     pricingSubtitle: 'Choose the plan that fits your needs',
     pricingFoundersNote: '*Founders Pro: €149/month for the first 50 sign-ups, then €199/month',
-    sprintTrialTitle: 'Founder Sprint: 3 days → €4.99',
-    sprintTrialDesc: 'Full access (15 visuals, 3 videos) • No commitment • Cancel in 1 click',
-    sprintTrialNote: '€4.99 deducted if you continue (pay €144.01 instead of €149 the first month)',
-    sprintTrialCta: 'Start my €4.99 trial →',
+    sprintTrialTitle: 'Founder Sprint — €4.99 for 3 days',
+    sprintTrialDesc: '110 credits • Images + videos without watermark • No commitment',
+    sprintTrialNote: '€4.99 deducted from 1st month if you upgrade to Pro (pay €44.01 instead of €49)',
+    sprintTrialCta: 'Try 3 days → €4.99',
     planFreeTitle: 'Free',
     planFreeSubtitle: '15 credits — To discover',
     planFreeBullets: [
@@ -386,7 +386,7 @@ export const en: Translations = {
     planSprintBullets: [
       '110 credits (3 days)',
       'Full access without watermark',
-      '€4.99 deducted if you upgrade',
+      '€4.99 deducted from 1st Pro month (pay €44.01 instead of €49)',
     ],
     planSprintCta: 'Try 3 days → €4.99',
     planProTitle: 'Pro',

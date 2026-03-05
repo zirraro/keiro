@@ -223,10 +223,10 @@ export const fr: Translations = {
     pricingTitle: 'Offres & Tarifs',
     pricingSubtitle: 'Choisissez le plan qui correspond à vos besoins',
     pricingFoundersNote: '*Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois',
-    sprintTrialTitle: 'Sprint Fondateur : 3 jours → 4,99 €',
-    sprintTrialDesc: 'Accès complet (15 visuels, 3 vidéos) • Sans engagement • Annulation en 1 clic',
-    sprintTrialNote: '4,99 € déduits si tu continues (paye 144,01 € au lieu de 149 € le premier mois)',
-    sprintTrialCta: 'Démarrer mon essai 4,99 € →',
+    sprintTrialTitle: 'Sprint Fondateur — 4,99 € pour 3 jours',
+    sprintTrialDesc: '110 crédits • Images + vidéos sans watermark • Sans engagement',
+    sprintTrialNote: '4,99 € déduits du 1er mois si vous passez au plan Pro (payez 44,01 € au lieu de 49 €)',
+    sprintTrialCta: 'Essayer 3 jours → 4,99 €',
     planFreeTitle: 'Gratuit',
     planFreeSubtitle: '15 crédits — Pour découvrir',
     planFreeBullets: [
@@ -387,7 +387,7 @@ export const fr: Translations = {
     planSprintBullets: [
       '110 crédits (3 jours)',
       'Accès complet sans watermark',
-      '4.99€ déduits si passage au plan supérieur',
+      '4,99€ déduits du 1er mois Pro (payez 44,01€ au lieu de 49€)',
     ],
     planSprintCta: 'Essayer 3 jours → 4,99 €',
     planProTitle: 'Pro',

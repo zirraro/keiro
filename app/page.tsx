@@ -894,28 +894,19 @@ function HomeKeiroInner() {
           </div></FadeUp>
 
           {/* Sprint — Essai 3 jours */}
-          <div className="max-w-lg mx-auto mb-8">
-            <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute -top-3 left-4">
-                <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                  ⚡ {t.home.sprintTitle || 'Sprint Fondateur'}
-                </span>
+          <div className="max-w-2xl mx-auto mb-10">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-5 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-sm font-bold text-neutral-900">⚡ {t.home.sprintTrialTitle}</p>
+                <p className="text-xs text-neutral-600 mt-0.5">{t.home.sprintTrialDesc}</p>
+                <p className="text-[11px] text-blue-600 mt-0.5">{t.home.sprintTrialNote}</p>
               </div>
-              <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <span>⚡</span> {t.home.sprintTrialTitle}
-                  </h3>
-                  <p className="text-sm text-neutral-600 mt-1">{t.home.sprintTrialDesc}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{t.home.sprintTrialNote}</p>
-                </div>
-                <button
-                  onClick={() => startCheckout('sprint')}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105 whitespace-nowrap"
-                >
-                  {t.home.sprintTrialCta}
-                </button>
-              </div>
+              <button
+                onClick={() => startCheckout('sprint')}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-lg transition-all hover:scale-105 whitespace-nowrap flex-shrink-0"
+              >
+                {t.home.sprintTrialCta}
+              </button>
             </div>
           </div>
 
@@ -1464,15 +1455,12 @@ function Plan({
     }`}>
       <h3 className="text-base font-semibold">{title}</h3>
       {promoPrice ? (
-        <div className="mt-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-green-600">{promoPrice}</span>
-            <span className="text-lg text-neutral-400 line-through">{price}</span>
+        <div className="mt-2 mb-1">
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-black">{promoPrice}</span>
+            <span className="text-base text-neutral-400 line-through mb-0.5">{price}</span>
           </div>
-          {promoNote && <p className="text-xs text-neutral-500 font-medium">{promoNote}</p>}
-          <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold mt-1">
-            1er mois à {promoPrice}
-          </div>
+          <p className="text-xs text-neutral-500 mt-0.5">{promoNote}</p>
         </div>
       ) : (
         <div className="text-xl font-bold mt-1">{price}</div>
