@@ -387,6 +387,18 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   ],
 };
 
+// Score d'une catégorie spécifique pour un article
+function getCategoryScore(titleLower: string, descLower: string, category: string): number {
+  const keywords = CATEGORY_KEYWORDS[category];
+  if (!keywords) return 0;
+  let score = 0;
+  for (const kw of keywords) {
+    if (titleLower.includes(kw)) score += 3;
+    if (descLower.includes(kw)) score += 1;
+  }
+  return score;
+}
+
 // Catégoriser avec scoring pondéré (titre = 3x, description = 1x)
 function categorizeArticle(title: string, description: string): string {
   const titleLower = title.toLowerCase();
@@ -447,16 +459,28 @@ async function fetchFromRSS(feeds: typeof RSS_FEEDS = RSS_FEEDS): Promise<NewsAr
 
           if (!title || !url) continue;
 
-          // CATÉGORISATION : priorité au flux RSS, recatégorisation uniquement pour flux génériques
+          // CATÉGORISATION INTELLIGENTE : scoring par mots-clés sur TOUS les flux
           let detectedCategory = feed.category;
+          const titleLower = title.toLowerCase();
+          const descLower = description.toLowerCase();
 
-          // Pour "À la une" uniquement, utiliser la catégorisation auto pour disperser dans les catégories
-          if (feed.category === 'À la une') {
+          if (feed.category === 'À la une' || feed.category === 'Dernières news') {
+            // Flux génériques : toujours catégoriser par mots-clés
+            detectedCategory = categorizeArticle(title, description);
+          } else if (feed.category !== 'Les bonnes nouvelles') {
+            // Flux spécialisés : recatégoriser si les mots-clés indiquent fortement une autre catégorie
+            // Ex: article cuisine dans un flux Lifestyle → Food & Gastronomie
             const autoCategory = categorizeArticle(title, description);
-            detectedCategory = autoCategory;
+            if (autoCategory !== feed.category && autoCategory !== 'Dernières news') {
+              const feedScore = getCategoryScore(titleLower, descLower, feed.category);
+              const autoScore = getCategoryScore(titleLower, descLower, autoCategory);
+              // Override si le score auto est >= 3 ET (le feed score est 0 OU auto > 2x feed)
+              if (autoScore >= 3 && (feedScore === 0 || autoScore > feedScore * 2)) {
+                detectedCategory = autoCategory;
+              }
+            }
           }
-          // Pour les autres flux spécialisés, TOUJOURS garder leur catégorie
-          // (ex: un flux Tech & Gaming reste Tech & Gaming, un flux Sport reste Sport)
+          // "Les bonnes nouvelles" : toujours garder (catégorie éditoriale, pas thématique)
 
           articles.push({
             id: `rss-${feedIndex}-${articleCounter++}`,
