@@ -195,9 +195,10 @@ export async function POST(request: Request) {
 
     if (insertError || !job) {
       console.error('[video-long] Failed to create job in DB:', insertError);
+      // Return detailed error for debugging
       return Response.json({
         ok: false,
-        error: 'Erreur interne: impossible de créer le job',
+        error: `Erreur création job: ${insertError?.message || insertError?.code || 'Réponse vide'}. Vérifiez que la table video_generation_jobs existe.`,
       }, { status: 500 });
     }
 

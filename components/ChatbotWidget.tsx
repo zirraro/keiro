@@ -36,6 +36,7 @@ export default function ChatbotWidget() {
   const [utmSource, setUtmSource] = useState('');
   const [hasShownInitial, setHasShownInitial] = useState(false);
   const [pulseAnimation, setPulseAnimation] = useState(false);
+  const [pageEnteredAt, setPageEnteredAt] = useState(Date.now());
 
   // ─── Refs ──────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -63,10 +64,11 @@ export default function ChatbotWidget() {
     setUtmSource(source);
   }, []);
 
-  // ─── Track pages visited ───────────────────────────────
+  // ─── Track pages visited + reset page timer ─────────────
   useEffect(() => {
     if (pathname) {
       pagesVisitedRef.current.add(pathname);
+      setPageEnteredAt(Date.now());
     }
   }, [pathname]);
 
@@ -89,9 +91,12 @@ export default function ChatbotWidget() {
     const interval = setInterval(() => {
       if (hasInteracted || reengagementShownRef.current) return;
 
+      // Use time on CURRENT PAGE, not total site time
+      const timeOnCurrentPage = Math.floor((Date.now() - pageEnteredAt) / 1000);
+
       const msg = getReengagementMessage(
         pathname || '/',
-        timeOnSiteRef.current,
+        timeOnCurrentPage,
         hasInteracted
       );
 
@@ -108,11 +113,11 @@ export default function ChatbotWidget() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [pathname, hasInteracted, utmSource, shouldHide]);
+  }, [pathname, hasInteracted, utmSource, shouldHide, pageEnteredAt]);
 
   // ─── Pulse animation for pending re-engagement ────────
   useEffect(() => {
-    if (!hasInteracted && !reengagementShown && timeOnSite > 10 && !isOpen) {
+    if (!hasInteracted && !reengagementShown && timeOnSite > 30 && !isOpen) {
       setPulseAnimation(true);
     } else {
       setPulseAnimation(false);
@@ -130,7 +135,7 @@ export default function ChatbotWidget() {
       setMessages([
         {
           role: 'assistant',
-          content: "Salut ! \u{1F44B} Vous \u00EAtes commer\u00E7ant ? Je peux vous montrer ce que KeiroAI peut faire pour votre commerce en 30 secondes.",
+          content: "Salut ! \u{1F44B} Besoin de contenu pro pour vos r\u00E9seaux sociaux ? Je peux vous montrer ce que KeiroAI fait en 30 secondes.",
           timestamp: new Date().toISOString(),
         },
       ]);
