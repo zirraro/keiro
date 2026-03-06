@@ -6,6 +6,12 @@ import { getAuthUser } from '@/lib/auth-server';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { getVideoCreditCost } from '@/lib/credits/constants';
+import { writeFile, unlink, mkdir, readFile, chmod } from 'fs/promises';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
+import { execSync } from 'child_process';
 
 // SeedAnce API config (same as t2v/i2v routes)
 const SEEDANCE_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
@@ -118,15 +124,7 @@ export async function POST(request: Request) {
       console.log(`[video-long] Fallback: ${scenes.length} segments from calculateSegments`);
     }
 
-    // 6. Deduct credits upfront
-    let newBalance: number | undefined;
-    if (!isAdminUser) {
-      const creditResult = await deductCredits(user.id, 'video_t2v', `Vidéo ${duration}s (${scenes.length} segments)`, duration);
-      newBalance = creditResult.newBalance;
-      console.log(`[video-long] Credits deducted. newBalance=${newBalance}`);
-    }
-
-    // 7. Build segments array for the job
+    // 6. Build segments array for the job
     const jobSegments: JobSegment[] = scenes.map((scene) => ({
       index: scene.index,
       duration: scene.duration,
@@ -138,20 +136,18 @@ export async function POST(request: Request) {
       provider: null,
     }));
 
-    // 8. Start generating segment 0 (first segment)
+    // 7. Start generating segment 0 FIRST (before deducting credits)
     let firstTaskId: string;
     let firstProvider: 's' | 'k';
     const firstScene = scenes[0];
 
     try {
       if (imageUrl && typeof imageUrl === 'string') {
-        // First segment with an image → I2V
         console.log('[video-long] Starting segment 0 as I2V with provided image...');
         const result = await startSeedanceI2V(firstScene.prompt, firstScene.duration, imageUrl);
         firstTaskId = result.taskId;
         firstProvider = result.provider;
       } else {
-        // First segment without image → T2V
         console.log('[video-long] Starting segment 0 as T2V...');
         const result = await startSeedanceT2V(firstScene.prompt, firstScene.duration, aspectRatio);
         firstTaskId = result.taskId;
@@ -159,23 +155,19 @@ export async function POST(request: Request) {
       }
     } catch (startError: any) {
       console.error('[video-long] Failed to start segment 0:', startError.message);
-      // Create the job in failed state so credits can be tracked
-      const supabaseAdmin = getSupabaseAdmin();
-      await supabaseAdmin.from('video_generation_jobs').insert({
-        user_id: user.id,
-        status: 'failed',
-        total_segments: jobSegments.length,
-        completed_segments: 0,
-        segments: jobSegments,
-        prompt,
-        duration,
-        aspect_ratio: aspectRatio,
-        error: `Échec du démarrage: ${startError.message}`,
-      });
+      // NO credits deducted — segment never started, user is not charged
       return Response.json({
         ok: false,
-        error: 'Impossible de démarrer la génération vidéo',
+        error: 'Impossible de démarrer la génération vidéo. Aucun crédit déduit.',
       }, { status: 500 });
+    }
+
+    // 8. Deduct credits AFTER successful segment 0 start (user gets charged only if generation begins)
+    let newBalance: number | undefined;
+    if (!isAdminUser) {
+      const creditResult = await deductCredits(user.id, 'video_t2v', `Vidéo ${duration}s (${scenes.length} segments)`, duration);
+      newBalance = creditResult.newBalance;
+      console.log(`[video-long] Credits deducted after segment 0 start. newBalance=${newBalance}`);
     }
 
     // Update segment 0 with the task info
@@ -307,6 +299,9 @@ export async function GET(request: Request) {
       const currentSegment = segments[currentSegmentIndex];
       console.log(`[video-long] GET: polling segment ${currentSegmentIndex}/${segments.length}, taskId=${currentSegment.taskId}`);
 
+      // Race condition guard: capture updated_at to use as optimistic lock
+      const jobUpdatedAt = job.updated_at;
+
       if (!currentSegment.taskId) {
         console.error(`[video-long] GET: segment ${currentSegmentIndex} has no taskId`);
         await updateJobStatus(supabaseAdmin, jobId, 'failed', `Segment ${currentSegmentIndex} sans taskId`);
@@ -324,6 +319,35 @@ export async function GET(request: Request) {
         if (taskStatus.status === 'completed' && taskStatus.videoUrl) {
           // ─── Segment completed ───
           console.log(`[video-long] Segment ${currentSegmentIndex} completed: ${taskStatus.videoUrl}`);
+
+          // Race condition guard: optimistic lock via updated_at
+          // Only the first polling request to reach this point will win the update.
+          // If another request already changed updated_at, this update matches 0 rows.
+          const lockTimestamp = new Date().toISOString();
+          const { data: lockRows, error: lockError } = await supabaseAdmin
+            .from('video_generation_jobs')
+            .update({ updated_at: lockTimestamp })
+            .eq('id', jobId)
+            .eq('updated_at', jobUpdatedAt)
+            .select('id');
+
+          if (lockError || !lockRows || lockRows.length === 0) {
+            // Another polling request already advanced the pipeline — return current state
+            console.log(`[video-long] GET: race condition detected for job ${jobId}, returning stale-safe response`);
+            const { data: freshJob } = await supabaseAdmin
+              .from('video_generation_jobs')
+              .select('*')
+              .eq('id', jobId)
+              .single();
+            return Response.json({
+              ok: true,
+              status: freshJob?.status || 'generating',
+              completedSegments: freshJob?.completed_segments ?? job.completed_segments,
+              totalSegments: freshJob?.total_segments ?? job.total_segments,
+              segments: freshJob?.segments ?? segments,
+              finalVideoUrl: freshJob?.final_video_url || undefined,
+            });
+          }
 
           segments[currentSegmentIndex].status = 'completed';
           segments[currentSegmentIndex].videoUrl = taskStatus.videoUrl;
@@ -346,17 +370,8 @@ export async function GET(request: Request) {
 
               try {
                 console.log(`[video-long] Extracting last frame from segment ${currentSegmentIndex}...`);
-                const baseUrl = request.url.split('/api/')[0];
-                const extractRes = await fetch(`${baseUrl}/api/seedream/video-long/extract-frame`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ videoUrl: previousVideoUrl }),
-                });
-                const extractData = await extractRes.json();
-                if (extractData.ok && extractData.frameUrl) {
-                  lastFrameUrl = extractData.frameUrl;
-                  console.log(`[video-long] Last frame extracted: ${lastFrameUrl}`);
-                }
+                lastFrameUrl = await extractLastFrame(previousVideoUrl, job.user_id);
+                console.log(`[video-long] Last frame extracted: ${lastFrameUrl}`);
               } catch (extractError: any) {
                 console.warn(`[video-long] Frame extraction failed, falling back to T2V:`, extractError.message);
               }
@@ -448,7 +463,9 @@ export async function GET(request: Request) {
               });
             }
 
-            // Multiple segments — set status to 'merging' and trigger merge
+            // Multiple segments — merge directly (inline FFmpeg, no HTTP call)
+            console.log(`[video-long] All segments done. Merging ${allVideoUrls.length} segments inline...`);
+
             await supabaseAdmin
               .from('video_generation_jobs')
               .update({
@@ -459,44 +476,29 @@ export async function GET(request: Request) {
               })
               .eq('id', jobId);
 
-            // Trigger merge asynchronously (fire-and-forget, next poll will check status)
             try {
-              const baseUrl = request.url.split('/api/')[0];
-              fetch(`${baseUrl}/api/seedream/video-long/merge`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jobId, segmentUrls: allVideoUrls }),
-              }).then(async (mergeRes) => {
-                const mergeData = await mergeRes.json();
-                if (mergeData.ok && mergeData.mergedUrl) {
-                  console.log(`[video-long] Merge completed: ${mergeData.mergedUrl}`);
-                  // Job status updated by the merge route itself
-                } else {
-                  console.error(`[video-long] Merge failed:`, mergeData.error);
-                  await supabaseAdmin
-                    .from('video_generation_jobs')
-                    .update({
-                      status: 'failed',
-                      error: `Fusion échouée: ${mergeData.error}`,
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', jobId);
-                }
-              }).catch((mergeError) => {
-                console.error(`[video-long] Merge request failed:`, mergeError);
+              const mergedUrl = await mergeSegments(allVideoUrls as string[], job.user_id, jobId);
+              // mergeSegments already updates job to 'completed' in DB
+              return Response.json({
+                ok: true,
+                status: 'completed',
+                completedSegments: newCompletedCount,
+                totalSegments: segments.length,
+                segments,
+                finalVideoUrl: mergedUrl,
               });
             } catch (mergeError: any) {
-              console.error(`[video-long] Failed to trigger merge:`, mergeError.message);
+              console.error(`[video-long] Merge failed:`, mergeError.message);
+              // mergeSegments already updates job to 'failed' in DB
+              return Response.json({
+                ok: false,
+                status: 'failed',
+                error: `Fusion échouée: ${mergeError.message}`,
+                completedSegments: newCompletedCount,
+                totalSegments: segments.length,
+                segments,
+              });
             }
-
-            return Response.json({
-              ok: true,
-              status: 'merging',
-              completedSegments: newCompletedCount,
-              totalSegments: segments.length,
-              segments,
-              segmentUrls: allVideoUrls,
-            });
           }
         } else if (taskStatus.status === 'failed') {
           // ─── Current segment failed ───
@@ -902,4 +904,209 @@ async function updateJobStatus(
     .eq('id', jobId);
 
   console.log(`[video-long] Job ${jobId} status updated to: ${status}${error ? ` (${error})` : ''}`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FFmpeg helpers — inline to avoid HTTP auth issues with internal API calls
+// ══════════════════════════════════════════════════════════════════════════════
+
+const FFMPEG_PATH = join(tmpdir(), 'ffmpeg');
+
+async function ensureFFmpeg(): Promise<string> {
+  if (existsSync(FFMPEG_PATH)) return FFMPEG_PATH;
+
+  try {
+    const npmPath = require('ffmpeg-static') as string;
+    if (npmPath && existsSync(npmPath)) return npmPath;
+  } catch {}
+
+  const manualPaths = [
+    join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg'),
+    '/var/task/node_modules/ffmpeg-static/ffmpeg',
+  ];
+  for (const p of manualPaths) {
+    if (existsSync(p)) return p;
+  }
+
+  const urls = [
+    'https://github.com/shaka-project/static-ffmpeg-binaries/releases/latest/download/ffmpeg-linux-x64',
+    'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/linux-x64',
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      await writeFile(FFMPEG_PATH, buffer);
+      await chmod(FFMPEG_PATH, '755');
+      break;
+    } catch {}
+  }
+
+  if (!existsSync(FFMPEG_PATH)) throw new Error('Cannot download FFmpeg');
+
+  try {
+    execSync(`"${FFMPEG_PATH}" -version`, { timeout: 5000 });
+  } catch {
+    const gzPath = FFMPEG_PATH + '.gz';
+    const { renameSync } = require('fs');
+    renameSync(FFMPEG_PATH, gzPath);
+    execSync(`gunzip -f "${gzPath}"`);
+    await chmod(FFMPEG_PATH, '755');
+    execSync(`"${FFMPEG_PATH}" -version`, { timeout: 5000 });
+  }
+  return FFMPEG_PATH;
+}
+
+/**
+ * Extract last frame from a video as lossless PNG. Returns the Supabase public URL.
+ * Runs inline — no HTTP call, no auth needed.
+ */
+async function extractLastFrame(videoUrl: string, userId: string): Promise<string> {
+  const id = randomUUID().slice(0, 8);
+  const tmpDir = join(tmpdir(), `extract-frame-${id}`);
+
+  try {
+    await mkdir(tmpDir, { recursive: true });
+    const ffmpegBin = await ensureFFmpeg();
+
+    const videoPath = join(tmpDir, 'input.mp4');
+    const framePath = join(tmpDir, 'last_frame.png');
+
+    // Download video
+    const videoRes = await fetch(videoUrl);
+    if (!videoRes.ok) throw new Error(`Download failed: ${videoRes.status}`);
+    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    await writeFile(videoPath, videoBuffer);
+
+    // Extract last frame as lossless PNG
+    const cmd = `"${ffmpegBin}" -sseof -0.04 -i "${videoPath}" -frames:v 1 -y "${framePath}"`;
+    execSync(cmd, { timeout: 30000 });
+
+    if (!existsSync(framePath)) throw new Error('Frame extraction failed');
+
+    const frameBuffer = await readFile(framePath);
+    console.log(`[video-long] Frame extracted: ${(frameBuffer.byteLength / 1024).toFixed(0)} KB`);
+
+    // Upload to Supabase
+    const supabaseAdmin = getSupabaseAdmin();
+    const fileName = `video-frames/${userId}/${Date.now()}_lastframe.png`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('generated-images')
+      .upload(fileName, frameBuffer, { contentType: 'image/png', upsert: false });
+
+    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('generated-images')
+      .getPublicUrl(fileName);
+
+    // Cleanup
+    await unlink(videoPath).catch(() => {});
+    await unlink(framePath).catch(() => {});
+
+    return publicUrl;
+  } catch (error: any) {
+    // Cleanup on error
+    try {
+      if (existsSync(tmpDir)) {
+        const { readdirSync } = require('fs');
+        for (const f of readdirSync(tmpDir)) await unlink(join(tmpDir, f)).catch(() => {});
+      }
+    } catch {}
+    throw error;
+  }
+}
+
+/**
+ * Merge multiple video segments into one using FFmpeg.
+ * Re-encodes for seamless transitions. Returns the Supabase public URL.
+ * Runs inline — no HTTP call, no auth needed.
+ */
+async function mergeSegments(segmentUrls: string[], userId: string, jobId: string): Promise<string> {
+  const id = randomUUID().slice(0, 8);
+  const tmpDir = join(tmpdir(), `merge-segments-${id}`);
+  const supabaseAdmin = getSupabaseAdmin();
+
+  try {
+    await mkdir(tmpDir, { recursive: true });
+    const ffmpegBin = await ensureFFmpeg();
+
+    // Download all segments in parallel
+    console.log(`[video-long] Downloading ${segmentUrls.length} segments for merge...`);
+    const segmentPaths = await Promise.all(
+      segmentUrls.map(async (url, idx) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Download segment ${idx + 1} failed: ${res.status}`);
+        const buffer = Buffer.from(await res.arrayBuffer());
+        const segPath = join(tmpDir, `segment_${idx}.mp4`);
+        await writeFile(segPath, buffer);
+        return segPath;
+      })
+    );
+
+    // Create concat list
+    const concatListPath = join(tmpDir, 'concat_list.txt');
+    await writeFile(concatListPath, segmentPaths.map(p => `file '${p}'`).join('\n'));
+
+    const outputPath = join(tmpDir, 'merged.mp4');
+
+    // Re-encode for seamless transitions (CRF 18, 24fps, uniform codec)
+    console.log(`[video-long] Re-encoding ${segmentUrls.length} segments...`);
+    const mergeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 24 -c:a aac -b:a 192k -movflags +faststart -y "${outputPath}"`;
+    execSync(mergeCmd, { timeout: 300000 }); // 5 min for long videos
+
+    const mergedBuffer = await readFile(outputPath);
+    console.log(`[video-long] Merged: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
+
+    // Upload to Supabase
+    const fileName = `long-videos/${userId}/${Date.now()}.mp4`;
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('generated-images')
+      .upload(fileName, mergedBuffer, { contentType: 'video/mp4', upsert: false });
+
+    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('generated-images')
+      .getPublicUrl(fileName);
+
+    // Update job
+    await supabaseAdmin
+      .from('video_generation_jobs')
+      .update({
+        status: 'completed',
+        final_video_url: publicUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    console.log(`[video-long] Merge complete: ${publicUrl}`);
+
+    // Cleanup
+    for (const p of segmentPaths) await unlink(p).catch(() => {});
+    await unlink(concatListPath).catch(() => {});
+    await unlink(outputPath).catch(() => {});
+
+    return publicUrl;
+  } catch (error: any) {
+    // Mark job as failed
+    await supabaseAdmin
+      .from('video_generation_jobs')
+      .update({
+        status: 'failed',
+        error: `Fusion échouée: ${error.message}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    // Cleanup
+    try {
+      if (existsSync(tmpDir)) {
+        const { readdirSync } = require('fs');
+        for (const f of readdirSync(tmpDir)) await unlink(join(tmpDir, f)).catch(() => {});
+      }
+    } catch {}
+    throw error;
+  }
 }
