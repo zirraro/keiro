@@ -25,7 +25,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
       emoji: "💡",
       price: "29€",
       subtitle: "/7 jours",
-      description: "Déduit du 1er mois",
+      description: "Déduit de l'abonnement",
       features: ["Fonctionnalités Starter", "Visuels illimités", "Génération vidéo", "Bascule auto Starter"],
       highlight: false,
     },

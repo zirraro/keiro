@@ -916,11 +916,9 @@ function HomeKeiroInner() {
               title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
-              promoPrice={billingPeriod !== 'annual' ? '49€' : undefined}
-              promoNote={billingPeriod !== 'annual' ? 'puis 89€/mois' : undefined}
               subtitle={t.home.planProSubtitle}
               bullets={t.home.planProBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : 'Commencer à 49€'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : t.pricing.planProCta}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 

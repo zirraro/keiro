@@ -2188,7 +2188,7 @@ function LibraryContent() {
                 onClick={() => startCheckout('pro')}
                 className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:shadow-lg transition-all"
               >
-                Pro — 49€ le 1er mois
+                Pro — 89€/mois
               </button>
               <button
                 onClick={() => startCheckout('fondateurs')}

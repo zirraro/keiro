@@ -307,7 +307,7 @@ function PricingPageInner() {
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
         <StaggerContainer className="grid md:grid-cols-3 gap-6 mb-16">
-          {/* Pro 89€ (1er mois à 49€) */}
+          {/* Pro 89€ */}
           <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -322,15 +322,11 @@ function PricingPageInner() {
                   </>
                 ) : (
                   <>
-                    <span className="line-through text-purple-300 text-2xl">89€</span>
-                    <span className="text-4xl font-bold">49€</span>
+                    <span className="text-4xl font-bold">89€</span>
                     <span className="text-purple-200">{t.common.perMonth}</span>
                   </>
                 )}
               </div>
-              {billingPeriod !== 'annual' && (
-                <p className="text-purple-200 text-xs font-medium">puis 89€/mois</p>
-              )}
               <p className="text-purple-200 text-sm font-medium mt-1" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
             </div>
 
@@ -648,7 +644,7 @@ function PricingPageInner() {
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
                   <td className="text-center py-3 px-2 font-bold">4.99€/3j</td>
-                  <td className="text-center py-3 px-2 font-bold">89€<br/><span className="text-xs text-green-600 font-normal">1er mois 49€</span></td>
+                  <td className="text-center py-3 px-2 font-bold">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>
                 </tr>
