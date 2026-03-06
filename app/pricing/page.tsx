@@ -901,6 +901,204 @@ function PricingPageInner() {
         </div>
         </FadeUp>
 
+        {/* KeiroAI vs ChatGPT — Comparaison détaillée */}
+        <FadeUp>
+        <div className="mb-16">
+          <h3 className="text-2xl md:text-3xl font-bold text-center mb-8">
+            {"KeiroAI vs outils IA gratuits — comparaison détaillée"}
+          </h3>
+
+          {/* Banner highlight */}
+          <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl p-6 mb-8">
+            <p className="text-xl md:text-2xl font-bold mb-2">
+              {"La vidéo change tout. ChatGPT ne fait pas de vidéo."}
+            </p>
+            <p className="text-cyan-100 text-sm md:text-base">
+              {"Sur TikTok, une vidéo de 15-30 secondes peut toucher 100 000 personnes gratuitement. ChatGPT génère des images. Pas des vidéos. KeiroAI génère des vidéos avec narration audio, prêtes à publier. En 3 minutes."}
+            </p>
+          </div>
+
+          {/* Tableau comparatif détaillé */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-4 md:p-8">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead>
+                  <tr className="border-b-2 border-neutral-200">
+                    <th className="text-left py-3 px-3 font-semibold text-neutral-700">Fonctionnalité</th>
+                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Gratuit</th>
+                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Pro (20€)</th>
+                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Pro (89€)</th>
+                    <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Fondateurs (149€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* GÉNÉRATION DE VIDÉOS - highlighted */}
+                  <tr className="border-b bg-cyan-50 font-bold">
+                    <td className="py-4 px-3 text-base">{"GÉNÉRATION DE VIDÉOS"}</td>
+                    <td className="text-center py-4 px-3"><span className="text-red-500">{"❌"}</span> Impossible</td>
+                    <td className="text-center py-4 px-3"><span className="text-red-500">{"❌"}</span> Impossible</td>
+                    <td className="text-center py-4 px-3 bg-purple-50/50"><span className="text-green-600">{"✅"}</span> Vidéos 5s-90s</td>
+                    <td className="text-center py-4 px-3 bg-amber-50/50"><span className="text-green-600">{"✅"}</span> Vidéos 5s-90s</td>
+                  </tr>
+                  {/* TikTok */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"TikTok (format + publication)"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Format optimisé</td>
+                  </tr>
+                  {/* Vidéo + audio narration */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Vidéo + audio narration"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> (audio séparé)</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Intégré</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Intégré</td>
+                  </tr>
+                  {/* Images IA */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Images IA"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Prompt manuel</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Meilleure qualité</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Optimisé commerce</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Optimisé commerce</td>
+                  </tr>
+                  {/* Temps par post - green bold for KeiroAI */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Temps par post"}</td>
+                    <td className="text-center py-3 px-3">25-35 min</td>
+                    <td className="text-center py-3 px-3">20-30 min</td>
+                    <td className="text-center py-3 px-3"><strong className="text-green-600">3 min</strong></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">3 min</strong></td>
+                  </tr>
+                  {/* Compétence requise - green bold for KeiroAI */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Compétence requise"}</td>
+                    <td className="text-center py-3 px-3">Savoir écrire des prompts</td>
+                    <td className="text-center py-3 px-3">Savoir écrire des prompts</td>
+                    <td className="text-center py-3 px-3"><strong className="text-green-600">Aucune</strong></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">Aucune</strong></td>
+                  </tr>
+                  {/* Lié à l'actu du jour */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Lié à l'actu du jour"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Vous cherchez</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Vous cherchez</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Automatique</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Automatique</td>
+                  </tr>
+                  {/* Branding */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Branding (logo + couleurs)"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Re-décrire à chaque fois</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Re-décrire</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Mémorisé, auto</td>
+                  </tr>
+                  {/* Multi-format */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Multi-format (post+Story+Reel)"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> 1 par 1</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> 1 par 1</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> 1 clic = 3 formats</td>
+                  </tr>
+                  {/* Légendes Instagram */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Légendes Instagram"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Auto</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Auto</td>
+                  </tr>
+                  {/* Hashtags */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Hashtags"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Auto</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Auto</td>
+                  </tr>
+                  {/* Text-to-speech */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Text-to-speech"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Basique</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> + MP3</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Intégré vidéo</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Intégré vidéo</td>
+                  </tr>
+                  {/* Calendrier publication */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Calendrier publication"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                  </tr>
+                  {/* Stats Instagram */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Stats Instagram"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                  </tr>
+                  {/* Stats multi-plateforme */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Stats multi-plateforme"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                  </tr>
+                  {/* Recommandations IA */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Recommandations IA"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                  </tr>
+                  {/* Publication multi-plateforme */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Publication multi-plateforme"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> IG + LinkedIn</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> IG + TikTok + LinkedIn</td>
+                  </tr>
+                  {/* Galerie organisée */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Galerie organisée"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Historique chat</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Historique chat</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                  </tr>
+                  {/* Retouche visuelle */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Retouche visuelle"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Regénérer</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Regénérer</td>
+                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Lumière, ambiance</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Lumière, ambiance</td>
+                  </tr>
+                  {/* Support */}
+                  <tr>
+                    <td className="py-3 px-3 font-medium">{"Support"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3">Email 48h</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong>Prioritaire 12h</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </FadeUp>
+
         {/* FAQ Section */}
         <FadeUp>
         <div className="max-w-3xl mx-auto">

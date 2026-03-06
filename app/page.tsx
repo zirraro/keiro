@@ -926,6 +926,161 @@ function HomeKeiroInner() {
       </section>
       </FadeUp>
 
+      {/* CHATGPT vs KEIROAI COMPARISON */}
+      <FadeUp>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        {/* Section Title */}
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Les outils IA gratuits suffisent&nbsp;?
+          </h2>
+          <p className="text-lg text-neutral-600">
+            Parce que créer UN visuel et gérer votre présence en ligne, c&apos;est pas la même chose.
+          </p>
+        </div>
+
+        {/* Video killer feature banner */}
+        <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl p-4 mb-6">
+          <p className="font-bold text-lg mb-1">La vidéo change tout. ChatGPT ne fait pas de vidéo.</p>
+          <p className="text-sm text-white/90">
+            Sur TikTok, une vidéo peut toucher 100&nbsp;000 personnes gratuitement. ChatGPT génère des images, pas des vidéos. KeiroAI génère des vidéos avec narration audio, prêtes à publier. En 3 minutes.
+          </p>
+        </div>
+
+        {/* 3-column comparison */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
+          {/* Column 1: ChatGPT / Claude Gratuit */}
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
+            <p className="text-xl font-bold text-neutral-800 mb-1">ChatGPT / Claude Gratuit</p>
+            <p className="text-neutral-500 text-sm mb-4">0€</p>
+            <ul className="space-y-2 text-sm">
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Génère des images (1 par 1, prompt manuel)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Écrit des légendes (si vous le demandez)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Propose des hashtags (si vous le demandez)</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de génération de VIDÉOS</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de vidéo avec narration audio</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de lien avec l&apos;actualité du jour</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de branding mémorisé</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de multi-format</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de calendrier, stats, galerie</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de publication directe</span></li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-neutral-200">
+              <p className="text-sm font-semibold text-neutral-700">Temps par post : 25-35 min</p>
+              <p className="text-xs text-neutral-500 italic mt-2">
+                &quot;Le commerçant essaye 2-3 fois, se décourage, et arrête après 2 semaines.&quot;
+              </p>
+            </div>
+          </div>
+
+          {/* Column 2: ChatGPT / Claude Pro */}
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
+            <p className="text-xl font-bold text-neutral-800 mb-1">ChatGPT / Claude Pro</p>
+            <p className="text-neutral-500 text-sm mb-4">20€/mois</p>
+            <ul className="space-y-2 text-sm">
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Tout le gratuit, en mieux</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Images de meilleure qualité</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Audio MP3 téléchargeable</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">Toujours PAS de vidéos</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de vidéo + narration audio intégrée</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de lien auto avec l&apos;actualité</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de branding mémorisé</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de multi-format</span></li>
+              <li className="flex gap-2"><span className="text-red-500 flex-shrink-0">✗</span><span className="text-neutral-600">PAS de calendrier, stats, galerie</span></li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-neutral-200">
+              <p className="text-sm font-semibold text-neutral-700">Temps par post : 20-30 min</p>
+              <p className="text-xs text-neutral-500 italic mt-2">
+                &quot;Le commerçant tient 1 mois. Puis réalise qu&apos;il passe 3-4h par semaine à créer au lieu de gérer son commerce.&quot;
+              </p>
+            </div>
+          </div>
+
+          {/* Column 3: KeiroAI (highlighted) */}
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-400 p-6 shadow-lg">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xl font-bold text-blue-700">KeiroAI</p>
+              <span className="text-yellow-500">⭐</span>
+            </div>
+            <p className="text-blue-500 text-sm mb-4">à partir de 49€/mois</p>
+            <ul className="space-y-2 text-sm">
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Images IA optimisées pour les commerces</span></li>
+              <li className="flex gap-2 bg-green-100/50 rounded px-2 py-1"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>VIDÉOS IA</strong> (5s à 90s) — impossible avec ChatGPT</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Audio narration INTÉGRÉE</strong> dans la vidéo</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Lié à l&apos;<strong>actualité du jour</strong> automatiquement</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Branding mémorisé</strong> — logo + couleurs auto (Fondateurs)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Multi-format</strong> — 1 clic = post + Story + Reel (Fondateurs)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Légendes + hashtags générés automatiquement</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Calendrier de planification</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Statistiques Instagram + TikTok</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Assistant IA marketing</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Publication multi-plateforme</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Galerie organisée + export optimisé</span></li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <p className="text-sm font-semibold text-blue-700">Temps par post : <strong>3 minutes</strong></p>
+              <p className="text-xs text-blue-600 italic mt-2">
+                &quot;Le commerçant publie 3-5 fois par semaine pendant des mois. Parce que c&apos;est facile.&quot;
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* "La vraie question" callout box */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-8 mb-10">
+          <p className="text-lg md:text-xl font-medium leading-relaxed">
+            La vraie question n&apos;est pas «&nbsp;est-ce que c&apos;est possible avec ChatGPT&nbsp;?&nbsp;» — c&apos;est «&nbsp;est-ce que vous allez <strong>VRAIMENT</strong> le faire 3 fois par semaine pendant 6 mois&nbsp;?&nbsp;»
+          </p>
+          <p className="mt-4 text-lg md:text-xl font-medium leading-relaxed">
+            ChatGPT c&apos;est un couteau suisse. KeiroAI c&apos;est un chef privé.<br />
+            Le couteau suisse peut tout faire — si vous savez vous en servir.<br />
+            Le chef privé fait tout POUR vous — vous n&apos;avez qu&apos;à goûter.
+          </p>
+          <p className="mt-4 text-lg md:text-xl font-bold">
+            Votre temps vaut plus que 20€/mois. Passez-le avec vos clients, pas devant ChatGPT.
+          </p>
+        </div>
+
+        {/* "Le test de la réalité" — 3 humorous cards */}
+        <div className="mb-10">
+          <h3 className="text-2xl font-bold text-center mb-6">Le test de la réalité</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            {/* Card 1: Semaine 1 avec ChatGPT */}
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <p className="font-bold text-neutral-800 mb-3">Semaine 1 avec ChatGPT</p>
+              <p className="text-sm text-neutral-600 mb-2">Lundi : «&nbsp;C&apos;est génial, j&apos;ai créé un visuel&nbsp;!&nbsp;» (45 min)</p>
+              <p className="text-sm text-neutral-600 mb-2">Mercredi : «&nbsp;Le prompt marchait plus, j&apos;ai dû tout refaire&nbsp;» (30 min)</p>
+              <p className="text-sm text-neutral-600 mb-2">Vendredi : «&nbsp;J&apos;ai pas eu le temps, je ferai ce weekend&nbsp;»</p>
+              <p className="text-sm text-neutral-600">Weekend : Netflix.</p>
+            </div>
+
+            {/* Card 2: Semaine 2 avec ChatGPT */}
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <p className="font-bold text-neutral-800 mb-3">Semaine 2 avec ChatGPT</p>
+              <p className="text-sm text-neutral-600 mb-2">Lundi : «&nbsp;Faut que je m&apos;y remette...&nbsp;»</p>
+              <p className="text-sm text-neutral-600 mb-2">Mardi : «&nbsp;...&nbsp;»</p>
+              <p className="text-sm text-neutral-600">Dimanche : «&nbsp;Le mois prochain.&nbsp;»</p>
+            </div>
+
+            {/* Card 3: Semaine 1 avec KeiroAI */}
+            <div className="bg-green-50 border border-green-200 rounded-xl p-5 shadow-sm">
+              <p className="font-bold text-neutral-800 mb-3">Semaine 1 avec KeiroAI</p>
+              <p className="text-sm text-neutral-700 mb-2">Lundi : 3 min → posté ✓</p>
+              <p className="text-sm text-neutral-700 mb-2">Mercredi : 3 min → posté ✓</p>
+              <p className="text-sm text-neutral-700 mb-2">Vendredi : 3 min → posté ✓</p>
+              <p className="text-sm text-neutral-700 mb-2">Samedi : «&nbsp;Tiens, 12 likes et 3 nouveaux abonnés.&nbsp;»</p>
+              <p className="text-sm text-neutral-700">Dimanche : «&nbsp;Je continue.&nbsp;»</p>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+      </FadeUp>
+
       {/* PRICING */}
       <section className="border-y bg-neutral-50/60">
         <div className="mx-auto max-w-7xl px-6 py-16">

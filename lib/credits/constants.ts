@@ -9,6 +9,11 @@ export const CREDIT_COSTS = {
   image_i2i: 3,
   video_5s: 25,
   video_10s: 40,
+  video_15s: 35,
+  video_30s: 50,
+  video_45s: 70,
+  video_60s: 85,
+  video_90s: 120,
   audio_tts: 1,
   text_suggest: 1,
   narration_suggest: 1,
@@ -61,6 +66,13 @@ export const FEATURE_LABELS: Record<string, string> = {
   image_i2i: 'Image (modification)',
   video_t2v: 'Vidéo (texte)',
   video_i2v: 'Vidéo (image)',
+  video_5s: 'Vidéo 5s',
+  video_10s: 'Vidéo 10s',
+  video_15s: 'Vidéo 15s',
+  video_30s: 'Vidéo 30s',
+  video_45s: 'Vidéo 45s',
+  video_60s: 'Vidéo 60s',
+  video_90s: 'Vidéo 90s',
   audio_tts: 'Audio narration',
   text_suggest: 'Suggestion texte IA',
   narration_suggest: 'Suggestion narration IA',
@@ -103,10 +115,18 @@ export const FREE_BLOCKED_FEATURES = [
   'text_suggest', 'narration_suggest', 'marketing_chat',
 ] as const;
 
+// Durées vidéo disponibles (en secondes)
+export const VIDEO_DURATIONS = [5, 10, 15, 30, 45, 60, 90] as const;
+
 /**
  * Calcule le coût en crédits d'une vidéo selon sa durée
  */
 export function getVideoCreditCost(duration: number): number {
-  if (duration <= 5) return CREDIT_COSTS.video_5s;
-  return CREDIT_COSTS.video_10s;
+  if (duration <= 5) return 25;
+  if (duration <= 10) return 40;
+  if (duration <= 15) return 35;
+  if (duration <= 30) return 50;
+  if (duration <= 45) return 70;
+  if (duration <= 60) return 85;
+  return 120; // 90s
 }
