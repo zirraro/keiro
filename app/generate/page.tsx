@@ -2700,7 +2700,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
       <AdminBadge />
 
       <div className="max-w-7xl mx-auto">
-        <p className="text-neutral-600 mb-6">
+        <p className="text-sm text-neutral-400 mb-6 tracking-wide">
           {useNewsMode
             ? t.generate.subtitleWithNews
             : t.generate.subtitleWithoutNews}

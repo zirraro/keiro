@@ -52,13 +52,10 @@ export default function AdminBadge() {
   if (loading || !isAdmin) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50">
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
-        <span className="text-lg">👑</span>
-        <div className="text-sm font-semibold">
-          <div>Mode Admin</div>
-          <div className="text-xs opacity-90">Générations illimitées</div>
-        </div>
+    <div className="fixed top-2 left-2 z-40">
+      <div className="bg-purple-600/90 text-white px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1.5 text-[11px] font-medium backdrop-blur-sm">
+        <span className="text-xs leading-none">👑</span>
+        Admin
       </div>
     </div>
   );

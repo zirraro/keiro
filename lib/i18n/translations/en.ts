@@ -661,7 +661,7 @@ export const en: Translations = {
     connecting: 'Signing in...',
   },
   generate: {
-    subtitleWithNews: 'Link a trending news story to your business to create engaging visuals and boost your visibility',
+    subtitleWithNews: 'Ride the latest news to create visuals that grab attention',
     subtitleWithoutNews: 'Describe your business in detail to create a striking visual based on your brand identity',
     catGoodNews: 'Good news',
     catLatestNews: 'Latest news',
