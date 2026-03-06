@@ -2519,6 +2519,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             duration: videoDuration,
             aspectRatio: platformRatio,
             mode: videoGenerationMode,
+            renderStyle: renderStyle,
+            characterStyle: characterStyle,
+            tone: tone,
+            visualStyle: visualStyle,
           }),
         });
 

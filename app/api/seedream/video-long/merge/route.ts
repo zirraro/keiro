@@ -119,19 +119,12 @@ export async function POST(req: NextRequest) {
 
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // First try concat without re-encoding (fastest, works if same codec)
-    console.log(`[MergeSegments-${id}] Attempting fast concat (no re-encode)...`);
-    try {
-      const fastCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c copy -movflags +faststart -y "${outputPath}"`;
-      execSync(fastCmd, { timeout: 60000 });
-      console.log(`[MergeSegments-${id}] Fast concat succeeded`);
-    } catch {
-      // Fallback: re-encode with libx264
-      console.log(`[MergeSegments-${id}] Fast concat failed, re-encoding...`);
-      const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart -y "${outputPath}"`;
-      execSync(reencodeCmd, { timeout: 90000 });
-      console.log(`[MergeSegments-${id}] Re-encode concat succeeded`);
-    }
+    // Always re-encode for guaranteed seamless transitions
+    // Using high quality CRF 18 and medium preset for smooth boundaries
+    console.log(`[MergeSegments-${id}] Re-encoding ${segmentUrls.length} segments for seamless merge...`);
+    const mergeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 24 -c:a aac -b:a 192k -movflags +faststart -y "${outputPath}"`;
+    execSync(mergeCmd, { timeout: 180000 }); // 3 min timeout for quality encode
+    console.log(`[MergeSegments-${id}] Seamless merge completed`);
 
     // Read merged file
     const mergedBuffer = await readFile(outputPath);

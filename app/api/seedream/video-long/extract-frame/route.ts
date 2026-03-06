@@ -67,7 +67,7 @@ async function ensureFFmpeg(): Promise<string> {
 
 /**
  * POST /api/seedream/video-long/extract-frame
- * Extracts the last frame of a video as a JPEG image.
+ * Extracts the last frame of a video as a lossless PNG image.
  * Used for I2V continuation between segments.
  *
  * Body: { videoUrl: string }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     await mkdir(tmpDir, { recursive: true });
 
     const videoPath = join(tmpDir, 'input.mp4');
-    const framePath = join(tmpDir, 'last_frame.jpg');
+    const framePath = join(tmpDir, 'last_frame.png');
 
     // Download video
     console.log(`[ExtractFrame-${id}] Downloading video...`);
@@ -107,12 +107,11 @@ export async function POST(req: NextRequest) {
     await writeFile(videoPath, videoBuffer);
     console.log(`[ExtractFrame-${id}] Video: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
 
-    // Extract last frame using FFmpeg
-    // -sseof -0.1 seeks to 0.1s before end
-    // -frames:v 1 extracts exactly 1 frame
-    // -q:v 2 high quality JPEG
+    // Extract last frame using FFmpeg as lossless PNG
     console.log(`[ExtractFrame-${id}] Extracting last frame...`);
-    const cmd = `"${ffmpegBin}" -sseof -0.1 -i "${videoPath}" -frames:v 1 -q:v 2 -y "${framePath}"`;
+    // Extract last frame as lossless PNG for maximum I2V quality
+    // Use -sseof -0.04 (1 frame at 25fps) for more precise last frame
+    const cmd = `"${ffmpegBin}" -sseof -0.04 -i "${videoPath}" -frames:v 1 -y "${framePath}"`;
     execSync(cmd, { timeout: 15000 });
 
     if (!existsSync(framePath)) {
@@ -128,10 +127,10 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const fileName = `video-frames/${user.id}/${Date.now()}_lastframe.jpg`;
+    const fileName = `video-frames/${user.id}/${Date.now()}_lastframe.png`;
     const { error: uploadError } = await supabase.storage
       .from('generated-images')
-      .upload(fileName, frameBuffer, { contentType: 'image/jpeg', upsert: false });
+      .upload(fileName, frameBuffer, { contentType: 'image/png', upsert: false });
 
     if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
