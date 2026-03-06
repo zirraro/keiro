@@ -244,6 +244,7 @@ function PricingPageInner() {
             >
               {t.pricing.planSprintCta}
             </button>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.planSprintNote}</p>
           </div>
           </FadeUp>
         </div>
@@ -322,11 +323,15 @@ function PricingPageInner() {
                   </>
                 ) : (
                   <>
-                    <span className="text-4xl font-bold">89€</span>
+                    <span className="line-through text-purple-300 text-2xl">89€</span>
+                    <span className="text-4xl font-bold">49€</span>
                     <span className="text-purple-200">{t.common.perMonth}</span>
                   </>
                 )}
               </div>
+              {billingPeriod !== 'annual' && (
+                <p className="text-purple-200 text-xs font-medium">puis 89€/mois</p>
+              )}
               <p className="text-purple-200 text-sm font-medium mt-1" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
             </div>
 
@@ -334,7 +339,7 @@ function PricingPageInner() {
               <p className="text-xs font-semibold">{t.pricing.planProBullets[1]}</p>
             </div>
 
-            <ul className="space-y-3 mb-6 text-sm flex-1">
+            <ul className="space-y-3 mb-4 text-sm flex-1">
               {t.pricing.planProBullets.map((bullet, i) => (
                 <li key={i} className={`flex gap-2 ${i >= 2 ? 'items-start' : ''}`}>
                   <span className={`${i >= 2 ? 'text-cyan-300 flex-shrink-0' : 'text-purple-300'}`}>{i >= 2 ? '★' : '✓'}</span>
@@ -342,10 +347,24 @@ function PricingPageInner() {
                 </li>
               ))}
             </ul>
+
+            {/* NON INCLUS */}
+            <div className="border-t border-white/20 pt-3 mb-4">
+              <p className="text-xs font-bold text-purple-300 mb-2 uppercase">Non inclus</p>
+              <ul className="space-y-1.5 text-xs">
+                {t.pricing.planProNotIncluded.map((item, i) => (
+                  <li key={i} className="flex gap-2 text-purple-300/70">
+                    <span className="text-red-400 flex-shrink-0">✗</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')} className="block w-full py-3 text-center rounded-xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-all shadow-lg mt-auto">
               {billingPeriod === 'annual' ? `${t.pricing.planProTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planProCta}
             </button>
-            <p className="text-xs text-center text-purple-200 mt-2" dangerouslySetInnerHTML={{ __html: t.pricing.planProUpgrade }} />
+            <p className="text-xs text-center text-purple-200 mt-2">{t.pricing.planProNote}</p>
           </div></StaggerItem>
 
           {/* Fondateurs Pro 149€ - POPULAIRE */}
@@ -382,7 +401,7 @@ function PricingPageInner() {
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
               {billingPeriod === 'annual' ? `${t.pricing.planFondateursTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planFondateursCta}
             </button>
-            <p className="text-center text-amber-100 text-xs mt-2">{t.pricing.foundersNote}</p>
+            <p className="text-xs text-center text-amber-200 mt-2">{t.pricing.planFondateursNote}</p>
           </div></StaggerItem>
 
           {/* Business 349€ */}
@@ -417,29 +436,90 @@ function PricingPageInner() {
               ))}
             </ul>
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
-              {t.pricing.planBusinessCta} {billingPeriod === 'annual' ? `(${t.common.annual.toLowerCase()})` : ''}
+              {billingPeriod === 'annual' ? `${t.pricing.planBusinessTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planBusinessCta}
             </button>
             <p className="text-center text-blue-100 text-xs mt-2">{t.pricing.supportCallDesc}</p>
           </div></StaggerItem>
         </StaggerContainer>
 
-        {/* Elite - Bandeau séparé */}
+        <p className="text-center text-sm text-neutral-600 mt-4 mb-2 font-medium">{t.pricing.planFondateursGap}</p>
+
+        {/* Elite - Plan complet */}
         <FadeUp>
-        <div className="bg-white rounded-2xl border-2 border-amber-200 p-6 mb-16 max-w-3xl mx-auto hover:shadow-xl transition-all">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-1 flex items-center gap-2"><span>🏆</span> {t.pricing.planEliteTitle} — 999€{t.common.perMonth}</h3>
-              <p className="text-neutral-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
+        <div className="max-w-lg mx-auto mb-16">
+          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-900 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+                {t.pricing.planEliteBadge}
+              </span>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all whitespace-nowrap">
+            <div className="mb-4 pt-2">
+              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <span>🏆</span> {t.pricing.planEliteTitle}
+              </h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-4xl font-bold">999€</span>
+                <span className="text-amber-100">{t.common.perMonth}</span>
+              </div>
+              <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
+            </div>
+
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
+              <p className="text-xs font-semibold">{t.pricing.planEliteBullets[1]}</p>
+            </div>
+
+            <ul className="space-y-3 mb-6 text-sm flex-1">
+              {t.pricing.planEliteBullets.map((bullet, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className={i >= 2 ? 'text-yellow-200' : 'text-yellow-300'}>{i >= 2 ? '★' : '✓'}</span>
+                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+              <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="flex-1 py-3 text-center rounded-xl bg-white text-amber-700 font-bold hover:bg-amber-50 transition-all shadow-lg">
                 Contactez-nous
               </a>
-              <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
+              <button onClick={() => startCheckout('elite')} className="flex-1 py-3 text-center rounded-xl border-2 border-white/50 text-white font-bold hover:bg-white/10 transition-all">
                 {t.pricing.planEliteCta}
               </button>
             </div>
           </div>
+        </div>
+        </FadeUp>
+
+        {/* Concrètement, c'est quoi la différence ? */}
+        <FadeUp>
+        <div className="mb-16">
+          <h3 className="text-2xl font-bold text-center mb-8">{"Concrètement, c'est quoi la différence ?"}</h3>
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {/* Pro card */}
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
+              <h4 className="text-lg font-bold text-purple-900 mb-1">{"Votre vitrine Instagram, professionnelle et autonome"}</h4>
+              <p className="text-sm text-purple-600 font-semibold mb-4">Pro 89€/mois</p>
+              <ul className="space-y-3 text-sm text-neutral-700">
+                <li><span className="font-semibold text-purple-700">{"C'est comme..."}</span> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</li>
+                <li><span className="font-semibold text-purple-700">{"Ça remplace..."}</span> Le neveu qui poste 1x/mois + Canva</li>
+                <li><span className="font-semibold text-purple-700">{"En concret..."}</span> ~3 posts pro/semaine sur Instagram, avec texte et hashtags</li>
+                <li><span className="font-semibold text-purple-700">{"Ça coûte..."}</span> Le prix de 2 dîners au restaurant</li>
+                <li><span className="font-semibold text-purple-700">{"C'est rentabilisé si..."}</span> 1 vente en plus (boutique) / 5 couverts (resto)</li>
+              </ul>
+            </div>
+            {/* Fondateurs card */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 p-6 shadow-lg">
+              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Votre marque partout, sur Instagram ET TikTok, en 3 formats"}</h4>
+              <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro 149€/mois ⭐</p>
+              <ul className="space-y-3 text-sm text-neutral-700">
+                <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
+                <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
+                <li><span className="font-semibold text-amber-700">{"En concret..."}</span> ~5-6 posts/semaine, VOTRE logo, post + Story + Reel, Instagram ET TikTok</li>
+                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> Le prix de 5 dîners au restaurant</li>
+                <li><span className="font-semibold text-amber-700">{"C'est rentabilisé si..."}</span> 2 ventes en plus (boutique) / 7 couverts (resto)</li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-center text-sm text-neutral-600 mt-6 font-medium max-w-3xl mx-auto">{"Pour 60€ de plus par mois : votre logo sur chaque visuel, 3 formats automatiques, et TikTok — là où les NOUVEAUX clients vous découvrent."}</p>
         </div>
         </FadeUp>
 
@@ -485,6 +565,7 @@ function PricingPageInner() {
                   <th className="text-center py-3 px-2">Pro 89€</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs 149€ ⭐</th>
                   <th className="text-center py-3 px-2">Business 349€</th>
+                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999€</th>
                 </tr>
               </thead>
               <tbody>
@@ -495,14 +576,16 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>700/mois</strong></td>
                   <td className="text-center py-3 px-2"><strong>1750/mois</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>5 500/mois</strong></td>
                 </tr>
-                {/* Posts/semaine */}
+                {/* En concret */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Posts/semaine</td>
+                  <td className="py-3 px-2 font-medium">En concret</td>
                   <td className="text-center py-3 px-2">~7/jour (3j)</td>
                   <td className="text-center py-3 px-2">~3/sem</td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>~5-6/sem</strong></td>
                   <td className="text-center py-3 px-2"><strong>Quotidien</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
                 </tr>
                 {/* Images IA */}
                 <tr className="border-b">
@@ -511,6 +594,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Vidéos IA */}
                 <tr className="border-b">
@@ -519,6 +603,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Audio narration */}
                 <tr className="border-b">
@@ -527,6 +612,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Assistant IA */}
                 <tr className="border-b">
@@ -535,6 +621,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Instagram Posts */}
                 <tr className="border-b">
@@ -543,6 +630,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Instagram Stories */}
                 <tr className="border-b">
@@ -551,6 +639,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* LinkedIn */}
                 <tr className="border-b">
@@ -559,6 +648,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* TikTok */}
                 <tr className="border-b bg-cyan-50/30">
@@ -567,6 +657,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Branding */}
                 <tr className="border-b">
@@ -575,6 +666,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Multi-format */}
                 <tr className="border-b">
@@ -583,6 +675,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Calendrier */}
                 <tr className="border-b">
@@ -591,6 +684,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2">Manuel</td>
                   <td className="text-center py-3 px-2 bg-amber-50">Manuel</td>
                   <td className="text-center py-3 px-2"><strong>Collaboratif</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Collaboratif</strong></td>
                 </tr>
                 {/* Stats Instagram */}
                 <tr className="border-b">
@@ -599,6 +693,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Stats multi-plateforme */}
                 <tr className="border-b">
@@ -607,6 +702,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Multi-comptes */}
                 <tr className="border-b">
@@ -615,6 +711,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><strong>1+5</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
                 </tr>
                 {/* Support */}
                 <tr className="border-b">
@@ -623,6 +720,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2">Email 48h</td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>Prioritaire 12h</strong></td>
                   <td className="text-center py-3 px-2"><strong>Premium 4h</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Dédié</strong></td>
                 </tr>
                 {/* Appel onboarding */}
                 <tr className="border-b">
@@ -631,6 +729,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ Offert</strong></td>
                   <td className="text-center py-3 px-2"><strong className="text-green-600">✓ Offert</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong className="text-green-600">✓ Réguliers</strong></td>
                 </tr>
                 {/* Prix verrouillé */}
                 <tr className="border-b">
@@ -639,6 +738,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ (50 places)</strong></td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-neutral-400">—</span></td>
                 </tr>
                 {/* Prix */}
                 <tr>
@@ -647,6 +747,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 font-bold">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>
+                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
                 </tr>
               </tbody>
             </table>
@@ -654,7 +755,124 @@ function PricingPageInner() {
           <p className="text-xs text-neutral-500 text-center mt-4">{t.pricing.foundersNote}</p>
         </div>
 
-        {/* Comparateur Keiro vs. Prestataires */}
+        {/* Le vrai coût de ne rien faire */}
+        <FadeUp>
+        <div className="mb-16">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3">{"Vous n'avez pas de graphiste ni de CM ? Le vrai coût, c'est l'invisibilité."}</h3>
+            <p className="text-neutral-600 max-w-2xl mx-auto">{"Chaque jour sans Instagram, des clients potentiels choisissent votre concurrent."}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            {/* Card 1 - Ne rien faire */}
+            <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
+              <h4 className="font-bold text-neutral-600 mb-3">{"Ne rien faire"}</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> 0€/mois</p>
+                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> Invisible en ligne</p>
+                <p><span className="font-semibold text-neutral-500">{"Clients via Instagram :"}</span> 0</p>
+              </div>
+              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne vous trouveront jamais.\""}</p>
+            </div>
+
+            {/* Card 2 - Le neveu / le stagiaire */}
+            <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
+              <h4 className="font-bold text-neutral-600 mb-3">{"Le neveu / le stagiaire"}</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> {"\"Gratuit\" (mais votre temps + résultats amateurs)"}</p>
+                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> 1 post par mois, photo floue</p>
+                <p><span className="font-semibold text-neutral-500">{"Clients via Instagram :"}</span> Quasi 0</p>
+              </div>
+              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Un post tous les 2 mois avec une photo au smartphone ne trompe personne.\""}</p>
+            </div>
+
+            {/* Card 3 - Canva tout seul */}
+            <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
+              <h4 className="font-bold text-neutral-600 mb-3">{"Canva tout seul"}</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> 12€/mois + 3h de VOTRE temps</p>
+                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> Visuels corrects mais vous faites tout</p>
+                <p><span className="font-semibold text-neutral-500">{"Clients :"}</span> {"Possible mais combien vaut votre temps ?"}</p>
+              </div>
+              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Votre temps vaut plus que 12€/mois. Vous êtes commerçant, pas graphiste.\""}</p>
+            </div>
+
+            {/* Card 4 - KeiroAI */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-300 p-5 shadow-lg">
+              <h4 className="font-bold text-blue-700 mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
+              <div className="space-y-2 text-sm">
+                <p><span className="font-semibold text-blue-600">{"Coût :"}</span> à partir de 49€ le 1er mois</p>
+                <p><span className="font-semibold text-blue-600">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
+                <p><span className="font-semibold text-blue-600">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
+              </div>
+              <p className="text-xs text-blue-500 mt-3 italic">{"\"Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.\""}</p>
+            </div>
+          </div>
+
+          {/* ROI Table */}
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+            <h4 className="text-lg font-bold text-center mb-4">{"Combien de ventes pour rentabiliser KeiroAI ?"}</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-neutral-50">
+                    <th className="text-left py-3 px-3 font-semibold">Votre commerce</th>
+                    <th className="text-center py-3 px-3 font-semibold">Ticket moyen</th>
+                    <th className="text-center py-3 px-3 font-semibold text-purple-600">Pro (89€)</th>
+                    <th className="text-center py-3 px-3 font-semibold text-amber-600">Fondateurs (149€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Boutique mode/déco</td>
+                    <td className="text-center py-2.5 px-3">80-200€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1 vente</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">2 ventes</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Coach sportif</td>
+                    <td className="text-center py-2.5 px-3">40-80€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1-2 séances</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">2-3 séances</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Coiffeur / Barbier</td>
+                    <td className="text-center py-2.5 px-3">25-50€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-4 coupes</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-6 coupes</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Restaurant (soir)</td>
+                    <td className="text-center py-2.5 px-3">25-45€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">5 couverts</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">7 couverts</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Caviste / Fromagerie</td>
+                    <td className="text-center py-2.5 px-3">30-100€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-3 paniers</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-5 paniers</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-2.5 px-3">Fleuriste</td>
+                    <td className="text-center py-2.5 px-3">30-80€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-3 bouquets</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-5 bouquets</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3">Traiteur</td>
+                    <td className="text-center py-2.5 px-3">500-5000€</td>
+                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1 devis = payé 6 mois</td>
+                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">1 devis = payé 3 mois</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </FadeUp>
+
+        {/* Comparateur Keiro vs. Prestataires - 3 colonnes */}
         <FadeUp>
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 mb-16 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
@@ -662,54 +880,94 @@ function PricingPageInner() {
 
           <div className="relative z-10">
             <div className="text-center mb-8">
-              <h3 className="text-2xl md:text-3xl font-bold mb-2">
-                {t.pricing.comparatorTitle} <span className="text-red-400">3 300€/mois</span> {t.pricing.comparatorSubtitle} <span className="text-cyan-400">149€</span> ?
+              <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                {t.home.comparatorTitle}
               </h3>
-              <p className="text-slate-300">{t.pricing.comparatorGraphiste} + {t.pricing.comparatorCM} vs. KeiroAI {t.pricing.planFondateursTitle}</p>
+              <p className="text-slate-300 text-lg">{t.home.comparatorSubtitle}</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              {/* Colonne prestataires */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              {/* Col 1 - Graphiste freelance */}
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
                     <span className="text-red-400 text-lg">✗</span>
                   </div>
                   <div>
-                    <h4 className="font-bold">{t.pricing.comparatorGraphiste} + CM</h4>
-                    <p className="text-2xl font-bold text-red-400">~3 300€<span className="text-sm font-normal text-slate-400">{t.common.perMonth}</span></p>
+                    <h4 className="font-bold text-sm">Graphiste freelance</h4>
+                    <p className="text-lg font-bold text-red-400">800 à 2 000€<span className="text-xs font-normal text-slate-400">/mois</span></p>
                   </div>
                 </div>
-                <ul className="space-y-2.5 text-sm text-slate-300">
-                  {t.pricing.compDarkNeg.map((item, i) => (
-                    <li key={i} className="flex gap-2"><span className="text-red-400">✗</span> {item}</li>
-                  ))}
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Délai : 2 à 5 jours par visuel</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Modifications payantes</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {"Pas de réactivité sur l'actualité"}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Aucune vidéo incluse</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de texte ni légendes</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de hashtags ni stratégie</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Aucune statistique</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de publication</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Briefings longs</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Congés, vacances, indisponibilités</li>
                 </ul>
               </div>
 
-              {/* Colonne KeiroAI */}
+              {/* Col 2 - Community Manager */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                    <span className="text-red-400 text-lg">✗</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm">Community Manager</h4>
+                    <p className="text-lg font-bold text-red-400">1 500 à 3 000€<span className="text-xs font-normal text-slate-400">/mois</span></p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Rédaction manuelle</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Planification basique</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> 1 seul réseau en général</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de génération IA</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de branding automatique</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de multi-format</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Congés, absences, rotation</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Qualité variable</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de vidéo IA</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Reporting basique mensuel</li>
+                </ul>
+              </div>
+
+              {/* Col 3 - KeiroAI */}
               <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-2xl border border-cyan-400/30 p-6 shadow-lg shadow-cyan-500/10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
                     <span className="text-cyan-400 text-lg">✓</span>
                   </div>
                   <div>
-                    <h4 className="font-bold">KeiroAI {t.pricing.planFondateursTitle}</h4>
-                    <p className="text-2xl font-bold text-cyan-400">{t.pricing.comparatorKeiroPrice}<span className="text-sm font-normal text-slate-400"></span></p>
+                    <h4 className="font-bold text-sm">KeiroAI</h4>
+                    <p className="text-lg font-bold text-cyan-400">à partir de 49€<span className="text-xs font-normal text-slate-400">/mois</span></p>
                   </div>
                 </div>
-                <ul className="space-y-2.5 text-sm text-slate-200">
-                  {t.pricing.compDarkPos.map((item, i) => (
-                    <li key={i} className="flex gap-2"><span className="text-cyan-400 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: item }} /></li>
-                  ))}
+                <ul className="space-y-2 text-sm text-slate-200">
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> 3 minutes par visuel</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Modifications illimitées</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {"Visuels liés à l'actu du jour"}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Vidéo IA + audio narration inclus</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Texte, légendes, hashtags auto</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Instagram + TikTok + LinkedIn</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Branding personnalisé (Fondateurs)</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Multi-format automatique (Fondateurs)</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Statistiques et analyse intégrées</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Assistant IA marketing</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Disponible 24/7</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Calendrier de planification</li>
                 </ul>
               </div>
             </div>
 
             {/* Barre économie */}
             <div className="bg-green-500/15 backdrop-blur-sm rounded-xl border border-green-400/20 p-4 text-center">
-              <p className="text-green-400 font-bold text-lg" dangerouslySetInnerHTML={{ __html: t.pricing.comparatorSavings }} />
-              <p className="text-slate-400 text-xs mt-1">{t.pricing.comparatorGraphiste} {t.pricing.comparatorGraphistePrice} + {t.pricing.comparatorCM} {t.pricing.comparatorCMPrice} vs. KeiroAI {t.pricing.comparatorKeiroPrice}</p>
+              <p className="text-green-400 font-bold text-lg">{"Économie moyenne constatée : "}<strong>-95%</strong>{" soit "}<strong>{"2 350€ à 4 850€ économisés"}</strong>{" chaque mois"}</p>
             </div>
           </div>
         </div>
@@ -826,6 +1084,7 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
+        <p className="text-xs text-center text-neutral-400 mt-2">Retours basés sur des tests utilisateurs</p>
         </FadeUp>
 
         {/* CTA Final */}

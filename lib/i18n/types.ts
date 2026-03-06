@@ -224,11 +224,16 @@ export interface Translations {
     comparatorK4: string;
     comparatorK5: string;
     comparatorK6: string;
+    comparatorSaving: string;
     savingsLabel: string;
     savingsPercent: string;
     savingsDetail: string;
     comparatorCta: string;
     comparatorCtaSub: string;
+    costOfInactionTitle: string;
+    costOfInactionSubtitle: string;
+    comparePlanTitle: string;
+    gapPhrase: string;
     // Pricing section
     pricingBadge: string;
     pricingTitle: string;
@@ -359,24 +364,31 @@ export interface Translations {
     planSprintSubtitle: string;
     planSprintBullets: string[];
     planSprintCta: string;
+    planSprintNote: string;
     planProTitle: string;
     planProSubtitle: string;
     planProBullets: string[];
     planProCta: string;
+    planProNote: string;
     planProUpgrade: string;
+    planProNotIncluded: string[];
     planFondateursTitle: string;
     planFondateursBadge: string;
     planFondateursSubtitle: string;
     planFondateursBullets: string[];
     planFondateursCta: string;
+    planFondateursNote: string;
+    planFondateursGap: string;
     planBusinessTitle: string;
     planBusinessSubtitle: string;
     planBusinessBullets: string[];
     planBusinessCta: string;
     planEliteTitle: string;
     planEliteSubtitle: string;
+    planEliteBadge: string;
     planEliteBullets: string[];
     planEliteCta: string;
+    planEliteContact: string;
     // TikTok section
     tiktokTitle: string;
     tiktokSubtitle: string;

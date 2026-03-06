@@ -754,6 +754,7 @@ function HomeKeiroInner() {
             {t.home.testimonialCtaSub}
           </p>
         </div>
+        <p className="text-xs text-center text-neutral-400 mt-2 italic">Retours basés sur des tests utilisateurs</p>
       </section>
 
       {/* POURQUOI PUBLIER SUR L'ACTU */}
@@ -768,31 +769,168 @@ function HomeKeiroInner() {
         </div>
       </section>
 
+      {/* LE VRAI COÛT DE NE RIEN FAIRE */}
+      <FadeUp>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">
+            Vous n&apos;avez pas de graphiste ni de CM ?{' '}
+            <span className="gradient-text">Le vrai coût, c&apos;est l&apos;invisibilité.</span>
+          </h2>
+          <p className="text-lg text-neutral-600">
+            Chaque jour sans Instagram, des clients potentiels choisissent votre concurrent.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+          {/* Card 1 — Ne rien faire */}
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
+            <h3 className="text-lg font-bold text-neutral-700 mb-3">&quot;Ne rien faire&quot;</h3>
+            <ul className="space-y-2 text-sm text-neutral-600">
+              <li><span className="font-semibold text-neutral-800">Coût :</span> 0€/mois</li>
+              <li><span className="font-semibold text-neutral-800">Résultat :</span> Invisible en ligne</li>
+              <li><span className="font-semibold text-neutral-800">Nouveaux clients via Instagram :</span> 0</li>
+            </ul>
+            <p className="mt-3 text-xs text-neutral-500 italic">
+              &quot;Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne vous trouveront jamais.&quot;
+            </p>
+          </div>
+
+          {/* Card 2 — Le neveu / le stagiaire */}
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
+            <h3 className="text-lg font-bold text-neutral-700 mb-3">&quot;Le neveu / le stagiaire&quot;</h3>
+            <ul className="space-y-2 text-sm text-neutral-600">
+              <li><span className="font-semibold text-neutral-800">Coût :</span> &quot;Gratuit&quot; (mais votre temps + résultats amateurs)</li>
+              <li><span className="font-semibold text-neutral-800">Résultat :</span> 1 post par mois, photo floue, pas de stratégie</li>
+              <li><span className="font-semibold text-neutral-800">Nouveaux clients :</span> Quasi 0</li>
+            </ul>
+            <p className="mt-3 text-xs text-neutral-500 italic">
+              &quot;Un post tous les 2 mois avec une photo au smartphone ne trompe personne.&quot;
+            </p>
+          </div>
+
+          {/* Card 3 — Canva tout seul */}
+          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
+            <h3 className="text-lg font-bold text-neutral-700 mb-3">&quot;Canva tout seul&quot;</h3>
+            <ul className="space-y-2 text-sm text-neutral-600">
+              <li><span className="font-semibold text-neutral-800">Coût :</span> 12€/mois + 3h de VOTRE temps par semaine</li>
+              <li><span className="font-semibold text-neutral-800">Résultat :</span> Visuels corrects mais vous faites tout vous-même</li>
+              <li><span className="font-semibold text-neutral-800">Clients :</span> Possible mais combien vaut votre temps ?</li>
+            </ul>
+            <p className="mt-3 text-xs text-neutral-500 italic">
+              &quot;Votre temps vaut plus que 12€/mois. Vous êtes commerçant, pas graphiste.&quot;
+            </p>
+          </div>
+
+          {/* Card 4 — KeiroAI */}
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-400 p-6 shadow-lg relative">
+            <div className="absolute -top-2 -right-2 text-xl">⭐</div>
+            <h3 className="text-lg font-bold text-blue-900 mb-3">&quot;KeiroAI&quot;</h3>
+            <ul className="space-y-2 text-sm text-neutral-700">
+              <li><span className="font-semibold text-blue-900">Coût :</span> à partir de 49€ le 1er mois</li>
+              <li><span className="font-semibold text-blue-900">Résultat :</span> 3 à 6 posts pro par semaine, brandés, liés à l&apos;actu</li>
+              <li><span className="font-semibold text-blue-900">Clients :</span> Le calcul est simple ↓</li>
+            </ul>
+            <p className="mt-3 text-xs text-blue-600 italic">
+              &quot;Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.&quot;
+            </p>
+          </div>
+        </div>
+
+        {/* ROI Table */}
+        <div className="bg-white rounded-2xl border-2 border-blue-200 overflow-hidden shadow-lg">
+          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
+            <h3 className="text-white font-bold text-lg text-center">Combien de ventes pour rentabiliser KeiroAI ?</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-blue-50 border-b border-blue-200">
+                  <th className="text-left p-3 font-semibold text-blue-900">Votre commerce</th>
+                  <th className="text-center p-3 font-semibold text-blue-900">Ticket moyen</th>
+                  <th className="text-center p-3 font-semibold text-blue-900">Pro (89€)</th>
+                  <th className="text-center p-3 font-semibold text-blue-900">Fondateurs (149€)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-neutral-100">
+                  <td className="p-3 font-medium">Boutique mode/déco</td>
+                  <td className="p-3 text-center text-neutral-600">80-200€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">1 vente</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">2 ventes</td>
+                </tr>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  <td className="p-3 font-medium">Coach sportif</td>
+                  <td className="p-3 text-center text-neutral-600">40-80€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">1-2 séances</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">2-3 séances</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="p-3 font-medium">Coiffeur / Barbier</td>
+                  <td className="p-3 text-center text-neutral-600">25-50€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">2-4 coupes</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">4-6 coupes</td>
+                </tr>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  <td className="p-3 font-medium">Restaurant (soir)</td>
+                  <td className="p-3 text-center text-neutral-600">25-45€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">5 couverts</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">7 couverts</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="p-3 font-medium">Caviste / Fromagerie</td>
+                  <td className="p-3 text-center text-neutral-600">30-100€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">2-3 paniers</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">4-5 paniers</td>
+                </tr>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  <td className="p-3 font-medium">Fleuriste</td>
+                  <td className="p-3 text-center text-neutral-600">30-80€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">2-3 bouquets</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">4-5 bouquets</td>
+                </tr>
+                <tr className="bg-blue-50">
+                  <td className="p-3 font-medium">Traiteur</td>
+                  <td className="p-3 text-center text-neutral-600">500-5000€</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">1 devis = payé 6 mois</td>
+                  <td className="p-3 text-center font-semibold text-blue-600">1 devis = payé 3 mois</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      </FadeUp>
+
       {/* COMPARATIF AU MOIS — IMPACTANT */}
       <FadeUp>
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
-            {t.home.comparatorTitle} <span className="line-through text-red-400 decoration-red-400">{t.home.comparatorStrikethrough}</span> {t.home.comparatorWith}{' '}
-            <span className="gradient-text">{t.home.comparatorTitleHighlight}</span>
+            {t.home.comparatorTitle}
           </h2>
-          <p className="text-lg text-neutral-600" dangerouslySetInnerHTML={{ __html: t.home.comparatorSubtitle }} />
+          <p className="text-lg text-neutral-600">{t.home.comparatorSubtitle}</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-10">
           {/* Colonne Graphiste */}
           <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
             <div className="absolute -top-3 left-4">
-              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorGraphiste}</span>
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Graphiste freelance — 800 à 2 000€/mois</span>
             </div>
-            <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorGraphistePrice}<span className="text-base font-normal text-red-400">{t.common.perMonth}</span></p>
+            <div className="pt-4">
+              <p className="text-2xl font-bold text-red-500 mb-1">800–2 000€<span className="text-base font-normal text-red-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG1}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG2}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG3}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG4}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorG5}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Délai : 2 à 5 jours par visuel</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Modifications payantes (chaque retouche = facture)</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de réactivité sur l&apos;actualité</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune vidéo incluse (surcoût)</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de texte ni légendes</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de hashtags ni stratégie</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Aucune statistique ni analyse</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de publication : il livre le fichier</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Briefings longs à rédiger</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, vacances, indisponibilités</li>
               </ul>
             </div>
           </div>
@@ -800,16 +938,21 @@ function HomeKeiroInner() {
           {/* Colonne CM */}
           <div className="bg-red-50 rounded-2xl border-2 border-red-200 p-6 relative">
             <div className="absolute -top-3 left-4">
-              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{t.home.comparatorCM}</span>
+              <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Community Manager — 1 500 à 3 000€/mois</span>
             </div>
-            <div className="pt-2">
-              <p className="text-3xl font-bold text-red-500 mb-1">{t.home.comparatorCMPrice}<span className="text-base font-normal text-red-400">{t.common.perMonth}</span></p>
+            <div className="pt-4">
+              <p className="text-2xl font-bold text-red-500 mb-1">1 500–3 000€<span className="text-base font-normal text-red-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-600">
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM1}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM2}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM3}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM4}</li>
-                <li className="flex gap-2"><span className="text-red-400">✗</span> {t.home.comparatorCM5}</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Rédaction de légendes manuelle</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Planification basique</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> 1 seul réseau en général</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de génération IA de visuels</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de branding automatique</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de multi-format automatique</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Congés, absences, rotation du personnel</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Qualité variable selon la personne</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Pas de vidéo IA ni audio narration</li>
+                <li className="flex gap-2"><span className="text-red-400">✗</span> Reporting basique, souvent mensuel</li>
               </ul>
             </div>
           </div>
@@ -817,17 +960,23 @@ function HomeKeiroInner() {
           {/* Colonne KeiroAI */}
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-400 p-6 relative shadow-lg shadow-blue-100">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI</span>
+              <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI — à partir de 49€/mois</span>
             </div>
-            <div className="pt-2">
-              <p className="text-3xl font-bold text-blue-600 mb-1">{t.home.comparatorKeiroPrice}<span className="text-base font-normal text-blue-400">{t.common.perMonth}</span></p>
+            <div className="pt-4">
+              <p className="text-2xl font-bold text-blue-600 mb-1">49€<span className="text-base font-normal text-blue-400">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK1 }} /></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK2 }} /></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span dangerouslySetInnerHTML={{ __html: t.home.comparatorK3 }} /></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK4}</li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK5}</li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> {t.home.comparatorK6}</li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>3 minutes</strong> par visuel, instantané</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Modifications <strong>illimitées</strong>, en temps réel</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Visuels <strong>liés à l&apos;actualité du jour</strong></span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Vidéo IA + audio narration</strong> inclus</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Texte, légendes, hashtags</strong> générés automatiquement</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> (multi-plateforme)</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Fondateurs)</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Fondateurs)</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Statistiques et analyse</strong> intégrées</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Assistant IA marketing</strong> personnalisé</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Disponible <strong>24/7</strong>, jamais en congé</span></li>
+                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Calendrier de planification</strong> intégré</span></li>
               </ul>
             </div>
           </div>
@@ -835,9 +984,9 @@ function HomeKeiroInner() {
 
         {/* Barre économie */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 text-center mb-8">
-          <p className="text-sm text-green-700 font-medium mb-1">{t.home.savingsLabel}</p>
-          <p className="text-4xl font-bold text-green-600">{t.home.savingsPercent}</p>
-          <p className="text-neutral-600 text-sm mt-1" dangerouslySetInnerHTML={{ __html: t.home.savingsDetail }} />
+          <p className="text-neutral-700 text-base font-medium">
+            Économie moyenne constatée : <strong className="text-green-600 text-2xl">-95%</strong> soit <strong className="text-green-600">2 350€ à 4 850€ économisés</strong> chaque mois
+          </p>
         </div>
 
         {/* CTA après Comparatif */}
@@ -916,9 +1065,11 @@ function HomeKeiroInner() {
               title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
+              promoPrice={billingPeriod !== 'annual' ? '49€' : undefined}
+              promoNote={billingPeriod !== 'annual' ? 'puis 89€/mois' : undefined}
               subtitle={t.home.planProSubtitle}
               bullets={t.home.planProBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : t.pricing.planProCta}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : 'Commencer — 49€ le 1er mois'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
@@ -978,6 +1129,77 @@ function HomeKeiroInner() {
 
         </div>
       </section>
+
+      {/* CONCRÈTEMENT LA DIFFÉRENCE */}
+      <FadeUp>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 mb-10">
+          {/* Pro card */}
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
+            <h3 className="text-xl font-bold text-purple-900 mb-4">💎 Pro — Votre vitrine Instagram, professionnelle et autonome</h3>
+            <ul className="space-y-3 text-sm text-neutral-700">
+              <li className="flex items-start gap-2">
+                <span className="text-purple-500 font-bold mt-0.5">▸</span>
+                <span><strong>C&apos;est comme...</strong> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-500 font-bold mt-0.5">▸</span>
+                <span><strong>Ça remplace...</strong> Le neveu qui poste 1x/mois + Canva</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-500 font-bold mt-0.5">▸</span>
+                <span><strong>En concret...</strong> ~3 posts pro/semaine sur Instagram, avec texte et hashtags</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-500 font-bold mt-0.5">▸</span>
+                <span><strong>Ça coûte...</strong> Le prix de 2 dîners au restaurant</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-purple-500 font-bold mt-0.5">▸</span>
+                <span><strong>C&apos;est rentabilisé si...</strong> 1 vente en plus (boutique) / 5 couverts (resto)</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Fondateurs card */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-400 p-6 shadow-lg">
+            <h3 className="text-xl font-bold text-amber-900 mb-4">⭐ Fondateurs — Votre marque partout, sur Instagram ET TikTok, en 3 formats</h3>
+            <ul className="space-y-3 text-sm text-neutral-700">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                <span><strong>C&apos;est comme...</strong> Avoir un directeur marketing à temps partiel</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                <span><strong>Ça remplace...</strong> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                <span><strong>En concret...</strong> ~5-6 posts/semaine, VOTRE logo, post + Story + Reel, Instagram ET TikTok</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                <span><strong>Ça coûte...</strong> Le prix de 5 dîners au restaurant</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 font-bold mt-0.5">▸</span>
+                <span><strong>C&apos;est rentabilisé si...</strong> 2 ventes (boutique) / 7 couverts (resto) / 2 séances (coach)</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-6 text-center">
+          <p className="text-base text-neutral-700 font-medium">
+            Pour <strong className="text-blue-600">60€ de plus</strong> par mois : votre logo sur chaque visuel, 3 formats automatiques, et TikTok — là où les <strong className="text-blue-600">NOUVEAUX clients</strong> vous découvrent.
+          </p>
+        </div>
+      </section>
+      </FadeUp>
 
       {/* SOCIAL PROOF & FAQ COURTE */}
       <section className="mx-auto max-w-6xl px-6 py-12">
