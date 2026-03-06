@@ -13,7 +13,7 @@ import { useCredits } from '@/hooks/useCredits';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
-import { CREDIT_COSTS, getVideoCreditCost } from '@/lib/credits/constants';
+import { CREDIT_COSTS, getVideoCreditCost, VIDEO_DURATIONS } from '@/lib/credits/constants';
 import { supabase } from '@/lib/supabase';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { generateTextSuggestions } from '@/lib/text-suggestion';
@@ -477,7 +477,12 @@ export default function GeneratePage() {
   const [subtitleFontSize, setSubtitleFontSize] = useState<'sm' | 'md' | 'lg' | 'xl'>('md');
   const [subtitlePosition, setSubtitlePosition] = useState<'top' | 'center' | 'bottom'>('bottom');
   const [videoAspectRatio, setVideoAspectRatio] = useState('16:9');
-  const [videoDuration, setVideoDuration] = useState(5);
+  const [videoDuration, setVideoDuration] = useState(10);
+  const [videoGenerationMode, setVideoGenerationMode] = useState<'simple' | 'advanced'>('simple');
+  const [videoLongJobId, setVideoLongJobId] = useState<string | null>(null);
+  const [videoLongSegments, setVideoLongSegments] = useState<any[]>([]);
+  const [videoLongStatus, setVideoLongStatus] = useState<string>('');
+  const [videoLongProgress, setVideoLongProgress] = useState(0);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
   const [lastProvider, setLastProvider] = useState<string>('');
   const [lastVideoProvider, setLastVideoProvider] = useState<string>('');
@@ -2497,6 +2502,188 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         : '16:9';
       setVideoAspectRatio(platformRatio);
 
+      // ====== VIDÉO LONGUE (>10s) — Multi-segments ======
+      if (videoDuration > 10) {
+        console.log('[VideoLong] Starting long video generation:', videoDuration, 's');
+        setVideoProgress(`${t.generate.videoLongGenerating} (${videoDuration}s)...`);
+        setVideoLongSegments([]);
+        setVideoLongProgress(0);
+        setVideoLongStatus(t.generate.creatingVideoTask);
+
+        // Créer le job vidéo longue
+        const longRes = await fetch('/api/seedream/video-long', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: videoPrompt,
+            duration: videoDuration,
+            aspectRatio: platformRatio,
+            mode: videoGenerationMode,
+          }),
+        });
+
+        const longData = await longRes.json();
+        console.log('[VideoLong] Job creation response:', longData);
+
+        // Gestion erreurs crédits / compte
+        if (longRes.status === 402 && longData.insufficientCredits) {
+          setGeneratingVideo(false);
+          setShowInsufficientCreditsModal(true);
+          return;
+        }
+        if (longRes.status === 403 && longData.blocked) {
+          setGeneratingVideo(false);
+          setShowRequiresAccountModal(true);
+          return;
+        }
+
+        if (!longData?.ok || !longData?.jobId) {
+          throw new Error(longData?.error || 'Failed to create video generation job');
+        }
+
+        // Mettre à jour crédits
+        if (longData.newBalance !== undefined) {
+          credits.refresh();
+        }
+
+        const jobId = longData.jobId;
+        setVideoLongJobId(jobId);
+
+        // Initialiser les segments dans l'UI
+        if (longData.segments) {
+          setVideoLongSegments(longData.segments);
+        }
+
+        // Polling du job vidéo longue
+        const maxLongAttempts = Math.ceil(videoDuration / 10) * 80; // ~80 polls par segment (6-7min)
+        let longAttempt = 0;
+
+        const pollLongVideo = async (): Promise<void> => {
+          while (longAttempt < maxLongAttempts) {
+            longAttempt++;
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            try {
+              const statusRes = await fetch(`/api/seedream/video-long?jobId=${jobId}`);
+              const statusData = await statusRes.json();
+              console.log('[VideoLong] Poll:', statusData.status, statusData.completedSegments, '/', statusData.totalSegments);
+
+              // Mettre à jour l'UI
+              if (statusData.segments) {
+                setVideoLongSegments(statusData.segments);
+              }
+
+              const progress = statusData.totalSegments > 0
+                ? Math.round((statusData.completedSegments / statusData.totalSegments) * 100)
+                : 0;
+              setVideoLongProgress(progress);
+
+              if (statusData.status === 'generating') {
+                setVideoLongStatus(`${t.generate.videoGeneratingSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments}`);
+                setVideoProgress(`${t.generate.videoLongGenerating} — ${t.generate.videoSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments} (${progress}%)`);
+              } else if (statusData.status === 'merging') {
+                setVideoLongStatus(t.generate.videoMerging);
+                setVideoProgress(t.generate.videoMerging);
+                setVideoLongProgress(95);
+              } else if (statusData.status === 'completed' && statusData.finalVideoUrl) {
+                console.log('[VideoLong] Video ready:', statusData.finalVideoUrl);
+                let finalVideoUrl = statusData.finalVideoUrl;
+
+                // Audio TTS si demandé
+                if (addAudio) {
+                  try {
+                    let audioUrlForMerge = generatedAudioUrl;
+                    if (!audioUrlForMerge) {
+                      setVideoProgress(t.generate.finalizingVideoProgress);
+                      let textForAudio = '';
+                      if (audioTextSource === 'ai') {
+                        textForAudio = useNewsMode && selectedNews
+                          ? `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
+                          : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`;
+                      } else {
+                        textForAudio = audioText.trim();
+                      }
+                      if (textForAudio) {
+                        const audioRes = await fetch('/api/generate-audio-tts', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ text: textForAudio, targetDuration: videoDuration, voice: selectedVoice, speed: 1.0 })
+                        });
+                        const audioData = await audioRes.json();
+                        if (audioData.ok && audioData.audioUrl) {
+                          audioUrlForMerge = audioData.audioUrl;
+                          setGeneratedAudioUrl(audioData.audioUrl);
+                        }
+                      }
+                    }
+                    if (audioUrlForMerge) {
+                      setVideoProgress(t.generate.finalizingVideoProgress);
+                      const mergeRes = await fetch('/api/merge-audio-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ videoUrl: finalVideoUrl, audioUrl: audioUrlForMerge })
+                      });
+                      const mergeData = await mergeRes.json();
+                      if (mergeData.ok && mergeData.mergedUrl) {
+                        finalVideoUrl = mergeData.mergedUrl;
+                      }
+                    }
+                  } catch (audioErr) {
+                    console.warn('[VideoLong] Audio/merge error:', audioErr);
+                  }
+                }
+
+                setGeneratedVideoUrl(finalVideoUrl);
+                setVideoProgress('');
+                setGeneratingVideo(false);
+                setVideoLongProgress(100);
+                setVideoLongStatus('');
+
+                // Auto-save
+                try {
+                  const sbClient = supabaseBrowser();
+                  const { data: { user: vUser } } = await sbClient.auth.getUser();
+                  if (vUser) {
+                    const { data: { session: vSession } } = await sbClient.auth.getSession();
+                    const vHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+                    if (vSession?.access_token) vHeaders['Authorization'] = `Bearer ${vSession.access_token}`;
+                    await fetch('/api/library/save-video', {
+                      method: 'POST',
+                      headers: vHeaders,
+                      body: JSON.stringify({
+                        videoUrl: finalVideoUrl,
+                        title: selectedNews?.title ? selectedNews.title.substring(0, 50) : t.generate.generatedVideo,
+                        sourceType: 'seedream_i2v',
+                        duration: videoDuration,
+                        subtitleText: generatedSubtitleText || null,
+                        audioUrl: generatedAudioUrl || null,
+                      })
+                    });
+                  }
+                } catch (autoSaveErr) {
+                  console.error('[VideoLong] Auto-save error:', autoSaveErr);
+                }
+                return;
+              } else if (statusData.status === 'failed') {
+                throw new Error(statusData.error || t.generate.errorVideoGenerationFailed);
+              }
+            } catch (fetchError: any) {
+              if (fetchError.message?.includes('Failed') || fetchError.message?.includes('failed')) {
+                throw fetchError;
+              }
+              console.warn('[VideoLong] Poll error (retrying):', fetchError);
+            }
+          }
+          throw new Error(t.generate.errorVideoTimeout);
+        };
+
+        setVideoProgress(`${t.generate.videoLongGenerating}...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        await pollLongVideo();
+        return; // Exit early — long video path handled
+      }
+
+      // ====== VIDÉO COURTE (≤10s) — Single segment direct ======
       const res = await fetch('/api/seedream/t2v', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2541,8 +2728,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
       console.log('[Video] Task created:', data.taskId, 'Provider:', data._p);
 
       // Polling pour vérifier le statut avec gestion d'erreur améliorée
-      // Longer videos need more polling time
-      const maxAttempts = videoDuration <= 10 ? 60 : 120; // 5-10 min max
+      const maxAttempts = 60; // 5 min max for short videos
 
       const pollWithRetry = async (attempt: number): Promise<void> => {
         if (attempt >= maxAttempts) {
@@ -2565,14 +2751,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
           if (statusData.status === 'completed') {
             if (statusData.videoUrl) {
               console.log('[Video] Video ready:', statusData.videoUrl);
-              console.log('[Video] Note: La conversion TikTok se fera automatiquement lors de la publication');
 
               let finalVideoUrl = statusData.videoUrl;
 
               // Si audio TTS demandé, générer l'audio puis fusionner dans la vidéo
               if (addAudio) {
                 try {
-                  // Générer l'audio TTS
                   let audioUrlForMerge = generatedAudioUrl;
 
                   if (!audioUrlForMerge) {
@@ -2596,12 +2780,11 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       if (audioData.ok && audioData.audioUrl) {
                         audioUrlForMerge = audioData.audioUrl;
                         setGeneratedAudioUrl(audioData.audioUrl);
-                        console.log('[Video] ✅ Audio TTS généré:', audioData.audioUrl);
+                        console.log('[Video] Audio TTS generated:', audioData.audioUrl);
                       }
                     }
                   }
 
-                  // Fusionner audio dans la vidéo côté serveur
                   if (audioUrlForMerge) {
                     setVideoProgress(t.generate.finalizingVideoProgress);
                     const mergeRes = await fetch('/api/merge-audio-video', {
@@ -2612,13 +2795,13 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     const mergeData = await mergeRes.json();
                     if (mergeData.ok && mergeData.mergedUrl) {
                       finalVideoUrl = mergeData.mergedUrl;
-                      console.log('[Video] ✅ Audio intégré dans la vidéo:', finalVideoUrl);
+                      console.log('[Video] Audio merged into video:', finalVideoUrl);
                     } else {
-                      console.warn('[Video] Fusion échouée, vidéo sans audio:', mergeData.error);
+                      console.warn('[Video] Merge failed, video without audio:', mergeData.error);
                     }
                   }
                 } catch (audioErr) {
-                  console.warn('[Video] Audio/merge error (non bloquant):', audioErr);
+                  console.warn('[Video] Audio/merge error (non-blocking):', audioErr);
                 }
               }
 
@@ -2659,9 +2842,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
               return;
             } else {
-              // Statut completed mais pas d'URL - afficher debug
               console.error('[Video] Completed but no URL. Full response:', JSON.stringify(statusData, null, 2));
-              // Afficher les données debug dans l'erreur
               const debugInfo = statusData.debug ? JSON.stringify(statusData.debug, null, 2) : 'No debug data';
               throw new Error(`${t.generate.errorVideoUrlNotFound} Debug: ${debugInfo.substring(0, 500)}`);
             }
@@ -4300,29 +4481,133 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       )}
                     </div>
 
-                    {/* Durée de la vidéo */}
+                    {/* Durée de la vidéo — Chips */}
                     <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
                       <label className="block text-xs font-semibold text-neutral-900 mb-2">
-                        ⏱️ {t.generate.videoDuration} <span className="text-indigo-600">{videoDuration}s</span>
+                        ⏱️ {t.generate.videoDuration}
                       </label>
-                      <input
-                        type="range"
-                        min={5}
-                        max={12}
-                        step={1}
-                        value={videoDuration}
-                        onChange={(e) => setVideoDuration(Number(e.target.value))}
-                        className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                      />
-                      <div className="flex justify-between text-[9px] text-neutral-500 mt-1">
-                        <span>5s</span>
-                        <span>8s</span>
-                        <span>12s</span>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {([10, 15, 30, 45, 60, 90] as const).map((dur) => (
+                          <button
+                            key={dur}
+                            type="button"
+                            onClick={() => setVideoDuration(dur)}
+                            className={`relative py-2 px-1 rounded-lg text-center transition-all border ${
+                              videoDuration === dur
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                : 'bg-white text-neutral-700 border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50'
+                            }`}
+                          >
+                            <span className="block text-sm font-bold">{dur}s</span>
+                            <span className={`block text-[9px] mt-0.5 ${videoDuration === dur ? 'text-indigo-200' : 'text-neutral-400'}`}>
+                              {getVideoCreditCost(dur)} cr
+                            </span>
+                          </button>
+                        ))}
                       </div>
-                      <p className="text-[9px] text-indigo-600 mt-1 italic">
+                      <p className="text-[9px] text-indigo-500 mt-2 italic">
                         💡 {t.generate.socialMediaIdeal}
                       </p>
+
+                      {/* Mode avancé toggle pour vidéos longues */}
+                      {videoDuration > 10 && (
+                        <div className="mt-3 pt-3 border-t border-indigo-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-medium text-neutral-700">
+                              🎬 {t.generate.videoLongMode}
+                            </span>
+                            <div className="flex bg-white rounded-md border border-neutral-200 overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={() => setVideoGenerationMode('simple')}
+                                className={`px-2.5 py-1 text-[10px] font-medium transition ${
+                                  videoGenerationMode === 'simple'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-neutral-600 hover:bg-neutral-50'
+                                }`}
+                              >
+                                {t.generate.videoSimpleMode}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setVideoGenerationMode('advanced')}
+                                className={`px-2.5 py-1 text-[10px] font-medium transition ${
+                                  videoGenerationMode === 'advanced'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'text-neutral-600 hover:bg-neutral-50'
+                                }`}
+                              >
+                                {t.generate.videoAdvancedMode}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[9px] text-neutral-400 mt-1">
+                            {videoGenerationMode === 'simple' ? t.generate.videoSimpleDesc : t.generate.videoAdvancedDesc}
+                          </p>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Timeline segments — Mode avancé */}
+                    {videoDuration > 10 && videoGenerationMode === 'advanced' && videoLongSegments.length > 0 && (
+                      <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-neutral-900">
+                            🎞️ Timeline — {Math.ceil(videoDuration / 10)} {t.generate.videoSegments}
+                          </span>
+                          <span className="text-[10px] text-purple-600 font-medium">
+                            {videoLongProgress}%
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
+                          <div
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full transition-all duration-500"
+                            style={{ width: `${videoLongProgress}%` }}
+                          />
+                        </div>
+
+                        {/* Segments */}
+                        <div className="flex gap-1.5 overflow-x-auto pb-1">
+                          {videoLongSegments.map((seg: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${
+                                seg.status === 'completed'
+                                  ? 'bg-green-50 border-green-300'
+                                  : seg.status === 'generating'
+                                  ? 'bg-amber-50 border-amber-300 animate-pulse'
+                                  : seg.status === 'failed'
+                                  ? 'bg-red-50 border-red-300'
+                                  : 'bg-white border-neutral-200'
+                              }`}
+                            >
+                              <span className="block text-[10px] font-medium text-neutral-600">
+                                {t.generate.videoSegment} {idx + 1}
+                              </span>
+                              <span className="block text-[9px] mt-0.5">
+                                {seg.status === 'completed' ? '✅' : seg.status === 'generating' ? '⏳' : seg.status === 'failed' ? '❌' : '⏸️'}
+                              </span>
+                              {seg.status === 'completed' && seg.videoUrl && (
+                                <video
+                                  src={seg.videoUrl}
+                                  className="w-full h-10 object-cover rounded mt-1"
+                                  muted
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Status text */}
+                        {videoLongStatus && (
+                          <p className="text-[10px] text-purple-600 mt-2 text-center font-medium">
+                            {videoLongStatus}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 

@@ -266,7 +266,7 @@ export async function GET(request: Request) {
       return Response.json({
         ok: true,
         status: 'completed',
-        progress: { completed: job.total_segments, total: job.total_segments },
+        completedSegments: job.total_segments, totalSegments: job.total_segments,
         segments: job.segments,
         finalVideoUrl: job.final_video_url,
       });
@@ -277,7 +277,7 @@ export async function GET(request: Request) {
         ok: false,
         status: 'failed',
         error: job.error || 'La génération a échoué',
-        progress: { completed: job.completed_segments, total: job.total_segments },
+        completedSegments: job.completed_segments, totalSegments: job.total_segments,
         segments: job.segments,
       });
     }
@@ -294,7 +294,7 @@ export async function GET(request: Request) {
           ok: false,
           status: 'failed',
           error: 'État incohérent: aucun segment en cours',
-          progress: { completed: job.completed_segments, total: job.total_segments },
+          completedSegments: job.completed_segments, totalSegments: job.total_segments,
         });
       }
 
@@ -331,17 +331,39 @@ export async function GET(request: Request) {
             console.log(`[video-long] Starting segment ${nextSegmentIndex}/${segments.length}...`);
 
             try {
-              // Next segments are always I2V (using last frame of previous video)
-              // TODO: Extract last frame from completed video using FFmpeg
-              // For now, use the video URL as reference and generate as T2V with continuation prompt
               const nextScene = segments[nextSegmentIndex];
               let result: { taskId: string; provider: 's' | 'k' };
 
-              // Try I2V approach: the previous video URL could be used for frame extraction
-              // For now, fall back to T2V with the scene prompt since frame extraction requires FFmpeg
-              // TODO: Implement frame extraction → i2v pipeline
-              console.log(`[video-long] Segment ${nextSegmentIndex}: generating as T2V (frame extraction TODO)`);
-              result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
+              // Extract last frame from completed video for I2V continuity
+              const previousVideoUrl = taskStatus.videoUrl!;
+              let lastFrameUrl: string | null = null;
+
+              try {
+                console.log(`[video-long] Extracting last frame from segment ${currentSegmentIndex}...`);
+                const baseUrl = request.url.split('/api/')[0];
+                const extractRes = await fetch(`${baseUrl}/api/seedream/video-long/extract-frame`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ videoUrl: previousVideoUrl }),
+                });
+                const extractData = await extractRes.json();
+                if (extractData.ok && extractData.frameUrl) {
+                  lastFrameUrl = extractData.frameUrl;
+                  console.log(`[video-long] Last frame extracted: ${lastFrameUrl}`);
+                }
+              } catch (extractError: any) {
+                console.warn(`[video-long] Frame extraction failed, falling back to T2V:`, extractError.message);
+              }
+
+              if (lastFrameUrl) {
+                // I2V with last frame for visual continuity
+                console.log(`[video-long] Segment ${nextSegmentIndex}: I2V with last frame`);
+                result = await startSeedanceI2V(nextScene.prompt, nextScene.duration, lastFrameUrl);
+              } else {
+                // Fallback: T2V with continuation prompt
+                console.log(`[video-long] Segment ${nextSegmentIndex}: T2V fallback`);
+                result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
+              }
 
               segments[nextSegmentIndex].taskId = result.taskId;
               segments[nextSegmentIndex].status = 'generating';
@@ -360,7 +382,8 @@ export async function GET(request: Request) {
               return Response.json({
                 ok: true,
                 status: 'generating',
-                progress: { completed: newCompletedCount, total: segments.length },
+                completedSegments: newCompletedCount,
+                totalSegments: segments.length,
                 segments,
                 currentSegment: nextSegmentIndex,
               });
@@ -384,43 +407,88 @@ export async function GET(request: Request) {
                 ok: false,
                 status: 'failed',
                 error: `Échec du segment ${nextSegmentIndex}`,
-                progress: { completed: newCompletedCount, total: segments.length },
+                completedSegments: newCompletedCount, totalSegments: segments.length,
                 segments,
               });
             }
           } else {
-            // ─── All segments completed ───
-            console.log(`[video-long] All ${segments.length} segments completed!`);
+            // ─── All segments completed — trigger merge ───
+            console.log(`[video-long] All ${segments.length} segments completed! Starting merge...`);
 
-            // TODO: Trigger FFmpeg merge of all segment video URLs
-            // For now, mark as completed and store segment URLs (merge in follow-up)
             const allVideoUrls = segments
               .filter(s => s.videoUrl)
               .map(s => s.videoUrl);
 
-            // If only one segment had a video, use it as the final; otherwise await merge
-            const finalStatus = segments.length === 1 ? 'completed' : 'merging';
-            const finalVideoUrl = segments.length === 1 ? allVideoUrls[0] : null;
+            if (segments.length === 1) {
+              // Single segment — no merge needed
+              await supabaseAdmin
+                .from('video_generation_jobs')
+                .update({
+                  status: 'completed',
+                  completed_segments: newCompletedCount,
+                  segments,
+                  final_video_url: allVideoUrls[0] || null,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', jobId);
 
-            // For now, skip the merge step and mark as completed with all segment URLs
-            // The client can display individual segments or trigger a merge later
+              return Response.json({
+                ok: true,
+                status: 'completed',
+                completedSegments: newCompletedCount,
+                totalSegments: segments.length,
+                segments,
+                finalVideoUrl: allVideoUrls[0] || null,
+              });
+            }
+
+            // Multiple segments — set status to 'merging' and trigger merge
             await supabaseAdmin
               .from('video_generation_jobs')
               .update({
-                status: 'completed',
+                status: 'merging',
                 completed_segments: newCompletedCount,
                 segments,
-                final_video_url: finalVideoUrl || null,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', jobId);
 
+            // Trigger merge asynchronously (fire-and-forget, next poll will check status)
+            try {
+              const baseUrl = request.url.split('/api/')[0];
+              fetch(`${baseUrl}/api/seedream/video-long/merge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobId, segmentUrls: allVideoUrls }),
+              }).then(async (mergeRes) => {
+                const mergeData = await mergeRes.json();
+                if (mergeData.ok && mergeData.mergedUrl) {
+                  console.log(`[video-long] Merge completed: ${mergeData.mergedUrl}`);
+                  // Job status updated by the merge route itself
+                } else {
+                  console.error(`[video-long] Merge failed:`, mergeData.error);
+                  await supabaseAdmin
+                    .from('video_generation_jobs')
+                    .update({
+                      status: 'failed',
+                      error: `Fusion échouée: ${mergeData.error}`,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', jobId);
+                }
+              }).catch((mergeError) => {
+                console.error(`[video-long] Merge request failed:`, mergeError);
+              });
+            } catch (mergeError: any) {
+              console.error(`[video-long] Failed to trigger merge:`, mergeError.message);
+            }
+
             return Response.json({
               ok: true,
-              status: 'completed',
-              progress: { completed: newCompletedCount, total: segments.length },
+              status: 'merging',
+              completedSegments: newCompletedCount,
+              totalSegments: segments.length,
               segments,
-              finalVideoUrl: finalVideoUrl || null,
               segmentUrls: allVideoUrls,
             });
           }
@@ -444,7 +512,7 @@ export async function GET(request: Request) {
             ok: false,
             status: 'failed',
             error: `Segment ${currentSegmentIndex + 1}/${segments.length} a échoué`,
-            progress: { completed: job.completed_segments, total: segments.length },
+            completedSegments: job.completed_segments, totalSegments: segments.length,
             segments,
           });
         } else {
@@ -452,7 +520,7 @@ export async function GET(request: Request) {
           return Response.json({
             ok: true,
             status: 'generating',
-            progress: { completed: job.completed_segments, total: segments.length },
+            completedSegments: job.completed_segments, totalSegments: segments.length,
             segments,
             currentSegment: currentSegmentIndex,
             taskStatus: taskStatus.status,
@@ -463,7 +531,7 @@ export async function GET(request: Request) {
         return Response.json({
           ok: true,
           status: 'generating',
-          progress: { completed: job.completed_segments, total: segments.length },
+          completedSegments: job.completed_segments, totalSegments: segments.length,
           segments,
           currentSegment: currentSegmentIndex,
           pollError: pollError.message,
@@ -471,20 +539,42 @@ export async function GET(request: Request) {
       }
     }
 
-    // 5. Job is 'merging' — check merge status
+    // 5. Job is 'merging' — check if merge is done (by checking if final_video_url is set)
     if (job.status === 'merging') {
-      // TODO: Implement merge status polling
-      // For now, return merging status with segment URLs
-      const segmentUrls = (job.segments as JobSegment[])
-        .filter(s => s.videoUrl)
-        .map(s => s.videoUrl);
+      // Re-fetch to check if merge completed (the merge route updates the job)
+      const { data: freshJob } = await supabaseAdmin
+        .from('video_generation_jobs')
+        .select('status, final_video_url, error')
+        .eq('id', jobId)
+        .single();
 
+      if (freshJob?.status === 'completed' && freshJob.final_video_url) {
+        return Response.json({
+          ok: true,
+          status: 'completed',
+          completedSegments: job.total_segments,
+          totalSegments: job.total_segments,
+          segments: job.segments,
+          finalVideoUrl: freshJob.final_video_url,
+        });
+      }
+
+      if (freshJob?.status === 'failed') {
+        return Response.json({
+          ok: false,
+          status: 'failed',
+          error: freshJob.error || 'Merge failed',
+          segments: job.segments,
+        });
+      }
+
+      // Still merging
       return Response.json({
         ok: true,
         status: 'merging',
-        progress: { completed: job.completed_segments, total: job.total_segments },
+        completedSegments: job.completed_segments,
+        totalSegments: job.total_segments,
         segments: job.segments,
-        segmentUrls,
       });
     }
 
@@ -492,7 +582,7 @@ export async function GET(request: Request) {
     return Response.json({
       ok: true,
       status: job.status,
-      progress: { completed: job.completed_segments, total: job.total_segments },
+      completedSegments: job.completed_segments, totalSegments: job.total_segments,
       segments: job.segments,
     });
 
