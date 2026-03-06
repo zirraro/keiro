@@ -2828,7 +2828,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 )}
 
                 {!loading && filteredNews.length > 0 && (<>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {filteredNews.slice(0, visibleNewsCount).map((item) => (
                       <article
                         key={item.id}
@@ -2840,43 +2840,49 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             setSelectedNews(item);
                           }
                         }}
-                        className={`rounded-xl border cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                        className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
                           selectedNews?.id === item.id
-                            ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-500'
-                            : 'bg-white hover:bg-neutral-50 border-neutral-200 hover:border-blue-300'
+                            ? 'ring-2 ring-blue-500 ring-offset-1'
+                            : ''
                         }`}
+                        style={{ height: '180px' }}
                       >
-                        {item.image && (
+                        {/* Image de fond */}
+                        {item.image ? (
                           <img
                             src={item.image}
                             alt={item.title}
-                            className="w-full h-44 object-cover rounded-t-xl"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-neutral-900" />
                         )}
-                        <div className="p-3">
-                          <h3 className="font-semibold text-sm line-clamp-2 mb-2">
+
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+                        {/* Badge sélectionné */}
+                        {selectedNews?.id === item.id && (
+                          <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
+                            {t.generate.selected}
+                          </div>
+                        )}
+
+                        {/* Contenu en overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                          <h3 className="font-semibold text-[13px] leading-tight text-white line-clamp-2 drop-shadow-sm">
                             {item.title}
                           </h3>
-                          <p className="text-xs text-neutral-600 line-clamp-2 mb-3">
-                            {item.description}
-                          </p>
-
-                          {/* Footer avec source et badge sélectionné */}
-                          <div className="flex items-center justify-between mt-auto">
+                          <div className="flex items-center justify-between mt-1.5">
                             <a
                               href={item.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] text-blue-600 hover:underline"
+                              className="text-[10px] text-white/70 hover:text-white transition-colors"
                             >
-                              Source
+                              {item.source || 'Source'}
                             </a>
-                            {selectedNews?.id === item.id && (
-                              <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded font-medium">
-                                {t.generate.selected}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </article>
@@ -2885,9 +2891,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   {visibleNewsCount < filteredNews.length && visibleNewsCount < 9 && (
                     <button
                       onClick={() => setVisibleNewsCount(prev => Math.min(prev + 3, 9))}
-                      className="mt-4 w-full py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
+                      className="mt-3 mx-auto flex items-center gap-1.5 text-xs text-neutral-400 hover:text-blue-500 transition-colors"
                     >
                       {t.generate.showMoreNews}
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                     </button>
                   )}
                 </>)}
