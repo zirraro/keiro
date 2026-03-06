@@ -1,22 +1,31 @@
 export const runtime = 'nodejs';
-import { fetchNews, NewsArticle } from "@/lib/newsProviders";
+import { fetchNews, fetchPriorityNews, NewsArticle } from "@/lib/newsProviders";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const fetchAll = searchParams.get('all') === 'true';
+    const priority = searchParams.get('priority') === 'true';
     const category = searchParams.get('cat') || '';
     const query = searchParams.get('q') || '';
     const region = searchParams.get('region') || 'fr';
 
-    // fetchNews() gère déjà son propre cache 24h et la catégorisation
-    console.log(`[API /news] Fetching news for region=${region}...`);
-    const cachedNews = await fetchNews(region);
+    let items: NewsArticle[];
 
-    let items = cachedNews || [];
+    if (priority) {
+      // Mode prioritaire : uniquement "Les bonnes nouvelles" (2 flux, très rapide)
+      console.log(`[API /news] Priority fetch for region=${region}...`);
+      items = await fetchPriorityNews(region);
+    } else {
+      // Mode complet : tous les flux RSS
+      console.log(`[API /news] Full fetch for region=${region}...`);
+      items = await fetchNews(region);
+    }
+
+    items = items || [];
 
     // Filtrer par catégorie si demandé
-    if (!fetchAll && category) {
+    if (!fetchAll && !priority && category) {
       items = items.filter(item => item.category === category);
     }
 

@@ -180,8 +180,13 @@ export default function GeneratePage() {
       );
     }
 
-    return items.slice(0, 9); // 9 = 3×3 grille propre
+    return items.slice(0, 9); // max 9 = 3×3 grille propre
   }, [allNewsItems, category, searchQuery]);
+
+  // Nombre d'articles visibles (3 → 6 → 9 via bouton "Afficher plus")
+  const [visibleNewsCount, setVisibleNewsCount] = useState(3);
+  // Reset à 3 quand on change de catégorie ou de recherche
+  useEffect(() => { setVisibleNewsCount(3); }, [category, searchQuery]);
 
   /* --- Astuce du jour (rotation quotidienne) --- */
   const MARKETING_TIPS = [
@@ -810,8 +815,23 @@ export default function GeneratePage() {
       }
     } catch { /* localStorage indisponible */ }
 
-    // 2. Fetch API (loader visible seulement si PAS de cache du tout)
-    if (!hasCache) setLoading(true);
+    // 2. Phase 1 : fetch prioritaire "Les bonnes nouvelles" (2 flux, <3s)
+    //    → le client voit du contenu immédiatement pendant que le reste charge
+    if (!hasCache) {
+      setLoading(true);
+      try {
+        const priorityRes = await fetch('/api/news?priority=true&region=' + newsRegion);
+        if (priorityRes.ok) {
+          const priorityData = await priorityRes.json();
+          if (priorityData?.ok && priorityData.items?.length > 0) {
+            setAllNewsItems(priorityData.items);
+            setLoading(false); // Bonnes nouvelles visibles immédiatement
+          }
+        }
+      } catch { /* silently continue to full fetch */ }
+    }
+
+    // 3. Phase 2 : fetch complet de toutes les catégories (en arrière-plan)
     try {
       setError(null);
       const res = await fetch('/api/news?all=true&region=' + newsRegion);
@@ -2807,9 +2827,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   </div>
                 )}
 
-                {!loading && filteredNews.length > 0 && (
+                {!loading && filteredNews.length > 0 && (<>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {filteredNews.map((item) => (
+                    {filteredNews.slice(0, visibleNewsCount).map((item) => (
                       <article
                         key={item.id}
                         onClick={() => {
@@ -2862,7 +2882,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </article>
                     ))}
                   </div>
-                )}
+                  {visibleNewsCount < filteredNews.length && visibleNewsCount < 9 && (
+                    <button
+                      onClick={() => setVisibleNewsCount(prev => Math.min(prev + 3, 9))}
+                      className="mt-4 w-full py-2.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
+                    >
+                      {t.generate.showMoreNews}
+                    </button>
+                  )}
+                </>)}
               </div>
             </div>
 

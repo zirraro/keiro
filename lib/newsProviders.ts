@@ -719,6 +719,25 @@ function filterArticles(articles: NewsArticle[]): NewsArticle[] {
 }
 
 // ===== FONCTION PRINCIPALE =====
+// Fetch RAPIDE — uniquement les flux "Les bonnes nouvelles" (2 flux, <3s)
+// Utilisé pour afficher du contenu immédiatement avant le fetch complet
+export async function fetchPriorityNews(region: string = 'fr'): Promise<NewsArticle[]> {
+  // Si le cache complet existe, l'utiliser directement (instantané)
+  const cached = cachedByRegion[region];
+  if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    return cached.articles;
+  }
+
+  // Sinon, fetch uniquement les 2 flux feel-good (Positivr + Demotivateur)
+  const priorityFeeds = RSS_FEEDS.filter(f => f.category === 'Les bonnes nouvelles');
+  if (priorityFeeds.length === 0) return [];
+
+  console.log(`[Priority] Fetching ${priorityFeeds.length} bonnes nouvelles feeds...`);
+  const articles = await fetchFromRSS(priorityFeeds);
+  console.log(`[Priority] Got ${articles.length} priority articles`);
+  return deduplicateArticles(articles);
+}
+
 export async function fetchNews(region: string = 'fr'): Promise<NewsArticle[]> {
   // Vérifier le cache par région
   const now = Date.now();

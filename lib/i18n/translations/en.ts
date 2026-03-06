@@ -694,6 +694,7 @@ export const en: Translations = {
     searchPlaceholder: 'Search news...',
     loadingNews: 'Loading news...',
     noNewsFound: 'No news found',
+    showMoreNews: 'Show more news',
     selected: 'Selected',
     sprintFounder: 'Founder Sprint',
     sprintTimeRemaining: 'Time remaining',

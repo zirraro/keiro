@@ -699,6 +699,7 @@ export const fr: Translations = {
     searchPlaceholder: 'Rechercher dans les actualit\u00e9s...',
     loadingNews: 'Chargement des actualit\u00e9s...',
     noNewsFound: 'Aucune actualit\u00e9 trouv\u00e9e',
+    showMoreNews: "Afficher plus d'actualit\u00e9s",
     selected: 'S\u00e9lectionn\u00e9',
     // Sprint widget
     sprintFounder: 'Sprint Fondateur',
