@@ -690,14 +690,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial1 }} />
+            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial1Text}</p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                M
+                K
               </div>
               <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial1Author}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial1Business}</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial1Name}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial1Role}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -711,14 +711,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial2 }} />
+            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial2Text}</p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                T
+                J
               </div>
               <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial2Author}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial2Business}</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial2Name}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial2Role}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -732,14 +732,14 @@ function HomeKeiroInner() {
               <span>⭐</span>
               <span>⭐</span>
             </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.testimonial3 }} />
+            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial3Text}</p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-                S
+                M
               </div>
               <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial3Author}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial3Business}</div>
+                <div className="font-bold text-neutral-900">{t.home.testimonial3Name}</div>
+                <div className="text-sm text-neutral-600">{t.home.testimonial3Role}</div>
               </div>
             </div>
           </div></StaggerItem>
@@ -782,7 +782,7 @@ function HomeKeiroInner() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
           {/* Card 1 — Ne rien faire */}
           <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
             <h3 className="text-lg font-bold text-neutral-700 mb-3">&quot;Ne rien faire&quot;</h3>
@@ -809,20 +809,7 @@ function HomeKeiroInner() {
             </p>
           </div>
 
-          {/* Card 3 — Canva tout seul */}
-          <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-6">
-            <h3 className="text-lg font-bold text-neutral-700 mb-3">&quot;Canva tout seul&quot;</h3>
-            <ul className="space-y-2 text-sm text-neutral-600">
-              <li><span className="font-semibold text-neutral-800">Coût :</span> 12€/mois + 3h de VOTRE temps par semaine</li>
-              <li><span className="font-semibold text-neutral-800">Résultat :</span> Visuels corrects mais vous faites tout vous-même</li>
-              <li><span className="font-semibold text-neutral-800">Clients :</span> Possible mais combien vaut votre temps ?</li>
-            </ul>
-            <p className="mt-3 text-xs text-neutral-500 italic">
-              &quot;Votre temps vaut plus que 12€/mois. Vous êtes commerçant, pas graphiste.&quot;
-            </p>
-          </div>
-
-          {/* Card 4 — KeiroAI */}
+          {/* Card 3 — KeiroAI */}
           <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-400 p-6 shadow-lg relative">
             <div className="absolute -top-2 -right-2 text-xl">⭐</div>
             <h3 className="text-lg font-bold text-blue-900 mb-3">&quot;KeiroAI&quot;</h3>
@@ -837,68 +824,6 @@ function HomeKeiroInner() {
           </div>
         </div>
 
-        {/* ROI Table */}
-        <div className="bg-white rounded-2xl border-2 border-blue-200 overflow-hidden shadow-lg">
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
-            <h3 className="text-white font-bold text-lg text-center">Combien de ventes pour rentabiliser KeiroAI ?</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-blue-50 border-b border-blue-200">
-                  <th className="text-left p-3 font-semibold text-blue-900">Votre commerce</th>
-                  <th className="text-center p-3 font-semibold text-blue-900">Ticket moyen</th>
-                  <th className="text-center p-3 font-semibold text-blue-900">Pro (89€)</th>
-                  <th className="text-center p-3 font-semibold text-blue-900">Fondateurs (149€)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-neutral-100">
-                  <td className="p-3 font-medium">Boutique mode/déco</td>
-                  <td className="p-3 text-center text-neutral-600">80-200€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">1 vente</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">2 ventes</td>
-                </tr>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  <td className="p-3 font-medium">Coach sportif</td>
-                  <td className="p-3 text-center text-neutral-600">40-80€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">1-2 séances</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">2-3 séances</td>
-                </tr>
-                <tr className="border-b border-neutral-100">
-                  <td className="p-3 font-medium">Coiffeur / Barbier</td>
-                  <td className="p-3 text-center text-neutral-600">25-50€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">2-4 coupes</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">4-6 coupes</td>
-                </tr>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  <td className="p-3 font-medium">Restaurant (soir)</td>
-                  <td className="p-3 text-center text-neutral-600">25-45€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">5 couverts</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">7 couverts</td>
-                </tr>
-                <tr className="border-b border-neutral-100">
-                  <td className="p-3 font-medium">Caviste / Fromagerie</td>
-                  <td className="p-3 text-center text-neutral-600">30-100€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">2-3 paniers</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">4-5 paniers</td>
-                </tr>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  <td className="p-3 font-medium">Fleuriste</td>
-                  <td className="p-3 text-center text-neutral-600">30-80€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">2-3 bouquets</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">4-5 bouquets</td>
-                </tr>
-                <tr className="bg-blue-50">
-                  <td className="p-3 font-medium">Traiteur</td>
-                  <td className="p-3 text-center text-neutral-600">500-5000€</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">1 devis = payé 6 mois</td>
-                  <td className="p-3 text-center font-semibold text-blue-600">1 devis = payé 3 mois</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </section>
       </FadeUp>
 
@@ -1014,8 +939,8 @@ function HomeKeiroInner() {
               {t.home.pricingSubtitle}
             </p>
 
-            {/* Toggle mensuel/annuel */}
-            <div className="flex items-center justify-center gap-3 mt-6">
+            {/* Toggle mensuel/annuel — hidden for now */}
+            <div className="flex items-center justify-center gap-3 mt-6" style={{ display: 'none' }}>
               <button
                 onClick={() => setBillingPeriod('monthly')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -1193,11 +1118,6 @@ function HomeKeiroInner() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-6 text-center">
-          <p className="text-base text-neutral-700 font-medium">
-            Pour <strong className="text-blue-600">60€ de plus</strong> par mois : votre logo sur chaque visuel, 3 formats automatiques, et TikTok — là où les <strong className="text-blue-600">NOUVEAUX clients</strong> vous découvrent.
-          </p>
-        </div>
       </section>
       </FadeUp>
 

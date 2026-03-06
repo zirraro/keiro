@@ -176,7 +176,8 @@ function PricingPageInner() {
           </p>
 
           {/* Toggle Mensuel / Annuel */}
-          <div className="mt-8 inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-neutral-200 shadow-sm">
+          {/* Toggle Mensuel / Annuel - hidden for now */}
+          <div style={{ display: 'none' }} className="mt-8 inline-flex items-center gap-3 bg-white rounded-full p-1.5 border border-neutral-200 shadow-sm">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
@@ -442,7 +443,6 @@ function PricingPageInner() {
           </div></StaggerItem>
         </StaggerContainer>
 
-        <p className="text-center text-sm text-neutral-600 mt-4 mb-2 font-medium">{t.pricing.planFondateursGap}</p>
 
         {/* Elite - Plan complet */}
         <FadeUp>
@@ -519,7 +519,6 @@ function PricingPageInner() {
               </ul>
             </div>
           </div>
-          <p className="text-center text-sm text-neutral-600 mt-6 font-medium max-w-3xl mx-auto">{"Pour 60€ de plus par mois : votre logo sur chaque visuel, 3 formats automatiques, et TikTok — là où les NOUVEAUX clients vous découvrent."}</p>
         </div>
         </FadeUp>
 
@@ -763,7 +762,7 @@ function PricingPageInner() {
             <p className="text-neutral-600 max-w-2xl mx-auto">{"Chaque jour sans Instagram, des clients potentiels choisissent votre concurrent."}</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             {/* Card 1 - Ne rien faire */}
             <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
               <h4 className="font-bold text-neutral-600 mb-3">{"Ne rien faire"}</h4>
@@ -786,18 +785,7 @@ function PricingPageInner() {
               <p className="text-xs text-neutral-400 mt-3 italic">{"\"Un post tous les 2 mois avec une photo au smartphone ne trompe personne.\""}</p>
             </div>
 
-            {/* Card 3 - Canva tout seul */}
-            <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
-              <h4 className="font-bold text-neutral-600 mb-3">{"Canva tout seul"}</h4>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> 12€/mois + 3h de VOTRE temps</p>
-                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> Visuels corrects mais vous faites tout</p>
-                <p><span className="font-semibold text-neutral-500">{"Clients :"}</span> {"Possible mais combien vaut votre temps ?"}</p>
-              </div>
-              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Votre temps vaut plus que 12€/mois. Vous êtes commerçant, pas graphiste.\""}</p>
-            </div>
-
-            {/* Card 4 - KeiroAI */}
+            {/* Card 3 - KeiroAI */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-300 p-5 shadow-lg">
               <h4 className="font-bold text-blue-700 mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
@@ -809,66 +797,6 @@ function PricingPageInner() {
             </div>
           </div>
 
-          {/* ROI Table */}
-          <div className="bg-white rounded-2xl border border-neutral-200 p-6">
-            <h4 className="text-lg font-bold text-center mb-4">{"Combien de ventes pour rentabiliser KeiroAI ?"}</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-neutral-50">
-                    <th className="text-left py-3 px-3 font-semibold">Votre commerce</th>
-                    <th className="text-center py-3 px-3 font-semibold">Ticket moyen</th>
-                    <th className="text-center py-3 px-3 font-semibold text-purple-600">Pro (89€)</th>
-                    <th className="text-center py-3 px-3 font-semibold text-amber-600">Fondateurs (149€)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Boutique mode/déco</td>
-                    <td className="text-center py-2.5 px-3">80-200€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1 vente</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">2 ventes</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Coach sportif</td>
-                    <td className="text-center py-2.5 px-3">40-80€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1-2 séances</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">2-3 séances</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Coiffeur / Barbier</td>
-                    <td className="text-center py-2.5 px-3">25-50€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-4 coupes</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-6 coupes</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Restaurant (soir)</td>
-                    <td className="text-center py-2.5 px-3">25-45€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">5 couverts</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">7 couverts</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Caviste / Fromagerie</td>
-                    <td className="text-center py-2.5 px-3">30-100€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-3 paniers</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-5 paniers</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2.5 px-3">Fleuriste</td>
-                    <td className="text-center py-2.5 px-3">30-80€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">2-3 bouquets</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">4-5 bouquets</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2.5 px-3">Traiteur</td>
-                    <td className="text-center py-2.5 px-3">500-5000€</td>
-                    <td className="text-center py-2.5 px-3 text-purple-700 font-medium">1 devis = payé 6 mois</td>
-                    <td className="text-center py-2.5 px-3 text-amber-700 font-medium">1 devis = payé 3 mois</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
         </FadeUp>
 

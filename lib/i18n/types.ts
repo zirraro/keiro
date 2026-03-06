@@ -183,15 +183,15 @@ export interface Translations {
     // Testimonials
     testimonialsTitle: string;
     testimonialsSub: string;
-    testimonial1: string;
-    testimonial1Author: string;
-    testimonial1Business: string;
-    testimonial2: string;
-    testimonial2Author: string;
-    testimonial2Business: string;
-    testimonial3: string;
-    testimonial3Author: string;
-    testimonial3Business: string;
+    testimonial1Name: string;
+    testimonial1Role: string;
+    testimonial1Text: string;
+    testimonial2Name: string;
+    testimonial2Role: string;
+    testimonial2Text: string;
+    testimonial3Name: string;
+    testimonial3Role: string;
+    testimonial3Text: string;
     testimonialCta: string;
     testimonialCtaSub: string;
     // Why publish on news
