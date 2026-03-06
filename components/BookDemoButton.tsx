@@ -8,7 +8,7 @@ interface BookDemoButtonProps {
 
 export default function BookDemoButton({ variant = 'primary', size = 'md', className = '' }: BookDemoButtonProps) {
   const openCalendly = () => {
-    window.open('https://calendly.com/contact-keiroai/15min', '_blank');
+    window.open('https://calendly.com/contact-keiroai/demo-keiroai-15-minutes', '_blank');
   };
 
   // Styles de base

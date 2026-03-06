@@ -436,7 +436,7 @@ function PricingPageInner() {
               <p className="text-neutral-600 text-sm mb-3" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <a href="https://calendly.com/contact-keiroai/15min" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all whitespace-nowrap">
+              <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all whitespace-nowrap">
                 Contactez-nous
               </a>
               <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')} className="px-6 py-3 border-2 border-amber-300 text-amber-700 font-semibold rounded-xl hover:bg-amber-50 transition-all whitespace-nowrap">
@@ -796,7 +796,7 @@ function PricingPageInner() {
                     {t.pricing.supportCallDesc}
                   </p>
                   <a
-                    href="https://calendly.com/contact-keiroai/15min"
+                    href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"

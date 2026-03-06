@@ -13,7 +13,7 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
   if (!isOpen) return null;
 
   const openCalendly = () => {
-    window.open('https://calendly.com/contact-keiroai/15min', '_blank');
+    window.open('https://calendly.com/contact-keiroai/demo-keiroai-15-minutes', '_blank');
   };
 
   const openMetaGuide = () => {

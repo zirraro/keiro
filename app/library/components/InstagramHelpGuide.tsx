@@ -6,7 +6,7 @@ export default function InstagramHelpGuide() {
   const { t } = useLanguage();
 
   const openCalendly = () => {
-    window.open('https://calendly.com/contact-keiroai/15min', '_blank');
+    window.open('https://calendly.com/contact-keiroai/demo-keiroai-15-minutes', '_blank');
   };
 
   return (
