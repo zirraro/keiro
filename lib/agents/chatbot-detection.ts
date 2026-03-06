@@ -46,6 +46,11 @@ const BUSINESS_KEYWORDS: Record<string, string[]> = {
   caviste: ['vin', 'cave', 'caviste', 'fromage', 'fromagerie', '\u00E9picerie'],
   fleuriste: ['fleur', 'fleuriste', 'bouquet', 'composition'],
   traiteur: ['traiteur', '\u00E9v\u00E9nement', 'buffet', 'mariage', 's\u00E9minaire'],
+  freelance: ['freelance', 'consultant', 'ind\u00E9pendant', 'd\u00E9veloppeur', 'designer', 'photographe', 'copywriter', 'r\u00E9dacteur', 'graphiste', 'formateur', 'cr\u00E9ateur'],
+  services: ['plombier', '\u00E9lectricien', 'chauffagiste', 'menuisier', 'artisan', 'serrurier', 'peintre', 'carreleur', 'ma\u00E7on', 'couvreur'],
+  professionnel: ['avocat', 'notaire', 'comptable', 'expert-comptable', 'm\u00E9decin', 'kin\u00E9', 'ost\u00E9opathe', 'dentiste', 'th\u00E9rapeute', 'psychologue', 'pharmacien'],
+  agence: ['agence', 'community manager', 'studio cr\u00E9atif', 'studio', 'agence web', 'agence marketing', 'agence com'],
+  pme: ['entreprise', 'soci\u00E9t\u00E9', 'startup', 'pme', 'tpe', 'sarl', 'sas', 'eurl', 'auto-entrepreneur'],
 };
 
 /**
@@ -162,7 +167,7 @@ export function getReengagementMessage(
     (page === '/' || page === '' || page.includes('accueil')) &&
     timeOnPage > 15
   ) {
-    return 'Salut ! Vous \u00EAtes commer\u00E7ant ? Je peux vous montrer en 30 secondes ce que KeiroAI fait pour les commerces du quartier \uD83D\uDE80';
+    return 'Salut ! Vous cherchez \u00E0 cr\u00E9er du contenu pro pour vos r\u00E9seaux sociaux ? Je peux vous montrer en 30 secondes ce que KeiroAI fait \uD83D\uDE80';
   }
 
   // Pricing page after 10 seconds

@@ -22,8 +22,13 @@ const SCORING_RULES: Record<string, number> = {
   type_restaurant_soir: 5,
   type_caviste: 5,
   type_fleuriste: 5,
-  type_boulangerie: -5,
-  type_cafe: -10,
+  type_boulangerie: 0,
+  type_cafe: 0,
+  type_freelance: 10,
+  type_agence: 12,
+  type_professionnel: 10,
+  type_services: 8,
+  type_pme: 10,
 };
 
 /**
@@ -44,6 +49,11 @@ const ROI_PHRASES: Record<string, string> = {
     '2 bouquets en plus par mois. Et la f\u00EAte des m\u00E8res ? C\u2019est le jackpot.',
   traiteur:
     '1 contrat \u00E9v\u00E9nementiel en plus et c\u2019est pay\u00E9 pour 6 mois.',
+  freelance: '1 client en plus gr\u00E2ce \u00E0 vos r\u00E9seaux et c\'est pay\u00E9 pour 3 mois. Le personal branding, c\'est le meilleur investissement.',
+  services: '1 devis en plus par mois. Une photo avant/apr\u00E8s bien post\u00E9e = +30% de demandes.',
+  professionnel: '1 consultation en plus et c\'est rembours\u00E9. L\'image de marque attire la confiance.',
+  agence: '2h gagn\u00E9es par client par semaine. Contenu automatis\u00E9 = plus de clients sans embaucher.',
+  pme: 'Communication corporate pro en 3 min. Marque employeur + r\u00E9seaux = recrutement et visibilit\u00E9.',
 };
 
 /**
@@ -71,6 +81,44 @@ const SEQUENCE_MAP: Record<string, string> = {
   fleuriste: 'fleuriste',
   fleur: 'fleuriste',
   traiteur: 'traiteur',
+  freelance: 'freelance',
+  consultant: 'freelance',
+  ind\u00E9pendant: 'freelance',
+  d\u00E9veloppeur: 'freelance',
+  designer: 'freelance',
+  photographe: 'freelance',
+  copywriter: 'freelance',
+  r\u00E9dacteur: 'freelance',
+  graphiste: 'freelance',
+  formateur: 'freelance',
+  plombier: 'services',
+  \u00E9lectricien: 'services',
+  chauffagiste: 'services',
+  menuisier: 'services',
+  artisan: 'services',
+  serrurier: 'services',
+  peintre: 'services',
+  carreleur: 'services',
+  avocat: 'professionnel',
+  notaire: 'professionnel',
+  comptable: 'professionnel',
+  m\u00E9decin: 'professionnel',
+  kin\u00E9: 'professionnel',
+  ost\u00E9opathe: 'professionnel',
+  dentiste: 'professionnel',
+  th\u00E9rapeute: 'professionnel',
+  pharmacien: 'professionnel',
+  agence: 'agence',
+  'community manager': 'agence',
+  studio: 'agence',
+  entreprise: 'pme',
+  soci\u00E9t\u00E9: 'pme',
+  startup: 'pme',
+  pme: 'pme',
+  tpe: 'pme',
+  sarl: 'pme',
+  sas: 'pme',
+  eurl: 'pme',
 };
 
 /**
@@ -158,6 +206,16 @@ export function calculateScore(prospect: any): number {
     score += SCORING_RULES.type_boulangerie;
   } else if (bizType.includes('caf\u00E9') || bizType.includes('cafe')) {
     score += SCORING_RULES.type_cafe;
+  } else if (bizType.includes('freelance') || bizType.includes('consultant') || bizType.includes('ind\u00E9pendant')) {
+    score += SCORING_RULES.type_freelance;
+  } else if (bizType.includes('agence') || bizType.includes('studio')) {
+    score += SCORING_RULES.type_agence;
+  } else if (bizType.includes('avocat') || bizType.includes('m\u00E9decin') || bizType.includes('comptable') || bizType.includes('notaire') || bizType.includes('kin\u00E9') || bizType.includes('dentiste')) {
+    score += SCORING_RULES.type_professionnel;
+  } else if (bizType.includes('plombier') || bizType.includes('\u00E9lectricien') || bizType.includes('artisan') || bizType.includes('menuisier')) {
+    score += SCORING_RULES.type_services;
+  } else if (bizType.includes('entreprise') || bizType.includes('pme') || bizType.includes('startup') || bizType.includes('soci\u00E9t\u00E9')) {
+    score += SCORING_RULES.type_pme;
   }
 
   // Clamp to 0-100
@@ -214,7 +272,7 @@ export function getSequenceForProspect(prospect: any): string {
   }
 
   // Default fallback
-  return 'boutique';
+  return 'pme';
 }
 
 /**
@@ -222,5 +280,5 @@ export function getSequenceForProspect(prospect: any): string {
  * Falls back to the boutique phrase if category is unknown.
  */
 export function getROIPhrase(category: string): string {
-  return ROI_PHRASES[category] ?? ROI_PHRASES.boutique;
+  return ROI_PHRASES[category] ?? ROI_PHRASES.pme;
 }

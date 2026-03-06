@@ -6,15 +6,15 @@
     },
     {
       "path": "/api/agents/ceo",
-      "schedule": "0 6 * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/agents/email/daily",
-      "schedule": "0 7 * * 2,4"
+      "schedule": "0 5 * * 2,4"
     },
     {
       "path": "/api/agents/email/daily?type=warm",
-      "schedule": "0 8 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

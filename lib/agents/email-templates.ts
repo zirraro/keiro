@@ -34,7 +34,7 @@ function wrapHtmlEmail(subject: string, bodyHtml: string): string {
       </div>
     </div>
     <div style="background:#f9fafb;padding:16px;text-align:center;color:#9ca3af;font-size:12px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
-      <p style="margin:0;">KeiroAI &mdash; Marketing IA pour commerces de proximit&eacute;</p>
+      <p style="margin:0;">KeiroAI &mdash; Marketing IA pour entrepreneurs et PME</p>
       <p style="margin:4px 0 0 0;"><a href="https://keiroai.com" style="color:#9333ea;text-decoration:none;">keiroai.com</a></p>
       <p style="margin:8px 0 0 0;font-size:11px;color:#c0c0c0;">Si vous ne souhaitez plus recevoir nos emails, <a href="{{unsubscribe_url}}" style="color:#c0c0c0;">cliquez ici</a>.</p>
     </div>
@@ -86,13 +86,38 @@ const SUBJECT_VARIANTS: Record<string, string[]> = {
     '{{company}} \u2014 2 bouquets en plus et c\u2019est pay\u00E9',
     'Fleuriste {{quartier}} \u2014 une id\u00E9e',
   ],
+  freelance: [
+    '{{company}} \u2014 votre expertise m\u00E9rite plus de visibilit\u00E9',
+    '{{company}} \u2014 1 client en plus gr\u00E2ce aux r\u00E9seaux',
+    'Freelance {{quartier}} \u2014 une id\u00E9e pour vous',
+  ],
+  services: [
+    '{{company}} \u2014 vos r\u00E9alisations m\u00E9ritent d\u2019\u00EAtre vues',
+    '{{company}} \u2014 1 devis en plus et c\u2019est pay\u00E9',
+    '{{type}} {{quartier}} \u2014 une question rapide',
+  ],
+  professionnel: [
+    '{{company}} \u2014 votre image de marque en ligne',
+    '{{company}} \u2014 la confiance passe par la visibilit\u00E9',
+    '{{type}} {{quartier}} \u2014 une id\u00E9e',
+  ],
+  agence: [
+    '{{company}} \u2014 automatisez le contenu de vos clients',
+    '{{company}} \u2014 2h gagn\u00E9es par client par semaine',
+    'Agence {{quartier}} \u2014 une id\u00E9e',
+  ],
+  pme: [
+    '{{company}} \u2014 votre communication m\u00E9rite mieux',
+    '{{company}} \u2014 marque employeur + r\u00E9seaux sociaux',
+    '{{type}} {{quartier}} \u2014 une question rapide',
+  ],
 };
 
 /**
  * Returns the subject line variants for email 1 of a given category.
  */
 export function getSubjectVariants(category: string): string[] {
-  return SUBJECT_VARIANTS[category] ?? SUBJECT_VARIANTS.boutique;
+  return SUBJECT_VARIANTS[category] ?? SUBJECT_VARIANTS.pme;
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +510,314 @@ KeiroAI`,
   };
 }
 
+function freelanceTemplates(): TemplateSet {
+  return {
+    subjects: SUBJECT_VARIANTS.freelance,
+    bodies: [
+      // Email 1
+      {
+        text: `Bonjour {{first_name}},
+
+Je suis tomb\u00E9 sur {{company}} \u2014 votre expertise m\u00E9rite clairement plus de visibilit\u00E9.
+
+LinkedIn et Instagram sont les meilleurs canaux pour un freelance, mais cr\u00E9er du contenu prend un temps fou quand on g\u00E8re d\u00E9j\u00E0 ses clients.
+
+Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros pour votre personal branding en 3 min.
+
+1 client en plus gr\u00E2ce \u00E0 vos posts et c\u2019est pay\u00E9 pour 3 mois. Le personal branding, c\u2019est le meilleur investissement.
+
+Je vous montre ?
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 votre expertise m\u00E9rite clairement plus de visibilit\u00E9.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">LinkedIn et Instagram sont les meilleurs canaux pour un freelance, mais cr\u00E9er du contenu prend un temps fou quand on g\u00E8re d\u00E9j\u00E0 ses clients.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros pour votre personal branding en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>1 client en plus gr\u00E2ce \u00E0 vos posts et c\u2019est pay\u00E9 pour 3 mois.</strong> Le personal branding, c\u2019est le meilleur investissement.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je vous montre ?</p>`,
+      },
+      // Email 2
+      {
+        text: `{{first_name}},
+
+J\u2019ai cr\u00E9\u00E9 un visuel type pour un freelance \u2014 c\u2019est en pi\u00E8ce jointe.
+
+Imaginez \u00E7a avec votre marque personnelle. G\u00E9n\u00E9r\u00E9 en 3 min.
+
+1 client en plus = des mois de missions. C\u2019est le meilleur investissement marketing possible.
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un freelance \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Imaginez \u00E7a avec <strong>votre marque personnelle</strong>. G\u00E9n\u00E9r\u00E9 en 3 min.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>1 client en plus = des mois de missions.</strong> C\u2019est le meilleur investissement marketing possible.</p>`,
+        attachmentName: 'visuel-vitrine-{{company}}.png',
+      },
+      // Email 3
+      {
+        text: `{{first_name}},
+
+Derni\u00E8re question : si vous pouviez avoir du contenu pro sans effort, vous le feriez ?
+
+15 min de d\u00E9mo. Sinon, je vous souhaite plein de r\u00E9ussite !
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Derni\u00E8re question : si vous pouviez avoir du contenu pro sans effort, vous le feriez ?</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><a href="https://keiroai.com/pricing" style="display:inline-block;background:linear-gradient(to right,#9333ea,#2563eb);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:bold;font-size:15px;">15 min de d\u00E9mo</a></p>
+<p style="margin:0 0 14px 0;font-size:15px;">Sinon, je vous souhaite plein de r\u00E9ussite !</p>`,
+      },
+    ],
+  };
+}
+
+function servicesTemplates(): TemplateSet {
+  return {
+    subjects: SUBJECT_VARIANTS.services,
+    bodies: [
+      // Email 1
+      {
+        text: `Bonjour {{first_name}},
+
+Je suis tomb\u00E9 sur {{company}} dans le {{quartier}} \u2014 vos r\u00E9alisations parlent d\u2019elles-m\u00EAmes.
+
+Les photos avant/apr\u00E8s sur les r\u00E9seaux, c\u2019est ce qui g\u00E9n\u00E8re le plus de demandes de devis. +30% en moyenne. Mais cr\u00E9er du contenu entre deux chantiers, c\u2019est mission impossible.
+
+Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros en 3 min.
+
+1 devis en plus et c\u2019est pay\u00E9. Je vous montre ?
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> dans le {{quartier}} \u2014 vos r\u00E9alisations parlent d\u2019elles-m\u00EAmes.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Les photos avant/apr\u00E8s sur les r\u00E9seaux, c\u2019est ce qui g\u00E9n\u00E8re le plus de demandes de devis. <strong>+30% en moyenne</strong>. Mais cr\u00E9er du contenu entre deux chantiers, c\u2019est mission impossible.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>1 devis en plus et c\u2019est pay\u00E9.</strong> Je vous montre ?</p>`,
+      },
+      // Email 2
+      {
+        text: `{{first_name}},
+
+J\u2019ai cr\u00E9\u00E9 un visuel type pour mettre en valeur vos r\u00E9alisations \u2014 c\u2019est en pi\u00E8ce jointe.
+
+Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. G\u00E9n\u00E9r\u00E9 en 3 min.
+
+1 devis en plus par mois et c\u2019est rembours\u00E9.
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour mettre en valeur vos r\u00E9alisations \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. G\u00E9n\u00E9r\u00E9 en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>1 devis en plus par mois et c\u2019est rembours\u00E9.</strong></p>`,
+        attachmentName: 'visuel-vitrine-{{company}}.png',
+      },
+      // Email 3
+      {
+        text: `{{first_name}},
+
+Derni\u00E8re question : vos concurrents postent d\u00E9j\u00E0 sur les r\u00E9seaux. Si vous pouviez faire pareil en 10 min/semaine, vous le feriez ?
+
+15 min pour une d\u00E9mo. Sinon, bonne continuation !
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Derni\u00E8re question : vos concurrents postent d\u00E9j\u00E0 sur les r\u00E9seaux. Si vous pouviez faire pareil en 10 min/semaine, vous le feriez ?</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><a href="https://keiroai.com/pricing" style="display:inline-block;background:linear-gradient(to right,#9333ea,#2563eb);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:bold;font-size:15px;">15 min de d\u00E9mo</a></p>
+<p style="margin:0 0 14px 0;font-size:15px;">Sinon, bonne continuation !</p>`,
+      },
+    ],
+  };
+}
+
+function professionnelTemplates(): TemplateSet {
+  return {
+    subjects: SUBJECT_VARIANTS.professionnel,
+    bodies: [
+      // Email 1
+      {
+        text: `Bonjour {{first_name}},
+
+Je suis tomb\u00E9 sur {{company}} dans le {{quartier}} \u2014 votre image professionnelle est cl\u00E9.
+
+Aujourd\u2019hui, la confiance passe par la visibilit\u00E9 en ligne. Vos patients ou clients vous cherchent sur Google et les r\u00E9seaux. Une communication sobre et pro fait toute la diff\u00E9rence.
+
+Avec KeiroAI, vous cr\u00E9ez des visuels professionnels en 3 min, pas en 3 heures.
+
+1 consultation en plus et c\u2019est rembours\u00E9. Je vous montre ?
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> dans le {{quartier}} \u2014 votre image professionnelle est cl\u00E9.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Aujourd\u2019hui, la confiance passe par la visibilit\u00E9 en ligne. Vos patients ou clients vous cherchent sur Google et les r\u00E9seaux. Une communication sobre et pro fait toute la diff\u00E9rence.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Avec KeiroAI, vous cr\u00E9ez des visuels professionnels en <strong>3 min</strong>, pas en 3 heures.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>1 consultation en plus et c\u2019est rembours\u00E9.</strong> Je vous montre ?</p>`,
+      },
+      // Email 2
+      {
+        text: `{{first_name}},
+
+J\u2019ai cr\u00E9\u00E9 un visuel type pour un professionnel comme vous \u2014 c\u2019est en pi\u00E8ce jointe.
+
+Imaginez votre image de marque mise en valeur comme \u00E7a. G\u00E9n\u00E9r\u00E9 en 3 min.
+
+Une pr\u00E9sence en ligne professionnelle attire la confiance et les nouveaux clients.
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un professionnel comme vous \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Imaginez votre image de marque mise en valeur comme \u00E7a. G\u00E9n\u00E9r\u00E9 en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>Une pr\u00E9sence en ligne professionnelle attire la confiance et les nouveaux clients.</strong></p>`,
+        attachmentName: 'visuel-vitrine-{{company}}.png',
+      },
+      // Email 3
+      {
+        text: `{{first_name}},
+
+Derni\u00E8re question : les patients et clients modernes cherchent en ligne. Si vous pouviez avoir une pr\u00E9sence pro sans effort, vous le feriez ?
+
+15 min de d\u00E9mo. Sinon, bonne continuation !
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Derni\u00E8re question : les patients et clients modernes cherchent en ligne. Si vous pouviez avoir une pr\u00E9sence pro sans effort, vous le feriez ?</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><a href="https://keiroai.com/pricing" style="display:inline-block;background:linear-gradient(to right,#9333ea,#2563eb);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:bold;font-size:15px;">15 min de d\u00E9mo</a></p>
+<p style="margin:0 0 14px 0;font-size:15px;">Sinon, bonne continuation !</p>`,
+      },
+    ],
+  };
+}
+
+function agenceTemplates(): TemplateSet {
+  return {
+    subjects: SUBJECT_VARIANTS.agence,
+    bodies: [
+      // Email 1
+      {
+        text: `Bonjour {{first_name}},
+
+Je suis tomb\u00E9 sur {{company}} \u2014 vous g\u00E9rez le contenu de plusieurs clients, et je sais que \u00E7a prend un temps fou.
+
+Imaginez pouvoir automatiser la cr\u00E9ation de visuels et vid\u00E9os pour chacun de vos clients. 2h gagn\u00E9es par client par semaine.
+
+Avec KeiroAI, vous pouvez scaler votre offre contenu sans embaucher. 3 min par visuel, qualit\u00E9 pro.
+
+Je vous montre comment \u00E7a marche ?
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 vous g\u00E9rez le contenu de plusieurs clients, et je sais que \u00E7a prend un temps fou.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Imaginez pouvoir automatiser la cr\u00E9ation de visuels et vid\u00E9os pour chacun de vos clients. <strong>2h gagn\u00E9es par client par semaine</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Avec KeiroAI, vous pouvez scaler votre offre contenu sans embaucher. <strong>3 min</strong> par visuel, qualit\u00E9 pro.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je vous montre comment \u00E7a marche ?</p>`,
+      },
+      // Email 2
+      {
+        text: `{{first_name}},
+
+Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez du contenu pour vos clients en 3 min.
+
+Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer votre portfolio, et gagner du temps.
+
+2h gagn\u00E9es par client par semaine = plus de clients sans embaucher.
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez du contenu pour vos clients en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer votre portfolio, et gagner du temps.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>2h gagn\u00E9es par client par semaine = plus de clients sans embaucher.</strong></p>`,
+        attachmentName: 'visuel-vitrine-{{company}}.png',
+      },
+      // Email 3
+      {
+        text: `{{first_name}},
+
+Derni\u00E8re question : si vous pouviez livrer du contenu \u00E0 chaque client sans effort, vous le feriez ?
+
+15 min de d\u00E9mo. Sinon, bonne continuation !
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Derni\u00E8re question : si vous pouviez livrer du contenu \u00E0 chaque client sans effort, vous le feriez ?</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><a href="https://keiroai.com/pricing" style="display:inline-block;background:linear-gradient(to right,#9333ea,#2563eb);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:bold;font-size:15px;">15 min de d\u00E9mo</a></p>
+<p style="margin:0 0 14px 0;font-size:15px;">Sinon, bonne continuation !</p>`,
+      },
+    ],
+  };
+}
+
+function pmeTemplates(): TemplateSet {
+  return {
+    subjects: SUBJECT_VARIANTS.pme,
+    bodies: [
+      // Email 1
+      {
+        text: `Bonjour {{first_name}},
+
+Je suis tomb\u00E9 sur {{company}} \u2014 votre communication m\u00E9rite d\u2019\u00EAtre \u00E0 la hauteur de votre entreprise.
+
+La marque employeur et la visibilit\u00E9 sur les r\u00E9seaux sociaux sont devenues indispensables. Mais cr\u00E9er du contenu corporate prend du temps.
+
+Avec KeiroAI : communication pro en 3 min, pas en 3 heures.
+
+Marque employeur + r\u00E9seaux = recrutement et visibilit\u00E9. Je vous montre ?
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 votre communication m\u00E9rite d\u2019\u00EAtre \u00E0 la hauteur de votre entreprise.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">La marque employeur et la visibilit\u00E9 sur les r\u00E9seaux sociaux sont devenues indispensables. Mais cr\u00E9er du contenu corporate prend du temps.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Avec KeiroAI : <strong>communication pro en 3 min</strong>, pas en 3 heures.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>Marque employeur + r\u00E9seaux = recrutement et visibilit\u00E9.</strong> Je vous montre ?</p>`,
+      },
+      // Email 2
+      {
+        text: `{{first_name}},
+
+Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez votre marque sur tous les r\u00E9seaux.
+
+Une image professionnelle coh\u00E9rente, g\u00E9n\u00E9r\u00E9e en 3 min.
+
+Communication corporate pro = confiance, recrutement et visibilit\u00E9.
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez votre marque sur tous les r\u00E9seaux.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Une image professionnelle coh\u00E9rente, g\u00E9n\u00E9r\u00E9e en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><strong>Communication corporate pro = confiance, recrutement et visibilit\u00E9.</strong></p>`,
+        attachmentName: 'visuel-vitrine-{{company}}.png',
+      },
+      // Email 3
+      {
+        text: `{{first_name}},
+
+Derni\u00E8re question : vos concurrents communiquent d\u00E9j\u00E0 sur les r\u00E9seaux. Si vous pouviez faire pareil en 10 min/semaine, vous le feriez ?
+
+15 min pour une d\u00E9mo. Sinon, bonne continuation !
+
+Oussama
+KeiroAI`,
+        html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Derni\u00E8re question : vos concurrents communiquent d\u00E9j\u00E0 sur les r\u00E9seaux. Si vous pouviez faire pareil en 10 min/semaine, vous le feriez ?</p>
+<p style="margin:0 0 14px 0;font-size:15px;"><a href="https://keiroai.com/pricing" style="display:inline-block;background:linear-gradient(to right,#9333ea,#2563eb);color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:bold;font-size:15px;">15 min de d\u00E9mo</a></p>
+<p style="margin:0 0 14px 0;font-size:15px;">Sinon, bonne continuation !</p>`,
+      },
+    ],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // ROI phrases (used in warm template)
 // ---------------------------------------------------------------------------
@@ -504,6 +837,16 @@ const ROI_PHRASES: Record<string, string> = {
     '2 bouquets en plus par mois. Et la f\u00EAte des m\u00E8res ? C\u2019est le jackpot.',
   traiteur:
     '1 contrat \u00E9v\u00E9nementiel en plus et c\u2019est pay\u00E9 pour 6 mois.',
+  freelance:
+    '1 client en plus gr\u00E2ce \u00E0 vos r\u00E9seaux et c\u2019est pay\u00E9 pour 3 mois. Le personal branding, c\u2019est le meilleur investissement.',
+  services:
+    '1 devis en plus par mois. Une photo avant/apr\u00E8s bien post\u00E9e = +30% de demandes.',
+  professionnel:
+    '1 consultation en plus et c\u2019est rembours\u00E9. L\u2019image de marque attire la confiance.',
+  agence:
+    '2h gagn\u00E9es par client par semaine. Contenu automatis\u00E9 = plus de clients sans embaucher.',
+  pme:
+    'Communication corporate pro en 3 min. Marque employeur + r\u00E9seaux = recrutement et visibilit\u00E9.',
 };
 
 // ---------------------------------------------------------------------------
@@ -554,8 +897,18 @@ function getTemplateSet(category: string): TemplateSet {
       return cavisteTemplates();
     case 'fleuriste':
       return fleuristeTemplates();
+    case 'freelance':
+      return freelanceTemplates();
+    case 'services':
+      return servicesTemplates();
+    case 'professionnel':
+      return professionnelTemplates();
+    case 'agence':
+      return agenceTemplates();
+    case 'pme':
+      return pmeTemplates();
     default:
-      return boutiqueTemplates();
+      return pmeTemplates();
   }
 }
 
@@ -580,7 +933,7 @@ export function getEmailTemplate(
 ): EmailTemplate {
   // Warm follow-up after chatbot interaction (step=10)
   if (step === 10) {
-    const roiPhrase = ROI_PHRASES[category] ?? ROI_PHRASES.boutique;
+    const roiPhrase = ROI_PHRASES[category] ?? ROI_PHRASES.pme;
     const body = warmTemplateBody(roiPhrase);
     const subject = replaceVars(
       'Suite \u00E0 notre \u00E9change \u2014 un visuel pour {{company}}',
