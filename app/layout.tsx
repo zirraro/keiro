@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import Script from "next/script";
 import { LanguageProvider } from "@/lib/i18n/context";
 import NewsPrefetcher from "@/components/NewsPrefetcher";
+import ChatbotWidget from "@/components/ChatbotWidget";
 
 export const metadata: Metadata = {
   title: {
@@ -137,6 +138,7 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <ChatbotWidget />
         </LanguageProvider>
       </body>
     </html>
