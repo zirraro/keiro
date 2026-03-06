@@ -167,11 +167,34 @@ export const NEWS_REGIONS = [
   { code: 'nord', nameFr: 'Europe du Nord', nameEn: 'Northern Europe' },
 ] as const;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// WORD BOUNDARY MATCHING — évite les faux positifs de .includes()
+// "om" ne matche PAS "comment"/"home", "rap" ne matche PAS "rapide", etc.
+// ═══════════════════════════════════════════════════════════════════════════
+const WORD_CHAR_RE = /[a-zà-öø-ÿ0-9]/i;
+
+function textContainsKeyword(text: string, kw: string): boolean {
+  const padded = ` ${text} `;
+  let idx = padded.indexOf(kw);
+  while (idx !== -1) {
+    const before = padded[idx - 1];
+    const after = padded[idx + kw.length];
+    if (!WORD_CHAR_RE.test(before)) {
+      if (!WORD_CHAR_RE.test(after)) return true;
+      // Accepter le pluriel français/anglais "s" suivi d'une frontière
+      if (after === 's' && (idx + kw.length + 1 >= padded.length || !WORD_CHAR_RE.test(padded[idx + kw.length + 1]))) return true;
+    }
+    idx = padded.indexOf(kw, idx + 1);
+  }
+  return false;
+}
+
 // Mots-clés pour catégorisation intelligente (15 catégories)
+// NETTOYÉ : supprimé les mots trop courts/génériques qui causent des faux positifs
 const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
   'Moteurs & Adrénaline': [
     // Constructeurs auto
-    'renault', 'peugeot', 'citroën', 'citroen', 'ds automobiles', 'alpine', 'bugatti', 'tesla', 'bmw', 'audi',
+    'renault', 'peugeot', 'citroën', 'citroen', 'ds automobiles', 'alpine a110', 'bugatti', 'tesla', 'bmw', 'audi',
     'volkswagen', 'toyota', 'hyundai', 'kia', 'ford', 'porsche', 'ferrari', 'lamborghini', 'rolls-royce', 'bentley', 'maserati', 'aston martin', 'mclaren',
     'byd', 'nio', 'xpeng', 'geely', 'fiat', 'opel', 'nissan', 'mazda', 'honda auto', 'subaru', 'volvo', 'jaguar', 'land rover', 'mini cooper', 'seat', 'skoda', 'cupra',
     // F1 & sport auto
@@ -181,7 +204,7 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'nascar', 'indycar', 'dtm', 'gt3', 'endurance automobile',
     // Moto
     'moto', 'motogp', 'motocross', 'superbike', 'yamaha moto', 'kawasaki', 'harley-davidson', 'harley davidson', 'ducati', 'ktm',
-    'aprilia', 'triumph', 'indian motorcycle', 'bmw motorrad', 'scooter', 'trail', 'roadster', 'sportive moto',
+    'aprilia', 'triumph moto', 'indian motorcycle', 'bmw motorrad', 'scooter', 'roadster', 'sportive moto',
     'marc marquez', 'bagnaia', 'quartararo', 'zarco',
     // Types de véhicules
     'voiture électrique', 'voiture hybride', 'suv', 'berline', 'citadine', 'coupé', 'cabriolet', '4x4', 'crossover', 'pick-up',
@@ -191,50 +214,57 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'salon de l\'auto', 'mondial de l\'auto', 'salon de genève', 'salon de munich',
     'permis de conduire', 'sécurité routière', 'securite routiere', 'contrôle technique', 'controle technique',
     'essai routier', 'comparatif auto', 'crash test',
-    // English keywords
-    'car', 'automobile', 'electric vehicle', 'ev', 'self-driving', 'autonomous', 'formula one', 'racing', 'motorcycle', 'driver', 'engine', 'fuel', 'sedan', 'coupe', 'convertible', 'pickup truck', 'sports car', 'supercar race', 'motorbike', 'gp racing',
+    // English keywords (NETTOYÉ: supprimé car, ev, driver, engine, fuel, coupe — trop génériques)
+    'automobile', 'electric vehicle', 'self-driving', 'autonomous driving', 'formula one', 'motorcycle', 'racing driver',
+    'sedan', 'convertible', 'pickup truck', 'sports car', 'supercar race', 'motorbike', 'gp racing', 'car brand', 'new car',
   ],
 
   'Tech & Gaming': [
-    'intelligence artificielle', 'ia générative', 'ia generative', 'llm', 'chatgpt', 'gpt', 'gemini', 'claude', 'copilot',
-    'openai', 'anthropic', 'google ai', 'meta ai', 'mistral ai', 'deepseek',
+    'intelligence artificielle', 'ia générative', 'ia generative', 'llm', 'chatgpt', 'gpt', 'copilot',
+    'openai', 'anthropic', 'google gemini', 'meta ai', 'mistral ai', 'deepseek', 'claude ai',
     'github', 'gitlab', 'typescript', 'react', 'next.js', 'vue', 'angular', 'python', 'javascript',
-    'apple', 'iphone', 'ipad', 'macbook', 'samsung', 'galaxy', 'pixel', 'android', 'ios',
+    'iphone', 'ipad', 'macbook', 'samsung', 'galaxy', 'pixel', 'android', 'ios',
     'ransomware', 'phishing', 'data breach', 'fuite de données', 'fuite de donnees', 'rgpd', 'cybersécurité', 'cybersecurite',
     'crypto', 'bitcoin', 'ethereum', 'defi', 'staking', 'wallet', 'binance', 'coinbase', 'stablecoin', 'nft', 'web3', 'blockchain',
-    'fortnite', 'league of legends', 'valorant', 'cs2', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring', 'steam',
+    'fortnite', 'league of legends', 'valorant', 'cs2', 'cs:go', 'minecraft', 'gta', 'call of duty', 'fifa', 'elden ring',
     'epic games', 'ubisoft', 'lec', 'lcs', 'worlds', 'the international', 'esport',
-    'playstation', 'xbox', 'nintendo', 'switch', 'ps5', 'jeu vidéo', 'jeux vidéo', 'jeux video', 'gaming', 'streamer', 'twitch',
+    'playstation', 'xbox', 'nintendo', 'ps5', 'jeu vidéo', 'jeux vidéo', 'jeux video', 'gaming', 'streamer', 'twitch',
     'robot', 'drone', 'réalité virtuelle', 'realite virtuelle', 'réalité augmentée', 'realite augmentee', 'metaverse',
-    'application', 'app', 'mise à jour', 'mise a jour', 'fonctionnalité', 'fonctionnalite',
-    // Ajouts: streaming gaming, quantique, puces, 5G/6G
+    // Streaming gaming, quantique, puces, 5G/6G
     'streaming jeu', 'stream gaming', 'twitch stream', 'quantique', 'quantum', '5g', '6g',
-    'semi-conducteur', 'puce', 'tsmc', 'intel', 'nvidia', 'amd', 'processeur',
+    'semi-conducteur', 'puce électronique', 'puce informatique', 'tsmc', 'intel', 'nvidia', 'amd', 'processeur',
     'impression 3d', '3d printing', 'deepfake', 'prompt engineering',
-    // English keywords
-    'artificial intelligence', 'machine learning', 'smartphone', 'cybersecurity', 'software', 'hardware', 'technology', 'computer', 'internet', 'digital', 'device', 'gadget', 'data breach', 'hacking', 'privacy', 'video game', 'console', 'virtual reality', 'augmented reality', 'wearable', 'chip manufacturing',
+    // English keywords (NETTOYÉ: supprimé app, digital, internet, switch, mac, steam — trop génériques)
+    'artificial intelligence', 'machine learning', 'smartphone', 'cybersecurity', 'software', 'hardware', 'technology',
+    'computer', 'gadget', 'hacking', 'video game', 'console', 'virtual reality', 'augmented reality', 'wearable', 'chip manufacturing',
+    'steam store', 'steam gaming', 'apple watch', 'apple iphone',
   ],
 
   'Business & Finance': [
     'blablacar', 'doctolib', 'contentsquare', 'mirakl', 'back market', 'vinted', 'amazon', 'alibaba', 'shopify', 'marketplace',
-    'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'casino', 'lidl', 'aldi',
+    'dropshipping', 'carrefour', 'auchan', 'leclerc', 'intermarché', 'groupe casino', 'lidl', 'aldi',
     'trading', 'trader', 'dividende', 'indice boursier', 's&p 500', 'dow jones', 'nasdaq', 'obligations', 'forex', 'bnp paribas',
     'société générale', 'crédit agricole', 'la banque postale', 'boursorama', 'revolut', 'n26', 'lydia', 'paypal', 'stripe', 'klarna',
-    'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'taux', 'banque centrale', 'bce',
-    // Ajouts: M&A, résultats, capital-risque, immobilier
-    'acquisition', 'fusion', 'rachat', 'résultats financiers', 'résultats trimestriels', 'chiffre d\'affaires',
-    'capital-risque', 'venture capital', 'private equity', 'fonds d\'investissement', 'valorisation',
+    'startup', 'levée de fonds', 'introduction en bourse', 'ipo', 'cac 40', 'bourse', 'inflation', 'banque centrale', 'bce',
+    // M&A, résultats, capital-risque, immobilier (NETTOYÉ: supprimé prix, taux, fusion, acquisition, consommation — trop génériques)
+    'fusion-acquisition', 'rachat entreprise', 'résultats financiers', 'résultats trimestriels', 'chiffre d\'affaires',
+    'capital-risque', 'venture capital', 'private equity', 'fonds d\'investissement',
     'immobilier', 'logement', 'loyer', 'propriétaire', 'locataire', 'prix immobilier',
-    'pouvoir d\'achat', 'consommation', 'prix', 'coût de la vie', 'cout de la vie',
-    // English keywords
-    'stock market', 'investment', 'economy', 'gdp', 'trade', 'market cap', 'finance', 'banking', 'economic', 'revenue', 'profit', 'shares', 'bonds', 'interest rate', 'central bank', 'recession', 'growth', 'unemployment', 'inflation rate', 'tax', 'corporate', 'merger', 'earnings', 'venture capital',
+    'pouvoir d\'achat', 'coût de la vie', 'cout de la vie',
+    'taux d\'intérêt', 'taux directeur', 'taux d\'inflation',
+    // English keywords (NETTOYÉ: supprimé trade, tax, growth — trop génériques)
+    'stock market', 'investment', 'economy', 'gdp', 'market cap', 'finance', 'banking', 'economic', 'revenue', 'profit',
+    'shares', 'bonds', 'interest rate', 'central bank', 'recession', 'unemployment', 'inflation rate', 'corporate',
+    'merger', 'earnings', 'venture capital',
   ],
 
   'Sport': [
     'ligue des champions', 'europa league', 'premier league', 'liga', 'serie a', 'bundesliga',
     'ligue 1', 'ligue 2', 'coupe de france', 'coupe du monde', 'euro 2024', 'euro 2028',
     'mbappé', 'mbappe', 'messi', 'ronaldo', 'haaland', 'neymar', 'griezmann', 'dembélé', 'dembele',
-    'psg', 'om', 'ol', 'asse', 'real madrid', 'barcelone', 'manchester', 'liverpool', 'arsenal', 'juventus',
+    // NETTOYÉ: om→olympique de marseille, ol→olympique lyonnais, asse→as saint-étienne (évite faux positifs)
+    'psg', 'olympique de marseille', 'olympique lyonnais', 'as saint-étienne', 'as saint-etienne',
+    'real madrid', 'barcelone', 'manchester', 'liverpool', 'arsenal', 'juventus',
     'roland-garros', 'wimbledon', 'us open', 'open d\'australie', 'djokovic', 'nadal', 'federer', 'alcaraz', 'sinner',
     'indian wells', 'masters 1000', 'atp', 'wta',
     'nba', 'wembanyama', 'lebron james', 'stephen curry', 'lakers', 'warriors', 'celtics',
@@ -244,27 +274,33 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'handball', 'volley', 'basket', 'tennis', 'boxe', 'mma', 'ufc', 'judo', 'escrime',
     'transfert', 'mercato', 'entraîneur', 'entraineur', 'sélectionneur', 'selectionneur',
     'fitness', 'musculation', 'running', 'marathon', 'sport santé',
-    // Ajouts: golf, equitation, sports d'hiver, challenge sportif
+    // Sports variés
     'golf', 'ryder cup', 'pga', 'masters augusta',
     'ski', 'biathlon', 'patinage', 'hockey sur glace',
     'équitation', 'equitation', 'hippisme', 'course hippique',
     'badminton', 'ping-pong', 'tennis de table', 'triathlon', 'ironman',
+    'trail running', 'ultra trail',
     'défi sportif', 'record du monde', 'champion du monde', 'championnat',
-    // English keywords
-    'soccer', 'football match', 'basketball', 'championship', 'tournament', 'athlete', 'coach', 'league', 'goal', 'world cup', 'olympics', 'boxing', 'cricket', 'baseball', 'hockey', 'swimming', 'gold medal', 'trophy', 'playoff', 'final score', 'sports challenge', 'grand slam',
+    // English keywords (NETTOYÉ: supprimé league, goal, coach — trop génériques)
+    'soccer', 'football match', 'basketball', 'championship', 'tournament', 'athlete', 'world cup', 'olympics',
+    'boxing', 'cricket', 'baseball', 'hockey', 'swimming', 'gold medal', 'trophy', 'playoff', 'final score',
+    'sports challenge', 'grand slam',
   ],
 
   'Cinéma & Séries': [
-    'netflix', 'disney+', 'prime video', 'apple tv+', 'max', 'paramount+', 'canal+', 'ocs',
+    // NETTOYÉ: supprimé max→hbo max, dc→dc comics (trop courts/génériques)
+    'netflix', 'disney+', 'prime video', 'apple tv+', 'hbo max', 'paramount+', 'canal+', 'ocs',
     'game of thrones', 'stranger things', 'the last of us', 'the mandalorian', 'wednesday', 'squid game',
-    'marvel', 'dc', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man',
+    'marvel', 'dc comics', 'blockbuster', 'box-office', 'avengers', 'batman', 'spider-man',
     'film', 'cinéma', 'cinema', 'réalisateur', 'realisateur', 'acteur', 'actrice', 'oscar', 'césar', 'cesar',
-    'cannes', 'festival de cannes', 'palme d\'or', 'berlinale', 'venise',
-    'série', 'serie', 'saison', 'épisode', 'episode', 'bande-annonce', 'bande annonce', 'trailer',
-    'sortie salle', 'avant-première', 'avant premiere', 'documentaire', 'animation',
+    'festival de cannes', 'palme d\'or', 'berlinale', 'venise mostra',
+    'série tv', 'nouvelle série', 'série netflix', 'série disney', 'saison', 'épisode', 'episode',
+    'bande-annonce', 'bande annonce', 'trailer film',
+    'sortie salle', 'avant-première', 'avant premiere', 'documentaire', 'film d\'animation',
     'streaming netflix', 'streaming disney', 'streaming prime', 'plateforme streaming',
-    // English keywords
-    'movie', 'tv show', 'television', 'director', 'box office', 'premiere', 'entertainment', 'screenplay', 'sequel', 'franchise', 'cinema release', 'award show', 'golden globe', 'emmy', 'bafta', 'sundance',
+    // English keywords (NETTOYÉ: supprimé premiere, entertainment — trop génériques)
+    'movie', 'tv show', 'television', 'director', 'box office', 'screenplay', 'sequel', 'franchise',
+    'cinema release', 'award show', 'golden globe', 'emmy', 'bafta', 'sundance',
   ],
 
   'Musique & Festivals': [
@@ -272,13 +308,17 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'pnl', 'booba', 'damso', 'clara luciani', 'pomme', 'juliette armanet', 'louane', 'vianney', 'slimane',
     'taylor swift', 'beyoncé', 'beyonce', 'drake', 'the weeknd', 'billie eilish', 'ariana grande', 'ed sheeran', 'rihanna',
     'coldplay', 'imagine dragons', 'daft punk', 'david guetta', 'dua lipa', 'bad bunny', 'kendrick lamar',
-    'rap', 'hip-hop', 'pop', 'rock', 'électro', 'electro', 'house', 'techno', 'r&b', 'jazz', 'metal', 'reggaeton',
+    // NETTOYÉ: rap→rap français, pop→musique pop, rock→musique rock, house→house music, metal→heavy metal
+    'rap français', 'rap music', 'hip-hop', 'musique pop', 'pop music', 'musique rock', 'rock music',
+    'électro', 'electro', 'house music', 'musique house', 'techno', 'r&b', 'jazz', 'heavy metal', 'reggaeton',
     'concert', 'tournée', 'tournee', 'festival', 'coachella', 'rock en seine', 'hellfest', 'solidays',
     'vieilles charrues', 'eurockéennes', 'eurockennes', 'francofolies', 'main square', 'lollapalooza',
-    'album', 'single', 'clip', 'spotify', 'deezer', 'apple music', 'musique',
+    // NETTOYÉ: clip→clip officiel/clip vidéo
+    'album', 'single', 'clip officiel', 'clip vidéo', 'clip musical', 'spotify', 'deezer', 'apple music', 'musique',
     'grammy', 'nrj music awards', 'victoires de la musique', 'chanteur', 'chanteuse', 'rappeur', 'dj',
-    // English keywords
-    'music', 'singer', 'rapper', 'band', 'tour', 'award', 'grammy', 'billboard', 'hit song', 'chart', 'record label', 'music video', 'live performance', 'headliner', 'sold out',
+    // English keywords (NETTOYÉ: supprimé band, tour, award, chart — trop génériques)
+    'music', 'singer', 'rapper', 'grammy', 'billboard', 'hit song', 'music chart',
+    'record label', 'music video', 'live performance', 'headliner', 'sold out',
   ],
 
   'Nature & Animaux': [
@@ -286,120 +326,140 @@ const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
     'chien', 'chat', 'cheval', 'oiseau', 'dauphin', 'baleine', 'loup', 'ours', 'lion', 'tigre', 'éléphant', 'elephant',
     'panda', 'singe', 'requin', 'tortue', 'abeille', 'papillon', 'insecte',
     'parc national', 'réserve naturelle', 'reserve naturelle', 'forêt', 'foret', 'océan', 'ocean', 'récif', 'recif',
-    'spa', 'refuge', 'adoption animal', 'bien-être animal', 'bien être animal', 'protection animale',
+    // NETTOYÉ: supprimé spa (ambigu spa/bien-être), bio (ambigu)
+    'refuge animal', 'adoption animal', 'bien-être animal', 'bien être animal', 'protection animale',
     'plastique océan', 'pollution plastique',
     'wwf', 'lpo', 'fondation 30 millions', 'extinction', 'espèce menacée', 'espece menacee',
     'jardin', 'jardinage', 'botanique', 'plante', 'arbre', 'agriculture biologique',
     'randonnée', 'randonnee', 'montagne', 'mer', 'nature', 'sauvage', 'photographe animalier',
-    // English keywords
-    'wildlife', 'species', 'conservation', 'zoo', 'endangered', 'forest', 'ocean', 'biodiversity', 'pet', 'dog', 'cat', 'bird', 'whale', 'dolphin', 'national park', 'habitat', 'ecosystem', 'marine life',
+    // English keywords (NETTOYÉ: supprimé pet, cat — trop courts même avec word boundary en anglais mixte)
+    'wildlife', 'species', 'conservation', 'zoo', 'endangered', 'forest', 'ocean', 'biodiversity',
+    'whale', 'dolphin', 'national park', 'habitat', 'ecosystem', 'marine life', 'animal shelter',
   ],
 
   'Food & Gastronomie': [
     'alain ducasse', 'cyril lignac', 'philippe etchebest', 'hélène darroze', 'helene darroze',
     'thierry marx', 'anne-sophie pic', 'yannick alléno', 'yannick alleno', 'guy savoy',
     'masterchef', 'top chef', 'cauchemar en cuisine', 'le meilleur pâtissier', 'le meilleur patissier',
-    'street food', 'food truck', 'bistronomie', 'gastronomie', 'gastro',
+    'street food', 'food truck', 'bistronomie', 'gastronomie',
+    // NETTOYÉ: supprimé gastro (gastro-entérite), cru (ambigu), restaurant dupliqué, chef laissé (scoring contexte aide)
     'restaurant', 'étoilé', 'etoile', 'michelin', 'guide michelin', 'fooding',
-    'recette', 'cuisine', 'chef', 'pâtisserie', 'patisserie', 'boulangerie', 'brasserie', 'bistrot',
-    'vin', 'vignoble', 'cru', 'millésime', 'millesime', 'sommelier', 'oenologie', 'champagne', 'bordeaux', 'bourgogne',
+    'recette', 'cuisine', 'chef cuisinier', 'chef étoilé', 'pâtisserie', 'patisserie', 'boulangerie', 'brasserie', 'bistrot',
+    'vin', 'vignoble', 'millésime', 'millesime', 'sommelier', 'oenologie', 'champagne vin', 'bordeaux vin', 'bourgogne vin',
     'café', 'cafe', 'chocolat', 'fromage', 'terroir', 'aoc', 'aop', 'label rouge',
     'brunch', 'foodie', 'food porn', 'tendance culinaire', 'ouverture restaurant',
-    // English keywords
-    'restaurant', 'chef', 'recipe', 'cooking', 'food', 'cuisine', 'dining', 'gastronomy', 'gourmet', 'bakery', 'culinary', 'food truck', 'tasting', 'menu', 'dish',
+    // English keywords (NETTOYÉ: supprimé food seul, menu — trop génériques)
+    'recipe', 'cooking', 'dining', 'gastronomy', 'gourmet', 'bakery', 'culinary', 'food truck', 'tasting',
   ],
 
   'Politique': [
-    'renaissance', 'lr', 'les républicains', 'ps', 'parti socialiste', 'lfi', 'france insoumise',
-    'rn', 'rassemblement national', 'eelv', 'modem', 'horizons', 'nouveau front populaire',
+    // NETTOYÉ: supprimé ps, lr, rn (trop courts, matchent PS5 etc.) — déjà couverts par noms complets
+    'renaissance', 'les républicains', 'parti socialiste', 'france insoumise',
+    'rassemblement national', 'eelv', 'modem', 'horizons', 'nouveau front populaire',
     'emmanuel macron', 'marine le pen', 'jean-luc mélenchon', 'jean-luc melenchon',
     'édouard philippe', 'edouard philippe', 'bruno le maire', 'gabriel attal', 'élisabeth borne', 'elisabeth borne',
-    'gérald darmanin', 'gerald darmanin', 'premier ministre', 'président de la république', 'president',
+    'gérald darmanin', 'gerald darmanin', 'premier ministre', 'président de la république',
     'motion de censure', '49.3', 'projet de loi', 'plf', 'budget', 'fiscalité', 'fiscalite',
     'assemblée nationale', 'assemblee nationale', 'sénat', 'senat', 'parlement', 'député', 'depute', 'sénateur', 'senateur',
     'élection', 'election', 'scrutin', 'vote', 'référendum', 'referendum', 'sondage politique',
-    'réforme', 'reforme', 'retraites', 'immigration', 'sécurité', 'securite', 'justice',
-    'mairie', 'région', 'region', 'département', 'departement', 'collectivité', 'collectivite',
-    // Ajouts: municipales, dissuasion, taxe, pouvoir d'achat politique
+    // NETTOYÉ: supprimé sécurité/securite (trop générique), justice (trop générique), région/département (géo)
+    'réforme', 'reforme', 'retraites', 'immigration',
+    'sécurité publique', 'sécurité intérieure', 'sécurité nationale',
+    'tribunal', 'cour de justice', 'justice française',
+    'mairie', 'collectivité', 'collectivite',
+    // Municipales, dissuasion, taxe
     'municipales', 'élections municipales', 'elections municipales', 'premier tour', 'second tour',
     'dissuasion', 'nucléaire français', 'nucleaire francais', 'politique étrangère', 'politique etrangere',
     'carte grise', 'taxe', 'impôt', 'impot', 'cotisation', 'dette publique',
     'manifestation', 'grève', 'greve', 'syndicat', 'cgt', 'cfdt',
-    // English keywords
-    'election', 'president', 'parliament', 'government', 'policy', 'political', 'minister', 'congress', 'senate', 'vote', 'democracy', 'campaign', 'legislation', 'law', 'prime minister', 'opposition', 'coalition',
+    // English keywords (NETTOYÉ: supprimé president seul, law — trop génériques)
+    'parliament', 'government', 'political', 'minister', 'congress', 'senate', 'democracy',
+    'legislation', 'prime minister', 'opposition', 'coalition',
   ],
 
   'Santé & Bien-être': [
     'alzheimer', 'parkinson', 'diabète', 'diabete', 'avc', 'infarctus', 'hypertension', 'cholestérol', 'cholesterol',
     'cancer', 'tumeur', 'chimiothérapie', 'chimiotherapie', 'dépistage', 'depistage', 'diagnostic',
-    'régime', 'végétarien', 'vegetarien', 'vegan', 'bio', 'nutrition', 'diététique', 'dietetique',
+    // NETTOYÉ: supprimé bio (ambigu)
+    'régime', 'végétarien', 'vegetarien', 'vegan', 'nutrition', 'diététique', 'dietetique',
     'sans gluten', 'keto', 'jeûne intermittent', 'yoga', 'méditation', 'meditation', 'mindfulness', 'bien-être', 'bien être',
     'sommeil', 'stress', 'burn-out', 'burnout', 'anxiété', 'anxiete', 'dépression', 'depression',
     'hôpital', 'hopital', 'clinique', 'médecin', 'medecin', 'infirmier', 'pharmacie', 'médicament', 'medicament',
     'assurance maladie', 'sécurité sociale', 'mutuelle', 'oms', 'pandémie', 'pandemie', 'épidémie', 'epidemie',
     'pilates', 'stretching',
     'dermatologue', 'ophtalmologue', 'dentiste', 'kiné', 'kine', 'ostéopathe', 'osteopathe',
-    // English keywords
-    'hospital', 'vaccine', 'disease', 'treatment', 'medicine', 'health', 'medical', 'doctor', 'patient', 'surgery', 'therapy', 'mental health', 'wellness', 'drug', 'clinical trial', 'pandemic', 'epidemic', 'diagnosis',
+    // English keywords (NETTOYÉ: supprimé health, drug — trop génériques)
+    'hospital', 'vaccine', 'disease', 'treatment', 'medicine', 'medical', 'doctor', 'patient', 'surgery',
+    'therapy', 'mental health', 'wellness', 'clinical trial', 'pandemic', 'epidemic', 'diagnosis', 'pharmaceutical',
   ],
 
   'Science & Environnement': [
-    'spacex', 'blue origin', 'mars', 'lune', 'iss', 'james webb', 'télescope', 'crispr', 'génétique', 'adn',
+    // NETTOYÉ: mars→planète mars/mission mars (évite le mois de mars)
+    'spacex', 'blue origin', 'planète mars', 'mission mars', 'rover mars', 'lune', 'iss', 'james webb',
+    'télescope', 'crispr', 'génétique', 'adn',
     'clonage', 'cellules souches', 'cnrs', 'cern', 'esa', 'nasa', 'mit', 'stanford',
     'nucléaire', 'photovoltaïque', 'biomasse', 'géothermie', 'hydrogène vert', 'neutralité carbone', 'empreinte carbone', 'bilan carbone', 'compensation carbone', 'cop28',
     'cop29', 'giec', 'accord de paris', 'réchauffement climatique', 'biodiversité', 'pollution', 'écologie', 'développement durable',
-    // English keywords
-    'space', 'climate', 'research', 'scientist', 'discovery', 'study', 'laboratory', 'climate change', 'global warming', 'renewable energy', 'carbon', 'emissions', 'solar', 'wind power', 'fossil fuel', 'sustainability', 'experiment', 'breakthrough',
+    // English keywords (NETTOYÉ: supprimé space, research, study, discovery, breakthrough — trop génériques)
+    'climate change', 'global warming', 'renewable energy', 'carbon emissions', 'solar energy', 'wind power',
+    'fossil fuel', 'sustainability', 'scientist', 'laboratory', 'space exploration', 'space mission',
+    'scientific discovery', 'scientific study',
   ],
 
   'International': [
     'ukraine', 'gaza', 'palestine', 'israël', 'israel', 'taïwan', 'taiwan', 'corée du nord', 'coree du nord',
     'iran', 'syrie', 'liban', 'irak', 'afghanistan', 'soudan', 'éthiopie', 'ethiopie', 'congo',
     'joe biden', 'donald trump', 'xi jinping', 'vladimir poutine', 'zelensky', 'netanyahu', 'modi',
-    'khamenei', 'hezbollah', 'hamas', 'conflit', 'frappe', 'missile', 'drone militaire', 'opération militaire', 'operation militaire',
-    'cessez-le-feu', 'cessez le feu', 'négociations de paix', 'négociation', 'escalade',
-    'otan', 'onu', 'ue', 'union européenne', 'union europeenne', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics',
+    // NETTOYÉ: conflit→conflit armé, frappe→frappe aérienne/militaire, escalade→escalade tensions/militaire
+    'khamenei', 'hezbollah', 'hamas', 'conflit armé', 'conflit international',
+    'frappe aérienne', 'frappe militaire', 'missile', 'drone militaire', 'opération militaire', 'operation militaire',
+    'cessez-le-feu', 'cessez le feu', 'négociations de paix', 'escalade tensions', 'escalade militaire',
+    'otan', 'onu', 'union européenne', 'union europeenne', 'fmi', 'banque mondiale', 'g7', 'g20', 'brics',
     'diplomatie', 'ambassade', 'sanctions', 'embargo', 'traité', 'traite', 'accord international',
     'migrant', 'réfugié', 'refugie', 'frontière', 'frontiere', 'géopolitique', 'geopolitique',
     'états-unis', 'etats-unis', 'chine', 'russie', 'inde', 'brésil', 'bresil', 'japon', 'afrique',
     'moyen-orient', 'asie', 'amérique latine', 'amerique latine',
-    // English keywords
-    'war', 'conflict', 'treaty', 'diplomacy', 'sanctions', 'refugee', 'border', 'military', 'peace talks', 'ceasefire', 'humanitarian', 'foreign policy', 'embassy', 'summit', 'alliance',
+    // English keywords (NETTOYÉ: supprimé border, summit, conflict seuls — trop génériques)
+    'war', 'treaty', 'diplomacy', 'sanctions', 'refugee', 'military', 'peace talks', 'ceasefire',
+    'humanitarian', 'foreign policy', 'embassy', 'international summit', 'alliance',
   ],
 
   'Lifestyle & People': [
     'chanel', 'dior', 'louis vuitton', 'hermès', 'hermes', 'gucci', 'prada', 'zara', 'h&m', 'sephora', 'l\'oréal',
-    'lancôme', 'lancome', 'mac', 'fenty beauty', 'skincare', 'routine beauté', 'routine beaute',
-    'mode', 'fashion', 'tendance', 'collection', 'défilé', 'defile', 'fashion week',
+    'lancôme', 'lancome', 'fenty beauty', 'skincare', 'routine beauté', 'routine beaute',
+    // NETTOYÉ: supprimé mode (trop générique), tendance seul, people seul, maison seul, mac (ambigu), fashion dédupliqué
+    'fashion week', 'défilé', 'defile', 'haute couture', 'prêt-à-porter',
+    'tendance mode', 'tendance beauté',
     'airbnb', 'booking', 'tripadvisor', 'city break', 'road trip', 'voyage', 'destination', 'vacances',
     'marion cotillard', 'léa seydoux', 'lea seydoux', 'vincent cassel', 'omar sy', 'gad elmaleh', 'jamel debbouze',
     'dany boon', 'jean dujardin', 'guillaume canet',
     'squeezie', 'cyprien', 'léna situations', 'lena situations', 'mcfly et carlito', 'tibo inshape', 'inoxtag', 'michou',
     'les marseillais', 'koh-lanta', 'koh lanta', 'danse avec les stars', 'the voice', 'tpmp', 'hanouna',
     'kim kardashian', 'brad pitt', 'angelina jolie', 'leonardo dicaprio', 'tom cruise', 'zendaya',
-    'paparazzi', 'jet-set', 'people', 'célébrité', 'celebrite', 'tapis rouge',
+    'paparazzi', 'jet-set', 'célébrité', 'celebrite', 'tapis rouge', 'stars people', 'actu people',
     'tiktok', 'instagram reels', 'youtube shorts', 'influenceur', 'créateur de contenu', 'createur de contenu',
     'ugc', 'trend tiktok', 'challenge tiktok', 'challenge viral', 'vidéo virale',
-    'décoration', 'decoration', 'déco', 'deco', 'intérieur', 'interieur', 'ikea', 'maison',
+    'décoration', 'decoration', 'déco', 'deco', 'intérieur', 'interieur', 'ikea', 'décoration maison',
     'mariage', 'fiançailles', 'fiancailles', 'couple célèbre', 'couple celebre',
-    // English keywords
-    'fashion', 'celebrity', 'beauty', 'travel', 'vacation', 'luxury', 'influencer', 'lifestyle', 'wedding', 'red carpet', 'paparazzi', 'royal family', 'reality show', 'social media star',
+    // English keywords (NETTOYÉ: supprimé lifestyle, fashion dupliqué, people)
+    'celebrity', 'beauty', 'travel', 'vacation', 'luxury', 'influencer', 'wedding', 'red carpet',
+    'paparazzi', 'royal family', 'reality show', 'social media star',
   ],
 };
 
-// Score d'une catégorie spécifique pour un article
+// Score d'une catégorie spécifique pour un article (avec word boundary)
 function getCategoryScore(titleLower: string, descLower: string, category: string): number {
   const keywords = CATEGORY_KEYWORDS[category];
   if (!keywords) return 0;
   let score = 0;
   for (const kw of keywords) {
-    if (titleLower.includes(kw)) score += 3;
-    if (descLower.includes(kw)) score += 1;
+    if (textContainsKeyword(titleLower, kw)) score += 3;
+    if (textContainsKeyword(descLower, kw)) score += 1;
   }
   return score;
 }
 
-// Catégoriser avec scoring pondéré (titre = 3x, description = 1x)
+// Catégoriser avec scoring pondéré (titre = 3x, description = 1x) + word boundary
 function categorizeArticle(title: string, description: string): string {
   const titleLower = title.toLowerCase();
   const descLower = description.toLowerCase();
@@ -410,8 +470,8 @@ function categorizeArticle(title: string, description: string): string {
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     let score = 0;
     for (const kw of keywords) {
-      if (titleLower.includes(kw)) score += 3;
-      if (descLower.includes(kw)) score += 1;
+      if (textContainsKeyword(titleLower, kw)) score += 3;
+      if (textContainsKeyword(descLower, kw)) score += 1;
     }
     if (score > bestScore) {
       bestScore = score;
