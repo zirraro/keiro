@@ -1084,21 +1084,41 @@ export default function GeneratePage() {
       });
       const data = await res.json();
       if (data.ok && data.fields) {
+        // Toujours remplir l'étape demandée + les champs vides des autres étapes
+        const f = data.fields;
         if (step === 'direction') {
-          // Étape 2 : Direction — angles + tone + style
-          if (data.fields.imageAngle) setImageAngle(data.fields.imageAngle);
-          if (data.fields.marketingAngle) setMarketingAngle(data.fields.marketingAngle);
-          if (data.fields.contentAngle) setContentAngle(data.fields.contentAngle);
+          if (f.imageAngle) setImageAngle(f.imageAngle);
+          if (f.marketingAngle) setMarketingAngle(f.marketingAngle);
+          if (f.contentAngle) setContentAngle(f.contentAngle);
+          // Pré-remplir les champs vides des étapes suivantes
+          if (f.storyToTell && !storyToTell) setStoryToTell(f.storyToTell);
+          if (f.publicationGoal && !publicationGoal) setPublicationGoal(f.publicationGoal);
+          if (f.emotionToConvey && !emotionToConvey) setEmotionToConvey(f.emotionToConvey);
+          if (f.problemSolved && !problemSolved) setProblemSolved(f.problemSolved);
+          if (f.uniqueAdvantage && !uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
+          if (f.desiredVisualIdea && !desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
         } else if (step === 'creatif') {
-          // Étape 3 : Créatif — histoire, but, émotion
-          if (data.fields.storyToTell) setStoryToTell(data.fields.storyToTell);
-          if (data.fields.publicationGoal) setPublicationGoal(data.fields.publicationGoal);
-          if (data.fields.emotionToConvey) setEmotionToConvey(data.fields.emotionToConvey);
+          if (f.storyToTell) setStoryToTell(f.storyToTell);
+          if (f.publicationGoal) setPublicationGoal(f.publicationGoal);
+          if (f.emotionToConvey) setEmotionToConvey(f.emotionToConvey);
+          // Pré-remplir les champs vides des autres étapes
+          if (f.imageAngle && !imageAngle) setImageAngle(f.imageAngle);
+          if (f.marketingAngle && !marketingAngle) setMarketingAngle(f.marketingAngle);
+          if (f.contentAngle && !contentAngle) setContentAngle(f.contentAngle);
+          if (f.problemSolved && !problemSolved) setProblemSolved(f.problemSolved);
+          if (f.uniqueAdvantage && !uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
+          if (f.desiredVisualIdea && !desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
         } else if (step === 'expert') {
-          // Étape 4 : Expert — problème, avantage, visuel
-          if (data.fields.problemSolved) setProblemSolved(data.fields.problemSolved);
-          if (data.fields.uniqueAdvantage) setUniqueAdvantage(data.fields.uniqueAdvantage);
-          if (data.fields.desiredVisualIdea) setDesiredVisualIdea(data.fields.desiredVisualIdea);
+          if (f.problemSolved) setProblemSolved(f.problemSolved);
+          if (f.uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
+          if (f.desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
+          // Pré-remplir les champs vides des autres étapes
+          if (f.imageAngle && !imageAngle) setImageAngle(f.imageAngle);
+          if (f.marketingAngle && !marketingAngle) setMarketingAngle(f.marketingAngle);
+          if (f.contentAngle && !contentAngle) setContentAngle(f.contentAngle);
+          if (f.storyToTell && !storyToTell) setStoryToTell(f.storyToTell);
+          if (f.publicationGoal && !publicationGoal) setPublicationGoal(f.publicationGoal);
+          if (f.emotionToConvey && !emotionToConvey) setEmotionToConvey(f.emotionToConvey);
         }
       } else if (data.insufficientCredits) {
         alert(t.generate.alertInsufficientCredits);
@@ -2648,6 +2668,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         // Polling du job vidéo longue
         const maxLongAttempts = Math.ceil(videoDuration / 10) * 80; // ~80 polls par segment (6-7min)
         let longAttempt = 0;
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 5;
 
         const pollLongVideo = async (): Promise<void> => {
           while (longAttempt < maxLongAttempts) {
@@ -2659,6 +2681,9 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               const statusData = await statusRes.json();
               console.log('[VideoLong] Poll:', statusData.status, statusData.completedSegments, '/', statusData.totalSegments);
 
+              // Reset consecutive errors on successful poll
+              consecutiveErrors = 0;
+
               // Mettre à jour l'UI
               if (statusData.segments) {
                 setVideoLongSegments(statusData.segments);
@@ -2669,9 +2694,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 : 0;
               setVideoLongProgress(progress);
 
+              // Check if any segment has failed
+              if (statusData.segments) {
+                const failedSeg = statusData.segments.find((s: any) => s.status === 'failed');
+                if (failedSeg) {
+                  throw new Error(locale === 'fr'
+                    ? `La g\u00E9n\u00E9ration vid\u00E9o a \u00E9chou\u00E9 au segment ${failedSeg.index + 1}. Veuillez r\u00E9essayer.`
+                    : `Video generation failed at segment ${failedSeg.index + 1}. Please try again.`);
+                }
+              }
+
               if (statusData.status === 'generating') {
                 setVideoLongStatus(`${t.generate.videoGeneratingSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments}`);
-                setVideoProgress(`${t.generate.videoLongGenerating} — ${t.generate.videoSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments} (${progress}%)`);
+                setVideoProgress(`${t.generate.videoLongGenerating} \u2014 ${t.generate.videoSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments} (${progress}%)`);
               } else if (statusData.status === 'merging') {
                 setVideoLongStatus(t.generate.videoMerging);
                 setVideoProgress(t.generate.videoMerging);
@@ -2759,10 +2794,17 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 throw new Error(statusData.error || t.generate.errorVideoGenerationFailed);
               }
             } catch (fetchError: any) {
-              if (fetchError.message?.includes('Failed') || fetchError.message?.includes('failed')) {
+              // Stop immediately on definitive failures
+              if (fetchError.message?.includes('chou') || fetchError.message?.includes('ailed') || fetchError.message?.includes('segment')) {
                 throw fetchError;
               }
-              console.warn('[VideoLong] Poll error (retrying):', fetchError);
+              consecutiveErrors++;
+              console.warn(`[VideoLong] Poll error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, fetchError);
+              if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                throw new Error(locale === 'fr'
+                  ? 'La g\u00E9n\u00E9ration vid\u00E9o a \u00E9chou\u00E9 apr\u00E8s plusieurs tentatives. Veuillez r\u00E9essayer.'
+                  : 'Video generation failed after multiple attempts. Please try again.');
+              }
             }
           }
           throw new Error(t.generate.errorVideoTimeout);
@@ -4771,8 +4813,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               </div>
             )}
 
-            {/* Read-only progress timeline (shows during generation) */}
-            {videoDuration > 10 && videoLongSegments.length > 0 && (
+            {/* Read-only progress timeline (shows ONLY during video generation) */}
+            {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && (
               <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-neutral-900">
