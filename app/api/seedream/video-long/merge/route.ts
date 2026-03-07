@@ -79,12 +79,18 @@ export async function POST(req: NextRequest) {
   try {
     console.log(`[MergeSegments-${id}] Starting...`);
 
-    const { user, error: authError } = await getAuthUser();
-    if (authError || !user) {
-      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
-    }
+    const body = await req.json();
+    const { jobId, segmentUrls, userId: bodyUserId } = body;
 
-    const { jobId, segmentUrls } = await req.json();
+    // Auth: either user session or userId passed from internal server call
+    let userId = bodyUserId;
+    if (!userId) {
+      const { user, error: authError } = await getAuthUser();
+      if (authError || !user) {
+        return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
+      }
+      userId = user.id;
+    }
 
     if (!segmentUrls || !Array.isArray(segmentUrls) || segmentUrls.length < 2) {
       return NextResponse.json({ ok: false, error: 'At least 2 segment URLs required' }, { status: 400 });
@@ -119,12 +125,19 @@ export async function POST(req: NextRequest) {
 
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // Always re-encode for guaranteed seamless transitions
-    // Using high quality CRF 18 and medium preset for smooth boundaries
-    console.log(`[MergeSegments-${id}] Re-encoding ${segmentUrls.length} segments for seamless merge...`);
-    const mergeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 24 -c:a aac -b:a 192k -movflags +faststart -y "${outputPath}"`;
-    execSync(mergeCmd, { timeout: 180000 }); // 3 min timeout for quality encode
-    console.log(`[MergeSegments-${id}] Seamless merge completed`);
+    // Strategy 1: Stream copy (near-instant, works when all segments have same codec)
+    console.log(`[MergeSegments-${id}] Trying stream copy merge (fast)...`);
+    try {
+      const copyCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c copy -movflags +faststart -y "${outputPath}"`;
+      execSync(copyCmd, { timeout: 60000 });
+      console.log(`[MergeSegments-${id}] Stream copy merge succeeded`);
+    } catch (copyError: any) {
+      console.warn(`[MergeSegments-${id}] Stream copy failed, using fast re-encode:`, copyError.message?.substring(0, 200));
+      // Strategy 2: Fast re-encode (ultrafast preset)
+      const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
+      execSync(reencodeCmd, { timeout: 180000 });
+      console.log(`[MergeSegments-${id}] Fast re-encode merge succeeded`);
+    }
 
     // Read merged file
     const mergedBuffer = await readFile(outputPath);
@@ -135,7 +148,7 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const fileName = `long-videos/${user.id}/${Date.now()}.mp4`;
+    const fileName = `long-videos/${userId}/${Date.now()}.mp4`;
     const { error: uploadError } = await supabase.storage
       .from('generated-images')
       .upload(fileName, mergedBuffer, { contentType: 'video/mp4', upsert: false });

@@ -2733,8 +2733,28 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 setVideoProgress(videoGenerationMode === 'advanced' ? t.generate.videoMerging : `${t.generate.videoLongGenerating} (95%)`);
                 setVideoLongProgress(95);
               } else if (statusData.status === 'completed' && statusData.finalVideoUrl) {
-                console.log('[VideoLong] Video ready:', statusData.finalVideoUrl);
+                console.log('[VideoLong] Video ready:', statusData.finalVideoUrl, 'mergeSkipped:', statusData.mergeSkipped, 'segmentUrls:', statusData.segmentUrls?.length);
                 let finalVideoUrl = statusData.finalVideoUrl;
+
+                // If merge failed but we have all segment URLs, retry via dedicated merge route
+                if (statusData.mergeSkipped && statusData.segmentUrls?.length > 1) {
+                  console.log('[VideoLong] Server merge was skipped, retrying via dedicated merge route...');
+                  setVideoProgress(videoGenerationMode === 'advanced' ? t.generate.videoMerging : `${t.generate.videoLongGenerating} (98%)`);
+                  try {
+                    const mergeRetryRes = await fetch('/api/seedream/video-long/merge', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ segmentUrls: statusData.segmentUrls, jobId }),
+                    });
+                    const mergeRetryData = await mergeRetryRes.json();
+                    if (mergeRetryData.ok && mergeRetryData.mergedUrl) {
+                      finalVideoUrl = mergeRetryData.mergedUrl;
+                      console.log('[VideoLong] Dedicated merge route succeeded:', finalVideoUrl);
+                    }
+                  } catch (mergeRetryErr) {
+                    console.warn('[VideoLong] Dedicated merge route failed:', mergeRetryErr);
+                  }
+                }
 
                 // Audio TTS + background music merge
                 const resolvedMusicUrl = musicUrlPromise ? await musicUrlPromise : null;

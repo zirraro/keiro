@@ -594,13 +594,13 @@ export async function GET(request: Request) {
                 console.warn(`[video-long] Merge route fallback also failed:`, retryMergeErr.message);
               }
 
-              // Last resort: return first segment
-              const firstVideoUrl = allVideoUrls[0] || null;
-              if (firstVideoUrl) {
-                console.log(`[video-long] All merge attempts failed, returning first segment as fallback`);
+              // Last resort: return all segment URLs for client-side sequential playback
+              const allUrls = allVideoUrls.filter(Boolean) as string[];
+              if (allUrls.length > 0) {
+                console.log(`[video-long] All merge attempts failed, returning ${allUrls.length} segment URLs for client playback`);
                 await updateVideoJob(supabaseAdmin, jobId, {
                   status: 'completed',
-                  final_video_url: firstVideoUrl,
+                  final_video_url: allUrls[0],
                 });
                 return Response.json({
                   ok: true,
@@ -608,7 +608,8 @@ export async function GET(request: Request) {
                   completedSegments: newCompletedCount,
                   totalSegments: segments.length,
                   segments,
-                  finalVideoUrl: firstVideoUrl,
+                  finalVideoUrl: allUrls[0],
+                  segmentUrls: allUrls,
                   mergeSkipped: true,
                 });
               }
@@ -1159,10 +1160,19 @@ async function mergeSegments(segmentUrls: string[], userId: string, jobId: strin
 
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // Re-encode for seamless transitions (CRF 18, 24fps, uniform codec)
-    console.log(`[video-long] Re-encoding ${segmentUrls.length} segments...`);
-    const mergeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -r 24 -c:a aac -b:a 192k -movflags +faststart -y "${outputPath}"`;
-    execSync(mergeCmd, { timeout: 300000 }); // 5 min for long videos
+    // Strategy 1: Stream copy (instant, no re-encoding — works when all segments have same codec)
+    console.log(`[video-long] Trying stream copy merge (fast)...`);
+    try {
+      const copyCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c copy -movflags +faststart -y "${outputPath}"`;
+      execSync(copyCmd, { timeout: 60000 }); // 1 min max for copy
+      console.log(`[video-long] Stream copy merge succeeded`);
+    } catch (copyError: any) {
+      console.warn(`[video-long] Stream copy failed, falling back to fast re-encode:`, copyError.message?.substring(0, 200));
+      // Strategy 2: Fast re-encode (ultrafast preset instead of medium)
+      const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
+      execSync(reencodeCmd, { timeout: 240000 }); // 4 min for re-encode
+      console.log(`[video-long] Fast re-encode merge succeeded`);
+    }
 
     const mergedBuffer = await readFile(outputPath);
     console.log(`[video-long] Merged: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
