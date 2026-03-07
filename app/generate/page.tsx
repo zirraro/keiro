@@ -1061,6 +1061,10 @@ export default function GeneratePage() {
       alert(t.generate.alertBusinessFirst);
       return;
     }
+    if (useNewsMode && !selectedNews) {
+      alert(locale === 'fr' ? 'S\u00E9lectionnez une actualit\u00E9 d\'abord pour que le remplissage automatique fasse le lien entre votre business et l\'actu.' : 'Select a news article first so auto-fill can link your business to current events.');
+      return;
+    }
     setAutoFillLoading(true);
     try {
       const res = await fetch('/api/auto-fill', {
@@ -3804,11 +3808,21 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Bouton Suivant étape 1 */}
                 <button
                   onClick={() => setFormStep(2)}
-                  disabled={!businessType.trim()}
+                  disabled={!businessType.trim() || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim())}
                   className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {t.generate.next} <span className="text-xs">→</span>
+                  {t.generate.next} <span className="text-xs">{'\u2192'}</span>
                 </button>
+                {useNewsMode && !selectedNews && (
+                  <p className="text-[10px] text-amber-600 text-center mt-1">
+                    {locale === 'fr' ? '\u26A0\uFE0F S\u00E9lectionnez une actualit\u00E9 ci-dessus pour continuer' : '\u26A0\uFE0F Select a news article above to continue'}
+                  </p>
+                )}
+                {!useNewsMode && !businessDescription.trim() && (
+                  <p className="text-[10px] text-amber-600 text-center mt-1">
+                    {locale === 'fr' ? '\u26A0\uFE0F D\u00E9crivez votre business pour continuer' : '\u26A0\uFE0F Describe your business to continue'}
+                  </p>
+                )}
                 </>)}
 
                 {/* ===== ÉTAPE 2 : DIRECTION CRÉATIVE ===== */}
@@ -3821,7 +3835,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <button
                       type="button"
                       onClick={() => handleAiAutoFill('direction')}
-                      disabled={autoFillLoading}
+                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
@@ -3999,7 +4013,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <button
                       type="button"
                       onClick={() => handleAiAutoFill('creatif')}
-                      disabled={autoFillLoading}
+                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
@@ -4133,7 +4147,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     <button
                       type="button"
                       onClick={() => handleAiAutoFill('expert')}
-                      disabled={autoFillLoading}
+                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                     >
                       {autoFillLoading ? (
