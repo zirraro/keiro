@@ -17,15 +17,18 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+// Founder email for briefs
+const FOUNDER_EMAIL = 'mrzirraro@gmail.com';
+
 /**
  * Helper: verify admin auth or CRON_SECRET.
  */
-async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; isAdmin?: boolean }> {
+async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; isCron?: boolean; isAdmin?: boolean }> {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
 
   if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return { authorized: true };
+    return { authorized: true, isCron: true };
   }
 
   try {
@@ -49,18 +52,24 @@ async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; 
 
 /**
  * GET /api/agents/ceo
- * Returns the most recent daily brief from the CEO agent.
- * Auth: admin required.
+ * - If called from CRON (CRON_SECRET header): GENERATE a new daily brief
+ * - If called from admin UI: return the most recent brief
  */
 export async function GET(request: NextRequest) {
-  const { authorized } = await verifyAuth(request);
+  const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Vercel crons make GET requests — when CRON_SECRET is present, generate a new brief
+  if (isCron) {
+    console.log('[CEOAgent] Cron triggered — generating new daily brief');
+    return generateBrief();
+  }
+
+  // Admin UI: return the last brief
   try {
     const supabase = getSupabaseAdmin();
-
     const { data: brief, error } = await supabase
       .from('agent_logs')
       .select('*')
@@ -71,26 +80,19 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !brief) {
-      return NextResponse.json(
-        { ok: false, error: 'Aucun brief disponible' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'Aucun brief disponible' }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true, brief: brief.data, created_at: brief.created_at });
   } catch (error: any) {
     console.error('[CEOAgent] GET error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Erreur serveur' },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
   }
 }
 
 /**
  * POST /api/agents/ceo
- * Generate a new daily brief.
- * Auth: CRON_SECRET or admin.
+ * Manually trigger a new daily brief (admin button or test).
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
@@ -99,12 +101,16 @@ export async function POST(request: NextRequest) {
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { ok: false, error: 'ANTHROPIC_API_KEY non configuree' },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
   }
 
+  return generateBrief();
+}
+
+/**
+ * Core: generate the daily CEO brief, store it, email it to founder.
+ */
+async function generateBrief(): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date();
@@ -115,8 +121,6 @@ export async function POST(request: NextRequest) {
     console.log('[CEOAgent] Collecting metrics...');
 
     // --- Collect 24h metrics ---
-
-    // Agent logs by agent and action (last 24h)
     const { data: logs24h } = await supabase
       .from('agent_logs')
       .select('agent, action')
@@ -150,19 +154,18 @@ export async function POST(request: NextRequest) {
       statusCounts[s] = (statusCounts[s] || 0) + 1;
     }
 
-    // New prospects last 24h
+    // New prospects last 24h / 7d
     const { count: newProspects24h } = await supabase
       .from('crm_prospects')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', twentyFourHoursAgo);
 
-    // New prospects last 7d
     const { count: newProspects7d } = await supabase
       .from('crm_prospects')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', sevenDaysAgo);
 
-    // A/B test data: subject variants and open rates
+    // A/B test data
     const { data: recentEmails } = await supabase
       .from('crm_prospects')
       .select('email_subject_variant, last_email_opened_at, email_sequence_step')
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
       if (p.last_email_opened_at) abTestData[variant].opened++;
     }
 
-    // --- Collect 7-day comparison metrics ---
+    // --- 7-day comparison ---
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: logs7d } = await supabase
@@ -204,7 +207,7 @@ export async function POST(request: NextRequest) {
       logCountsPrev7d[key] = (logCountsPrev7d[key] || 0) + 1;
     }
 
-    // Build metrics objects
+    // Build metrics
     const emailsSent24h = logCounts24h['email_email_sent'] || 0;
     const emailsOpened24h = logCounts24h['email_webhook_opened'] || 0;
     const emailsClicked24h = logCounts24h['email_webhook_click'] || 0;
@@ -246,7 +249,6 @@ export async function POST(request: NextRequest) {
       emails_replied: emailsReplied7d,
       chatbot_conversations: chatbotConversations7d,
       open_rate: emailsSent7d > 0 ? Math.round((emailsOpened7d / emailsSent7d) * 100) : 0,
-      // Previous week for comparison
       prev_week: {
         emails_sent: prevEmailsSent,
         emails_opened: prevEmailsOpened,
@@ -276,7 +278,6 @@ export async function POST(request: NextRequest) {
     // --- Parse JSON response ---
     let brief: any;
     try {
-      // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         brief = JSON.parse(jsonMatch[0]);
@@ -285,7 +286,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (parseError) {
       console.error('[CEOAgent] Failed to parse brief JSON:', parseError);
-      // Fallback: wrap the raw text
       brief = {
         summary: rawText.substring(0, 500),
         kpis: metrics24h,
@@ -310,7 +310,6 @@ export async function POST(request: NextRequest) {
     });
 
     // --- Create agent_orders for each order ---
-    // Handle both 'orders' and 'ordres' (French) field names from Claude response
     const ordersArray = brief.orders || brief.ordres || [];
     if (Array.isArray(ordersArray)) {
       for (const order of ordersArray) {
@@ -326,30 +325,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Send email brief to founder via Resend ---
+    // --- Send email brief to founder ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (RESEND_API_KEY) {
-      try {
-        // Handle both French ('alertes') and English ('alerts') field names
-        const alertsList = brief.alerts || brief.alertes || [];
-        const alertsHtml = alertsList
-          .map((a: any) => {
-            const level = a.level || '';
-            const color = level === 'critical' || level === 'critique' ? '#ef4444' : level === 'warning' || level === 'attention' ? '#f59e0b' : '#3b82f6';
-            const actionText = a.action || a.action_requise || '';
-            return `<div style="border-left:4px solid ${color};padding:8px 12px;margin:8px 0;background:#f9fafb;"><strong>${level.toUpperCase()}</strong>: ${a.message}<br/><em>Action: ${actionText}</em></div>`;
-          })
-          .join('');
+    const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-        // Handle suggestions or suggestions_fondateur
-        const suggestionsList = brief.suggestions || [];
-        const suggestionsHtml = Array.isArray(suggestionsList)
-          ? suggestionsList
-              .map((s: any) => `<li><strong>[${s.priority}] ${s.agent || s.to_agent}</strong>: ${s.action} - <em>${s.expected_impact}</em></li>`)
-              .join('')
-          : '';
+    const alertsList = brief.alerts || brief.alertes || [];
+    const alertsHtml = alertsList
+      .map((a: any) => {
+        const level = a.level || '';
+        const color = level === 'critical' || level === 'critique' ? '#ef4444' : level === 'warning' || level === 'attention' ? '#f59e0b' : '#3b82f6';
+        const actionText = a.action || a.action_requise || '';
+        return `<div style="border-left:4px solid ${color};padding:8px 12px;margin:8px 0;background:#f9fafb;"><strong>${level.toUpperCase()}</strong>: ${a.message}<br/><em>Action: ${actionText}</em></div>`;
+      })
+      .join('');
 
-        const emailHtml = `
+    const suggestionsList = brief.suggestions || [];
+    const suggestionsHtml = Array.isArray(suggestionsList)
+      ? suggestionsList
+          .map((s: any) => `<li><strong>[${s.priority}] ${s.agent || s.to_agent}</strong>: ${s.action} - <em>${s.expected_impact}</em></li>`)
+          .join('')
+      : '';
+
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}h2{color:#9333ea;}.container{max-width:640px;margin:0 auto;padding:20px;}.metric{display:inline-block;text-align:center;padding:10px 16px;margin:4px;background:#f3f4f6;border-radius:8px;}.metric-value{font-size:24px;font-weight:bold;color:#9333ea;}.metric-label{font-size:12px;color:#6b7280;}</style></head>
@@ -377,7 +374,44 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`;
 
-        await fetch('https://api.resend.com/emails', {
+    const emailSubject = `CEO Brief — ${metrics24h.leads} leads, ${metrics24h.open_rate}% open rate`;
+    let emailSent = false;
+
+    // Try Brevo first (more reliable, already configured for transactional)
+    if (BREVO_API_KEY) {
+      try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': BREVO_API_KEY,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'KeiroAI CEO Agent', email: 'oussama@keiroai.com' },
+            to: [{ email: FOUNDER_EMAIL, name: 'Oussama' }],
+            subject: emailSubject,
+            htmlContent: emailHtml,
+            tags: ['ceo-brief'],
+          }),
+        });
+
+        if (brevoRes.ok) {
+          emailSent = true;
+          console.log(`[CEOAgent] Brief email sent via Brevo to ${FOUNDER_EMAIL}`);
+        } else {
+          const errText = await brevoRes.text();
+          console.error('[CEOAgent] Brevo email failed:', errText);
+        }
+      } catch (e: any) {
+        console.error('[CEOAgent] Brevo email error:', e.message);
+      }
+    }
+
+    // Fallback to Resend
+    if (!emailSent && RESEND_API_KEY) {
+      try {
+        const resendRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -385,18 +419,26 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             from: 'KeiroAI Agents <noreply@keiroai.com>',
-            to: ['contact@keiroai.com'],
-            subject: `CEO Brief — ${metrics24h.leads} leads, ${metrics24h.open_rate}% open rate`,
+            to: [FOUNDER_EMAIL],
+            subject: emailSubject,
             html: emailHtml,
           }),
         });
 
-        console.log('[CEOAgent] Brief email sent to founder');
-      } catch (emailError: any) {
-        console.error('[CEOAgent] Failed to send brief email:', emailError.message);
+        if (resendRes.ok) {
+          emailSent = true;
+          console.log(`[CEOAgent] Brief email sent via Resend to ${FOUNDER_EMAIL}`);
+        } else {
+          const errText = await resendRes.text();
+          console.error('[CEOAgent] Resend email failed:', errText);
+        }
+      } catch (e: any) {
+        console.error('[CEOAgent] Resend email error:', e.message);
       }
-    } else {
-      console.log('[CEOAgent] No RESEND_API_KEY, skipping brief email');
+    }
+
+    if (!emailSent) {
+      console.warn('[CEOAgent] No email provider available (need BREVO_API_KEY or RESEND_API_KEY)');
     }
 
     console.log('[CEOAgent] Brief generated successfully');
@@ -405,6 +447,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       brief,
       metrics: { last_24h: metrics24h, last_7d: metrics7d },
+      emailSent,
     });
   } catch (error: any) {
     console.error('[CEOAgent] Error:', error);
