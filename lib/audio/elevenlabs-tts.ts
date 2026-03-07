@@ -11,19 +11,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// ElevenLabs voice catalog - multilingual voices that work well in French
+// ElevenLabs default voices — latest generation, best for multilingual/French
 export const ELEVENLABS_VOICES: Record<string, { name: string; label: string; description: string; gender: 'female' | 'male' }> = {
-  'JBFqnCBsd6RMkjVDRZzb': { name: 'George', label: 'Homme narrateur', description: 'Voix masculine britannique, posée et professionnelle', gender: 'male' },
-  '21m00Tcm4TlvDq8ikWAM': { name: 'Rachel', label: 'Femme douce', description: 'Voix féminine calme et chaleureuse', gender: 'female' },
-  'EXAVITQu4vr4xnSDxMaL': { name: 'Bella', label: 'Femme naturelle', description: 'Voix féminine douce et authentique', gender: 'female' },
-  'ErXwobaYiN019PkySvjV': { name: 'Antoni', label: 'Homme dynamique', description: 'Voix masculine énergique et engageante', gender: 'male' },
-  'TxGEqnHWrfWFTfGW9XjX': { name: 'Josh', label: 'Homme profond', description: 'Voix masculine grave et confiante', gender: 'male' },
-  'pNInz6obpgDQGcFmaJgB': { name: 'Adam', label: 'Homme autoritaire', description: 'Voix masculine profonde et imposante', gender: 'male' },
-  'AZnzlk1XvdvUeBnXmlld': { name: 'Domi', label: 'Femme énergique', description: 'Voix féminine forte et dynamique', gender: 'female' },
-  'MF3mGyEYCl7XYWbV9V6O': { name: 'Emily', label: 'Femme pro', description: 'Voix féminine claire et professionnelle', gender: 'female' },
+  'pFZP5JQG7iQjIQuC4Bku': { name: 'Lily', label: 'Femme douce', description: 'Voix féminine veloutée et élégante', gender: 'female' },
+  'EXAVITQu4vr4xnSDxMaL': { name: 'Sarah', label: 'Femme naturelle', description: 'Voix féminine mature et rassurante', gender: 'female' },
+  'Xb7hH8MSUJpSbSDYk0k2': { name: 'Alice', label: 'Femme claire', description: 'Voix féminine claire et engageante', gender: 'female' },
+  'cgSgspJ2msm6clMCkdW9': { name: 'Jessica', label: 'Femme pétillante', description: 'Voix féminine chaleureuse et lumineuse', gender: 'female' },
+  'JBFqnCBsd6RMkjVDRZzb': { name: 'George', label: 'Homme narrateur', description: 'Voix masculine captivante, style storytelling', gender: 'male' },
+  'onwK4e9ZLuTAKqWW03F9': { name: 'Daniel', label: 'Homme posé', description: 'Voix masculine stable et professionnelle', gender: 'male' },
+  'nPczCjzI2devNBz1zQrb': { name: 'Brian', label: 'Homme profond', description: 'Voix masculine grave et réconfortante', gender: 'male' },
+  'cjVigY5qzO86Huf0OWal': { name: 'Eric', label: 'Homme fluide', description: 'Voix masculine douce et de confiance', gender: 'male' },
 };
 
-export const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // George
+export const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'; // Daniel — steady, natural
 
 /**
  * Generate audio from text using ElevenLabs TTS
@@ -58,11 +58,12 @@ export async function generateAudioWithElevenLabs(
       model_id: 'eleven_multilingual_v2',
       output_format: 'mp3_44100_128',
       voice_settings: {
-        stability: 0.35,
-        similarity_boost: 0.8,
-        style: 0.3,
+        stability: 0.4,        // Lower = more expressive/natural variation
+        similarity_boost: 0.85, // High = consistent voice identity
+        style: 0.35,           // Higher = more emotional expressiveness
         use_speaker_boost: true,
       },
+      language_code: 'fr',
     }),
   });
 

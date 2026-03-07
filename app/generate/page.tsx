@@ -2487,30 +2487,47 @@ export default function GeneratePage() {
 
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
-        videoPrompt = `${videoDuration}-second social media video. ${videoRenderStyle}.
+        const newsDesc = (selectedNews as any).description?.substring(0, 300) || '';
+        videoPrompt = `${videoDuration}-second premium social media video. ${videoRenderStyle}.
 
-BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}.
-NEWS: "${selectedNews.title}"${(selectedNews as any).description ? `. ${(selectedNews as any).description.substring(0, 200)}` : ''}.
+BUSINESS CONTEXT: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}.
+TRENDING NEWS: "${selectedNews.title}"${newsDesc ? `. ${newsDesc}` : ''}.
 
-NARRATIVE LINK: Show HOW "${businessType}" REACTS to or is AFFECTED by this news. Show the business IN ACTION while the news context is visible in the environment — objects, atmosphere, decorations, behavior.
-Both business AND news must be recognizable. ONE unified scene, not two separate shots.
+CREATIVE BRIEF — CONNECT BUSINESS + NEWS:
+The video must tell a VISUAL STORY that naturally bridges this news event with the "${businessType}" business. The viewer should instantly understand both the news context AND the business relevance without any text.
 
-Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
-Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
-${storyToTell ? `Story: ${storyToTell}.` : ''}
-Camera: ${videoDuration <= 10 ? 'Single powerful dolly-in or tracking shot, immediate visual impact' : 'Multiple camera movements: establishing wide shot, tracking, close-up details'}. Professional cinematic quality. Dynamic subject movement within frame.
-ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
+VISUAL STORYTELLING APPROACH:
+- Open with a scene that evokes the NEWS atmosphere (environment, mood, visual cues that reference the topic)
+- Transition naturally into showing the BUSINESS responding, adapting, or thriving in this context
+- Show real people/customers experiencing the business through the lens of this current event
+- The environment, decorations, products, and behaviors should reflect BOTH the news theme AND the business identity
+- Create an emotional connection: how does this news impact the customers of this business?
+
+Characters: ${videoCharStyle}.${targetAudience ? ` Target audience: ${targetAudience}.` : ''}
+Emotional tone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Cinematic style: ${visualStyle || 'cinematic'}.
+${storyToTell ? `Narrative arc: ${storyToTell}.` : ''}
+Camera work: ${videoDuration <= 10
+  ? 'Single powerful tracking or dolly shot — immediate emotional impact, shallow depth of field'
+  : 'Opening wide establishing shot with crane/dolly, mid tracking shots following action, intimate close-ups of details and reactions, closing wide pullback'}. Professional cinematic grade. Dynamic subject movement within every frame.
+ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual storytelling only.`;
       } else {
-        videoPrompt = `${videoDuration}-second social media video. ${videoRenderStyle}.
+        videoPrompt = `${videoDuration}-second premium social media video. ${videoRenderStyle}.
 
-BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}.
+BUSINESS: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}.
 
-Show this business at its BEST — products, environment, team, customers, the experience it delivers.
-Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
-Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
-${storyToTell ? `Story: ${storyToTell}.` : ''}
-Camera: ${videoDuration <= 10 ? 'Single powerful dolly-in or tracking shot, immediate visual impact' : 'Multiple camera movements: establishing wide shot, tracking, close-up details'}. Professional cinematic quality. Dynamic subject movement within frame.
-ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
+VISUAL STORYTELLING:
+- Show this business at its absolute BEST — the atmosphere, the products, the human experience
+- Capture authentic moments: customers discovering, reacting, enjoying
+- Highlight what makes this business unique: textures, details, craftsmanship, ambiance
+- Create desire: the viewer should want to visit/buy/experience this immediately
+
+Characters: ${videoCharStyle}.${targetAudience ? ` Target audience: ${targetAudience}.` : ''}
+Emotional tone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Cinematic style: ${visualStyle || 'cinematic'}.
+${storyToTell ? `Narrative arc: ${storyToTell}.` : ''}
+Camera work: ${videoDuration <= 10
+  ? 'Single powerful tracking or dolly shot — immediate emotional impact, shallow depth of field, golden hour lighting'
+  : 'Opening wide establishing shot with crane/dolly, mid tracking shots following action, intimate close-ups of textures and reactions, closing wide pullback'}. Professional cinematic grade. Dynamic subject movement within every frame.
+ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual storytelling only.`;
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
@@ -2520,7 +2537,24 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         if (addAudio && audioText.trim()) {
           subtitleText = audioText.trim();
         } else if (addAudio && audioTextSource === 'ai') {
-          subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
+          // For AI audio, generate a proper narration text matching the video duration
+          try {
+            const targetWords = Math.ceil(videoDuration * 2.5);
+            const context = useNewsMode && selectedNews
+              ? `${selectedNews.title}. Business: ${businessType}. ${businessDescription || ''}`
+              : `Business: ${businessType}. ${businessDescription}`;
+            const subtitleRes = await fetch('/api/suggest-narration-text', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ context, targetWords }),
+            });
+            const subtitleData = await subtitleRes.json();
+            if (subtitleData.ok && subtitleData.suggestions?.length > 0) {
+              subtitleText = subtitleData.suggestions[0].text;
+            }
+          } catch {
+            subtitleText = useNewsMode && selectedNews ? selectedNews.title : businessDescription;
+          }
         } else {
           try {
             setVideoProgress(t.generate.preparingVideo);
@@ -4479,14 +4513,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.voiceLabel}</label>
                             <div className="grid grid-cols-2 gap-1">
                               {([
-                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
-                                { value: '21m00Tcm4TlvDq8ikWAM', label: `♀ ${t.generate.femaleSoft}` },
+                                { value: 'pFZP5JQG7iQjIQuC4Bku', label: `♀ ${t.generate.femaleSoft}` },
                                 { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
-                                { value: 'ErXwobaYiN019PkySvjV', label: `♂ ${t.generate.maleDynamic}` },
-                                { value: 'TxGEqnHWrfWFTfGW9XjX', label: `♂ ${t.generate.maleDeep}` },
-                                { value: 'pNInz6obpgDQGcFmaJgB', label: `♂ ${t.generate.maleAuthoritative}` },
-                                { value: 'AZnzlk1XvdvUeBnXmlld', label: `♀ ${t.generate.femaleEnergetic}` },
-                                { value: 'MF3mGyEYCl7XYWbV9V6O', label: `♀ ${t.generate.femalePro}` },
+                                { value: 'Xb7hH8MSUJpSbSDYk0k2', label: `♀ ${t.generate.femalePro}` },
+                                { value: 'cgSgspJ2msm6clMCkdW9', label: `♀ ${t.generate.femaleEnergetic}` },
+                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
+                                { value: 'onwK4e9ZLuTAKqWW03F9', label: `♂ ${t.generate.maleDynamic}` },
+                                { value: 'nPczCjzI2devNBz1zQrb', label: `♂ ${t.generate.maleDeep}` },
+                                { value: 'cjVigY5qzO86Huf0OWal', label: `♂ ${t.generate.maleAuthoritative}` },
                               ]).map((v) => (
                                 <button
                                   key={v.value}
@@ -5339,14 +5373,14 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
-                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
-                          { value: '21m00Tcm4TlvDq8ikWAM', label: `♀ ${t.generate.femaleSoft}` },
+                          { value: 'pFZP5JQG7iQjIQuC4Bku', label: `♀ ${t.generate.femaleSoft}` },
                           { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
-                          { value: 'ErXwobaYiN019PkySvjV', label: `♂ ${t.generate.maleDynamic}` },
-                          { value: 'TxGEqnHWrfWFTfGW9XjX', label: `♂ ${t.generate.maleDeep}` },
-                          { value: 'pNInz6obpgDQGcFmaJgB', label: `♂ ${t.generate.maleAuthoritative}` },
-                          { value: 'AZnzlk1XvdvUeBnXmlld', label: `♀ ${t.generate.femaleEnergetic}` },
-                          { value: 'MF3mGyEYCl7XYWbV9V6O', label: `♀ ${t.generate.femalePro}` },
+                          { value: 'Xb7hH8MSUJpSbSDYk0k2', label: `♀ ${t.generate.femalePro}` },
+                          { value: 'cgSgspJ2msm6clMCkdW9', label: `♀ ${t.generate.femaleEnergetic}` },
+                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
+                          { value: 'onwK4e9ZLuTAKqWW03F9', label: `♂ ${t.generate.maleDynamic}` },
+                          { value: 'nPczCjzI2devNBz1zQrb', label: `♂ ${t.generate.maleDeep}` },
+                          { value: 'cjVigY5qzO86Huf0OWal', label: `♂ ${t.generate.maleAuthoritative}` },
                         ].map((voice) => (
                           <button
                             key={voice.value}

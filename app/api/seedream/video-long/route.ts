@@ -522,6 +522,8 @@ export async function GET(request: Request) {
               .filter(s => s.videoUrl)
               .map(s => s.videoUrl);
 
+            console.log(`[video-long] Segments with video: ${allVideoUrls.length}/${segments.length}, target duration: ${job.duration}s`);
+
             if (segments.length === 1) {
               // Single segment — no merge needed
               await updateVideoJob(supabaseAdmin, jobId, {
@@ -563,10 +565,39 @@ export async function GET(request: Request) {
               });
             } catch (mergeError: any) {
               console.error(`[video-long] Merge failed:`, mergeError.message);
-              // Fallback: return first segment URL instead of failing entirely
+              // Fallback: try merge via the dedicated merge route (different serverless function = fresh FFmpeg)
+              console.log(`[video-long] Inline merge failed, trying merge via /api/seedream/video-long/merge...`);
+              try {
+                const mergeRouteUrl = new URL('/api/seedream/video-long/merge', request.url);
+                const mergeRetryRes = await fetch(mergeRouteUrl.toString(), {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ segmentUrls: allVideoUrls, jobId, userId: job.user_id }),
+                });
+                const mergeRetryData = await mergeRetryRes.json();
+                if (mergeRetryData.ok && mergeRetryData.mergedUrl) {
+                  console.log(`[video-long] Merge route fallback succeeded: ${mergeRetryData.mergedUrl}`);
+                  await updateVideoJob(supabaseAdmin, jobId, {
+                    status: 'completed',
+                    final_video_url: mergeRetryData.mergedUrl,
+                  });
+                  return Response.json({
+                    ok: true,
+                    status: 'completed',
+                    completedSegments: newCompletedCount,
+                    totalSegments: segments.length,
+                    segments,
+                    finalVideoUrl: mergeRetryData.mergedUrl,
+                  });
+                }
+              } catch (retryMergeErr: any) {
+                console.warn(`[video-long] Merge route fallback also failed:`, retryMergeErr.message);
+              }
+
+              // Last resort: return first segment
               const firstVideoUrl = allVideoUrls[0] || null;
               if (firstVideoUrl) {
-                console.log(`[video-long] Merge failed, returning first segment as fallback: ${firstVideoUrl}`);
+                console.log(`[video-long] All merge attempts failed, returning first segment as fallback`);
                 await updateVideoJob(supabaseAdmin, jobId, {
                   status: 'completed',
                   final_video_url: firstVideoUrl,

@@ -59,7 +59,7 @@ Réponds UNIQUEMENT avec le texte condensé, sans introduction ni explication.`;
   console.log('[Condense] Calling Claude to condense text...');
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-haiku-20240307',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 200,
     messages: [
       {
@@ -91,15 +91,23 @@ export async function generateNarrationSuggestions(
 ): Promise<{ informative: string; catchy: string; storytelling: string }> {
   const targetDuration = Math.ceil(targetWords / 2.5);
 
-  const prompt = `Tu es un expert en scripts audio pour TikTok/Instagram Reels.
+  const prompt = `Tu es un expert en scripts audio viraux pour TikTok/Instagram Reels. Tu écris des textes qui sonnent NATURELS quand ils sont lus à voix haute — comme une vraie personne qui parle, pas un robot.
 
 CONTEXTE: ${context}
 
-Génère 3 scripts de narration audio (EXACTEMENT ${targetWords} mots chacun, durée ~${targetDuration}s) avec ces styles:
+Génère 3 scripts de narration audio (~${targetWords} mots chacun, durée ~${targetDuration}s) avec ces styles:
 
-1. INFORMATIF: Style journalistique factuel et clair
-2. ACCROCHEUR: Style viral TikTok avec hook puissant
-3. STORYTELLING: Style narratif captivant avec suspense
+1. INFORMATIF: Style journalistique fluide et engageant. Phrases courtes et percutantes. Ton conversationnel mais crédible.
+2. ACCROCHEUR: Style viral TikTok. Hook puissant dans les 3 premiers mots. Rythme rapide. Langage familier et direct. Phrases qui créent l'urgence.
+3. STORYTELLING: Style narratif captivant. Commence par une situation, crée du suspense, résolution surprenante. Ton intime comme si on racontait une histoire à un ami.
+
+RÈGLES DE FLUIDITÉ:
+- Phrases courtes (max 15 mots par phrase)
+- Éviter les mots compliqués ou techniques
+- Utiliser des pauses naturelles (virgules, points)
+- Le texte doit être agréable à ÉCOUTER, pas juste à lire
+- Tutoyer le spectateur pour créer de la proximité
+- Si le contexte mentionne une actualité, FAIRE LE LIEN entre l'actualité et le business
 
 Format JSON strict:
 {
@@ -113,8 +121,8 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre.`;
   console.log('[Suggestions] Generating 3 narration suggestions...');
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-haiku-20240307',
-    max_tokens: 500,
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 800,
     messages: [
       {
         role: 'user',
