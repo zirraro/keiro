@@ -18,7 +18,7 @@ type MetricCard = {
 type Brief = {
   id: string;
   created_at: string;
-  metadata: any;
+  data: any;
 };
 
 type AgentOrder = {
@@ -40,7 +40,7 @@ type AgentLog = {
   action: string;
   status: string;
   target: string;
-  metadata: any;
+  data: any;
 };
 
 export default function AdminAgentsPage() {
@@ -109,8 +109,9 @@ export default function AdminAgentsPage() {
 
       // Leads 24h
       const { count: leadsCount } = await supabase
-        .from('chatbot_leads')
+        .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
+        .eq('source', 'chatbot')
         .gte('created_at', yesterdayISO);
 
       // Emails 24h
@@ -121,33 +122,33 @@ export default function AdminAgentsPage() {
         .eq('action', 'send_email')
         .gte('created_at', yesterdayISO);
 
-      // Taux ouverture (from email logs metadata)
+      // Taux ouverture (from email logs data)
       const { data: emailLogs } = await supabase
         .from('agent_logs')
-        .select('metadata')
+        .select('data')
         .eq('agent', 'email')
         .eq('action', 'send_email')
-        .not('metadata', 'is', null)
+        .not('data', 'is', null)
         .limit(100);
 
       let openRate = 0;
       if (emailLogs && emailLogs.length > 0) {
         const totalSent = emailLogs.length;
         const totalOpened = emailLogs.filter(
-          (l: any) => l.metadata?.opened === true
+          (l: any) => l.data?.opened === true
         ).length;
         openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
       }
 
       // Prospects chauds
       const { count: hotProspects } = await supabase
-        .from('chatbot_leads')
+        .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
         .eq('temperature', 'hot');
 
       // Pipeline total
       const { count: pipelineCount } = await supabase
-        .from('chatbot_leads')
+        .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
         .in('status', ['new', 'contacted', 'interested']);
 
@@ -633,7 +634,7 @@ export default function AdminAgentsPage() {
               </div>
             ) : (
               briefs.map((brief) => {
-                const meta = brief.metadata || {};
+                const meta = brief.data || {};
                 const isExpanded = expandedBrief === brief.id;
 
                 return (

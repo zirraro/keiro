@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
 
     // --- Call Claude Haiku ---
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       system: getCeoSystemPrompt(),
       messages: [
@@ -315,10 +315,10 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(ordersArray)) {
       for (const order of ordersArray) {
         await supabase.from('agent_orders').insert({
-          source_agent: 'ceo',
-          target_agent: order.target_agent || order.to_agent,
-          action: order.action,
-          params: order.params || {},
+          from_agent: 'ceo',
+          to_agent: order.target_agent || order.to_agent,
+          order_type: order.action,
+          payload: order.params || {},
           priority: order.priority || 'medium',
           status: 'pending',
           created_at: nowISO,

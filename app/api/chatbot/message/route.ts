@@ -12,6 +12,7 @@ import {
   getChatbotSystemPrompt,
   buildContextualInstructions,
 } from '@/lib/agents/chatbot-prompt';
+import { calculateScore } from '@/lib/agents/scoring';
 
 export const runtime = 'edge';
 
@@ -179,7 +180,12 @@ export async function POST(request: NextRequest) {
             .eq('id', existingProspect.id);
         } else {
           prospectData.created_at = now;
-          prospectData.score = 20; // Warm lead starting score
+          prospectData.score = calculateScore({
+            source: 'chatbot',
+            email: detectedEmail,
+            type: detectedType || '',
+            pages_visited: visitorData?.pagesVisited || [],
+          });
           prospectData.status = 'identifie';
           prospectData.email_sequence_status = 'not_started';
           prospectData.email_sequence_step = 0;
@@ -199,7 +205,12 @@ export async function POST(request: NextRequest) {
             .eq('id', existingProspect.id);
         } else {
           prospectData.created_at = now;
-          prospectData.score = 20;
+          prospectData.score = calculateScore({
+            source: 'chatbot',
+            phone: detectedPhone,
+            type: detectedType || '',
+            pages_visited: visitorData?.pagesVisited || [],
+          });
           prospectData.status = 'identifie';
           prospectData.email_sequence_status = 'not_started';
           prospectData.email_sequence_step = 0;
@@ -228,7 +239,7 @@ export async function POST(request: NextRequest) {
     console.log('[Chatbot] Calling Claude Haiku for visitor:', visitorId);
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
       system: systemPrompt + '\n' + contextualInstructions,
       messages: conversationHistory,

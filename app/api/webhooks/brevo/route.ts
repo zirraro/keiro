@@ -102,13 +102,14 @@ export async function POST(request: NextRequest) {
 
         case 'click': {
           const newScore = Math.min(100, currentScore + 25);
+          const newClickTemp = calculateTemperature(newScore);
 
           await supabase
             .from('crm_prospects')
             .update({
               last_email_clicked_at: now,
               score: newScore,
-              temperature: 'hot',
+              temperature: newClickTemp,
               updated_at: now,
             })
             .eq('id', prospect.id);
