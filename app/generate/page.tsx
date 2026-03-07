@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
@@ -479,6 +479,14 @@ export default function GeneratePage() {
   const [videoAspectRatio, setVideoAspectRatio] = useState('16:9');
   const [videoDuration, setVideoDuration] = useState(10);
   const [videoGenerationMode, setVideoGenerationMode] = useState<'simple' | 'advanced'>('simple');
+  const [advancedSegments, setAdvancedSegments] = useState<Array<{
+    index: number;
+    duration: 5 | 10;
+    prompt: string;
+    cameraMovement: string;
+    transition: string;
+  }>>([]);
+  const [isDecomposing, setIsDecomposing] = useState(false);
   const [videoLongJobId, setVideoLongJobId] = useState<string | null>(null);
   const [videoLongSegments, setVideoLongSegments] = useState<any[]>([]);
   const [videoLongStatus, setVideoLongStatus] = useState<string>('');
@@ -530,6 +538,76 @@ export default function GeneratePage() {
   const [enrichmentProfile, setEnrichmentProfile] = useState<any>(null);
   const [enrichmentUserId, setEnrichmentUserId] = useState<string>('');
   const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
+
+  // ─── Advanced video segment helpers ───
+  const initAdvancedSegments = useCallback(() => {
+    const segCount = Math.ceil(videoDuration / 10);
+    const segs = Array.from({ length: segCount }, (_, i) => ({
+      index: i,
+      duration: 10 as 5 | 10,
+      prompt: '',
+      cameraMovement: i === 0 ? 'dolly_in' : 'tracking',
+      transition: i < segCount - 1 ? 'smooth' : 'fade',
+    }));
+    setAdvancedSegments(segs);
+  }, [videoDuration]);
+
+  const autoFillSegments = useCallback(async () => {
+    if (!businessDescription && !businessType) return;
+    setIsDecomposing(true);
+    try {
+      const basePrompt = `${businessType}${businessDescription ? ' — ' + businessDescription : ''}`;
+      const res = await fetch('/api/seedream/video-long/decompose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: basePrompt,
+          duration: videoDuration,
+          options: { renderStyle, tone, visualStyle },
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.segments) {
+        setAdvancedSegments(data.segments.map((s: any, i: number) => ({
+          index: i,
+          duration: s.duration || 10,
+          prompt: s.prompt || '',
+          cameraMovement: s.cameraMovement || 'tracking',
+          transition: s.transition || 'smooth',
+        })));
+      }
+    } catch (e) {
+      console.error('[Advanced] Auto-fill failed:', e);
+    } finally {
+      setIsDecomposing(false);
+    }
+  }, [businessDescription, businessType, videoDuration, renderStyle, tone, visualStyle]);
+
+  const updateSegment = useCallback((index: number, field: string, value: any) => {
+    setAdvancedSegments(prev => prev.map((seg, i) =>
+      i === index ? { ...seg, [field]: value } : seg
+    ));
+  }, []);
+
+  const addSegment = useCallback(() => {
+    setAdvancedSegments(prev => [
+      ...prev,
+      {
+        index: prev.length,
+        duration: 10 as 5 | 10,
+        prompt: '',
+        cameraMovement: 'tracking',
+        transition: 'smooth',
+      },
+    ]);
+  }, []);
+
+  const removeSegment = useCallback((index: number) => {
+    if (advancedSegments.length <= 2) return;
+    setAdvancedSegments(prev =>
+      prev.filter((_, i) => i !== index).map((seg, i) => ({ ...seg, index: i }))
+    );
+  }, [advancedSegments.length]);
 
   // Detect welcome param after email confirmation
   useEffect(() => {
@@ -2431,7 +2509,7 @@ Both business AND news must be recognizable. ONE unified scene, not two separate
 Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
 Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
 ${storyToTell ? `Story: ${storyToTell}.` : ''}
-Camera: smooth cinematic movement, professional quality.
+Camera: ${videoDuration <= 10 ? 'Single powerful dolly-in or tracking shot, immediate visual impact' : 'Multiple camera movements: establishing wide shot, tracking, close-up details'}. Professional cinematic quality. Dynamic subject movement within frame.
 ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
       } else {
         videoPrompt = `${videoDuration}-second social media video. ${videoRenderStyle}.
@@ -2442,7 +2520,7 @@ Show this business at its BEST — products, environment, team, customers, the e
 Characters: ${videoCharStyle}.${targetAudience ? ` Target: ${targetAudience}.` : ''}
 Mood: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Style: ${visualStyle || 'cinematic'}.
 ${storyToTell ? `Story: ${storyToTell}.` : ''}
-Camera: smooth cinematic movement, professional quality.
+Camera: ${videoDuration <= 10 ? 'Single powerful dolly-in or tracking shot, immediate visual impact' : 'Multiple camera movements: establishing wide shot, tracking, close-up details'}. Professional cinematic quality. Dynamic subject movement within frame.
 ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual only.`;
       }
 
@@ -2511,19 +2589,24 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         setVideoLongStatus(t.generate.creatingVideoTask);
 
         // Créer le job vidéo longue
-        const longRes = await fetch('/api/seedream/video-long', {
+        const longPayload: any = {
+              prompt: videoPrompt,
+              duration: videoDuration,
+              aspectRatio: platformRatio,
+              mode: videoGenerationMode,
+              renderStyle: renderStyle,
+              characterStyle: characterStyle,
+              tone: tone,
+              visualStyle: visualStyle,
+            };
+            // Pass advanced segments if configured
+            if (videoGenerationMode === 'advanced' && advancedSegments.length > 0 && advancedSegments.some(s => s.prompt)) {
+              longPayload.segments = advancedSegments;
+            }
+            const longRes = await fetch('/api/seedream/video-long', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: videoPrompt,
-            duration: videoDuration,
-            aspectRatio: platformRatio,
-            mode: videoGenerationMode,
-            renderStyle: renderStyle,
-            characterStyle: characterStyle,
-            tone: tone,
-            visualStyle: visualStyle,
-          }),
+          body: JSON.stringify(longPayload),
         });
 
         const longData = await longRes.json();
@@ -4534,7 +4617,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setVideoGenerationMode('advanced')}
+                                onClick={() => {
+                            setVideoGenerationMode('advanced');
+                            if (advancedSegments.length === 0) initAdvancedSegments();
+                          }}
                                 className={`px-2.5 py-1 text-[10px] font-medium transition ${
                                   videoGenerationMode === 'advanced'
                                     ? 'bg-indigo-600 text-white'
@@ -4552,66 +4638,175 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       )}
                     </div>
 
-                    {/* Timeline segments — Mode avancé */}
-                    {videoDuration > 10 && videoGenerationMode === 'advanced' && videoLongSegments.length > 0 && (
-                      <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold text-neutral-900">
-                            🎞️ Timeline — {Math.ceil(videoDuration / 10)} {t.generate.videoSegments}
-                          </span>
-                          <span className="text-[10px] text-purple-600 font-medium">
-                            {videoLongProgress}%
-                          </span>
-                        </div>
+                    {/* Advanced segment editor */}
+                    {videoDuration > 10 && videoGenerationMode === 'advanced' && (
+              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                {/* Header + Auto-fill button */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-neutral-900">
+                    🎬 Séquences — {advancedSegments.length} segments ({advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={autoFillSegments}
+                    disabled={isDecomposing}
+                    className="px-2.5 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 transition"
+                  >
+                    {isDecomposing ? '⏳ Génération...' : '✨ Remplir auto'}
+                  </button>
+                </div>
 
-                        {/* Progress bar */}
-                        <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
-                          <div
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full transition-all duration-500"
-                            style={{ width: `${videoLongProgress}%` }}
-                          />
-                        </div>
-
-                        {/* Segments */}
-                        <div className="flex gap-1.5 overflow-x-auto pb-1">
-                          {videoLongSegments.map((seg: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${
-                                seg.status === 'completed'
-                                  ? 'bg-green-50 border-green-300'
-                                  : seg.status === 'generating'
-                                  ? 'bg-amber-50 border-amber-300 animate-pulse'
-                                  : seg.status === 'failed'
-                                  ? 'bg-red-50 border-red-300'
-                                  : 'bg-white border-neutral-200'
-                              }`}
+                {/* Segments list */}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {advancedSegments.map((seg, idx) => (
+                    <div key={idx} className="bg-white rounded-lg border border-neutral-200 p-2.5">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-bold text-purple-700">Segment {idx + 1}</span>
+                        <div className="flex items-center gap-1.5">
+                          {/* Duration toggle */}
+                          <div className="flex bg-neutral-100 rounded overflow-hidden">
+                            {([5, 10] as const).map((d) => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => updateSegment(idx, 'duration', d)}
+                                className={`px-2 py-0.5 text-[9px] font-medium transition ${
+                                  seg.duration === d
+                                    ? 'bg-purple-600 text-white'
+                                    : 'text-neutral-500 hover:bg-neutral-200'
+                                }`}
+                              >
+                                {d}s
+                              </button>
+                            ))}
+                          </div>
+                          {advancedSegments.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => removeSegment(idx)}
+                              className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded text-xs"
                             >
-                              <span className="block text-[10px] font-medium text-neutral-600">
-                                {t.generate.videoSegment} {idx + 1}
-                              </span>
-                              <span className="block text-[9px] mt-0.5">
-                                {seg.status === 'completed' ? '✅' : seg.status === 'generating' ? '⏳' : seg.status === 'failed' ? '❌' : '⏸️'}
-                              </span>
-                              {seg.status === 'completed' && seg.videoUrl && (
-                                <video
-                                  src={seg.videoUrl}
-                                  className="w-full h-10 object-cover rounded mt-1"
-                                  muted
-                                />
-                              )}
-                            </div>
-                          ))}
+                              ✕
+                            </button>
+                          )}
                         </div>
+                      </div>
 
-                        {/* Status text */}
-                        {videoLongStatus && (
-                          <p className="text-[10px] text-purple-600 mt-2 text-center font-medium">
-                            {videoLongStatus}
-                          </p>
+                      {/* Prompt textarea */}
+                      <textarea
+                        value={seg.prompt}
+                        onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
+                        placeholder={idx === 0 ? 'Plan d\'ouverture : description de la scène...' : `Segment ${idx + 1} : suite de la scène...`}
+                        rows={2}
+                        className="w-full text-[11px] rounded border border-neutral-200 px-2 py-1.5 mb-1.5 resize-none focus:ring-1 focus:ring-purple-400 focus:border-purple-400 outline-none"
+                      />
+
+                      {/* Camera + Transition selects */}
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[9px] text-neutral-500 mb-0.5 block">Caméra</label>
+                          <select
+                            value={seg.cameraMovement}
+                            onChange={(e) => updateSegment(idx, 'cameraMovement', e.target.value)}
+                            className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none"
+                          >
+                            <option value="dolly_in">Dolly in (rapprochement)</option>
+                            <option value="pan_left">Pan gauche</option>
+                            <option value="pan_right">Pan droite</option>
+                            <option value="tracking">Tracking (suivi)</option>
+                            <option value="crane">Grue (plongée)</option>
+                            <option value="steadicam">Steadicam (fluide)</option>
+                            <option value="tilt_up">Tilt haut</option>
+                            <option value="tilt_down">Tilt bas</option>
+                            <option value="static">Fixe</option>
+                          </select>
+                        </div>
+                        {idx < advancedSegments.length - 1 && (
+                          <div className="flex-1">
+                            <label className="text-[9px] text-neutral-500 mb-0.5 block">Transition</label>
+                            <select
+                              value={seg.transition}
+                              onChange={(e) => updateSegment(idx, 'transition', e.target.value)}
+                              className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none"
+                            >
+                              <option value="smooth">Fluide</option>
+                              <option value="cut">Cut</option>
+                              <option value="fade">Fondu</option>
+                              <option value="zoom">Zoom</option>
+                            </select>
+                          </div>
                         )}
                       </div>
-                    )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add segment + total */}
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    type="button"
+                    onClick={addSegment}
+                    className="text-[10px] text-purple-600 font-medium hover:text-purple-800 transition"
+                  >
+                    + Ajouter un segment
+                  </button>
+                  <span className="text-[10px] font-bold text-neutral-600">
+                    Total : {advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Read-only progress timeline (shows during generation) */}
+            {videoDuration > 10 && videoLongSegments.length > 0 && (
+              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-neutral-900">
+                    🎞️ Progression — {videoLongSegments.length} segments
+                  </span>
+                  <span className="text-[10px] text-purple-600 font-medium">
+                    {videoLongProgress}%
+                  </span>
+                </div>
+                <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${videoLongProgress}%` }}
+                  />
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  {videoLongSegments.map((seg: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${
+                        seg.status === 'completed'
+                          ? 'bg-green-50 border-green-300'
+                          : seg.status === 'generating'
+                          ? 'bg-amber-50 border-amber-300 animate-pulse'
+                          : seg.status === 'failed'
+                          ? 'bg-red-50 border-red-300'
+                          : 'bg-white border-neutral-200'
+                      }`}
+                    >
+                      <span className="block text-[10px] font-medium text-neutral-600">
+                        Seg. {idx + 1}
+                      </span>
+                      <span className="block text-[9px] mt-0.5">
+                        {seg.status === 'completed' ? '✅' : seg.status === 'generating' ? '⏳' : seg.status === 'failed' ? '❌' : '⏸️'}
+                      </span>
+                      {seg.status === 'completed' && seg.videoUrl && (
+                        <video src={seg.videoUrl} className="w-full h-10 object-cover rounded mt-1" muted />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {videoLongStatus && (
+                  <p className="text-[10px] text-purple-600 mt-2 text-center font-medium">
+                    {videoLongStatus}
+                  </p>
+                )}
+              </div>
+            )}
                   </>
                 )}
 

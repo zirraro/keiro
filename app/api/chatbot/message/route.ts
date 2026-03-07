@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
         } else {
           prospectData.created_at = now;
           prospectData.score = 20; // Warm lead starting score
-          prospectData.status = 'nouveau';
+          prospectData.status = 'identifie';
           prospectData.email_sequence_status = 'not_started';
           prospectData.email_sequence_step = 0;
           await supabase.from('crm_prospects').insert(prospectData);
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         } else {
           prospectData.created_at = now;
           prospectData.score = 20;
-          prospectData.status = 'nouveau';
+          prospectData.status = 'identifie';
           prospectData.email_sequence_status = 'not_started';
           prospectData.email_sequence_step = 0;
           await supabase.from('crm_prospects').insert(prospectData);

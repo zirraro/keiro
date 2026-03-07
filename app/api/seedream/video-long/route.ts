@@ -6,6 +6,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { getVideoCreditCost } from '@/lib/credits/constants';
+import { enhanceVideoPrompt } from '@/lib/video-prompt-enhancer';
 import { writeFile, unlink, mkdir, readFile, chmod } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
 
     // 2. Parse request body
     const body = await request.json();
-    const { prompt, duration, aspectRatio = '16:9', imageUrl, mode } = body;
+    const { prompt, duration, aspectRatio = '16:9', imageUrl, mode, segments: advancedSegments } = body;
 
     // 3. Validate duration
     if (!duration || !VALID_DURATIONS.includes(duration as ValidDuration)) {
@@ -99,11 +100,139 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Decompose prompt into scenes via Claude Haiku (with full style context)
+    // 5. Enhance prompt with cinematic motion directives
+    let enhancedPrompt = prompt;
+    try {
+      console.log(`[video-long] Enhancing prompt with cinematic directives...`);
+      enhancedPrompt = await enhanceVideoPrompt(prompt, {
+        duration,
+        aspectRatio,
+        renderStyle: body.renderStyle,
+        tone: body.tone,
+        visualStyle: body.visualStyle,
+      });
+      console.log(`[video-long] Enhanced prompt: ${enhancedPrompt.substring(0, 200)}...`);
+    } catch (enhanceError: any) {
+      console.warn('[video-long] Prompt enhancement failed, using raw prompt:', enhanceError.message);
+    }
+
+    // 5b. If advanced segments are provided, use them directly (skip decomposition)
+    if (advancedSegments && Array.isArray(advancedSegments) && advancedSegments.length > 0) {
+      console.log(`[video-long] Using ${advancedSegments.length} pre-configured advanced segments`);
+
+      const cameraMap: Record<string, string> = {
+        dolly_in: 'Slow cinematic dolly in',
+        pan_left: 'Smooth panoramic pan from right to left',
+        pan_right: 'Smooth panoramic pan from left to right',
+        tracking: 'Dynamic tracking shot following the subject',
+        crane: 'Elegant crane shot rising upward',
+        steadicam: 'Fluid steadicam following movement',
+        static: 'Locked-off static shot with subject movement',
+        tilt_up: 'Gradual tilt upward revealing the scene',
+        tilt_down: 'Slow tilt downward from sky to ground level',
+      };
+
+      const transitionMap: Record<string, string> = {
+        smooth: 'Seamlessly flowing into the next shot',
+        cut: 'Clean precise cut',
+        fade: 'Gentle fade transition',
+        zoom: 'Dynamic zoom transition',
+      };
+
+      const jobSegments: JobSegment[] = advancedSegments.map((seg: any, i: number) => {
+        const camera = cameraMap[seg.cameraMovement] || 'Smooth cinematic camera movement';
+        const transition = i < advancedSegments.length - 1 ? (transitionMap[seg.transition] || '') : '';
+        const segPrompt = `${seg.prompt || enhancedPrompt}. ${camera}. ${transition} ABSOLUTELY ZERO text, words, letters, watermarks.`.trim();
+
+        return {
+          index: i,
+          duration: seg.duration || 10,
+          prompt: segPrompt,
+          type: (i === 0 ? 'text_to_video' : 'image_to_video') as 'text_to_video' | 'image_to_video',
+          taskId: null,
+          videoUrl: null,
+          status: 'pending' as const,
+          provider: null,
+        };
+      });
+
+      // Skip to segment 0 start (jump past scene decomposition)
+      // Start generating segment 0
+      let firstTaskId: string;
+      let firstProvider: 's' | 'k';
+
+      try {
+        if (imageUrl && typeof imageUrl === 'string') {
+          const result = await startSeedanceI2V(jobSegments[0].prompt, jobSegments[0].duration, imageUrl);
+          firstTaskId = result.taskId;
+          firstProvider = result.provider;
+        } else {
+          const result = await startSeedanceT2V(jobSegments[0].prompt, jobSegments[0].duration, aspectRatio);
+          firstTaskId = result.taskId;
+          firstProvider = result.provider;
+        }
+      } catch (startError: any) {
+        console.error('[video-long] Failed to start advanced segment 0:', startError.message);
+        return Response.json({
+          ok: false,
+          error: 'Impossible de démarrer la génération vidéo. Aucun crédit déduit.',
+        }, { status: 500 });
+      }
+
+      // Deduct credits
+      let newBalance: number | undefined;
+      if (!isAdminUser) {
+        const totalDuration = jobSegments.reduce((sum, s) => sum + s.duration, 0);
+        const creditResult = await deductCredits(user.id, 'video_t2v', `Vidéo ${totalDuration}s (${jobSegments.length} segments avancés)`, totalDuration);
+        newBalance = creditResult.newBalance;
+      }
+
+      jobSegments[0].taskId = firstTaskId;
+      jobSegments[0].status = 'generating';
+      jobSegments[0].provider = firstProvider;
+
+      const totalDuration = jobSegments.reduce((sum, s) => sum + s.duration, 0);
+
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: job, error: insertError } = await supabaseAdmin
+        .from('video_generation_jobs')
+        .insert({
+          user_id: user.id,
+          status: 'generating',
+          total_segments: jobSegments.length,
+          completed_segments: 0,
+          current_segment_task_id: firstTaskId,
+          segments: jobSegments,
+          prompt,
+          duration: totalDuration,
+          aspect_ratio: aspectRatio,
+        })
+        .select('id')
+        .single();
+
+      if (insertError || !job) {
+        console.error('[video-long] Failed to create advanced job:', insertError);
+        return Response.json({
+          ok: false,
+          error: `Erreur création job: ${insertError?.message || 'Réponse vide'}`,
+        }, { status: 500 });
+      }
+
+      return Response.json({
+        ok: true,
+        jobId: job.id,
+        totalSegments: jobSegments.length,
+        status: 'generating',
+        newBalance,
+        creditCost: getVideoCreditCost(totalDuration),
+      });
+    }
+
+    // 6. Decompose prompt into scenes via Claude Haiku (with full style context)
     console.log(`[video-long] Decomposing prompt into scenes for ${duration}s video...`);
     let scenes;
     try {
-      scenes = await decomposePromptIntoScenes(prompt, duration, {
+      scenes = await decomposePromptIntoScenes(enhancedPrompt, duration, {
         aspectRatio,
         renderStyle: body.renderStyle,
         characterStyle: body.characterStyle,
@@ -118,13 +247,13 @@ export async function POST(request: Request) {
       scenes = segments.map((seg, i) => ({
         index: i,
         duration: seg.duration,
-        prompt: i === 0 ? prompt : `Continue the previous scene: ${prompt}. Focus on details and movement.`,
+        prompt: i === 0 ? enhancedPrompt : `Continue the previous scene: ${enhancedPrompt}. Focus on details and movement.`,
         type: i === 0 ? 'text_to_video' as const : 'image_to_video' as const,
       }));
       console.log(`[video-long] Fallback: ${scenes.length} segments from calculateSegments`);
     }
 
-    // 6. Build segments array for the job
+    // 7. Build segments array for the job
     const jobSegments: JobSegment[] = scenes.map((scene) => ({
       index: scene.index,
       duration: scene.duration,
@@ -136,7 +265,7 @@ export async function POST(request: Request) {
       provider: null,
     }));
 
-    // 7. Start generating segment 0 FIRST (before deducting credits)
+    // 8. Start generating segment 0 FIRST (before deducting credits)
     let firstTaskId: string;
     let firstProvider: 's' | 'k';
     const firstScene = scenes[0];
@@ -162,7 +291,7 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
-    // 8. Deduct credits AFTER successful segment 0 start (user gets charged only if generation begins)
+    // 9. Deduct credits AFTER successful segment 0 start (user gets charged only if generation begins)
     let newBalance: number | undefined;
     if (!isAdminUser) {
       const creditResult = await deductCredits(user.id, 'video_t2v', `Vidéo ${duration}s (${scenes.length} segments)`, duration);
@@ -175,7 +304,7 @@ export async function POST(request: Request) {
     jobSegments[0].status = 'generating';
     jobSegments[0].provider = firstProvider;
 
-    // 9. Create the job in DB
+    // 10. Create the job in DB
     const supabaseAdmin = getSupabaseAdmin();
     const { data: job, error: insertError } = await supabaseAdmin
       .from('video_generation_jobs')
@@ -195,16 +324,59 @@ export async function POST(request: Request) {
 
     if (insertError || !job) {
       console.error('[video-long] Failed to create job in DB:', insertError);
-      // Return detailed error for debugging
+
+      // If schema cache issue, try to reload and retry once
+      if (insertError?.message?.includes('schema cache')) {
+        console.log('[video-long] Schema cache issue detected, retrying insert...');
+        try {
+          // Force schema reload via direct SQL
+          try { await supabaseAdmin.rpc('reload_schema_cache'); } catch (_) { /* ignore */ }
+          // Wait 1s for cache to refresh
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Retry insert
+          const { data: retryJob, error: retryError } = await supabaseAdmin
+            .from('video_generation_jobs')
+            .insert({
+              user_id: user.id,
+              status: 'generating',
+              total_segments: jobSegments.length,
+              completed_segments: 0,
+              current_segment_task_id: firstTaskId,
+              segments: jobSegments,
+              prompt,
+              duration,
+              aspect_ratio: aspectRatio,
+            })
+            .select('id')
+            .single();
+
+          if (!retryError && retryJob) {
+            console.log(`[video-long] Retry succeeded! Job created: ${retryJob.id}`);
+            return Response.json({
+              ok: true,
+              jobId: retryJob.id,
+              totalSegments: jobSegments.length,
+              status: 'generating',
+              newBalance,
+              creditCost: getVideoCreditCost(duration),
+            });
+          }
+          console.error('[video-long] Retry also failed:', retryError);
+        } catch (retryErr: any) {
+          console.error('[video-long] Schema reload failed:', retryErr.message);
+        }
+      }
+
       return Response.json({
         ok: false,
-        error: `Erreur création job: ${insertError?.message || insertError?.code || 'Réponse vide'}. Vérifiez que la table video_generation_jobs existe.`,
+        error: `Erreur création job: ${insertError?.message || insertError?.code || 'Réponse vide'}. Vérifiez que la table video_generation_jobs existe et exécutez NOTIFY pgrst, 'reload schema' dans Supabase SQL Editor.`,
       }, { status: 500 });
     }
 
     console.log(`[video-long] Job created: ${job.id}, ${jobSegments.length} segments, first taskId=${firstTaskId}`);
 
-    // 10. Return job info to the client
+    // 11. Return job info to the client
     return Response.json({
       ok: true,
       jobId: job.id,

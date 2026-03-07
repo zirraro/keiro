@@ -53,6 +53,13 @@ export default function AdminAgentsPage() {
   // Dashboard state
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
 
+  // Test email state
+  const [testEmail, setTestEmail] = useState('');
+  const [testStep, setTestStep] = useState(1);
+  const [testCategory, setTestCategory] = useState('agence');
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [expandedBrief, setExpandedBrief] = useState<string | null>(null);
@@ -233,6 +240,35 @@ export default function AdminAgentsPage() {
       ]);
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
+    }
+  };
+
+  // ─── Send test email ──────────────────────────────────
+  const sendTestEmail = async () => {
+    if (!testEmail.trim()) return;
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/agents/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: testEmail,
+          step: testStep,
+          category: testCategory,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTestResult({ ok: true, message: `Email envoy\u00E9 ! Sujet: "${data.subject}" (cat: ${data.category}, variant ${data.variant})` });
+      } else {
+        setTestResult({ ok: false, message: data.error || 'Erreur inconnue' });
+      }
+    } catch (err: any) {
+      setTestResult({ ok: false, message: err.message || 'Erreur r\u00E9seau' });
+    } finally {
+      setTestSending(false);
     }
   };
 
@@ -461,30 +497,110 @@ export default function AdminAgentsPage() {
 
         {/* ===== TAB DASHBOARD ===== */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {metrics.map((m, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl">{m.icon}</span>
-                  {m.trend && (
-                    <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        m.trendUp
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-red-50 text-red-600'
-                      }`}
-                    >
-                      {m.trend}
-                    </span>
-                  )}
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {metrics.map((m, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-2xl">{m.icon}</span>
+                    {m.trend && (
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          m.trendUp
+                            ? 'bg-green-50 text-green-600'
+                            : 'bg-red-50 text-red-600'
+                        }`}
+                      >
+                        {m.trend}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
+                  <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
                 </div>
-                <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
-                <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
+              ))}
+            </div>
+
+            {/* Test email section */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+              <h3 className="text-sm font-semibold text-neutral-900 mb-4">
+                Tester un email
+              </h3>
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-xs text-neutral-500 mb-1 block">Email</label>
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="mrzirraro@gmail.com"
+                    className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 mb-1 block">Cat{'\u00E9'}gorie</label>
+                  <select
+                    value={testCategory}
+                    onChange={(e) => setTestCategory(e.target.value)}
+                    className="px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="restaurant">Restaurant</option>
+                    <option value="boutique">Boutique</option>
+                    <option value="coach">Coach</option>
+                    <option value="coiffeur">Coiffeur</option>
+                    <option value="caviste">Caviste</option>
+                    <option value="fleuriste">Fleuriste</option>
+                    <option value="traiteur">Traiteur</option>
+                    <option value="freelance">Freelance</option>
+                    <option value="services">Services</option>
+                    <option value="professionnel">Professionnel</option>
+                    <option value="agence">Agence</option>
+                    <option value="pme">PME</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 mb-1 block">Step</label>
+                  <select
+                    value={testStep}
+                    onChange={(e) => setTestStep(Number(e.target.value))}
+                    className="px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value={1}>Email 1 (intro)</option>
+                    <option value={2}>Email 2 (relance)</option>
+                    <option value={3}>Email 3 (dernier)</option>
+                    <option value={10}>Email warm (chatbot)</option>
+                  </select>
+                </div>
+                <button
+                  onClick={sendTestEmail}
+                  disabled={testSending || !testEmail.trim()}
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                >
+                  {testSending ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Envoi...
+                    </span>
+                  ) : (
+                    'Tester'
+                  )}
+                </button>
               </div>
-            ))}
+              {testResult && (
+                <div
+                  className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
+                    testResult.ok
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}
+                >
+                  {testResult.message}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
