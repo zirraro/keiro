@@ -128,7 +128,7 @@ Format : [{"scene": 1, "prompt": "..."}, {"scene": 2, "prompt": "..."}, ...]`;
       prompt: styleAnchor
         ? `${scene.prompt} ${styleAnchor} ABSOLUTELY ZERO text, words, letters, numbers, watermarks.`
         : `${scene.prompt} ABSOLUTELY ZERO text, words, letters, numbers, watermarks.`,
-      type: i === 0 ? 'text_to_video' as const : 'image_to_video' as const,
+      type: 'text_to_video' as const,
     }));
   } catch (error) {
     console.error('[video-scenes] Failed to parse Claude response, using enhanced fallback:', error);
@@ -139,7 +139,7 @@ Format : [{"scene": 1, "prompt": "..."}, {"scene": 2, "prompt": "..."}, ...]`;
       prompt: i === 0
         ? prompt
         : `Seamless continuation of the previous shot. ${styleAnchor || 'Maintain identical lighting, color palette, and atmosphere.'} Smooth camera movement transitioning naturally from the previous frame. ${prompt} ABSOLUTELY ZERO text, words, letters, watermarks.`,
-      type: i === 0 ? 'text_to_video' as const : 'image_to_video' as const,
+      type: 'text_to_video' as const,
     }));
   }
 }

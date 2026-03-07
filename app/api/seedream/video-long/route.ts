@@ -456,27 +456,10 @@ export async function GET(request: Request) {
               const nextScene = segments[nextSegmentIndex];
               let result: { taskId: string; provider: 's' | 'k' };
 
-              // Extract last frame from completed video for I2V continuity
-              const previousVideoUrl = taskStatus.videoUrl!;
-              let lastFrameUrl: string | null = null;
-
-              try {
-                console.log(`[video-long] Extracting last frame from segment ${currentSegmentIndex}...`);
-                lastFrameUrl = await extractLastFrame(previousVideoUrl, job.user_id);
-                console.log(`[video-long] Last frame extracted: ${lastFrameUrl}`);
-              } catch (extractError: any) {
-                console.warn(`[video-long] Frame extraction failed, falling back to T2V:`, extractError.message);
-              }
-
-              if (lastFrameUrl) {
-                // I2V with last frame for visual continuity
-                console.log(`[video-long] Segment ${nextSegmentIndex}: I2V with last frame`);
-                result = await startSeedanceI2V(nextScene.prompt, nextScene.duration, lastFrameUrl);
-              } else {
-                // Fallback: T2V with continuation prompt
-                console.log(`[video-long] Segment ${nextSegmentIndex}: T2V fallback`);
-                result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
-              }
+              // Use T2V for all continuation segments — avoids FFmpeg dependency on Vercel
+              // Scene prompts from Claude already include strong visual continuity instructions
+              console.log(`[video-long] Segment ${nextSegmentIndex}: T2V with continuity prompt`);
+              result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
 
               segments[nextSegmentIndex].taskId = result.taskId;
               segments[nextSegmentIndex].status = 'generating';
@@ -565,7 +548,24 @@ export async function GET(request: Request) {
               });
             } catch (mergeError: any) {
               console.error(`[video-long] Merge failed:`, mergeError.message);
-              // mergeSegments already updates job to 'failed' in DB
+              // Fallback: return first segment URL instead of failing entirely
+              const firstVideoUrl = allVideoUrls[0] || null;
+              if (firstVideoUrl) {
+                console.log(`[video-long] Merge failed, returning first segment as fallback: ${firstVideoUrl}`);
+                await updateVideoJob(supabaseAdmin, jobId, {
+                  status: 'completed',
+                  final_video_url: firstVideoUrl,
+                });
+                return Response.json({
+                  ok: true,
+                  status: 'completed',
+                  completedSegments: newCompletedCount,
+                  totalSegments: segments.length,
+                  segments,
+                  finalVideoUrl: firstVideoUrl,
+                  mergeSkipped: true,
+                });
+              }
               return Response.json({
                 ok: false,
                 status: 'failed',
