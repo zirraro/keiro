@@ -162,26 +162,26 @@ export function getReengagementMessage(
 
   const page = currentPage.toLowerCase();
 
-  // Homepage after 45 seconds
+  // Homepage after 90 seconds
   if (
     (page === '/' || page === '' || page.includes('accueil')) &&
-    timeOnPage > 45
+    timeOnPage > 90
   ) {
     return 'Salut ! Vous cherchez \u00E0 cr\u00E9er du contenu pro pour vos r\u00E9seaux sociaux ? Je peux vous montrer en 30 secondes ce que KeiroAI fait \uD83D\uDE80';
   }
 
-  // Pricing page after 25 seconds
-  if (page.includes('/pricing') && timeOnPage > 25) {
+  // Pricing page after 60 seconds
+  if (page.includes('/pricing') && timeOnPage > 60) {
     return 'Une question sur les plans ? Le Fondateurs est le plus choisi \u2014 votre logo partout, 3 formats, TikTok. Il reste des places \u00E0 149\u20AC avant le passage \u00E0 199\u20AC.';
   }
 
-  // Generate page — DON'T interrupt, user is working (only after 90s)
-  if (page.includes('/generate') && timeOnPage > 90) {
+  // Generate page — DON'T interrupt, user is working (only after 3 minutes)
+  if (page.includes('/generate') && timeOnPage > 180) {
     return 'Besoin d\u2019aide pour votre cr\u00E9ation ? Je suis l\u00E0 si vous avez des questions \uD83D\uDE0A';
   }
 
-  // Any page after 120 seconds
-  if (timeOnPage > 120) {
+  // Any page after 3 minutes
+  if (timeOnPage > 180) {
     return 'Au fait, on g\u00E9n\u00E8re aussi des VID\u00C9OS pour TikTok et Instagram Reels. Aucun outil IA gratuit ne fait \u00E7a \uD83C\uDFAC';
   }
 

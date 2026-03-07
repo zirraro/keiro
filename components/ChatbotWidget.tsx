@@ -117,7 +117,7 @@ export default function ChatbotWidget() {
 
   // ─── Pulse animation for pending re-engagement ────────
   useEffect(() => {
-    if (!hasInteracted && !reengagementShown && timeOnSite > 30 && !isOpen) {
+    if (!hasInteracted && !reengagementShown && timeOnSite > 60 && !isOpen) {
       setPulseAnimation(true);
     } else {
       setPulseAnimation(false);

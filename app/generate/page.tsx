@@ -106,7 +106,7 @@ export default function GeneratePage() {
   const [formStep, setFormStep] = useState(1);
 
   /* --- États pour les actualités --- */
-  const [category, setCategory] = useState<string>('Les bonnes nouvelles');
+  const [category, setCategory] = useState<string>('Derni\u00E8res news');
   const [newsRegion, setNewsRegion] = useState<string>('fr');
   const [searchQuery, setSearchQuery] = useState('');
   const [allNewsItems, setAllNewsItems] = useState<NewsCard[]>([]); // Toutes les news en cache
@@ -125,25 +125,20 @@ export default function GeneratePage() {
   /* --- Toujours afficher toutes les catégories --- */
   const availableCategories = CATEGORIES;
 
-  /* --- Filtrer les news selon catégorie et recherche --- */
+  /* --- Filtrer les news selon cat\u00E9gorie et recherche --- */
   const filteredNews = useMemo(() => {
     let items = allNewsItems;
 
-    // Filtre spécial pour "Les bonnes nouvelles" :
-    // 1) Articles des flux dédiés "Les bonnes nouvelles" (positivr, demotivateur)
-    // 2) Articles de TOUS les flux qui matchent des mots positifs et aucun négatif
+    // Filtre sp\u00E9cial pour "Les bonnes nouvelles" :
     if (category === 'Les bonnes nouvelles') {
       items = allNewsItems.filter((item) => {
         const text = (item.title + ' ' + item.description).toLowerCase();
-        // Toujours exclure les news négatives
         const hasNegative = NEGATIVE_KEYWORDS.some(kw => text.includes(kw));
         if (hasNegative) return false;
-        // Inclure : flux dédié "Les bonnes nouvelles" OU mots positifs détectés
         if (item.category === 'Les bonnes nouvelles') return true;
         const hasPositive = POSITIVE_KEYWORDS.some(kw => text.includes(kw));
         return hasPositive;
       }).sort((a, b) => {
-        // Scorer par nombre de mots positifs trouvés
         const scoreA = POSITIVE_KEYWORDS.filter(kw => (a.title + ' ' + a.description).toLowerCase().includes(kw)).length;
         const scoreB = POSITIVE_KEYWORDS.filter(kw => (b.title + ' ' + b.description).toLowerCase().includes(kw)).length;
         if (scoreB !== scoreA) return scoreB - scoreA;
@@ -151,25 +146,26 @@ export default function GeneratePage() {
         const dateB = b.date ? new Date(b.date).getTime() : 0;
         return dateB - dateA;
       });
-    } else if (category === 'Dernières news') {
-      // Filtre spécial pour "Dernières news" : toutes les news triées par date + dédoublonnage
-      const seen = new Set<string>();
-      items = [...allNewsItems]
-        .sort((a, b) => {
-          const dateA = a.date ? new Date(a.date).getTime() : 0;
-          const dateB = b.date ? new Date(b.date).getTime() : 0;
-          return dateB - dateA;
-        })
-        .filter(item => {
-          const key = item.title.toLowerCase().substring(0, 50);
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+    } else if (category === 'Derni\u00E8res news') {
+      // Toutes les news tri\u00E9es par date
+      items = [...allNewsItems].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
     } else {
-      // Filtre par catégorie normale
+      // Filtre par cat\u00E9gorie normale
       items = items.filter((item) => item.category === category);
     }
+
+    // D\u00E9doublonnage global (toutes cat\u00E9gories)
+    const seen = new Set<string>();
+    items = items.filter(item => {
+      const key = item.title.toLowerCase().substring(0, 50);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     // Filtre par recherche
     if (searchQuery) {
@@ -180,7 +176,7 @@ export default function GeneratePage() {
       );
     }
 
-    return items.slice(0, 9); // max 9 = 3×3 grille propre
+    return items.slice(0, 9); // max 9 = 3\u00D73 grille propre
   }, [allNewsItems, category, searchQuery]);
 
   // Nombre d'articles visibles (3 → 6 → 9 via bouton "Afficher plus")
@@ -697,16 +693,7 @@ export default function GeneratePage() {
   }, []);
 
   /* --- Auto-sélectionner la première catégorie avec des news si la catégorie actuelle est vide --- */
-  useEffect(() => {
-    if (!loading && allNewsItems.length > 0 && filteredNews.length === 0) {
-      // Si la catégorie actuelle n'a pas de news, passer à la première qui en a
-      const firstCategoryWithNews = availableCategories[0];
-      if (firstCategoryWithNews && firstCategoryWithNews !== category) {
-        console.log(`[Generate] Switching from empty category "${category}" to "${firstCategoryWithNews}"`);
-        setCategory(firstCategoryWithNews);
-      }
-    }
-  }, [loading, allNewsItems, filteredNews, availableCategories, category]);
+  /* DÉSACTIVÉ : laissons l'utilisateur choisir sa catégorie librement, même si elle est vide */
 
   /* --- Sauvegarder et restaurer l'état du formulaire --- */
   // Charger l'état sauvegardé SEULEMENT quand on connaît le userId (après auth)
@@ -1084,41 +1071,19 @@ export default function GeneratePage() {
       });
       const data = await res.json();
       if (data.ok && data.fields) {
-        // Toujours remplir l'étape demandée + les champs vides des autres étapes
         const f = data.fields;
         if (step === 'direction') {
           if (f.imageAngle) setImageAngle(f.imageAngle);
           if (f.marketingAngle) setMarketingAngle(f.marketingAngle);
           if (f.contentAngle) setContentAngle(f.contentAngle);
-          // Pré-remplir les champs vides des étapes suivantes
-          if (f.storyToTell && !storyToTell) setStoryToTell(f.storyToTell);
-          if (f.publicationGoal && !publicationGoal) setPublicationGoal(f.publicationGoal);
-          if (f.emotionToConvey && !emotionToConvey) setEmotionToConvey(f.emotionToConvey);
-          if (f.problemSolved && !problemSolved) setProblemSolved(f.problemSolved);
-          if (f.uniqueAdvantage && !uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
-          if (f.desiredVisualIdea && !desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
         } else if (step === 'creatif') {
           if (f.storyToTell) setStoryToTell(f.storyToTell);
           if (f.publicationGoal) setPublicationGoal(f.publicationGoal);
           if (f.emotionToConvey) setEmotionToConvey(f.emotionToConvey);
-          // Pré-remplir les champs vides des autres étapes
-          if (f.imageAngle && !imageAngle) setImageAngle(f.imageAngle);
-          if (f.marketingAngle && !marketingAngle) setMarketingAngle(f.marketingAngle);
-          if (f.contentAngle && !contentAngle) setContentAngle(f.contentAngle);
-          if (f.problemSolved && !problemSolved) setProblemSolved(f.problemSolved);
-          if (f.uniqueAdvantage && !uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
-          if (f.desiredVisualIdea && !desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
         } else if (step === 'expert') {
           if (f.problemSolved) setProblemSolved(f.problemSolved);
           if (f.uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
           if (f.desiredVisualIdea) setDesiredVisualIdea(f.desiredVisualIdea);
-          // Pré-remplir les champs vides des autres étapes
-          if (f.imageAngle && !imageAngle) setImageAngle(f.imageAngle);
-          if (f.marketingAngle && !marketingAngle) setMarketingAngle(f.marketingAngle);
-          if (f.contentAngle && !contentAngle) setContentAngle(f.contentAngle);
-          if (f.storyToTell && !storyToTell) setStoryToTell(f.storyToTell);
-          if (f.publicationGoal && !publicationGoal) setPublicationGoal(f.publicationGoal);
-          if (f.emotionToConvey && !emotionToConvey) setEmotionToConvey(f.emotionToConvey);
         }
       } else if (data.insufficientCredits) {
         alert(t.generate.alertInsufficientCredits);
