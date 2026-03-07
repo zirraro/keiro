@@ -2664,17 +2664,25 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 const failedSeg = statusData.segments.find((s: any) => s.status === 'failed');
                 if (failedSeg) {
                   throw new Error(locale === 'fr'
-                    ? `La g\u00E9n\u00E9ration vid\u00E9o a \u00E9chou\u00E9 au segment ${failedSeg.index + 1}. Veuillez r\u00E9essayer.`
-                    : `Video generation failed at segment ${failedSeg.index + 1}. Please try again.`);
+                    ? (videoGenerationMode === 'advanced'
+                      ? `La g\u00E9n\u00E9ration vid\u00E9o a \u00E9chou\u00E9 au segment ${failedSeg.index + 1}. Veuillez r\u00E9essayer.`
+                      : `La g\u00E9n\u00E9ration vid\u00E9o a \u00E9chou\u00E9. Veuillez r\u00E9essayer.`)
+                    : (videoGenerationMode === 'advanced'
+                      ? `Video generation failed at segment ${failedSeg.index + 1}. Please try again.`
+                      : `Video generation failed. Please try again.`));
                 }
               }
 
               if (statusData.status === 'generating') {
                 setVideoLongStatus(`${t.generate.videoGeneratingSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments}`);
-                setVideoProgress(`${t.generate.videoLongGenerating} \u2014 ${t.generate.videoSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments} (${progress}%)`);
+                if (videoGenerationMode === 'advanced') {
+                  setVideoProgress(`${t.generate.videoLongGenerating} \u2014 ${t.generate.videoSegment} ${statusData.completedSegments + 1}/${statusData.totalSegments} (${progress}%)`);
+                } else {
+                  setVideoProgress(`${t.generate.videoLongGenerating} (${progress}%)`);
+                }
               } else if (statusData.status === 'merging') {
                 setVideoLongStatus(t.generate.videoMerging);
-                setVideoProgress(t.generate.videoMerging);
+                setVideoProgress(videoGenerationMode === 'advanced' ? t.generate.videoMerging : `${t.generate.videoLongGenerating} (95%)`);
                 setVideoLongProgress(95);
               } else if (statusData.status === 'completed' && statusData.finalVideoUrl) {
                 console.log('[VideoLong] Video ready:', statusData.finalVideoUrl);
@@ -4778,8 +4786,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               </div>
             )}
 
-            {/* Read-only progress timeline (shows ONLY during video generation) */}
-            {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && (
+            {/* Read-only progress timeline (shows ONLY during video generation, advanced mode only) */}
+            {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && videoGenerationMode === 'advanced' && (
               <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-semibold text-neutral-900">
@@ -5368,6 +5376,43 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎙️ ${t.generate.generateModifyAudio}`}
                       </button>
                     </div>
+
+                    {/* Segments editor (advanced mode, long videos only) */}
+                    {videoDuration > 10 && videoGenerationMode === 'advanced' && videoLongSegments.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
+                        <label className="block text-xs font-semibold text-neutral-900">
+                          {locale === 'fr' ? 'Segments de la vidéo' : 'Video segments'}
+                        </label>
+                        <div className="bg-amber-100/60 border border-amber-300 rounded-md p-2">
+                          <p className="text-[10px] text-amber-800 leading-relaxed">
+                            {locale === 'fr'
+                              ? `Modifier un segment relancera sa génération et coûtera ${getVideoCreditCost(10)} crédits par segment régénéré. Si seule la fin vous déplaît, le coût de régénération peut ne pas en valoir la peine.`
+                              : `Modifying a segment will regenerate it and cost ${getVideoCreditCost(10)} credits per segment. If only the ending bothers you, the regeneration cost may not be worth it.`}
+                          </p>
+                        </div>
+                        <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                          {videoLongSegments.map((seg: any, idx: number) => (
+                            <div key={idx} className="bg-white rounded border border-neutral-200 p-2 flex items-start gap-2">
+                              <div className="flex-shrink-0 w-16">
+                                {seg.videoUrl ? (
+                                  <video src={seg.videoUrl} className="w-full h-10 object-cover rounded" muted />
+                                ) : (
+                                  <div className="w-full h-10 bg-neutral-100 rounded flex items-center justify-center text-[9px] text-neutral-400">
+                                    {seg.status === 'generating' ? '...' : '-'}
+                                  </div>
+                                )}
+                                <span className="block text-[9px] text-neutral-500 text-center mt-0.5">
+                                  Seg. {idx + 1}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-neutral-600 line-clamp-2">{seg.prompt?.substring(0, 80) || '-'}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
