@@ -6,7 +6,6 @@ import { getAuthUser } from '@/lib/auth-server';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { getVideoCreditCost } from '@/lib/credits/constants';
-import { enhanceVideoPrompt } from '@/lib/video-prompt-enhancer';
 import { createVideoJob, getVideoJob, updateVideoJob } from '@/lib/video-jobs-db';
 import { writeFile, unlink, mkdir, readFile, chmod } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -101,21 +100,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Enhance prompt with cinematic motion directives
-    let enhancedPrompt = prompt;
-    try {
-      console.log(`[video-long] Enhancing prompt with cinematic directives...`);
-      enhancedPrompt = await enhanceVideoPrompt(prompt, {
-        duration,
-        aspectRatio,
-        renderStyle: body.renderStyle,
-        tone: body.tone,
-        visualStyle: body.visualStyle,
-      });
-      console.log(`[video-long] Enhanced prompt: ${enhancedPrompt.substring(0, 200)}...`);
-    } catch (enhanceError: any) {
-      console.warn('[video-long] Prompt enhancement failed, using raw prompt:', enhanceError.message);
-    }
+    // 5. For video-long, we skip enhanceVideoPrompt — the scene decomposition
+    // does both jobs in a single Claude call (creative analysis + short scene prompts).
+    // The raw prompt from the client contains the full creative brief (business + news context).
+    const enhancedPrompt = prompt;
+    console.log(`[video-long] Using raw creative brief for decomposition (${prompt.length} chars)`);
 
     // 5b. If advanced segments are provided, use them directly (skip decomposition)
     if (advancedSegments && Array.isArray(advancedSegments) && advancedSegments.length > 0) {
@@ -140,10 +129,14 @@ export async function POST(request: Request) {
         zoom: 'Dynamic zoom transition',
       };
 
+      // Short fallback if user didn't write a custom prompt for a segment
+      const shortFallback = prompt.substring(0, 100).replace(/["\n]/g, ' ').trim();
+
       const jobSegments: JobSegment[] = advancedSegments.map((seg: any, i: number) => {
         const camera = cameraMap[seg.cameraMovement] || 'Smooth cinematic camera movement';
         const transition = i < advancedSegments.length - 1 ? (transitionMap[seg.transition] || '') : '';
-        const segPrompt = `${seg.prompt || enhancedPrompt}. ${camera}. ${transition} ABSOLUTELY ZERO text, words, letters, watermarks.`.trim();
+        const basePrompt = seg.prompt || shortFallback;
+        const segPrompt = `${camera}, ${basePrompt}. ${transition}`.trim();
 
         return {
           index: i,
@@ -229,6 +222,9 @@ export async function POST(request: Request) {
     console.log(`[video-long] Decomposing prompt into scenes for ${duration}s video...`);
     let scenes;
     try {
+      // decomposePromptIntoScenes now does BOTH jobs in one Claude call:
+      // 1. Analyzes the creative brief (business + news connection)
+      // 2. Outputs SHORT purely visual scene prompts (max 200 chars each)
       scenes = await decomposePromptIntoScenes(enhancedPrompt, duration, {
         aspectRatio,
         renderStyle: body.renderStyle,
@@ -236,52 +232,37 @@ export async function POST(request: Request) {
         tone: body.tone,
         visualStyle: body.visualStyle,
       });
-      console.log(`[video-long] Decomposed into ${scenes.length} scenes:`, scenes.map(s => `[${s.index}] ${s.duration}s ${s.type}`));
-
-      // Validate: Claude might return fewer scenes than expected
-      const expectedSegments = calculateSegments(duration);
-      if (scenes.length < expectedSegments.length) {
-        console.warn(`[video-long] Claude returned ${scenes.length} scenes but expected ${expectedSegments.length}, padding...`);
-        while (scenes.length < expectedSegments.length) {
-          const idx = scenes.length;
-          scenes.push({
-            index: idx,
-            duration: expectedSegments[idx].duration,
-            prompt: `${scenes[scenes.length - 1].prompt} Continue the movement and atmosphere seamlessly.`,
-            type: 'text_to_video' as const,
-          });
-        }
-      }
+      console.log(`[video-long] Decomposed into ${scenes.length} scenes:`, scenes.map(s => `[${s.index}] ${s.duration}s (${s.prompt.length}chars)`));
     } catch (decomposeError: any) {
-      console.error('[video-long] Scene decomposition failed:', decomposeError.message);
-      // Fallback: manual segment calculation
+      console.error('[video-long] Scene decomposition failed completely:', decomposeError.message);
+      // Emergency fallback: basic visual prompts
       const segments = calculateSegments(duration);
+      const shortPrompt = prompt.substring(0, 120).replace(/["\n]/g, ' ').trim();
       scenes = segments.map((seg, i) => ({
         index: i,
         duration: seg.duration,
-        prompt: i === 0 ? enhancedPrompt : `Starting from the exact same frame as end of previous shot. Seamless continuation with identical lighting and colors. ${enhancedPrompt}. ABSOLUTELY ZERO text, words, letters, watermarks.`,
+        prompt: i === 0
+          ? `Slow crane descent into ${shortPrompt}, warm golden hour light, cinematic depth of field`
+          : `Smooth tracking continuation of ${shortPrompt}, soft ambient lighting, shallow focus`,
         type: 'text_to_video' as const,
       }));
-      console.log(`[video-long] Fallback: ${scenes.length} segments from calculateSegments`);
+      console.log(`[video-long] Emergency fallback: ${scenes.length} segments`);
     }
 
-    // 6b. Validate total duration matches requested duration
-    const totalSceneDuration = scenes.reduce((sum, s) => sum + s.duration, 0);
-    if (totalSceneDuration < duration) {
-      console.warn(`[video-long] Total scene duration (${totalSceneDuration}s) < requested (${duration}s), adding segments...`);
-      while (scenes.reduce((sum, s) => sum + s.duration, 0) < duration) {
-        const remaining = duration - scenes.reduce((sum, s) => sum + s.duration, 0);
-        const segDur = remaining >= 10 ? 10 : 5;
-        const idx = scenes.length;
-        scenes.push({
-          index: idx,
-          duration: segDur,
-          prompt: `${scenes[scenes.length - 1].prompt} Continue the movement and atmosphere seamlessly.`,
-          type: 'text_to_video' as const,
-        });
-      }
+    // Validate total duration matches requested
+    const expectedSegments = calculateSegments(duration);
+    while (scenes.length < expectedSegments.length) {
+      const idx = scenes.length;
+      scenes.push({
+        index: idx,
+        duration: expectedSegments[idx].duration,
+        prompt: scenes[scenes.length - 1].prompt,
+        type: 'text_to_video' as const,
+      });
+      console.warn(`[video-long] Padded scene ${idx} to reach ${expectedSegments.length} segments`);
     }
-    console.log(`[video-long] Final scenes: ${scenes.length} segments, total ${scenes.reduce((sum, s) => sum + s.duration, 0)}s for requested ${duration}s`);
+    const totalDur = scenes.reduce((sum, s) => sum + s.duration, 0);
+    console.log(`[video-long] Final: ${scenes.length} segments, ${totalDur}s total for requested ${duration}s`);
 
     // 7. Build segments array for the job
     const jobSegments: JobSegment[] = scenes.map((scene) => ({
@@ -745,14 +726,21 @@ async function startSeedanceT2V(
   aspectRatio: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
   const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-  // CRITICAL: Put flags FIRST — long prompts may get truncated by the API, losing --duration at the end
-  // Truncate prompt to 400 chars to stay within API limits
-  const truncatedPrompt = prompt.length > 400 ? prompt.substring(0, 400) : prompt;
-  const formattedPrompt = `--duration ${duration}${ratioFlag} --camerafixed false ${truncatedPrompt}`;
+  // Scene prompts from decomposePromptIntoScenes are already short (max 200 chars).
+  // Strip any remaining meta-instructions that waste prompt space.
+  const cleanPrompt = prompt
+    .replace(/ABSOLUTELY ZERO[^.]*\./gi, '')
+    .replace(/Pure visual storytelling[^.]*\./gi, '')
+    .replace(/NO text[^.]*\./gi, '')
+    .trim();
+  // Hard limit: 200 chars for the visual description
+  const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
+  // Assemble: flags FIRST, then short visual prompt
+  const formattedPrompt = `--duration ${duration}${ratioFlag} --camerafixed false ${shortPrompt}`;
 
   try {
-    console.log(`[video-long] T2V: trying Seedance 1.5 Pro, duration=${duration}s, prompt length=${formattedPrompt.length} chars`);
-    console.log(`[video-long] T2V prompt starts with: ${formattedPrompt.substring(0, 80)}...`);
+    console.log(`[video-long] T2V Seedance: duration=${duration}s, total=${formattedPrompt.length}chars`);
+    console.log(`[video-long] T2V prompt: "${formattedPrompt}"`);
     const response = await fetch(SEEDANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -831,13 +819,12 @@ async function startSeedanceI2V(
   duration: number,
   imageUrl: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
-  // Enrich I2V prompt with continuity instructions
-  const continuityPrefix = 'Seamlessly continue from this exact frame. Maintain identical lighting, color grading, and atmosphere.';
-  // CRITICAL: Put flags FIRST to avoid truncation by API
-  const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 400 ? prompt.substring(0, 400) : prompt) : '';
-  const textPrompt = truncatedPrompt
-    ? `--duration ${duration} --camerafixed false ${continuityPrefix} ${truncatedPrompt} Smooth natural camera movement continuing the previous shot.`
-    : `--duration ${duration} --camerafixed false ${continuityPrefix} Animate this image with smooth cinematic camera movement, maintaining exact visual consistency.`;
+  // Clean and shorten the prompt (scene prompts are already short from decomposition)
+  const cleanPrompt = (prompt || '').replace(/ABSOLUTELY ZERO[^.]*\./gi, '').trim();
+  const shortPrompt = cleanPrompt.length > 150 ? cleanPrompt.substring(0, 150) : cleanPrompt;
+  const textPrompt = shortPrompt
+    ? `--duration ${duration} --camerafixed false Seamless continuation, same lighting and atmosphere. ${shortPrompt}`
+    : `--duration ${duration} --camerafixed false Animate with smooth cinematic camera movement, consistent lighting`;
 
   try {
     console.log('[video-long] I2V: trying Seedance 1.5 Pro...');
