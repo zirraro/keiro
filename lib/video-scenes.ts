@@ -72,11 +72,17 @@ export async function decomposePromptIntoScenes(
 
 RÈGLES DE CONTINUITÉ VISUELLE ABSOLUES :
 - Chaque scène est la SUITE DIRECTE de la précédente — comme un seul mouvement de caméra continu
-- MÊME palette de couleurs, MÊME éclairage, MÊME atmosphère dans TOUTES les scènes
+- MÊME palette de couleurs, MÊME éclairage, MÊME atmosphère, MÊME décor dans TOUTES les scènes
 - La dernière image de la scène N doit pouvoir se fondre naturellement avec la première image de la scène N+1
 - Utilise des transitions de caméra fluides : travelling latéral, zoom progressif, panoramique lent, dolly in/out
 - JAMAIS de cut brutal, JAMAIS de changement de lieu soudain, JAMAIS de changement d'éclairage
 - Les personnages/objets présents dans une scène restent visibles ou référencés dans la suivante
+
+TECHNIQUE DE CONTINUITÉ INTER-SEGMENTS :
+- Chaque scène (sauf la 1ère) DOIT commencer par décrire exactement le même cadre que la fin de la scène précédente
+- Exemple : si la scène 1 finit sur un gros plan d'un visage souriant, la scène 2 COMMENCE par "Close-up of a smiling face, then slowly..."
+- Utilise le même angle de caméra au début de chaque scène que la fin de la scène précédente
+- Les mouvements de caméra doivent être dans la MÊME direction entre les scènes
 
 STYLE VISUEL À MAINTENIR DANS CHAQUE SCÈNE :
 ${styleAnchor || '- Style cinématique professionnel, éclairage naturel cohérent'}
@@ -88,13 +94,14 @@ STRUCTURE NARRATIVE :
 
 CHAQUE PROMPT DE SCÈNE DOIT INCLURE :
 1. Le mouvement de caméra exact (ex: "slow dolly in", "smooth pan left to right")
-2. L'éclairage (ex: "warm golden hour light", "soft ambient light")
-3. Ce qui est visible à l'écran (cohérent avec la scène précédente)
-4. ZERO texte, mots, lettres dans la vidéo
+2. L'éclairage précis (ex: "warm golden hour light", "soft ambient light")
+3. La description détaillée de ce qui est visible à l'écran (couleurs, textures, objets)
+4. Pour les scènes 2+ : commencer par la description du cadre de fin de la scène précédente
+5. ZERO texte, mots, lettres dans la vidéo
 
 ${options?.aspectRatio ? `Format : ${options.aspectRatio}` : ''}
 
-Réponds UNIQUEMENT avec un JSON array. Chaque prompt en ANGLAIS, 2-4 phrases.
+Réponds UNIQUEMENT avec un JSON array. Chaque prompt en ANGLAIS, 3-5 phrases détaillées.
 Format : [{"scene": 1, "prompt": "..."}, {"scene": 2, "prompt": "..."}, ...]`;
 
   const response = await anthropic.messages.create({
@@ -103,7 +110,7 @@ Format : [{"scene": 1, "prompt": "..."}, {"scene": 2, "prompt": "..."}, ...]`;
     system: systemPrompt,
     messages: [{
       role: 'user',
-      content: `Décompose cette vidéo de ${targetDuration}s en ${numScenes} scènes séquentielles fluides (chaque scène = ~10 secondes) :\n\n"${prompt}"\n\nRappel : chaque prompt doit inclure le mouvement de caméra, l'éclairage, et maintenir la continuité visuelle parfaite.`,
+      content: `Décompose cette vidéo de ${targetDuration}s en ${numScenes} scènes séquentielles fluides (${segments.map((s, i) => `scène ${i+1}: ${s.duration}s`).join(', ')}) :\n\n"${prompt}"\n\nRappel CRITIQUE : chaque scène (sauf la 1ère) DOIT commencer par décrire le MÊME cadre que la fin de la scène précédente pour assurer une transition invisible. Inclure mouvement de caméra précis, éclairage identique, et description détaillée des éléments visuels.`,
     }],
   });
 
@@ -138,7 +145,7 @@ Format : [{"scene": 1, "prompt": "..."}, {"scene": 2, "prompt": "..."}, ...]`;
       duration: seg.duration,
       prompt: i === 0
         ? prompt
-        : `Seamless continuation of the previous shot. ${styleAnchor || 'Maintain identical lighting, color palette, and atmosphere.'} Smooth camera movement transitioning naturally from the previous frame. ${prompt} ABSOLUTELY ZERO text, words, letters, watermarks.`,
+        : `Starting from the exact same frame as end of previous shot. Seamless continuation with identical lighting, colors, and camera angle. ${styleAnchor || 'Maintain identical lighting, color palette, and atmosphere.'} Smooth continuous camera movement in the same direction. ${prompt} ABSOLUTELY ZERO text, words, letters, watermarks.`,
       type: 'text_to_video' as const,
     }));
   }

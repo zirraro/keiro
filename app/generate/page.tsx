@@ -2569,6 +2569,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         : '16:9';
       setVideoAspectRatio(platformRatio);
 
+      // ====== Generate background music in parallel (if selected) ======
+      let musicUrlPromise: Promise<string | null> | null = null;
+      if (selectedMusic && selectedMusic !== 'none') {
+        console.log('[Video] Starting background music generation:', selectedMusic);
+        musicUrlPromise = fetch('/api/generate-music', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ style: selectedMusic, duration: videoDuration }),
+        })
+          .then(r => r.json())
+          .then(d => d.ok ? d.musicUrl : null)
+          .catch(err => { console.warn('[Video] Music generation failed:', err); return null; });
+      }
+
       // ====== VIDÉO LONGUE (>10s) — Multi-segments ======
       if (videoDuration > 10) {
         console.log('[VideoLong] Starting long video generation:', videoDuration, 's');
@@ -2688,11 +2702,16 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 console.log('[VideoLong] Video ready:', statusData.finalVideoUrl);
                 let finalVideoUrl = statusData.finalVideoUrl;
 
-                // Audio TTS si demandé
-                if (addAudio) {
+                // Audio TTS + background music merge
+                const resolvedMusicUrl = musicUrlPromise ? await musicUrlPromise : null;
+                const needsAudioMerge = addAudio || resolvedMusicUrl;
+
+                if (needsAudioMerge) {
                   try {
                     let audioUrlForMerge = generatedAudioUrl;
-                    if (!audioUrlForMerge) {
+
+                    // Generate voice narration if requested
+                    if (addAudio && !audioUrlForMerge) {
                       setVideoProgress(t.generate.finalizingVideoProgress);
                       let textForAudio = '';
                       if (audioTextSource === 'ai') {
@@ -2715,12 +2734,19 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         }
                       }
                     }
-                    if (audioUrlForMerge) {
+
+                    // Merge voice + music (or just one) into the video
+                    if (audioUrlForMerge || resolvedMusicUrl) {
                       setVideoProgress(t.generate.finalizingVideoProgress);
+                      const mergePayload: any = { videoUrl: finalVideoUrl };
+                      if (audioUrlForMerge) mergePayload.audioUrl = audioUrlForMerge;
+                      if (resolvedMusicUrl) mergePayload.musicUrl = resolvedMusicUrl;
+
+                      console.log('[VideoLong] Merging audio:', { voice: !!audioUrlForMerge, music: !!resolvedMusicUrl });
                       const mergeRes = await fetch('/api/merge-audio-video', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ videoUrl: finalVideoUrl, audioUrl: audioUrlForMerge })
+                        body: JSON.stringify(mergePayload)
                       });
                       const mergeData = await mergeRes.json();
                       if (mergeData.ok && mergeData.mergedUrl) {
@@ -2728,7 +2754,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       }
                     }
                   } catch (audioErr) {
-                    console.warn('[VideoLong] Audio/merge error:', audioErr);
+                    console.warn('[VideoLong] Audio/music merge error:', audioErr);
                   }
                 }
 
@@ -2860,12 +2886,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
               let finalVideoUrl = statusData.videoUrl;
 
-              // Si audio TTS demandé, générer l'audio puis fusionner dans la vidéo
-              if (addAudio) {
+              // Audio TTS + background music merge
+              const resolvedMusicUrlShort = musicUrlPromise ? await musicUrlPromise : null;
+              const needsShortMerge = addAudio || resolvedMusicUrlShort;
+
+              if (needsShortMerge) {
                 try {
                   let audioUrlForMerge = generatedAudioUrl;
 
-                  if (!audioUrlForMerge) {
+                  if (addAudio && !audioUrlForMerge) {
                     setVideoProgress(t.generate.finalizingVideoProgress);
                     let textForAudio = '';
                     if (audioTextSource === 'ai') {
@@ -2891,23 +2920,28 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     }
                   }
 
-                  if (audioUrlForMerge) {
+                  if (audioUrlForMerge || resolvedMusicUrlShort) {
                     setVideoProgress(t.generate.finalizingVideoProgress);
+                    const mergePayload: any = { videoUrl: finalVideoUrl };
+                    if (audioUrlForMerge) mergePayload.audioUrl = audioUrlForMerge;
+                    if (resolvedMusicUrlShort) mergePayload.musicUrl = resolvedMusicUrlShort;
+
+                    console.log('[Video] Merging audio:', { voice: !!audioUrlForMerge, music: !!resolvedMusicUrlShort });
                     const mergeRes = await fetch('/api/merge-audio-video', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ videoUrl: finalVideoUrl, audioUrl: audioUrlForMerge })
+                      body: JSON.stringify(mergePayload)
                     });
                     const mergeData = await mergeRes.json();
                     if (mergeData.ok && mergeData.mergedUrl) {
                       finalVideoUrl = mergeData.mergedUrl;
-                      console.log('[Video] Audio merged into video:', finalVideoUrl);
+                      console.log('[Video] Audio/music merged into video:', finalVideoUrl);
                     } else {
-                      console.warn('[Video] Merge failed, video without audio:', mergeData.error);
+                      console.warn('[Video] Merge failed:', mergeData.error);
                     }
                   }
                 } catch (audioErr) {
-                  console.warn('[Video] Audio/merge error (non-blocking):', audioErr);
+                  console.warn('[Video] Audio/music merge error (non-blocking):', audioErr);
                 }
               }
 

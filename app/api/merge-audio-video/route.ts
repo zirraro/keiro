@@ -110,9 +110,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' }, { status: 401 });
     }
 
-    const { videoUrl, audioUrl } = await req.json();
-    if (!videoUrl || !audioUrl) {
-      return NextResponse.json({ ok: false, error: 'videoUrl et audioUrl requis' }, { status: 400 });
+    const { videoUrl, audioUrl, musicUrl } = await req.json();
+    if (!videoUrl || (!audioUrl && !musicUrl)) {
+      return NextResponse.json({ ok: false, error: 'videoUrl et audioUrl ou musicUrl requis' }, { status: 400 });
     }
 
     // Obtenir FFmpeg
@@ -124,34 +124,60 @@ export async function POST(req: NextRequest) {
 
     const videoPath = join(tmpDir, 'input.mp4');
     const audioPath = join(tmpDir, 'audio.mp3');
+    const musicPath = join(tmpDir, 'music.mp3');
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // Télécharger vidéo et audio en parallèle
+    // Télécharger vidéo et audio(s) en parallèle
     console.log(`[MergeAV-${id}] Téléchargement fichiers...`);
-    const [videoRes, audioRes] = await Promise.all([fetch(videoUrl), fetch(audioUrl)]);
+    const downloads: Promise<Response>[] = [fetch(videoUrl)];
+    if (audioUrl) downloads.push(fetch(audioUrl));
+    if (musicUrl) downloads.push(fetch(musicUrl));
 
+    const responses = await Promise.all(downloads);
+    const videoRes = responses[0];
     if (!videoRes.ok) throw new Error(`Download vidéo échoué: ${videoRes.status}`);
-    if (!audioRes.ok) throw new Error(`Download audio échoué: ${audioRes.status}`);
 
-    const [videoBuffer, audioBuffer] = await Promise.all([
-      videoRes.arrayBuffer(),
-      audioRes.arrayBuffer()
-    ]);
+    let audioIdx = 1;
+    if (audioUrl) {
+      const audioRes = responses[audioIdx];
+      if (!audioRes.ok) throw new Error(`Download audio échoué: ${audioRes.status}`);
+      const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+      await writeFile(audioPath, audioBuffer);
+      console.log(`[MergeAV-${id}] Voice: ${(audioBuffer.byteLength / 1024).toFixed(0)} KB`);
+      audioIdx++;
+    }
+    if (musicUrl) {
+      const musicRes = responses[audioUrl ? audioIdx : 1];
+      if (!musicRes.ok) throw new Error(`Download musique échoué: ${musicRes.status}`);
+      const musicBuffer = Buffer.from(await musicRes.arrayBuffer());
+      await writeFile(musicPath, musicBuffer);
+      console.log(`[MergeAV-${id}] Music: ${(musicBuffer.byteLength / 1024).toFixed(0)} KB`);
+    }
 
-    console.log(`[MergeAV-${id}] Video: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB, Audio: ${(audioBuffer.byteLength / 1024).toFixed(0)} KB`);
+    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    await writeFile(videoPath, videoBuffer);
+    console.log(`[MergeAV-${id}] Video: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
 
-    await Promise.all([
-      writeFile(videoPath, Buffer.from(videoBuffer)),
-      writeFile(audioPath, Buffer.from(audioBuffer))
-    ]);
-
-    // Fusion FFmpeg (copie vidéo, encode audio AAC)
+    // Fusion FFmpeg — voice + music, voice only, or music only
     console.log(`[MergeAV-${id}] Fusion FFmpeg...`);
-    const cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -b:a 128k -map 0:v:0 -map 1:a:0 -shortest -movflags +faststart -y "${outputPath}"`;
+    let cmd: string;
+    const hasVoice = !!audioUrl;
+    const hasMusic = !!musicUrl;
+
+    if (hasVoice && hasMusic) {
+      // Mix voice (full volume) + music (low volume 25%) then merge with video
+      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -stream_loop -1 -i "${musicPath}" -filter_complex "[1:a]volume=1.0[voice];[2:a]volume=0.25[music];[voice][music]amix=inputs=2:duration=first:dropout_transition=2[aout]" -map 0:v:0 -map "[aout]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
+    } else if (hasMusic) {
+      // Music only (moderate volume 35%), loop to match video length
+      cmd = `"${ffmpegBin}" -i "${videoPath}" -stream_loop -1 -i "${musicPath}" -filter_complex "[1:a]volume=0.35[music]" -map 0:v:0 -map "[music]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
+    } else {
+      // Voice only (original behavior)
+      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -b:a 128k -map 0:v:0 -map 1:a:0 -shortest -movflags +faststart -y "${outputPath}"`;
+    }
     console.log(`[MergeAV-${id}] CMD: ${cmd}`);
 
-    execSync(cmd, { timeout: 30000 });
-    console.log(`[MergeAV-${id}] ✅ Fusion terminée`);
+    execSync(cmd, { timeout: 60000 });
+    console.log(`[MergeAV-${id}] Fusion terminée`);
 
     // Lire le fichier fusionné
     const mergedBuffer = await readFile(outputPath);

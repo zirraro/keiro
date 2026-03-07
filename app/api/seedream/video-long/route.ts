@@ -149,7 +149,7 @@ export async function POST(request: Request) {
           index: i,
           duration: seg.duration || 10,
           prompt: segPrompt,
-          type: (i === 0 ? 'text_to_video' : 'image_to_video') as 'text_to_video' | 'image_to_video',
+          type: 'text_to_video' as 'text_to_video' | 'image_to_video',
           taskId: null,
           videoUrl: null,
           status: 'pending' as const,
@@ -237,6 +237,21 @@ export async function POST(request: Request) {
         visualStyle: body.visualStyle,
       });
       console.log(`[video-long] Decomposed into ${scenes.length} scenes:`, scenes.map(s => `[${s.index}] ${s.duration}s ${s.type}`));
+
+      // Validate: Claude might return fewer scenes than expected
+      const expectedSegments = calculateSegments(duration);
+      if (scenes.length < expectedSegments.length) {
+        console.warn(`[video-long] Claude returned ${scenes.length} scenes but expected ${expectedSegments.length}, padding...`);
+        while (scenes.length < expectedSegments.length) {
+          const idx = scenes.length;
+          scenes.push({
+            index: idx,
+            duration: expectedSegments[idx].duration,
+            prompt: `${scenes[scenes.length - 1].prompt} Continue the movement and atmosphere seamlessly.`,
+            type: 'text_to_video' as const,
+          });
+        }
+      }
     } catch (decomposeError: any) {
       console.error('[video-long] Scene decomposition failed:', decomposeError.message);
       // Fallback: manual segment calculation
@@ -244,8 +259,8 @@ export async function POST(request: Request) {
       scenes = segments.map((seg, i) => ({
         index: i,
         duration: seg.duration,
-        prompt: i === 0 ? enhancedPrompt : `Continue the previous scene: ${enhancedPrompt}. Focus on details and movement.`,
-        type: i === 0 ? 'text_to_video' as const : 'image_to_video' as const,
+        prompt: i === 0 ? enhancedPrompt : `Starting from the exact same frame as end of previous shot. Seamless continuation with identical lighting and colors. ${enhancedPrompt}. ABSOLUTELY ZERO text, words, letters, watermarks.`,
+        type: 'text_to_video' as const,
       }));
       console.log(`[video-long] Fallback: ${scenes.length} segments from calculateSegments`);
     }
