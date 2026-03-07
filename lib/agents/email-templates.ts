@@ -1,6 +1,6 @@
 // KeiroAI Agent System - Email Templates
 // 6 categories x 3 emails + 1 warm template
-// Sender: "Oussama -- KeiroAI" / oussama@keiroai.com
+// Sender: "Oussama -- KeiroAI" / contact@keiroai.com
 
 export interface EmailTemplate {
   subject: string;
@@ -30,7 +30,7 @@ function wrapHtmlEmail(subject: string, bodyHtml: string): string {
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:14px;color:#6b7280;">
         <p style="margin:0;">Oussama</p>
         <p style="margin:2px 0;color:#9333ea;font-weight:bold;">KeiroAI</p>
-        <p style="margin:2px 0;font-size:13px;">oussama@keiroai.com</p>
+        <p style="margin:2px 0;font-size:13px;">contact@keiroai.com</p>
       </div>
     </div>
     <div style="background:#f9fafb;padding:16px;text-align:center;color:#9ca3af;font-size:12px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">

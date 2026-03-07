@@ -175,10 +175,19 @@ Example for 3 scenes: ["Slow crane descent into a warm Italian restaurant with r
   }
 
   const scenes: string[] = JSON.parse(jsonStr);
-  console.log(`[video-scenes] Generated ${scenes.length} scene prompts:`, scenes.map((s, i) => `[${i}] ${s.length}chars`));
+  console.log(`[video-scenes] Generated ${scenes.length} scene prompts:`, scenes.map((s, i) => `[${i}] ${s.length}chars "${s.substring(0, 60)}..."`));
 
-  // Ensure each prompt stays under 200 chars (hard limit for Seedance)
-  return scenes.map(s => s.length > 200 ? s.substring(0, 200) : s);
+  // Inject style suffix into each scene to enforce render mode + character type
+  // This is critical: Seedance needs explicit "photorealistic" or "real humans" keywords
+  const styleSuffix = renderMode.includes('photorealistic')
+    ? ', photorealistic, real humans, shot on cinema camera'
+    : ', stylized 3D animation, colorful digital art';
+
+  return scenes.map(s => {
+    const withStyle = `${s}${styleSuffix}`;
+    // Keep total under 250 chars so flags at end aren't truncated
+    return withStyle.length > 250 ? withStyle.substring(0, 250) : withStyle;
+  });
 }
 
 /**

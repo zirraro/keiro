@@ -726,17 +726,17 @@ async function startSeedanceT2V(
   aspectRatio: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
   const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-  // Scene prompts from decomposePromptIntoScenes are already short (max 200 chars).
-  // Strip any remaining meta-instructions that waste prompt space.
+  // Scene prompts are already short (80-200 chars from decomposePromptIntoScenes).
+  // Strip leftover meta-instructions.
   const cleanPrompt = prompt
     .replace(/ABSOLUTELY ZERO[^.]*\./gi, '')
     .replace(/Pure visual storytelling[^.]*\./gi, '')
     .replace(/NO text[^.]*\./gi, '')
     .trim();
-  // Hard limit: 200 chars for the visual description
-  const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
-  // Assemble: flags FIRST, then short visual prompt
-  const formattedPrompt = `--duration ${duration}${ratioFlag} --camerafixed false ${shortPrompt}`;
+  // Hard limit 250 chars for the visual description so flags at end aren't truncated
+  const shortPrompt = cleanPrompt.length > 250 ? cleanPrompt.substring(0, 250) : cleanPrompt;
+  // Flags MUST be at the END — Seedance parses them from the end of the prompt text
+  const formattedPrompt = `${shortPrompt} --duration ${duration}${ratioFlag} --camerafixed false`;
 
   try {
     console.log(`[video-long] T2V Seedance: duration=${duration}s, total=${formattedPrompt.length}chars`);
@@ -819,12 +819,12 @@ async function startSeedanceI2V(
   duration: number,
   imageUrl: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
-  // Clean and shorten the prompt (scene prompts are already short from decomposition)
+  // Clean and shorten the prompt — flags MUST be at the END for Seedance
   const cleanPrompt = (prompt || '').replace(/ABSOLUTELY ZERO[^.]*\./gi, '').trim();
-  const shortPrompt = cleanPrompt.length > 150 ? cleanPrompt.substring(0, 150) : cleanPrompt;
+  const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
   const textPrompt = shortPrompt
-    ? `--duration ${duration} --camerafixed false Seamless continuation, same lighting and atmosphere. ${shortPrompt}`
-    : `--duration ${duration} --camerafixed false Animate with smooth cinematic camera movement, consistent lighting`;
+    ? `Seamless continuation, same lighting. ${shortPrompt} --duration ${duration} --camerafixed false`
+    : `Animate with smooth cinematic camera movement, consistent lighting --duration ${duration} --camerafixed false`;
 
   try {
     console.log('[video-long] I2V: trying Seedance 1.5 Pro...');

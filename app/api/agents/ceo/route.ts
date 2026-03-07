@@ -388,7 +388,7 @@ async function generateBrief(): Promise<NextResponse> {
             'content-type': 'application/json',
           },
           body: JSON.stringify({
-            sender: { name: 'KeiroAI CEO Agent', email: 'oussama@keiroai.com' },
+            sender: { name: 'KeiroAI CEO Agent', email: 'contact@keiroai.com' },
             to: [{ email: FOUNDER_EMAIL, name: 'Oussama' }],
             subject: emailSubject,
             htmlContent: emailHtml,

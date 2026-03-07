@@ -86,11 +86,11 @@ export async function POST(request: Request) {
     try {
       console.log('[I2V] Trying Seedance 1.5 Pro...');
 
-      // Put flags FIRST to avoid truncation by API on long prompts
-      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 400 ? prompt.substring(0, 400) : prompt) : '';
+      // Flags MUST be at the END — Seedance parses them from the end of the prompt.
+      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 300 ? prompt.substring(0, 300) : prompt) : '';
       const textPrompt = truncatedPrompt
-        ? `--duration ${duration} --camerafixed false ${truncatedPrompt}`
-        : `--duration ${duration} --camerafixed false Animate this image with smooth cinematic camera movement`;
+        ? `${truncatedPrompt} --duration ${duration} --camerafixed false`
+        : `Animate this image with smooth cinematic camera movement --duration ${duration} --camerafixed false`;
 
       const content: any[] = [
         { type: 'text', text: textPrompt },

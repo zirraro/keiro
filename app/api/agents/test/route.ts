@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
                 'content-type': 'application/json',
               },
               body: JSON.stringify({
-                sender: { name: 'Oussama — KeiroAI', email: 'oussama@keiroai.com' },
+                sender: { name: 'Oussama — KeiroAI', email: 'contact@keiroai.com' },
                 to: [{ email: testEmail, name: testCompany }],
                 subject: `[TEST Step ${step}] ${template.subject}`,
                 htmlContent: template.htmlBody,
