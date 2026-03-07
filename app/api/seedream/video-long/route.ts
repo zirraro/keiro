@@ -265,6 +265,24 @@ export async function POST(request: Request) {
       console.log(`[video-long] Fallback: ${scenes.length} segments from calculateSegments`);
     }
 
+    // 6b. Validate total duration matches requested duration
+    const totalSceneDuration = scenes.reduce((sum, s) => sum + s.duration, 0);
+    if (totalSceneDuration < duration) {
+      console.warn(`[video-long] Total scene duration (${totalSceneDuration}s) < requested (${duration}s), adding segments...`);
+      while (scenes.reduce((sum, s) => sum + s.duration, 0) < duration) {
+        const remaining = duration - scenes.reduce((sum, s) => sum + s.duration, 0);
+        const segDur = remaining >= 10 ? 10 : 5;
+        const idx = scenes.length;
+        scenes.push({
+          index: idx,
+          duration: segDur,
+          prompt: `${scenes[scenes.length - 1].prompt} Continue the movement and atmosphere seamlessly.`,
+          type: 'text_to_video' as const,
+        });
+      }
+    }
+    console.log(`[video-long] Final scenes: ${scenes.length} segments, total ${scenes.reduce((sum, s) => sum + s.duration, 0)}s for requested ${duration}s`);
+
     // 7. Build segments array for the job
     const jobSegments: JobSegment[] = scenes.map((scene) => ({
       index: scene.index,
@@ -727,10 +745,14 @@ async function startSeedanceT2V(
   aspectRatio: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
   const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-  const formattedPrompt = `${prompt} --duration ${duration}${ratioFlag} --camerafixed false`;
+  // CRITICAL: Put flags FIRST — long prompts may get truncated by the API, losing --duration at the end
+  // Truncate prompt to 400 chars to stay within API limits
+  const truncatedPrompt = prompt.length > 400 ? prompt.substring(0, 400) : prompt;
+  const formattedPrompt = `--duration ${duration}${ratioFlag} --camerafixed false ${truncatedPrompt}`;
 
   try {
-    console.log('[video-long] T2V: trying Seedance 1.5 Pro...');
+    console.log(`[video-long] T2V: trying Seedance 1.5 Pro, duration=${duration}s, prompt length=${formattedPrompt.length} chars`);
+    console.log(`[video-long] T2V prompt starts with: ${formattedPrompt.substring(0, 80)}...`);
     const response = await fetch(SEEDANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -811,9 +833,11 @@ async function startSeedanceI2V(
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
   // Enrich I2V prompt with continuity instructions
   const continuityPrefix = 'Seamlessly continue from this exact frame. Maintain identical lighting, color grading, and atmosphere.';
-  const textPrompt = prompt && prompt.trim()
-    ? `${continuityPrefix} ${prompt} Smooth natural camera movement continuing the previous shot. --duration ${duration} --camerafixed false`
-    : `${continuityPrefix} Animate this image with smooth cinematic camera movement, maintaining exact visual consistency. --duration ${duration} --camerafixed false`;
+  // CRITICAL: Put flags FIRST to avoid truncation by API
+  const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 400 ? prompt.substring(0, 400) : prompt) : '';
+  const textPrompt = truncatedPrompt
+    ? `--duration ${duration} --camerafixed false ${continuityPrefix} ${truncatedPrompt} Smooth natural camera movement continuing the previous shot.`
+    : `--duration ${duration} --camerafixed false ${continuityPrefix} Animate this image with smooth cinematic camera movement, maintaining exact visual consistency.`;
 
   try {
     console.log('[video-long] I2V: trying Seedance 1.5 Pro...');

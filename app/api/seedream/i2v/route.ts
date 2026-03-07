@@ -86,9 +86,11 @@ export async function POST(request: Request) {
     try {
       console.log('[I2V] Trying Seedance 1.5 Pro...');
 
-      const textPrompt = prompt && prompt.trim()
-        ? `${prompt} --duration ${duration} --camerafixed false`
-        : `Animate this image with smooth cinematic camera movement --duration ${duration} --camerafixed false`;
+      // Put flags FIRST to avoid truncation by API on long prompts
+      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 400 ? prompt.substring(0, 400) : prompt) : '';
+      const textPrompt = truncatedPrompt
+        ? `--duration ${duration} --camerafixed false ${truncatedPrompt}`
+        : `--duration ${duration} --camerafixed false Animate this image with smooth cinematic camera movement`;
 
       const content: any[] = [
         { type: 'text', text: textPrompt },

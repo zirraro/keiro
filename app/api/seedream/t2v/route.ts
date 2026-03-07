@@ -81,7 +81,9 @@ export async function POST(request: Request) {
 
     // --- Primary: Seedance 1.5 Pro ---
     const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-    const formattedPrompt = `${prompt} --duration ${duration}${ratioFlag} --camerafixed false`;
+    // Put flags FIRST to avoid truncation by API on long prompts
+    const truncatedPrompt = prompt.length > 400 ? prompt.substring(0, 400) : prompt;
+    const formattedPrompt = `--duration ${duration}${ratioFlag} --camerafixed false ${truncatedPrompt}`;
 
     try {
       console.log('[T2V] Trying Seedance 1.5 Pro...');
