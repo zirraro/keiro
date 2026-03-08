@@ -5,11 +5,13 @@
 
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
 import { fetchTikTokTrendsFR, type TikTokHashtag } from './tiktokTrends';
+import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
 import { createClient } from '@supabase/supabase-js';
 
 export type TrendingData = {
   googleTrends: GoogleTrendItem[];
   tiktokHashtags: TikTokHashtag[];
+  trendingMusic: TikTokTrendingSong[];
   keywords: string[]; // liste plate pour scoring rapide
   fetchedAt: string;  // ISO timestamp
 };
@@ -31,15 +33,18 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
   console.log('[Trends] Cache miss, fetching fresh trends...');
 
   // Fetch en parallèle avec fallback
-  const [googleResult, tiktokResult] = await Promise.allSettled([
+  const [googleResult, tiktokResult, musicResult] = await Promise.allSettled([
     fetchGoogleTrendsFR(),
     fetchTikTokTrendsFR(),
+    fetchTikTokTrendingMusicFR(),
   ]);
 
   const googleTrends =
     googleResult.status === 'fulfilled' ? googleResult.value : [];
   const tiktokHashtags =
     tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
+  const trendingMusic =
+    musicResult.status === 'fulfilled' ? musicResult.value : [];
 
   // Construire la liste plate de keywords pour scoring
   const keywords: string[] = [];
@@ -57,12 +62,17 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
     }
   }
 
-  const uniqueKeywords = [...new Set(keywords)];
+  // Add music titles/artists to keywords for scoring
+  for (const song of trendingMusic) {
+    if (song.title) keywords.push(song.title.toLowerCase());
+    if (song.artist) keywords.push(song.artist.toLowerCase());
+  }
 
   const data: TrendingData = {
     googleTrends,
     tiktokHashtags,
-    keywords: uniqueKeywords,
+    trendingMusic,
+    keywords: [...new Set(keywords)],
     fetchedAt: new Date().toISOString(),
   };
 
@@ -71,7 +81,7 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
   cacheTimestamp = now;
 
   console.log(
-    `[Trends] Cached: ${googleTrends.length} Google topics, ${tiktokHashtags.length} TikTok hashtags, ${uniqueKeywords.length} keywords`
+    `[Trends] Cached: ${googleTrends.length} Google, ${tiktokHashtags.length} TikTok hashtags, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
   );
 
   // Persister en BDD pour historique (async, non bloquant)
@@ -143,3 +153,4 @@ async function persistTrendsToDb(
 // Export pour usage externe
 export type { GoogleTrendItem } from './googleTrends';
 export type { TikTokHashtag } from './tiktokTrends';
+export type { TikTokTrendingSong } from './tiktokMusic';

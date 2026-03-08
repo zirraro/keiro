@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         data: {
           googleTrends: [],
           tiktokHashtags: [],
+          trendingMusic: [],
           keywords: [],
           fetchedAt: new Date().toISOString(),
         },
