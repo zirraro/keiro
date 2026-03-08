@@ -499,6 +499,7 @@ export default function GeneratePage() {
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [generatingAudio, setGeneratingAudio] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('JBFqnCBsd6RMkjVDRZzb'); // ElevenLabs George (Homme narrateur)
+  const [addMusic, setAddMusic] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState('none');
   const [generatedSubtitleText, setGeneratedSubtitleText] = useState('');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -4698,70 +4699,87 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       )}
                     </div>
 
-                    {/* Section Musique de fond (indépendante de la voix) */}
+                    {/* Section Musique de fond (optionnelle, comme la voix) */}
                     <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-semibold text-neutral-900">
-                        🎵 {t.generate.backgroundMusic}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={addMusic}
+                          onChange={(e) => {
+                            setAddMusic(e.target.checked);
+                            if (!e.target.checked) setSelectedMusic('none');
+                            else if (selectedMusic === 'none') setSelectedMusic('energetic');
+                          }}
+                          className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500"
+                        />
+                        <span className="text-xs font-semibold text-neutral-900">
+                          🎵 {t.generate.backgroundMusic}
+                        </span>
+                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                       </label>
-                      <div className="flex flex-wrap gap-1">
-                        {([
-                          { value: 'none', label: t.generate.musicNone },
-                          { value: 'corporate', label: t.generate.musicCorporate },
-                          { value: 'energetic', label: t.generate.musicEnergetic },
-                          { value: 'calm', label: t.generate.musicCalm },
-                          { value: 'inspiring', label: t.generate.musicInspiring },
-                          { value: 'trendy', label: t.generate.musicTrendy },
-                        ]).map((m) => (
-                          <button
-                            key={m.value}
-                            type="button"
-                            onClick={() => setSelectedMusic(m.value)}
-                            className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
-                              selectedMusic === m.value
-                                ? 'bg-purple-600 text-white border-purple-600'
-                                : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
-                            }`}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
-                      </div>
 
-                      {/* Trending Music — selectable for video background */}
-                      {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-purple-200">
-                          <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
-                          <div className="space-y-1 max-h-[140px] overflow-y-auto">
-                            {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
-                              const songKey = `trending:${song.title}`;
-                              const isSelected = selectedMusic === songKey;
-                              return (
-                                <div
-                                  key={i}
-                                  onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
-                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
-                                    isSelected
-                                      ? 'bg-purple-600 text-white border border-purple-600'
-                                      : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
-                                  }`}
-                                >
-                                  {song.coverUrl && (
-                                    <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                                    <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                                  </div>
-                                  {isSelected ? (
-                                    <span className="text-white text-[10px] font-bold">✓</span>
-                                  ) : song.trend === 'up' ? (
-                                    <span className="text-emerald-500 font-bold">↑</span>
-                                  ) : null}
-                                </div>
-                              );
-                            })}
+                      {addMusic && (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {([
+                              { value: 'corporate', label: t.generate.musicCorporate },
+                              { value: 'energetic', label: t.generate.musicEnergetic },
+                              { value: 'calm', label: t.generate.musicCalm },
+                              { value: 'inspiring', label: t.generate.musicInspiring },
+                              { value: 'trendy', label: t.generate.musicTrendy },
+                            ]).map((m) => (
+                              <button
+                                key={m.value}
+                                type="button"
+                                onClick={() => setSelectedMusic(m.value)}
+                                className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
+                                  selectedMusic === m.value
+                                    ? 'bg-purple-600 text-white border-purple-600'
+                                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
                           </div>
-                          <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
+
+                          {/* Trending Music */}
+                          {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
+                            <div className="pt-2 border-t border-purple-200">
+                              <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
+                              <div className="space-y-1 max-h-[140px] overflow-y-auto">
+                                {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
+                                  const songKey = `trending:${song.title}`;
+                                  const isSelected = selectedMusic === songKey;
+                                  return (
+                                    <div
+                                      key={i}
+                                      onClick={() => setSelectedMusic(isSelected ? 'energetic' : songKey)}
+                                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
+                                        isSelected
+                                          ? 'bg-purple-600 text-white border border-purple-600'
+                                          : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
+                                      }`}
+                                    >
+                                      {song.coverUrl && (
+                                        <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                        <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                      </div>
+                                      {isSelected ? (
+                                        <span className="text-white text-[10px] font-bold">✓</span>
+                                      ) : song.trend === 'up' ? (
+                                        <span className="text-emerald-500 font-bold">↑</span>
+                                      ) : null}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -5680,61 +5698,77 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
                     {/* Musique de fond (éditeur) */}
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-semibold text-neutral-900">
-                        🎵 {t.generate.backgroundMusic}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={addMusic}
+                          onChange={(e) => {
+                            setAddMusic(e.target.checked);
+                            if (!e.target.checked) setSelectedMusic('none');
+                            else if (selectedMusic === 'none') setSelectedMusic('energetic');
+                          }}
+                          className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500"
+                        />
+                        <span className="text-xs font-semibold text-neutral-900">
+                          🎵 {t.generate.backgroundMusic}
+                        </span>
+                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                       </label>
-                      <div className="flex flex-wrap gap-1">
-                        {([
-                          { value: 'none', label: t.generate.musicNone },
-                          { value: 'corporate', label: t.generate.musicCorporate },
-                          { value: 'energetic', label: t.generate.musicEnergetic },
-                          { value: 'calm', label: t.generate.musicCalm },
-                          { value: 'inspiring', label: t.generate.musicInspiring },
-                          { value: 'trendy', label: t.generate.musicTrendy },
-                        ]).map((m) => (
-                          <button
-                            key={m.value}
-                            type="button"
-                            onClick={() => setSelectedMusic(m.value)}
-                            className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
-                              selectedMusic === m.value
-                                ? 'bg-purple-600 text-white border-purple-600'
-                                : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
-                            }`}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
-                      </div>
-                      {(trendingData?.trendingMusic?.length ?? 0) > 0 && (
-                        <div className="mt-1 pt-1 border-t border-purple-200">
-                          <p className="text-[9px] font-semibold text-purple-700 mb-1">🎵 {t.generate.backgroundMusicTrending}</p>
-                          <div className="space-y-1 max-h-[100px] overflow-y-auto">
-                            {trendingData!.trendingMusic.slice(0, 5).map((song: any, i: number) => {
-                              const songKey = `trending:${song.title}`;
-                              const isSelected = selectedMusic === songKey;
-                              return (
-                                <div
-                                  key={i}
-                                  onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
-                                  className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] cursor-pointer transition-all ${
-                                    isSelected
-                                      ? 'bg-purple-600 text-white border border-purple-600'
-                                      : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
-                                  }`}
-                                >
-                                  {song.coverUrl && (
-                                    <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                                  )}
-                                  <div className="flex-1 min-w-0">
-                                    <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                                    <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                                  </div>
-                                  {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
-                                </div>
-                              );
-                            })}
+                      {addMusic && (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {([
+                              { value: 'corporate', label: t.generate.musicCorporate },
+                              { value: 'energetic', label: t.generate.musicEnergetic },
+                              { value: 'calm', label: t.generate.musicCalm },
+                              { value: 'inspiring', label: t.generate.musicInspiring },
+                              { value: 'trendy', label: t.generate.musicTrendy },
+                            ]).map((m) => (
+                              <button
+                                key={m.value}
+                                type="button"
+                                onClick={() => setSelectedMusic(m.value)}
+                                className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
+                                  selectedMusic === m.value
+                                    ? 'bg-purple-600 text-white border-purple-600'
+                                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
                           </div>
+                          {(trendingData?.trendingMusic?.length ?? 0) > 0 && (
+                            <div className="pt-1 border-t border-purple-200">
+                              <p className="text-[9px] font-semibold text-purple-700 mb-1">🎵 {t.generate.backgroundMusicTrending}</p>
+                              <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                                {trendingData!.trendingMusic.slice(0, 5).map((song: any, i: number) => {
+                                  const songKey = `trending:${song.title}`;
+                                  const isSelected = selectedMusic === songKey;
+                                  return (
+                                    <div
+                                      key={i}
+                                      onClick={() => setSelectedMusic(isSelected ? 'energetic' : songKey)}
+                                      className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] cursor-pointer transition-all ${
+                                        isSelected
+                                          ? 'bg-purple-600 text-white border border-purple-600'
+                                          : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
+                                      }`}
+                                    >
+                                      {song.coverUrl && (
+                                        <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                        <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                      </div>
+                                      {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                       <button
@@ -5772,9 +5806,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             alert(`${t.generate.alertError} ${err.message}`);
                           } finally { setVideoEditorMerging(false); }
                         }}
-                        disabled={videoEditorMerging || selectedMusic === 'none'}
+                        disabled={videoEditorMerging || !addMusic || selectedMusic === 'none'}
                         className={`w-full px-3 py-2 rounded text-xs font-medium transition-colors ${
-                          videoEditorMerging || selectedMusic === 'none'
+                          videoEditorMerging || !addMusic || selectedMusic === 'none'
                             ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                             : 'bg-purple-600 text-white hover:bg-purple-700'
                         }`}
