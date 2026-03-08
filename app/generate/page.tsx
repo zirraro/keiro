@@ -2492,46 +2492,58 @@ export default function GeneratePage() {
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
         const newsDesc = (selectedNews as any).description?.substring(0, 300) || '';
-        videoPrompt = `${videoDuration}-second premium social media video. ${videoRenderStyle}.
+        videoPrompt = `${videoDuration}-second ultra-premium cinematic social media video. ${videoRenderStyle}.
 
-BUSINESS CONTEXT: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}.
-TRENDING NEWS: "${selectedNews.title}"${newsDesc ? `. ${newsDesc}` : ''}.
+THE STORY: A "${businessType}" business rides the wave of "${selectedNews.title}".
+${businessDescription ? `Business detail: ${businessDescription}.` : ''}
+${newsDesc ? `News context: ${newsDesc}.` : ''}
 
-CREATIVE BRIEF — NEWS FIRST, THEN BUSINESS:
-The video MUST open with a STRONG visual reference to the news topic. The news is the HOOK — it grabs attention. Then the business appears naturally as the RESPONSE or solution.
+VISUAL FUSION — NEWS × BUSINESS (THE KEY TO THIS VIDEO):
+The news topic and the business MUST be visually intertwined in EVERY frame. Not separate — FUSED.
+Example: if news is "Tour de France" and business is "bakery" → show a bakery window decorated with cycling themes, croissants shaped like bikes, customers in cycling jerseys celebrating at the counter.
+Example: if news is "Cannes Festival" and business is "jewelry" → show glamorous jewelry on a red carpet backdrop, golden necklaces catching spotlights, a jeweler's workshop with film posters.
 
-VISUAL STORYTELLING (NEWS IN FOREGROUND):
-- Scene 1: IMMEDIATELY show the news topic visually — the event, the atmosphere, the energy. The viewer must instantly recognize "this is about ${selectedNews.title}"
-- Scene 2+: The "${businessType}" business appears IN CONTEXT of the news — people in the business reacting to it, products/services that connect to the topic
-- Final scene: The business thriving BECAUSE of its connection to this trending topic
-- Every frame must feel current, urgent, trending — this is happening NOW
-- The news creates the visual world, the business lives inside it
+SCENE STRUCTURE:
+- Opening: Wide establishing shot that IMMEDIATELY shows BOTH the news atmosphere AND the business environment fused together. The viewer must understand the connection in 2 seconds.
+- Middle: Close-ups on PRODUCTS/DETAILS that embody the news-business fusion. Focus on hands, objects, textures — NOT faces.
+- Closing: Pull back to reveal the full scene — the business thriving in the context of this trending moment.
+
+HUMAN DIVERSITY (CRITICAL — each person must be UNIQUE):
+- Vary: age (20s, 40s, 60s), ethnicity (Black, White, Asian, Arab, mixed), hair (short, long, curly, straight, bald), clothing style, body type
+- PREFER showing people from behind, in silhouette, or via hands/gestures — AI faces often look artificial
+- When faces are shown, use medium-wide framing so faces are small in frame
 
 Characters: ${videoCharStyle}.${targetAudience ? ` Target audience: ${targetAudience}.` : ''}
 Emotional tone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Cinematic style: ${visualStyle || 'cinematic'}.
 ${storyToTell ? `Narrative arc: ${storyToTell}.` : ''}
-Camera work: ${videoDuration <= 10
-  ? 'Single powerful tracking or dolly shot — immediate emotional impact, shallow depth of field'
-  : 'Opening wide establishing shot with crane/dolly, mid tracking shots following action, intimate close-ups of details and reactions, closing wide pullback'}. Professional cinematic grade. Dynamic subject movement within every frame.
-ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual storytelling only.`;
+Camera: Anamorphic lens, shallow depth of field, professional color grading. ${videoDuration <= 10
+  ? 'Single powerful tracking shot, golden hour lighting.'
+  : 'Progressive camera work: crane establishing → tracking → macro close-ups → wide pullback.'} Dynamic subject movement. Film grain.
+ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storytelling.`;
       } else {
-        videoPrompt = `${videoDuration}-second premium social media video. ${videoRenderStyle}.
+        videoPrompt = `${videoDuration}-second ultra-premium cinematic social media video. ${videoRenderStyle}.
 
-BUSINESS: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}.
+THE STORY: "${businessType}" at its most captivating.
+${businessDescription ? `Detail: ${businessDescription}.` : ''}
 
 VISUAL STORYTELLING:
 - Show this business at its absolute BEST — the atmosphere, the products, the human experience
-- Capture authentic moments: customers discovering, reacting, enjoying
-- Highlight what makes this business unique: textures, details, craftsmanship, ambiance
-- Create desire: the viewer should want to visit/buy/experience this immediately
+- Focus on PRODUCTS, TEXTURES, CRAFTSMANSHIP — close-ups on hands working, materials gleaming, details that create desire
+- Capture authentic moments: customers discovering, reacting, enjoying — show them from behind or in profile
+- Every frame must make the viewer want to visit/buy/experience this immediately
+
+HUMAN DIVERSITY (CRITICAL):
+- Each person must look UNIQUE: vary age (20s-60s), ethnicity, hair, clothing, body type
+- PREFER: over-the-shoulder shots, hands, silhouettes, wide shots where faces are small
+- AVOID: multiple similar-looking people, generic stock-photo smiles
 
 Characters: ${videoCharStyle}.${targetAudience ? ` Target audience: ${targetAudience}.` : ''}
 Emotional tone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Cinematic style: ${visualStyle || 'cinematic'}.
 ${storyToTell ? `Narrative arc: ${storyToTell}.` : ''}
-Camera work: ${videoDuration <= 10
-  ? 'Single powerful tracking or dolly shot — immediate emotional impact, shallow depth of field, golden hour lighting'
-  : 'Opening wide establishing shot with crane/dolly, mid tracking shots following action, intimate close-ups of textures and reactions, closing wide pullback'}. Professional cinematic grade. Dynamic subject movement within every frame.
-ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the video. Pure visual storytelling only.`;
+Camera: Anamorphic lens, shallow depth of field, professional color grading. ${videoDuration <= 10
+  ? 'Single powerful tracking shot, golden hour lighting.'
+  : 'Progressive camera work: crane establishing → tracking → macro close-ups → wide pullback.'} Dynamic subject movement. Film grain.
+ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storytelling.`;
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
@@ -3112,18 +3124,17 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {trendingData && <span className="text-[9px] text-neutral-400 ml-auto">{t.generate.updatedToday}</span>}
           </div>
 
-          {/* Content — horizontal scrollable */}
-          <div className="px-3 py-2.5 overflow-x-auto scrollbar-hide">
+          {/* Content */}
+          <div className="px-3 py-2.5">
             {trendTab === 'google' && (
               <div>
-                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour utiliser comme thème de contenu' : 'Click to use as content theme'}</p>
-                <div className="flex gap-1.5 flex-nowrap">
-                  {(trendingData?.googleTrends || []).slice(0, 12).map((trend: any, i: number) => (
+                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Cliquez pour utiliser comme thème de contenu' : 'Click to use as content theme'}</p>
+                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
+                  {(trendingData?.googleTrends || []).slice(0, 10).map((trend: any, i: number) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => {
-                        // Use trend as content theme: switch to sans-actu mode with trend as topic
                         setUseNewsMode(false);
                         setBusinessDescription((prev: string) => {
                           const trendNote = locale === 'fr'
@@ -3131,15 +3142,20 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             : `Related to trending topic "${trend.title}". ${prev || ''}`;
                           return trendNote;
                         });
-                        // Scroll to business description
                         const el = document.getElementById('business-description');
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-orange-100 border border-orange-200 rounded-full text-[10px] font-medium text-orange-800 whitespace-nowrap transition-all shrink-0 shadow-sm hover:shadow"
+                      className="flex flex-col items-start w-[200px] min-w-[200px] p-3 bg-white hover:bg-orange-50 border border-orange-200 rounded-xl text-left transition-all shrink-0 shadow-sm hover:shadow-md group"
                     >
-                      <span className="text-orange-400 font-bold">{i + 1}</span>
-                      {trend.title}
-                      {trend.traffic && <span className="text-orange-400 text-[8px]">{trend.traffic}</span>}
+                      <div className="flex items-center gap-1.5 mb-1.5 w-full">
+                        <span className="text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded">#{i + 1}</span>
+                        <span className="text-[8px] text-orange-400 ml-auto">{locale === 'fr' ? 'Tendance Google' : 'Google Trend'}</span>
+                      </div>
+                      <p className="text-xs font-bold text-neutral-900 leading-tight mb-1 line-clamp-2">{trend.title}</p>
+                      {trend.articleTitle && (
+                        <p className="text-[9px] text-neutral-500 leading-snug line-clamp-2">{trend.articleTitle}</p>
+                      )}
+                      <span className="text-[8px] text-orange-500 font-medium mt-auto pt-1.5 group-hover:text-orange-700">{locale === 'fr' ? 'Utiliser ce thème →' : 'Use this theme →'}</span>
                     </button>
                   ))}
                   {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
@@ -3151,8 +3167,8 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
             {trendTab === 'music' && (
               <div>
-                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour ajouter en musique de fond vidéo' : 'Click to add as video background music'}</p>
-                <div className="flex gap-2 flex-nowrap">
+                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Cliquez pour ajouter en musique de fond vidéo' : 'Click to add as video background music'}</p>
+                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
                   {(trendingData?.trendingMusic || []).slice(0, 10).map((song: any, i: number) => {
                     const songKey = `trending:${song.title}`;
                     const isSelected = selectedMusic === songKey;
@@ -3164,22 +3180,16 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           setSelectedMusic(isSelected ? 'none' : songKey);
                           if (generationMode !== 'video') setGenerationMode('video');
                         }}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-all shrink-0 border shadow-sm ${
+                        className={`flex flex-col items-center w-[130px] min-w-[130px] p-2.5 rounded-xl text-center transition-all shrink-0 border shadow-sm hover:shadow-md ${
                           isSelected
-                            ? 'bg-purple-600 text-white border-purple-600 shadow-purple-200'
-                            : 'bg-white hover:bg-purple-50 border-purple-200 hover:shadow'
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'bg-white hover:bg-purple-50 border-purple-200'
                         }`}
                       >
-                        {song.coverUrl && <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover" />}
-                        <div className="min-w-0 text-left">
-                          <p className={`font-semibold truncate max-w-[120px] ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                          <p className={`text-[8px] truncate max-w-[120px] ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                        </div>
-                        {isSelected ? (
-                          <span className="text-white font-bold">✓</span>
-                        ) : i < 3 ? (
-                          <span className="text-emerald-500 font-bold text-[9px]">↑</span>
-                        ) : null}
+                        {song.coverUrl && <img src={song.coverUrl} alt="" className="w-14 h-14 rounded-lg object-cover mb-1.5 shadow" />}
+                        <p className={`text-[10px] font-semibold truncate w-full ${isSelected ? 'text-white' : 'text-neutral-900'}`}>{song.title}</p>
+                        <p className={`text-[8px] truncate w-full ${isSelected ? 'text-purple-200' : 'text-neutral-500'}`}>{song.artist}</p>
+                        {isSelected && <span className="text-[9px] mt-1 font-bold">✓ {locale === 'fr' ? 'Sélectionné' : 'Selected'}</span>}
                       </button>
                     );
                   })}
@@ -3192,29 +3202,42 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
 
             {trendTab === 'tiktok' && (
               <div>
-                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour copier le hashtag' : 'Click to copy hashtag'}</p>
-                <div className="flex gap-1.5 flex-nowrap">
-                  {(trendingData?.tiktokHashtags || []).slice(0, 15).map((tag: any) => (
+                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Hashtags populaires — cliquez pour copier' : 'Popular hashtags — click to copy'}</p>
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 flex-wrap">
+                  {(trendingData?.tiktokHashtags || []).filter((t: any) => t.trend === 'up').slice(0, 12).map((tag: any) => (
                     <button
                       key={tag.hashtag}
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
                         navigator.clipboard.writeText(`#${tag.hashtag}`).catch(() => {});
-                        // Brief visual feedback via alert-style
-                        const btn = document.activeElement as HTMLButtonElement;
-                        if (btn) {
-                          const original = btn.textContent;
-                          btn.textContent = '✓ ' + locale === 'fr' ? 'Copié' : 'Copied';
-                          setTimeout(() => { if (original) btn.textContent = original; }, 1000);
-                        }
+                        const btn = e.currentTarget;
+                        btn.classList.add('ring-2', 'ring-emerald-400');
+                        const span = btn.querySelector('.copy-feedback');
+                        if (span) span.textContent = '✓';
+                        setTimeout(() => {
+                          btn.classList.remove('ring-2', 'ring-emerald-400');
+                          if (span) span.textContent = '';
+                        }, 1200);
                       }}
-                      className={`px-3 py-2 rounded-full text-[10px] font-medium border whitespace-nowrap transition-all shrink-0 shadow-sm hover:shadow ${
-                        tag.trend === 'up'
-                          ? 'bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50'
-                          : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
-                      }`}
+                      className="flex items-center gap-1 px-3 py-2 bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 rounded-lg text-[11px] font-medium transition-all shadow-sm hover:shadow"
                     >
-                      #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-500">↑</span>}
+                      <span className="text-emerald-500">↑</span> #{tag.hashtag}
+                      <span className="copy-feedback text-emerald-600 font-bold text-xs"></span>
+                    </button>
+                  ))}
+                  {(trendingData?.tiktokHashtags || []).filter((t: any) => t.trend !== 'up').slice(0, 8).map((tag: any) => (
+                    <button
+                      key={tag.hashtag}
+                      type="button"
+                      onClick={(e) => {
+                        navigator.clipboard.writeText(`#${tag.hashtag}`).catch(() => {});
+                        const btn = e.currentTarget;
+                        btn.classList.add('ring-2', 'ring-neutral-400');
+                        setTimeout(() => btn.classList.remove('ring-2', 'ring-neutral-400'), 1200);
+                      }}
+                      className="px-3 py-2 bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 rounded-lg text-[11px] font-medium transition-all shadow-sm hover:shadow"
+                    >
+                      #{tag.hashtag}
                     </button>
                   ))}
                 </div>

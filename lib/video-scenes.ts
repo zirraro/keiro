@@ -134,34 +134,39 @@ async function generateShortScenePrompts(
   const systemPrompt = `You are an elite cinematographer creating a ${numScenes}-segment video. Each segment is generated INDEPENDENTLY by AI, so visual continuity must be EMBEDDED in every prompt.
 
 CRITICAL RULES:
-1. Each scene: 80-150 characters max. Pure visual description only.
-2. NEVER mention text, words, letters, signs, logos, watermarks, titles, captions, or any written content. The AI will generate ugly gibberish text if you mention any text-related concept.
-3. Format: [camera] + [SETTING anchor] + [lighting] + [subject/action]
-4. If brief has NEWS + BUSINESS: every scene must VISUALLY connect both.
-5. When describing people, make each person DISTINCT: vary age (young/middle-aged/elderly), ethnicity, hair color, clothing style, body type. Never say "group of people" without specifying each person's appearance.
-6. Focus on OBJECTS, PRODUCTS, ENVIRONMENTS, and ACTIONS rather than human faces. AI struggles with realistic faces — prefer showing hands, silhouettes, backs of heads, over-the-shoulder shots, or wide shots where faces are small.
+1. Each scene: 100-180 characters max. Rich visual description only.
+2. NEVER mention text, words, letters, signs, logos, watermarks, titles, captions, or any written content. The AI generates ugly gibberish if you mention any text-related concept.
+3. Format: [camera movement] + [SETTING anchor] + [lighting] + [specific subject/action with details]
+4. If brief has NEWS + BUSINESS: every scene must VISUALLY FUSE both — not separately, but intertwined. The business environment incorporates visual elements of the news.
+5. HUMAN DIVERSITY: each person described must be UNIQUE — specify distinct age (20s/40s/60s), ethnicity (Black/White/Asian/Arab/mixed), hair style, clothing. Never use "group of people" without detailing individuals.
+6. PREFER showing hands, products, silhouettes, over-the-shoulder views, wide shots. AVOID close-up face shots — AI faces look artificial.
 
-SEAMLESS CONTINUITY (most important):
-Since segments are generated separately, you MUST repeat a "visual anchor" in EVERY scene:
-- SAME setting description (e.g., "warm brick-walled restaurant" in every scene)
-- SAME lighting keywords (e.g., "golden hour warm light" in every scene)
-- SAME color palette keywords (e.g., "warm amber tones" in every scene)
-- Camera movements should feel progressive: wide → medium → close-up on products → wide
+SEAMLESS CONTINUITY:
+Repeat a "visual anchor" in EVERY scene (exact same words):
+- SAME setting (e.g., "warm brick-walled restaurant" repeated verbatim)
+- SAME lighting (e.g., "golden hour amber light" repeated verbatim)
+- SAME color palette (e.g., "warm amber tones" repeated verbatim)
+
+NEWS × BUSINESS FUSION (if applicable):
+Don't show news and business separately. FUSE them visually:
+- Bad: "football stadium" then "bakery" (two separate worlds)
+- Good: "bakery window with cycling decorations, croissants on a peloton-themed display, golden hour warm light"
+The business ENVIRONMENT should be decorated with, inspired by, or connected to the news topic.
 
 SCENE FLOW for ${numScenes} scenes:
-- Scene 1: Wide establishing — introduce full environment, slow movement
-${numScenes >= 3 ? '- Scene 2: Medium shot — same setting, focus on products/objects/action, people seen from behind or in silhouette' : ''}
-${numScenes >= 3 ? '- Scene 3: Close-up hero shot — same setting, extreme close on key product/object, shallow depth of field, soft slow motion' : ''}
-${numScenes >= 4 ? '- Additional scenes: alternate between medium and close-up, always same setting, focus on hands/objects/details' : ''}
-- Last scene: should feel like a natural ending (slow motion, gentle fade feeling)
+- Scene 1: Slow wide establishing — full environment showing the news-business fusion, gentle camera movement
+${numScenes >= 3 ? '- Scene 2: Medium tracking — same setting, hands working on products, details that echo the news theme' : ''}
+${numScenes >= 3 ? '- Scene 3: Macro close-up — same setting, hero product in extreme detail, shallow depth of field, slow motion' : ''}
+${numScenes >= 4 ? '- Additional: alternate medium/close-up, always same setting, focus on textures and craftmanship' : ''}
+- Last scene: Wide pullback, same setting, slow motion, warm closing atmosphere
 
 Style: ${renderMode}, ${characters}, mood ${mood}, ${style}
 
 OUTPUT: JSON array of strings, one per scene, in ENGLISH.
-Example for 3 scenes (30s video, jewelry + football theme):
-["Slow crane descent into luxurious jewelry workshop, golden hour amber light through tall windows, sparkling gold animal pendants on black velvet display, football memorabilia on shelves in background",
-"Smooth tracking shot of skilled hands crafting a golden lion pendant in same workshop, golden hour amber light, close on tools and molten gold, football scarf draped nearby",
-"Gentle macro dolly in on finished golden lion pendant catching light in same workshop, golden hour amber light, shallow depth of field, soft bokeh of workshop behind"]`;
+Example for 3 scenes (30s video, "bakery" business + "Tour de France" news):
+["Slow crane descent into charming Parisian bakery, golden hour amber light through bay windows, yellow cycling jerseys displayed alongside fresh baguettes, vintage bicycle wheel hanging as decoration, anamorphic lens flare",
+"Smooth tracking shot of baker's flour-dusted hands in same charming bakery, golden hour amber light, shaping croissants on marble counter, a small cycling figurine on the shelf behind, warm amber tones, shallow depth of field",
+"Gentle macro dolly in on golden flaky croissant in same charming bakery, golden hour amber light, a tiny Tour de France flag tucked beside it on rustic wooden board, steam rising in slow motion, film grain"]`;
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
