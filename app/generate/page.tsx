@@ -4968,6 +4968,43 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               </div>
             </div>
 
+            {/* ═══ SIDEBAR: indicateur compact + lien vers résultat ═══ */}
+            {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl && (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">
+                      {generatingVideo ? t.generate.videoGenerationInProgress : t.generate.generatingInProgress}
+                    </p>
+                    <p className="text-xs text-blue-600">{generatingVideo ? videoProgress : t.generate.creatingVisual}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {(generatedImageUrl || generatedVideoUrl) && !showEditStudio && (
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl">
+                    {generatedVideoUrl ? '🎬' : '🖼️'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-green-900">
+                      {generatedVideoUrl ? t.generate.generatedVideo : t.generate.visual} ✓
+                    </p>
+                    <p className="text-xs text-green-600">{locale === 'fr' ? 'Résultat visible ci-dessous' : 'Result visible below'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {generationError && (
+              <div className="bg-red-50 border border-red-200 rounded p-2 text-red-700 text-xs">
+                {generationError}
+              </div>
+            )}
+
+            {/* ═══ ANCIENS BLOCS RÉSULTAT (masqués — remplacés par le modal overlay) ═══ */}
+            {false && (<>
             {/* Skeleton pendant la génération */}
             {generating && !generatedImageUrl && (
               <div className="bg-white rounded-xl border p-3 animate-pulse">
@@ -4997,7 +5034,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 </h3>
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
                   <img
-                    src={generatedImageUrl}
+                    src={generatedImageUrl || undefined}
                     alt={t.generate.generatedVisualAlt}
                     className="w-full h-full object-contain relative z-10"
                     onLoad={(e) => {
@@ -5146,7 +5183,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {t.generate.edit}
                     </button>
                     <a
-                      href={selectedEditVersion || generatedImageUrl}
+                      href={selectedEditVersion || generatedImageUrl || undefined}
                       download
                       className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                     >
@@ -5204,7 +5241,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 }`}>
                   <video
                     ref={videoPreviewRef}
-                    src={generatedVideoUrl}
+                    src={generatedVideoUrl || undefined}
                     controls
                     autoPlay
                     loop
@@ -5279,7 +5316,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       {showVideoEditor ? `✕ ${t.generate.closeEditor}` : t.generate.edit}
                     </button>
                     <a
-                      href={generatedVideoUrl}
+                      href={generatedVideoUrl || undefined}
                       download="keiro-video.mp4"
                       className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
                     >
@@ -5536,8 +5573,295 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {generationError}
               </div>
             )}
+            </>)}
+            {/* ═══ FIN ANCIENS BLOCS MASQUÉS ═══ */}
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* MODAL OVERLAY : Résultat de génération en grand, centré           */}
+        {/* S'affiche quand une génération est en cours ou terminée           */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {(generating || generatingVideo || (generatedImageUrl && !showEditStudio) || (generatedVideoUrl && !showEditStudio)) && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+
+              {/* ── Header ── */}
+              <div className="flex items-center justify-between px-6 py-4 border-b">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl
+                    ? (locale === 'fr' ? 'Génération en cours...' : 'Generating...')
+                    : generatedVideoUrl
+                    ? t.generate.generatedVideo
+                    : t.generate.visual
+                  }
+                  {(lastProvider || lastVideoProvider) && (
+                    <span className={`w-3 h-3 rounded-full inline-block ${
+                      (lastVideoProvider || lastProvider) === 'k' ? 'bg-emerald-500' : 'bg-orange-500'
+                    }`} />
+                  )}
+                </h2>
+                {(generatedImageUrl || generatedVideoUrl) && (
+                  <button
+                    onClick={() => {
+                      if (generatedVideoUrl) { setGeneratedVideoUrl(null); setShowVideoEditor(false); }
+                      if (generatedImageUrl) { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }
+                    }}
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors p-1"
+                    title={locale === 'fr' ? 'Fermer' : 'Close'}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                )}
+              </div>
+
+              {/* ── Contenu : Progress ou Résultat ── */}
+              <div className="p-6">
+
+                {/* === PROGRESS IMAGE === */}
+                {generating && !generatedImageUrl && (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 w-24 h-24 border-4 border-blue-200 rounded-full animate-ping opacity-20"></div>
+                      <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="url(#modalGradient)" strokeWidth="8" strokeLinecap="round"
+                          strokeDasharray={`${imageLoadingProgress * 2.827} 282.7`} style={{ transition: 'stroke-dasharray 0.3s ease' }} />
+                        <defs><linearGradient id="modalGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient></defs>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-3xl">{loadingStep === 'api' ? '🎨' : loadingStep === 'download' ? '📥' : '✓'}</div>
+                      </div>
+                    </div>
+                    <p className="text-base font-semibold text-neutral-900">
+                      {loadingStep === 'api' ? t.generate.generatingInProgress : loadingStep === 'download' ? t.generate.loadingImage : t.generate.ready}
+                    </p>
+                    <p className="text-sm text-neutral-500 mt-1">
+                      {loadingStep === 'api' ? t.generate.creatingVisual : loadingStep === 'download' ? t.generate.optimizingDownload : t.generate.visualAvailable}
+                    </p>
+                    <div className="w-full max-w-xs mt-4">
+                      <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300 ease-out" style={{ width: `${imageLoadingProgress}%` }} />
+                      </div>
+                      <p className="text-xs text-neutral-400 mt-1 text-center">{imageLoadingProgress}%</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* === PROGRESS VIDEO === */}
+                {generatingVideo && !generatedVideoUrl && (
+                  <div className="flex flex-col items-center justify-center py-16">
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin"></div>
+                    </div>
+                    <p className="text-base font-semibold text-neutral-900">{t.generate.videoGenerationInProgress}</p>
+                    <p className="text-sm text-orange-600 mt-2">{videoProgress}</p>
+                  </div>
+                )}
+
+                {/* === RÉSULTAT IMAGE === */}
+                {generatedImageUrl && !showEditStudio && (
+                  <div>
+                    <div className="relative w-full bg-neutral-100 rounded-xl border overflow-hidden" style={{ maxHeight: '60vh' }}>
+                      <img
+                        src={generatedImageUrl}
+                        alt={t.generate.generatedVisualAlt}
+                        className="w-full h-full object-contain"
+                        style={{ maxHeight: '60vh' }}
+                      />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={async () => {
+                          setShowEditStudio(true);
+                          const cleanBase = imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
+                          if (!cleanBase) return;
+                          setEditVersions([cleanBase]);
+                          setSelectedEditVersion(cleanBase);
+                          setBaseOriginalImageUrl(cleanBase);
+                          if (overlayText.trim()) {
+                            const overlayId = `overlay-gen-${Date.now()}`;
+                            const items: GenerateTextOverlay[] = [{
+                              id: overlayId, text: overlayText, position: textPosition ?? 50,
+                              fontSize: fontSize || 60, fontFamily: fontFamily || 'inter',
+                              textColor: textColor || '#ffffff', backgroundColor: textBackgroundColor || 'rgba(0, 0, 0, 0.5)',
+                              backgroundStyle: backgroundStyle || 'none',
+                            }];
+                            setTextOverlayItems(items);
+                            setEditingOverlayId(overlayId);
+                            try { const preview = await renderOverlaysOnImage(cleanBase, items); setTextPreviewUrl(preview); setVersionPreviews({ [cleanBase]: preview }); } catch {}
+                          } else { setTextOverlayItems([]); setVersionPreviews({}); setEditingOverlayId(null); }
+                        }}
+                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      >
+                        {t.generate.edit}
+                      </button>
+                      <a
+                        href={selectedEditVersion || generatedImageUrl}
+                        download
+                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+                      >
+                        {t.generate.download}
+                      </a>
+                      <button
+                        onClick={saveToLibrary}
+                        disabled={savingToLibrary || imageSavedToLibrary}
+                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
+                          imageSavedToLibrary ? 'bg-green-600 cursor-default' : savingToLibrary ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : t.generate.save}
+                      </button>
+                      <button
+                        onClick={() => { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }}
+                        className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                      >
+                        {t.generate.newGeneration}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* === RÉSULTAT VIDÉO === */}
+                {generatedVideoUrl && !showEditStudio && (
+                  <div>
+                    <div className={`relative w-full bg-neutral-900 rounded-xl overflow-hidden mx-auto ${
+                      videoAspectRatio === '9:16' ? 'aspect-[9/16] max-h-[60vh]'
+                      : videoAspectRatio === '4:5' ? 'aspect-[4/5] max-h-[60vh]'
+                      : 'aspect-video'
+                    }`} style={{ maxWidth: videoAspectRatio === '9:16' ? '340px' : videoAspectRatio === '4:5' ? '420px' : '100%' }}>
+                      <video
+                        ref={videoPreviewRef}
+                        src={generatedVideoUrl}
+                        controls
+                        autoPlay
+                        loop
+                        className="w-full h-full object-cover"
+                        onTimeUpdate={() => {
+                          if (!generatedSubtitleText || !['wordstay', 'wordflash', 'neon'].includes(aiTextStyle)) return;
+                          const v = videoPreviewRef.current;
+                          if (!v || !v.duration) return;
+                          const words = generatedSubtitleText.trim().split(/\s+/);
+                          const progress = v.currentTime / v.duration;
+                          setCurrentWordIndex(Math.min(Math.floor(progress * words.length), words.length - 1));
+                        }}
+                      />
+                      {generatedSubtitleText && (() => {
+                        const words = generatedSubtitleText.trim().split(/\s+/);
+                        const displayText = generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText;
+                        const sizeMap: Record<string, Record<string, string>> = {
+                          wordflash: { sm: 'text-lg', md: 'text-2xl', lg: 'text-4xl', xl: 'text-5xl' },
+                          wordstay: { sm: 'text-xs', md: 'text-sm', lg: 'text-base', xl: 'text-lg' },
+                          neon: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
+                          cinema: { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm', xl: 'text-base' },
+                          impact: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
+                          minimal: { sm: 'text-[8px]', md: 'text-[10px]', lg: 'text-xs', xl: 'text-sm' },
+                        };
+                        const fSize = sizeMap[aiTextStyle]?.[subtitleFontSize] || sizeMap.wordflash[subtitleFontSize];
+                        const posClass = subtitlePosition === 'top' ? 'top-4' : subtitlePosition === 'center' ? 'inset-0 flex items-center justify-center' : 'bottom-4';
+                        return (
+                          <div className={`absolute left-2 right-2 text-center pointer-events-none ${posClass}`}>
+                            {aiTextStyle === 'wordflash' ? (
+                              <span className={`text-white ${fSize} font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]`}>{words[currentWordIndex] || ''}</span>
+                            ) : aiTextStyle === 'wordstay' ? (
+                              <span className="inline-block max-w-[95%]">{words.slice(0, currentWordIndex + 1).map((w, i) => (
+                                <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} ${fSize} font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]`}>{w}{' '}</span>
+                              ))}</span>
+                            ) : aiTextStyle === 'neon' ? (
+                              <span className={`text-fuchsia-400 ${fSize} font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]`}>{words[currentWordIndex] || ''}</span>
+                            ) : aiTextStyle === 'cinema' ? (
+                              <span className={`inline-block max-w-[95%] text-white ${fSize} font-medium bg-black/80 px-4 py-2 tracking-wider`}>{displayText}</span>
+                            ) : aiTextStyle === 'impact' ? (
+                              <span className={`text-white ${fSize} font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]`}>{displayText}</span>
+                            ) : (
+                              <span className={`inline-block max-w-[95%] text-white/90 ${fSize} font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm`}>{displayText}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setShowVideoEditor(!showVideoEditor)}
+                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                      >
+                        {showVideoEditor ? `✕ ${t.generate.closeEditor}` : t.generate.edit}
+                      </button>
+                      <a
+                        href={generatedVideoUrl}
+                        download="keiro-video.mp4"
+                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+                      >
+                        {t.generate.download}
+                      </a>
+                      <button
+                        onClick={saveVideoToLibrary}
+                        disabled={videoSavedToLibrary || savingToLibrary}
+                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
+                          videoSavedToLibrary ? 'bg-green-600 cursor-default' : 'bg-cyan-600 hover:bg-cyan-700'
+                        } disabled:opacity-50`}
+                      >
+                        {savingToLibrary ? t.generate.saving : videoSavedToLibrary ? `✓ ${t.generate.saved}` : t.generate.saveToGallery}
+                      </button>
+                      <button
+                        onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); }}
+                        className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                      >
+                        {t.generate.newGeneration}
+                      </button>
+                    </div>
+
+                    {/* Panneau éditeur vidéo inline dans le modal */}
+                    {showVideoEditor && (
+                      <div className="mt-4 border-t pt-4 space-y-3">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                          <label className="block text-xs font-semibold text-neutral-900">📝 {t.generate.textSubtitles}</label>
+                          <textarea
+                            value={generatedSubtitleText}
+                            onChange={(e) => setGeneratedSubtitleText(e.target.value)}
+                            placeholder={locale === 'fr' ? 'Texte à afficher sur la vidéo...' : 'Text to display on video...'}
+                            className="w-full text-xs rounded-lg border border-neutral-200 px-3 py-2 bg-white min-h-[60px] resize-none focus:outline-none focus:border-blue-500"
+                          />
+                          <div className="flex flex-wrap gap-1">
+                            {['wordflash', 'wordstay', 'neon', 'cinema', 'impact', 'minimal'].map(style => (
+                              <button key={style} onClick={() => setAITextStyle(style)}
+                                className={`px-2 py-1 text-[10px] rounded-full font-medium transition ${aiTextStyle === style ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                {style}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-1">
+                            {(['sm', 'md', 'lg', 'xl'] as const).map(size => (
+                              <button key={size} onClick={() => setSubtitleFontSize(size)}
+                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitleFontSize === size ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                {size.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-1">
+                            {(['top', 'center', 'bottom'] as const).map(pos => (
+                              <button key={pos} onClick={() => setSubtitlePosition(pos)}
+                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitlePosition === pos ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                {pos === 'top' ? '⬆️' : pos === 'center' ? '⬅️' : '⬇️'} {pos}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Erreur */}
+                {generationError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm mt-4">
+                    {generationError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ===== STUDIO D'ÉDITION - RESPONSIVE MOBILE-FIRST ===== */}
         {showEditStudio && (
