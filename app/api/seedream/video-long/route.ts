@@ -1323,10 +1323,14 @@ async function mergeSegments(segmentUrls: string[], userId: string, jobId: strin
     // Log each segment's actual duration before merging
     for (let i = 0; i < segmentPaths.length; i++) {
       try {
-        const probeCmd = `"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
-        const probeResult = execSync(probeCmd, { timeout: 10000 }).toString().trim();
-        console.log(`[video-long] Segment ${i} duration: ${probeResult}`);
-      } catch { console.log(`[video-long] Segment ${i} duration: probe failed`); }
+        const probeResult = execSync(`"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1`, { timeout: 10000 }).toString();
+        const durMatch = probeResult.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+        console.log(`[video-long] Segment ${i} duration: ${durMatch ? durMatch[1] : 'unknown'}`);
+      } catch (e: any) {
+        const stderr = e.stderr?.toString() || e.stdout?.toString() || '';
+        const durMatch = stderr.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+        console.log(`[video-long] Segment ${i} duration: ${durMatch ? durMatch[1] : 'probe failed'}`);
+      }
     }
 
     // Re-encode merge (most reliable — ensures all segments have matching codec/fps/resolution)
@@ -1338,10 +1342,14 @@ async function mergeSegments(segmentUrls: string[], userId: string, jobId: strin
 
     // Verify merged output duration
     try {
-      const durationProbe = `"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
-      const mergedDuration = execSync(durationProbe, { timeout: 10000 }).toString().trim();
-      console.log(`[video-long] MERGED VIDEO DURATION: ${mergedDuration}`);
-    } catch { console.log(`[video-long] Could not probe merged duration`); }
+      const probeOut = execSync(`"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1`, { timeout: 10000 }).toString();
+      const mDur = probeOut.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+      console.log(`[video-long] MERGED VIDEO DURATION: ${mDur ? mDur[1] : 'unknown'}`);
+    } catch (e: any) {
+      const stderr = e.stderr?.toString() || e.stdout?.toString() || '';
+      const mDur = stderr.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+      console.log(`[video-long] MERGED VIDEO DURATION: ${mDur ? mDur[1] : 'probe failed'}`);
+    }
 
     const mergedBuffer = await readFile(outputPath);
     console.log(`[video-long] Merged: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);

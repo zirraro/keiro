@@ -2497,15 +2497,15 @@ export default function GeneratePage() {
 BUSINESS CONTEXT: "${businessType}"${businessDescription ? ` — ${businessDescription}` : ''}.
 TRENDING NEWS: "${selectedNews.title}"${newsDesc ? `. ${newsDesc}` : ''}.
 
-CREATIVE BRIEF — CONNECT BUSINESS + NEWS:
-The video must tell a VISUAL STORY that naturally bridges this news event with the "${businessType}" business. The viewer should instantly understand both the news context AND the business relevance without any text.
+CREATIVE BRIEF — NEWS FIRST, THEN BUSINESS:
+The video MUST open with a STRONG visual reference to the news topic. The news is the HOOK — it grabs attention. Then the business appears naturally as the RESPONSE or solution.
 
-VISUAL STORYTELLING APPROACH:
-- Open with a scene that evokes the NEWS atmosphere (environment, mood, visual cues that reference the topic)
-- Transition naturally into showing the BUSINESS responding, adapting, or thriving in this context
-- Show real people/customers experiencing the business through the lens of this current event
-- The environment, decorations, products, and behaviors should reflect BOTH the news theme AND the business identity
-- Create an emotional connection: how does this news impact the customers of this business?
+VISUAL STORYTELLING (NEWS IN FOREGROUND):
+- Scene 1: IMMEDIATELY show the news topic visually — the event, the atmosphere, the energy. The viewer must instantly recognize "this is about ${selectedNews.title}"
+- Scene 2+: The "${businessType}" business appears IN CONTEXT of the news — people in the business reacting to it, products/services that connect to the topic
+- Final scene: The business thriving BECAUSE of its connection to this trending topic
+- Every frame must feel current, urgent, trending — this is happening NOW
+- The news creates the visual world, the business lives inside it
 
 Characters: ${videoCharStyle}.${targetAudience ? ` Target audience: ${targetAudience}.` : ''}
 Emotional tone: ${tone || 'professional'}, ${emotionToConvey || 'inspiring'}. Cinematic style: ${visualStyle || 'cinematic'}.

@@ -128,10 +128,15 @@ export async function POST(req: NextRequest) {
     // Log each segment duration
     for (let i = 0; i < segmentPaths.length; i++) {
       try {
-        const probeCmd = `"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
-        const probeResult = execSync(probeCmd, { timeout: 10000 }).toString().trim();
-        console.log(`[MergeSegments-${id}] Segment ${i} duration: ${probeResult}`);
-      } catch { console.log(`[MergeSegments-${id}] Segment ${i} duration: probe failed`); }
+        const probeResult = execSync(`"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1`, { timeout: 10000 }).toString();
+        const durMatch = probeResult.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+        console.log(`[MergeSegments-${id}] Segment ${i} duration: ${durMatch ? durMatch[1] : 'unknown'}`);
+      } catch (e: any) {
+        // FFmpeg returns exit code 1 when just probing, but stderr has duration
+        const stderr = e.stderr?.toString() || e.stdout?.toString() || '';
+        const durMatch = stderr.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+        console.log(`[MergeSegments-${id}] Segment ${i} duration: ${durMatch ? durMatch[1] : 'probe failed'}`);
+      }
     }
 
     // Re-encode merge (most reliable — ensures matching codec/fps/resolution across segments)
@@ -142,10 +147,14 @@ export async function POST(req: NextRequest) {
 
     // Verify merged duration
     try {
-      const durationProbe = `"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
-      const mergedDuration = execSync(durationProbe, { timeout: 10000 }).toString().trim();
-      console.log(`[MergeSegments-${id}] MERGED DURATION: ${mergedDuration}`);
-    } catch {}
+      const probeOut = execSync(`"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1`, { timeout: 10000 }).toString();
+      const mDur = probeOut.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+      console.log(`[MergeSegments-${id}] MERGED DURATION: ${mDur ? mDur[1] : 'unknown'}`);
+    } catch (e: any) {
+      const stderr = e.stderr?.toString() || e.stdout?.toString() || '';
+      const mDur = stderr.match(/Duration:\s*(\d+:\d+:\d+\.\d+)/);
+      console.log(`[MergeSegments-${id}] MERGED DURATION: ${mDur ? mDur[1] : 'probe failed'}`);
+    }
 
     // Read merged file
     const mergedBuffer = await readFile(outputPath);
