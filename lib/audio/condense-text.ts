@@ -24,43 +24,50 @@ export async function condenseText(
   targetWords: number = 15,
   style: 'informative' | 'catchy' | 'storytelling' = 'informative'
 ): Promise<string> {
-  // If already under limit, return as-is
   const currentWords = text.trim().split(/\s+/).length;
-  console.log('[Condense] Current words:', currentWords, '/ Target:', targetWords);
+  const targetDuration = Math.ceil(targetWords / 2.5);
+  console.log('[Condense] Current words:', currentWords, '/ Target:', targetWords, `(~${targetDuration}s)`);
 
-  if (currentWords <= targetWords) {
-    console.log('[Condense] Text already under limit, returning as-is');
+  // If within ±20% of target, return as-is
+  if (currentWords >= targetWords * 0.8 && currentWords <= targetWords * 1.2) {
+    console.log('[Condense] Text already near target, returning as-is');
     return text.trim();
   }
 
-  // Style-specific instructions
   const styleInstructions: Record<string, string> = {
     informative: 'Style journalistique factuel et clair',
     catchy: 'Style accrocheur et viral pour TikTok/Instagram',
     storytelling: 'Style narratif captivant avec suspense',
   };
 
+  const action = currentWords > targetWords ? 'CONDENSE' : 'DÉVELOPPE';
+  const actionInstruction = currentWords > targetWords
+    ? `Condense ce texte en ${targetWords} mots maximum. Garde l'information essentielle.`
+    : `Développe ce texte pour atteindre ~${targetWords} mots (~${targetDuration} secondes de narration). Ajoute des détails, du contexte, des transitions naturelles. Enrichis le propos sans répéter. Crée un vrai script engageant qui remplit toute la durée.`;
+
   const prompt = `Tu es un expert en écriture de scripts audio pour réseaux sociaux.
 
-Condense ce texte en EXACTEMENT ${targetWords} mots maximum pour une narration audio de ${Math.ceil(targetWords / 2.5)} secondes.
+${actionInstruction}
 
 TEXTE ORIGINAL:
 ${text}
 
 CONTRAINTES:
-- Maximum ${targetWords} mots (strict)
-- ${styleInstructions[style]}
-- Garde l'information essentielle
-- Phrase complète et fluide
+- Objectif: ~${targetWords} mots pour ~${targetDuration} secondes de narration
+- ${styleInstructions[style] || styleInstructions.informative}
+- Phrases courtes (max 15 mots par phrase)
+- Pauses naturelles (virgules, points)
+- Le texte doit être agréable à ÉCOUTER à voix haute
+- Tutoyer le spectateur
 - Adapté pour narration audio (pas de texte écrit)
 
-Réponds UNIQUEMENT avec le texte condensé, sans introduction ni explication.`;
+Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'développé'}, sans introduction ni explication.`;
 
-  console.log('[Condense] Calling Claude to condense text...');
+  console.log(`[Condense] Calling Claude to ${action} text (${currentWords} → ${targetWords} words)...`);
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 200,
+    max_tokens: 600,
     messages: [
       {
         role: 'user',
@@ -69,13 +76,13 @@ Réponds UNIQUEMENT avec le texte condensé, sans introduction ni explication.`;
     ],
   });
 
-  const condensedText = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
-  const finalWords = condensedText.split(/\s+/).length;
+  const result = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+  const finalWords = result.split(/\s+/).length;
 
-  console.log('[Condense] ✅ Condensed from', currentWords, 'to', finalWords, 'words');
-  console.log('[Condense] Result:', condensedText);
+  console.log(`[Condense] ✅ ${action} from`, currentWords, 'to', finalWords, 'words');
+  console.log('[Condense] Result:', result);
 
-  return condensedText;
+  return result;
 }
 
 /**

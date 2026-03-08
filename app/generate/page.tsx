@@ -5527,7 +5527,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             const audioRes = await fetch('/api/generate-audio-tts', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ text: generatedSubtitleText.trim(), targetDuration: 5, voice: selectedVoice, speed: 1.0 })
+                              body: JSON.stringify({ text: generatedSubtitleText.trim(), targetDuration: videoDuration || 10, voice: selectedVoice, speed: 1.0 })
                             });
                             const audioData = await audioRes.json();
                             if (!audioData.ok) throw new Error(audioData.error);

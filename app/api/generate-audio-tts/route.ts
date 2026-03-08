@@ -51,21 +51,23 @@ export async function POST(req: NextRequest) {
     console.log('[GenerateAudioTTS] Target duration:', targetDuration, 'seconds');
     console.log('[GenerateAudioTTS] Voice:', voiceId, ELEVENLABS_VOICES[voiceId]?.name || 'unknown');
 
-    // 1. Condense text to fit target duration if needed
+    // 1. Adapt text length to fit target duration
     const targetWords = Math.floor(targetDuration * 2.5 * speed);
     const currentWords = text.trim().split(/\s+/).length;
 
-    console.log('[GenerateAudioTTS] Current words:', currentWords, '/ Target:', targetWords);
+    console.log('[GenerateAudioTTS] Current words:', currentWords, '/ Target:', targetWords, `(${targetDuration}s)`);
 
     let finalText = text.trim();
 
-    if (currentWords > targetWords) {
-      console.log('[GenerateAudioTTS] Text too long, condensing with Claude...');
+    // If text is too long OR too short (less than 60% of target), adapt it
+    if (currentWords > targetWords * 1.2 || (currentWords < targetWords * 0.6 && targetDuration > 5)) {
+      const action = currentWords > targetWords ? 'condensing' : 'expanding';
+      console.log(`[GenerateAudioTTS] Text needs ${action} (${currentWords} → ~${targetWords} words for ${targetDuration}s)...`);
       try {
         finalText = await condenseText(text, targetWords, 'informative');
-        console.log('[GenerateAudioTTS] Text condensed:', finalText);
+        console.log(`[GenerateAudioTTS] Text ${action} done:`, finalText.substring(0, 100) + '...');
       } catch (error: any) {
-        console.error('[GenerateAudioTTS] Condensation failed:', error);
+        console.error(`[GenerateAudioTTS] Text ${action} failed:`, error);
       }
     }
 
