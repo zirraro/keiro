@@ -3102,13 +3102,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           {/* ===== COLONNE GAUCHE : Tendances + Actualités ===== */}
           <div className="lg:col-span-8">
             {/* ─── Tendances réseaux sociaux ─── */}
-            <div className="mb-4 bg-gradient-to-r from-orange-50 via-rose-50 to-purple-50 border border-orange-200/60 rounded-xl overflow-hidden shadow-sm">
+            <div className={`mb-4 bg-gradient-to-r from-orange-50 via-rose-50 to-purple-50 border border-orange-200/60 rounded-xl overflow-hidden shadow-sm relative ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
               <div className="flex items-center gap-1 px-3 pt-2.5 pb-0">
                 <span className="text-base mr-0.5">🔥</span>
                 <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
                   { key: 'google' as const, label: '🔍 Google', color: 'border-orange-500' },
-                  { key: 'tiktok' as const, label: '🌐 Social', color: 'border-blue-500' },
+                  { key: 'tiktok' as const, label: '🎵 TikTok', color: 'border-blue-500' },
                   { key: 'instagram' as const, label: '📸 Instagram', color: 'border-pink-500' },
                 ] as const).map((tab) => (
                   <button
@@ -3138,12 +3138,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           key={i}
                           type="button"
                           onClick={() => {
-                            setUseNewsMode(false);
-                            setBusinessDescription((prev: string) => {
-                              const trendNote = locale === 'fr'
-                                ? `En lien avec la tendance "${trend.title}". ${prev || ''}`
-                                : `Related to trending topic "${trend.title}". ${prev || ''}`;
-                              return trendNote;
+                            // Treat trend as a virtual actualité
+                            setUseNewsMode(true);
+                            setSelectedNews({
+                              id: `trend-google-${i}`,
+                              title: trend.title,
+                              description: trend.articleTitle || trend.title,
+                              url: '',
+                              image: trend.pictureUrl,
+                              source: 'Google Trends',
+                              category: 'Tendance',
                             });
                             const el = document.getElementById('business-description');
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3175,19 +3179,23 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {/* TikTok Trends */}
                 {trendTab === 'tiktok' && (
                   <div>
-                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Posts viraux sur les réseaux — inspirez-vous pour votre contenu' : 'Viral social posts — get inspired for your content'}</p>
+                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Tendances TikTok — cliquez pour créer du contenu viral' : 'TikTok trends — click to create viral content'}</p>
                     <div className="grid grid-cols-3 gap-2.5">
                       {(trendingData?.tiktokTrends || []).slice(0, 3).map((trend: any, i: number) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => {
-                            setUseNewsMode(false);
-                            setBusinessDescription((prev: string) => {
-                              const trendNote = locale === 'fr'
-                                ? `En lien avec le buzz "${trend.title}". ${prev || ''}`
-                                : `Related to viral trend "${trend.title}". ${prev || ''}`;
-                              return trendNote;
+                            // Treat trend as a virtual actualité
+                            setUseNewsMode(true);
+                            setSelectedNews({
+                              id: `trend-tiktok-${i}`,
+                              title: trend.title,
+                              description: trend.description || trend.title,
+                              url: '',
+                              image: trend.imageUrl,
+                              source: 'TikTok Trends',
+                              category: 'Tendance',
                             });
                             const el = document.getElementById('business-description');
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3198,10 +3206,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             {trend.imageUrl ? (
                               <img src={trend.imageUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">🌐</span></div>
+                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">🎵</span></div>
                             )}
                             <span className="absolute top-1.5 left-1.5 text-[8px] bg-blue-600/90 text-white font-bold px-1.5 py-0.5 rounded">
-                              {trend.type === 'viral' ? 'Viral' : 'Trend'}
+                              #{i + 4}
                             </span>
                             {trend.engagement && <span className="absolute top-1.5 right-1.5 text-[7px] bg-white/90 text-neutral-700 font-bold px-1 py-0.5 rounded">{trend.engagement}</span>}
                           </div>
@@ -3229,12 +3237,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           key={i}
                           type="button"
                           onClick={() => {
-                            setUseNewsMode(false);
-                            setBusinessDescription((prev: string) => {
-                              const trendNote = locale === 'fr'
-                                ? `En lien avec la tendance Instagram "${trend.title}". ${prev || ''}`
-                                : `Related to Instagram trend "${trend.title}". ${prev || ''}`;
-                              return trendNote;
+                            // Treat trend as a virtual actualité
+                            setUseNewsMode(true);
+                            setSelectedNews({
+                              id: `trend-insta-${i}`,
+                              title: trend.title,
+                              description: trend.description || trend.title,
+                              url: '',
+                              image: trend.imageUrl,
+                              source: 'Instagram Trends',
+                              category: 'Tendance',
                             });
                             const el = document.getElementById('business-description');
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3248,7 +3260,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">📸</span></div>
                             )}
                             <span className="absolute top-1.5 left-1.5 text-[8px] bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold px-1.5 py-0.5 rounded">
-                              {trend.type === 'challenge' ? 'Défi' : 'Trend'}
+                              {trend.type === 'viral' ? 'Viral' : 'Tendance'}
                             </span>
                             {trend.engagement && <span className="absolute top-1.5 right-1.5 text-[7px] bg-white/90 text-neutral-700 font-bold px-1 py-0.5 rounded">{trend.engagement}</span>}
                           </div>

@@ -687,7 +687,7 @@ export const fr: Translations = {
   },
   generate: {
     // Page subtitle
-    subtitleWithNews: 'Associez une actualit\u00e9 \u00e0 votre business pour cr\u00e9er un visuel engageant et augmenter votre visibilit\u00e9',
+    subtitleWithNews: 'Associez une actualit\u00e9 ou une tendance \u00e0 votre business pour cr\u00e9er un visuel engageant et augmenter votre visibilit\u00e9',
     subtitleWithoutNews: 'D\u00e9crivez votre business en d\u00e9tail pour cr\u00e9er un visuel percutant bas\u00e9 sur votre identit\u00e9',
     // Categories
     catGoodNews: 'Les bonnes nouvelles',
@@ -818,8 +818,8 @@ export const fr: Translations = {
     uploading: 'Envoi...',
     // Assistant Marketing panel
     assistantMarketing: 'Assistant Marketing',
-    withoutNews: 'Sans actualit\u00e9',
-    withNews: 'Avec actualit\u00e9',
+    withoutNews: 'Sans actu ni tendance',
+    withNews: 'Avec actu / tendance',
     tooltipWithNews: 'Avec actualit\u00e9',
     tooltipWithNewsDesc: 'G\u00e9n\u00e8re du contenu en liant une actualit\u00e9 tendance \u00e0 votre business. Id\u00e9al pour surfer sur le buzz et capter l\'attention.',
     tooltipWithoutNews: 'Sans actualit\u00e9',
