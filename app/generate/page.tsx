@@ -115,7 +115,8 @@ export default function GeneratePage() {
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
   const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number; assistant: number } | null>(null);
-  const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; keywords: string[] } | null>(null);
+  const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; trendingMusic: any[]; keywords: string[] } | null>(null);
+  const [trendTab, setTrendTab] = useState<'news' | 'tiktok' | 'google' | 'music'>('news');
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -3470,23 +3471,39 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 )}
               </div>
 
-              {/* Ligne 2 : Astuce du jour + Trending (grille 2 colonnes) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Widget 2 : Astuce du jour */}
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-                  <div className="text-4xl mb-3">{dailyTip.icon}</div>
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider mb-2">{t.generate.dailyTip}</h4>
-                  <p className="text-sm text-amber-800 leading-relaxed max-w-[280px]">{dailyTip.text}</p>
+              {/* Widget Tendances — plein largeur, onglets */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                {/* Header + tabs */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🔥</span>
+                  <h4 className="text-sm font-bold text-green-900">{t.generate.trendingTopics}</h4>
+                  {trendingData && <span className="text-[9px] text-green-500 ml-auto">{t.generate.updatedToday}</span>}
+                </div>
+                <div className="flex gap-1 mb-3 overflow-x-auto">
+                  {([
+                    { key: 'news' as const, label: t.generate.trendTabNews, icon: '📰' },
+                    { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '🎵' },
+                    { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
+                    { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
+                  ]).map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setTrendTab(tab.key)}
+                      className={`px-3 py-1.5 text-[10px] font-semibold rounded-full border whitespace-nowrap transition-all ${
+                        trendTab === tab.key
+                          ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                          : 'bg-white/80 text-green-800 border-green-200 hover:border-green-400'
+                      }`}
+                    >
+                      {tab.icon} {tab.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Widget 3 : Trending réseaux sociaux */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xl">🔥</span>
-                    <h4 className="text-sm font-bold text-green-900">{t.generate.trendingTopics}</h4>
-                    {trendingData && <span className="text-[9px] text-green-500 ml-auto">{t.generate.updatedToday}</span>}
-                  </div>
-                  {trendingNews.length > 0 ? (
+                {/* Tab: Viral news */}
+                {trendTab === 'news' && (
+                  trendingNews.length > 0 ? (
                     <div className="space-y-2">
                       {trendingNews.map((item) => (
                         <div
@@ -3507,7 +3524,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             {(item as any)._matchedTrends?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {(item as any)._matchedTrends.map((kw: string) => (
-                                  <span key={kw} className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">📈 {kw}</span>
+                                  <span key={kw} className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">{kw}</span>
                                 ))}
                               </div>
                             )}
@@ -3524,33 +3541,90 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     </div>
                   ) : (
                     <p className="text-xs text-green-600">{t.generate.loadingTrends}</p>
-                  )}
-                  {/* Hashtags TikTok tendance */}
-                  {trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-green-200">
-                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">{t.generate.tiktokTrendingHashtags}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {trendingData.tiktokHashtags.slice(0, 8).map((tag: any) => (
-                          <span key={tag.hashtag} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
-                            #{tag.hashtag} {tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : ''}
+                  )
+                )}
+
+                {/* Tab: TikTok hashtags */}
+                {trendTab === 'tiktok' && (
+                  trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {trendingData.tiktokHashtags.slice(0, 15).map((tag: any, i: number) => (
+                        <div key={tag.hashtag} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
+                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
+                          <span className="text-xs font-semibold text-green-900 flex-1">#{tag.hashtag}</span>
+                          {tag.videoCount > 0 && (
+                            <span className="text-[9px] text-green-600">{tag.videoCount >= 1000000 ? `${(tag.videoCount / 1000000).toFixed(1)}M` : tag.videoCount >= 1000 ? `${(tag.videoCount / 1000).toFixed(0)}K` : tag.videoCount} {t.generate.trendMusicVideos}</span>
+                          )}
+                          <span className={`text-[10px] font-bold ${tag.trend === 'up' ? 'text-emerald-500' : tag.trend === 'down' ? 'text-red-400' : 'text-neutral-400'}`}>
+                            {tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—'}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  {/* Sujets viraux à surfer */}
-                  {trendingData?.googleTrends && trendingData.googleTrends.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-green-200">
-                      <p className="text-[10px] text-green-700 font-semibold mb-1.5">{t.generate.buzzMoment}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {trendingData.googleTrends.slice(0, 6).map((t: any, i: number) => (
-                          <span key={i} className="text-[9px] px-2 py-0.5 bg-white/80 border border-green-200 text-green-800 rounded-full">
-                            🔥 {t.title} {t.traffic && <span className="text-green-500">({t.traffic})</span>}
+                  ) : (
+                    <p className="text-xs text-green-600">{t.generate.loadingTrends}</p>
+                  )
+                )}
+
+                {/* Tab: Google Trends */}
+                {trendTab === 'google' && (
+                  trendingData?.googleTrends && trendingData.googleTrends.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {trendingData.googleTrends.slice(0, 12).map((trend: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
+                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
+                          <span className="text-xs font-semibold text-green-900 flex-1">{trend.title}</span>
+                          {trend.traffic && (
+                            <span className="text-[9px] text-green-600">{trend.traffic} {t.generate.trendGoogleTraffic}</span>
+                          )}
+                          {trend.relatedQueries?.length > 0 && (
+                            <span className="text-[8px] text-green-500 max-w-[120px] truncate" title={trend.relatedQueries.join(', ')}>
+                              {trend.relatedQueries.slice(0, 2).join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-green-600">{t.generate.trendNoGoogle}</p>
+                  )
+                )}
+
+                {/* Tab: Trending Music */}
+                {trendTab === 'music' && (
+                  trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {trendingData.trendingMusic.slice(0, 12).map((song: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2.5 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
+                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
+                          {song.coverUrl && (
+                            <img src={song.coverUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-green-900 truncate">{song.title}</p>
+                            <p className="text-[9px] text-green-600 truncate">{t.generate.trendMusicArtist} {song.artist} {song.duration > 0 && `· ${song.duration}s`}</p>
+                          </div>
+                          {song.videoCount > 0 && (
+                            <span className="text-[9px] text-green-500 whitespace-nowrap">{song.videoCount >= 1000000 ? `${(song.videoCount / 1000000).toFixed(1)}M` : song.videoCount >= 1000 ? `${(song.videoCount / 1000).toFixed(0)}K` : song.videoCount}</span>
+                          )}
+                          <span className={`text-[10px] font-bold ${song.trend === 'up' ? 'text-emerald-500' : song.trend === 'down' ? 'text-red-400' : 'text-neutral-400'}`}>
+                            {song.trend === 'up' ? '↑' : song.trend === 'down' ? '↓' : '—'}
                           </span>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  ) : (
+                    <p className="text-xs text-green-600">{t.generate.trendNoMusic}</p>
+                  )
+                )}
+              </div>
+
+              {/* Astuce du jour — compact */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">{dailyTip.icon}</span>
+                <div>
+                  <h4 className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">{t.generate.dailyTip}</h4>
+                  <p className="text-xs text-amber-800 leading-snug">{dailyTip.text}</p>
                 </div>
               </div>
 
@@ -4594,6 +4668,31 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                                 </button>
                               ))}
                             </div>
+
+                            {/* Trending TikTok Music */}
+                            {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-neutral-200">
+                                <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
+                                <div className="space-y-1 max-h-[120px] overflow-y-auto">
+                                  {trendingData.trendingMusic.slice(0, 6).map((song: any, i: number) => (
+                                    <div
+                                      key={i}
+                                      className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-purple-50/50 border border-purple-100 text-[9px]"
+                                    >
+                                      {song.coverUrl && (
+                                        <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-purple-900 truncate">{song.title}</p>
+                                        <p className="text-purple-500 truncate">{song.artist}</p>
+                                      </div>
+                                      {song.trend === 'up' && <span className="text-emerald-500 font-bold">↑</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                                <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
