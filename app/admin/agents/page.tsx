@@ -122,23 +122,45 @@ export default function AdminAgentsPage() {
         .eq('action', 'send_email')
         .gte('created_at', yesterdayISO);
 
-      // Taux ouverture (from email logs data)
-      const { data: emailLogs } = await supabase
+      // Taux ouverture réel (from Brevo webhook logs)
+      const { count: totalEmailsSent } = await supabase
         .from('agent_logs')
-        .select('data')
+        .select('*', { count: 'exact', head: true })
         .eq('agent', 'email')
-        .eq('action', 'send_email')
-        .not('data', 'is', null)
-        .limit(100);
+        .in('action', ['email_sent', 'send_email']);
 
-      let openRate = 0;
-      if (emailLogs && emailLogs.length > 0) {
-        const totalSent = emailLogs.length;
-        const totalOpened = emailLogs.filter(
-          (l: any) => l.data?.opened === true
-        ).length;
-        openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
-      }
+      const { count: totalOpened } = await supabase
+        .from('agent_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('agent', 'email')
+        .eq('action', 'webhook_opened');
+
+      const openRate = (totalEmailsSent && totalEmailsSent > 0)
+        ? Math.round(((totalOpened ?? 0) / totalEmailsSent) * 100)
+        : 0;
+
+      // Comparaison 24h vs 24h précédentes pour trends réelles
+      const twoDaysAgoISO = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const { count: convCountPrev } = await supabase
+        .from('chatbot_sessions')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', twoDaysAgoISO)
+        .lt('created_at', yesterdayISO);
+
+      const { count: leadsCountPrev } = await supabase
+        .from('crm_prospects')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', twoDaysAgoISO)
+        .lt('created_at', yesterdayISO);
+
+      const calcTrend = (current: number, previous: number): { text: string; up: boolean } => {
+        if (previous === 0) return current > 0 ? { text: '+100%', up: true } : { text: '—', up: true };
+        const pct = Math.round(((current - previous) / previous) * 100);
+        return { text: `${pct > 0 ? '+' : ''}${pct}%`, up: pct >= 0 };
+      };
+
+      const convTrend = calcTrend(convCount ?? 0, convCountPrev ?? 0);
+      const leadsTrend = calcTrend(leadsCount ?? 0, leadsCountPrev ?? 0);
 
       // Prospects chauds
       const { count: hotProspects } = await supabase
@@ -186,15 +208,15 @@ export default function AdminAgentsPage() {
           label: 'Conversations 24h',
           value: convCount ?? 0,
           icon: '\uD83D\uDCAC',
-          trend: '+12%',
-          trendUp: true,
+          trend: convTrend.text,
+          trendUp: convTrend.up,
         },
         {
           label: 'Leads captur\u00E9s 24h',
           value: leadsCount ?? 0,
           icon: '\uD83C\uDFAF',
-          trend: '+8%',
-          trendUp: true,
+          trend: leadsTrend.text,
+          trendUp: leadsTrend.up,
         },
         {
           label: 'Emails envoy\u00E9s 24h',
@@ -656,7 +678,7 @@ export default function AdminAgentsPage() {
                               day: 'numeric',
                             })}
                           </span>
-                          {performanceBadge(meta.performance)}
+                          {performanceBadge(meta.performance_globale || meta.performance)}
                         </div>
                         <svg
                           className={`w-5 h-5 text-neutral-400 transition-transform ${
@@ -681,16 +703,18 @@ export default function AdminAgentsPage() {
                         </p>
                       )}
 
-                      {meta.alerts && meta.alerts.length > 0 && (
-                        <div className="flex gap-2 mt-2">
-                          {meta.alerts.map((alert: string, j: number) => (
-                            <span
-                              key={j}
-                              className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full"
-                            >
-                              {alert}
-                            </span>
-                          ))}
+                      {(meta.alertes || meta.alerts) && (meta.alertes || meta.alerts).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {(meta.alertes || meta.alerts).map((alert: any, j: number) => {
+                            const level = alert?.level || 'info';
+                            const msg = alert?.message || (typeof alert === 'string' ? alert : JSON.stringify(alert));
+                            const colorMap: Record<string, string> = { critique: 'bg-red-50 text-red-600', attention: 'bg-orange-50 text-orange-600', info: 'bg-blue-50 text-blue-600' };
+                            return (
+                              <span key={j} className={`text-[10px] px-2 py-0.5 rounded-full ${colorMap[level] || colorMap.info}`}>
+                                {level === 'critique' ? '🔴' : level === 'attention' ? '🟡' : '🟢'} {msg}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                     </button>
@@ -698,46 +722,130 @@ export default function AdminAgentsPage() {
                     {isExpanded && (
                       <div className="border-t border-neutral-100 p-5 bg-neutral-50">
                         <div className="space-y-4">
+
+                          {/* Métriques résumées */}
+                          {meta.metriques_resumees && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">KPIs 24h</h4>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {Object.entries(meta.metriques_resumees).map(([key, val]: [string, any]) => (
+                                  <div key={key} className="bg-white rounded-lg border p-2 text-center">
+                                    <p className="text-lg font-bold text-neutral-900">{typeof val === 'number' ? val : String(val)}</p>
+                                    <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Analyse en langage naturel */}
                           {meta.analyse && (
                             <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">
-                                Analyse
-                              </h4>
-                              <p className="text-sm text-neutral-700 whitespace-pre-wrap">
-                                {typeof meta.analyse === 'string'
-                                  ? meta.analyse
-                                  : JSON.stringify(meta.analyse, null, 2)}
-                              </p>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Analyse</h4>
+                              {typeof meta.analyse === 'string' ? (
+                                <p className="text-sm text-neutral-700 whitespace-pre-wrap">{meta.analyse}</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {meta.analyse.points_forts && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                      <p className="text-xs font-semibold text-green-700 mb-1">Points forts</p>
+                                      {Array.isArray(meta.analyse.points_forts)
+                                        ? meta.analyse.points_forts.map((p: string, i: number) => <p key={i} className="text-sm text-green-800">• {p}</p>)
+                                        : <p className="text-sm text-green-800">{meta.analyse.points_forts}</p>}
+                                    </div>
+                                  )}
+                                  {meta.analyse.points_faibles && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                      <p className="text-xs font-semibold text-red-700 mb-1">Points faibles</p>
+                                      {Array.isArray(meta.analyse.points_faibles)
+                                        ? meta.analyse.points_faibles.map((p: string, i: number) => <p key={i} className="text-sm text-red-800">• {p}</p>)
+                                        : <p className="text-sm text-red-800">{meta.analyse.points_faibles}</p>}
+                                    </div>
+                                  )}
+                                  {meta.analyse.bottleneck && (
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                      <p className="text-xs font-semibold text-orange-700 mb-1">Bottleneck</p>
+                                      <p className="text-sm text-orange-800">{meta.analyse.bottleneck}</p>
+                                    </div>
+                                  )}
+                                  {meta.analyse.tendance_7j && (
+                                    <p className="text-sm text-neutral-600">Tendance 7j : {meta.analyse.tendance_7j}</p>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
-                          {meta.ordres && (
+
+                          {/* Ordres en langage naturel */}
+                          {(meta.ordres || meta.orders) && (meta.ordres || meta.orders).length > 0 && (
                             <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">
-                                Ordres
-                              </h4>
-                              <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto">
-                                {JSON.stringify(meta.ordres, null, 2)}
-                              </pre>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Ordres ({(meta.ordres || meta.orders).length})</h4>
+                              <div className="space-y-2">
+                                {(meta.ordres || meta.orders).map((o: any, i: number) => (
+                                  <div key={i} className="bg-white rounded-lg border p-3 flex items-start gap-3">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      o.priority === 'haute' ? 'bg-red-100 text-red-700' : o.priority === 'basse' ? 'bg-neutral-100 text-neutral-600' : 'bg-blue-100 text-blue-700'
+                                    }`}>{o.priority || 'moyenne'}</span>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-neutral-900">
+                                        → {o.to_agent || o.target_agent} : {o.action || o.type}
+                                      </p>
+                                      {o.reason && <p className="text-xs text-neutral-500 mt-0.5">{o.reason}</p>}
+                                      {o.expected_impact && <p className="text-xs text-green-600 mt-0.5">Impact attendu : {o.expected_impact}</p>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
-                          {meta.suggestions && (
+
+                          {/* Suggestions en langage naturel */}
+                          {(meta.suggestions || meta.suggestions_fondateur) && (
                             <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">
-                                Suggestions
-                              </h4>
-                              <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto">
-                                {JSON.stringify(meta.suggestions, null, 2)}
-                              </pre>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Suggestions</h4>
+                              {(() => {
+                                const sug = meta.suggestions_fondateur || meta.suggestions;
+                                if (typeof sug === 'string') return <p className="text-sm text-neutral-700">{sug}</p>;
+                                return (
+                                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-1">
+                                    {sug.terrain && <p className="text-sm text-purple-800">🎯 {sug.terrain}</p>}
+                                    {sug.priority_du_jour && <p className="text-sm text-purple-800">⚡ Priorité : {sug.priority_du_jour}</p>}
+                                    {sug.opportunité && <p className="text-sm text-purple-800">💡 Opportunité : {sug.opportunité}</p>}
+                                    {sug.opportunite && <p className="text-sm text-purple-800">💡 Opportunité : {sug.opportunite}</p>}
+                                    {Array.isArray(sug) && sug.map((s: any, i: number) => (
+                                      <p key={i} className="text-sm text-purple-800">• {typeof s === 'string' ? s : s.message || s.suggestion || JSON.stringify(s)}</p>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
-                          <div>
-                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">
-                              JSON complet
-                            </h4>
-                            <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-64 overflow-y-auto">
+
+                          {/* A/B Tests */}
+                          {meta.ab_tests_en_cours && meta.ab_tests_en_cours.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">A/B Tests en cours</h4>
+                              <div className="space-y-2">
+                                {meta.ab_tests_en_cours.map((test: any, i: number) => (
+                                  <div key={i} className="bg-white rounded-lg border p-3">
+                                    <p className="text-sm font-medium text-neutral-900">{test.test || test.name}</p>
+                                    <p className="text-xs text-neutral-500 mt-1">
+                                      A: {test.variante_a} vs B: {test.variante_b} — {test.status} ({test.jours_restants || test.days_remaining}j restants)
+                                    </p>
+                                    {test.resultat_preliminaire && <p className="text-xs text-blue-600 mt-0.5">{test.resultat_preliminaire}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* JSON complet (replié par défaut) */}
+                          <details className="text-xs">
+                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">JSON brut (debug)</summary>
+                            <pre className="text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-64 overflow-y-auto mt-2">
                               {JSON.stringify(meta, null, 2)}
                             </pre>
-                          </div>
+                          </details>
                         </div>
                       </div>
                     )}
@@ -802,7 +910,7 @@ export default function AdminAgentsPage() {
                         </span>
                         <span>{priorityBadge(order.priority)}</span>
                         <span className="text-xs text-neutral-700 truncate">
-                          {order.action}
+                          {order.order_type}
                         </span>
                         <span>{statusBadge(order.status)}</span>
                         <span className="text-right">

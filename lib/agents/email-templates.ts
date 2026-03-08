@@ -48,6 +48,18 @@ function replaceVars(template: string, v: Record<string, string>): string {
   for (const [key, value] of Object.entries(v)) {
     result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
   }
+  // Clean up sentences with empty variables (e.g., "du ." → remove entire phrase)
+  result = result.replace(/\s+du\s+\.\s*/g, '. ');
+  result = result.replace(/\s+sur Google, c'est top\.\s*/g, '. ');
+  result = result.replace(/Restaurant\s+—/g, 'Votre restaurant —');
+  result = result.replace(/Boutique\s+—/g, 'Votre boutique —');
+  result = result.replace(/Coach\s+—/g, 'Coach —');
+  result = result.replace(/Salon\s+—/g, 'Votre salon —');
+  result = result.replace(/Caviste\s+—/g, 'Votre cave —');
+  result = result.replace(/Fleuriste\s+—/g, 'Votre boutique —');
+  result = result.replace(/\s{2,}/g, ' ');
+  // Replace unsubscribe placeholder with Brevo default
+  result = result.replace(/\{\{unsubscribe_url\}\}/g, 'https://keiroai.com/unsubscribe');
   return result;
 }
 

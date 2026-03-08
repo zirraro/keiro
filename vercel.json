@@ -15,6 +15,10 @@
     {
       "path": "/api/agents/email/daily?type=warm",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/agents/orders",
+      "schedule": "30 4 * * *"
     }
   ]
 }
