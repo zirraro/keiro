@@ -70,5 +70,19 @@ function extractTag(xml: string, tag: string): string {
   const regex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([^<]*)<\\/${tag}>`);
   const m = xml.match(regex);
   if (!m) return '';
-  return (m[1] || m[2] || '').trim();
+  return cleanText((m[1] || m[2] || '').trim());
+}
+
+/** Clean XML entities and encoding artifacts */
+function cleanText(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .trim();
 }

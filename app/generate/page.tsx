@@ -3101,24 +3101,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Tendances + Actualités ===== */}
           <div className="lg:col-span-8">
-            {/* ─── Tendances réseaux sociaux ─── */}
-            <div className={`mb-4 bg-gradient-to-r from-orange-50 via-rose-50 to-purple-50 border border-orange-200/60 rounded-xl overflow-hidden shadow-sm relative ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
-              <div className="flex items-center gap-1 px-3 pt-2.5 pb-0">
+            {/* ─── Tendances réseaux sociaux (style magazine) ─── */}
+            <div className={`mb-4 relative ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex items-center gap-1 mb-2">
                 <span className="text-base mr-0.5">🔥</span>
-                <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
+                <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
-                  { key: 'google' as const, label: '🔍 Google', color: 'border-orange-500' },
-                  { key: 'tiktok' as const, label: '🎵 TikTok', color: 'border-blue-500' },
-                  { key: 'instagram' as const, label: '📸 Instagram', color: 'border-pink-500' },
+                  { key: 'google' as const, label: '🔍 Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
+                  { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
+                  { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
                 ] as const).map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => setTrendTab(tab.key)}
-                    className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-t-lg transition-all ${
+                    className={`px-2.5 py-1 text-[10px] font-semibold rounded-full transition-all ${
                       trendTab === tab.key
-                        ? `bg-white/80 text-neutral-900 border-b-2 ${tab.color}`
-                        : 'text-neutral-500 hover:text-neutral-700'
+                        ? `${tab.bg} text-white shadow-sm`
+                        : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
                     }`}
                   >
                     {tab.label}
@@ -3127,156 +3127,142 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {trendingData && <span className="text-[9px] text-neutral-400 ml-auto">{t.generate.updatedToday}</span>}
               </div>
 
-              <div className="px-3 py-2.5">
+              {/* Magazine-style trend cards (same style as news) */}
+              <div className="grid grid-cols-3 gap-2.5">
                 {/* Google Trends */}
-                {trendTab === 'google' && (
-                  <div>
-                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Sujets chauds — cliquez pour créer du contenu lié' : 'Hot topics — click to create related content'}</p>
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {(trendingData?.googleTrends || []).slice(0, 3).map((trend: any, i: number) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            // Treat trend as a virtual actualité
-                            setUseNewsMode(true);
-                            setSelectedNews({
-                              id: `trend-google-${i}`,
-                              title: trend.title,
-                              description: trend.articleTitle || trend.title,
-                              url: '',
-                              image: trend.pictureUrl,
-                              source: 'Google Trends',
-                              category: 'Tendance',
-                            });
-                            const el = document.getElementById('business-description');
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }}
-                          className="flex flex-col bg-white hover:bg-orange-50 border border-orange-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
-                        >
-                          <div className="relative w-full h-20 bg-gradient-to-br from-orange-100 to-rose-100 overflow-hidden">
-                            {trend.pictureUrl ? (
-                              <img src={trend.pictureUrl} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">🔍</span></div>
-                            )}
-                            <span className="absolute top-1.5 left-1.5 text-[8px] bg-orange-600/90 text-white font-bold px-1.5 py-0.5 rounded">#{i + 1}</span>
-                          </div>
-                          <div className="p-2 flex-1 flex flex-col">
-                            <p className="text-[11px] font-bold text-neutral-900 leading-tight mb-0.5 line-clamp-2">{trend.title}</p>
-                            {trend.articleTitle && <p className="text-[9px] text-neutral-500 leading-snug line-clamp-1">{trend.articleTitle}</p>}
-                            <span className="text-[8px] text-orange-500 font-medium mt-auto pt-1 group-hover:text-orange-700">{locale === 'fr' ? 'Utiliser →' : 'Use →'}</span>
-                          </div>
-                        </button>
-                      ))}
-                      {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
-                        <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                {trendTab === 'google' && (<>
+                  {(trendingData?.googleTrends || []).slice(0, 3).map((trend: any, i: number) => (
+                    <article
+                      key={`g-${i}`}
+                      onClick={() => {
+                        setUseNewsMode(true);
+                        setSelectedNews({
+                          id: `trend-google-${i}`,
+                          title: trend.articleTitle || trend.title,
+                          description: trend.articleTitle || trend.title,
+                          url: trend.articleUrl || '',
+                          image: trend.pictureUrl,
+                          source: 'Google Trends',
+                          category: 'Tendance',
+                        });
+                        const el = document.getElementById('business-description');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                      style={{ height: '120px' }}
+                    >
+                      {trend.pictureUrl ? (
+                        <img src={trend.pictureUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-600 to-rose-700" />
                       )}
-                    </div>
-                  </div>
-                )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <span className="absolute top-2 left-2 text-[8px] bg-orange-500/90 text-white font-bold px-1.5 py-0.5 rounded-full z-10">#{i + 1} Google</span>
+                      {trend.traffic && <span className="absolute top-2 right-2 text-[7px] bg-white/90 text-neutral-700 font-bold px-1.5 py-0.5 rounded-full z-10">{trend.traffic}</span>}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
+                        <h3 className="font-semibold text-[11px] leading-tight text-white line-clamp-2 drop-shadow-sm">
+                          {trend.articleTitle || trend.title}
+                        </h3>
+                        {trend.articleTitle && trend.title !== trend.articleTitle && (
+                          <p className="text-[9px] text-white/60 mt-0.5 line-clamp-1">{trend.title}</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                  )}
+                </>)}
 
                 {/* TikTok Trends */}
-                {trendTab === 'tiktok' && (
-                  <div>
-                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Tendances TikTok — cliquez pour créer du contenu viral' : 'TikTok trends — click to create viral content'}</p>
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {(trendingData?.tiktokTrends || []).slice(0, 3).map((trend: any, i: number) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            // Treat trend as a virtual actualité
-                            setUseNewsMode(true);
-                            setSelectedNews({
-                              id: `trend-tiktok-${i}`,
-                              title: trend.title,
-                              description: trend.description || trend.title,
-                              url: '',
-                              image: trend.imageUrl,
-                              source: 'TikTok Trends',
-                              category: 'Tendance',
-                            });
-                            const el = document.getElementById('business-description');
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }}
-                          className="flex flex-col bg-white hover:bg-blue-50 border border-blue-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
-                        >
-                          <div className="relative w-full h-20 bg-gradient-to-br from-blue-100 to-cyan-100 overflow-hidden">
-                            {trend.imageUrl ? (
-                              <img src={trend.imageUrl} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">🎵</span></div>
-                            )}
-                            <span className="absolute top-1.5 left-1.5 text-[8px] bg-blue-600/90 text-white font-bold px-1.5 py-0.5 rounded">
-                              #{i + 4}
-                            </span>
-                            {trend.engagement && <span className="absolute top-1.5 right-1.5 text-[7px] bg-white/90 text-neutral-700 font-bold px-1 py-0.5 rounded">{trend.engagement}</span>}
-                          </div>
-                          <div className="p-2 flex-1 flex flex-col">
-                            <p className="text-[11px] font-bold text-neutral-900 leading-tight mb-0.5 line-clamp-2">{trend.title}</p>
-                            <p className="text-[9px] text-neutral-500 leading-snug line-clamp-1">{trend.description}</p>
-                            <span className="text-[8px] text-blue-500 font-medium mt-auto pt-1 group-hover:text-blue-700">{locale === 'fr' ? 'Utiliser →' : 'Use →'}</span>
-                          </div>
-                        </button>
-                      ))}
-                      {(!trendingData?.tiktokTrends || trendingData.tiktokTrends.length === 0) && (
-                        <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                {trendTab === 'tiktok' && (<>
+                  {(trendingData?.tiktokTrends || []).slice(0, 3).map((trend: any, i: number) => (
+                    <article
+                      key={`t-${i}`}
+                      onClick={() => {
+                        setUseNewsMode(true);
+                        setSelectedNews({
+                          id: `trend-tiktok-${i}`,
+                          title: trend.title,
+                          description: trend.description || trend.title,
+                          url: '',
+                          image: trend.imageUrl,
+                          source: 'TikTok Trends',
+                          category: 'Tendance',
+                        });
+                        const el = document.getElementById('business-description');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                      style={{ height: '120px' }}
+                    >
+                      {trend.imageUrl ? (
+                        <img src={trend.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-cyan-700" />
                       )}
-                    </div>
-                  </div>
-                )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <span className="absolute top-2 left-2 text-[8px] bg-blue-500/90 text-white font-bold px-1.5 py-0.5 rounded-full z-10">🎵 TikTok</span>
+                      {trend.engagement && <span className="absolute top-2 right-2 text-[7px] bg-white/90 text-neutral-700 font-bold px-1.5 py-0.5 rounded-full z-10">{trend.engagement}</span>}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
+                        <h3 className="font-semibold text-[11px] leading-tight text-white line-clamp-2 drop-shadow-sm">
+                          {trend.title}
+                        </h3>
+                        {trend.keyword && trend.keyword !== trend.title && (
+                          <p className="text-[9px] text-white/60 mt-0.5 line-clamp-1">{trend.keyword}</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {(!trendingData?.tiktokTrends || trendingData.tiktokTrends.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                  )}
+                </>)}
 
                 {/* Instagram Trends */}
-                {trendTab === 'instagram' && (
-                  <div>
-                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Tendances Instagram — créez des Reels et posts qui cartonnent' : 'Instagram trends — create Reels and posts that perform'}</p>
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {(trendingData?.instagramTrends || []).slice(0, 3).map((trend: any, i: number) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            // Treat trend as a virtual actualité
-                            setUseNewsMode(true);
-                            setSelectedNews({
-                              id: `trend-insta-${i}`,
-                              title: trend.title,
-                              description: trend.description || trend.title,
-                              url: '',
-                              image: trend.imageUrl,
-                              source: 'Instagram Trends',
-                              category: 'Tendance',
-                            });
-                            const el = document.getElementById('business-description');
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }}
-                          className="flex flex-col bg-white hover:bg-pink-50 border border-pink-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
-                        >
-                          <div className="relative w-full h-20 bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
-                            {trend.imageUrl ? (
-                              <img src={trend.imageUrl} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">📸</span></div>
-                            )}
-                            <span className="absolute top-1.5 left-1.5 text-[8px] bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold px-1.5 py-0.5 rounded">
-                              {trend.type === 'viral' ? 'Viral' : 'Tendance'}
-                            </span>
-                            {trend.engagement && <span className="absolute top-1.5 right-1.5 text-[7px] bg-white/90 text-neutral-700 font-bold px-1 py-0.5 rounded">{trend.engagement}</span>}
-                          </div>
-                          <div className="p-2 flex-1 flex flex-col">
-                            <p className="text-[11px] font-bold text-neutral-900 leading-tight mb-0.5 line-clamp-2">{trend.title}</p>
-                            <p className="text-[9px] text-neutral-500 leading-snug line-clamp-1">{trend.description}</p>
-                            <span className="text-[8px] text-pink-500 font-medium mt-auto pt-1 group-hover:text-pink-700">{locale === 'fr' ? 'Utiliser →' : 'Use →'}</span>
-                          </div>
-                        </button>
-                      ))}
-                      {(!trendingData?.instagramTrends || trendingData.instagramTrends.length === 0) && (
-                        <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                {trendTab === 'instagram' && (<>
+                  {(trendingData?.instagramTrends || []).slice(0, 3).map((trend: any, i: number) => (
+                    <article
+                      key={`i-${i}`}
+                      onClick={() => {
+                        setUseNewsMode(true);
+                        setSelectedNews({
+                          id: `trend-insta-${i}`,
+                          title: trend.title,
+                          description: trend.description || trend.title,
+                          url: '',
+                          image: trend.imageUrl,
+                          source: 'Instagram Trends',
+                          category: 'Tendance',
+                        });
+                        const el = document.getElementById('business-description');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                      style={{ height: '120px' }}
+                    >
+                      {trend.imageUrl ? (
+                        <img src={trend.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-700" />
                       )}
-                    </div>
-                  </div>
-                )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <span className="absolute top-2 left-2 text-[8px] bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold px-1.5 py-0.5 rounded-full z-10">📸 Instagram</span>
+                      {trend.engagement && <span className="absolute top-2 right-2 text-[7px] bg-white/90 text-neutral-700 font-bold px-1.5 py-0.5 rounded-full z-10">{trend.engagement}</span>}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
+                        <h3 className="font-semibold text-[11px] leading-tight text-white line-clamp-2 drop-shadow-sm">
+                          {trend.title}
+                        </h3>
+                        {trend.keyword && trend.keyword !== trend.title && (
+                          <p className="text-[9px] text-white/60 mt-0.5 line-clamp-1">{trend.keyword}</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {(!trendingData?.instagramTrends || trendingData.instagramTrends.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                  )}
+                </>)}
               </div>
             </div>
 
