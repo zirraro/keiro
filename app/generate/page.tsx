@@ -3085,140 +3085,94 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             : t.generate.subtitleWithoutNews}
         </p>
 
-        {/* ===== HERO TENDANCES — visible en premier ===== */}
-        <div className="mb-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <span className="text-xl">🔥</span>
-              </div>
-              <div>
-                <h3 className="text-base font-bold">{t.generate.trendingTopics}</h3>
-                <p className="text-[10px] text-white/70">{t.generate.updatedToday}</p>
-              </div>
-            </div>
-            <div className="flex gap-1 overflow-x-auto">
-              {([
-                { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
-                { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
-                { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '🎵' },
-                { key: 'news' as const, label: t.generate.trendTabNews, icon: '📰' },
-              ]).map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setTrendTab(tab.key)}
-                  className={`px-3 py-1.5 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all ${
-                    trendTab === tab.key
-                      ? 'bg-white text-green-700 shadow-md'
-                      : 'bg-white/15 text-white/90 hover:bg-white/25'
-                  }`}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-            </div>
+        {/* ===== BARRE TENDANCES — slim, cliquable, au-dessus des actus ===== */}
+        <div className="mb-4 bg-white border border-neutral-200 rounded-xl overflow-hidden">
+          {/* Tabs */}
+          <div className="flex items-center gap-1 px-3 pt-2.5 pb-0">
+            <span className="text-sm mr-1">🔥</span>
+            {([
+              { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
+              { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
+              { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '#' },
+            ]).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setTrendTab(tab.key)}
+                className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-t-lg transition-all ${
+                  trendTab === tab.key
+                    ? 'bg-neutral-100 text-neutral-900 border-b-2 border-blue-500'
+                    : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+            {trendingData && <span className="text-[9px] text-neutral-400 ml-auto">{t.generate.updatedToday}</span>}
           </div>
 
-          {/* Google Trends tab */}
-          {trendTab === 'google' && (
-            trendingData?.googleTrends && trendingData.googleTrends.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {trendingData.googleTrends.slice(0, 10).map((trend: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5 hover:bg-white/20 transition-all cursor-default">
-                    <span className="text-sm font-black text-white/40 w-5 text-right">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{trend.title}</p>
-                      {trend.traffic && <p className="text-[9px] text-white/60">{trend.traffic} {t.generate.trendGoogleTraffic}</p>}
-                    </div>
-                    <span className="text-emerald-300 text-sm font-bold">↑</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
-              </div>
-            )
-          )}
-
-          {/* Trending Music tab */}
-          {trendTab === 'music' && (
-            trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {trendingData.trendingMusic.slice(0, 10).map((song: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/20 transition-all cursor-default">
-                    <span className="text-sm font-black text-white/40 w-5 text-right">{i + 1}</span>
-                    {song.coverUrl && (
-                      <img src={song.coverUrl} alt="" className="w-9 h-9 rounded-md object-cover flex-shrink-0 shadow-sm" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{song.title}</p>
-                      <p className="text-[9px] text-white/60 truncate">{song.artist}</p>
-                    </div>
-                    {song.trend === 'up' && <span className="text-emerald-300 text-sm font-bold">↑</span>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
-              </div>
-            )
-          )}
-
-          {/* TikTok hashtags tab */}
-          {trendTab === 'tiktok' && (
-            trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {trendingData.tiktokHashtags.slice(0, 20).map((tag: any, i: number) => (
-                  <span
-                    key={tag.hashtag}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-default ${
-                      tag.trend === 'up'
-                        ? 'bg-white/20 text-white border border-white/30'
-                        : 'bg-white/10 text-white/80 border border-white/15'
-                    }`}
+          {/* Content — horizontal scrollable pills */}
+          <div className="px-3 py-2.5 overflow-x-auto scrollbar-hide">
+            {trendTab === 'google' && (
+              <div className="flex gap-1.5 flex-nowrap">
+                {(trendingData?.googleTrends || []).slice(0, 12).map((trend: any, i: number) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => { setSearchQuery(trend.title); setCategory('Dernières news'); if (!useNewsMode) setUseNewsMode(true); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-[10px] font-medium text-blue-800 whitespace-nowrap transition-all shrink-0"
                   >
-                    #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-300">↑</span>}
-                  </span>
+                    <span className="text-blue-400 font-bold">{i + 1}</span>
+                    {trend.title}
+                    {trend.traffic && <span className="text-blue-400 text-[8px]">{trend.traffic}</span>}
+                  </button>
                 ))}
+                {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
+                  <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
-              </div>
-            )
-          )}
+            )}
 
-          {/* Viral news tab */}
-          {trendTab === 'news' && (
-            trendingNews.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {trendingNews.map((item) => (
+            {trendTab === 'music' && (
+              <div className="flex gap-2 flex-nowrap">
+                {(trendingData?.trendingMusic || []).slice(0, 10).map((song: any, i: number) => (
                   <div
-                    key={item.id}
-                    onClick={() => { setSelectedNews(item); if (!useNewsMode) setUseNewsMode(true); }}
-                    className={`flex items-start gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-all cursor-pointer ${
-                      selectedNews?.id === item.id ? 'ring-2 ring-white/50 bg-white/20' : ''
-                    }`}
+                    key={i}
+                    className="flex items-center gap-2 px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-[10px] whitespace-nowrap transition-all shrink-0 cursor-default"
                   >
-                    {item.image && (
-                      <img src={item.image} alt="" className="w-14 h-14 object-cover rounded-md flex-shrink-0" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold line-clamp-2 leading-snug">{item.title}</p>
-                      <p className="text-[9px] text-white/50 mt-1">{item.source}</p>
+                    {song.coverUrl && <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover" />}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-purple-900 truncate max-w-[120px]">{song.title}</p>
+                      <p className="text-purple-500 text-[8px] truncate max-w-[120px]">{song.artist}</p>
                     </div>
+                    {i < 3 && <span className="text-emerald-500 font-bold text-[9px]">↑</span>}
                   </div>
                 ))}
+                {(!trendingData?.trendingMusic || trendingData.trendingMusic.length === 0) && (
+                  <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
+            )}
+
+            {trendTab === 'tiktok' && (
+              <div className="flex gap-1.5 flex-nowrap">
+                {(trendingData?.tiktokHashtags || []).slice(0, 15).map((tag: any) => (
+                  <button
+                    key={tag.hashtag}
+                    type="button"
+                    onClick={() => { setSearchQuery(tag.hashtag); setCategory('Dernières news'); if (!useNewsMode) setUseNewsMode(true); }}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-medium border whitespace-nowrap transition-all shrink-0 ${
+                      tag.trend === 'up'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+                        : 'bg-neutral-50 border-neutral-200 text-neutral-700 hover:bg-neutral-100'
+                    }`}
+                  >
+                    #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-500">↑</span>}
+                  </button>
+                ))}
               </div>
-            )
-          )}
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -4537,7 +4491,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Options vidéo uniquement */}
                 {generationMode === 'video' && (
                   <>
-                    {/* Section Audio */}
+                    {/* Section Voix / Narration */}
                     <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -4547,7 +4501,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                         />
                         <span className="text-xs font-semibold text-neutral-900">
-                          🎵 {t.generate.addAudioToVideo}
+                          🎙️ {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}
                         </span>
                       </label>
 
@@ -4629,72 +4583,74 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               ))}
                             </div>
                           </div>
+                        </div>
+                      )}
+                    </div>
 
-                          {/* Background Music */}
-                          <div>
-                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.backgroundMusic}</label>
-                            <div className="flex flex-wrap gap-1">
-                              {([
-                                { value: 'none', label: t.generate.musicNone },
-                                { value: 'corporate', label: t.generate.musicCorporate },
-                                { value: 'energetic', label: t.generate.musicEnergetic },
-                                { value: 'calm', label: t.generate.musicCalm },
-                                { value: 'inspiring', label: t.generate.musicInspiring },
-                                { value: 'trendy', label: t.generate.musicTrendy },
-                              ]).map((m) => (
-                                <button
-                                  key={m.value}
-                                  type="button"
-                                  onClick={() => setSelectedMusic(m.value)}
-                                  className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
-                                    selectedMusic === m.value
-                                      ? 'bg-purple-600 text-white border-purple-600'
-                                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                    {/* Section Musique de fond (indépendante de la voix) */}
+                    <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-900">
+                        🎵 {t.generate.backgroundMusic}
+                      </label>
+                      <div className="flex flex-wrap gap-1">
+                        {([
+                          { value: 'none', label: t.generate.musicNone },
+                          { value: 'corporate', label: t.generate.musicCorporate },
+                          { value: 'energetic', label: t.generate.musicEnergetic },
+                          { value: 'calm', label: t.generate.musicCalm },
+                          { value: 'inspiring', label: t.generate.musicInspiring },
+                          { value: 'trendy', label: t.generate.musicTrendy },
+                        ]).map((m) => (
+                          <button
+                            key={m.value}
+                            type="button"
+                            onClick={() => setSelectedMusic(m.value)}
+                            className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
+                              selectedMusic === m.value
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Trending Music — selectable for video background */}
+                      {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-purple-200">
+                          <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
+                          <div className="space-y-1 max-h-[140px] overflow-y-auto">
+                            {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
+                              const songKey = `trending:${song.title}`;
+                              const isSelected = selectedMusic === songKey;
+                              return (
+                                <div
+                                  key={i}
+                                  onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
+                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
+                                    isSelected
+                                      ? 'bg-purple-600 text-white border border-purple-600'
+                                      : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
                                   }`}
                                 >
-                                  {m.label}
-                                </button>
-                              ))}
-                            </div>
-
-                            {/* Trending Music — selectable for video background */}
-                            {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-neutral-200">
-                                <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
-                                <div className="space-y-1 max-h-[140px] overflow-y-auto">
-                                  {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
-                                    const songKey = `trending:${song.title}`;
-                                    const isSelected = selectedMusic === songKey;
-                                    return (
-                                      <div
-                                        key={i}
-                                        onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
-                                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
-                                          isSelected
-                                            ? 'bg-purple-600 text-white border border-purple-600'
-                                            : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
-                                        }`}
-                                      >
-                                        {song.coverUrl && (
-                                          <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                          <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                                          <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                                        </div>
-                                        {isSelected ? (
-                                          <span className="text-white text-[10px] font-bold">✓</span>
-                                        ) : song.trend === 'up' ? (
-                                          <span className="text-emerald-500 font-bold">↑</span>
-                                        ) : null}
-                                      </div>
-                                    );
-                                  })}
+                                  {song.coverUrl && (
+                                    <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                    <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                  </div>
+                                  {isSelected ? (
+                                    <span className="text-white text-[10px] font-bold">✓</span>
+                                  ) : song.trend === 'up' ? (
+                                    <span className="text-emerald-500 font-bold">↑</span>
+                                  ) : null}
                                 </div>
-                                <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
-                              </div>
-                            )}
+                              );
+                            })}
                           </div>
+                          <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
                         </div>
                       )}
                     </div>
@@ -5533,10 +5489,10 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                       </div>
                     </div>
 
-                    {/* Audio */}
+                    {/* Voix off */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
                       <label className="block text-xs font-semibold text-neutral-900">
-                        🎙️ {t.generate.audioLabel}
+                        🎙️ {locale === 'fr' ? 'Voix off' : 'Voice narration'}
                       </label>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
@@ -5567,7 +5523,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                           if (!generatedSubtitleText.trim() || !generatedVideoUrl) return;
                           setVideoEditorMerging(true);
                           try {
-                            // 1. Générer audio
+                            // 1. Générer audio voix
                             const audioRes = await fetch('/api/generate-audio-tts', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
@@ -5586,7 +5542,6 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                             const mergeData = await mergeRes.json();
                             if (mergeData.ok && mergeData.mergedUrl) {
                               setGeneratedVideoUrl(mergeData.mergedUrl);
-                              // Mettre à jour la vidéo auto-sauvée
                               if (lastSavedVideoId) {
                                 fetch('/api/library/save-video', {
                                   method: 'PATCH',
@@ -5609,6 +5564,111 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         }`}
                       >
                         {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎙️ ${t.generate.generateModifyAudio}`}
+                      </button>
+                    </div>
+
+                    {/* Musique de fond (éditeur) */}
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
+                      <label className="block text-xs font-semibold text-neutral-900">
+                        🎵 {t.generate.backgroundMusic}
+                      </label>
+                      <div className="flex flex-wrap gap-1">
+                        {([
+                          { value: 'none', label: t.generate.musicNone },
+                          { value: 'corporate', label: t.generate.musicCorporate },
+                          { value: 'energetic', label: t.generate.musicEnergetic },
+                          { value: 'calm', label: t.generate.musicCalm },
+                          { value: 'inspiring', label: t.generate.musicInspiring },
+                          { value: 'trendy', label: t.generate.musicTrendy },
+                        ]).map((m) => (
+                          <button
+                            key={m.value}
+                            type="button"
+                            onClick={() => setSelectedMusic(m.value)}
+                            className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
+                              selectedMusic === m.value
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                      {(trendingData?.trendingMusic?.length ?? 0) > 0 && (
+                        <div className="mt-1 pt-1 border-t border-purple-200">
+                          <p className="text-[9px] font-semibold text-purple-700 mb-1">🎵 {t.generate.backgroundMusicTrending}</p>
+                          <div className="space-y-1 max-h-[100px] overflow-y-auto">
+                            {trendingData!.trendingMusic.slice(0, 5).map((song: any, i: number) => {
+                              const songKey = `trending:${song.title}`;
+                              const isSelected = selectedMusic === songKey;
+                              return (
+                                <div
+                                  key={i}
+                                  onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
+                                  className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] cursor-pointer transition-all ${
+                                    isSelected
+                                      ? 'bg-purple-600 text-white border border-purple-600'
+                                      : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
+                                  }`}
+                                >
+                                  {song.coverUrl && (
+                                    <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                    <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                  </div>
+                                  {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (selectedMusic === 'none' || !generatedVideoUrl) return;
+                          setVideoEditorMerging(true);
+                          try {
+                            const musicRes = await fetch('/api/generate-music', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ style: selectedMusic, duration: videoDuration || 10 }),
+                            });
+                            const musicData = await musicRes.json();
+                            if (!musicData.ok || !musicData.musicUrl) throw new Error(musicData.error || 'Music generation failed');
+
+                            const mergeRes = await fetch('/api/merge-audio-video', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ videoUrl: generatedVideoUrl, musicUrl: musicData.musicUrl }),
+                            });
+                            const mergeData = await mergeRes.json();
+                            if (mergeData.ok && mergeData.mergedUrl) {
+                              setGeneratedVideoUrl(mergeData.mergedUrl);
+                              if (lastSavedVideoId) {
+                                fetch('/api/library/save-video', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: lastSavedVideoId, videoUrl: mergeData.mergedUrl })
+                                }).catch(() => {});
+                              }
+                            } else {
+                              alert(`${t.generate.alertError} ${mergeData.error}`);
+                            }
+                          } catch (err: any) {
+                            alert(`${t.generate.alertError} ${err.message}`);
+                          } finally { setVideoEditorMerging(false); }
+                        }}
+                        disabled={videoEditorMerging || selectedMusic === 'none'}
+                        className={`w-full px-3 py-2 rounded text-xs font-medium transition-colors ${
+                          videoEditorMerging || selectedMusic === 'none'
+                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
+                        }`}
+                      >
+                        {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎵 ${locale === 'fr' ? 'Ajouter la musique' : 'Add music'}`}
                       </button>
                     </div>
 
