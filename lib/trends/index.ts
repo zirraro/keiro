@@ -6,12 +6,15 @@
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
 import { deriveTikTokHashtags, type TikTokHashtag } from './tiktokTrends';
 import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
+import { fetchTikTokTrends, fetchInstagramTrends, type SocialTrend } from './socialTrends';
 import { createClient } from '@supabase/supabase-js';
 
 export type TrendingData = {
   googleTrends: GoogleTrendItem[];
   tiktokHashtags: TikTokHashtag[];
   trendingMusic: TikTokTrendingSong[];
+  tiktokTrends: SocialTrend[];
+  instagramTrends: SocialTrend[];
   keywords: string[]; // liste plate pour scoring rapide
   fetchedAt: string;  // ISO timestamp
 };
@@ -32,16 +35,22 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
 
   console.log('[Trends] Cache miss, fetching fresh trends...');
 
-  // Fetch Google Trends + Music en parallèle
-  const [googleResult, musicResult] = await Promise.allSettled([
+  // Fetch all sources in parallel
+  const [googleResult, musicResult, tiktokResult, instaResult] = await Promise.allSettled([
     fetchGoogleTrendsFR(),
     fetchTikTokTrendingMusicFR(),
+    fetchTikTokTrends(),
+    fetchInstagramTrends(),
   ]);
 
   const googleTrends =
     googleResult.status === 'fulfilled' ? googleResult.value : [];
   const trendingMusic =
     musicResult.status === 'fulfilled' ? musicResult.value : [];
+  const tiktokTrends =
+    tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
+  const instagramTrends =
+    instaResult.status === 'fulfilled' ? instaResult.value : [];
 
   // Derive TikTok hashtags from Google Trends data
   const tiktokHashtags = deriveTikTokHashtags(googleTrends.map(t => t.title));
@@ -68,10 +77,20 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
     if (song.artist) keywords.push(song.artist.toLowerCase());
   }
 
+  // Add social trend titles to keywords
+  for (const t of tiktokTrends) {
+    if (t.title) keywords.push(t.title.toLowerCase());
+  }
+  for (const t of instagramTrends) {
+    if (t.title) keywords.push(t.title.toLowerCase());
+  }
+
   const data: TrendingData = {
     googleTrends,
     tiktokHashtags,
     trendingMusic,
+    tiktokTrends,
+    instagramTrends,
     keywords: [...new Set(keywords)],
     fetchedAt: new Date().toISOString(),
   };
@@ -81,7 +100,7 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
   cacheTimestamp = now;
 
   console.log(
-    `[Trends] Cached: ${googleTrends.length} Google, ${tiktokHashtags.length} TikTok hashtags, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
+    `[Trends] Cached: ${googleTrends.length} Google, ${tiktokTrends.length} TikTok, ${instagramTrends.length} Instagram, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
   );
 
   // Persister en BDD pour historique (async, non bloquant)
@@ -154,3 +173,4 @@ async function persistTrendsToDb(
 export type { GoogleTrendItem } from './googleTrends';
 export type { TikTokHashtag } from './tiktokTrends';
 export type { TikTokTrendingSong } from './tiktokMusic';
+export type { SocialTrend } from './socialTrends';
