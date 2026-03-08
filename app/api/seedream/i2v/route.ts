@@ -86,11 +86,11 @@ export async function POST(request: Request) {
     try {
       console.log('[I2V] Trying Seedance 1.5 Pro...');
 
-      // Flags MUST be at the END — Seedance parses them from the end of the prompt.
-      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 300 ? prompt.substring(0, 300) : prompt) : '';
+      // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt.
+      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 250 ? prompt.substring(0, 250) : prompt) : '';
       const textPrompt = truncatedPrompt
-        ? `${truncatedPrompt} --duration ${duration} --camerafixed false`
-        : `Animate this image with smooth cinematic camera movement --duration ${duration} --camerafixed false`;
+        ? `${truncatedPrompt} --camerafixed false --duration ${duration}`
+        : `Animate this image with smooth cinematic camera movement --camerafixed false --duration ${duration}`;
 
       const content: any[] = [
         { type: 'text', text: textPrompt },

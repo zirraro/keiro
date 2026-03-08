@@ -125,19 +125,27 @@ export async function POST(req: NextRequest) {
 
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // Strategy 1: Stream copy (near-instant, works when all segments have same codec)
-    console.log(`[MergeSegments-${id}] Trying stream copy merge (fast)...`);
-    try {
-      const copyCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c copy -movflags +faststart -y "${outputPath}"`;
-      execSync(copyCmd, { timeout: 60000 });
-      console.log(`[MergeSegments-${id}] Stream copy merge succeeded`);
-    } catch (copyError: any) {
-      console.warn(`[MergeSegments-${id}] Stream copy failed, using fast re-encode:`, copyError.message?.substring(0, 200));
-      // Strategy 2: Fast re-encode (ultrafast preset)
-      const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
-      execSync(reencodeCmd, { timeout: 180000 });
-      console.log(`[MergeSegments-${id}] Fast re-encode merge succeeded`);
+    // Log each segment duration
+    for (let i = 0; i < segmentPaths.length; i++) {
+      try {
+        const probeCmd = `"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
+        const probeResult = execSync(probeCmd, { timeout: 10000 }).toString().trim();
+        console.log(`[MergeSegments-${id}] Segment ${i} duration: ${probeResult}`);
+      } catch { console.log(`[MergeSegments-${id}] Segment ${i} duration: probe failed`); }
     }
+
+    // Re-encode merge (most reliable — ensures matching codec/fps/resolution across segments)
+    console.log(`[MergeSegments-${id}] Merging with re-encode (reliable)...`);
+    const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
+    execSync(reencodeCmd, { timeout: 300000 }); // 5 min
+    console.log(`[MergeSegments-${id}] Re-encode merge succeeded`);
+
+    // Verify merged duration
+    try {
+      const durationProbe = `"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
+      const mergedDuration = execSync(durationProbe, { timeout: 10000 }).toString().trim();
+      console.log(`[MergeSegments-${id}] MERGED DURATION: ${mergedDuration}`);
+    } catch {}
 
     // Read merged file
     const mergedBuffer = await readFile(outputPath);

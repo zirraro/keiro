@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     // 2. Parse request body
     const body = await request.json();
-    const { prompt, duration, aspectRatio = '16:9', imageUrl, mode, segments: advancedSegments } = body;
+    const { prompt, duration, aspectRatio = '16:9', imageUrl, mode, segments: advancedSegments, dryRun } = body;
 
     // 3. Validate duration
     if (!duration || !VALID_DURATIONS.includes(duration as ValidDuration)) {
@@ -263,6 +263,39 @@ export async function POST(request: Request) {
     }
     const totalDur = scenes.reduce((sum, s) => sum + s.duration, 0);
     console.log(`[video-long] Final: ${scenes.length} segments, ${totalDur}s total for requested ${duration}s`);
+
+    // ── DRY RUN: return what WOULD be sent to Seedance without calling API or deducting credits ──
+    if (dryRun) {
+      const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
+      const dryRunSegments = scenes.map((scene, i) => {
+        const cleanPrompt = scene.prompt
+          .replace(/ABSOLUTELY ZERO[^.]*\./gi, '')
+          .replace(/Pure visual storytelling[^.]*\./gi, '')
+          .replace(/NO text[^.]*\./gi, '')
+          .trim();
+        const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
+        const segDuration = scene.duration >= 10 ? 10 : 5;
+        const formattedPrompt = `${shortPrompt} --camerafixed false${ratioFlag} --duration ${segDuration}`;
+        return {
+          index: i,
+          duration: scene.duration,
+          seedanceDuration: segDuration,
+          promptLength: formattedPrompt.length,
+          promptEnd: formattedPrompt.slice(-60),
+          fullPrompt: formattedPrompt,
+        };
+      });
+
+      return Response.json({
+        ok: true,
+        dryRun: true,
+        requestedDuration: duration,
+        totalSegmentDuration: totalDur,
+        segmentCount: scenes.length,
+        segments: dryRunSegments,
+        message: `${scenes.length} segments × ${scenes[0]?.duration}s = ${totalDur}s. Each prompt ends with "--duration ${scenes[0]?.duration >= 10 ? 10 : 5}". No API called, no credits deducted.`,
+      });
+    }
 
     // 7. Build segments array for the job
     const jobSegments: JobSegment[] = scenes.map((scene) => ({
@@ -733,14 +766,16 @@ async function startSeedanceT2V(
     .replace(/Pure visual storytelling[^.]*\./gi, '')
     .replace(/NO text[^.]*\./gi, '')
     .trim();
-  // Hard limit 250 chars for the visual description so flags at end aren't truncated
-  const shortPrompt = cleanPrompt.length > 250 ? cleanPrompt.substring(0, 250) : cleanPrompt;
-  // Flags MUST be at the END — Seedance parses them from the end of the prompt text
-  const formattedPrompt = `${shortPrompt} --duration ${duration}${ratioFlag} --camerafixed false`;
+  // Hard limit 200 chars for the visual description so flags at end aren't truncated
+  const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
+  // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt
+  // Force duration to 10 for all segments (Seedance max), ensures each segment = 10s
+  const segDuration = duration >= 10 ? 10 : 5;
+  const formattedPrompt = `${shortPrompt} --camerafixed false${ratioFlag} --duration ${segDuration}`;
 
   try {
-    console.log(`[video-long] T2V Seedance: duration=${duration}s, total=${formattedPrompt.length}chars`);
-    console.log(`[video-long] T2V prompt: "${formattedPrompt}"`);
+    console.log(`[video-long] T2V Seedance: requested=${duration}s, segDuration=${segDuration}s, promptLen=${formattedPrompt.length}chars`);
+    console.log(`[video-long] T2V prompt (last 80 chars): "...${formattedPrompt.slice(-80)}"`);;
     const response = await fetch(SEEDANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -819,12 +854,13 @@ async function startSeedanceI2V(
   duration: number,
   imageUrl: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
-  // Clean and shorten the prompt — flags MUST be at the END for Seedance
+  // Clean and shorten the prompt — --duration MUST be LAST flag for Seedance
   const cleanPrompt = (prompt || '').replace(/ABSOLUTELY ZERO[^.]*\./gi, '').trim();
   const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
+  const segDuration = duration >= 10 ? 10 : 5;
   const textPrompt = shortPrompt
-    ? `Seamless continuation, same lighting. ${shortPrompt} --duration ${duration} --camerafixed false`
-    : `Animate with smooth cinematic camera movement, consistent lighting --duration ${duration} --camerafixed false`;
+    ? `Seamless continuation, same lighting. ${shortPrompt} --camerafixed false --duration ${segDuration}`
+    : `Animate with smooth cinematic camera movement, consistent lighting --camerafixed false --duration ${segDuration}`;
 
   try {
     console.log('[video-long] I2V: trying Seedance 1.5 Pro...');
@@ -1171,19 +1207,28 @@ async function mergeSegments(segmentUrls: string[], userId: string, jobId: strin
 
     const outputPath = join(tmpDir, 'merged.mp4');
 
-    // Strategy 1: Stream copy (instant, no re-encoding — works when all segments have same codec)
-    console.log(`[video-long] Trying stream copy merge (fast)...`);
-    try {
-      const copyCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c copy -movflags +faststart -y "${outputPath}"`;
-      execSync(copyCmd, { timeout: 60000 }); // 1 min max for copy
-      console.log(`[video-long] Stream copy merge succeeded`);
-    } catch (copyError: any) {
-      console.warn(`[video-long] Stream copy failed, falling back to fast re-encode:`, copyError.message?.substring(0, 200));
-      // Strategy 2: Fast re-encode (ultrafast preset instead of medium)
-      const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
-      execSync(reencodeCmd, { timeout: 240000 }); // 4 min for re-encode
-      console.log(`[video-long] Fast re-encode merge succeeded`);
+    // Log each segment's actual duration before merging
+    for (let i = 0; i < segmentPaths.length; i++) {
+      try {
+        const probeCmd = `"${ffmpegBin}" -i "${segmentPaths[i]}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
+        const probeResult = execSync(probeCmd, { timeout: 10000 }).toString().trim();
+        console.log(`[video-long] Segment ${i} duration: ${probeResult}`);
+      } catch { console.log(`[video-long] Segment ${i} duration: probe failed`); }
     }
+
+    // Re-encode merge (most reliable — ensures all segments have matching codec/fps/resolution)
+    // This prevents silent truncation from codec mismatches between segments
+    console.log(`[video-long] Merging ${segmentPaths.length} segments with re-encode...`);
+    const reencodeCmd = `"${ffmpegBin}" -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -r 24 -an -movflags +faststart -y "${outputPath}"`;
+    execSync(reencodeCmd, { timeout: 300000 }); // 5 min for re-encode
+    console.log(`[video-long] Re-encode merge succeeded`);
+
+    // Verify merged output duration
+    try {
+      const durationProbe = `"${ffmpegBin}" -i "${outputPath}" -hide_banner 2>&1 | grep -i duration || echo "unknown"`;
+      const mergedDuration = execSync(durationProbe, { timeout: 10000 }).toString().trim();
+      console.log(`[video-long] MERGED VIDEO DURATION: ${mergedDuration}`);
+    } catch { console.log(`[video-long] Could not probe merged duration`); }
 
     const mergedBuffer = await readFile(outputPath);
     console.log(`[video-long] Merged: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);

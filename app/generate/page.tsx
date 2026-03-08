@@ -1079,7 +1079,7 @@ export default function GeneratePage() {
         } else if (step === 'creatif') {
           if (f.storyToTell) setStoryToTell(f.storyToTell);
           if (f.publicationGoal) setPublicationGoal(f.publicationGoal);
-          if (f.emotionToConvey) setEmotionToConvey(f.emotionToConvey);
+          setEmotionToConvey(f.emotionToConvey || f.emotion || tonePresets[communicationProfile]?.emotion || 'Inspiration et espoir');
         } else if (step === 'expert') {
           if (f.problemSolved) setProblemSolved(f.problemSolved);
           if (f.uniqueAdvantage) setUniqueAdvantage(f.uniqueAdvantage);
@@ -3185,8 +3185,15 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               {/* Cartes d'actualités (3 colonnes) */}
               <div className={!useNewsMode ? 'opacity-30' : ''}>
                 {loading && (
-                  <div className="text-center py-8 text-neutral-500">
-                    {t.generate.loadingNews}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-xl overflow-hidden bg-neutral-100 animate-pulse" style={{ height: '180px' }}>
+                        <div className="h-full flex flex-col justify-end p-3">
+                          <div className="h-3 bg-neutral-200 rounded w-3/4 mb-2" />
+                          <div className="h-3 bg-neutral-200 rounded w-1/2" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

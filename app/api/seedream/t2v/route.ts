@@ -81,10 +81,10 @@ export async function POST(request: Request) {
 
     // --- Primary: Seedance 1.5 Pro ---
     const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-    // Flags MUST be at the END — Seedance parses them from the end of the prompt.
+    // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt.
     // Keep prompt short so flags don't get truncated.
-    const truncatedPrompt = prompt.length > 300 ? prompt.substring(0, 300) : prompt;
-    const formattedPrompt = `${truncatedPrompt} --duration ${duration}${ratioFlag} --camerafixed false`;
+    const truncatedPrompt = prompt.length > 250 ? prompt.substring(0, 250) : prompt;
+    const formattedPrompt = `${truncatedPrompt} --camerafixed false${ratioFlag} --duration ${duration}`;
 
     try {
       console.log('[T2V] Trying Seedance 1.5 Pro...');
