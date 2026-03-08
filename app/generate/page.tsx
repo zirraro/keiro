@@ -4540,6 +4540,26 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 {/* Options vidéo uniquement */}
                 {generationMode === 'video' && (
                   <>
+                    {/* Résumé audio — indication claire du mode choisi */}
+                    <div className={`rounded-lg p-2.5 border text-[10px] font-medium ${
+                      addAudio && selectedMusic !== 'none'
+                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                        : addAudio
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : selectedMusic !== 'none'
+                            ? 'bg-purple-50 border-purple-200 text-purple-700'
+                            : 'bg-neutral-50 border-neutral-200 text-neutral-500'
+                    }`}>
+                      {addAudio && selectedMusic !== 'none'
+                        ? `🎙️🎵 ${locale === 'fr' ? 'Voix off + Musique de fond' : 'Voice + Background music'}`
+                        : addAudio
+                          ? `🎙️ ${locale === 'fr' ? 'Voix off uniquement' : 'Voice narration only'}`
+                          : selectedMusic !== 'none'
+                            ? `🎵 ${locale === 'fr' ? 'Musique de fond uniquement (pas de voix)' : 'Background music only (no voice)'}`
+                            : `🔇 ${locale === 'fr' ? 'Aucun audio' : 'No audio'}`
+                      }
+                    </div>
+
                     {/* Section Voix / Narration */}
                     <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -4552,6 +4572,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                         <span className="text-xs font-semibold text-neutral-900">
                           🎙️ {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}
                         </span>
+                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                       </label>
 
                       {addAudio && (
