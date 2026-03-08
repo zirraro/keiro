@@ -1,8 +1,10 @@
 /**
- * Fetch real social media trends (TikTok + Instagram) with images.
+ * Fetch real social media trends with images.
  *
- * TikTok: Creative Center API (public, no auth needed)
- * Instagram: Derived from Google Trends + enriched with social context
+ * TikTok tab: Mastodon trending statuses (real viral social posts with images)
+ * Instagram tab: Google Trends positions 4-6 (different from Google tab which shows 1-3)
+ *
+ * No duplicates between tabs guaranteed.
  */
 
 export type SocialTrend = {
@@ -15,104 +17,77 @@ export type SocialTrend = {
 };
 
 /**
- * Fetch trending TikTok hashtags/challenges from Creative Center API
+ * Fetch trending social posts from Mastodon (100% public API, no auth).
+ * These are real viral posts with images — good proxy for social media trends.
  */
 export async function fetchTikTokTrends(): Promise<SocialTrend[]> {
   try {
-    console.log('[SocialTrends] Fetching TikTok Creative Center trends...');
+    console.log('[SocialTrends] Fetching Mastodon trending statuses...');
 
-    // TikTok Creative Center internal API — public, no auth
-    const res = await fetch(
-      'https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=10&period=7&country_code=FR',
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/json',
-          'Referer': 'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en',
-        },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-
-    if (!res.ok) {
-      console.warn(`[SocialTrends] TikTok Creative Center responded ${res.status}`);
-      return fetchTikTokTrendsFallback();
-    }
-
-    const json = await res.json();
-    const items = json?.data?.list || json?.data?.hashtag_list || [];
-
-    if (!items.length) {
-      console.warn('[SocialTrends] TikTok Creative Center returned empty, using fallback');
-      return fetchTikTokTrendsFallback();
-    }
-
-    const trends: SocialTrend[] = items.slice(0, 8).map((item: any) => ({
-      title: item.hashtag_name || item.hashtag || item.name || '',
-      description: item.trend_sentence || item.description || `${formatCount(item.publish_cnt || item.video_count || 0)} vidéos`,
-      platform: 'tiktok' as const,
-      imageUrl: item.video_cover || item.cover || item.thumbnail || undefined,
-      type: detectTrendType(item.hashtag_name || ''),
-      engagement: formatCount(item.publish_cnt || item.video_count || item.view_count || 0),
-    }));
-
-    console.log(`[SocialTrends] Got ${trends.length} TikTok trends from Creative Center`);
-    return trends.filter(t => t.title);
-  } catch (err: any) {
-    console.warn('[SocialTrends] TikTok Creative Center error:', err.message);
-    return fetchTikTokTrendsFallback();
-  }
-}
-
-/**
- * Fallback: Fetch TikTok trends from Google Trends (repackaged for TikTok context)
- */
-async function fetchTikTokTrendsFallback(): Promise<SocialTrend[]> {
-  try {
-    // Use Google Trends RSS but frame as TikTok-relevant trends
-    const res = await fetch('https://trends.google.com/trending/rss?geo=FR', {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KeiroBot/1.0)' },
+    // Mastodon trending statuses — public, free, real social content with images
+    const res = await fetch('https://mastodon.social/api/v1/trends/statuses?limit=10', {
+      headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) return [];
 
-    const xml = await res.text();
+    if (!res.ok) {
+      console.warn(`[SocialTrends] Mastodon responded ${res.status}`);
+      return [];
+    }
+
+    const statuses = await res.json();
+    if (!Array.isArray(statuses) || !statuses.length) return [];
+
     const trends: SocialTrend[] = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    let match;
 
-    while ((match = itemRegex.exec(xml)) !== null && trends.length < 6) {
-      const block = match[1];
-      const title = extractTag(block, 'title');
-      const picture = extractTag(block, 'ht:picture') || extractTag(block, 'ht:news_item_picture');
-      const newsTitle = extractTag(block, 'ht:news_item_title');
-      const traffic = extractTag(block, 'ht:approx_traffic');
+    for (const status of statuses) {
+      if (trends.length >= 6) break;
 
-      if (!title) continue;
+      // Extract text content (strip HTML tags)
+      const rawContent = (status.content || '').replace(/<[^>]*>/g, '').trim();
+      if (!rawContent || rawContent.length < 10) continue;
+
+      // Get title — first sentence or first 80 chars
+      const firstSentence = rawContent.split(/[.!?]\s/)[0];
+      const title = firstSentence.length > 80
+        ? firstSentence.substring(0, 77) + '...'
+        : firstSentence;
+
+      // Get image from media attachments
+      const imageAttachment = (status.media_attachments || []).find(
+        (m: any) => m.type === 'image'
+      );
+      const imageUrl = imageAttachment?.preview_url || imageAttachment?.url || undefined;
+
+      // Engagement metrics
+      const favs = status.favourites_count || 0;
+      const reblogs = status.reblogs_count || 0;
+      const total = favs + reblogs;
 
       trends.push({
         title,
-        description: newsTitle || `Tendance ${traffic || 'populaire'} — potentiel viral TikTok`,
+        description: rawContent.length > 120 ? rawContent.substring(0, 117) + '...' : rawContent,
         platform: 'tiktok',
-        imageUrl: picture || undefined,
-        type: 'trend',
-        engagement: traffic || undefined,
+        imageUrl,
+        type: total > 500 ? 'viral' : 'trend',
+        engagement: formatCount(total),
       });
     }
+
+    console.log(`[SocialTrends] Got ${trends.length} social trends from Mastodon`);
     return trends;
-  } catch {
+  } catch (err: any) {
+    console.warn('[SocialTrends] Mastodon error:', err.message);
     return [];
   }
 }
 
 /**
- * Fetch Instagram trends.
- * Instagram has no public trending API, so we derive from Google Trends
- * and frame them as Instagram-relevant content opportunities.
+ * Fetch Instagram trends from Google Trends (positions 4-6, no overlap with Google tab).
  */
 export async function fetchInstagramTrends(): Promise<SocialTrend[]> {
   try {
-    console.log('[SocialTrends] Deriving Instagram trends from Google Trends...');
+    console.log('[SocialTrends] Fetching Instagram trends (Google Trends 4-6)...');
 
     const res = await fetch('https://trends.google.com/trending/rss?geo=FR', {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KeiroBot/1.0)' },
@@ -125,11 +100,11 @@ export async function fetchInstagramTrends(): Promise<SocialTrend[]> {
     const itemRegex = /<item>([\s\S]*?)<\/item>/g;
     let match;
 
-    // Skip the first 4 (those are shown in Google tab), take the next 6
-    let skip = 0;
-    while ((match = itemRegex.exec(xml)) !== null && trends.length < 6) {
-      skip++;
-      if (skip <= 4) continue; // Skip first 4 (already in Google trends tab)
+    // Skip first 3 (shown in Google tab), take next 3
+    let index = 0;
+    while ((match = itemRegex.exec(xml)) !== null && trends.length < 3) {
+      index++;
+      if (index <= 3) continue; // Skip first 3
 
       const block = match[1];
       const title = extractTag(block, 'title');
@@ -141,15 +116,15 @@ export async function fetchInstagramTrends(): Promise<SocialTrend[]> {
 
       trends.push({
         title,
-        description: newsTitle || `Tendance ${traffic || 'populaire'} — à exploiter en Reels`,
+        description: newsTitle || `${traffic || 'Populaire'} — idéal pour Reels & Stories`,
         platform: 'instagram',
         imageUrl: picture || undefined,
-        type: detectInstaTrendType(title),
+        type: 'trend',
         engagement: traffic || undefined,
       });
     }
 
-    console.log(`[SocialTrends] Derived ${trends.length} Instagram trends`);
+    console.log(`[SocialTrends] Got ${trends.length} Instagram trends`);
     return trends;
   } catch (err: any) {
     console.warn('[SocialTrends] Instagram trends error:', err.message);
@@ -168,20 +143,5 @@ function extractTag(xml: string, tag: string): string {
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n || '');
-}
-
-function detectTrendType(name: string): SocialTrend['type'] {
-  const lower = (name || '').toLowerCase();
-  if (lower.includes('challenge') || lower.includes('defi')) return 'challenge';
-  if (lower.includes('trend') || lower.includes('tendance')) return 'trend';
-  if (lower.includes('format') || lower.includes('pov') || lower.includes('storytime')) return 'format';
-  return 'viral';
-}
-
-function detectInstaTrendType(name: string): SocialTrend['type'] {
-  const lower = (name || '').toLowerCase();
-  if (lower.includes('challenge') || lower.includes('défi')) return 'challenge';
-  if (lower.includes('viral') || lower.includes('buzz')) return 'viral';
-  return 'trend';
+  return n > 0 ? String(n) : '';
 }

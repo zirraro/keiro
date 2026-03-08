@@ -3108,7 +3108,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
                   { key: 'google' as const, label: '🔍 Google', color: 'border-orange-500' },
-                  { key: 'tiktok' as const, label: '🎵 TikTok', color: 'border-black' },
+                  { key: 'tiktok' as const, label: '🌐 Social', color: 'border-blue-500' },
                   { key: 'instagram' as const, label: '📸 Instagram', color: 'border-pink-500' },
                 ] as const).map((tab) => (
                   <button
@@ -3175,7 +3175,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {/* TikTok Trends */}
                 {trendTab === 'tiktok' && (
                   <div>
-                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Tendances TikTok — inspirez-vous pour créer du contenu viral' : 'TikTok trends — get inspired for viral content'}</p>
+                    <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Posts viraux sur les réseaux — inspirez-vous pour votre contenu' : 'Viral social posts — get inspired for your content'}</p>
                     <div className="grid grid-cols-3 gap-2.5">
                       {(trendingData?.tiktokTrends || []).slice(0, 3).map((trend: any, i: number) => (
                         <button
@@ -3185,30 +3185,30 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             setUseNewsMode(false);
                             setBusinessDescription((prev: string) => {
                               const trendNote = locale === 'fr'
-                                ? `En lien avec la tendance TikTok "${trend.title}". ${prev || ''}`
-                                : `Related to TikTok trend "${trend.title}". ${prev || ''}`;
+                                ? `En lien avec le buzz "${trend.title}". ${prev || ''}`
+                                : `Related to viral trend "${trend.title}". ${prev || ''}`;
                               return trendNote;
                             });
                             const el = document.getElementById('business-description');
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }}
-                          className="flex flex-col bg-white hover:bg-neutral-50 border border-neutral-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
+                          className="flex flex-col bg-white hover:bg-blue-50 border border-blue-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
                         >
-                          <div className="relative w-full h-20 bg-gradient-to-br from-neutral-900 to-neutral-700 overflow-hidden">
+                          <div className="relative w-full h-20 bg-gradient-to-br from-blue-100 to-cyan-100 overflow-hidden">
                             {trend.imageUrl ? (
                               <img src={trend.imageUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-40">🎵</span></div>
+                              <div className="w-full h-full flex items-center justify-center"><span className="text-3xl opacity-30">🌐</span></div>
                             )}
-                            <span className="absolute top-1.5 left-1.5 text-[8px] bg-black/80 text-white font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                              <span className="text-[7px]">♪</span> {trend.type === 'challenge' ? 'Défi' : 'Trend'}
+                            <span className="absolute top-1.5 left-1.5 text-[8px] bg-blue-600/90 text-white font-bold px-1.5 py-0.5 rounded">
+                              {trend.type === 'viral' ? 'Viral' : 'Trend'}
                             </span>
                             {trend.engagement && <span className="absolute top-1.5 right-1.5 text-[7px] bg-white/90 text-neutral-700 font-bold px-1 py-0.5 rounded">{trend.engagement}</span>}
                           </div>
                           <div className="p-2 flex-1 flex flex-col">
                             <p className="text-[11px] font-bold text-neutral-900 leading-tight mb-0.5 line-clamp-2">{trend.title}</p>
                             <p className="text-[9px] text-neutral-500 leading-snug line-clamp-1">{trend.description}</p>
-                            <span className="text-[8px] text-neutral-500 font-medium mt-auto pt-1 group-hover:text-black">{locale === 'fr' ? 'Utiliser →' : 'Use →'}</span>
+                            <span className="text-[8px] text-blue-500 font-medium mt-auto pt-1 group-hover:text-blue-700">{locale === 'fr' ? 'Utiliser →' : 'Use →'}</span>
                           </div>
                         </button>
                       ))}
