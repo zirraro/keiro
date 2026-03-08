@@ -5,6 +5,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/agents/commercial",
+      "schedule": "30 3 * * *"
+    },
+    {
       "path": "/api/agents/ceo",
       "schedule": "0 4 * * *"
     },
