@@ -13,8 +13,12 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/agents/email/daily",
+      "path": "/api/agents/email/daily?slot=morning",
       "schedule": "0 8 * * 2,4"
+    },
+    {
+      "path": "/api/agents/email/daily?slot=afternoon",
+      "schedule": "0 12 * * 2,4"
     },
     {
       "path": "/api/agents/email/daily?type=warm",

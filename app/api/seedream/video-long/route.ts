@@ -503,33 +503,13 @@ export async function GET(request: Request) {
               const nextScene = segments[nextSegmentIndex];
               let result: { taskId: string; provider: 's' | 'k' };
 
-              // Extract last frame from completed segment → I2V for visual continuity + full 10s
-              const completedVideoUrl = segments[currentSegmentIndex].videoUrl;
-              let frameUrl: string | null = null;
-
-              if (completedVideoUrl) {
-                try {
-                  console.log(`[video-long] Extracting last frame from segment ${currentSegmentIndex}...`);
-                  frameUrl = await extractLastFrameInline(completedVideoUrl, user.id);
-                  console.log(`[video-long] Frame extracted: ${frameUrl}`);
-                } catch (frameError: any) {
-                  console.warn(`[video-long] Frame extraction failed, falling back to T2V:`, frameError.message);
-                }
-              }
-
-              if (frameUrl) {
-                // I2V from last frame → visual continuity + Seedance respects 10s duration better with image input
-                const isLastSegment = nextSegmentIndex === segments.length - 1;
-                const continuityPrompt = isLastSegment
-                  ? `${nextScene.prompt}. Gradual slow motion ending, smooth fade to still.`
-                  : nextScene.prompt;
-                console.log(`[video-long] Segment ${nextSegmentIndex}: I2V from last frame (${isLastSegment ? 'FINAL' : 'mid'})`);
-                result = await startSeedanceI2V(continuityPrompt, nextScene.duration, frameUrl);
-              } else {
-                // Fallback to T2V if frame extraction failed
-                console.log(`[video-long] Segment ${nextSegmentIndex}: T2V fallback (no frame available)`);
-                result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
-              }
+              // ALL segments use T2V (text-to-video) — guaranteed 10s per segment
+              // Seedance I2V caps at 5s regardless of --duration flag, so T2V is the only
+              // way to get 10s per segment. Visual continuity is ensured by Claude's scene
+              // decomposition: each scene prompt describes the EXACT visual state that matches
+              // the previous scene's ending (same palette, lighting, camera direction, subject).
+              console.log(`[video-long] Segment ${nextSegmentIndex}: T2V (guaranteed 10s, continuity via prompt)`);
+              result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
 
               segments[nextSegmentIndex].taskId = result.taskId;
               segments[nextSegmentIndex].status = 'generating';

@@ -131,27 +131,36 @@ async function generateShortScenePrompts(
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
-  const systemPrompt = `You are an elite cinematographer. You read a creative brief about a BUSINESS and optionally a NEWS story, then output ${numScenes} SHORT video scene descriptions.
+  const systemPrompt = `You are an elite cinematographer creating a ${numScenes}-segment video. Each segment is generated INDEPENDENTLY by AI, so visual continuity must be EMBEDDED in every prompt.
 
 CRITICAL RULES:
-1. Each scene description MUST be 80-120 characters max. Pure visual description only.
-2. NEVER include meta-instructions like "no text", "zero watermarks", "the viewer should". Seedance doesn't understand instructions.
-3. Each scene = [camera movement] + [lighting] + [what is visible on screen]
-4. If the brief mentions NEWS + BUSINESS: every scene must VISUALLY show the connection. The setting, props, decor, and character behaviors must reflect BOTH the news theme AND the business identity.
-5. VISUAL CONTINUITY between scenes:
-   - Same color palette, same lighting, same location across ALL scenes
-   - Scene N+1 starts from where scene N ends (same camera angle, same frame)
-   - Camera movements flow in the same direction
-   - Characters/objects persist across scenes
-6. Style: ${renderMode}, ${characters}, mood ${mood}, ${style}
+1. Each scene: 80-150 characters max. Pure visual description only.
+2. NEVER include instructions like "no text", "zero watermarks". Only describe what IS visible.
+3. Format: [camera] + [SETTING anchor] + [lighting] + [subject/action]
+4. If brief has NEWS + BUSINESS: every scene must VISUALLY connect both.
 
-SCENE STRUCTURE for ${numScenes} scenes:
-- Scene 1: Wide establishing shot — show the environment that bridges news + business
-${numScenes >= 3 ? '- Middle scenes: Progressive close-ups — people, actions, details, products' : ''}
-- Last scene: Hero shot — the emotional peak, slightly wider angle
+SEAMLESS CONTINUITY (most important):
+Since segments are generated separately, you MUST repeat a "visual anchor" in EVERY scene:
+- SAME setting description (e.g., "warm brick-walled restaurant" in every scene)
+- SAME lighting keywords (e.g., "golden hour warm light" in every scene)
+- SAME color palette keywords (e.g., "warm amber tones" in every scene)
+- SAME subject/character description if people are present
+- Camera movements should feel progressive: wide → medium → close → wide
 
-OUTPUT FORMAT: JSON array of strings, one per scene. In ENGLISH.
-Example for 3 scenes: ["Slow crane descent into a warm Italian restaurant with rugby flags hanging from ceiling, golden hour light through windows, customers gathered around TV screens", "Smooth tracking shot past tables of diverse cheering fans raising wine glasses, warm ambient lighting, bokeh on background rugby match", "Dolly in to chef presenting steaming pasta shaped like a rugby ball, shallow depth of field, warm rim lighting on steam"]`;
+SCENE FLOW for ${numScenes} scenes:
+- Scene 1: Wide establishing — introduce full environment, slow movement
+${numScenes >= 3 ? '- Scene 2: Medium shot — same setting, closer on people/action/products' : ''}
+${numScenes >= 3 ? '- Scene 3: Close-up hero shot — same setting, detail on key element, gentle slow motion' : ''}
+${numScenes >= 4 ? '- Additional scenes: alternate between medium and close-up, always same setting' : ''}
+- Last scene: should feel like a natural ending (slow motion, gentle fade feeling)
+
+Style: ${renderMode}, ${characters}, mood ${mood}, ${style}
+
+OUTPUT: JSON array of strings, one per scene, in ENGLISH.
+Example for 3 scenes (30s video, restaurant + rugby theme):
+["Slow crane descent into warm brick-walled Italian restaurant, golden hour amber light through arched windows, rugby pennants hanging from wooden beams, diverse customers at candlelit tables",
+"Smooth tracking shot through same warm brick-walled restaurant, golden hour amber light, close on diverse group of friends raising wine glasses and cheering, rugby match glowing on wall TV behind them",
+"Gentle dolly in to chef in same warm brick-walled restaurant, golden hour amber light, presenting steaming pasta on rustic plate, shallow depth of field, soft slow motion steam rising"]`;
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -189,8 +198,8 @@ Example for 3 scenes: ["Slow crane descent into a warm Italian restaurant with r
 
   return scenes.map(s => {
     const withStyle = `${s}${styleSuffix}`;
-    // Keep total under 250 chars so flags at end aren't truncated
-    return withStyle.length > 250 ? withStyle.substring(0, 250) : withStyle;
+    // Keep total under 200 chars — Seedance truncates long prompts and we need room for flags
+    return withStyle.length > 200 ? withStyle.substring(0, 200) : withStyle;
   });
 }
 

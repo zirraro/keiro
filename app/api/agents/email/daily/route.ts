@@ -7,6 +7,19 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+/**
+ * Optimal send times by business category (Paris timezone / UTC+1 or UTC+2).
+ * Based on when each type of business has downtime to read emails.
+ *
+ * MORNING slot (cron 8h UTC = 10h Paris):
+ *   freelance, agence, pme, professionnel, services → bureau types, check email mid-morning
+ *
+ * AFTERNOON slot (cron 12h UTC = 14h Paris):
+ *   restaurant, coiffeur, fleuriste, caviste, traiteur, boutique, coach → after lunch rush
+ */
+const MORNING_CATEGORIES = new Set(['freelance', 'agence', 'pme', 'professionnel', 'services']);
+const AFTERNOON_CATEGORIES = new Set(['restaurant', 'coiffeur', 'fleuriste', 'caviste', 'traiteur', 'boutique', 'coach']);
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -168,7 +181,9 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // --- Default: cold sequences ---
-      console.log('[EmailDaily] Running cold sequence mode...');
+      // Slot-based sending: morning slot sends to office types, afternoon to commerce types
+      const slot = request.nextUrl.searchParams.get('slot') || 'all';
+      console.log(`[EmailDaily] Running cold sequence mode (slot=${slot})...`);
 
       const { data: prospects } = await supabase
         .from('crm_prospects')
@@ -178,12 +193,18 @@ export async function GET(request: NextRequest) {
         .neq('temperature', 'dead')
         .not('status', 'in', '("client","perdu")');
 
-      console.log(`[EmailDaily] Eligible prospects: ${prospects?.length ?? 0}`);
+      console.log(`[EmailDaily] Eligible prospects (before slot filter): ${prospects?.length ?? 0}`);
 
       let step1Count = 0;
       const MAX_STEP1_PER_DAY = 50;
 
       for (const prospect of prospects || []) {
+        // Filter by time slot based on business category
+        if (slot !== 'all') {
+          const category = getSequenceForProspect(prospect);
+          if (slot === 'morning' && !MORNING_CATEGORIES.has(category)) continue;
+          if (slot === 'afternoon' && !AFTERNOON_CATEGORIES.has(category)) continue;
+        }
         const step = prospect.email_sequence_step ?? 0;
         const lastSent = prospect.last_email_sent_at
           ? new Date(prospect.last_email_sent_at)
