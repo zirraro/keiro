@@ -165,14 +165,18 @@ export async function POST(req: NextRequest) {
     const hasMusic = !!musicUrl;
 
     if (hasVoice && hasMusic) {
-      // Mix voice (full volume) + music (low volume 25%) then merge with video
-      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -stream_loop -1 -i "${musicPath}" -filter_complex "[1:a]volume=1.0[voice];[2:a]volume=0.25[music];[voice][music]amix=inputs=2:duration=first:dropout_transition=2[aout]" -map 0:v:0 -map "[aout]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
+      // Mix voice (full volume) + music (low volume 25%), use video duration as reference
+      // -stream_loop -1 loops music, amix duration=longest ensures voice plays fully,
+      // then -shortest cuts to video length (video is always the longest input here)
+      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -stream_loop -1 -i "${musicPath}" -filter_complex "[1:a]apad[voicepad];[voicepad]volume=1.0[voice];[2:a]volume=0.25[music];[voice][music]amix=inputs=2:duration=longest:dropout_transition=2[aout]" -map 0:v:0 -map "[aout]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
     } else if (hasMusic) {
       // Music only (moderate volume 35%), loop to match video length
+      // -shortest ensures output matches video duration (music is looped infinitely)
       cmd = `"${ffmpegBin}" -i "${videoPath}" -stream_loop -1 -i "${musicPath}" -filter_complex "[1:a]volume=0.35[music]" -map 0:v:0 -map "[music]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
     } else {
-      // Voice only (original behavior)
-      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -c:v copy -c:a aac -b:a 128k -map 0:v:0 -map 1:a:0 -shortest -movflags +faststart -y "${outputPath}"`;
+      // Voice only — do NOT use -shortest (voice is shorter than video, we want full video)
+      // Pad the audio with silence to match video duration
+      cmd = `"${ffmpegBin}" -i "${videoPath}" -i "${audioPath}" -filter_complex "[1:a]apad[aout]" -map 0:v:0 -map "[aout]" -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart -y "${outputPath}"`;
     }
     console.log(`[MergeAV-${id}] CMD: ${cmd}`);
 
@@ -217,6 +221,7 @@ export async function POST(req: NextRequest) {
     await Promise.all([
       unlink(join(tmpDir, 'input.mp4')).catch(() => {}),
       unlink(join(tmpDir, 'audio.mp3')).catch(() => {}),
+      unlink(join(tmpDir, 'music.mp3')).catch(() => {}),
       unlink(join(tmpDir, 'merged.mp4')).catch(() => {})
     ]);
 

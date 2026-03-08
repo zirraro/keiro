@@ -135,32 +135,33 @@ async function generateShortScenePrompts(
 
 CRITICAL RULES:
 1. Each scene: 80-150 characters max. Pure visual description only.
-2. NEVER include instructions like "no text", "zero watermarks". Only describe what IS visible.
+2. NEVER mention text, words, letters, signs, logos, watermarks, titles, captions, or any written content. The AI will generate ugly gibberish text if you mention any text-related concept.
 3. Format: [camera] + [SETTING anchor] + [lighting] + [subject/action]
 4. If brief has NEWS + BUSINESS: every scene must VISUALLY connect both.
+5. When describing people, make each person DISTINCT: vary age (young/middle-aged/elderly), ethnicity, hair color, clothing style, body type. Never say "group of people" without specifying each person's appearance.
+6. Focus on OBJECTS, PRODUCTS, ENVIRONMENTS, and ACTIONS rather than human faces. AI struggles with realistic faces — prefer showing hands, silhouettes, backs of heads, over-the-shoulder shots, or wide shots where faces are small.
 
 SEAMLESS CONTINUITY (most important):
 Since segments are generated separately, you MUST repeat a "visual anchor" in EVERY scene:
 - SAME setting description (e.g., "warm brick-walled restaurant" in every scene)
 - SAME lighting keywords (e.g., "golden hour warm light" in every scene)
 - SAME color palette keywords (e.g., "warm amber tones" in every scene)
-- SAME subject/character description if people are present
-- Camera movements should feel progressive: wide → medium → close → wide
+- Camera movements should feel progressive: wide → medium → close-up on products → wide
 
 SCENE FLOW for ${numScenes} scenes:
 - Scene 1: Wide establishing — introduce full environment, slow movement
-${numScenes >= 3 ? '- Scene 2: Medium shot — same setting, closer on people/action/products' : ''}
-${numScenes >= 3 ? '- Scene 3: Close-up hero shot — same setting, detail on key element, gentle slow motion' : ''}
-${numScenes >= 4 ? '- Additional scenes: alternate between medium and close-up, always same setting' : ''}
+${numScenes >= 3 ? '- Scene 2: Medium shot — same setting, focus on products/objects/action, people seen from behind or in silhouette' : ''}
+${numScenes >= 3 ? '- Scene 3: Close-up hero shot — same setting, extreme close on key product/object, shallow depth of field, soft slow motion' : ''}
+${numScenes >= 4 ? '- Additional scenes: alternate between medium and close-up, always same setting, focus on hands/objects/details' : ''}
 - Last scene: should feel like a natural ending (slow motion, gentle fade feeling)
 
 Style: ${renderMode}, ${characters}, mood ${mood}, ${style}
 
 OUTPUT: JSON array of strings, one per scene, in ENGLISH.
-Example for 3 scenes (30s video, restaurant + rugby theme):
-["Slow crane descent into warm brick-walled Italian restaurant, golden hour amber light through arched windows, rugby pennants hanging from wooden beams, diverse customers at candlelit tables",
-"Smooth tracking shot through same warm brick-walled restaurant, golden hour amber light, close on diverse group of friends raising wine glasses and cheering, rugby match glowing on wall TV behind them",
-"Gentle dolly in to chef in same warm brick-walled restaurant, golden hour amber light, presenting steaming pasta on rustic plate, shallow depth of field, soft slow motion steam rising"]`;
+Example for 3 scenes (30s video, jewelry + football theme):
+["Slow crane descent into luxurious jewelry workshop, golden hour amber light through tall windows, sparkling gold animal pendants on black velvet display, football memorabilia on shelves in background",
+"Smooth tracking shot of skilled hands crafting a golden lion pendant in same workshop, golden hour amber light, close on tools and molten gold, football scarf draped nearby",
+"Gentle macro dolly in on finished golden lion pendant catching light in same workshop, golden hour amber light, shallow depth of field, soft bokeh of workshop behind"]`;
 
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',

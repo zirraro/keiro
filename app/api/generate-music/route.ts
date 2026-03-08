@@ -20,16 +20,25 @@ export async function POST(req: NextRequest) {
 
     const { style, duration = 10 } = await req.json();
 
-    if (!style || !MUSIC_PROMPTS[style]) {
+    // Handle trending music: "trending:Song Title" → generate instrumental inspired by it
+    let resolvedStyle = style;
+    if (style && style.startsWith('trending:')) {
+      const songTitle = style.replace('trending:', '').trim();
+      // Use 'trendy' as base style but we'll pass the song title to customize
+      resolvedStyle = 'trendy';
+      console.log(`[GenerateMusic] Trending music requested: "${songTitle}", using style: trendy`);
+    }
+
+    if (!resolvedStyle || !MUSIC_PROMPTS[resolvedStyle]) {
       return NextResponse.json(
         { ok: false, error: `Style invalide. Valeurs: ${Object.keys(MUSIC_PROMPTS).join(', ')}` },
         { status: 400 }
       );
     }
 
-    console.log(`[GenerateMusic] User: ${user.id}, style: ${style}, duration: ${duration}s`);
+    console.log(`[GenerateMusic] User: ${user.id}, style: ${resolvedStyle}, duration: ${duration}s`);
 
-    const musicUrl = await generateBackgroundMusic(style, duration);
+    const musicUrl = await generateBackgroundMusic(resolvedStyle, duration);
 
     return NextResponse.json({ ok: true, musicUrl });
   } catch (error: any) {
