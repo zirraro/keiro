@@ -116,7 +116,7 @@ export default function GeneratePage() {
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
   const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number; assistant: number } | null>(null);
   const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; trendingMusic: any[]; keywords: string[] } | null>(null);
-  const [trendTab, setTrendTab] = useState<'news' | 'tiktok' | 'google' | 'music'>('news');
+  const [trendTab, setTrendTab] = useState<'news' | 'tiktok' | 'google' | 'music'>('google');
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -3085,6 +3085,142 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             : t.generate.subtitleWithoutNews}
         </p>
 
+        {/* ===== HERO TENDANCES — visible en premier ===== */}
+        <div className="mb-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <span className="text-xl">🔥</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold">{t.generate.trendingTopics}</h3>
+                <p className="text-[10px] text-white/70">{t.generate.updatedToday}</p>
+              </div>
+            </div>
+            <div className="flex gap-1 overflow-x-auto">
+              {([
+                { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
+                { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
+                { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '🎵' },
+                { key: 'news' as const, label: t.generate.trendTabNews, icon: '📰' },
+              ]).map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTrendTab(tab.key)}
+                  className={`px-3 py-1.5 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all ${
+                    trendTab === tab.key
+                      ? 'bg-white text-green-700 shadow-md'
+                      : 'bg-white/15 text-white/90 hover:bg-white/25'
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Google Trends tab */}
+          {trendTab === 'google' && (
+            trendingData?.googleTrends && trendingData.googleTrends.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {trendingData.googleTrends.slice(0, 10).map((trend: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2.5 hover:bg-white/20 transition-all cursor-default">
+                    <span className="text-sm font-black text-white/40 w-5 text-right">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{trend.title}</p>
+                      {trend.traffic && <p className="text-[9px] text-white/60">{trend.traffic} {t.generate.trendGoogleTraffic}</p>}
+                    </div>
+                    <span className="text-emerald-300 text-sm font-bold">↑</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
+              </div>
+            )
+          )}
+
+          {/* Trending Music tab */}
+          {trendTab === 'music' && (
+            trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {trendingData.trendingMusic.slice(0, 10).map((song: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/20 transition-all cursor-default">
+                    <span className="text-sm font-black text-white/40 w-5 text-right">{i + 1}</span>
+                    {song.coverUrl && (
+                      <img src={song.coverUrl} alt="" className="w-9 h-9 rounded-md object-cover flex-shrink-0 shadow-sm" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate">{song.title}</p>
+                      <p className="text-[9px] text-white/60 truncate">{song.artist}</p>
+                    </div>
+                    {song.trend === 'up' && <span className="text-emerald-300 text-sm font-bold">↑</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
+              </div>
+            )
+          )}
+
+          {/* TikTok hashtags tab */}
+          {trendTab === 'tiktok' && (
+            trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {trendingData.tiktokHashtags.slice(0, 20).map((tag: any, i: number) => (
+                  <span
+                    key={tag.hashtag}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-default ${
+                      tag.trend === 'up'
+                        ? 'bg-white/20 text-white border border-white/30'
+                        : 'bg-white/10 text-white/80 border border-white/15'
+                    }`}
+                  >
+                    #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-300">↑</span>}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
+              </div>
+            )
+          )}
+
+          {/* Viral news tab */}
+          {trendTab === 'news' && (
+            trendingNews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {trendingNews.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => { setSelectedNews(item); if (!useNewsMode) setUseNewsMode(true); }}
+                    className={`flex items-start gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-2.5 hover:bg-white/20 transition-all cursor-pointer ${
+                      selectedNews?.id === item.id ? 'ring-2 ring-white/50 bg-white/20' : ''
+                    }`}
+                  >
+                    {item.image && (
+                      <img src={item.image} alt="" className="w-14 h-14 object-cover rounded-md flex-shrink-0" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold line-clamp-2 leading-snug">{item.title}</p>
+                      <p className="text-[9px] text-white/50 mt-1">{item.source}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="animate-pulse text-white/60 text-xs">{t.generate.loadingTrends}</div>
+              </div>
+            )
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Actualités ===== */}
           <div className="lg:col-span-8">
@@ -3468,154 +3604,6 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                   })()
                 ) : (
                   <p className="text-xs text-neutral-500 text-center">{t.generate.loginToSeeUsage}</p>
-                )}
-              </div>
-
-              {/* Widget Tendances — plein largeur, onglets */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
-                {/* Header + tabs */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xl">🔥</span>
-                  <h4 className="text-sm font-bold text-green-900">{t.generate.trendingTopics}</h4>
-                  {trendingData && <span className="text-[9px] text-green-500 ml-auto">{t.generate.updatedToday}</span>}
-                </div>
-                <div className="flex gap-1 mb-3 overflow-x-auto">
-                  {([
-                    { key: 'news' as const, label: t.generate.trendTabNews, icon: '📰' },
-                    { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '🎵' },
-                    { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
-                    { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
-                  ]).map((tab) => (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setTrendTab(tab.key)}
-                      className={`px-3 py-1.5 text-[10px] font-semibold rounded-full border whitespace-nowrap transition-all ${
-                        trendTab === tab.key
-                          ? 'bg-green-600 text-white border-green-600 shadow-sm'
-                          : 'bg-white/80 text-green-800 border-green-200 hover:border-green-400'
-                      }`}
-                    >
-                      {tab.icon} {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Tab: Viral news */}
-                {trendTab === 'news' && (
-                  trendingNews.length > 0 ? (
-                    <div className="space-y-2">
-                      {trendingNews.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => setSelectedNews(item)}
-                          className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all border ${
-                            selectedNews?.id === item.id
-                              ? 'bg-green-100 border-green-400 ring-1 ring-green-400'
-                              : 'bg-white/60 border-green-100 hover:bg-white'
-                          }`}
-                        >
-                          {item.image && (
-                            <img src={item.image} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className={`text-xs line-clamp-2 font-medium leading-snug ${selectedNews?.id === item.id ? 'text-green-900' : 'text-green-800'}`}>{item.title}</p>
-                            <p className="text-[9px] text-green-500 mt-0.5">{item.source}</p>
-                            {(item as any)._matchedTrends?.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {(item as any)._matchedTrends.map((kw: string) => (
-                                  <span key={kw} className="text-[8px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">{kw}</span>
-                                ))}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1 mt-1">
-                              <div className="h-1 rounded-full bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: `${Math.round((item as any)._score * 100)}%`, minWidth: '20%' }} />
-                              <span className="text-[9px] text-green-600">{Math.round((item as any)._score * 100)}%</span>
-                              {selectedNews?.id === item.id && (
-                                <span className="text-[9px] bg-green-600 text-white px-1.5 py-0.5 rounded ml-auto">{t.generate.selected}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-green-600">{t.generate.loadingTrends}</p>
-                  )
-                )}
-
-                {/* Tab: TikTok hashtags */}
-                {trendTab === 'tiktok' && (
-                  trendingData?.tiktokHashtags && trendingData.tiktokHashtags.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {trendingData.tiktokHashtags.slice(0, 15).map((tag: any, i: number) => (
-                        <div key={tag.hashtag} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
-                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
-                          <span className="text-xs font-semibold text-green-900 flex-1">#{tag.hashtag}</span>
-                          {tag.videoCount > 0 && (
-                            <span className="text-[9px] text-green-600">{tag.videoCount >= 1000000 ? `${(tag.videoCount / 1000000).toFixed(1)}M` : tag.videoCount >= 1000 ? `${(tag.videoCount / 1000).toFixed(0)}K` : tag.videoCount} {t.generate.trendMusicVideos}</span>
-                          )}
-                          <span className={`text-[10px] font-bold ${tag.trend === 'up' ? 'text-emerald-500' : tag.trend === 'down' ? 'text-red-400' : 'text-neutral-400'}`}>
-                            {tag.trend === 'up' ? '↑' : tag.trend === 'down' ? '↓' : '—'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-green-600">{t.generate.loadingTrends}</p>
-                  )
-                )}
-
-                {/* Tab: Google Trends */}
-                {trendTab === 'google' && (
-                  trendingData?.googleTrends && trendingData.googleTrends.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {trendingData.googleTrends.slice(0, 12).map((trend: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
-                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
-                          <span className="text-xs font-semibold text-green-900 flex-1">{trend.title}</span>
-                          {trend.traffic && (
-                            <span className="text-[9px] text-green-600">{trend.traffic} {t.generate.trendGoogleTraffic}</span>
-                          )}
-                          {trend.relatedQueries?.length > 0 && (
-                            <span className="text-[8px] text-green-500 max-w-[120px] truncate" title={trend.relatedQueries.join(', ')}>
-                              {trend.relatedQueries.slice(0, 2).join(', ')}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-green-600">{t.generate.trendNoGoogle}</p>
-                  )
-                )}
-
-                {/* Tab: Trending Music */}
-                {trendTab === 'music' && (
-                  trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {trendingData.trendingMusic.slice(0, 12).map((song: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2.5 bg-white/70 rounded-lg px-3 py-2 border border-green-100">
-                          <span className="text-[10px] font-bold text-green-400 w-4">{i + 1}</span>
-                          {song.coverUrl && (
-                            <img src={song.coverUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-green-900 truncate">{song.title}</p>
-                            <p className="text-[9px] text-green-600 truncate">{t.generate.trendMusicArtist} {song.artist} {song.duration > 0 && `· ${song.duration}s`}</p>
-                          </div>
-                          {song.videoCount > 0 && (
-                            <span className="text-[9px] text-green-500 whitespace-nowrap">{song.videoCount >= 1000000 ? `${(song.videoCount / 1000000).toFixed(1)}M` : song.videoCount >= 1000 ? `${(song.videoCount / 1000).toFixed(0)}K` : song.videoCount}</span>
-                          )}
-                          <span className={`text-[10px] font-bold ${song.trend === 'up' ? 'text-emerald-500' : song.trend === 'down' ? 'text-red-400' : 'text-neutral-400'}`}>
-                            {song.trend === 'up' ? '↑' : song.trend === 'down' ? '↓' : '—'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-green-600">{t.generate.trendNoMusic}</p>
-                  )
                 )}
               </div>
 
@@ -4669,26 +4657,39 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                               ))}
                             </div>
 
-                            {/* Trending TikTok Music */}
+                            {/* Trending Music — selectable for video background */}
                             {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
                               <div className="mt-2 pt-2 border-t border-neutral-200">
                                 <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
-                                <div className="space-y-1 max-h-[120px] overflow-y-auto">
-                                  {trendingData.trendingMusic.slice(0, 6).map((song: any, i: number) => (
-                                    <div
-                                      key={i}
-                                      className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-purple-50/50 border border-purple-100 text-[9px]"
-                                    >
-                                      {song.coverUrl && (
-                                        <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                                      )}
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-purple-900 truncate">{song.title}</p>
-                                        <p className="text-purple-500 truncate">{song.artist}</p>
+                                <div className="space-y-1 max-h-[140px] overflow-y-auto">
+                                  {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
+                                    const songKey = `trending:${song.title}`;
+                                    const isSelected = selectedMusic === songKey;
+                                    return (
+                                      <div
+                                        key={i}
+                                        onClick={() => setSelectedMusic(isSelected ? 'none' : songKey)}
+                                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
+                                          isSelected
+                                            ? 'bg-purple-600 text-white border border-purple-600'
+                                            : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
+                                        }`}
+                                      >
+                                        {song.coverUrl && (
+                                          <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                          <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                          <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                        </div>
+                                        {isSelected ? (
+                                          <span className="text-white text-[10px] font-bold">✓</span>
+                                        ) : song.trend === 'up' ? (
+                                          <span className="text-emerald-500 font-bold">↑</span>
+                                        ) : null}
                                       </div>
-                                      {song.trend === 'up' && <span className="text-emerald-500 font-bold">↑</span>}
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                                 <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
                               </div>

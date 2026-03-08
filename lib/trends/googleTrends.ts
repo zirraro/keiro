@@ -1,11 +1,7 @@
 /**
  * Fetch Google Trends daily trending searches for France.
- * Uses the unofficial google-trends-api npm package (free, no auth).
+ * Uses the official Google Trends RSS feed (reliable, no auth, no scraping).
  */
-
-// google-trends-api n'a pas de types TS, on utilise require
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const googleTrends = require('google-trends-api');
 
 export type GoogleTrendItem = {
   title: string;
@@ -17,33 +13,46 @@ export type GoogleTrendItem = {
 
 export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
   try {
-    console.log('[GoogleTrends] Fetching daily trends for France...');
+    console.log('[GoogleTrends] Fetching daily trends via RSS for France...');
 
-    const result = await googleTrends.dailyTrends({
-      trendDate: new Date(),
-      geo: 'FR',
+    const response = await fetch('https://trends.google.com/trending/rss?geo=FR', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; KeiroBot/1.0)',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+      },
+      signal: AbortSignal.timeout(10000),
     });
 
-    const parsed = JSON.parse(result);
-    const trendingSearches =
-      parsed?.default?.trendingSearchesDays?.[0]?.trendingSearches || [];
+    if (!response.ok) {
+      console.warn(`[GoogleTrends] RSS responded ${response.status}`);
+      return [];
+    }
 
-    const items: GoogleTrendItem[] = trendingSearches.map((trend: any) => {
-      const relatedQueries = (trend.relatedQueries || []).map(
-        (q: any) => q.query || q
-      );
+    const xml = await response.text();
 
-      // Premier article associé (si dispo)
-      const firstArticle = trend.articles?.[0];
+    // Parse RSS XML — extract <item> blocks
+    const items: GoogleTrendItem[] = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    let match;
 
-      return {
-        title: trend.title?.query || trend.title || '',
-        traffic: trend.formattedTraffic || '',
-        relatedQueries: relatedQueries.slice(0, 5),
-        articleTitle: firstArticle?.title,
-        articleUrl: firstArticle?.url,
-      };
-    });
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 20) {
+      const block = match[1];
+
+      const title = extractTag(block, 'title');
+      const traffic = extractTag(block, 'ht:approx_traffic');
+      const newsTitle = extractTag(block, 'ht:news_item_title') || extractTag(block, 'description');
+      const newsUrl = extractTag(block, 'ht:news_item_url');
+
+      if (!title) continue;
+
+      items.push({
+        title,
+        traffic: traffic || '',
+        relatedQueries: [],
+        articleTitle: newsTitle || undefined,
+        articleUrl: newsUrl || undefined,
+      });
+    }
 
     console.log(`[GoogleTrends] Found ${items.length} trending topics`);
     return items;
@@ -51,4 +60,12 @@ export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
     console.error('[GoogleTrends] Error:', error.message);
     return [];
   }
+}
+
+/** Extract text content from an XML tag */
+function extractTag(xml: string, tag: string): string {
+  const regex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([^<]*)<\\/${tag}>`);
+  const m = xml.match(regex);
+  if (!m) return '';
+  return (m[1] || m[2] || '').trim();
 }

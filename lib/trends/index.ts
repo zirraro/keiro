@@ -4,7 +4,7 @@
  */
 
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
-import { fetchTikTokTrendsFR, type TikTokHashtag } from './tiktokTrends';
+import { deriveTikTokHashtags, type TikTokHashtag } from './tiktokTrends';
 import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
 import { createClient } from '@supabase/supabase-js';
 
@@ -32,19 +32,19 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
 
   console.log('[Trends] Cache miss, fetching fresh trends...');
 
-  // Fetch en parallèle avec fallback
-  const [googleResult, tiktokResult, musicResult] = await Promise.allSettled([
+  // Fetch Google Trends + Music en parallèle
+  const [googleResult, musicResult] = await Promise.allSettled([
     fetchGoogleTrendsFR(),
-    fetchTikTokTrendsFR(),
     fetchTikTokTrendingMusicFR(),
   ]);
 
   const googleTrends =
     googleResult.status === 'fulfilled' ? googleResult.value : [];
-  const tiktokHashtags =
-    tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
   const trendingMusic =
     musicResult.status === 'fulfilled' ? musicResult.value : [];
+
+  // Derive TikTok hashtags from Google Trends data
+  const tiktokHashtags = deriveTikTokHashtags(googleTrends.map(t => t.title));
 
   // Construire la liste plate de keywords pour scoring
   const keywords: string[] = [];
