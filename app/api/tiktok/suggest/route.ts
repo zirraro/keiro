@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'viral', audioScript, userKeywords } = body;
+    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'viral', audioScript, userKeywords, trendingKeywords = [] } = body;
 
     console.log('[TikTok Suggest] Angle:', contentAngle);
 
@@ -47,6 +47,9 @@ export async function POST(request: NextRequest) {
 
     const audioContext = audioScript ? `\nNarration audio: "${audioScript.substring(0, 200)}"` : '';
     const keywordsContext = userKeywords ? `\nMots-clés: "${userKeywords}"` : '';
+    const trendingContext = Array.isArray(trendingKeywords) && trendingKeywords.length > 0
+      ? `\nTENDANCES DU MOMENT (hashtags populaires à intégrer si pertinents): ${trendingKeywords.slice(0, 15).map((k: string) => `#${k}`).join(' ')}`
+      : '';
 
     const angleInstructions: Record<string, string> = {
       viral: "Hook choquant/surprenant/intrigant. Urgence de regarder jusqu'au bout.",
@@ -62,7 +65,7 @@ export async function POST(request: NextRequest) {
 
 ÉTAPE 1 — ANALYSE DU CONTEXTE:
 Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
-${newsContext}${audioContext}${keywordsContext}
+${newsContext}${audioContext}${keywordsContext}${trendingContext}
 
 QUESTION CLÉ: Comment CE business peut devenir VIRAL en surfant sur CETTE actualité ?
 Quel angle TikTok (POV, storytime, fait surprenant) fonctionne le mieux ?
@@ -84,6 +87,7 @@ RÈGLES TIKTOK:
 
 HASHTAGS TIKTOK:
 - TOUJOURS: #fyp #pourtoi #viral
+- INTÈGRE 2-3 hashtags des TENDANCES DU MOMENT si pertinents pour le contenu
 - + hashtags de niche liés au contenu et au business
 - Mix français + anglais
 - 8-12 hashtags max

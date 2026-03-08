@@ -417,6 +417,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
         ? (selectedImage?.title || selectedImage?.news_title)
         : selectedVideo?.title;
 
+      // Inject trending keywords from cached trends
+      let trendingKeywords: string[] = [];
+      try {
+        const cached = localStorage.getItem('keiro_trends_data');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          trendingKeywords = (parsed.data?.keywords || parsed.keywords || []).slice(0, 15);
+        }
+      } catch {}
+
       const response = await fetch('/api/tiktok/suggest', {
         method: 'POST',
         headers: {
@@ -430,8 +440,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
           userKeywords: userKeywords.trim() || undefined,
-          audioUrl: narrationAudioUrl, // Include audio for context
-          audioScript: narrationScript // Include audio script for context
+          audioUrl: narrationAudioUrl,
+          audioScript: narrationScript,
+          trendingKeywords,
         })
       });
 

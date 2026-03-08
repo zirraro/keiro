@@ -116,7 +116,7 @@ export default function GeneratePage() {
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
   const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number; assistant: number } | null>(null);
   const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; trendingMusic: any[]; keywords: string[] } | null>(null);
-  const [trendTab, setTrendTab] = useState<'news' | 'tiktok' | 'google' | 'music'>('google');
+  const [trendTab, setTrendTab] = useState<'google' | 'music'>('google');
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -3097,16 +3097,15 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             : t.generate.subtitleWithoutNews}
         </p>
 
-        {/* ===== BARRE TENDANCES — visible, actionnable ===== */}
+        {/* ===== BARRE TENDANCES — 4 cartes avec images ===== */}
         <div className="mb-4 bg-gradient-to-r from-orange-50 via-rose-50 to-purple-50 border border-orange-200/60 rounded-xl overflow-hidden shadow-sm">
           {/* Header + Tabs */}
           <div className="flex items-center gap-1 px-3 pt-2.5 pb-0">
             <span className="text-base mr-0.5">🔥</span>
-            <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
+            <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances du moment' : 'Trending now'}</span>
             {([
-              { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
+              { key: 'google' as const, label: locale === 'fr' ? 'Sujets chauds' : 'Hot topics', icon: '🔍' },
               { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
-              { key: 'tiktok' as const, label: t.generate.trendTabTikTok, icon: '#' },
             ]).map((tab) => (
               <button
                 key={tab.key}
@@ -3128,9 +3127,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           <div className="px-3 py-2.5">
             {trendTab === 'google' && (
               <div>
-                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Cliquez pour utiliser comme thème de contenu' : 'Click to use as content theme'}</p>
-                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
-                  {(trendingData?.googleTrends || []).slice(0, 10).map((trend: any, i: number) => (
+                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Surfez sur ces tendances pour booster votre visibilité — cliquez pour utiliser' : 'Ride these trends to boost your visibility — click to use'}</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {(trendingData?.googleTrends || []).slice(0, 4).map((trend: any, i: number) => (
                     <button
                       key={i}
                       type="button"
@@ -3145,21 +3144,31 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         const el = document.getElementById('business-description');
                         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }}
-                      className="flex flex-col items-start w-[200px] min-w-[200px] p-3 bg-white hover:bg-orange-50 border border-orange-200 rounded-xl text-left transition-all shrink-0 shadow-sm hover:shadow-md group"
+                      className="flex flex-col bg-white hover:bg-orange-50 border border-orange-200 rounded-xl text-left transition-all shadow-sm hover:shadow-md group overflow-hidden"
                     >
-                      <div className="flex items-center gap-1.5 mb-1.5 w-full">
-                        <span className="text-[9px] bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded">#{i + 1}</span>
-                        <span className="text-[8px] text-orange-400 ml-auto">{locale === 'fr' ? 'Tendance Google' : 'Google Trend'}</span>
+                      {/* Image */}
+                      <div className="relative w-full h-20 bg-gradient-to-br from-orange-100 to-rose-100 overflow-hidden">
+                        {trend.pictureUrl ? (
+                          <img src={trend.pictureUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-3xl opacity-30">🔍</span>
+                          </div>
+                        )}
+                        <span className="absolute top-1.5 left-1.5 text-[8px] bg-orange-600/90 text-white font-bold px-1.5 py-0.5 rounded">#{i + 1}</span>
                       </div>
-                      <p className="text-xs font-bold text-neutral-900 leading-tight mb-1 line-clamp-2">{trend.title}</p>
-                      {trend.articleTitle && (
-                        <p className="text-[9px] text-neutral-500 leading-snug line-clamp-2">{trend.articleTitle}</p>
-                      )}
-                      <span className="text-[8px] text-orange-500 font-medium mt-auto pt-1.5 group-hover:text-orange-700">{locale === 'fr' ? 'Utiliser ce thème →' : 'Use this theme →'}</span>
+                      {/* Text */}
+                      <div className="p-2.5 flex-1 flex flex-col">
+                        <p className="text-[11px] font-bold text-neutral-900 leading-tight mb-1 line-clamp-2">{trend.title}</p>
+                        {trend.articleTitle && (
+                          <p className="text-[9px] text-neutral-500 leading-snug line-clamp-2 mb-1">{trend.articleTitle}</p>
+                        )}
+                        <span className="text-[8px] text-orange-500 font-medium mt-auto group-hover:text-orange-700">{locale === 'fr' ? 'Utiliser ce thème →' : 'Use this theme →'}</span>
+                      </div>
                     </button>
                   ))}
                   {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
-                    <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-4">{t.generate.loadingTrends}</span>
                   )}
                 </div>
               </div>
@@ -3167,9 +3176,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
             {trendTab === 'music' && (
               <div>
-                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Cliquez pour ajouter en musique de fond vidéo' : 'Click to add as video background music'}</p>
-                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
-                  {(trendingData?.trendingMusic || []).slice(0, 10).map((song: any, i: number) => {
+                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Musiques populaires — cliquez pour ajouter en fond vidéo' : 'Popular music — click to add as video background'}</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {(trendingData?.trendingMusic || []).slice(0, 4).map((song: any, i: number) => {
                     const songKey = `trending:${song.title}`;
                     const isSelected = selectedMusic === songKey;
                     return (
@@ -3180,66 +3189,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           setSelectedMusic(isSelected ? 'none' : songKey);
                           if (generationMode !== 'video') setGenerationMode('video');
                         }}
-                        className={`flex flex-col items-center w-[130px] min-w-[130px] p-2.5 rounded-xl text-center transition-all shrink-0 border shadow-sm hover:shadow-md ${
+                        className={`flex items-center gap-2.5 p-2.5 rounded-xl text-left transition-all border shadow-sm hover:shadow-md ${
                           isSelected
                             ? 'bg-purple-600 text-white border-purple-600'
                             : 'bg-white hover:bg-purple-50 border-purple-200'
                         }`}
                       >
-                        {song.coverUrl && <img src={song.coverUrl} alt="" className="w-14 h-14 rounded-lg object-cover mb-1.5 shadow" />}
-                        <p className={`text-[10px] font-semibold truncate w-full ${isSelected ? 'text-white' : 'text-neutral-900'}`}>{song.title}</p>
-                        <p className={`text-[8px] truncate w-full ${isSelected ? 'text-purple-200' : 'text-neutral-500'}`}>{song.artist}</p>
-                        {isSelected && <span className="text-[9px] mt-1 font-bold">✓ {locale === 'fr' ? 'Sélectionné' : 'Selected'}</span>}
+                        {song.coverUrl && <img src={song.coverUrl} alt="" className="w-12 h-12 rounded-lg object-cover shadow shrink-0" />}
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] font-semibold truncate ${isSelected ? 'text-white' : 'text-neutral-900'}`}>{song.title}</p>
+                          <p className={`text-[8px] truncate ${isSelected ? 'text-purple-200' : 'text-neutral-500'}`}>{song.artist}</p>
+                          {isSelected && <span className="text-[9px] font-bold">✓ {locale === 'fr' ? 'Sélectionné' : 'Selected'}</span>}
+                        </div>
                       </button>
                     );
                   })}
                   {(!trendingData?.trendingMusic || trendingData.trendingMusic.length === 0) && (
-                    <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-4">{t.generate.loadingTrends}</span>
                   )}
-                </div>
-              </div>
-            )}
-
-            {trendTab === 'tiktok' && (
-              <div>
-                <p className="text-[9px] text-neutral-500 mb-2">{locale === 'fr' ? 'Hashtags populaires — cliquez pour copier' : 'Popular hashtags — click to copy'}</p>
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 flex-wrap">
-                  {(trendingData?.tiktokHashtags || []).filter((t: any) => t.trend === 'up').slice(0, 12).map((tag: any) => (
-                    <button
-                      key={tag.hashtag}
-                      type="button"
-                      onClick={(e) => {
-                        navigator.clipboard.writeText(`#${tag.hashtag}`).catch(() => {});
-                        const btn = e.currentTarget;
-                        btn.classList.add('ring-2', 'ring-emerald-400');
-                        const span = btn.querySelector('.copy-feedback');
-                        if (span) span.textContent = '✓';
-                        setTimeout(() => {
-                          btn.classList.remove('ring-2', 'ring-emerald-400');
-                          if (span) span.textContent = '';
-                        }, 1200);
-                      }}
-                      className="flex items-center gap-1 px-3 py-2 bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 rounded-lg text-[11px] font-medium transition-all shadow-sm hover:shadow"
-                    >
-                      <span className="text-emerald-500">↑</span> #{tag.hashtag}
-                      <span className="copy-feedback text-emerald-600 font-bold text-xs"></span>
-                    </button>
-                  ))}
-                  {(trendingData?.tiktokHashtags || []).filter((t: any) => t.trend !== 'up').slice(0, 8).map((tag: any) => (
-                    <button
-                      key={tag.hashtag}
-                      type="button"
-                      onClick={(e) => {
-                        navigator.clipboard.writeText(`#${tag.hashtag}`).catch(() => {});
-                        const btn = e.currentTarget;
-                        btn.classList.add('ring-2', 'ring-neutral-400');
-                        setTimeout(() => btn.classList.remove('ring-2', 'ring-neutral-400'), 1200);
-                      }}
-                      className="px-3 py-2 bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 rounded-lg text-[11px] font-medium transition-all shadow-sm hover:shadow"
-                    >
-                      #{tag.hashtag}
-                    </button>
-                  ))}
                 </div>
               </div>
             )}

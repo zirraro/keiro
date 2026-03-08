@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'informatif', audioScript, userKeywords, platform = 'instagram' } = body;
+    const { imageTitle, newsTitle, newsDescription, newsCategory, contentAngle = 'informatif', audioScript, userKeywords, platform = 'instagram', trendingKeywords = [] } = body;
 
     console.log('[Suggest] Platform:', platform, 'Angle:', contentAngle);
 
@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
     // Contexte audio si disponible
     const audioContext = audioScript ? `\nNarration audio: "${audioScript.substring(0, 200)}"` : '';
     const keywordsContext = userKeywords ? `\nMots-clés client: "${userKeywords}"` : '';
+    const trendingContext = Array.isArray(trendingKeywords) && trendingKeywords.length > 0
+      ? `\nTENDANCES DU MOMENT (hashtags populaires à intégrer si pertinents): ${trendingKeywords.slice(0, 15).map((k: string) => `#${k}`).join(' ')}`
+      : '';
 
     // Angles par plateforme
     const angleInstructions: Record<string, Record<string, string>> = {
@@ -81,7 +84,7 @@ export async function POST(request: NextRequest) {
 
 ÉTAPE 1 — ANALYSE DU CONTEXTE:
 Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
-${newsContext}${audioContext}${keywordsContext}
+${newsContext}${audioContext}${keywordsContext}${trendingContext}
 
 QUESTION CLÉ: Comment CE business peut se positionner comme expert/leader face à CETTE actualité ?
 Quel insight UNIQUE ce business peut apporter à son réseau professionnel ?
@@ -116,7 +119,7 @@ JSON pur:
 
 ÉTAPE 1 — ANALYSE DU CONTEXTE:
 Business: ${businessType}${businessDesc ? ` — ${businessDesc}` : ''}
-${newsContext}${audioContext}${keywordsContext}
+${newsContext}${audioContext}${keywordsContext}${trendingContext}
 
 QUESTION CLÉ: Comment CE business attire ses clients en surfant sur CETTE actualité ?
 Quel BÉNÉFICE CONCRET le client retire de ce business face à cette situation ?
@@ -139,6 +142,7 @@ RÈGLES:
 HASHTAGS:
 - 8-10 hashtags
 - Mix populaires (100k-1M) + niches (10k-50k)
+- INTÈGRE 2-3 hashtags des TENDANCES DU MOMENT si pertinents pour le contenu
 - Hashtags locaux si business local
 - Évite #love, #instagood (trop saturés)
 

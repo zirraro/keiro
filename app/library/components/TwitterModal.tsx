@@ -192,6 +192,11 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
     try {
       const contentUrl = activeTab === 'images' ? (selectedImage?.image_url || '') : (selectedVideo?.thumbnail_url || '');
       const contentTitle = activeTab === 'images' ? (selectedImage?.title || selectedImage?.news_title) : selectedVideo?.title;
+      let trendingKeywords: string[] = [];
+      try {
+        const cached = localStorage.getItem('keiro_trends_data');
+        if (cached) { const p = JSON.parse(cached); trendingKeywords = (p.data?.keywords || []).slice(0, 15); }
+      } catch {}
       const response = await fetch('/api/instagram/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -204,7 +209,8 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
           contentAngle: contentAngle,
           userKeywords: userKeywords.trim() || undefined,
           platform: 'twitter',
-          maxLength: 280
+          maxLength: 280,
+          trendingKeywords,
         })
       });
       const data = await response.json();

@@ -388,6 +388,16 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         ? (selectedImage?.title || selectedImage?.news_title)
         : selectedVideo?.title;
 
+      // Inject trending keywords from cached trends
+      let trendingKeywords: string[] = [];
+      try {
+        const cached = localStorage.getItem('keiro_trends_data');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          trendingKeywords = (parsed.data?.keywords || parsed.keywords || []).slice(0, 15);
+        }
+      } catch {}
+
       const response = await fetch('/api/instagram/suggest', {
         method: 'POST',
         headers: {
@@ -401,8 +411,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           newsCategory: selectedImage?.news_category || 'general',
           contentAngle: contentAngle,
           userKeywords: userKeywords.trim() || undefined,
-          audioUrl: narrationAudioUrl, // Include audio for AI context
-          audioScript: narrationScript // Include audio script for AI context
+          audioUrl: narrationAudioUrl,
+          audioScript: narrationScript,
+          trendingKeywords,
         })
       });
 

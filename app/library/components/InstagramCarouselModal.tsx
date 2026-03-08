@@ -144,6 +144,11 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
 
     setSuggesting(true);
     try {
+      let trendingKeywords: string[] = [];
+      try {
+        const cached = localStorage.getItem('keiro_trends_data');
+        if (cached) { const p = JSON.parse(cached); trendingKeywords = (p.data?.keywords || []).slice(0, 15); }
+      } catch {}
       const response = await fetch('/api/instagram/suggest', {
         method: 'POST',
         headers: {
@@ -158,7 +163,8 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
           contentAngle: contentAngle,
           userKeywords: userKeywords.trim() || undefined,
           isCarousel: true,
-          imageCount: selectedImages.length
+          imageCount: selectedImages.length,
+          trendingKeywords,
         })
       });
 

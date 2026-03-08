@@ -9,6 +9,7 @@ export type GoogleTrendItem = {
   relatedQueries: string[];
   articleTitle?: string;
   articleUrl?: string;
+  pictureUrl?: string;
 };
 
 export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
@@ -42,6 +43,7 @@ export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
       const traffic = extractTag(block, 'ht:approx_traffic');
       const newsTitle = extractTag(block, 'ht:news_item_title') || extractTag(block, 'description');
       const newsUrl = extractTag(block, 'ht:news_item_url');
+      const pictureUrl = extractTag(block, 'ht:picture') || extractTag(block, 'ht:news_item_picture');
 
       if (!title) continue;
 
@@ -51,6 +53,7 @@ export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
         relatedQueries: [],
         articleTitle: newsTitle || undefined,
         articleUrl: newsUrl || undefined,
+        pictureUrl: pictureUrl || undefined,
       });
     }
 

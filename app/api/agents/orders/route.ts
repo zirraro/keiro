@@ -64,6 +64,14 @@ export async function GET(request: NextRequest) {
           resultText = await executeEmailOrder(supabase, order);
         } else if (order.to_agent === 'chatbot') {
           resultText = await executeChatbotOrder(supabase, order);
+        } else if (order.to_agent === 'gmaps') {
+          resultText = `Ordre Google Maps noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'dm_instagram') {
+          resultText = `Ordre DM Instagram noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'tiktok_comments') {
+          resultText = `Ordre TikTok noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'commercial') {
+          resultText = `Ordre Commercial noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
         } else {
           resultText = `Agent inconnu: ${order.to_agent}`;
         }

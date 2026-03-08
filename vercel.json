@@ -27,6 +27,18 @@
     {
       "path": "/api/agents/orders",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/agents/gmaps",
+      "schedule": "0 5 * * 1,3,5"
+    },
+    {
+      "path": "/api/agents/dm-instagram",
+      "schedule": "0 6 * * 1,2,3,4,5"
+    },
+    {
+      "path": "/api/agents/tiktok-comments",
+      "schedule": "0 7 * * 1,3"
     }
   ]
 }
