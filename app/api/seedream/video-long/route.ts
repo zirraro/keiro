@@ -503,10 +503,33 @@ export async function GET(request: Request) {
               const nextScene = segments[nextSegmentIndex];
               let result: { taskId: string; provider: 's' | 'k' };
 
-              // Use T2V for all continuation segments — avoids FFmpeg dependency on Vercel
-              // Scene prompts from Claude already include strong visual continuity instructions
-              console.log(`[video-long] Segment ${nextSegmentIndex}: T2V with continuity prompt`);
-              result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
+              // Extract last frame from completed segment → I2V for visual continuity + full 10s
+              const completedVideoUrl = segments[currentSegmentIndex].videoUrl;
+              let frameUrl: string | null = null;
+
+              if (completedVideoUrl) {
+                try {
+                  console.log(`[video-long] Extracting last frame from segment ${currentSegmentIndex}...`);
+                  frameUrl = await extractLastFrameInline(completedVideoUrl, user.id);
+                  console.log(`[video-long] Frame extracted: ${frameUrl}`);
+                } catch (frameError: any) {
+                  console.warn(`[video-long] Frame extraction failed, falling back to T2V:`, frameError.message);
+                }
+              }
+
+              if (frameUrl) {
+                // I2V from last frame → visual continuity + Seedance respects 10s duration better with image input
+                const isLastSegment = nextSegmentIndex === segments.length - 1;
+                const continuityPrompt = isLastSegment
+                  ? `${nextScene.prompt}. Gradual slow motion ending, smooth fade to still.`
+                  : nextScene.prompt;
+                console.log(`[video-long] Segment ${nextSegmentIndex}: I2V from last frame (${isLastSegment ? 'FINAL' : 'mid'})`);
+                result = await startSeedanceI2V(continuityPrompt, nextScene.duration, frameUrl);
+              } else {
+                // Fallback to T2V if frame extraction failed
+                console.log(`[video-long] Segment ${nextSegmentIndex}: T2V fallback (no frame available)`);
+                result = await startSeedanceT2V(nextScene.prompt, nextScene.duration, job.aspect_ratio || '16:9');
+              }
 
               segments[nextSegmentIndex].taskId = result.taskId;
               segments[nextSegmentIndex].status = 'generating';
@@ -747,6 +770,116 @@ export async function GET(request: Request) {
       ok: false,
       error: error.message || 'Erreur interne du serveur',
     }, { status: 500 });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Helper: Extract last frame from a video inline (for I2V continuation)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const FFMPEG_PATH_CACHED = join(tmpdir(), 'ffmpeg');
+
+async function ensureFFmpegAvailable(): Promise<string> {
+  if (existsSync(FFMPEG_PATH_CACHED)) return FFMPEG_PATH_CACHED;
+
+  try {
+    const npmPath = require('ffmpeg-static') as string;
+    if (npmPath && existsSync(npmPath)) return npmPath;
+  } catch {}
+
+  const manualPaths = [
+    join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg'),
+    '/var/task/node_modules/ffmpeg-static/ffmpeg',
+  ];
+  for (const p of manualPaths) {
+    if (existsSync(p)) return p;
+  }
+
+  const urls = [
+    'https://github.com/shaka-project/static-ffmpeg-binaries/releases/latest/download/ffmpeg-linux-x64',
+    'https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/linux-x64',
+  ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { redirect: 'follow' });
+      if (!res.ok) continue;
+      const buffer = Buffer.from(await res.arrayBuffer());
+      await writeFile(FFMPEG_PATH_CACHED, buffer);
+      await chmod(FFMPEG_PATH_CACHED, '755');
+      break;
+    } catch {}
+  }
+
+  if (!existsSync(FFMPEG_PATH_CACHED)) {
+    throw new Error('Cannot find or download FFmpeg');
+  }
+
+  try {
+    execSync(`"${FFMPEG_PATH_CACHED}" -version`, { timeout: 5000 });
+  } catch {
+    const gzPath = FFMPEG_PATH_CACHED + '.gz';
+    const { renameSync } = require('fs');
+    renameSync(FFMPEG_PATH_CACHED, gzPath);
+    execSync(`gunzip -f "${gzPath}"`);
+    await chmod(FFMPEG_PATH_CACHED, '755');
+    execSync(`"${FFMPEG_PATH_CACHED}" -version`, { timeout: 5000 });
+  }
+  return FFMPEG_PATH_CACHED;
+}
+
+/**
+ * Extract last frame from a video URL, upload to Supabase, return public URL.
+ * Used inline during segment transitions for I2V continuity.
+ */
+async function extractLastFrameInline(videoUrl: string, userId: string): Promise<string> {
+  const id = randomUUID().slice(0, 8);
+  const tmpDir = join(tmpdir(), `frame-${id}`);
+  await mkdir(tmpDir, { recursive: true });
+
+  const videoPath = join(tmpDir, 'input.mp4');
+  const framePath = join(tmpDir, 'last_frame.png');
+
+  try {
+    // Download video
+    const videoRes = await fetch(videoUrl);
+    if (!videoRes.ok) throw new Error(`Video download failed: ${videoRes.status}`);
+    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    await writeFile(videoPath, videoBuffer);
+
+    // Get FFmpeg
+    const ffmpegBin = await ensureFFmpegAvailable();
+
+    // Extract last frame (1 frame at 25fps = -0.04s from end)
+    const cmd = `"${ffmpegBin}" -sseof -0.04 -i "${videoPath}" -frames:v 1 -y "${framePath}"`;
+    execSync(cmd, { timeout: 15000 });
+
+    if (!existsSync(framePath)) {
+      throw new Error('Frame extraction produced no output');
+    }
+
+    // Read and upload to Supabase
+    const frameBuffer = await readFile(framePath);
+    const supabase = getSupabaseAdmin();
+    const fileName = `video-frames/${userId}/${Date.now()}_lastframe.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('generated-images')
+      .upload(fileName, frameBuffer, { contentType: 'image/png', upsert: false });
+
+    if (uploadError) throw new Error(`Frame upload failed: ${uploadError.message}`);
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('generated-images')
+      .getPublicUrl(fileName);
+
+    console.log(`[extractFrame-${id}] Done: ${(frameBuffer.byteLength / 1024).toFixed(0)} KB → ${publicUrl}`);
+    return publicUrl;
+  } finally {
+    // Cleanup temp files
+    await unlink(videoPath).catch(() => {});
+    await unlink(framePath).catch(() => {});
+    try { const { rmdirSync } = require('fs'); rmdirSync(tmpDir); } catch {}
   }
 }
 
