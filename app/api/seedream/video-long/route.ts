@@ -18,6 +18,11 @@ import { execSync } from 'child_process';
 const SEEDANCE_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDANCE_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
 
+// ═══ PROVIDER ORDER SWITCH ═══
+// To swap back: set PRIMARY_PROVIDER = 'seedance' and FALLBACK_PROVIDER = 'kling'
+const PRIMARY_PROVIDER: 'kling' | 'seedance' = 'kling';
+const FALLBACK_PROVIDER: 'kling' | 'seedance' = 'seedance';
+
 // Valid long-video durations
 const VALID_DURATIONS = [15, 30, 45, 60, 90] as const;
 type ValidDuration = typeof VALID_DURATIONS[number];
@@ -864,31 +869,39 @@ async function extractLastFrameInline(videoUrl: string, userId: string): Promise
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Helper: Start a SeedAnce T2V task (with Kling fallback)
+// Helper: Start a T2V task (provider order controlled by PRIMARY_PROVIDER switch)
 // ══════════════════════════════════════════════════════════════════════════════
 async function startSeedanceT2V(
   prompt: string,
   duration: number,
   aspectRatio: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
-  const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-  // Scene prompts are already short (80-200 chars from decomposePromptIntoScenes).
-  // Strip leftover meta-instructions.
+  // Clean prompt for Seedance (strip meta-instructions)
   const cleanPrompt = prompt
     .replace(/ABSOLUTELY ZERO[^.]*\./gi, '')
     .replace(/Pure visual storytelling[^.]*\./gi, '')
     .replace(/NO text[^.]*\./gi, '')
     .trim();
-  // Hard limit 200 chars for the visual description so flags at end aren't truncated
   const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
-  // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt
-  // Force duration to 10 for all segments (Seedance max), ensures each segment = 10s
   const segDuration = duration >= 10 ? 10 : 5;
+  const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
   const formattedPrompt = `${shortPrompt} --camerafixed false${ratioFlag} --duration ${segDuration}`;
 
-  try {
-    console.log(`[video-long] T2V Seedance: requested=${duration}s, segDuration=${segDuration}s, promptLen=${formattedPrompt.length}chars`);
-    console.log(`[video-long] T2V prompt (last 80 chars): "...${formattedPrompt.slice(-80)}"`);;
+  // --- Kling T2V helper ---
+  async function tryKling(): Promise<{ taskId: string; provider: 'k' }> {
+    const { createT2VTask } = await import('@/lib/kling');
+    const klingTaskId = await createT2VTask({
+      prompt,
+      duration: String(segDuration),
+      aspect_ratio: aspectRatio || '16:9',
+    });
+    console.log('[video-long] T2V Kling task created:', klingTaskId);
+    return { taskId: klingTaskId, provider: 'k' };
+  }
+
+  // --- Seedance T2V helper ---
+  async function trySeedance(): Promise<{ taskId: string; provider: 's' }> {
+    console.log(`[video-long] T2V Seedance: segDuration=${segDuration}s, promptLen=${formattedPrompt.length}chars`);
     const response = await fetch(SEEDANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -900,74 +913,45 @@ async function startSeedanceT2V(
         content: [{ type: 'text', text: formattedPrompt }],
       }),
     });
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[video-long] T2V Seedance failed:', response.status, errorText);
       throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
     }
-
     const data = await response.json();
     const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
-    if (!seedanceId) {
-      console.error('[video-long] T2V Seedance no task ID:', data);
-      throw new Error('Seedance returned no task ID');
-    }
-
+    if (!seedanceId) throw new Error('Seedance returned no task ID');
     console.log('[video-long] T2V Seedance task created:', seedanceId);
     return { taskId: `seedream_${seedanceId}`, provider: 's' };
-  } catch (seedanceError: any) {
-    // Retry Seedance once before falling back to Kling (avoid provider mixing)
-    console.warn('[video-long] T2V Seedance failed, retrying once...', seedanceError.message);
+  }
+
+  // --- Execute with primary → fallback ---
+  const primaryFn = PRIMARY_PROVIDER === 'kling' ? tryKling : trySeedance;
+  const fallbackFn = FALLBACK_PROVIDER === 'kling' ? tryKling : trySeedance;
+
+  try {
+    console.log(`[video-long] T2V trying ${PRIMARY_PROVIDER} (primary)...`);
+    return await primaryFn();
+  } catch (primaryError: any) {
+    console.warn(`[video-long] T2V ${PRIMARY_PROVIDER} failed:`, primaryError.message);
+    // Retry primary once before fallback
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
-      const retryResponse = await fetch(SEEDANCE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
-          content: [{ type: 'text', text: formattedPrompt }],
-        }),
-      });
-
-      if (retryResponse.ok) {
-        const retryData = await retryResponse.json();
-        const retrySeedanceId = retryData.id || retryData.task_id || retryData.data?.id || retryData.data?.task_id;
-        if (retrySeedanceId) {
-          console.log('[video-long] T2V Seedance retry succeeded:', retrySeedanceId);
-          return { taskId: `seedream_${retrySeedanceId}`, provider: 's' };
-        }
-      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return await primaryFn();
     } catch (retryError: any) {
-      console.warn('[video-long] T2V Seedance retry also failed:', retryError.message);
+      console.warn(`[video-long] T2V ${PRIMARY_PROVIDER} retry failed, falling back to ${FALLBACK_PROVIDER}`);
+      return await fallbackFn();
     }
-
-    // Final fallback: Kling T2V
-    console.warn('[video-long] T2V falling back to Kling after Seedance retry failed');
-    const { createT2VTask } = await import('@/lib/kling');
-    const klingTaskId = await createT2VTask({
-      prompt,
-      duration: String(duration),
-      aspect_ratio: aspectRatio || '16:9',
-    });
-
-    console.log('[video-long] T2V Kling fallback task created:', klingTaskId);
-    return { taskId: klingTaskId, provider: 'k' };
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Helper: Start a SeedAnce I2V task (with Kling fallback)
+// Helper: Start an I2V task (provider order controlled by PRIMARY_PROVIDER switch)
 // ══════════════════════════════════════════════════════════════════════════════
 async function startSeedanceI2V(
   prompt: string,
   duration: number,
   imageUrl: string
 ): Promise<{ taskId: string; provider: 's' | 'k' }> {
-  // Clean and shorten the prompt — --duration MUST be LAST flag for Seedance
   const cleanPrompt = (prompt || '').replace(/ABSOLUTELY ZERO[^.]*\./gi, '').trim();
   const shortPrompt = cleanPrompt.length > 200 ? cleanPrompt.substring(0, 200) : cleanPrompt;
   const segDuration = duration >= 10 ? 10 : 5;
@@ -975,13 +959,41 @@ async function startSeedanceI2V(
     ? `Seamless continuation, same lighting. ${shortPrompt} --camerafixed false --duration ${segDuration}`
     : `Animate with smooth cinematic camera movement, consistent lighting --camerafixed false --duration ${segDuration}`;
 
-  try {
-    console.log('[video-long] I2V: trying Seedance 1.5 Pro...');
+  // --- Kling I2V helper ---
+  async function tryKling(): Promise<{ taskId: string; provider: 'k' }> {
+    let imageBase64 = imageUrl;
+    if (imageUrl.startsWith('http')) {
+      try {
+        const imgRes = await fetch(imageUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        });
+        if (imgRes.ok) {
+          const buf = await imgRes.arrayBuffer();
+          const b64 = Buffer.from(buf).toString('base64');
+          const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+          imageBase64 = `data:${ct};base64,${b64}`;
+        }
+      } catch (e: any) {
+        console.warn('[video-long] I2V base64 conversion failed:', e.message);
+      }
+    }
+    const { createI2VTask } = await import('@/lib/kling');
+    const klingTaskId = await createI2VTask({
+      image: imageBase64,
+      prompt: prompt || 'Animate this image with smooth cinematic camera movement',
+      duration: String(segDuration),
+    });
+    console.log('[video-long] I2V Kling task created:', klingTaskId);
+    return { taskId: klingTaskId, provider: 'k' };
+  }
+
+  // --- Seedance I2V helper ---
+  async function trySeedance(): Promise<{ taskId: string; provider: 's' }> {
+    console.log('[video-long] I2V Seedance: trying...');
     const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       { type: 'text', text: textPrompt },
       { type: 'image_url', image_url: { url: imageUrl } },
     ];
-
     const response = await fetch(SEEDANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -993,84 +1005,33 @@ async function startSeedanceI2V(
         content,
       }),
     });
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[video-long] I2V Seedance failed:', response.status, errorText);
       throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
     }
-
     const data = await response.json();
     const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
-    if (!seedanceId) {
-      console.error('[video-long] I2V Seedance no task ID:', data);
-      throw new Error('Seedance returned no task ID');
-    }
-
+    if (!seedanceId) throw new Error('Seedance returned no task ID');
     console.log('[video-long] I2V Seedance task created:', seedanceId);
     return { taskId: `seedream_${seedanceId}`, provider: 's' };
-  } catch (seedanceError: any) {
-    // Retry Seedance once before falling back to Kling (avoid provider mixing)
-    console.warn('[video-long] I2V Seedance failed, retrying once...', seedanceError.message);
+  }
+
+  // --- Execute with primary → fallback ---
+  const primaryFn = PRIMARY_PROVIDER === 'kling' ? tryKling : trySeedance;
+  const fallbackFn = FALLBACK_PROVIDER === 'kling' ? tryKling : trySeedance;
+
+  try {
+    console.log(`[video-long] I2V trying ${PRIMARY_PROVIDER} (primary)...`);
+    return await primaryFn();
+  } catch (primaryError: any) {
+    console.warn(`[video-long] I2V ${PRIMARY_PROVIDER} failed:`, primaryError.message);
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const retryContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-        { type: 'text', text: textPrompt },
-        { type: 'image_url', image_url: { url: imageUrl } },
-      ];
-      const retryResponse = await fetch(SEEDANCE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
-          content: retryContent,
-        }),
-      });
-
-      if (retryResponse.ok) {
-        const retryData = await retryResponse.json();
-        const retrySeedanceId = retryData.id || retryData.task_id || retryData.data?.id || retryData.data?.task_id;
-        if (retrySeedanceId) {
-          console.log('[video-long] I2V Seedance retry succeeded:', retrySeedanceId);
-          return { taskId: `seedream_${retrySeedanceId}`, provider: 's' };
-        }
-      }
+      return await primaryFn();
     } catch (retryError: any) {
-      console.warn('[video-long] I2V Seedance retry also failed:', retryError.message);
+      console.warn(`[video-long] I2V ${PRIMARY_PROVIDER} retry failed, falling back to ${FALLBACK_PROVIDER}`);
+      return await fallbackFn();
     }
-
-    // Final fallback: Kling I2V
-    console.warn('[video-long] I2V falling back to Kling after Seedance retry failed');
-    // Convert URL to base64 for Kling
-    let imageBase64 = imageUrl;
-    if (imageUrl.startsWith('http')) {
-      try {
-        const imageResponse = await fetch(imageUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        });
-        if (imageResponse.ok) {
-          const imageBuffer = await imageResponse.arrayBuffer();
-          const base64 = Buffer.from(imageBuffer).toString('base64');
-          const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-          imageBase64 = `data:${contentType};base64,${base64}`;
-        }
-      } catch (e: any) {
-        console.warn('[video-long] I2V base64 conversion failed:', e.message);
-      }
-    }
-
-    const { createI2VTask } = await import('@/lib/kling');
-    const klingTaskId = await createI2VTask({
-      image: imageBase64,
-      prompt: prompt || 'Animate this image with smooth cinematic camera movement',
-      duration: String(duration),
-    });
-
-    console.log('[video-long] I2V Kling fallback task created:', klingTaskId);
-    return { taskId: klingTaskId, provider: 'k' };
   }
 }
 

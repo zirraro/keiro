@@ -5,22 +5,27 @@ import { createI2VTask, checkI2VTask } from '@/lib/kling';
 export const runtime = 'edge';
 export const maxDuration = 300; // 5 minutes max pour le polling
 
-const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
-const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+const SEEDANCE_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
+const SEEDANCE_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+
+// ═══ PROVIDER ORDER SWITCH ═══
+// To swap back: set PRIMARY_PROVIDER = 'seedance' and FALLBACK_PROVIDER = 'kling'
+const PRIMARY_PROVIDER: 'kling' | 'seedance' = 'kling';
+const FALLBACK_PROVIDER: 'kling' | 'seedance' = 'seedance';
 
 /**
  * POST /api/seedream/i2v
- * Convertir une image en vidéo — Seedance 1.5 Pro primary, Kling fallback
+ * Convertir une image en vid\u00e9o \u2014 Kling primary, Seedance fallback
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { imageUrl, prompt = '', duration = 5, taskId } = body;
 
-    // Si taskId est fourni, on vérifie le statut
+    // Si taskId est fourni, on v\u00e9rifie le statut
     if (taskId) {
       if (typeof taskId === 'string' && taskId.startsWith('seedream_')) {
-        return checkSeedreamTaskStatus(taskId.replace('seedream_', ''));
+        return checkSeedanceTaskStatus(taskId.replace('seedream_', ''));
       }
       try {
         const result = await checkI2VTask(taskId);
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // --- Vérification crédits ---
+    // --- V\u00e9rification cr\u00e9dits ---
     const { user } = await getAuthUser();
     if (!user) {
       return Response.json({
@@ -64,7 +69,7 @@ export async function POST(request: Request) {
       if (!check.allowed) {
         return Response.json({
           ok: false,
-          error: 'Crédits insuffisants',
+          error: 'Cr\u00e9dits insuffisants',
           insufficientCredits: true,
           cost: check.cost,
           balance: check.balance,
@@ -76,78 +81,39 @@ export async function POST(request: Request) {
       return Response.json({ ok: false, error: 'Image URL is required' }, { status: 400 });
     }
 
-    // Préparer l'URL de l'image — Seedance accepte URL ou data URI
-    let imageForSeedance = imageUrl;
-
     let resultTaskId: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Seedance 1.5 Pro ---
-    try {
-      console.log('[I2V] Trying Seedance 1.5 Pro...');
+    // Seedance prompt formatting
+    const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 250 ? prompt.substring(0, 250) : prompt) : '';
+    const textPrompt = truncatedPrompt
+      ? `${truncatedPrompt} --camerafixed false --duration ${duration}`
+      : `Animate this image with smooth cinematic camera movement --camerafixed false --duration ${duration}`;
 
-      // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt.
-      const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 250 ? prompt.substring(0, 250) : prompt) : '';
-      const textPrompt = truncatedPrompt
-        ? `${truncatedPrompt} --camerafixed false --duration ${duration}`
-        : `Animate this image with smooth cinematic camera movement --camerafixed false --duration ${duration}`;
-
-      const content: any[] = [
-        { type: 'text', text: textPrompt },
-        { type: 'image_url', image_url: { url: imageForSeedance } }
-      ];
-
-      const response = await fetch(SEEDREAM_VIDEO_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDREAM_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
-          content: content
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[I2V] Seedance failed:', response.status, errorText);
-        throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-      }
-
-      const data = await response.json();
-      const seedreamId = data.id || data.task_id || data.data?.id || data.data?.task_id;
-      if (!seedreamId) {
-        console.error('[I2V] Seedance no task ID:', data);
-        throw new Error('Seedance returned no task ID');
-      }
-
-      resultTaskId = `seedream_${seedreamId}`;
-      provider = 's';
-      console.log('[I2V] ✓ Seedance 1.5 Pro task created:', seedreamId);
-    } catch (seedanceError: any) {
-      console.warn('[I2V] Seedance failed, falling back to Kling:', seedanceError.message);
-
-      // Convertir en base64 pour Kling
-      let imageBase64 = imageUrl;
-      if (imageUrl.startsWith('http')) {
-        try {
-          const imageResponse = await fetch(imageUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-          });
-          if (imageResponse.ok) {
-            const imageBuffer = await imageResponse.arrayBuffer();
-            const base64 = Buffer.from(imageBuffer).toString('base64');
-            const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-            imageBase64 = `data:${contentType};base64,${base64}`;
-          }
-        } catch (e: any) {
-          console.warn('[I2V] Base64 conversion failed:', e.message);
-        }
-      }
-
-      // --- Fallback: Kling ---
+    // Helper: convert URL to base64 for Kling
+    async function toBase64(url: string): Promise<string> {
+      if (!url.startsWith('http')) return url;
       try {
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        });
+        if (res.ok) {
+          const buf = await res.arrayBuffer();
+          const b64 = Buffer.from(buf).toString('base64');
+          const ct = res.headers.get('content-type') || 'image/jpeg';
+          return `data:${ct};base64,${b64}`;
+        }
+      } catch (e: any) {
+        console.warn('[I2V] Base64 conversion failed:', e.message);
+      }
+      return url;
+    }
+
+    // --- Primary provider ---
+    try {
+      if (PRIMARY_PROVIDER === 'kling') {
+        console.log('[I2V] Trying Kling (primary)...');
+        const imageBase64 = await toBase64(imageUrl);
         const klingTaskId = await createI2VTask({
           image: imageBase64,
           prompt: prompt || 'Animate this image with smooth cinematic camera movement',
@@ -155,17 +121,87 @@ export async function POST(request: Request) {
         });
         resultTaskId = klingTaskId;
         provider = 'k';
-        console.log('[I2V] ✓ Kling fallback task created:', klingTaskId);
-      } catch (klingError: any) {
-        console.error('[I2V] Kling also failed:', klingError.message);
-        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+        console.log('[I2V] \u2713 Kling task created:', klingTaskId);
+      } else {
+        console.log('[I2V] Trying Seedance 1.5 Pro (primary)...');
+        const content: any[] = [
+          { type: 'text', text: textPrompt },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ];
+        const response = await fetch(SEEDANCE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'seedance-1-5-pro-251215',
+            content,
+          }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        const data = await response.json();
+        const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
+        if (!seedanceId) throw new Error('Seedance returned no task ID');
+        resultTaskId = `seedream_${seedanceId}`;
+        provider = 's';
+        console.log('[I2V] \u2713 Seedance task created:', seedanceId);
+      }
+    } catch (primaryError: any) {
+      console.warn(`[I2V] ${PRIMARY_PROVIDER} failed, falling back to ${FALLBACK_PROVIDER}:`, primaryError.message);
+
+      // --- Fallback provider ---
+      try {
+        if (FALLBACK_PROVIDER === 'kling') {
+          const imageBase64 = await toBase64(imageUrl);
+          const klingTaskId = await createI2VTask({
+            image: imageBase64,
+            prompt: prompt || 'Animate this image with smooth cinematic camera movement',
+            duration: String(duration),
+          });
+          resultTaskId = klingTaskId;
+          provider = 'k';
+          console.log('[I2V] \u2713 Kling fallback task created:', klingTaskId);
+        } else {
+          const content: any[] = [
+            { type: 'text', text: textPrompt },
+            { type: 'image_url', image_url: { url: imageUrl } },
+          ];
+          const response = await fetch(SEEDANCE_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'seedance-1-5-pro-251215',
+              content,
+            }),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+          }
+          const data = await response.json();
+          const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
+          if (!seedanceId) throw new Error('Seedance returned no task ID');
+          resultTaskId = `seedream_${seedanceId}`;
+          provider = 's';
+          console.log('[I2V] \u2713 Seedance fallback task created:', seedanceId);
+        }
+      } catch (fallbackError: any) {
+        console.error(`[I2V] ${FALLBACK_PROVIDER} also failed:`, fallbackError.message);
+        return Response.json({ ok: false, error: 'Impossible de g\u00e9n\u00e9rer la vid\u00e9o' }, { status: 500 });
       }
     }
 
-    // --- Déduction crédits après création de tâche ---
+    // --- D\u00e9duction cr\u00e9dits apr\u00e8s cr\u00e9ation de t\u00e2che ---
     let newBalance: number | undefined;
     if (user && !isAdminUser) {
-      const result = await deductCredits(user.id, 'video_i2v', `Vidéo I2V ${duration}s`, duration);
+      const result = await deductCredits(user.id, 'video_i2v', `Vid\u00e9o I2V ${duration}s`, duration);
       newBalance = result.newBalance;
     }
 
@@ -183,16 +219,16 @@ export async function POST(request: Request) {
   }
 }
 
-// --- Seedream video task status check ---
-async function checkSeedreamTaskStatus(taskId: string): Promise<Response> {
+// --- Seedance video task status check ---
+async function checkSeedanceTaskStatus(taskId: string): Promise<Response> {
   try {
-    const response = await fetch(`${SEEDREAM_VIDEO_API_URL}/${taskId}`, {
+    const response = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${SEEDREAM_API_KEY}` }
+      headers: { 'Authorization': `Bearer ${SEEDANCE_API_KEY}` },
     });
 
     if (!response.ok) {
-      return Response.json({ ok: false, error: `Seedream status error: ${response.status}` }, { status: 500 });
+      return Response.json({ ok: false, error: `Seedance status error: ${response.status}` }, { status: 500 });
     }
 
     const data = await response.json();

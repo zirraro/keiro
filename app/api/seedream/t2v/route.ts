@@ -5,8 +5,13 @@ import { createT2VTask, checkT2VTask } from '@/lib/kling';
 export const runtime = 'edge';
 export const maxDuration = 300; // 5 minutes max pour le polling
 
-const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
-const SEEDREAM_VIDEO_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+const SEEDANCE_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
+const SEEDANCE_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+
+// ═══ PROVIDER ORDER SWITCH ═══
+// To swap back: set PRIMARY_PROVIDER = 'seedance' and FALLBACK_PROVIDER = 'kling'
+const PRIMARY_PROVIDER: 'kling' | 'seedance' = 'kling';
+const FALLBACK_PROVIDER: 'kling' | 'seedance' = 'seedance';
 
 // POST: Créer une tâche de génération vidéo ou vérifier le statut
 export async function POST(request: Request) {
@@ -18,7 +23,7 @@ export async function POST(request: Request) {
     if (taskId) {
       // Router vers le bon provider selon le préfixe
       if (typeof taskId === 'string' && taskId.startsWith('seedream_')) {
-        return checkSeedreamTaskStatus(taskId.replace('seedream_', ''));
+        return checkSeedanceTaskStatus(taskId.replace('seedream_', ''));
       }
       try {
         const result = await checkT2VTask(taskId);
@@ -79,48 +84,15 @@ export async function POST(request: Request) {
     let resultTaskId: string;
     let provider: 'k' | 's';
 
-    // --- Primary: Seedance 1.5 Pro ---
+    // Seedance prompt formatting (used when Seedance is primary or fallback)
     const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-    // --duration MUST be the VERY LAST flag — Seedance parses from the end of the prompt.
-    // Keep prompt short so flags don't get truncated.
     const truncatedPrompt = prompt.length > 250 ? prompt.substring(0, 250) : prompt;
     const formattedPrompt = `${truncatedPrompt} --camerafixed false${ratioFlag} --duration ${duration}`;
 
+    // --- Primary provider ---
     try {
-      console.log('[T2V] Trying Seedance 1.5 Pro...');
-      const response = await fetch(SEEDREAM_VIDEO_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDREAM_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
-          content: [{ type: 'text', text: formattedPrompt }]
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[T2V] Seedance failed:', response.status, errorText);
-        throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-      }
-
-      const data = await response.json();
-      const seedreamId = data.id || data.task_id || data.data?.id || data.data?.task_id;
-      if (!seedreamId) {
-        console.error('[T2V] Seedance no task ID:', data);
-        throw new Error('Seedance returned no task ID');
-      }
-
-      resultTaskId = `seedream_${seedreamId}`;
-      provider = 's';
-      console.log('[T2V] ✓ Seedance 1.5 Pro task created:', seedreamId);
-    } catch (seedanceError: any) {
-      console.warn('[T2V] Seedance failed, falling back to Kling:', seedanceError.message);
-
-      // --- Fallback: Kling ---
-      try {
+      if (PRIMARY_PROVIDER === 'kling') {
+        console.log('[T2V] Trying Kling (primary)...');
         const klingTaskId = await createT2VTask({
           prompt,
           duration: String(duration),
@@ -128,17 +100,78 @@ export async function POST(request: Request) {
         });
         resultTaskId = klingTaskId;
         provider = 'k';
-        console.log('[T2V] ✓ Kling fallback task created:', klingTaskId);
-      } catch (klingError: any) {
-        console.error('[T2V] Kling also failed:', klingError.message);
-        return Response.json({ ok: false, error: 'Impossible de générer la vidéo' }, { status: 500 });
+        console.log('[T2V] \u2713 Kling task created:', klingTaskId);
+      } else {
+        console.log('[T2V] Trying Seedance 1.5 Pro (primary)...');
+        const response = await fetch(SEEDANCE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'seedance-1-5-pro-251215',
+            content: [{ type: 'text', text: formattedPrompt }],
+          }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        const data = await response.json();
+        const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
+        if (!seedanceId) throw new Error('Seedance returned no task ID');
+        resultTaskId = `seedream_${seedanceId}`;
+        provider = 's';
+        console.log('[T2V] \u2713 Seedance task created:', seedanceId);
+      }
+    } catch (primaryError: any) {
+      console.warn(`[T2V] ${PRIMARY_PROVIDER} failed, falling back to ${FALLBACK_PROVIDER}:`, primaryError.message);
+
+      // --- Fallback provider ---
+      try {
+        if (FALLBACK_PROVIDER === 'kling') {
+          const klingTaskId = await createT2VTask({
+            prompt,
+            duration: String(duration),
+            aspect_ratio: aspectRatio || '16:9',
+          });
+          resultTaskId = klingTaskId;
+          provider = 'k';
+          console.log('[T2V] \u2713 Kling fallback task created:', klingTaskId);
+        } else {
+          const response = await fetch(SEEDANCE_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'seedance-1-5-pro-251215',
+              content: [{ type: 'text', text: formattedPrompt }],
+            }),
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Seedance HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+          }
+          const data = await response.json();
+          const seedanceId = data.id || data.task_id || data.data?.id || data.data?.task_id;
+          if (!seedanceId) throw new Error('Seedance returned no task ID');
+          resultTaskId = `seedream_${seedanceId}`;
+          provider = 's';
+          console.log('[T2V] \u2713 Seedance fallback task created:', seedanceId);
+        }
+      } catch (fallbackError: any) {
+        console.error(`[T2V] ${FALLBACK_PROVIDER} also failed:`, fallbackError.message);
+        return Response.json({ ok: false, error: 'Impossible de g\u00e9n\u00e9rer la vid\u00e9o' }, { status: 500 });
       }
     }
 
     // --- Déduction crédits après création de tâche ---
     let newBalance: number | undefined;
     if (user && !isAdminUser) {
-      const result = await deductCredits(user.id, 'video_t2v', `Vidéo T2V ${duration}s`, duration);
+      const result = await deductCredits(user.id, 'video_t2v', `Vid\u00e9o T2V ${duration}s`, duration);
       newBalance = result.newBalance;
     }
 
@@ -156,19 +189,18 @@ export async function POST(request: Request) {
   }
 }
 
-// --- Seedream video task status check ---
-async function checkSeedreamTaskStatus(taskId: string): Promise<Response> {
+// --- Seedance video task status check ---
+async function checkSeedanceTaskStatus(taskId: string): Promise<Response> {
   try {
-    const response = await fetch(`${SEEDREAM_VIDEO_API_URL}/${taskId}`, {
+    const response = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${SEEDREAM_API_KEY}`
-      }
+        'Authorization': `Bearer ${SEEDANCE_API_KEY}`,
+      },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return Response.json({ ok: false, error: `Seedream status error: ${response.status}` }, { status: 500 });
+      return Response.json({ ok: false, error: `Seedance status error: ${response.status}` }, { status: 500 });
     }
 
     const data = await response.json();
@@ -176,7 +208,6 @@ async function checkSeedreamTaskStatus(taskId: string): Promise<Response> {
 
     if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
       let videoUrl = null;
-      // Chercher l'URL vidéo dans différents formats
       if (data.content && typeof data.content === 'object' && !Array.isArray(data.content)) {
         videoUrl = data.content.video_url;
       }
