@@ -178,10 +178,14 @@ Example for 3 scenes: ["Slow crane descent into a warm Italian restaurant with r
   console.log(`[video-scenes] Generated ${scenes.length} scene prompts:`, scenes.map((s, i) => `[${i}] ${s.length}chars "${s.substring(0, 60)}..."`));
 
   // Inject style suffix into each scene to enforce render mode + character type
-  // This is critical: Seedance needs explicit "photorealistic" or "real humans" keywords
-  const styleSuffix = renderMode.includes('photorealistic')
-    ? ', photorealistic, real humans, shot on cinema camera'
-    : ', stylized 3D animation, colorful digital art';
+  // This is critical: Seedance needs explicit keywords to respect the user's choice
+  const renderSuffix = renderMode.includes('photorealistic')
+    ? 'photorealistic, shot on cinema camera'
+    : 'stylized 3D animation, colorful digital art';
+  const charSuffix = characters.includes('fiction')
+    ? 'animated fictional characters, cartoon style'
+    : 'real humans, natural skin, realistic faces';
+  const styleSuffix = `, ${renderSuffix}, ${charSuffix}`;
 
   return scenes.map(s => {
     const withStyle = `${s}${styleSuffix}`;
