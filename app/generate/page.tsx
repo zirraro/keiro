@@ -3085,11 +3085,12 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             : t.generate.subtitleWithoutNews}
         </p>
 
-        {/* ===== BARRE TENDANCES — slim, cliquable, au-dessus des actus ===== */}
-        <div className="mb-4 bg-white border border-neutral-200 rounded-xl overflow-hidden">
-          {/* Tabs */}
+        {/* ===== BARRE TENDANCES — visible, actionnable ===== */}
+        <div className="mb-4 bg-gradient-to-r from-orange-50 via-rose-50 to-purple-50 border border-orange-200/60 rounded-xl overflow-hidden shadow-sm">
+          {/* Header + Tabs */}
           <div className="flex items-center gap-1 px-3 pt-2.5 pb-0">
-            <span className="text-sm mr-1">🔥</span>
+            <span className="text-base mr-0.5">🔥</span>
+            <span className="text-xs font-bold text-neutral-800 mr-2">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
             {([
               { key: 'google' as const, label: t.generate.trendTabGoogle, icon: '🔍' },
               { key: 'music' as const, label: t.generate.trendTabMusic, icon: '🎶' },
@@ -3101,7 +3102,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                 onClick={() => setTrendTab(tab.key)}
                 className={`px-2.5 py-1.5 text-[10px] font-semibold rounded-t-lg transition-all ${
                   trendTab === tab.key
-                    ? 'bg-neutral-100 text-neutral-900 border-b-2 border-blue-500'
+                    ? 'bg-white/80 text-neutral-900 border-b-2 border-orange-500'
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
@@ -3111,65 +3112,112 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
             {trendingData && <span className="text-[9px] text-neutral-400 ml-auto">{t.generate.updatedToday}</span>}
           </div>
 
-          {/* Content — horizontal scrollable pills */}
+          {/* Content — horizontal scrollable */}
           <div className="px-3 py-2.5 overflow-x-auto scrollbar-hide">
             {trendTab === 'google' && (
-              <div className="flex gap-1.5 flex-nowrap">
-                {(trendingData?.googleTrends || []).slice(0, 12).map((trend: any, i: number) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => { setSearchQuery(trend.title); setCategory('Dernières news'); if (!useNewsMode) setUseNewsMode(true); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-[10px] font-medium text-blue-800 whitespace-nowrap transition-all shrink-0"
-                  >
-                    <span className="text-blue-400 font-bold">{i + 1}</span>
-                    {trend.title}
-                    {trend.traffic && <span className="text-blue-400 text-[8px]">{trend.traffic}</span>}
-                  </button>
-                ))}
-                {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
-                  <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
-                )}
+              <div>
+                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour utiliser comme thème de contenu' : 'Click to use as content theme'}</p>
+                <div className="flex gap-1.5 flex-nowrap">
+                  {(trendingData?.googleTrends || []).slice(0, 12).map((trend: any, i: number) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        // Use trend as content theme: switch to sans-actu mode with trend as topic
+                        setUseNewsMode(false);
+                        setBusinessDescription((prev: string) => {
+                          const trendNote = locale === 'fr'
+                            ? `En lien avec la tendance "${trend.title}". ${prev || ''}`
+                            : `Related to trending topic "${trend.title}". ${prev || ''}`;
+                          return trendNote;
+                        });
+                        // Scroll to business description
+                        const el = document.getElementById('business-description');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-orange-100 border border-orange-200 rounded-full text-[10px] font-medium text-orange-800 whitespace-nowrap transition-all shrink-0 shadow-sm hover:shadow"
+                    >
+                      <span className="text-orange-400 font-bold">{i + 1}</span>
+                      {trend.title}
+                      {trend.traffic && <span className="text-orange-400 text-[8px]">{trend.traffic}</span>}
+                    </button>
+                  ))}
+                  {(!trendingData?.googleTrends || trendingData.googleTrends.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                  )}
+                </div>
               </div>
             )}
 
             {trendTab === 'music' && (
-              <div className="flex gap-2 flex-nowrap">
-                {(trendingData?.trendingMusic || []).slice(0, 10).map((song: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-[10px] whitespace-nowrap transition-all shrink-0 cursor-default"
-                  >
-                    {song.coverUrl && <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover" />}
-                    <div className="min-w-0">
-                      <p className="font-semibold text-purple-900 truncate max-w-[120px]">{song.title}</p>
-                      <p className="text-purple-500 text-[8px] truncate max-w-[120px]">{song.artist}</p>
-                    </div>
-                    {i < 3 && <span className="text-emerald-500 font-bold text-[9px]">↑</span>}
-                  </div>
-                ))}
-                {(!trendingData?.trendingMusic || trendingData.trendingMusic.length === 0) && (
-                  <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
-                )}
+              <div>
+                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour ajouter en musique de fond vidéo' : 'Click to add as video background music'}</p>
+                <div className="flex gap-2 flex-nowrap">
+                  {(trendingData?.trendingMusic || []).slice(0, 10).map((song: any, i: number) => {
+                    const songKey = `trending:${song.title}`;
+                    const isSelected = selectedMusic === songKey;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMusic(isSelected ? 'none' : songKey);
+                          if (generationMode !== 'video') setGenerationMode('video');
+                        }}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-all shrink-0 border shadow-sm ${
+                          isSelected
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-purple-200'
+                            : 'bg-white hover:bg-purple-50 border-purple-200 hover:shadow'
+                        }`}
+                      >
+                        {song.coverUrl && <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover" />}
+                        <div className="min-w-0 text-left">
+                          <p className={`font-semibold truncate max-w-[120px] ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                          <p className={`text-[8px] truncate max-w-[120px] ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                        </div>
+                        {isSelected ? (
+                          <span className="text-white font-bold">✓</span>
+                        ) : i < 3 ? (
+                          <span className="text-emerald-500 font-bold text-[9px]">↑</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                  {(!trendingData?.trendingMusic || trendingData.trendingMusic.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse">{t.generate.loadingTrends}</span>
+                  )}
+                </div>
               </div>
             )}
 
             {trendTab === 'tiktok' && (
-              <div className="flex gap-1.5 flex-nowrap">
-                {(trendingData?.tiktokHashtags || []).slice(0, 15).map((tag: any) => (
-                  <button
-                    key={tag.hashtag}
-                    type="button"
-                    onClick={() => { setSearchQuery(tag.hashtag); setCategory('Dernières news'); if (!useNewsMode) setUseNewsMode(true); }}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-medium border whitespace-nowrap transition-all shrink-0 ${
-                      tag.trend === 'up'
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                        : 'bg-neutral-50 border-neutral-200 text-neutral-700 hover:bg-neutral-100'
-                    }`}
-                  >
-                    #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-500">↑</span>}
-                  </button>
-                ))}
+              <div>
+                <p className="text-[9px] text-neutral-500 mb-1.5">{locale === 'fr' ? 'Cliquez pour copier le hashtag' : 'Click to copy hashtag'}</p>
+                <div className="flex gap-1.5 flex-nowrap">
+                  {(trendingData?.tiktokHashtags || []).slice(0, 15).map((tag: any) => (
+                    <button
+                      key={tag.hashtag}
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`#${tag.hashtag}`).catch(() => {});
+                        // Brief visual feedback via alert-style
+                        const btn = document.activeElement as HTMLButtonElement;
+                        if (btn) {
+                          const original = btn.textContent;
+                          btn.textContent = '✓ ' + locale === 'fr' ? 'Copié' : 'Copied';
+                          setTimeout(() => { if (original) btn.textContent = original; }, 1000);
+                        }
+                      }}
+                      className={`px-3 py-2 rounded-full text-[10px] font-medium border whitespace-nowrap transition-all shrink-0 shadow-sm hover:shadow ${
+                        tag.trend === 'up'
+                          ? 'bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50'
+                          : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                      }`}
+                    >
+                      #{tag.hashtag} {tag.trend === 'up' && <span className="text-emerald-500">↑</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -3905,6 +3953,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">{t.generate.descriptionRequired}</span>}
                   </label>
                   <textarea
+                    id="business-description"
                     value={businessDescription}
                     onChange={(e) => setBusinessDescription(e.target.value)}
                     placeholder={useNewsMode
