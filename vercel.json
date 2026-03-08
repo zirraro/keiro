@@ -14,11 +14,11 @@
     },
     {
       "path": "/api/agents/email/daily",
-      "schedule": "0 5 * * 2,4"
+      "schedule": "0 8 * * 2,4"
     },
     {
       "path": "/api/agents/email/daily?type=warm",
-      "schedule": "0 6 * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/agents/orders",

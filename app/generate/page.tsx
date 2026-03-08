@@ -507,6 +507,7 @@ export default function GeneratePage() {
 
   /* --- États pour le studio d'édition --- */
   const [showEditStudio, setShowEditStudio] = useState(false);
+  const [modalMinimized, setModalMinimized] = useState(false);
   const [editVersions, setEditVersions] = useState<string[]>([]); // Images propres (sans texte)
   const [versionPreviews, setVersionPreviews] = useState<Record<string, string>>({}); // Previews avec overlays pour miniatures
   const [selectedEditVersion, setSelectedEditVersion] = useState<string | null>(null);
@@ -1371,6 +1372,7 @@ export default function GeneratePage() {
     }
 
     setGenerating(true);
+    setModalMinimized(false);
     setGenerationError(null);
     setGeneratedImageUrl(null);
     setImageLoadingProgress(0);
@@ -2469,6 +2471,7 @@ export default function GeneratePage() {
     }
 
     setGeneratingVideo(true);
+    setModalMinimized(false);
     setGeneratedVideoUrl(null);
     setVideoTaskId(null);
     setVideoProgress(t.generate.creatingVideoTask);
@@ -5583,6 +5586,34 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
         {/* S'affiche quand une génération est en cours ou terminée           */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {(generating || generatingVideo || (generatedImageUrl && !showEditStudio) || (generatedVideoUrl && !showEditStudio)) && (
+          modalMinimized ? (
+            /* ═══ MINI BAR : barre fixe en bas quand le popup est réduit ═══ */
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white rounded-2xl shadow-2xl border px-5 py-3 flex items-center gap-3 max-w-md w-[90%] cursor-pointer hover:shadow-3xl transition-shadow"
+              onClick={() => setModalMinimized(false)}>
+              {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin flex-shrink-0"></div>
+                  <span className="text-sm font-medium text-neutral-700 truncate flex-1">
+                    {generatingVideo ? t.generate.videoGenerationInProgress : t.generate.generatingInProgress}
+                  </span>
+                  <span className="text-xs text-neutral-400">{generatingVideo ? videoProgress : `${imageLoadingProgress}%`}</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                  </div>
+                  <span className="text-sm font-medium text-neutral-700 truncate flex-1">
+                    {generatedVideoUrl ? (locale === 'fr' ? 'Vidéo prête' : 'Video ready') : (locale === 'fr' ? 'Visuel prêt' : 'Visual ready')}
+                  </span>
+                </>
+              )}
+              <button className="text-neutral-400 hover:text-neutral-600 p-1 flex-shrink-0" title={locale === 'fr' ? 'Agrandir' : 'Expand'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+              </button>
+            </div>
+          ) : (
+          /* ═══ MODAL PLEINE : popup centré ═══ */
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
 
@@ -5601,18 +5632,29 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
                     }`} />
                   )}
                 </h2>
-                {(generatedImageUrl || generatedVideoUrl) && (
+                <div className="flex items-center gap-1">
+                  {/* Bouton réduire */}
                   <button
-                    onClick={() => {
-                      if (generatedVideoUrl) { setGeneratedVideoUrl(null); setShowVideoEditor(false); }
-                      if (generatedImageUrl) { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }
-                    }}
+                    onClick={() => setModalMinimized(true)}
                     className="text-neutral-400 hover:text-neutral-600 transition-colors p-1"
-                    title={locale === 'fr' ? 'Fermer' : 'Close'}
+                    title={locale === 'fr' ? 'Réduire' : 'Minimize'}
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14H5" /></svg>
                   </button>
-                )}
+                  {/* Bouton fermer (seulement si résultat prêt) */}
+                  {(generatedImageUrl || generatedVideoUrl) && (
+                    <button
+                      onClick={() => {
+                        if (generatedVideoUrl) { setGeneratedVideoUrl(null); setShowVideoEditor(false); }
+                        if (generatedImageUrl) { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }
+                      }}
+                      className="text-neutral-400 hover:text-neutral-600 transition-colors p-1"
+                      title={locale === 'fr' ? 'Fermer' : 'Close'}
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* ── Contenu : Progress ou Résultat ── */}
@@ -5861,6 +5903,7 @@ ABSOLUTELY ZERO text, words, letters, numbers, signs, labels, watermarks in the 
               </div>
             </div>
           </div>
+          )
         )}
 
         {/* ===== STUDIO D'ÉDITION - RESPONSIVE MOBILE-FIRST ===== */}
