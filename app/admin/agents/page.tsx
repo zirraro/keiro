@@ -240,7 +240,7 @@ export default function AdminAgentsPage() {
         .not('plan', 'is', null);
 
       const planPrices: Record<string, number> = {
-        solo: 49,
+        pro: 89,
         fondateurs: 149,
         standard: 199,
         business: 349,

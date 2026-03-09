@@ -15,7 +15,7 @@ export function getStripe(): Stripe {
 // ====== LEGACY: Mapping montant → plan (fallback pour anciens payment links) ======
 export const AMOUNT_TO_PLAN: Record<number, string> = {
   499: 'sprint',       // 4,99€
-  8900: 'solo',        // 89€
+  8900: 'pro',         // 89€
   14900: 'fondateurs', // 149€
   19900: 'standard',   // 199€
   34900: 'business',   // 349€
@@ -32,14 +32,14 @@ export const AMOUNT_TO_PACK: Record<number, number> = {
 // ====== NOUVEAU: Mapping Price ID → plan (abonnements récurrents) ======
 
 // Plans qui sont des abonnements récurrents (mensuel ou annuel)
-export const SUBSCRIPTION_PLANS = ['solo', 'fondateurs', 'standard', 'business', 'elite'];
+export const SUBSCRIPTION_PLANS = ['pro', 'fondateurs', 'standard', 'business', 'elite'];
 // Les variantes annuelles utilisent le même plan mais un Price ID annuel
 export const ANNUAL_PLAN_SUFFIX = '_annual';
 
 // Mapping planKey → Stripe Price ID mensuel
 export function getPlanToPrice(): Record<string, string | undefined> {
   return {
-    solo: process.env.STRIPE_PRICE_SOLO,
+    pro: process.env.STRIPE_PRICE_PRO,
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS,
     standard: process.env.STRIPE_PRICE_STANDARD,
     business: process.env.STRIPE_PRICE_BUSINESS,
@@ -50,7 +50,7 @@ export function getPlanToPrice(): Record<string, string | undefined> {
 // Mapping planKey → Stripe Price ID annuel
 export function getPlanToPriceAnnual(): Record<string, string | undefined> {
   return {
-    solo: process.env.STRIPE_PRICE_SOLO_ANNUAL,
+    pro: process.env.STRIPE_PRICE_PRO_ANNUAL,
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS_ANNUAL,
     standard: process.env.STRIPE_PRICE_STANDARD_ANNUAL,
     business: process.env.STRIPE_PRICE_BUSINESS_ANNUAL,
@@ -62,13 +62,13 @@ export function getPlanToPriceAnnual(): Record<string, string | undefined> {
 export function getPriceToPlan(): Record<string, string> {
   const map: Record<string, string> = {};
   // Mensuel
-  if (process.env.STRIPE_PRICE_SOLO) map[process.env.STRIPE_PRICE_SOLO] = 'solo';
+  if (process.env.STRIPE_PRICE_PRO) map[process.env.STRIPE_PRICE_PRO] = 'pro';
   if (process.env.STRIPE_PRICE_FONDATEURS) map[process.env.STRIPE_PRICE_FONDATEURS] = 'fondateurs';
   if (process.env.STRIPE_PRICE_STANDARD) map[process.env.STRIPE_PRICE_STANDARD] = 'standard';
   if (process.env.STRIPE_PRICE_BUSINESS) map[process.env.STRIPE_PRICE_BUSINESS] = 'business';
   if (process.env.STRIPE_PRICE_ELITE) map[process.env.STRIPE_PRICE_ELITE] = 'elite';
   // Annuel (même plan, facturation différente)
-  if (process.env.STRIPE_PRICE_SOLO_ANNUAL) map[process.env.STRIPE_PRICE_SOLO_ANNUAL] = 'solo';
+  if (process.env.STRIPE_PRICE_PRO_ANNUAL) map[process.env.STRIPE_PRICE_PRO_ANNUAL] = 'pro';
   if (process.env.STRIPE_PRICE_FONDATEURS_ANNUAL) map[process.env.STRIPE_PRICE_FONDATEURS_ANNUAL] = 'fondateurs';
   if (process.env.STRIPE_PRICE_STANDARD_ANNUAL) map[process.env.STRIPE_PRICE_STANDARD_ANNUAL] = 'standard';
   if (process.env.STRIPE_PRICE_BUSINESS_ANNUAL) map[process.env.STRIPE_PRICE_BUSINESS_ANNUAL] = 'business';

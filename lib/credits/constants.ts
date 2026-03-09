@@ -24,9 +24,8 @@ export const CREDIT_COSTS = {
 export const PLAN_CREDITS: Record<string, number> = {
   free: 15,
   sprint: 110,
-  solo: 220,
-  solo_promo: 220,
-  pro: 400,
+  pro: 220,
+  pro_promo: 220,
   fondateurs: 700,
   standard: 880,
   business: 1750,
@@ -38,9 +37,8 @@ export const PLAN_CREDITS: Record<string, number> = {
 export const PLAN_PRICES: Record<string, string> = {
   free: '0€',
   sprint: '4,99€',
-  solo: '89€',
-  solo_promo: '89€',
   pro: '89€',
+  pro_promo: '89€',
   fondateurs: '149€',
   standard: '199€',
   business: '349€',
@@ -51,9 +49,8 @@ export const PLAN_PRICES: Record<string, string> = {
 export const PLAN_NAMES: Record<string, string> = {
   free: 'Gratuit',
   sprint: 'Sprint Fondateur',
-  solo: 'Solo',
-  solo_promo: 'Solo (Promo)',
   pro: 'Pro',
+  pro_promo: 'Pro (Promo)',
   fondateurs: 'Fondateurs Pro',
   standard: 'Standard',
   business: 'Business',

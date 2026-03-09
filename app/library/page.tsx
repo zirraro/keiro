@@ -760,7 +760,7 @@ function LibraryContent() {
   };
 
   // Plans qui n'ont PAS accès à TikTok (seulement Fondateurs et au-dessus)
-  const tiktokBlockedPlans = ['free', 'sprint', 'solo'];
+  const tiktokBlockedPlans = ['free', 'sprint'];
   const isTikTokBlocked = tiktokBlockedPlans.includes(credits.plan || 'free');
 
   // Vérifier accès TikTok avant d'ouvrir le modal
@@ -2651,7 +2651,7 @@ function LibraryContent() {
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
       <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
 
-      {/* Modal upgrade TikTok — Plans free/sprint/solo */}
+      {/* Modal upgrade TikTok — Plans free/sprint */}
       {showTikTokUpgradeModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowTikTokUpgradeModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center" onClick={(e) => e.stopPropagation()}>

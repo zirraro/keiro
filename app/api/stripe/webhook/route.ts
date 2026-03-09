@@ -121,7 +121,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const stripe = getStripe();
     const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
 
-    const resolvedPlanKey = planKey || 'solo';
+    const resolvedPlanKey = planKey || 'pro';
     const credits = PLAN_CREDITS[resolvedPlanKey] || 0;
     const periodEnd = subscription.current_period_end
       ? new Date(subscription.current_period_end * 1000).toISOString()
@@ -200,10 +200,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           console.error('[Webhook] Failed to apply Sprint credit:', e);
         }
 
-        // Programmer l'abonnement Solo dans 3 jours avec coupon 1er mois
-        const soloPriceId = process.env.STRIPE_PRICE_SOLO;
+        // Programmer l'abonnement Pro dans 3 jours avec coupon 1er mois
+        const proPriceId = process.env.STRIPE_PRICE_PRO;
         const firstMonthCoupon = process.env.STRIPE_COUPON_FIRST_MONTH; // coupon -40€
-        if (soloPriceId) {
+        if (proPriceId) {
           try {
             const startDate = Math.floor(Date.now() / 1000) + (3 * 24 * 60 * 60); // +3 jours
             const scheduleParams: any = {
@@ -212,15 +212,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
               end_behavior: 'release', // continue l'abonnement normalement
               phases: [
                 {
-                  items: [{ price: soloPriceId, quantity: 1 }],
+                  items: [{ price: proPriceId, quantity: 1 }],
                   coupon: firstMonthCoupon || undefined, // -40€ → 49€ - 4,99€ crédit = 44,01€
                   iterations: 1, // 1 mois avec coupon
-                  metadata: { planKey: 'solo', userId: profileId, upgrade_from: 'sprint' },
+                  metadata: { planKey: 'pro', userId: profileId, upgrade_from: 'sprint' },
                 },
                 {
-                  items: [{ price: soloPriceId, quantity: 1 }],
+                  items: [{ price: proPriceId, quantity: 1 }],
                   // Pas de coupon → 89€/mois plein tarif
-                  metadata: { planKey: 'solo', userId: profileId },
+                  metadata: { planKey: 'pro', userId: profileId },
                 },
               ],
             };
@@ -526,7 +526,7 @@ async function sendCancellationEmail(email: string, planName: string) {
 
   const planLabels: Record<string, string> = {
     sprint: 'Sprint Fondateur',
-    solo: 'Solo',
+    pro: 'Pro',
     fondateurs: 'Fondateurs',
     standard: 'Standard',
     business: 'Business',

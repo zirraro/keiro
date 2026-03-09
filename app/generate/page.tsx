@@ -3555,7 +3555,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     const isCreditsOut = bal < 1;
                     const cantMakeImage = bal < 5;
                     const isFree = credits.plan === 'free';
-                    const isSoloOrPromo = credits.plan === 'solo' || credits.plan === 'solo_promo';
+                    const isProOrPromo = credits.plan === 'pro' || credits.plan === 'pro_promo';
 
                     // Niveaux d'usage par feature : combien on peut encore en faire
                     const features = [
@@ -3583,7 +3583,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               {isCreditsOut ? t.generate.creditsExhausted : `${bal} ${t.generate.creditsRemaining}`}
                             </p>
                             <p className="text-[10px] text-red-600 mb-2">
-                              {isSoloOrPromo
+                              {isProOrPromo
                                 ? t.generate.promoQuotaReached
                                 : isFree
                                 ? t.generate.freePlanLimited
@@ -3654,8 +3654,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </button>
                         )}
 
-                        {/* CTA Solo / Solo Promo → Fondateurs (quand pas déjà en bannière épuisé) */}
-                        {isSoloOrPromo && !cantMakeImage && (
+                        {/* CTA Pro / Pro Promo → Fondateurs (quand pas déjà en bannière épuisé) */}
+                        {isProOrPromo && !cantMakeImage && (
                           <>
                             <button
                               onClick={() => startCheckout('fondateurs')}

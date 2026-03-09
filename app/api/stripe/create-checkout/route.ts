@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Détecter si c'est un plan annuel (ex: solo_annual → basePlan=solo, annual=true)
+    // Détecter si c'est un plan annuel (ex: pro_annual → basePlan=pro, annual=true)
     const isAnnual = planKey.endsWith(ANNUAL_PLAN_SUFFIX);
     const basePlan = isAnnual ? planKey.replace(ANNUAL_PLAN_SUFFIX, '') : planKey;
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Prix ${isAnnual ? 'annuel' : 'mensuel'} non configuré pour ce plan` }, { status: 400 });
       }
 
-      // Le planKey stocké dans metadata est toujours le basePlan (ex: solo, pas solo_annual)
+      // Le planKey stocké dans metadata est toujours le basePlan (ex: pro, pas pro_annual)
       const subMetadata = { ...metadata, planKey: basePlan, billing: isAnnual ? 'annual' : 'monthly' };
 
       sessionParams = {
