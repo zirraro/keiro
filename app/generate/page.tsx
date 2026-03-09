@@ -3850,11 +3850,15 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
               {/* Afficher la carte sélectionnée (mode avec actualité ou sélection optionnelle) */}
               {selectedNews && (
-                <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-200">
-                  <p className="text-[10px] font-medium text-blue-900 mb-1">
-                    {useNewsMode ? `✓ ${t.generate.selectedNews}` : `📰 ${t.generate.optionalSelectedNews}`}
+                <div className={`mb-3 p-2 rounded border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
+                  <p className={`text-[10px] font-medium mb-1 ${selectedNews.category === 'Tendance' ? 'text-purple-900' : 'text-blue-900'}`}>
+                    {selectedNews.category === 'Tendance'
+                      ? (useNewsMode ? `🔥 ${t.generate.selectedTrend}` : `🔥 ${t.generate.optionalSelectedTrend}`)
+                      : (useNewsMode ? `✓ ${t.generate.selectedNews}` : `📰 ${t.generate.optionalSelectedNews}`)
+                    }
                   </p>
-                  <p className="text-xs font-semibold line-clamp-2 text-blue-800">
+                  <p className={`text-xs font-semibold line-clamp-2 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
+                    {selectedNews.source && <span className="text-[9px] font-normal opacity-70">{selectedNews.source} · </span>}
                     {selectedNews.title}
                   </p>
                   {!useNewsMode && (
@@ -3889,8 +3893,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </div>
               )}
 
-              {/* Section d'aide pour créer le lien actualité/business (mode avec actualité) */}
-              {selectedNews && useNewsMode && (
+              {/* Section d'aide pour créer le lien actualité ou tendance / business */}
+              {selectedNews && useNewsMode && selectedNews.category === 'Tendance' && (
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3 mb-3">
+                  <h4 className="text-xs font-bold text-purple-900 mb-2 flex items-center gap-1">
+                    🔥 {locale === 'fr' ? 'Comment surfer sur cette tendance ?' : 'How to ride this trend?'}
+                  </h4>
+                  <div className="text-[10px] text-purple-800 space-y-1.5">
+                    <p className="font-medium">{locale === 'fr' ? 'Pour un contenu viral, réfléchissez à :' : 'For viral content, think about:'}</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>{locale === 'fr' ? 'Le format :' : 'Format:'}</strong> {locale === 'fr' ? 'Comment votre métier peut reprendre le format de cette trend (transition, before/after, POV...)' : 'How your business can adapt this trend format (transition, before/after, POV...)'}</li>
+                      <li><strong>{locale === 'fr' ? 'Le twist :' : 'The twist:'}</strong> {locale === 'fr' ? 'Quel est votre angle unique qui rend l\'adaptation mémorable ?' : 'What\'s your unique angle that makes the adaptation memorable?'}</li>
+                      <li><strong>{locale === 'fr' ? 'L\'authenticité :' : 'Authenticity:'}</strong> {locale === 'fr' ? 'Montrez votre savoir-faire DANS le format de la trend' : 'Show your expertise WITHIN the trend format'}</li>
+                      <li><strong>{locale === 'fr' ? 'Le timing :' : 'Timing:'}</strong> {locale === 'fr' ? 'Publiez vite, les tendances ont une durée de vie courte !' : 'Post quickly, trends have a short lifespan!'}</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+              {selectedNews && useNewsMode && selectedNews.category !== 'Tendance' && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
                   <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
                     💡 {t.generate.newsLinkingTitle}

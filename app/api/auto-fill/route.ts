@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const hasNews = newsTitle && newsTitle.trim();
+    const isTrend = newsCategory === 'Tendance' || newsCategory === 'Business' || (newsSource && /Trends|TikTok Trends|Instagram Trends|LinkedIn Trends|Google Trends/.test(newsSource));
 
     // Dimensions créatives aléatoires pour forcer la variété
     const ANGLES = [
@@ -100,13 +101,27 @@ export async function POST(req: NextRequest) {
     let prompt: string;
 
     if (hasNews) {
-      // ===== MODE AVEC ACTUALITÉ — NEWSJACKING =====
-      prompt = `Tu es un EXPERT EN NEWSJACKING pour les réseaux sociaux. Ta spécialité: créer des visuels qui SURFENT sur l'actualité pour propulser un business.
+      // ===== MODE AVEC ACTUALITÉ OU TENDANCE =====
+      const trendOrNewsLabel = isTrend ? 'TENDANCE' : 'ACTUALITÉ';
+      const trendExtraContext = isTrend ? `
 
-Le NEWSJACKING c'est quoi: prendre une actualité qui fait parler, et montrer comment elle RÉSONNE avec le métier du client. Le public doit se dire "Ah c'est malin, je n'y avais pas pensé !" Le visuel doit être PARTAGEABLE — les gens le partagent parce que le lien actu-business est BRILLANT.
+⚠️ IMPORTANT: "${newsTitle}" est une TENDANCE virale des réseaux sociaux (pas une actualité classique).
+Tu dois donc:
+1. COMPRENDRE ce que cette tendance représente (format vidéo, défi, hashtag, mème, mouvement culturel)
+2. IMAGINER comment "${businessType}" peut PARTICIPER à cette tendance de façon authentique
+3. ADAPTER le format au réseau d'origine (${newsSource || 'réseau social'}): vidéo courte, transition, before/after, POV, etc.
+4. Le contenu doit donner l'impression que "${businessType}" SURFE naturellement sur la tendance, pas qu'il force le lien
+5. Pense VIRAL: comment ce business peut-il reprendre cette tendance pour que ça BUZZ ?` : '';
+
+      prompt = `Tu es un EXPERT EN ${isTrend ? 'TREND SURFING' : 'NEWSJACKING'} pour les réseaux sociaux. Ta spécialité: créer des visuels qui SURFENT sur ${isTrend ? 'les tendances virales' : "l'actualité"} pour propulser un business.
+
+${isTrend
+  ? `Le TREND SURFING c'est quoi: reprendre une tendance virale (format, hashtag, défi, mème) et l'adapter au métier du client de manière AUTHENTIQUE. Le public doit se dire "C'est trop bien fait, ils ont parfaitement compris la trend !" Le contenu doit être PARTAGEABLE et donner envie de recréer le même format.`
+  : `Le NEWSJACKING c'est quoi: prendre une actualité qui fait parler, et montrer comment elle RÉSONNE avec le métier du client. Le public doit se dire "Ah c'est malin, je n'y avais pas pensé !" Le visuel doit être PARTAGEABLE — les gens le partagent parce que le lien actu-business est BRILLANT.`}
+${trendExtraContext}
 
 ═══════════════════════════════════
-ACTUALITÉ DU JOUR:
+${trendOrNewsLabel} DU JOUR:
 ═══════════════════════════════════
 Titre: "${newsTitle}"
 ${newsDescription ? `Contexte complet: ${newsDescription.substring(0, 800)}` : ''}
@@ -130,19 +145,29 @@ CADRAGE: ${randomAngle}
 AMBIANCE: ${randomMood}
 STRATÉGIE: ${randomStrategy}
 
-ÉTAPE 1 — DÉCORTIQUE L'ACTU (dans ta tête):
+${isTrend ? `ÉTAPE 1 — DÉCORTIQUE LA TENDANCE (dans ta tête):
+• C'EST QUOI: Quel est le FORMAT exact de cette trend (défi, transition, POV, before/after, lip sync, danse, mème) ?
+• POURQUOI ÇA MARCHE: Qu'est-ce qui rend cette trend virale (humour, surprise, satisfaction, émotion, relatabilité) ?
+• LES CODES: Quels sont les éléments OBLIGATOIRES pour que le public RECONNAISSE la trend (musique, geste, format, caption) ?
+• L'AUDIENCE: Qui participe à cette trend et pourquoi (créateurs, marques, particuliers) ?
+• COMMENT L'ADAPTER: Comment un business peut reprendre ce format tout en restant AUTHENTIQUE ?` : `ÉTAPE 1 — DÉCORTIQUE L'ACTU (dans ta tête):
 • QUI: Les acteurs précis (noms, entreprises, personnalités, équipes)
 • QUOI: L'événement exact — pas une interprétation, les FAITS
 • OÙ/QUAND: Le lieu, la date, le contexte temporel
 • POURQUOI ÇA BUZZE: Pourquoi les gens en parlent — l'émotion collective (surprise, indignation, fierté, espoir, inquiétude)
-• LES SYMBOLES: Quels objets, lieux, gestes, couleurs SYMBOLISENT cette actu dans l'imaginaire collectif
+• LES SYMBOLES: Quels objets, lieux, gestes, couleurs SYMBOLISENT cette actu dans l'imaginaire collectif`}
 
-ÉTAPE 2 — TROUVE LE PONT (dans ta tête):
+${isTrend ? `ÉTAPE 2 — ADAPTE LA TREND AU BUSINESS (dans ta tête):
+• Quel GESTE ou MOMENT du métier "${businessType}" peut être mis en scène DANS LE FORMAT de cette trend ?
+• Comment reprendre les CODES de la trend (transition, reveal, before/after) avec les OUTILS/PRODUITS de ${businessType} ?
+• Quel serait le "plot twist" ou le "reveal" le plus SATISFAISANT pour montrer le savoir-faire de ${businessType} ?
+• Comment rendre ça DRÔLE, IMPRESSIONNANT ou TOUCHANT — l'émotion qui fait que les gens PARTAGENT ?
+• Si ${businessType} participait à cette trend, quelle serait la version la plus MÉMORABLE ?` : `ÉTAPE 2 — TROUVE LE PONT (dans ta tête):
 • Quel GESTE du métier "${businessType}" fait ÉCHO à un geste/événement de l'actu ?
 • Quel OBJET du métier peut SYMBOLISER ou DÉTOURNER un élément de l'actu ?
 • Quelle VALEUR le business partage avec l'actu (précision, performance, créativité, résilience) ?
 • Comment "${businessType}" VIVRAIT cette actu au quotidien — quel serait l'IMPACT sur son métier ?
-• Si un professionnel de "${businessType}" voyait cette actu, quelle serait sa RÉACTION MÉTIER ?
+• Si un professionnel de "${businessType}" voyait cette actu, quelle serait sa RÉACTION MÉTIER ?`}
 
 ÉTAPE 3 — GÉNÈRE CE JSON:
 
@@ -159,12 +184,17 @@ STRATÉGIE: ${randomStrategy}
 }
 
 RÈGLES ABSOLUES:
-- L'actualité doit être RECONNAISSABLE dans le visuel (le public doit comprendre DE QUELLE ACTU il s'agit en voyant l'image)
+${isTrend ? `- La TENDANCE doit être RECONNAISSABLE (le public doit comprendre DE QUELLE TREND il s'agit)
+- L'adaptation par "${businessType}" doit être AUTHENTIQUE et NATURELLE (pas forcée)
+- DÉCRIS le FORMAT de la trend dans storyToTell (comment la trend fonctionne + comment le business la reprend)
+- desiredVisualIdea: Montre un MOMENT CLÉ de la trend adapté au business — le frame le plus IMPACTANT
+- ZÉRO texte visible dans le visuel
+- Pense comme un CM de marque qui veut que son contenu soit viral parce que l'adaptation de la trend est PARFAITE` : `- L'actualité doit être RECONNAISSABLE dans le visuel (le public doit comprendre DE QUELLE ACTU il s'agit en voyant l'image)
 - Le lien avec "${businessType}" doit être INTELLIGENT et NATUREL (pas forcé)
 - CITE des éléments CONCRETS de l'actu dans storyToTell (noms, lieux, chiffres)
 - desiredVisualIdea: ${contentFocus >= 50 ? 'L\'ACTU DOIT ÊTRE VISUELLEMENT DOMINANTE — les symboles de l\'actu occupent le premier plan' : 'Le BUSINESS est au premier plan mais l\'actu est VISIBLE, pas juste suggérée'}
 - ZÉRO texte visible dans le visuel
-- Pense comme un CM de marque qui veut que son post soit PARTAGÉ parce que le lien actu-business est BRILLANT
+- Pense comme un CM de marque qui veut que son post soit PARTAGÉ parce que le lien actu-business est BRILLANT`}
 
 Réponds UNIQUEMENT avec le JSON valide.`;
     } else {

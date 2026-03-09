@@ -825,8 +825,10 @@ export const fr: Translations = {
     tooltipWithoutNews: 'Sans actualit\u00e9',
     tooltipWithoutNewsDesc: 'G\u00e9n\u00e8re du contenu bas\u00e9 uniquement sur votre business. Parfait pour des posts intemporels (offres, pr\u00e9sentation, valeurs...).',
     // Selected news card
-    selectedNews: 'Actualit\u00e9 s\u00e9lectionn\u00e9e :',
-    optionalSelectedNews: 'Actualit\u00e9 optionnelle s\u00e9lectionn\u00e9e :',
+    selectedNews: 'Actualité sélectionnée :',
+    selectedTrend: 'Tendance sélectionnée :',
+    optionalSelectedNews: 'Actualité optionnelle sélectionnée :',
+    optionalSelectedTrend: 'Tendance optionnelle sélectionnée :',
     remove: 'Retirer',
     // Free creation encouragement
     freeCreationTitle: 'Cr\u00e9ation libre - D\u00e9crivez votre business',
