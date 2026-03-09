@@ -20,12 +20,12 @@ export type SocialTrend = {
 };
 
 /**
- * Fetch TikTok trends = Google Trends FR positions 4-6.
+ * Fetch TikTok trends = Google Trends FR positions 4-9 (6 items for "voir plus").
  */
 export async function fetchTikTokTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log(`[SocialTrends] Fetching TikTok trends (Google Trends ${geo} 4-6)...`);
-    return await fetchGoogleTrendsRange(4, 6, 'tiktok', geo);
+    console.log(`[SocialTrends] Fetching TikTok trends (Google Trends ${geo} 4-9)...`);
+    return await fetchGoogleTrendsRange(4, 9, 'tiktok', geo);
   } catch (err: any) {
     console.warn('[SocialTrends] TikTok trends error:', err.message);
     return [];
@@ -33,12 +33,12 @@ export async function fetchTikTokTrends(geo = 'FR'): Promise<SocialTrend[]> {
 }
 
 /**
- * Fetch Instagram trends = Google Trends positions 7-9.
+ * Fetch Instagram trends = Google Trends positions 10-15 (6 items for "voir plus").
  */
 export async function fetchInstagramTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log(`[SocialTrends] Fetching Instagram trends (Google Trends ${geo} 7-9)...`);
-    return await fetchGoogleTrendsRange(7, 9, 'instagram', geo);
+    console.log(`[SocialTrends] Fetching Instagram trends (Google Trends ${geo} 10-15)...`);
+    return await fetchGoogleTrendsRange(10, 15, 'instagram', geo);
   } catch (err: any) {
     console.warn('[SocialTrends] Instagram trends error:', err.message);
     return [];
