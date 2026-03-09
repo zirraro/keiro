@@ -62,7 +62,7 @@
     },
     {
       "path": "/api/agents/onboarding",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/agents/retention",
