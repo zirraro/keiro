@@ -17,6 +17,7 @@ type SavedImage = {
   folder_id?: string | null;
   published_to_instagram?: boolean;
   published_to_tiktok?: boolean;
+  ai_model?: string;
 };
 
 interface ImageCardProps {
@@ -139,6 +140,14 @@ export default function ImageCard({
             </span>
           )}
         </div>
+        {image.ai_model && (
+          <div
+            className={`absolute bottom-2 left-2 w-2.5 h-2.5 rounded-full opacity-60 ${
+              image.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'
+            }`}
+            title={image.ai_model === 'kling' ? 'Kling' : 'Seedream'}
+          />
+        )}
       </div>
 
       {/* Image info */}

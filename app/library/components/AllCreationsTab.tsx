@@ -177,7 +177,8 @@ export default function AllCreationsTab({
       is_favorite: img.is_favorite || false,
       created_at: img.created_at,
       published_to_instagram: img.published_to_instagram || false,
-      published_to_tiktok: img.published_to_tiktok || false
+      published_to_tiktok: img.published_to_tiktok || false,
+      ai_model: img.ai_model,
     }));
 
     const videoItems: CreationItem[] = videos.map(vid => ({
@@ -190,7 +191,8 @@ export default function AllCreationsTab({
       is_favorite: vid.is_favorite || false,
       created_at: vid.created_at,
       duration: vid.duration,
-      published_to_tiktok: vid.published_to_tiktok || false
+      published_to_tiktok: vid.published_to_tiktok || false,
+      ai_model: vid.ai_model,
     }));
 
     return [...imageItems, ...videoItems];

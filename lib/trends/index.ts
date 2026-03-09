@@ -6,7 +6,7 @@
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
 import { deriveTikTokHashtags, type TikTokHashtag } from './tiktokTrends';
 import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
-import { fetchTikTokTrends, fetchInstagramTrends, fetchLinkedInSocialTrends, type SocialTrend } from './socialTrends';
+import { fetchAllSocialTrends, type SocialTrend } from './socialTrends';
 import { fetchInstagramRealTrends, type InstagramRealTrend } from './instagramRealTrends';
 import { fetchTikTokCreativeCenterTrends, type TikTokRealTrend } from './tiktokCreativeCenter';
 import { createClient } from '@supabase/supabase-js';
@@ -50,12 +50,11 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
   console.log(`[Trends] Cache miss for ${region}/${geo}, fetching fresh trends...`);
 
   // Fetch all sources in parallel with geo
-  const [googleResult, musicResult, tiktokResult, instaResult, linkedinResult, instaRealResult, tiktokRealResult] = await Promise.allSettled([
+  // Social trends (Instagram/TikTok/LinkedIn) use a single RSS fetch
+  const [googleResult, musicResult, socialResult, instaRealResult, tiktokRealResult] = await Promise.allSettled([
     fetchGoogleTrendsFR(geo),
     fetchTikTokTrendingMusicFR(),
-    fetchTikTokTrends(geo),
-    fetchInstagramTrends(geo),
-    fetchLinkedInSocialTrends(geo),
+    fetchAllSocialTrends(geo),
     fetchInstagramRealTrends(geo),
     fetchTikTokCreativeCenterTrends(geo),
   ]);
@@ -64,12 +63,11 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
     googleResult.status === 'fulfilled' ? googleResult.value : [];
   const trendingMusic =
     musicResult.status === 'fulfilled' ? musicResult.value : [];
-  const tiktokTrends =
-    tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
-  const instagramTrends =
-    instaResult.status === 'fulfilled' ? instaResult.value : [];
-  const linkedinTrends =
-    linkedinResult.status === 'fulfilled' ? linkedinResult.value : [];
+  const socialTrends =
+    socialResult.status === 'fulfilled' ? socialResult.value : { instagram: [], tiktok: [], linkedin: [] };
+  const tiktokTrends = socialTrends.tiktok;
+  const instagramTrends = socialTrends.instagram;
+  const linkedinTrends = socialTrends.linkedin;
   const instagramHashtags =
     instaRealResult.status === 'fulfilled' ? instaRealResult.value : [];
   const tiktokRealHashtags =

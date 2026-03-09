@@ -57,6 +57,9 @@ type SavedImage = {
   is_favorite: boolean;
   created_at: string;
   folder_id?: string | null;
+  ai_model?: string;
+  published_to_instagram?: boolean;
+  published_to_tiktok?: boolean;
 };
 
 type Folder = {
@@ -84,6 +87,7 @@ type MyVideo = {
   folder_id?: string | null;
   subtitle_text?: string;
   audio_url?: string;
+  ai_model?: string;
 };
 
 // Données de démonstration pour le mode visiteur

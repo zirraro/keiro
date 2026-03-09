@@ -19,6 +19,7 @@ export interface CreationItem {
   published_to_instagram?: boolean; // For images
   published_to_tiktok?: boolean;
   source_type?: string; // For videos
+  ai_model?: string; // seedream | kling
 }
 
 interface CreationCardProps {
@@ -130,6 +131,14 @@ export default function CreationCard({
           <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {formatDuration(item.duration)}
           </div>
+        )}
+        {item.ai_model && (
+          <div
+            className={`absolute bottom-2 left-2 w-2.5 h-2.5 rounded-full opacity-60 ${
+              item.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'
+            }`}
+            title={item.ai_model === 'kling' ? 'Kling' : 'Seedream'}
+          />
         )}
       </div>
 

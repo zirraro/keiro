@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { videoUrl, originalImageId, title, duration = 5 } = body;
+    const { videoUrl, originalImageId, title, duration = 5, aiModel } = body;
     console.log('[DownloadAndStore] Request params:', {
       videoUrl: videoUrl?.substring(0, 150),
       originalImageId,
@@ -222,7 +222,8 @@ export async function POST(req: NextRequest) {
         file_size: videoBuffer.byteLength,
         format: 'mp4',
         duration: duration,
-        is_favorite: false
+        is_favorite: false,
+        ai_model: aiModel || 'seedream'
       })
       .select()
       .single();

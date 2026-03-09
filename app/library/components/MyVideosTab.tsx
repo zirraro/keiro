@@ -17,6 +17,7 @@ type MyVideo = {
   published_to_tiktok: boolean;
   tiktok_published_at?: string;
   file_size?: number;
+  ai_model?: string;
 };
 
 type MyVideosTabProps = {
@@ -248,6 +249,14 @@ function VideoCard({
           <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
             {formatDuration(video.duration)}
           </div>
+        )}
+        {video.ai_model && (
+          <div
+            className={`absolute bottom-2 left-2 w-2.5 h-2.5 rounded-full opacity-60 ${
+              video.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'
+            }`}
+            title={video.ai_model === 'kling' ? 'Kling' : 'Seedream'}
+          />
         )}
       </div>
 

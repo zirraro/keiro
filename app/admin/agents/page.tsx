@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'campagnes' | 'briefs' | 'ordres' | 'logs';
+type Tab = 'dashboard' | 'campagnes' | 'seo' | 'briefs' | 'ordres' | 'logs';
 
 type MetricCard = {
   label: string;
@@ -105,6 +105,13 @@ export default function AdminAgentsPage() {
     prospect_name?: string;
   };
   const [dmQueue, setDmQueue] = useState<DMQueueItem[]>([]);
+
+  // SEO state
+  type SeoArticle = { id: string; title: string; slug: string; keywords_primary: string; status: string; published_at: string | null; created_at: string; views: number };
+  const [seoArticles, setSeoArticles] = useState<SeoArticle[]>([]);
+  const [seoStats, setSeoStats] = useState({ total: 0, published: 0, drafts: 0 });
+  const [seoGenerating, setSeoGenerating] = useState(false);
+  const [seoPublishing, setSeoPublishing] = useState<string | null>(null);
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -553,9 +560,76 @@ export default function AdminAgentsPage() {
       case 'ordres':
         loadOrders();
         break;
+      case 'seo':
+        loadSeoData();
+        break;
       case 'logs':
         loadLogs(0, logFilter);
         break;
+    }
+  };
+
+  // ─── SEO data loader ────────────────────────────────
+  const loadSeoData = async () => {
+    try {
+      const { data: articles } = await supabase
+        .from('blog_posts')
+        .select('id, title, slug, keywords_primary, status, published_at, created_at, views')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      setSeoArticles((articles || []) as SeoArticle[]);
+
+      const all = articles || [];
+      setSeoStats({
+        total: all.length,
+        published: all.filter((a: any) => a.status === 'published').length,
+        drafts: all.filter((a: any) => a.status === 'draft').length,
+      });
+    } catch (err) {
+      console.error('[Admin SEO] Error loading:', err);
+    }
+  };
+
+  const handleSeoGenerate = async () => {
+    setSeoGenerating(true);
+    try {
+      const res = await fetch('/api/agents/seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate_article' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        loadSeoData();
+      } else {
+        alert('Erreur: ' + (data.error || 'Echec generation'));
+      }
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setSeoGenerating(false);
+    }
+  };
+
+  const handleSeoPublish = async (articleId: string) => {
+    setSeoPublishing(articleId);
+    try {
+      const res = await fetch('/api/agents/seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish', article_id: articleId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        loadSeoData();
+      } else {
+        alert('Erreur: ' + (data.error || 'Echec publication'));
+      }
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setSeoPublishing(null);
     }
   };
 
@@ -637,6 +711,7 @@ export default function AdminAgentsPage() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'campagnes', label: 'Campagnes' },
+    { key: 'seo', label: 'SEO Blog' },
     { key: 'briefs', label: 'Briefs CEO' },
     { key: 'ordres', label: 'Ordres' },
     { key: 'logs', label: 'Logs' },
@@ -1082,6 +1157,108 @@ export default function AdminAgentsPage() {
           </div>
         )}
 
+        {/* ===== TAB SEO BLOG ===== */}
+        {activeTab === 'seo' && (
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: 'Articles total', value: seoStats.total, icon: '📝' },
+                { label: 'Publiés', value: seoStats.published, icon: '✅' },
+                { label: 'Brouillons', value: seoStats.drafts, icon: '📋' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 text-center">
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className="text-2xl font-bold text-neutral-900">{s.value}</div>
+                  <div className="text-xs text-neutral-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSeoGenerate}
+                disabled={seoGenerating}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {seoGenerating ? 'Generation...' : 'Generer un article'}
+              </button>
+              <button
+                onClick={loadSeoData}
+                className="text-sm text-purple-600 hover:underline"
+              >
+                Actualiser
+              </button>
+            </div>
+
+            {/* Articles list */}
+            {seoArticles.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
+                Aucun article. Clique sur &quot;Generer un article&quot; pour commencer.
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="grid grid-cols-6 gap-2 px-4 py-3 bg-neutral-50 border-b border-neutral-200 text-[11px] font-semibold text-neutral-500 uppercase">
+                  <span className="col-span-2">Titre</span>
+                  <span>Mot-cle</span>
+                  <span>Statut</span>
+                  <span>Date</span>
+                  <span>Actions</span>
+                </div>
+                {seoArticles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="grid grid-cols-6 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-all"
+                  >
+                    <span className="col-span-2 text-sm font-medium text-neutral-900 truncate">
+                      {article.title}
+                    </span>
+                    <span className="text-xs text-neutral-600 truncate">
+                      {article.keywords_primary}
+                    </span>
+                    <span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        article.status === 'published'
+                          ? 'bg-green-100 text-green-700'
+                          : article.status === 'draft'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        {article.status === 'published' ? 'Publie' : article.status === 'draft' ? 'Brouillon' : article.status}
+                      </span>
+                    </span>
+                    <span className="text-xs text-neutral-500">
+                      {new Date(article.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {article.status === 'draft' && (
+                        <button
+                          onClick={() => handleSeoPublish(article.id)}
+                          disabled={seoPublishing === article.id}
+                          className="text-xs text-green-600 hover:underline disabled:opacity-50"
+                        >
+                          {seoPublishing === article.id ? '...' : 'Publier'}
+                        </button>
+                      )}
+                      {article.status === 'published' && (
+                        <a
+                          href={`/blog/${article.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-purple-600 hover:underline"
+                        >
+                          Voir
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ===== TAB BRIEFS CEO ===== */}
         {activeTab === 'briefs' && (
           <div className="space-y-4">
@@ -1463,6 +1640,7 @@ export default function AdminAgentsPage() {
                   <option value="ceo">CEO</option>
                   <option value="chatbot">Chatbot</option>
                   <option value="email">Email</option>
+                  <option value="seo">SEO</option>
                 </select>
                 <button
                   onClick={() => loadLogs(logPage, logFilter)}

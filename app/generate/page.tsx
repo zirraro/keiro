@@ -2015,7 +2015,7 @@ export default function GeneratePage() {
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
               textOverlay: initialOverlays.length > 0 ? JSON.stringify(initialOverlays) : null,
-              aiModel: 'seedream',
+              aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
               tags: []
             })
           });
@@ -2210,7 +2210,7 @@ export default function GeneratePage() {
         generationPrompt: null,
         thumbnailUrl: null,
         folderId: null,
-        aiModel: 'seedream',
+        aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
         tags: []
       };
 
@@ -2344,7 +2344,7 @@ export default function GeneratePage() {
           newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
           newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
           textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
-          aiModel: 'seedream',
+          aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
           tags: ['studio-edit'],
         }),
       });
@@ -2389,6 +2389,7 @@ export default function GeneratePage() {
         folderId: null,
         subtitleText: generatedSubtitleText || null,
         audioUrl: generatedAudioUrl || null,
+        aiModel: lastVideoProvider === 'k' ? 'kling' : 'seedream',
       };
 
       console.log('[SaveVideoToLibrary] Payload:', payload);
@@ -7053,7 +7054,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                       generationPrompt: null,
                                       thumbnailUrl: null,
                                       folderId: null,
-                                      aiModel: 'seedream',
+                                      aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
                                       tags: []
                                     };
 
@@ -7223,7 +7224,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   generationPrompt: null,
                                   thumbnailUrl: null,
                                   folderId: null,
-                                  aiModel: 'seedream',
+                                  aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
                                   tags: []
                                 };
 

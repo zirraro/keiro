@@ -19,6 +19,7 @@ type SavedImage = {
   folder_id?: string | null;
   published_to_instagram?: boolean;
   published_to_tiktok?: boolean;
+  ai_model?: string;
 };
 
 type MyImagesTabProps = {

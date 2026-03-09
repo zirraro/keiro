@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       folderId,
       subtitleText,
       audioUrl,
+      aiModel,
     } = body;
 
     // 3. Validate required fields
@@ -81,7 +82,8 @@ export async function POST(req: NextRequest) {
         subtitle_text: subtitleText || null,
         audio_url: audioUrl || null,
         is_favorite: false,
-        published_to_tiktok: false
+        published_to_tiktok: false,
+        ai_model: aiModel || 'seedream'
       })
       .select()
       .single();
