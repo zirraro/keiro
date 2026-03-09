@@ -34,7 +34,7 @@ async function verifyAuth(request: NextRequest) {
 /**
  * Generate a TikTok comment via Claude Haiku
  */
-async function generateComment(prospect: any): Promise<{ comment: string; strategy: string } | null> {
+async function generateComment(prospect: any): Promise<{ comment: string; dm_text?: string; strategy: string; follow_up?: string } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -42,8 +42,14 @@ async function generateComment(prospect: any): Promise<{ comment: string; strate
     business_name: prospect.company,
     business_type: prospect.type || 'commerce',
     quartier: prospect.quartier,
+    ville: prospect.ville || prospect.city || 'Paris',
     tiktok_handle: prospect.tiktok_handle,
     google_rating: prospect.google_rating || prospect.note_google,
+    google_reviews: prospect.google_reviews,
+    specialite: prospect.specialite || prospect.specialty || null,
+    has_instagram: !!prospect.instagram,
+    temperature: prospect.temperature || 'cold',
+    score: prospect.score || 0,
   });
 
   try {
@@ -161,8 +167,13 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
       channel: 'tiktok',
       handle: prospect.tiktok_handle,
       message: result.comment,
-      personalization: result.strategy,
-      business_type: category,
+      followup_message: result.dm_text || null,
+      personalization: JSON.stringify({
+        strategy: result.strategy,
+        dm_text: result.dm_text || null,
+        follow_up: result.follow_up || null,
+        business_type: category,
+      }),
       priority: prospect.score || 30,
       created_at: now,
     });

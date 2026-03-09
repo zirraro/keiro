@@ -36,7 +36,7 @@ const MAX_DM_PER_DAY = 10;
 /**
  * Generate personalized DM via Claude Haiku
  */
-async function generateDM(prospect: any): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string } | null> {
+async function generateDM(prospect: any): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -44,10 +44,20 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
     business_name: prospect.company,
     business_type: prospect.type || 'commerce',
     quartier: prospect.quartier || 'Paris',
+    ville: prospect.ville || prospect.city || 'Paris',
     google_rating: prospect.google_rating || prospect.note_google,
     google_reviews: prospect.google_reviews,
     instagram_handle: prospect.instagram || null,
+    instagram_followers: prospect.instagram_followers || null,
+    instagram_posts: prospect.instagram_posts || null,
+    last_post_date: prospect.last_instagram_post || null,
+    bio: prospect.instagram_bio || prospect.bio || null,
     has_website: !!prospect.website,
+    website: prospect.website || null,
+    specialite: prospect.specialite || prospect.specialty || null,
+    temperature: prospect.temperature || 'cold',
+    score: prospect.score || 0,
+    previous_interactions: prospect.dm_followup_count || 0,
   });
 
   try {
@@ -179,8 +189,14 @@ async function runDMPreparation(): Promise<NextResponse> {
       handle: prospect.instagram,
       message: dm.dm_text,
       followup_message: dm.follow_up_3d,
-      personalization: dm.personalization_detail,
-      business_type: category,
+      personalization: JSON.stringify({
+        detail: dm.personalization_detail,
+        follow_up_7d: dm.follow_up_7d || null,
+        response_interested: dm.response_interested || null,
+        response_skeptical: dm.response_skeptical || null,
+        tone_notes: dm.tone_notes || null,
+        business_type: category,
+      }),
       priority: prospect.score || 50,
       created_at: now,
     });

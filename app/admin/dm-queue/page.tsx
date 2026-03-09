@@ -10,6 +10,18 @@ const supabaseBrowser = () =>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+type PersonalizationData = {
+  detail?: string;
+  follow_up_7d?: string;
+  response_interested?: string;
+  response_skeptical?: string;
+  tone_notes?: string;
+  business_type?: string;
+  strategy?: string;
+  dm_text?: string;
+  follow_up?: string;
+};
+
 type DMItem = {
   id: string;
   prospect_id: string;
@@ -33,12 +45,18 @@ type DMItem = {
   };
 };
 
+function parsePersonalization(raw: string | null): PersonalizationData | null {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function DMQueuePage() {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<DMItem[]>([]);
   const [tab, setTab] = useState<'pending' | 'sent' | 'responded'>('pending');
   const [isAdmin, setIsAdmin] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const router = useRouter();
 
   const fetchQueue = useCallback(async () => {
@@ -213,11 +231,85 @@ export default function DMQueuePage() {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed">
                       {item.message}
                     </div>
-                    {item.personalization && (
-                      <p className="text-[10px] text-neutral-400 mt-1.5 italic">
-                        Personnalisation : {item.personalization}
-                      </p>
-                    )}
+                    {(() => {
+                      const perso = parsePersonalization(item.personalization);
+                      const persoText = perso?.detail || perso?.strategy || item.personalization;
+                      return (
+                        <>
+                          {persoText && (
+                            <p className="text-[10px] text-neutral-400 mt-1.5 italic">
+                              Personnalisation : {persoText}
+                              {perso?.tone_notes && ` · Ton : ${perso.tone_notes}`}
+                            </p>
+                          )}
+                          <button
+                            onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                            className="text-[10px] text-blue-500 hover:underline mt-1"
+                          >
+                            {expandedId === item.id ? '▲ Masquer les réponses types' : '▼ Voir relances & réponses types'}
+                          </button>
+                          {expandedId === item.id && (
+                            <div className="mt-3 space-y-2">
+                              {item.followup_message && (
+                                <div className="relative">
+                                  <p className="text-[10px] font-bold text-orange-600 mb-1">Relance J+3 :</p>
+                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
+                                    {item.followup_message}
+                                  </div>
+                                  <button onClick={() => copyToClipboard(item.followup_message!, `${item.id}-f3`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-f3` ? 'bg-green-500 text-white' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`}>
+                                    {copiedId === `${item.id}-f3` ? '✓' : '📋'}
+                                  </button>
+                                </div>
+                              )}
+                              {perso?.follow_up_7d && (
+                                <div className="relative">
+                                  <p className="text-[10px] font-bold text-red-600 mb-1">Relance J+7 (dernier message + CTA) :</p>
+                                  <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
+                                    {perso.follow_up_7d}
+                                  </div>
+                                  <button onClick={() => copyToClipboard(perso.follow_up_7d!, `${item.id}-f7`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-f7` ? 'bg-green-500 text-white' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                                    {copiedId === `${item.id}-f7` ? '✓' : '📋'}
+                                  </button>
+                                </div>
+                              )}
+                              {perso?.response_interested && (
+                                <div className="relative">
+                                  <p className="text-[10px] font-bold text-green-600 mb-1">Si intéressé → CTA Sprint/49€ :</p>
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
+                                    {perso.response_interested}
+                                  </div>
+                                  <button onClick={() => copyToClipboard(perso.response_interested!, `${item.id}-ri`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-ri` ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
+                                    {copiedId === `${item.id}-ri` ? '✓' : '📋'}
+                                  </button>
+                                </div>
+                              )}
+                              {perso?.response_skeptical && (
+                                <div className="relative">
+                                  <p className="text-[10px] font-bold text-amber-600 mb-1">Si sceptique → Preuve sociale :</p>
+                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
+                                    {perso.response_skeptical}
+                                  </div>
+                                  <button onClick={() => copyToClipboard(perso.response_skeptical!, `${item.id}-rs`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-rs` ? 'bg-green-500 text-white' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}>
+                                    {copiedId === `${item.id}-rs` ? '✓' : '📋'}
+                                  </button>
+                                </div>
+                              )}
+                              {perso?.dm_text && (
+                                <div className="relative">
+                                  <p className="text-[10px] font-bold text-purple-600 mb-1">DM TikTok à envoyer :</p>
+                                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
+                                    {perso.dm_text}
+                                  </div>
+                                  <button onClick={() => copyToClipboard(perso.dm_text!, `${item.id}-dm`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-dm` ? 'bg-green-500 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}>
+                                    {copiedId === `${item.id}-dm` ? '✓' : '📋'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Actions */}
@@ -235,12 +327,19 @@ export default function DMQueuePage() {
                           {copiedId === item.id ? '✓ Copié !' : '📋 Copier le texte'}
                         </button>
                         <a
-                          href={`https://instagram.com/${item.handle.replace('@', '')}`}
+                          href={item.channel === 'tiktok'
+                            ? `https://tiktok.com/@${item.handle.replace('@', '')}`
+                            : `https://instagram.com/${item.handle.replace('@', '')}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 py-2 text-xs font-medium bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center rounded-lg hover:opacity-90 transition"
+                          className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
+                            item.channel === 'tiktok'
+                              ? 'bg-gradient-to-r from-cyan-600 to-blue-600'
+                              : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                          }`}
                         >
-                          Ouvrir Instagram
+                          {item.channel === 'tiktok' ? 'Ouvrir TikTok' : 'Ouvrir Instagram'}
                         </a>
                         <button
                           onClick={() => updateStatus(item.id, 'sent')}
@@ -258,25 +357,39 @@ export default function DMQueuePage() {
                     )}
 
                     {tab === 'sent' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => updateStatus(item.id, 'responded', 'interested')}
-                          className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                          A répondu OUI
-                        </button>
-                        <button
-                          onClick={() => updateStatus(item.id, 'responded', 'not_interested')}
-                          className="flex-1 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600"
-                        >
-                          Pas intéressé
-                        </button>
-                        <button
-                          onClick={() => updateStatus(item.id, 'no_response')}
-                          className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-100"
-                        >
-                          Pas de réponse
-                        </button>
+                      <div className="space-y-2">
+                        {item.followup_message && (
+                          <button
+                            onClick={() => copyToClipboard(item.followup_message!, `${item.id}-followup`)}
+                            className={`w-full py-2 text-xs font-medium rounded-lg transition ${
+                              copiedId === `${item.id}-followup`
+                                ? 'bg-green-600 text-white'
+                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            }`}
+                          >
+                            {copiedId === `${item.id}-followup` ? '✓ Copié !' : '📋 Copier la relance'}
+                          </button>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateStatus(item.id, 'responded', 'interested')}
+                            className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            A répondu OUI
+                          </button>
+                          <button
+                            onClick={() => updateStatus(item.id, 'responded', 'not_interested')}
+                            className="flex-1 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600"
+                          >
+                            Pas intéressé
+                          </button>
+                          <button
+                            onClick={() => updateStatus(item.id, 'no_response')}
+                            className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-100"
+                          >
+                            Pas de réponse
+                          </button>
+                        </div>
                       </div>
                     )}
 
