@@ -69,7 +69,7 @@ export default function VideoEditModal({ video, onClose, onSave }: VideoEditModa
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-neutral-900">Éditer la vidéo</h2>
             {video.ai_model && (
-              <span className={`w-2.5 h-2.5 rounded-full ${video.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'}`}
+              <span className={`w-2 h-2 rounded-full opacity-50 ${video.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'}`}
                 title={video.ai_model === 'kling' ? 'Kling' : 'Seedream'} />
             )}
           </div>

@@ -5276,7 +5276,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   {t.generate.visual}
                   {lastProvider && (
-                    <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h3>
                 <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
@@ -5478,7 +5478,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   {t.generate.generatedVideo}
                   {lastVideoProvider && (
-                    <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h3>
                 <div className={`relative w-full bg-neutral-900 rounded border overflow-hidden ${
@@ -5978,7 +5978,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     <p className="text-sm font-semibold text-orange-900 flex items-center gap-2">
                       {t.generate.videoGenerationInProgress}
                       {lastVideoProvider && (
-                        <span className={`w-3 h-3 rounded-full inline-block ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                        <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                       )}
                     </p>
                     <p className="text-xs text-orange-600">{videoProgress}</p>
@@ -6043,7 +6043,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     : t.generate.visual
                   }
                   {(lastProvider || lastVideoProvider) && (
-                    <span className={`w-3 h-3 rounded-full inline-block ${
+                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${
                       (lastVideoProvider || lastProvider) === 'k' ? 'bg-emerald-500' : 'bg-orange-500'
                     }`} />
                   )}
@@ -6331,7 +6331,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   {t.generate.editStudio}
                   {lastProvider && (
-                    <span className={`w-3 h-3 rounded-full inline-block ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h2>
                 <button

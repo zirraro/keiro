@@ -257,7 +257,7 @@ function VideoCard({
         )}
         {video.ai_model && (
           <div
-            className={`absolute bottom-2 left-2 w-2.5 h-2.5 rounded-full opacity-60 ${
+            className={`absolute bottom-1.5 left-1.5 w-1.5 h-1.5 rounded-full opacity-40 ${
               video.ai_model === 'kling' ? 'bg-emerald-500' : 'bg-orange-500'
             }`}
             title={video.ai_model === 'kling' ? 'Kling' : 'Seedream'}
