@@ -748,6 +748,26 @@ function MonComptePage() {
                 </div>
               )}
             </div>
+
+            {/* Annuler — discret, tout en bas */}
+            {(profile?.stripe_subscription_id || profile?.stripe_schedule_id) && profile?.subscription_plan !== 'free' && (
+              <div className="pt-6 mt-6 border-t border-neutral-100">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ? Vous perdrez vos avantages à la fin de la période en cours.')) return;
+                    try {
+                      const res = await fetch('/api/stripe/manage', { method: 'POST' });
+                      const data = await res.json();
+                      if (data.url) window.location.href = data.url;
+                      else alert(data.error || 'Erreur');
+                    } catch { alert('Erreur réseau'); }
+                  }}
+                  className="text-[11px] text-neutral-400 hover:text-neutral-500 underline-offset-2 hover:underline transition-colors"
+                >
+                  Annuler mon abonnement
+                </button>
+              </div>
+            )}
           </div>
         )}
 

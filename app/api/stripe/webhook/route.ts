@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
         break;
+      case 'subscription_schedule.canceled':
+        await handleScheduleCanceled(event.data.object as any);
+        break;
       default:
         console.log('[Stripe Webhook] Unhandled event type:', event.type);
     }
@@ -178,24 +181,73 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         description: 'Sprint Fondateur activé (3 jours)',
       });
 
-      // Créditer 4,99€ sur le solde Stripe du client
-      // → sera déduit automatiquement de son prochain abonnement
+      // Auto-transition Sprint → Solo après 3 jours
+      // 1. Créditer 4,99€ sur le solde client (sera déduit du 1er mois Solo)
+      // 2. Programmer l'abonnement Solo avec coupon -40€ (89€ - 40€ - 4,99€ crédit = 44,01€)
       const customerId = session.customer as string;
       if (customerId) {
+        const stripe = getStripe();
+
+        // Crédit de 4,99€ sur le solde client
         try {
-          const stripe = getStripe();
           await stripe.customers.createBalanceTransaction(customerId, {
             amount: -499, // négatif = crédit client (4,99€)
             currency: 'eur',
-            description: 'Crédit Sprint déduit du prochain abonnement',
+            description: 'Crédit Sprint déduit du 1er mois Solo',
           });
           console.log('[Webhook] Sprint credit applied to customer balance:', customerId);
         } catch (e) {
           console.error('[Webhook] Failed to apply Sprint credit:', e);
         }
+
+        // Programmer l'abonnement Solo dans 3 jours avec coupon 1er mois
+        const soloPriceId = process.env.STRIPE_PRICE_SOLO;
+        const firstMonthCoupon = process.env.STRIPE_COUPON_FIRST_MONTH; // coupon -40€
+        if (soloPriceId) {
+          try {
+            const startDate = Math.floor(Date.now() / 1000) + (3 * 24 * 60 * 60); // +3 jours
+            const scheduleParams: any = {
+              customer: customerId,
+              start_date: startDate,
+              end_behavior: 'release', // continue l'abonnement normalement
+              phases: [
+                {
+                  items: [{ price: soloPriceId, quantity: 1 }],
+                  coupon: firstMonthCoupon || undefined, // -40€ → 49€ - 4,99€ crédit = 44,01€
+                  iterations: 1, // 1 mois avec coupon
+                  metadata: { planKey: 'solo', userId: profileId, upgrade_from: 'sprint' },
+                },
+                {
+                  items: [{ price: soloPriceId, quantity: 1 }],
+                  // Pas de coupon → 89€/mois plein tarif
+                  metadata: { planKey: 'solo', userId: profileId },
+                },
+              ],
+            };
+
+            const schedule = await stripe.subscriptionSchedules.create(scheduleParams);
+            console.log('[Webhook] Solo subscription scheduled after Sprint:', {
+              scheduleId: schedule.id,
+              customerId,
+              startsAt: new Date(startDate * 1000).toISOString(),
+              firstMonthWithCoupon: !!firstMonthCoupon,
+            });
+
+            // Sauvegarder l'ID du schedule pour pouvoir annuler si besoin
+            await supabase
+              .from('profiles')
+              .update({ stripe_schedule_id: schedule.id })
+              .eq('id', profileId);
+
+          } catch (e: any) {
+            console.error('[Webhook] Failed to schedule Solo subscription:', e.message);
+          }
+        } else {
+          console.warn('[Webhook] STRIPE_PRICE_SOLO not configured — Sprint stays standalone');
+        }
       }
 
-      console.log('[Webhook] Sprint activated:', { userId: profileId });
+      console.log('[Webhook] Sprint activated with auto-upgrade:', { userId: profileId });
 
     } else if (planKey?.startsWith('pack_')) {
       // Pack crédits
@@ -414,7 +466,26 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     profileId = profile.id;
   }
 
+  // Récupérer email et infos avant la mise à jour
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('email, subscription_plan, stripe_schedule_id, stripe_customer_id')
+    .eq('id', profileId)
+    .single();
+
+  const oldPlan = userProfile?.subscription_plan || 'unknown';
   const freeCredits = PLAN_CREDITS.free || 15;
+
+  // Annuler aussi le schedule Sprint→Solo si existant
+  if (userProfile?.stripe_schedule_id) {
+    try {
+      const stripe = getStripe();
+      await stripe.subscriptionSchedules.cancel(userProfile.stripe_schedule_id);
+      console.log('[Webhook] Sprint schedule cancelled:', userProfile.stripe_schedule_id);
+    } catch (e: any) {
+      console.error('[Webhook] Failed to cancel schedule:', e.message);
+    }
+  }
 
   await supabase
     .from('profiles')
@@ -425,6 +496,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       credits_reset_at: new Date().toISOString(),
       stripe_subscription_id: null,
       stripe_current_period_end: null,
+      stripe_schedule_id: null,
     })
     .eq('id', profileId);
 
@@ -437,7 +509,131 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     description: 'Abonnement annulé — retour au plan Gratuit',
   });
 
-  console.log('[Webhook] Subscription cancelled:', { userId: profileId });
+  // Envoyer email de confirmation d'annulation
+  if (userProfile?.email) {
+    await sendCancellationEmail(userProfile.email, oldPlan);
+  }
+
+  console.log('[Webhook] Subscription cancelled:', { userId: profileId, oldPlan });
+}
+
+/**
+ * Envoyer un email de confirmation d'annulation
+ */
+async function sendCancellationEmail(email: string, planName: string) {
+  const BREVO_API_KEY = process.env.BREVO_API_KEY;
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+  const planLabels: Record<string, string> = {
+    sprint: 'Sprint Fondateur',
+    solo: 'Solo',
+    fondateurs: 'Fondateurs',
+    standard: 'Standard',
+    business: 'Business',
+    elite: 'Elite',
+  };
+
+  const planLabel = planLabels[planName] || planName;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}.container{max-width:540px;margin:0 auto;padding:30px 20px;}h2{color:#9333ea;}</style></head>
+<body>
+<div class="container">
+  <h2>Votre abonnement a bien été annulé</h2>
+  <p>Bonjour,</p>
+  <p>Nous confirmons l'annulation de votre abonnement <strong>${planLabel}</strong> sur KeiroAI.</p>
+  <p>Votre compte reste actif avec le plan Gratuit (15 crédits/mois). Vous pouvez vous réabonner à tout moment depuis votre espace <a href="https://keiroai.com/mon-compte?section=billing" style="color:#9333ea;">Mon compte</a>.</p>
+  <p>Si cette annulation est une erreur ou si vous avez des questions, répondez simplement à cet email.</p>
+  <p style="margin-top:24px;">L'équipe KeiroAI</p>
+  <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;"/>
+  <p style="color:#9ca3af;font-size:11px;">Cet email est envoyé automatiquement suite à votre demande d'annulation.</p>
+</div>
+</body>
+</html>`;
+
+  // Try Brevo first
+  if (BREVO_API_KEY) {
+    try {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
+          to: [{ email }],
+          subject: 'Confirmation d\'annulation de votre abonnement KeiroAI',
+          htmlContent: html,
+          replyTo: { email: 'contact@keiroai.com' },
+        }),
+      });
+      if (res.ok) {
+        console.log('[Webhook] Cancellation email sent via Brevo to', email);
+        return;
+      }
+    } catch (e: any) {
+      console.error('[Webhook] Brevo cancellation email error:', e.message);
+    }
+  }
+
+  // Fallback Resend
+  if (RESEND_API_KEY) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'KeiroAI <noreply@keiroai.com>',
+          to: [email],
+          subject: 'Confirmation d\'annulation de votre abonnement KeiroAI',
+          html,
+        }),
+      });
+      if (res.ok) {
+        console.log('[Webhook] Cancellation email sent via Resend to', email);
+        return;
+      }
+    } catch (e: any) {
+      console.error('[Webhook] Resend cancellation email error:', e.message);
+    }
+  }
+
+  console.warn('[Webhook] No email provider available for cancellation email');
+}
+
+// ====================================================================
+// SCHEDULE CANCELED — Sprint annulé avant transition Solo
+// ====================================================================
+async function handleScheduleCanceled(schedule: any) {
+  const supabase = getSupabaseAdmin();
+  const customerId = schedule.customer as string;
+  if (!customerId) return;
+
+  // Trouver l'user par stripe_schedule_id ou stripe_customer_id
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, email, subscription_plan, stripe_schedule_id')
+    .or(`stripe_schedule_id.eq.${schedule.id},stripe_customer_id.eq.${customerId}`)
+    .single();
+
+  if (!profile) {
+    console.log('[Webhook] No profile for cancelled schedule:', schedule.id);
+    return;
+  }
+
+  // Nettoyer le schedule_id
+  await supabase
+    .from('profiles')
+    .update({ stripe_schedule_id: null })
+    .eq('id', profile.id);
+
+  // Si encore en Sprint, le Sprint expire naturellement dans 3 jours via credits_expires_at
+  console.log('[Webhook] Schedule cancelled (Sprint→Solo transition stopped):', { userId: profile.id, scheduleId: schedule.id });
+
+  // Envoyer email de confirmation
+  if (profile.email) {
+    await sendCancellationEmail(profile.email, profile.subscription_plan || 'sprint');
+  }
 }
 
 // ====================================================================
