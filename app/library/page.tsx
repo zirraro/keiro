@@ -38,6 +38,7 @@ import MyImagesTab from './components/MyImagesTab';
 import AllCreationsTab from './components/AllCreationsTab';
 import NetworkSelector, { Network } from './components/NetworkSelector';
 import ImageEditModal from './components/ImageEditModal';
+import VideoEditModal from './components/VideoEditModal';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
@@ -302,6 +303,9 @@ function LibraryContent() {
 
   // États pour l'édition d'image (I2I)
   const [editingImage, setEditingImage] = useState<SavedImage | null>(null);
+
+  // États pour l'édition de vidéo
+  const [editingVideo, setEditingVideo] = useState<any>(null);
 
   // États pour les onglets
   const tabParam = searchParams?.get('tab') as Tab | null;
@@ -2276,6 +2280,7 @@ function LibraryContent() {
                       onPublishToTikTok={openPlatformChoiceModalForVideo}
                       onTitleEdit={handleVideoTitleEdit}
                       onMoveToFolder={(video) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
+                      onEdit={(video) => setEditingVideo(video)}
                     />
                   ) : activeTab === 'drafts' ? (
                     <InstagramDraftsTab
@@ -2381,6 +2386,7 @@ function LibraryContent() {
                 onPublishToTikTok={(video) => openPlatformChoiceModalForVideo(video)}
                 onTitleEdit={() => {}}
                 onMoveToFolder={(video) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
+                onEdit={(video) => setEditingVideo(video)}
               />
             ) : activeTab === 'drafts' ? (
               <InstagramDraftsTab
@@ -2615,6 +2621,19 @@ function LibraryContent() {
               img.id === editingImage.id ? { ...img, image_url: newUrl, text_overlay: textOverlay || img.text_overlay, original_image_url: img.original_image_url || img.image_url } : img
             ));
             setEditingImage(null);
+          }}
+        />
+      )}
+
+      {/* Modal Édition de vidéo */}
+      {editingVideo && (
+        <VideoEditModal
+          key={editingVideo.id}
+          video={editingVideo}
+          onClose={() => setEditingVideo(null)}
+          onSave={() => {
+            loadMyVideos();
+            setEditingVideo(null);
           }}
         />
       )}

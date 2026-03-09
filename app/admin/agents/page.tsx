@@ -70,11 +70,14 @@ export default function AdminAgentsPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [executingOrders, setExecutingOrders] = useState(false);
+  const [orderFilterStatus, setOrderFilterStatus] = useState<string>('all');
+  const [orderFilterAgent, setOrderFilterAgent] = useState<string>('all');
 
   // CEO Chat state
   const [ceoMessages, setCeoMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [ceoInput, setCeoInput] = useState('');
   const [ceoLoading, setCeoLoading] = useState(false);
+  const [ceoHistoryLoaded, setCeoHistoryLoaded] = useState(false);
 
   // Campagnes state
   type CampaignEntry = {
@@ -92,6 +95,7 @@ export default function AdminAgentsPage() {
   const [campaigns, setCampaigns] = useState<CampaignEntry[]>([]);
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
+  const [campaignDateFilter, setCampaignDateFilter] = useState<string>('7d');
 
   // DM queue preview
   type DMQueueItem = {
@@ -112,6 +116,7 @@ export default function AdminAgentsPage() {
   const [seoStats, setSeoStats] = useState({ total: 0, published: 0, drafts: 0 });
   const [seoGenerating, setSeoGenerating] = useState(false);
   const [seoPublishing, setSeoPublishing] = useState<string | null>(null);
+  const [seoStatusFilter, setSeoStatusFilter] = useState<string>('all');
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -134,8 +139,10 @@ export default function AdminAgentsPage() {
       if (!profileData?.is_admin) { router.push('/'); return; }
       setLoading(false);
       loadDashboard();
+      loadCeoHistory();
     };
     init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, router]);
 
   // ─── Dashboard metrics ─────────────────────────────────
@@ -455,6 +462,20 @@ export default function AdminAgentsPage() {
   };
 
   // ─── CEO Chat ────────────────────────────────────────────
+  const loadCeoHistory = async () => {
+    if (ceoHistoryLoaded) return;
+    try {
+      const res = await fetch('/api/agents/ceo?history=true', { credentials: 'include' });
+      const data = await res.json();
+      if (data.ok && data.messages?.length > 0) {
+        setCeoMessages(data.messages);
+      }
+      setCeoHistoryLoaded(true);
+    } catch (err) {
+      console.error('[CEO Chat] Failed to load history:', err);
+    }
+  };
+
   const sendCeoMessage = async () => {
     if (!ceoInput.trim() || ceoLoading) return;
     const userMsg = ceoInput.trim();
@@ -550,6 +571,7 @@ export default function AdminAgentsPage() {
     switch (tab) {
       case 'dashboard':
         loadDashboard();
+        loadCeoHistory();
         break;
       case 'campagnes':
         loadCampaigns(campaignFilter);
@@ -903,17 +925,38 @@ export default function AdminAgentsPage() {
                     </div>
                   </div>
                 )}
-                {ceoMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-neutral-100 text-neutral-800'
-                    }`}>
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                {ceoMessages.map((msg, i) => {
+                  // Detect [ACTION:xxx] patterns in assistant messages
+                  const actions = msg.role === 'assistant'
+                    ? (msg.content.match(/\[ACTION:([^\]]+)\]/g) || []).map(a => a.replace(/^\[ACTION:/, '').replace(/\]$/, ''))
+                    : [];
+                  const displayContent = msg.role === 'assistant'
+                    ? msg.content.replace(/\[ACTION:[^\]]+\]/g, '').trim()
+                    : msg.content;
+
+                  return (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-neutral-100 text-neutral-800'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{displayContent}</p>
+                        {actions.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-neutral-200 space-y-1">
+                            {actions.map((action, j) => (
+                              <div key={j} className="flex items-center gap-2 text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg">
+                                <span className="text-base">&#9889;</span>
+                                <span className="font-medium">Action proposee:</span>
+                                <span>{action}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {ceoLoading && (
                   <div className="flex justify-start">
                     <div className="bg-neutral-100 rounded-xl px-4 py-2.5">
@@ -956,7 +999,18 @@ export default function AdminAgentsPage() {
               <h2 className="text-lg font-semibold text-neutral-900">
                 Campagnes ({campaigns.length})
               </h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={campaignDateFilter}
+                  onChange={(e) => setCampaignDateFilter(e.target.value)}
+                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="1d">Aujourd'hui</option>
+                  <option value="3d">3 derniers jours</option>
+                  <option value="7d">7 derniers jours</option>
+                  <option value="30d">30 derniers jours</option>
+                  <option value="all">Tout</option>
+                </select>
                 <select
                   value={campaignFilter}
                   onChange={(e) => {
@@ -1014,12 +1068,17 @@ export default function AdminAgentsPage() {
             )}
 
             {/* Campaign History */}
-            {campaigns.length === 0 ? (
+            {(() => {
+              const dateMap: Record<string, number> = { '1d': 1, '3d': 3, '7d': 7, '30d': 30 };
+              const days = dateMap[campaignDateFilter] || 0;
+              const cutoff = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : '';
+              const filteredCampaigns = cutoff ? campaigns.filter(c => c.date >= cutoff) : campaigns;
+              return filteredCampaigns.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
                 Aucune campagne pour le moment
               </div>
             ) : (
-              campaigns.map((campaign) => {
+              filteredCampaigns.map((campaign) => {
                 const isExpanded = expandedCampaign === campaign.id;
                 const channelLabel = campaign.agent === 'email'
                   ? (campaign.action === 'daily_warm' ? 'Email (warm)' : 'Email (cold)')
@@ -1153,7 +1212,8 @@ export default function AdminAgentsPage() {
                   </div>
                 );
               })
-            )}
+            );
+            })()}
           </div>
         )}
 
@@ -1175,21 +1235,32 @@ export default function AdminAgentsPage() {
               ))}
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSeoGenerate}
-                disabled={seoGenerating}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            {/* Actions + Filter */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSeoGenerate}
+                  disabled={seoGenerating}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {seoGenerating ? 'Generation...' : 'Generer un article'}
+                </button>
+                <button
+                  onClick={loadSeoData}
+                  className="text-sm text-purple-600 hover:underline"
+                >
+                  Actualiser
+                </button>
+              </div>
+              <select
+                value={seoStatusFilter}
+                onChange={(e) => setSeoStatusFilter(e.target.value)}
+                className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                {seoGenerating ? 'Generation...' : 'Generer un article'}
-              </button>
-              <button
-                onClick={loadSeoData}
-                className="text-sm text-purple-600 hover:underline"
-              >
-                Actualiser
-              </button>
+                <option value="all">Tous les statuts</option>
+                <option value="published">Publiés</option>
+                <option value="draft">Brouillons</option>
+              </select>
             </div>
 
             {/* Articles list */}
@@ -1206,7 +1277,7 @@ export default function AdminAgentsPage() {
                   <span>Date</span>
                   <span>Actions</span>
                 </div>
-                {seoArticles.map((article) => (
+                {seoArticles.filter(a => seoStatusFilter === 'all' || a.status === seoStatusFilter).map((article) => (
                   <div
                     key={article.id}
                     className="grid grid-cols-6 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-all"
@@ -1290,6 +1361,13 @@ export default function AdminAgentsPage() {
               briefs.map((brief) => {
                 const meta = brief.data || {};
                 const isExpanded = expandedBrief === brief.id;
+                // Support both new (brief_text) and legacy (brief object) format
+                const briefText = meta.brief_text || (typeof meta.brief === 'string' ? meta.brief : null);
+                const isNaturalLanguage = !!briefText;
+                // Extract preview: first non-empty, non-heading line
+                const previewLine = briefText
+                  ? briefText.split('\n').find((l: string) => l.trim() && !l.startsWith('##'))?.trim() || ''
+                  : meta.brief_fondateur || '';
 
                 return (
                   <div
@@ -1310,7 +1388,7 @@ export default function AdminAgentsPage() {
                               day: 'numeric',
                             })}
                           </span>
-                          {performanceBadge(meta.performance_globale || meta.performance)}
+                          {!isNaturalLanguage && performanceBadge(meta.performance_globale || meta.performance)}
                         </div>
                         <svg
                           className={`w-5 h-5 text-neutral-400 transition-transform ${
@@ -1329,156 +1407,87 @@ export default function AdminAgentsPage() {
                         </svg>
                       </div>
 
-                      {meta.brief_fondateur && (
+                      {previewLine && (
                         <p className="text-sm text-neutral-600 line-clamp-2">
-                          {meta.brief_fondateur}
+                          {previewLine}
                         </p>
-                      )}
-
-                      {(meta.alertes || meta.alerts) && (meta.alertes || meta.alerts).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {(meta.alertes || meta.alerts).map((alert: any, j: number) => {
-                            const level = alert?.level || 'info';
-                            const msg = alert?.message || (typeof alert === 'string' ? alert : JSON.stringify(alert));
-                            const colorMap: Record<string, string> = { critique: 'bg-red-50 text-red-600', attention: 'bg-orange-50 text-orange-600', info: 'bg-blue-50 text-blue-600' };
-                            return (
-                              <span key={j} className={`text-[10px] px-2 py-0.5 rounded-full ${colorMap[level] || colorMap.info}`}>
-                                {level === 'critique' ? '🔴' : level === 'attention' ? '🟡' : '🟢'} {msg}
-                              </span>
-                            );
-                          })}
-                        </div>
                       )}
                     </button>
 
                     {isExpanded && (
                       <div className="border-t border-neutral-100 p-5 bg-neutral-50">
-                        <div className="space-y-4">
-
-                          {/* Métriques résumées */}
-                          {meta.metriques_resumees && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">KPIs 24h</h4>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {Object.entries(meta.metriques_resumees).map(([key, val]: [string, any]) => (
-                                  <div key={key} className="bg-white rounded-lg border p-2 text-center">
-                                    <p className="text-lg font-bold text-neutral-900">{typeof val === 'number' ? val : String(val)}</p>
-                                    <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Analyse en langage naturel */}
-                          {meta.analyse && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Analyse</h4>
-                              {typeof meta.analyse === 'string' ? (
-                                <p className="text-sm text-neutral-700 whitespace-pre-wrap">{meta.analyse}</p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {meta.analyse.points_forts && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                      <p className="text-xs font-semibold text-green-700 mb-1">Points forts</p>
-                                      {Array.isArray(meta.analyse.points_forts)
-                                        ? meta.analyse.points_forts.map((p: string, i: number) => <p key={i} className="text-sm text-green-800">• {p}</p>)
-                                        : <p className="text-sm text-green-800">{meta.analyse.points_forts}</p>}
-                                    </div>
-                                  )}
-                                  {meta.analyse.points_faibles && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                      <p className="text-xs font-semibold text-red-700 mb-1">Points faibles</p>
-                                      {Array.isArray(meta.analyse.points_faibles)
-                                        ? meta.analyse.points_faibles.map((p: string, i: number) => <p key={i} className="text-sm text-red-800">• {p}</p>)
-                                        : <p className="text-sm text-red-800">{meta.analyse.points_faibles}</p>}
-                                    </div>
-                                  )}
-                                  {meta.analyse.bottleneck && (
-                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                                      <p className="text-xs font-semibold text-orange-700 mb-1">Bottleneck</p>
-                                      <p className="text-sm text-orange-800">{meta.analyse.bottleneck}</p>
-                                    </div>
-                                  )}
-                                  {meta.analyse.tendance_7j && (
-                                    <p className="text-sm text-neutral-600">Tendance 7j : {meta.analyse.tendance_7j}</p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Ordres en langage naturel */}
-                          {(meta.ordres || meta.orders) && (meta.ordres || meta.orders).length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Ordres ({(meta.ordres || meta.orders).length})</h4>
-                              <div className="space-y-2">
-                                {(meta.ordres || meta.orders).map((o: any, i: number) => (
-                                  <div key={i} className="bg-white rounded-lg border p-3 flex items-start gap-3">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                      o.priority === 'haute' ? 'bg-red-100 text-red-700' : o.priority === 'basse' ? 'bg-neutral-100 text-neutral-600' : 'bg-blue-100 text-blue-700'
-                                    }`}>{o.priority || 'moyenne'}</span>
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-neutral-900">
-                                        → {o.to_agent || o.target_agent} : {o.action || o.type}
-                                      </p>
-                                      {o.reason && <p className="text-xs text-neutral-500 mt-0.5">{o.reason}</p>}
-                                      {o.expected_impact && <p className="text-xs text-green-600 mt-0.5">Impact attendu : {o.expected_impact}</p>}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Suggestions en langage naturel */}
-                          {(meta.suggestions || meta.suggestions_fondateur) && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Suggestions</h4>
-                              {(() => {
-                                const sug = meta.suggestions_fondateur || meta.suggestions;
-                                if (typeof sug === 'string') return <p className="text-sm text-neutral-700">{sug}</p>;
+                        {isNaturalLanguage ? (
+                          /* New natural language brief display */
+                          <div className="prose prose-sm max-w-none">
+                            <div className="text-sm text-neutral-800 leading-relaxed">
+                              {briefText.split('\n').map((line: string, i: number) => {
+                                if (line.startsWith('## ')) {
+                                  return <h4 key={i} className="text-sm font-bold text-purple-700 mt-4 mb-2 uppercase">{line.replace('## ', '')}</h4>;
+                                }
+                                if (line.startsWith('- ')) {
+                                  const content = line.substring(2);
+                                  return <p key={i} className="text-sm text-neutral-700 ml-3 my-0.5">&bull; {content}</p>;
+                                }
+                                if (line.trim() === '') return <div key={i} className="h-2" />;
+                                // Bold **text**
+                                const parts = line.split(/(\*\*.*?\*\*)/g);
                                 return (
-                                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-1">
-                                    {sug.terrain && <p className="text-sm text-purple-800">🎯 {sug.terrain}</p>}
-                                    {sug.priority_du_jour && <p className="text-sm text-purple-800">⚡ Priorité : {sug.priority_du_jour}</p>}
-                                    {sug.opportunité && <p className="text-sm text-purple-800">💡 Opportunité : {sug.opportunité}</p>}
-                                    {sug.opportunite && <p className="text-sm text-purple-800">💡 Opportunité : {sug.opportunite}</p>}
-                                    {Array.isArray(sug) && sug.map((s: any, i: number) => (
-                                      <p key={i} className="text-sm text-purple-800">• {typeof s === 'string' ? s : s.message || s.suggestion || JSON.stringify(s)}</p>
-                                    ))}
-                                  </div>
+                                  <p key={i} className="text-sm text-neutral-700 my-0.5">
+                                    {parts.map((part, j) =>
+                                      part.startsWith('**') && part.endsWith('**')
+                                        ? <strong key={j} className="font-semibold text-neutral-900">{part.slice(2, -2)}</strong>
+                                        : part
+                                    )}
+                                  </p>
                                 );
-                              })()}
+                              })}
                             </div>
-                          )}
 
-                          {/* A/B Tests */}
-                          {meta.ab_tests_en_cours && meta.ab_tests_en_cours.length > 0 && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">A/B Tests en cours</h4>
-                              <div className="space-y-2">
-                                {meta.ab_tests_en_cours.map((test: any, i: number) => (
-                                  <div key={i} className="bg-white rounded-lg border p-3">
-                                    <p className="text-sm font-medium text-neutral-900">{test.test || test.name}</p>
-                                    <p className="text-xs text-neutral-500 mt-1">
-                                      A: {test.variante_a} vs B: {test.variante_b} — {test.status} ({test.jours_restants || test.days_remaining}j restants)
-                                    </p>
-                                    {test.resultat_preliminaire && <p className="text-xs text-blue-600 mt-0.5">{test.resultat_preliminaire}</p>}
-                                  </div>
-                                ))}
+                            {/* Metrics summary from stored data */}
+                            {meta.metrics_24h && (
+                              <details className="mt-4 text-xs">
+                                <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">Donnees brutes 24h</summary>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                                  {Object.entries(meta.metrics_24h).filter(([k]) => typeof meta.metrics_24h[k] === 'number').map(([key, val]: [string, any]) => (
+                                    <div key={key} className="bg-white rounded-lg border p-2 text-center">
+                                      <p className="text-lg font-bold text-neutral-900">{val}</p>
+                                      <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+                          </div>
+                        ) : (
+                          /* Legacy JSON-based brief display (for old briefs) */
+                          <div className="space-y-4">
+                            {meta.metriques_resumees && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">KPIs 24h</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                  {Object.entries(meta.metriques_resumees).map(([key, val]: [string, any]) => (
+                                    <div key={key} className="bg-white rounded-lg border p-2 text-center">
+                                      <p className="text-lg font-bold text-neutral-900">{typeof val === 'number' ? val : String(val)}</p>
+                                      <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
-
-                          {/* JSON complet (replié par défaut) */}
-                          <details className="text-xs">
-                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">JSON brut (debug)</summary>
-                            <pre className="text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-64 overflow-y-auto mt-2">
-                              {JSON.stringify(meta, null, 2)}
-                            </pre>
-                          </details>
-                        </div>
+                            )}
+                            {meta.analyse && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Analyse</h4>
+                                <p className="text-sm text-neutral-700 whitespace-pre-wrap">{typeof meta.analyse === 'string' ? meta.analyse : JSON.stringify(meta.analyse, null, 2)}</p>
+                              </div>
+                            )}
+                            <details className="text-xs">
+                              <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">JSON brut (debug)</summary>
+                              <pre className="text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-64 overflow-y-auto mt-2">
+                                {JSON.stringify(meta, null, 2)}
+                              </pre>
+                            </details>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1491,11 +1500,37 @@ export default function AdminAgentsPage() {
         {/* ===== TAB ORDRES ===== */}
         {activeTab === 'ordres' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-lg font-semibold text-neutral-900">
-                Ordres ({orders.length})
+                Ordres ({orders.filter(o =>
+                  (orderFilterStatus === 'all' || o.status === orderFilterStatus) &&
+                  (orderFilterAgent === 'all' || o.to_agent === orderFilterAgent || o.from_agent === orderFilterAgent)
+                ).length})
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={orderFilterStatus}
+                  onChange={(e) => setOrderFilterStatus(e.target.value)}
+                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="pending">En attente</option>
+                  <option value="completed">Terminé</option>
+                  <option value="failed">Échoué</option>
+                </select>
+                <select
+                  value={orderFilterAgent}
+                  onChange={(e) => setOrderFilterAgent(e.target.value)}
+                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les agents</option>
+                  <option value="ceo">CEO</option>
+                  <option value="email">Email</option>
+                  <option value="chatbot">Chatbot</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="dm_instagram">DM Instagram</option>
+                  <option value="seo">SEO</option>
+                </select>
                 {selectedOrders.size > 0 && (
                   <button
                     onClick={executeSelectedOrders}
@@ -1547,7 +1582,10 @@ export default function AdminAgentsPage() {
                 </div>
 
                 {/* Table body */}
-                {orders.map((order) => {
+                {orders.filter(o =>
+                  (orderFilterStatus === 'all' || o.status === orderFilterStatus) &&
+                  (orderFilterAgent === 'all' || o.to_agent === orderFilterAgent || o.from_agent === orderFilterAgent)
+                ).map((order) => {
                   const isExpanded = expandedOrder === order.id;
                   const isPending = order.status === 'pending';
                   return (
@@ -1640,6 +1678,10 @@ export default function AdminAgentsPage() {
                   <option value="ceo">CEO</option>
                   <option value="chatbot">Chatbot</option>
                   <option value="email">Email</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="dm_instagram">DM Instagram</option>
+                  <option value="tiktok_comments">TikTok</option>
+                  <option value="gmaps">GMaps</option>
                   <option value="seo">SEO</option>
                 </select>
                 <button

@@ -22,6 +22,7 @@ export default function Header() {
     { href: "/studio", label: t.nav.studio },
     { href: "/library", label: t.nav.gallery },
     { href: "/assistant", label: t.nav.assistant },
+    { href: "/blog", label: "Blog" },
     { href: "/pricing", label: t.nav.pricing, highlight: true },
   ];
 

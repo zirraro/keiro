@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     // 1. Récupérer profil utilisateur pour contexte
     const { data: profile } = await supabase
       .from('profiles')
-      .select('business_type, business_description')
+      .select('business_type, business_description, full_name, plan')
       .eq('id', user.id)
       .single();
 
@@ -113,9 +113,25 @@ export async function POST(request: NextRequest) {
         .select('role, content')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-        .limit(10); // Réduit de 20 à 10 pour économiser tokens
+        .limit(10);
 
       conversationHistory = messages || [];
+    }
+
+    // 2b. Récupérer les sujets des conversations passées pour personnalisation
+    let pastContext = '';
+    const { data: pastConversations } = await supabase
+      .from('assistant_conversations')
+      .select('title, business_context, message_count')
+      .eq('user_id', user.id)
+      .order('last_message_at', { ascending: false })
+      .limit(5);
+
+    if (pastConversations && pastConversations.length > 0) {
+      const topics = pastConversations.map((c: any) => c.title).filter(Boolean).join(', ');
+      pastContext = `
+Sujets de conversations précédentes avec cet utilisateur: ${topics}
+Utilise ce contexte pour personnaliser tes réponses et éviter de répéter des conseils déjà donnés. Fais référence aux conversations précédentes quand c'est pertinent.`;
     }
 
     // 3. Récupérer les tendances du jour pour enrichir le contexte
@@ -136,13 +152,20 @@ Utilise ces tendances pour proposer des idées de contenu pertinentes et surfant
       }
     } catch { /* silencieux si timeout */ }
 
-    // 4. System prompt contextuel enrichi avec tendances
+    // 4. System prompt contextuel enrichi avec profil, historique et tendances
     const businessType = profile?.business_description || profile?.business_type || 'entreprise';
+    const userName = profile?.full_name || '';
+    const userPlan = profile?.plan || 'free';
     const systemPrompt = `Tu es un expert marketing réseaux sociaux (Instagram, TikTok, LinkedIn, Facebook).
 
+${userName ? `Utilisateur: ${userName}` : ''}
 Contexte business: ${businessType}
+Plan actuel: ${userPlan}
 
-Rôle: Conseils ACTIONNABLES pour les réseaux sociaux (formats, hashtags, timing, engagement, tendances).
+Rôle: Conseils ACTIONNABLES et PERSONNALISÉS pour les réseaux sociaux (formats, hashtags, timing, engagement, tendances).
+
+Tu connais cet utilisateur. Tu te souviens des conversations précédentes. Tu adaptes tes réponses en fonction de son business, ses objectifs, et ce que tu as appris de lui. Tu ne répètes pas les mêmes conseils de base à chaque fois — tu fais progresser la réflexion.
+${pastContext}
 
 Quand l'utilisateur veut créer un visuel ou une vidéo, demande-lui TOUJOURS :
 - Sur quelle plateforme il compte publier (TikTok, Instagram, les deux ?)
@@ -152,9 +175,10 @@ ${trendsContext}
 Style:
 - Concis (150-300 mots max)
 - Bullet points
-- Exemples concrets
+- Exemples concrets adaptés à son secteur
 - CTA clair
-- Français`;
+- Français
+- Tutoie l'utilisateur`;
 
     // 4. Appel Claude avec historique
     const claudeMessages = [

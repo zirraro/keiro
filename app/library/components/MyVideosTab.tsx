@@ -28,6 +28,7 @@ type MyVideosTabProps = {
   onPublishToTikTok: (video: MyVideo) => void;
   onTitleEdit: (videoId: string, newTitle: string) => void;
   onMoveToFolder?: (video: MyVideo) => void;
+  onEdit?: (video: MyVideo) => void;
 };
 
 export default function MyVideosTab({
@@ -37,7 +38,8 @@ export default function MyVideosTab({
   onToggleFavorite,
   onPublishToTikTok,
   onTitleEdit,
-  onMoveToFolder
+  onMoveToFolder,
+  onEdit
 }: MyVideosTabProps) {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,6 +177,7 @@ export default function MyVideosTab({
               onPublishToTikTok={onPublishToTikTok}
               onTitleEdit={onTitleEdit}
               onMoveToFolder={onMoveToFolder}
+              onEdit={onEdit}
               formatDuration={formatDuration}
               formatFileSize={formatFileSize}
               formatDate={formatDate}
@@ -193,6 +196,7 @@ type VideoCardProps = {
   onPublishToTikTok: (video: MyVideo) => void;
   onTitleEdit: (videoId: string, newTitle: string) => void;
   onMoveToFolder?: (video: MyVideo) => void;
+  onEdit?: (video: MyVideo) => void;
   formatDuration: (seconds?: number) => string;
   formatFileSize: (bytes?: number) => string;
   formatDate: (dateString: string) => string;
@@ -205,6 +209,7 @@ function VideoCard({
   onPublishToTikTok,
   onTitleEdit,
   onMoveToFolder,
+  onEdit,
   formatDuration,
   formatFileSize,
   formatDate
@@ -331,6 +336,17 @@ function VideoCard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
                 {t.library.mvtOrganize}
+              </button>
+            )}
+            {onEdit && (
+              <button
+                onClick={() => onEdit(video)}
+                className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-all"
+                title="Éditer la vidéo"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
               </button>
             )}
             <div className="flex-1" />

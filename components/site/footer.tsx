@@ -19,6 +19,7 @@ export default function Footer() {
             </svg>
             {locale === 'fr' ? 'English' : 'Français'}
           </button>
+          <a href="/blog" className="hover:text-neutral-900 transition-colors">Blog</a>
           <a href="/pricing" className="hover:text-neutral-900 transition-colors">{t.nav.pricing}</a>
           <a href="/generate" className="hover:text-neutral-900 transition-colors">{t.nav.generate}</a>
         </div>

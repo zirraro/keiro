@@ -37,6 +37,7 @@ const SEARCH_QUERIES = [
 
 // Zones to scrape (rotate daily)
 const ZONES = [
+  // Paris (12 zones)
   { name: 'Montorgueil 2e', lat: 48.8645, lng: 2.3480, radius: 800 },
   { name: 'Martyrs 9e', lat: 48.8794, lng: 2.3378, radius: 800 },
   { name: 'Oberkampf 11e', lat: 48.8655, lng: 2.3785, radius: 800 },
@@ -49,6 +50,30 @@ const ZONES = [
   { name: 'Grands Boulevards 9e', lat: 48.8718, lng: 2.3420, radius: 800 },
   { name: 'Daguerre 14e', lat: 48.8335, lng: 2.3262, radius: 800 },
   { name: 'Fbg St-Denis 10e', lat: 48.8722, lng: 2.3558, radius: 800 },
+  // Lyon (3 zones)
+  { name: 'Presqu\'île Lyon 2e', lat: 45.7578, lng: 4.8320, radius: 1000 },
+  { name: 'Vieux Lyon 5e', lat: 45.7600, lng: 4.8260, radius: 800 },
+  { name: 'Part-Dieu Lyon 3e', lat: 45.7610, lng: 4.8590, radius: 1000 },
+  // Marseille (3 zones)
+  { name: 'Vieux-Port Marseille', lat: 43.2965, lng: 5.3698, radius: 1000 },
+  { name: 'Cours Julien Marseille', lat: 43.2920, lng: 5.3835, radius: 800 },
+  { name: 'Castellane Marseille', lat: 43.2850, lng: 5.3810, radius: 1000 },
+  // Bordeaux (3 zones)
+  { name: 'Saint-Pierre Bordeaux', lat: 44.8378, lng: -0.5722, radius: 1000 },
+  { name: 'Chartrons Bordeaux', lat: 44.8520, lng: -0.5710, radius: 800 },
+  { name: 'Saint-Michel Bordeaux', lat: 44.8330, lng: -0.5660, radius: 800 },
+  // Lille (3 zones)
+  { name: 'Vieux-Lille', lat: 50.6410, lng: 3.0620, radius: 800 },
+  { name: 'Centre Lille', lat: 50.6292, lng: 3.0573, radius: 1000 },
+  { name: 'Wazemmes Lille', lat: 50.6250, lng: 3.0470, radius: 800 },
+  // Toulouse (3 zones)
+  { name: 'Capitole Toulouse', lat: 43.6047, lng: 1.4442, radius: 1000 },
+  { name: 'Saint-Cyprien Toulouse', lat: 43.5990, lng: 1.4330, radius: 800 },
+  { name: 'Carmes Toulouse', lat: 43.5990, lng: 1.4440, radius: 800 },
+  // Nice (3 zones)
+  { name: 'Vieux-Nice', lat: 43.6960, lng: 7.2750, radius: 800 },
+  { name: 'Port Nice', lat: 43.6950, lng: 7.2850, radius: 800 },
+  { name: 'Libération Nice', lat: 43.7060, lng: 7.2730, radius: 800 },
 ];
 
 const MAX_RESULTS_PER_QUERY = 5; // Keep API costs low

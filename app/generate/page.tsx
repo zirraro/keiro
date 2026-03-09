@@ -489,6 +489,9 @@ export default function GeneratePage() {
   const [videoLongSegments, setVideoLongSegments] = useState<any[]>([]);
   const [videoLongStatus, setVideoLongStatus] = useState<string>('');
   const [videoLongProgress, setVideoLongProgress] = useState(0);
+  const [editingSegmentIdx, setEditingSegmentIdx] = useState<number | null>(null);
+  const [editingSegmentPrompt, setEditingSegmentPrompt] = useState('');
+  const [regeneratingSegment, setRegeneratingSegment] = useState(false);
   const [generationMode, setGenerationMode] = useState<'image' | 'video'>('image');
   const [lastProvider, setLastProvider] = useState<string>('');
   const [lastVideoProvider, setLastVideoProvider] = useState<string>('');
@@ -2383,7 +2386,7 @@ export default function GeneratePage() {
         videoUrl: generatedVideoUrl,
         title: selectedNews?.title ? selectedNews.title.substring(0, 50) : t.generate.generatedVideo,
         sourceType: 'seedream_i2v',
-        duration: videoDuration || 5,
+        duration: videoPreviewRef.current?.duration ? Math.round(videoPreviewRef.current.duration) : videoDuration || 5,
         thumbnailUrl: null,
         originalImageId: null,
         folderId: null,
@@ -2457,6 +2460,79 @@ export default function GeneratePage() {
       alert(error.message || t.generate.alertVideoSaveError);
     } finally {
       setSavingToLibrary(false);
+    }
+  }
+
+  // Régénération d'un segment vidéo individuel
+  async function regenerateSegment(segmentIndex: number, newPrompt: string) {
+    setRegeneratingSegment(true);
+    try {
+      // Update the segment prompt in state
+      const updatedSegments = [...videoLongSegments];
+      updatedSegments[segmentIndex] = {
+        ...updatedSegments[segmentIndex],
+        prompt: newPrompt,
+        status: 'generating',
+        videoUrl: null,
+      };
+      setVideoLongSegments(updatedSegments);
+
+      // Call the video generation API for just this segment
+      const response = await fetch('/api/seedream/t2v', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          prompt: newPrompt,
+          duration: 10,
+          aspect_ratio: videoAspectRatio,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.ok && data.taskId) {
+        // Poll for this segment's completion
+        pollSegmentRegeneration(segmentIndex, data.taskId);
+      } else {
+        updatedSegments[segmentIndex].status = 'failed';
+        setVideoLongSegments([...updatedSegments]);
+        alert(data.error || 'Erreur de régénération');
+      }
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setRegeneratingSegment(false);
+      setEditingSegmentIdx(null);
+    }
+  }
+
+  async function pollSegmentRegeneration(segmentIndex: number, taskId: string) {
+    const maxAttempts = 120;
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        const res = await fetch(`/api/seedream/t2v?taskId=${taskId}`, { credentials: 'include' });
+        const data = await res.json();
+        if (data.status === 'completed' && data.videoUrl) {
+          setVideoLongSegments(prev => {
+            const updated = [...prev];
+            updated[segmentIndex] = {
+              ...updated[segmentIndex],
+              videoUrl: data.videoUrl,
+              status: 'completed',
+            };
+            return updated;
+          });
+          return;
+        } else if (data.status === 'failed') {
+          setVideoLongSegments(prev => {
+            const updated = [...prev];
+            updated[segmentIndex] = { ...updated[segmentIndex], status: 'failed' };
+            return updated;
+          });
+          return;
+        }
+      } catch { /* continue polling */ }
     }
   }
 
@@ -5793,24 +5869,76 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               : `Modifying a segment will regenerate it and cost ${getVideoCreditCost(10)} credits per segment. If only the ending bothers you, the regeneration cost may not be worth it.`}
                           </p>
                         </div>
-                        <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                        <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
                           {videoLongSegments.map((seg: any, idx: number) => (
-                            <div key={idx} className="bg-white rounded border border-neutral-200 p-2 flex items-start gap-2">
-                              <div className="flex-shrink-0 w-16">
-                                {seg.videoUrl ? (
-                                  <video src={seg.videoUrl} className="w-full h-10 object-cover rounded" muted />
-                                ) : (
-                                  <div className="w-full h-10 bg-neutral-100 rounded flex items-center justify-center text-[9px] text-neutral-400">
-                                    {seg.status === 'generating' ? '...' : '-'}
+                            <div key={idx} className="bg-white rounded border border-neutral-200 p-2 space-y-1.5">
+                              <div className="flex items-start gap-2">
+                                <div className="flex-shrink-0 w-16">
+                                  {seg.videoUrl ? (
+                                    <video src={seg.videoUrl} className="w-full h-10 object-cover rounded" muted />
+                                  ) : (
+                                    <div className="w-full h-10 bg-neutral-100 rounded flex items-center justify-center text-[9px] text-neutral-400">
+                                      {seg.status === 'generating' ? (
+                                        <span className="animate-pulse">...</span>
+                                      ) : seg.status === 'failed' ? (
+                                        <span className="text-red-400">✕</span>
+                                      ) : '-'}
+                                    </div>
+                                  )}
+                                  <span className="block text-[9px] text-neutral-500 text-center mt-0.5">
+                                    Seg. {idx + 1}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] text-neutral-600 line-clamp-2">{seg.prompt?.substring(0, 80) || '-'}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors disabled:opacity-50"
+                                  disabled={regeneratingSegment || seg.status === 'generating'}
+                                  onClick={() => {
+                                    if (editingSegmentIdx === idx) {
+                                      setEditingSegmentIdx(null);
+                                      setEditingSegmentPrompt('');
+                                    } else {
+                                      setEditingSegmentIdx(idx);
+                                      setEditingSegmentPrompt(seg.prompt || '');
+                                    }
+                                  }}
+                                >
+                                  {editingSegmentIdx === idx
+                                    ? (locale === 'fr' ? 'Annuler' : 'Cancel')
+                                    : (locale === 'fr' ? 'Modifier' : 'Edit')}
+                                </button>
+                              </div>
+                              {editingSegmentIdx === idx && (
+                                <div className="space-y-1.5 pt-1 border-t border-neutral-100">
+                                  <textarea
+                                    className="w-full text-[10px] text-neutral-700 border border-neutral-200 rounded p-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                    rows={3}
+                                    value={editingSegmentPrompt}
+                                    onChange={e => setEditingSegmentPrompt(e.target.value)}
+                                    placeholder={locale === 'fr' ? 'Décrivez la scène...' : 'Describe the scene...'}
+                                  />
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[9px] text-neutral-400">
+                                      {locale === 'fr'
+                                        ? `Coût : ${getVideoCreditCost(10)} crédits`
+                                        : `Cost: ${getVideoCreditCost(10)} credits`}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="text-[10px] px-2 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      disabled={regeneratingSegment || !editingSegmentPrompt.trim()}
+                                      onClick={() => regenerateSegment(idx, editingSegmentPrompt)}
+                                    >
+                                      {regeneratingSegment
+                                        ? (locale === 'fr' ? 'Régénération...' : 'Regenerating...')
+                                        : (locale === 'fr' ? 'Régénérer ce segment' : 'Regenerate segment')}
+                                    </button>
                                   </div>
-                                )}
-                                <span className="block text-[9px] text-neutral-500 text-center mt-0.5">
-                                  Seg. {idx + 1}
-                                </span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[10px] text-neutral-600 line-clamp-2">{seg.prompt?.substring(0, 80) || '-'}</p>
-                              </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

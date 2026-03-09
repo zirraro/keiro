@@ -15,7 +15,27 @@ export default function ChatMarketingTab({ user }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [usage, setUsage] = useState<{ messagesUsed: number; messagesLimit: number; remaining: number } | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Charger la dernière conversation au montage
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const res = await fetch('/api/marketing-assistant/history', { credentials: 'include' });
+        const data = await res.json();
+        if (data.ok && data.conversationId && data.messages?.length > 0) {
+          setConversationId(data.conversationId);
+          setMessages(data.messages);
+        }
+      } catch (err) {
+        console.error('[Chat] Failed to load history:', err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+    loadHistory();
+  }, []);
 
   // Auto-scroll vers bas
   useEffect(() => {
@@ -111,7 +131,18 @@ export default function ChatMarketingTab({ user }: any) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-br from-neutral-50 via-white to-purple-50">
-          {messages.length === 0 && (
+          {isLoadingHistory && messages.length === 0 && (
+            <div className="text-center py-8">
+              <div className="flex items-center justify-center gap-2 text-neutral-500">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+              <p className="text-sm text-neutral-500 mt-3">Chargement de la conversation...</p>
+            </div>
+          )}
+
+          {!isLoadingHistory && messages.length === 0 && (
             <div className="text-center py-8">
               <div className="text-5xl mb-4">💡</div>
               <h3 className="text-lg font-semibold text-neutral-800 mb-2">Comment puis-je vous aider ?</h3>

@@ -67,6 +67,32 @@ export async function GET(request: NextRequest) {
     return generateBrief();
   }
 
+  // Chat history: return last 20 CEO chat messages for conversation reload
+  const historyParam = request.nextUrl.searchParams.get('history');
+  if (historyParam === 'true') {
+    try {
+      const supabase = getSupabaseAdmin();
+      const { data: chatLogs } = await supabase
+        .from('agent_logs')
+        .select('data, created_at')
+        .eq('agent', 'ceo')
+        .eq('action', 'chat')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Reconstruct messages from logs (each log has {message, reply})
+      const messages: Array<{ role: string; content: string }> = [];
+      for (const log of (chatLogs || []).reverse()) {
+        if (log.data?.message) messages.push({ role: 'user', content: log.data.message });
+        if (log.data?.reply) messages.push({ role: 'assistant', content: log.data.reply });
+      }
+      return NextResponse.json({ ok: true, messages });
+    } catch (error: any) {
+      console.error('[CEOAgent] History error:', error);
+      return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
+    }
+  }
+
   // Admin UI: return the last brief
   try {
     const supabase = getSupabaseAdmin();
@@ -127,6 +153,7 @@ async function handleCeoChat(
     const supabase = getSupabaseAdmin();
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Quick metrics for context
     const { count: totalProspects } = await supabase
@@ -140,12 +167,54 @@ async function handleCeoChat(
       .from('agent_logs').select('id', { count: 'exact', head: true })
       .eq('agent', 'dm_instagram').gte('created_at', twentyFourHoursAgo);
 
+    // Load persistent CEO memory (last 5 briefs summaries + key decisions)
+    const { data: recentBriefs } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', 'ceo')
+      .eq('action', 'daily_brief')
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    let briefsMemory = '';
+    if (recentBriefs && recentBriefs.length > 0) {
+      const briefSummaries = recentBriefs.map((b: any) => {
+        const date = new Date(b.created_at).toLocaleDateString('fr-FR');
+        const text = b.data?.brief_text || b.data?.brief?.summary || b.data?.brief?.brief_fondateur || 'N/A';
+        // Take first 200 chars of each brief
+        return `[${date}] ${typeof text === 'string' ? text.substring(0, 200) : 'N/A'}`;
+      }).join('\n');
+      briefsMemory = `\nDERNIERS BRIEFS (memoire):\n${briefSummaries}`;
+    }
+
+    // Load past conversation decisions/key topics (from chat logs)
+    const { data: pastChats } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', 'ceo')
+      .eq('action', 'chat')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    let chatMemory = '';
+    if (pastChats && pastChats.length > 0) {
+      const keyDecisions = pastChats
+        .filter((c: any) => c.data?.message)
+        .map((c: any) => {
+          const date = new Date(c.created_at).toLocaleDateString('fr-FR');
+          return `[${date}] Fondateur: "${(c.data.message as string).substring(0, 80)}"`;
+        }).join('\n');
+      chatMemory = `\nHISTORIQUE DECISIONS (ce que le fondateur a demande):\n${keyDecisions}`;
+    }
+
     const contextMetrics = `
 Metriques live:
 - Prospects total: ${totalProspects ?? 0}
 - Prospects chauds: ${hotProspects ?? 0}
 - Emails envoyes 24h: ${emailsSent24h ?? 0}
 - DMs prepares 24h: ${dmsPrepared24h ?? 0}
+${briefsMemory}
+${chatMemory}
 
 CAPACITES ACTUELLES:
 - Email cold: max 50/jour (Brevo limit), 5 slots horaires (early_morning/morning/midday/afternoon/evening)
@@ -153,6 +222,7 @@ CAPACITES ACTUELLES:
 - TikTok comments: max 5/jour, 1 slot (soir)
 - Timing intelligent par type de business (12 categories x 4 canaux)
 - Verification prospect (type, email, ville, coherence nom/type)
+- Prospection externe: Google Places API, 30 zones, 7 villes (Paris, Lyon, Marseille, Bordeaux, Lille, Toulouse, Nice)
 
 Tu peux proposer des changements concrets:
 - Augmenter/diminuer les limites d'envoi
@@ -162,7 +232,19 @@ Tu peux proposer des changements concrets:
 - Ajuster le scoring des prospects
 - Modifier les sequences (delais entre emails, nombre d'etapes)
 
-Reponds en francais, sois direct et actionnable. Si le fondateur te demande un changement technique, donne les instructions precises (fichier, variable, valeur).`;
+EXECUTION DES ORDRES:
+Quand le fondateur te demande un changement technique (code, config, cron, template, etc.), tu dois donner des INSTRUCTIONS PRECISES et EXECUTABLES au format suivant:
+---INSTRUCTION---
+Fichier: chemin/du/fichier.ts
+Ligne: ~numero (approximatif)
+Action: modifier/ajouter/supprimer
+Avant: (code actuel si modification)
+Apres: (nouveau code)
+Raison: pourquoi ce changement
+---FIN---
+Le fondateur copiera ces instructions dans Claude Code pour execution directe. Sois precis sur les noms de fichiers, variables et valeurs.
+
+Reponds en francais, sois direct et actionnable.`;
 
     const messages = [
       ...history.map((h) => ({
@@ -174,18 +256,28 @@ Reponds en francais, sois direct et actionnable. Si le fondateur te demande un c
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Il te pose des questions strategiques, te demande des changements, ou veut ton avis. Reponds comme un vrai CEO partner — direct, pas de formules, pas de JSON, juste du texte conversationnel. Tu peux utiliser des bullet points pour la clarte.\n${contextMetrics}`,
+      max_tokens: 2000,
+      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Il te pose des questions strategiques, te demande des changements, ou veut ton avis. Reponds comme un vrai CEO partner — direct, pas de formules, pas de JSON, juste du texte conversationnel. Tu peux utiliser des bullet points pour la clarte.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises. Tu ne repetes pas les memes recommandations. Tu fais progresser la strategie jour apres jour.\n${contextMetrics}`,
       messages,
     });
 
     const reply = response.content[0].type === 'text' ? response.content[0].text : '';
 
-    // Log the conversation
+    // Log the conversation with richer metadata
     await supabase.from('agent_logs').insert({
       agent: 'ceo',
       action: 'chat',
-      data: { message, reply, history_length: history.length },
+      data: {
+        message,
+        reply,
+        history_length: history.length,
+        metrics_snapshot: {
+          prospects: totalProspects ?? 0,
+          hot: hotProspects ?? 0,
+          emails_24h: emailsSent24h ?? 0,
+          dms_24h: dmsPrepared24h ?? 0,
+        },
+      },
       created_at: now.toISOString(),
     });
 
@@ -364,33 +456,14 @@ async function generateBrief(): Promise<NextResponse> {
     const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
     console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
 
-    // --- Parse JSON response ---
-    let brief: any;
-    try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        brief = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
-    } catch (parseError) {
-      console.error('[CEOAgent] Failed to parse brief JSON:', parseError);
-      brief = {
-        summary: rawText.substring(0, 500),
-        kpis: metrics24h,
-        alerts: [],
-        suggestions: [],
-        orders: [],
-        raw: rawText,
-      };
-    }
+    // --- Store raw natural language brief (no JSON parsing) ---
+    const brief = rawText;
 
-    // --- Store brief in agent_logs ---
     await supabase.from('agent_logs').insert({
       agent: 'ceo',
       action: 'daily_brief',
       data: {
-        brief,
+        brief_text: brief,
         metrics_24h: metrics24h,
         metrics_7d: metrics7d,
         generated_at: nowISO,
@@ -398,72 +471,36 @@ async function generateBrief(): Promise<NextResponse> {
       created_at: nowISO,
     });
 
-    // --- Create agent_orders for each order ---
-    const ordersArray = brief.orders || brief.ordres || [];
-    if (Array.isArray(ordersArray)) {
-      for (const order of ordersArray) {
-        await supabase.from('agent_orders').insert({
-          from_agent: 'ceo',
-          to_agent: order.target_agent || order.to_agent,
-          order_type: order.action,
-          payload: order.params || {},
-          priority: order.priority || 'medium',
-          status: 'pending',
-          created_at: nowISO,
-        });
-      }
-    }
-
     // --- Send email brief to founder ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-    const alertsList = brief.alerts || brief.alertes || [];
-    const alertsHtml = alertsList
-      .map((a: any) => {
-        const level = a.level || '';
-        const color = level === 'critical' || level === 'critique' ? '#ef4444' : level === 'warning' || level === 'attention' ? '#f59e0b' : '#3b82f6';
-        const actionText = a.action || a.action_requise || '';
-        return `<div style="border-left:4px solid ${color};padding:8px 12px;margin:8px 0;background:#f9fafb;"><strong>${level.toUpperCase()}</strong>: ${a.message}<br/><em>Action: ${actionText}</em></div>`;
-      })
-      .join('');
-
-    const suggestionsList = brief.suggestions || [];
-    const suggestionsHtml = Array.isArray(suggestionsList)
-      ? suggestionsList
-          .map((s: any) => `<li><strong>[${s.priority}] ${s.agent || s.to_agent}</strong>: ${s.action} - <em>${s.expected_impact}</em></li>`)
-          .join('')
-      : '';
+    // Convert markdown-style brief to HTML for email
+    const briefHtml = brief
+      .replace(/## /g, '<h3 style="color:#9333ea;margin-top:16px;">')
+      .replace(/\n(?=<h3)/g, '</p>\n')
+      .replace(/^- /gm, '<li>')
+      .replace(/<li>(.*)/gm, '<li>$1</li>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br/>');
 
     const emailHtml = `
 <!DOCTYPE html>
 <html>
-<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}h2{color:#9333ea;}.container{max-width:640px;margin:0 auto;padding:20px;}.metric{display:inline-block;text-align:center;padding:10px 16px;margin:4px;background:#f3f4f6;border-radius:8px;}.metric-value{font-size:24px;font-weight:bold;color:#9333ea;}.metric-label{font-size:12px;color:#6b7280;}</style></head>
+<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}h2{color:#9333ea;}.container{max-width:640px;margin:0 auto;padding:20px;}h3{color:#9333ea;margin-top:16px;}li{margin:4px 0;}</style></head>
 <body>
 <div class="container">
   <h2>CEO Brief — ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
-  <p><strong>Resume:</strong> ${brief.summary || brief.brief_fondateur || 'N/A'}</p>
-
-  <h3>KPIs 24h</h3>
-  <div>
-    <div class="metric"><div class="metric-value">${metrics24h.leads}</div><div class="metric-label">Leads</div></div>
-    <div class="metric"><div class="metric-value">${metrics24h.emails_sent}</div><div class="metric-label">Emails envoyes</div></div>
-    <div class="metric"><div class="metric-value">${metrics24h.open_rate}%</div><div class="metric-label">Taux ouverture</div></div>
-    <div class="metric"><div class="metric-value">${metrics24h.emails_clicked}</div><div class="metric-label">Clics</div></div>
-    <div class="metric"><div class="metric-value">${metrics24h.emails_replied}</div><div class="metric-label">Reponses</div></div>
-    <div class="metric"><div class="metric-value">${metrics24h.chatbot_conversations}</div><div class="metric-label">Conversations chatbot</div></div>
-  </div>
-
-  ${alertsHtml ? `<h3>Alertes</h3>${alertsHtml}` : ''}
-  ${suggestionsHtml ? `<h3>Suggestions</h3><ul>${suggestionsHtml}</ul>` : ''}
-
+  ${briefHtml}
   <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;"/>
   <p style="color:#6b7280;font-size:12px;">Genere automatiquement par le CEO Agent KeiroAI a ${new Date().toLocaleTimeString('fr-FR')}</p>
 </div>
 </body>
 </html>`;
 
-    const emailSubject = `CEO Brief — ${metrics24h.leads} leads, ${metrics24h.open_rate}% open rate`;
+    // Extract first line of brief for subject
+    const firstLine = brief.split('\n').find((l: string) => l.trim() && !l.startsWith('##'))?.trim() || 'Brief quotidien';
+    const emailSubject = `CEO Brief — ${firstLine.substring(0, 60)}`;
     let emailSent = false;
 
     // Try Brevo first (more reliable, already configured for transactional)
@@ -534,7 +571,7 @@ async function generateBrief(): Promise<NextResponse> {
 
     return NextResponse.json({
       ok: true,
-      brief,
+      brief: brief,
       metrics: { last_24h: metrics24h, last_7d: metrics7d },
       emailSent,
     });
