@@ -75,6 +75,10 @@ export async function POST(request: NextRequest) {
       // Le planKey stocké dans metadata est toujours le basePlan (ex: pro, pas pro_annual)
       const subMetadata = { ...metadata, planKey: basePlan, billing: isAnnual ? 'annual' : 'monthly' };
 
+      // Appliquer le coupon 1er mois automatiquement pour le plan Pro mensuel
+      const firstMonthCoupon = process.env.STRIPE_COUPON_FIRST_MONTH;
+      const applyFirstMonthDiscount = basePlan === 'pro' && !isAnnual && firstMonthCoupon;
+
       sessionParams = {
         mode: 'subscription' as const,
         line_items: [{ price: priceId, quantity: 1 }],
@@ -82,7 +86,10 @@ export async function POST(request: NextRequest) {
         subscription_data: { metadata: subMetadata },
         success_url: successUrl,
         cancel_url: cancelUrl,
-        allow_promotion_codes: true,
+        ...(applyFirstMonthDiscount
+          ? { discounts: [{ coupon: firstMonthCoupon }] }
+          : { allow_promotion_codes: true }
+        ),
       };
       if (customerId) sessionParams.customer = customerId;
 
