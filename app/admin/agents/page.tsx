@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'briefs' | 'ordres' | 'logs';
+type Tab = 'dashboard' | 'campagnes' | 'briefs' | 'ordres' | 'logs';
 
 type MetricCard = {
   label: string;
@@ -70,6 +70,41 @@ export default function AdminAgentsPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [executingOrders, setExecutingOrders] = useState(false);
+
+  // CEO Chat state
+  const [ceoMessages, setCeoMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [ceoInput, setCeoInput] = useState('');
+  const [ceoLoading, setCeoLoading] = useState(false);
+
+  // Campagnes state
+  type CampaignEntry = {
+    id: string;
+    date: string;
+    agent: string;
+    action: string;
+    total: number;
+    success: number;
+    failed: number;
+    byBusinessType: Record<string, { sent?: number; count?: number; failed?: number; steps?: number[]; handles?: string[] }>;
+    dmExamples?: Array<{ name: string; type?: string; comment?: string }>;
+    results?: Array<{ prospect_id: string; step: number; success: boolean; error?: string }>;
+  };
+  const [campaigns, setCampaigns] = useState<CampaignEntry[]>([]);
+  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
+  const [campaignFilter, setCampaignFilter] = useState<string>('all');
+
+  // DM queue preview
+  type DMQueueItem = {
+    id: string;
+    channel: string;
+    handle: string;
+    message: string;
+    personalization: string;
+    business_type: string;
+    created_at: string;
+    prospect_name?: string;
+  };
+  const [dmQueue, setDmQueue] = useState<DMQueueItem[]>([]);
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -412,12 +447,105 @@ export default function AdminAgentsPage() {
     }
   };
 
+  // ─── CEO Chat ────────────────────────────────────────────
+  const sendCeoMessage = async () => {
+    if (!ceoInput.trim() || ceoLoading) return;
+    const userMsg = ceoInput.trim();
+    setCeoInput('');
+    setCeoMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setCeoLoading(true);
+    try {
+      const res = await fetch('/api/agents/ceo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'chat',
+          message: userMsg,
+          history: ceoMessages,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.reply) {
+        setCeoMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      } else {
+        setCeoMessages(prev => [...prev, { role: 'assistant', content: `Erreur: ${data.error || 'Pas de reponse'}` }]);
+      }
+    } catch (err: any) {
+      setCeoMessages(prev => [...prev, { role: 'assistant', content: `Erreur reseau: ${err.message}` }]);
+    } finally {
+      setCeoLoading(false);
+    }
+  };
+
+  // ─── Campagnes ───────────────────────────────────────────
+  const loadCampaigns = async (filter = 'all') => {
+    try {
+      let query = supabase
+        .from('agent_logs')
+        .select('*')
+        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared'])
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (filter === 'email') query = query.eq('agent', 'email');
+      else if (filter === 'dm_instagram') query = query.eq('agent', 'dm_instagram');
+      else if (filter === 'tiktok') query = query.eq('agent', 'tiktok_comments');
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const entries: CampaignEntry[] = (data || []).map((log: any) => ({
+        id: log.id,
+        date: log.created_at,
+        agent: log.agent,
+        action: log.action,
+        total: log.data?.total || log.data?.prepared || 0,
+        success: log.data?.success || log.data?.prepared || 0,
+        failed: log.data?.failed || 0,
+        byBusinessType: log.data?.by_business_type || {},
+        dmExamples: log.data?.comments || log.data?.prepared_names?.map((n: string) => ({ name: n })) || [],
+        results: log.data?.results || [],
+      }));
+      setCampaigns(entries);
+
+      // Also load DM queue for preview
+      const { data: queueData } = await supabase
+        .from('dm_queue')
+        .select('id, channel, handle, message, personalization, business_type, created_at, prospect_id')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (queueData) {
+        // Fetch prospect names
+        const prospectIds = [...new Set(queueData.map((q: any) => q.prospect_id))];
+        const { data: prospects } = await supabase
+          .from('crm_prospects')
+          .select('id, company')
+          .in('id', prospectIds);
+
+        const nameMap: Record<string, string> = {};
+        if (prospects) prospects.forEach((p: any) => { nameMap[p.id] = p.company; });
+
+        setDmQueue(queueData.map((q: any) => ({
+          ...q,
+          prospect_name: nameMap[q.prospect_id] || 'Inconnu',
+        })));
+      }
+    } catch (err) {
+      console.error('[Admin Agents] Campaigns load error:', err);
+    }
+  };
+
   // ─── Tab change handler ────────────────────────────────
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     switch (tab) {
       case 'dashboard':
         loadDashboard();
+        break;
+      case 'campagnes':
+        loadCampaigns(campaignFilter);
         break;
       case 'briefs':
         loadBriefs();
@@ -508,6 +636,7 @@ export default function AdminAgentsPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'campagnes', label: 'Campagnes' },
     { key: 'briefs', label: 'Briefs CEO' },
     { key: 'ordres', label: 'Ordres' },
     { key: 'logs', label: 'Logs' },
@@ -664,6 +793,292 @@ export default function AdminAgentsPage() {
                 </div>
               )}
             </div>
+
+            {/* CEO Chat */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50">
+                <h3 className="text-sm font-semibold text-neutral-900">
+                  Discuter avec le CEO Agent
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Pose des questions, demande des changements ou discute strategie
+                </p>
+              </div>
+
+              {/* Messages */}
+              <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
+                {ceoMessages.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-neutral-400">Aucun message. Demande au CEO ce que tu veux.</p>
+                    <div className="flex flex-wrap gap-2 justify-center mt-3">
+                      {[
+                        'Quel est le statut des campagnes ?',
+                        'On peut envoyer 200 emails/jour ?',
+                        'Quels business convertissent le mieux ?',
+                        'Augmente le niveau du commercial',
+                      ].map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => { setCeoInput(q); }}
+                          className="text-xs px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-all"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {ceoMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+                      msg.role === 'user'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-neutral-100 text-neutral-800'
+                    }`}>
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+                {ceoLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-neutral-100 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="p-3 border-t border-neutral-100 flex gap-2">
+                <input
+                  type="text"
+                  value={ceoInput}
+                  onChange={(e) => setCeoInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCeoMessage(); } }}
+                  placeholder="Demande au CEO..."
+                  className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                />
+                <button
+                  onClick={sendCeoMessage}
+                  disabled={ceoLoading || !ceoInput.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                >
+                  Envoyer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== TAB CAMPAGNES ===== */}
+        {activeTab === 'campagnes' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-neutral-900">
+                Campagnes ({campaigns.length})
+              </h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={campaignFilter}
+                  onChange={(e) => {
+                    setCampaignFilter(e.target.value);
+                    loadCampaigns(e.target.value);
+                  }}
+                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les canaux</option>
+                  <option value="email">Email</option>
+                  <option value="dm_instagram">DM Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                </select>
+                <button
+                  onClick={() => loadCampaigns(campaignFilter)}
+                  className="text-xs text-purple-600 hover:underline"
+                >
+                  Actualiser
+                </button>
+              </div>
+            </div>
+
+            {/* DM Queue Preview */}
+            {dmQueue.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50">
+                  <h3 className="text-sm font-semibold text-neutral-900">File d'attente DM ({dmQueue.length} derniers)</h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">Messages en attente d'envoi par canal et business type</p>
+                </div>
+                <div className="divide-y divide-neutral-100">
+                  {dmQueue.slice(0, 10).map((dm) => (
+                    <div key={dm.id} className="p-4 hover:bg-neutral-50 transition-all">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          dm.channel === 'instagram' ? 'bg-pink-100 text-pink-700' :
+                          dm.channel === 'tiktok' ? 'bg-neutral-900 text-white' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>{dm.channel}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-neutral-100 text-neutral-600">
+                          {dm.business_type || 'N/A'}
+                        </span>
+                        <span className="text-xs font-medium text-neutral-800">{dm.prospect_name}</span>
+                        <span className="text-xs text-neutral-400 ml-auto">@{dm.handle}</span>
+                      </div>
+                      <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-100">
+                        <p className="text-sm text-neutral-700 whitespace-pre-wrap">{dm.message}</p>
+                      </div>
+                      {dm.personalization && (
+                        <p className="text-[10px] text-neutral-400 mt-1">Perso: {dm.personalization}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Campaign History */}
+            {campaigns.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
+                Aucune campagne pour le moment
+              </div>
+            ) : (
+              campaigns.map((campaign) => {
+                const isExpanded = expandedCampaign === campaign.id;
+                const channelLabel = campaign.agent === 'email'
+                  ? (campaign.action === 'daily_warm' ? 'Email (warm)' : 'Email (cold)')
+                  : campaign.agent === 'dm_instagram'
+                  ? 'DM Instagram'
+                  : 'TikTok';
+                const channelColor = campaign.agent === 'email'
+                  ? 'bg-green-100 text-green-700'
+                  : campaign.agent === 'dm_instagram'
+                  ? 'bg-pink-100 text-pink-700'
+                  : 'bg-neutral-900 text-white';
+
+                return (
+                  <div key={campaign.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                    <button
+                      onClick={() => setExpandedCampaign(isExpanded ? null : campaign.id)}
+                      className="w-full text-left p-5 hover:bg-neutral-50 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${channelColor}`}>
+                            {channelLabel}
+                          </span>
+                          <span className="text-sm font-semibold text-neutral-900">
+                            {new Date(campaign.date).toLocaleDateString('fr-FR', {
+                              weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <span className="text-lg font-bold text-neutral-900">{campaign.success}</span>
+                            <span className="text-xs text-neutral-400 ml-1">envoy{campaign.agent === 'email' ? 'es' : 'es'}</span>
+                          </div>
+                          {campaign.failed > 0 && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
+                              {campaign.failed} echec
+                            </span>
+                          )}
+                          <svg className={`w-5 h-5 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Business type summary */}
+                      {Object.keys(campaign.byBusinessType).length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {Object.entries(campaign.byBusinessType).map(([type, data]) => (
+                            <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
+                              {type}: {data.sent || data.count || 0}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-neutral-100 p-5 bg-neutral-50 space-y-4">
+                        {/* Business type breakdown */}
+                        {Object.keys(campaign.byBusinessType).length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Par type de business</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {Object.entries(campaign.byBusinessType).map(([type, data]) => (
+                                <div key={type} className="bg-white rounded-lg border p-3">
+                                  <p className="text-sm font-bold text-neutral-900">{data.sent || data.count || 0}</p>
+                                  <p className="text-xs text-neutral-600 capitalize">{type}</p>
+                                  {data.steps && data.steps.length > 0 && (
+                                    <p className="text-[10px] text-neutral-400 mt-1">
+                                      Steps: {[...new Set(data.steps)].join(', ')}
+                                    </p>
+                                  )}
+                                  {data.handles && data.handles.length > 0 && (
+                                    <p className="text-[10px] text-neutral-400 mt-1">
+                                      {data.handles.slice(0, 3).map((h: string) => `@${h}`).join(', ')}
+                                      {data.handles.length > 3 && ` +${data.handles.length - 3}`}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* DM/Comment examples */}
+                        {campaign.dmExamples && campaign.dmExamples.length > 0 && campaign.dmExamples[0]?.comment && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
+                              Exemples de messages ({campaign.agent === 'tiktok_comments' ? 'commentaires' : 'DMs'})
+                            </h4>
+                            <div className="space-y-2">
+                              {campaign.dmExamples.filter((d: any) => d.comment).slice(0, 5).map((dm: any, i: number) => (
+                                <div key={i} className="bg-white rounded-lg border p-3">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-medium text-neutral-800">{dm.name}</span>
+                                    {dm.type && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{dm.type}</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-neutral-600 bg-neutral-50 rounded p-2 whitespace-pre-wrap">
+                                    {dm.comment}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Email results detail */}
+                        {campaign.agent === 'email' && campaign.results && campaign.results.length > 0 && (
+                          <details className="text-xs">
+                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">
+                              Details ({campaign.results.length} emails)
+                            </summary>
+                            <div className="mt-2 space-y-1">
+                              {campaign.results.slice(0, 20).map((r: any, i: number) => (
+                                <div key={i} className={`flex items-center gap-2 py-1 px-2 rounded ${r.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                                  <span className={`w-2 h-2 rounded-full ${r.success ? 'bg-green-400' : 'bg-red-400'}`} />
+                                  <span className="text-neutral-600">Step {r.step}</span>
+                                  <span className="text-neutral-400 truncate">{r.prospect_id?.slice(0, 8)}...</span>
+                                  {r.error && <span className="text-red-500 truncate">{r.error}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
 

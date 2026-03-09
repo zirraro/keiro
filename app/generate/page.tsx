@@ -115,8 +115,8 @@ export default function GeneratePage() {
   const [selectedNews, setSelectedNews] = useState<NewsCard | null>(null);
   const [useNewsMode, setUseNewsMode] = useState<boolean>(true); // true = avec actualité, false = sans actualité
   const [monthlyStats, setMonthlyStats] = useState<{ images: number; videos: number; assistant: number } | null>(null);
-  const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; trendingMusic: any[]; tiktokTrends: any[]; instagramTrends: any[]; keywords: string[] } | null>(null);
-  const [trendTab, setTrendTab] = useState<'google' | 'tiktok' | 'instagram'>('google');
+  const [trendingData, setTrendingData] = useState<{ googleTrends: any[]; tiktokHashtags: any[]; trendingMusic: any[]; tiktokTrends: any[]; instagramTrends: any[]; linkedinTrends?: any[]; instagramHashtags?: any[]; tiktokRealHashtags?: any[]; keywords: string[] } | null>(null);
+  const [trendTab, setTrendTab] = useState<'google' | 'tiktok' | 'instagram' | 'linkedin'>('google');
 
   /* --- Ref pour le scroll auto sur mobile --- */
   const promptSectionRef = useRef<HTMLDivElement>(null);
@@ -3134,6 +3134,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   { key: 'google' as const, label: '🔍 Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
                   { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
                   { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
+                  { key: 'linkedin' as const, label: '💼 LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
                 ] as const).map((tab) => (
                   <button
                     key={tab.key}
@@ -3241,6 +3242,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   {(!trendingData?.tiktokTrends || trendingData.tiktokTrends.length === 0) && (
                     <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
                   )}
+                  {/* Real TikTok Hashtags from Creative Center */}
+                  {trendingData?.tiktokRealHashtags && trendingData.tiktokRealHashtags.length > 0 && (
+                    <div className="col-span-3 flex flex-wrap gap-1 mt-1">
+                      {trendingData.tiktokRealHashtags.slice(0, 6).map((h: any, i: number) => (
+                        <span key={i} className="text-[9px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+                          #{h.hashtag} {h.viewsFormatted && <span className="text-blue-400 ml-0.5">{h.viewsFormatted}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </>)}
 
                 {/* Instagram Trends */}
@@ -3284,6 +3295,61 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     </article>
                   ))}
                   {(!trendingData?.instagramTrends || trendingData.instagramTrends.length === 0) && (
+                    <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
+                  )}
+                  {/* Real Instagram Hashtags */}
+                  {trendingData?.instagramHashtags && trendingData.instagramHashtags.length > 0 && (
+                    <div className="col-span-3 flex flex-wrap gap-1 mt-1">
+                      {trendingData.instagramHashtags.slice(0, 6).map((h: any, i: number) => (
+                        <span key={i} className="text-[9px] px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full font-medium">
+                          #{h.hashtag} {h.engagement && <span className="text-pink-400 ml-0.5">{h.engagement}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>)}
+
+                {/* LinkedIn Trends */}
+                {trendTab === 'linkedin' && (<>
+                  {(trendingData?.linkedinTrends || []).slice(0, 3).map((trend: any, i: number) => (
+                    <article
+                      key={`li-${i}`}
+                      onClick={() => {
+                        setUseNewsMode(true);
+                        setSelectedNews({
+                          id: `trend-linkedin-${i}`,
+                          title: trend.title,
+                          description: trend.description || trend.title,
+                          url: trend.url || '',
+                          image: trend.imageUrl,
+                          source: 'LinkedIn Trends',
+                          category: 'Business',
+                        });
+                        const el = document.getElementById('business-description');
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                      style={{ height: '120px' }}
+                    >
+                      {trend.imageUrl ? (
+                        <img src={trend.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-sky-700 to-blue-900" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      <span className="absolute top-2 left-2 text-[8px] bg-sky-600 text-white font-bold px-1.5 py-0.5 rounded-full z-10">💼 LinkedIn</span>
+                      {trend.engagement && <span className="absolute top-2 right-2 text-[7px] bg-white/90 text-neutral-700 font-bold px-1.5 py-0.5 rounded-full z-10">{trend.engagement}</span>}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 z-10">
+                        <h3 className="font-semibold text-[11px] leading-tight text-white line-clamp-2 drop-shadow-sm">
+                          {trend.title}
+                        </h3>
+                        {trend.keyword && trend.keyword !== trend.title && (
+                          <p className="text-[9px] text-white/60 mt-0.5 line-clamp-1">{trend.keyword}</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {(!trendingData?.linkedinTrends || trendingData.linkedinTrends.length === 0) && (
                     <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
                   )}
                 </>)}

@@ -92,7 +92,8 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/agents/ceo
- * Manually trigger a new daily brief (admin button or test).
+ * - action=brief: Manually trigger a new daily brief
+ * - action=chat: Direct conversation with the CEO agent (admin only)
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
@@ -104,7 +105,95 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
   }
 
+  // Check if this is a chat request
+  try {
+    const body = await request.json().catch(() => ({}));
+    if (body.action === 'chat' && body.message) {
+      return handleCeoChat(body.message, body.history || []);
+    }
+  } catch {}
+
   return generateBrief();
+}
+
+/**
+ * Direct chat with the CEO agent. Admin can discuss strategy, ask for changes, get recommendations.
+ */
+async function handleCeoChat(
+  message: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<NextResponse> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Quick metrics for context
+    const { count: totalProspects } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true });
+    const { count: hotProspects } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'hot');
+    const { count: emailsSent24h } = await supabase
+      .from('agent_logs').select('id', { count: 'exact', head: true })
+      .eq('agent', 'email').gte('created_at', twentyFourHoursAgo);
+    const { count: dmsPrepared24h } = await supabase
+      .from('agent_logs').select('id', { count: 'exact', head: true })
+      .eq('agent', 'dm_instagram').gte('created_at', twentyFourHoursAgo);
+
+    const contextMetrics = `
+Metriques live:
+- Prospects total: ${totalProspects ?? 0}
+- Prospects chauds: ${hotProspects ?? 0}
+- Emails envoyes 24h: ${emailsSent24h ?? 0}
+- DMs prepares 24h: ${dmsPrepared24h ?? 0}
+
+CAPACITES ACTUELLES:
+- Email cold: max 50/jour (Brevo limit), 5 slots horaires (early_morning/morning/midday/afternoon/evening)
+- DM Instagram: max 10/jour (limit anti-spam), 2 slots (matin/soir)
+- TikTok comments: max 5/jour, 1 slot (soir)
+- Timing intelligent par type de business (12 categories x 4 canaux)
+- Verification prospect (type, email, ville, coherence nom/type)
+
+Tu peux proposer des changements concrets:
+- Augmenter/diminuer les limites d'envoi
+- Changer les heures de cron
+- Modifier les templates email/DM
+- Ajouter/supprimer des categories business
+- Ajuster le scoring des prospects
+- Modifier les sequences (delais entre emails, nombre d'etapes)
+
+Reponds en francais, sois direct et actionnable. Si le fondateur te demande un changement technique, donne les instructions precises (fichier, variable, valeur).`;
+
+    const messages = [
+      ...history.map((h) => ({
+        role: h.role as 'user' | 'assistant',
+        content: h.content,
+      })),
+      { role: 'user' as const, content: message },
+    ];
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Il te pose des questions strategiques, te demande des changements, ou veut ton avis. Reponds comme un vrai CEO partner — direct, pas de formules, pas de JSON, juste du texte conversationnel. Tu peux utiliser des bullet points pour la clarte.\n${contextMetrics}`,
+      messages,
+    });
+
+    const reply = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    // Log the conversation
+    await supabase.from('agent_logs').insert({
+      agent: 'ceo',
+      action: 'chat',
+      data: { message, reply, history_length: history.length },
+      created_at: now.toISOString(),
+    });
+
+    return NextResponse.json({ ok: true, reply });
+  } catch (error: any) {
+    console.error('[CEOAgent] Chat error:', error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
 }
 
 /**

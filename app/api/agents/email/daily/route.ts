@@ -2,23 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
+import { isGoodTimeToContact, getOptimalCronSlot, verifyProspectData } from '@/lib/agents/business-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-/**
- * Optimal send times by business category (Paris timezone / UTC+1 or UTC+2).
- * Based on when each type of business has downtime to read emails.
- *
- * MORNING slot (cron 8h UTC = 10h Paris):
- *   freelance, agence, pme, professionnel, services → bureau types, check email mid-morning
- *
- * AFTERNOON slot (cron 12h UTC = 14h Paris):
- *   restaurant, coiffeur, fleuriste, caviste, traiteur, boutique, coach → after lunch rush
- */
-const MORNING_CATEGORIES = new Set(['freelance', 'agence', 'pme', 'professionnel', 'services']);
-const AFTERNOON_CATEGORIES = new Set(['restaurant', 'coiffeur', 'fleuriste', 'caviste', 'traiteur', 'boutique', 'coach']);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -181,30 +169,45 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // --- Default: cold sequences ---
-      // Slot-based sending: morning slot sends to office types, afternoon to commerce types
+      // Smart timing: use business-timing.ts to send at optimal hour per business type
       const slot = request.nextUrl.searchParams.get('slot') || 'all';
       console.log(`[EmailDaily] Running cold sequence mode (slot=${slot})...`);
 
+      // Pull from ALL qualified prospects (not just chatbot leads)
       const { data: prospects } = await supabase
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null)
         .or('email_sequence_status.is.null,email_sequence_status.in.(not_started,in_progress)')
         .neq('temperature', 'dead')
-        .not('status', 'in', '("client","perdu")');
+        .not('status', 'in', '("client","perdu","sprint")');
 
-      console.log(`[EmailDaily] Eligible prospects (before slot filter): ${prospects?.length ?? 0}`);
+      console.log(`[EmailDaily] Eligible prospects (before timing filter): ${prospects?.length ?? 0}`);
 
       let step1Count = 0;
       const MAX_STEP1_PER_DAY = 50;
+      let skippedTiming = 0;
+      let skippedVerification = 0;
 
       for (const prospect of prospects || []) {
-        // Filter by time slot based on business category
+        const category = getSequenceForProspect(prospect);
+
+        // Smart timing filter: only send if NOW is a good time for this business type
         if (slot !== 'all') {
-          const category = getSequenceForProspect(prospect);
-          if (slot === 'morning' && !MORNING_CATEGORIES.has(category)) continue;
-          if (slot === 'afternoon' && !AFTERNOON_CATEGORIES.has(category)) continue;
+          if (!isGoodTimeToContact(category, 'email')) {
+            skippedTiming++;
+            continue;
+          }
         }
+
+        // Verify prospect data quality before sending
+        const verification = verifyProspectData(prospect);
+        if (!verification.valid) {
+          skippedVerification++;
+          console.log(`[EmailDaily] Skipped ${prospect.company}: ${verification.issues.join(', ')}`);
+          continue;
+        }
+
         const step = prospect.email_sequence_step ?? 0;
         const lastSent = prospect.last_email_sent_at
           ? new Date(prospect.last_email_sent_at)
@@ -273,11 +276,27 @@ export async function GET(request: NextRequest) {
           });
         }
       }
+
+      console.log(`[EmailDaily] Skipped: ${skippedTiming} timing, ${skippedVerification} verification`);
     }
 
-    // --- Log summary to agent_logs ---
+    // --- Log summary to agent_logs with campaign breakdown ---
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
+
+    // Group by business type for campaign tracking
+    const byBusinessType: Record<string, { sent: number; failed: number; steps: number[] }> = {};
+    for (const r of results) {
+      // Find the prospect to get its type
+      const p = (type === 'warm')
+        ? null
+        : (await supabase.from('crm_prospects').select('type, company').eq('id', r.prospect_id).single()).data;
+      const bType = p?.type || 'unknown';
+      if (!byBusinessType[bType]) byBusinessType[bType] = { sent: 0, failed: 0, steps: [] };
+      if (r.success) byBusinessType[bType].sent++;
+      else byBusinessType[bType].failed++;
+      byBusinessType[bType].steps.push(r.step);
+    }
 
     await supabase.from('agent_logs').insert({
       agent: 'email',
@@ -286,6 +305,7 @@ export async function GET(request: NextRequest) {
         total: results.length,
         success: successCount,
         failed: failCount,
+        by_business_type: byBusinessType,
         results: results.map((r) => ({
           prospect_id: r.prospect_id,
           step: r.step,

@@ -1,12 +1,15 @@
 /**
- * Agrégateur de tendances : Google Trends + TikTok hashtags.
- * Cache serveur 24h + persistance en BDD Supabase pour historique.
+ * Agrégateur de tendances : Google Trends + TikTok + Instagram + LinkedIn.
+ * Cache serveur 12h + persistance en BDD Supabase pour historique.
  */
 
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
 import { deriveTikTokHashtags, type TikTokHashtag } from './tiktokTrends';
 import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
 import { fetchTikTokTrends, fetchInstagramTrends, type SocialTrend } from './socialTrends';
+import { fetchLinkedInTrends, type LinkedInTrend } from './linkedinTrends';
+import { fetchInstagramRealTrends, type InstagramRealTrend } from './instagramRealTrends';
+import { fetchTikTokCreativeCenterTrends, type TikTokRealTrend } from './tiktokCreativeCenter';
 import { createClient } from '@supabase/supabase-js';
 
 export type TrendingData = {
@@ -15,6 +18,9 @@ export type TrendingData = {
   trendingMusic: TikTokTrendingSong[];
   tiktokTrends: SocialTrend[];
   instagramTrends: SocialTrend[];
+  linkedinTrends: LinkedInTrend[];
+  instagramHashtags: InstagramRealTrend[];
+  tiktokRealHashtags: TikTokRealTrend[];
   keywords: string[]; // liste plate pour scoring rapide
   fetchedAt: string;  // ISO timestamp
 };
@@ -45,11 +51,14 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
   console.log(`[Trends] Cache miss for ${region}/${geo}, fetching fresh trends...`);
 
   // Fetch all sources in parallel with geo
-  const [googleResult, musicResult, tiktokResult, instaResult] = await Promise.allSettled([
+  const [googleResult, musicResult, tiktokResult, instaResult, linkedinResult, instaRealResult, tiktokRealResult] = await Promise.allSettled([
     fetchGoogleTrendsFR(geo),
     fetchTikTokTrendingMusicFR(),
     fetchTikTokTrends(geo),
     fetchInstagramTrends(geo),
+    fetchLinkedInTrends(geo),
+    fetchInstagramRealTrends(geo),
+    fetchTikTokCreativeCenterTrends(geo),
   ]);
 
   const googleTrends =
@@ -60,6 +69,12 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
     tiktokResult.status === 'fulfilled' ? tiktokResult.value : [];
   const instagramTrends =
     instaResult.status === 'fulfilled' ? instaResult.value : [];
+  const linkedinTrends =
+    linkedinResult.status === 'fulfilled' ? linkedinResult.value : [];
+  const instagramHashtags =
+    instaRealResult.status === 'fulfilled' ? instaRealResult.value : [];
+  const tiktokRealHashtags =
+    tiktokRealResult.status === 'fulfilled' ? tiktokRealResult.value : [];
 
   // Derive TikTok hashtags from Google Trends data
   const tiktokHashtags = deriveTikTokHashtags(googleTrends.map(t => t.title));
@@ -94,12 +109,31 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
     if (t.title) keywords.push(t.title.toLowerCase());
   }
 
+  // Add LinkedIn trends to keywords
+  for (const t of linkedinTrends) {
+    if (t.title) keywords.push(t.title.toLowerCase());
+    if (t.keyword) keywords.push(t.keyword.toLowerCase());
+  }
+
+  // Add Instagram real hashtags to keywords
+  for (const t of instagramHashtags) {
+    if (t.hashtag) keywords.push(t.hashtag.toLowerCase());
+  }
+
+  // Add TikTok real hashtags to keywords
+  for (const t of tiktokRealHashtags) {
+    if (t.hashtag) keywords.push(t.hashtag.toLowerCase());
+  }
+
   const data: TrendingData = {
     googleTrends,
     tiktokHashtags,
     trendingMusic,
     tiktokTrends,
     instagramTrends,
+    linkedinTrends,
+    instagramHashtags,
+    tiktokRealHashtags,
     keywords: [...new Set(keywords)],
     fetchedAt: new Date().toISOString(),
   };
@@ -108,7 +142,7 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
   cachedByRegion[region] = { data, ts: now };
 
   console.log(
-    `[Trends] Cached: ${googleTrends.length} Google, ${tiktokTrends.length} TikTok, ${instagramTrends.length} Instagram, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
+    `[Trends] Cached: ${googleTrends.length} Google, ${tiktokTrends.length} TikTok, ${instagramTrends.length} Instagram, ${linkedinTrends.length} LinkedIn, ${instagramHashtags.length} InstaHashtags, ${tiktokRealHashtags.length} TikTokReal, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
   );
 
   // Persister en BDD pour historique (async, non bloquant)
@@ -182,3 +216,6 @@ export type { GoogleTrendItem } from './googleTrends';
 export type { TikTokHashtag } from './tiktokTrends';
 export type { TikTokTrendingSong } from './tiktokMusic';
 export type { SocialTrend } from './socialTrends';
+export type { LinkedInTrend } from './linkedinTrends';
+export type { InstagramRealTrend } from './instagramRealTrends';
+export type { TikTokRealTrend } from './tiktokCreativeCenter';

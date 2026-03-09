@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
+import { isGoodTimeToContact, verifyProspectData } from '@/lib/agents/business-timing';
+import { getSequenceForProspect } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -126,9 +128,9 @@ async function runDMPreparation(): Promise<NextResponse> {
     .neq('instagram', 'A_VERIFIER')
     .eq('dm_status', 'none')
     .neq('temperature', 'dead')
-    .not('status', 'in', '("client_pro","client_fondateurs","lost")')
+    .not('status', 'in', '("client_pro","client_fondateurs","lost","perdu","client","sprint")')
     .order('score', { ascending: false })
-    .limit(MAX_DM_PER_DAY);
+    .limit(MAX_DM_PER_DAY * 3); // Fetch more to account for timing/verification filtering
 
   if (error) {
     console.error('[DMAgent] Fetch error:', error.message);
@@ -140,13 +142,33 @@ async function runDMPreparation(): Promise<NextResponse> {
     return NextResponse.json({ ok: true, prepared: 0, message: 'Aucun prospect éligible' });
   }
 
-  console.log(`[DMAgent] Found ${prospects.length} prospects for DM preparation`);
+  console.log(`[DMAgent] Found ${prospects.length} prospects (before timing/verification filter)`);
 
   let prepared = 0;
   let failed = 0;
+  let skippedTiming = 0;
+  let skippedVerification = 0;
   const preparedNames: string[] = [];
+  const byBusinessType: Record<string, { count: number; handles: string[] }> = {};
 
   for (const prospect of prospects) {
+    if (prepared >= MAX_DM_PER_DAY) break;
+
+    const category = getSequenceForProspect(prospect);
+
+    // Smart timing: only prepare DM if now is a good time for this business type
+    if (!isGoodTimeToContact(category, 'dm_instagram')) {
+      skippedTiming++;
+      continue;
+    }
+
+    // Verify prospect data quality
+    const verification = verifyProspectData(prospect);
+    if (!verification.valid) {
+      skippedVerification++;
+      continue;
+    }
+
     const dm = await generateDM(prospect);
     if (!dm) { failed++; continue; }
 
@@ -158,6 +180,7 @@ async function runDMPreparation(): Promise<NextResponse> {
       message: dm.dm_text,
       followup_message: dm.follow_up_3d,
       personalization: dm.personalization_detail,
+      business_type: category,
       priority: prospect.score || 50,
       created_at: now,
     });
@@ -179,8 +202,13 @@ async function runDMPreparation(): Promise<NextResponse> {
 
     prepared++;
     preparedNames.push(`${prospect.company} (${prospect.instagram})`);
-    console.log(`[DMAgent] Prepared DM for ${prospect.company}`);
 
+    // Track by business type
+    if (!byBusinessType[category]) byBusinessType[category] = { count: 0, handles: [] };
+    byBusinessType[category].count++;
+    byBusinessType[category].handles.push(prospect.instagram);
+
+    console.log(`[DMAgent] Prepared DM for ${prospect.company} (${category})`);
     await new Promise(r => setTimeout(r, 300));
   }
 
@@ -213,7 +241,10 @@ async function runDMPreparation(): Promise<NextResponse> {
   const report = {
     prepared,
     failed,
+    skipped_timing: skippedTiming,
+    skipped_verification: skippedVerification,
     followups: followupCount,
+    by_business_type: byBusinessType,
     prepared_names: preparedNames,
     timestamp: now,
   };
@@ -225,6 +256,6 @@ async function runDMPreparation(): Promise<NextResponse> {
     created_at: now,
   });
 
-  console.log(`[DMAgent] Done: ${prepared} prepared, ${failed} failed, ${followupCount} followups`);
+  console.log(`[DMAgent] Done: ${prepared} prepared, ${failed} failed, ${skippedTiming} skipped(timing), ${skippedVerification} skipped(verif), ${followupCount} followups`);
   return NextResponse.json({ ok: true, ...report });
 }

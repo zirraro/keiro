@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getTikTokCommentPrompt } from '@/lib/agents/tiktok-comment-prompt';
+import { isGoodTimeToContact, verifyProspectData } from '@/lib/agents/business-timing';
+import { getSequenceForProspect } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -118,8 +120,9 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
     .select('*')
     .not('tiktok_handle', 'is', null)
     .neq('temperature', 'dead')
+    .not('status', 'in', '("client","perdu","sprint")')
     .order('score', { ascending: false })
-    .limit(5);
+    .limit(15); // Fetch more to account for timing filter
 
   if (!prospects || prospects.length === 0) {
     console.log('[TikTokAgent] No TikTok prospects found');
@@ -127,9 +130,29 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
   }
 
   let prepared = 0;
-  const preparedComments: Array<{ name: string; comment: string }> = [];
+  let skippedTiming = 0;
+  let skippedVerification = 0;
+  const preparedComments: Array<{ name: string; type: string; comment: string }> = [];
+  const byBusinessType: Record<string, { count: number; handles: string[] }> = {};
 
   for (const prospect of prospects) {
+    if (prepared >= 5) break;
+
+    const category = getSequenceForProspect(prospect);
+
+    // Smart timing: check if now is good for TikTok DM to this business type
+    if (!isGoodTimeToContact(category, 'dm_tiktok')) {
+      skippedTiming++;
+      continue;
+    }
+
+    // Verify prospect data
+    const verification = verifyProspectData(prospect);
+    if (!verification.valid) {
+      skippedVerification++;
+      continue;
+    }
+
     const result = await generateComment(prospect);
     if (!result) continue;
 
@@ -139,17 +162,29 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
       handle: prospect.tiktok_handle,
       message: result.comment,
       personalization: result.strategy,
+      business_type: category,
       priority: prospect.score || 30,
       created_at: now,
     });
 
     prepared++;
-    preparedComments.push({ name: prospect.company, comment: result.comment });
+    preparedComments.push({ name: prospect.company, type: category, comment: result.comment });
+
+    if (!byBusinessType[category]) byBusinessType[category] = { count: 0, handles: [] };
+    byBusinessType[category].count++;
+    byBusinessType[category].handles.push(prospect.tiktok_handle);
 
     await new Promise(r => setTimeout(r, 300));
   }
 
-  const report = { prepared, comments: preparedComments, timestamp: now };
+  const report = {
+    prepared,
+    skipped_timing: skippedTiming,
+    skipped_verification: skippedVerification,
+    by_business_type: byBusinessType,
+    comments: preparedComments,
+    timestamp: now,
+  };
 
   await supabase.from('agent_logs').insert({
     agent: 'tiktok_comments',
@@ -158,6 +193,6 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
     created_at: now,
   });
 
-  console.log(`[TikTokAgent] ${prepared} comments prepared`);
+  console.log(`[TikTokAgent] ${prepared} comments prepared, ${skippedTiming} skipped(timing), ${skippedVerification} skipped(verif)`);
   return NextResponse.json({ ok: true, ...report });
 }
