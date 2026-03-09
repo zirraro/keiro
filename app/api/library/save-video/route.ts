@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         audio_url: audioUrl || null,
         is_favorite: false,
         published_to_tiktok: false,
-        ai_model: aiModel || 'seedream'
+        ai_model: aiModel || 'kling'
       })
       .select()
       .single();

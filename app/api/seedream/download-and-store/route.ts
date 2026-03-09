@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
         format: 'mp4',
         duration: duration,
         is_favorite: false,
-        ai_model: aiModel || 'seedream'
+        ai_model: aiModel || 'kling'
       })
       .select()
       .single();
