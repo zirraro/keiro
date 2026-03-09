@@ -3187,7 +3187,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     fallbackGrad: 'from-sky-700 to-blue-900',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
-                    getNewsCard: (t, i) => ({ id: `trend-linkedin-${i}`, title: t.title, description: t.description || t.title, url: t.url || '', image: t.imageUrl, source: 'LinkedIn Trends', category: 'Business' }),
+                    getNewsCard: (t, i) => ({ id: `trend-linkedin-${i}`, title: t.title, description: t.description || t.title, url: '', image: t.imageUrl, source: 'LinkedIn Trends', category: 'Business' }),
                   },
                 };
                 const cfg = tabConfig[trendTab];

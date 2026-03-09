@@ -6,8 +6,7 @@
 import { fetchGoogleTrendsFR, type GoogleTrendItem } from './googleTrends';
 import { deriveTikTokHashtags, type TikTokHashtag } from './tiktokTrends';
 import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMusic';
-import { fetchTikTokTrends, fetchInstagramTrends, type SocialTrend } from './socialTrends';
-import { fetchLinkedInTrends, type LinkedInTrend } from './linkedinTrends';
+import { fetchTikTokTrends, fetchInstagramTrends, fetchLinkedInSocialTrends, type SocialTrend } from './socialTrends';
 import { fetchInstagramRealTrends, type InstagramRealTrend } from './instagramRealTrends';
 import { fetchTikTokCreativeCenterTrends, type TikTokRealTrend } from './tiktokCreativeCenter';
 import { createClient } from '@supabase/supabase-js';
@@ -18,7 +17,7 @@ export type TrendingData = {
   trendingMusic: TikTokTrendingSong[];
   tiktokTrends: SocialTrend[];
   instagramTrends: SocialTrend[];
-  linkedinTrends: LinkedInTrend[];
+  linkedinTrends: SocialTrend[];
   instagramHashtags: InstagramRealTrend[];
   tiktokRealHashtags: TikTokRealTrend[];
   keywords: string[]; // liste plate pour scoring rapide
@@ -56,7 +55,7 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
     fetchTikTokTrendingMusicFR(),
     fetchTikTokTrends(geo),
     fetchInstagramTrends(geo),
-    fetchLinkedInTrends(geo),
+    fetchLinkedInSocialTrends(geo),
     fetchInstagramRealTrends(geo),
     fetchTikTokCreativeCenterTrends(geo),
   ]);
@@ -112,7 +111,7 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
   // Add LinkedIn trends to keywords
   for (const t of linkedinTrends) {
     if (t.title) keywords.push(t.title.toLowerCase());
-    if (t.keyword) keywords.push(t.keyword.toLowerCase());
+    if (t.keyword && t.keyword !== t.title) keywords.push(t.keyword.toLowerCase());
   }
 
   // Add Instagram real hashtags to keywords
@@ -216,6 +215,5 @@ export type { GoogleTrendItem } from './googleTrends';
 export type { TikTokHashtag } from './tiktokTrends';
 export type { TikTokTrendingSong } from './tiktokMusic';
 export type { SocialTrend } from './socialTrends';
-export type { LinkedInTrend } from './linkedinTrends';
 export type { InstagramRealTrend } from './instagramRealTrends';
 export type { TikTokRealTrend } from './tiktokCreativeCenter';

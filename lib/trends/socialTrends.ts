@@ -1,8 +1,9 @@
 /**
  * Fetch social media trends with images — all from Google Trends FR RSS.
  *
- * TikTok tab: Google Trends FR positions 4-6
- * Instagram tab: Google Trends FR positions 7-9
+ * Instagram tab: Google Trends FR positions 4-9
+ * TikTok tab:    Google Trends FR positions 10-15
+ * LinkedIn tab:  Google Trends FR positions 16-21
  *
  * Google Trends geo=FR reflects what's trending in France across ALL platforms.
  * Titles displayed = ht:news_item_title (always in French) with keyword as subtitle.
@@ -13,19 +14,32 @@ export type SocialTrend = {
   title: string;         // French article title (ht:news_item_title)
   keyword: string;       // Trending keyword (may be English: "Taylor Swift", etc.)
   description: string;
-  platform: 'tiktok' | 'instagram';
+  platform: 'tiktok' | 'instagram' | 'linkedin';
   imageUrl?: string;
   type: 'challenge' | 'trend' | 'format' | 'viral';
   engagement?: string;
 };
 
 /**
- * Fetch TikTok trends = Google Trends FR positions 4-9 (6 items for "voir plus").
+ * Fetch Instagram trends = Google Trends FR positions 4-9 (6 items).
+ */
+export async function fetchInstagramTrends(geo = 'FR'): Promise<SocialTrend[]> {
+  try {
+    console.log(`[SocialTrends] Fetching Instagram trends (Google Trends ${geo} 4-9)...`);
+    return await fetchGoogleTrendsRange(4, 9, 'instagram', geo);
+  } catch (err: any) {
+    console.warn('[SocialTrends] Instagram trends error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch TikTok trends = Google Trends FR positions 10-15 (6 items).
  */
 export async function fetchTikTokTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log(`[SocialTrends] Fetching TikTok trends (Google Trends ${geo} 4-9)...`);
-    return await fetchGoogleTrendsRange(4, 9, 'tiktok', geo);
+    console.log(`[SocialTrends] Fetching TikTok trends (Google Trends ${geo} 10-15)...`);
+    return await fetchGoogleTrendsRange(10, 15, 'tiktok', geo);
   } catch (err: any) {
     console.warn('[SocialTrends] TikTok trends error:', err.message);
     return [];
@@ -33,14 +47,14 @@ export async function fetchTikTokTrends(geo = 'FR'): Promise<SocialTrend[]> {
 }
 
 /**
- * Fetch Instagram trends = Google Trends positions 10-15 (6 items for "voir plus").
+ * Fetch LinkedIn trends = Google Trends FR positions 16-21 (6 items).
  */
-export async function fetchInstagramTrends(geo = 'FR'): Promise<SocialTrend[]> {
+export async function fetchLinkedInSocialTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log(`[SocialTrends] Fetching Instagram trends (Google Trends ${geo} 10-15)...`);
-    return await fetchGoogleTrendsRange(10, 15, 'instagram', geo);
+    console.log(`[SocialTrends] Fetching LinkedIn trends (Google Trends ${geo} 16-21)...`);
+    return await fetchGoogleTrendsRange(16, 21, 'linkedin', geo);
   } catch (err: any) {
-    console.warn('[SocialTrends] Instagram trends error:', err.message);
+    console.warn('[SocialTrends] LinkedIn trends error:', err.message);
     return [];
   }
 }
@@ -51,7 +65,7 @@ export async function fetchInstagramTrends(geo = 'FR'): Promise<SocialTrend[]> {
 async function fetchGoogleTrendsRange(
   startPos: number,
   endPos: number,
-  platform: 'tiktok' | 'instagram',
+  platform: 'tiktok' | 'instagram' | 'linkedin',
   geo: string
 ): Promise<SocialTrend[]> {
   const res = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {
