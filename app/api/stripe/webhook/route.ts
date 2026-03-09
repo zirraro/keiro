@@ -152,6 +152,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     console.log('[Webhook] Subscription activated:', { userId: profileId, plan: resolvedPlanKey, credits });
 
+    // Trigger onboarding sequence for new subscribers
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
+      await fetch(`${siteUrl}/api/agents/onboarding`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+        body: JSON.stringify({ action: 'schedule', userId: profileId, plan: resolvedPlanKey }),
+      });
+      console.log('[Webhook] Onboarding scheduled for', resolvedPlanKey);
+    } catch (e) {
+      console.warn('[Webhook] Failed to schedule onboarding:', e);
+    }
+
   } else if (session.mode === 'payment') {
     // ---- PAIEMENT UNIQUE ----
     if (planKey === 'sprint') {
@@ -248,6 +261,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       }
 
       console.log('[Webhook] Sprint activated with auto-upgrade:', { userId: profileId });
+
+      // Trigger onboarding sequence for Sprint
+      try {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
+        await fetch(`${siteUrl}/api/agents/onboarding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          body: JSON.stringify({ action: 'schedule', userId: profileId, plan: 'sprint' }),
+        });
+        console.log('[Webhook] Sprint onboarding scheduled');
+      } catch (e) {
+        console.warn('[Webhook] Failed to schedule Sprint onboarding:', e);
+      }
 
     } else if (planKey?.startsWith('pack_')) {
       // Pack crédits

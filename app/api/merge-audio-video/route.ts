@@ -210,6 +210,7 @@ export async function POST(req: NextRequest) {
     await Promise.all([
       unlink(videoPath).catch(() => {}),
       unlink(audioPath).catch(() => {}),
+      unlink(musicPath).catch(() => {}),
       unlink(outputPath).catch(() => {})
     ]);
 
@@ -222,7 +223,7 @@ export async function POST(req: NextRequest) {
       unlink(join(tmpDir, 'input.mp4')).catch(() => {}),
       unlink(join(tmpDir, 'audio.mp3')).catch(() => {}),
       unlink(join(tmpDir, 'music.mp3')).catch(() => {}),
-      unlink(join(tmpDir, 'merged.mp4')).catch(() => {})
+      unlink(join(tmpDir, 'merged.mp4')).catch(() => {}),
     ]);
 
     return NextResponse.json(

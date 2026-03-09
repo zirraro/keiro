@@ -1569,9 +1569,18 @@ export default function GeneratePage() {
       // Choisir entre i2i (si logo en mode modify) ou t2i
       const useI2I = logoUrl && logoMode === 'modify';
       const endpoint = useI2I ? '/api/seedream/i2i' : '/api/seedream/t2i';
-      const requestBody = useI2I
+      const requestBody: any = useI2I
         ? { prompt: fullPrompt, image: logoUrl }
         : { prompt: fullPrompt };
+
+      // Pass news context for deep trend analysis (server-side enrichment)
+      if (useNewsMode && selectedNews && !useI2I) {
+        if (selectedNews.url) requestBody.newsUrl = selectedNews.url;
+        if (selectedNews.title) requestBody.newsTitle = selectedNews.title;
+        if (selectedNews.description) requestBody.newsDescription = selectedNews.description;
+        requestBody.businessType = businessType;
+        requestBody.businessDescription = businessDescription || '';
+      }
 
       console.log(`[Generate] Using ${useI2I ? 'i2i (modify image)' : 't2i'} endpoint`, {
         hasLogo: !!logoUrl,
@@ -2018,7 +2027,7 @@ export default function GeneratePage() {
               newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
               newsCategory: selectedNews?.category || null,
               textOverlay: initialOverlays.length > 0 ? JSON.stringify(initialOverlays) : null,
-              aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
+              aiModel: lastProvider === 'k' ? 'kling' : lastProvider === 's' ? 'seedream' : null,
               tags: []
             })
           });
@@ -2213,7 +2222,7 @@ export default function GeneratePage() {
         generationPrompt: null,
         thumbnailUrl: null,
         folderId: null,
-        aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
+        aiModel: lastProvider === 'k' ? 'kling' : lastProvider === 's' ? 'seedream' : null,
         tags: []
       };
 
@@ -2347,7 +2356,7 @@ export default function GeneratePage() {
           newsTitle: selectedNews?.title ? selectedNews.title.substring(0, 50) : null,
           newsCategory: selectedNews?.category ? selectedNews.category.substring(0, 20) : null,
           textOverlay: textOverlayItems.length > 0 ? JSON.stringify(textOverlayItems.filter(i => i.text.trim()).map(i => ({ text: i.text, position: i.position, fontSize: i.fontSize, fontFamily: i.fontFamily, textColor: i.textColor, bgColor: i.backgroundColor, bgStyle: i.backgroundStyle }))) : null,
-          aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
+          aiModel: lastProvider === 'k' ? 'kling' : lastProvider === 's' ? 'seedream' : null,
           tags: ['studio-edit'],
         }),
       });
@@ -2392,7 +2401,7 @@ export default function GeneratePage() {
         folderId: null,
         subtitleText: generatedSubtitleText || null,
         audioUrl: generatedAudioUrl || null,
-        aiModel: lastVideoProvider === 'k' ? 'kling' : 'seedream',
+        aiModel: lastVideoProvider === 'k' ? 'kling' : lastVideoProvider === 's' ? 'seedream' : null,
       };
 
       console.log('[SaveVideoToLibrary] Payload:', payload);
@@ -2630,7 +2639,35 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
       if (enableAIText) {
         let subtitleText = '';
 
-        if (addAudio && audioText.trim()) {
+        // When music is selected with a trending song → use lyrics-style subtitles matching the song
+        const isTrendingMusic = selectedMusic && selectedMusic.startsWith('trending:');
+        const hasMusicSelected = selectedMusic && selectedMusic !== 'none';
+
+        if (hasMusicSelected && isTrendingMusic && !addAudio) {
+          // Lyrics mode: generate lyrics-style text matching the trending song
+          const songTitle = selectedMusic.replace('trending:', '').trim();
+          try {
+            const targetWords = Math.ceil(videoDuration * 2.5);
+            const lyricsRes = await fetch('/api/suggest-narration-text', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                context: `LYRICS MODE: Generate lyrics-style text inspired by the song "${songTitle}". The text should feel like song lyrics that match the rhythm and energy of this track. Theme: ${businessType}${useNewsMode && selectedNews ? `, connected to: ${selectedNews.title}` : ''}. Write short, punchy lines that flow like music lyrics — NOT a narration. Each line should be 3-6 words max, poetic and rhythmic.`,
+                targetWords,
+              }),
+            });
+            const lyricsData = await lyricsRes.json();
+            if (lyricsData.ok && lyricsData.suggestions?.length > 0) {
+              subtitleText = lyricsData.suggestions[0].text;
+            }
+            console.log('[Video] Lyrics-style subtitles for:', songTitle);
+          } catch {
+            subtitleText = songTitle; // Fallback to song title
+          }
+        } else if (hasMusicSelected && !addAudio) {
+          // Music style (preset) without voice — skip subtitle generation (instrumental)
+          subtitleText = '';
+        } else if (addAudio && audioText.trim()) {
           subtitleText = audioText.trim();
         } else if (addAudio && audioTextSource === 'ai') {
           // For AI audio, generate a proper narration text matching the video duration
@@ -2732,6 +2769,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               tone: tone,
               visualStyle: visualStyle,
             };
+            // Pass news context for deep trend analysis (server-side)
+            if (useNewsMode && selectedNews) {
+              if (selectedNews.url) longPayload.newsUrl = selectedNews.url;
+              if (selectedNews.title) longPayload.newsTitle = selectedNews.title;
+              if (selectedNews.description) longPayload.newsDescription = selectedNews.description;
+              longPayload.businessType = businessType;
+              longPayload.businessDescription = businessDescription || '';
+            }
             // Pass advanced segments if configured
             if (videoGenerationMode === 'advanced' && advancedSegments.length > 0 && advancedSegments.some(s => s.prompt)) {
               longPayload.segments = advancedSegments;
@@ -2768,6 +2813,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
         const jobId = longData.jobId;
         setVideoLongJobId(jobId);
+        if (longData._p) setLastVideoProvider(longData._p);
 
         // Initialiser les segments dans l'UI
         if (longData.segments) {
@@ -2789,6 +2835,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               const statusRes = await fetch(`/api/seedream/video-long?jobId=${jobId}`);
               const statusData = await statusRes.json();
               console.log('[VideoLong] Poll:', statusData.status, statusData.completedSegments, '/', statusData.totalSegments);
+              if (statusData._p) setLastVideoProvider(statusData._p);
 
               // Reset consecutive errors on successful poll
               consecutiveErrors = 0;
@@ -6042,10 +6089,18 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     ? t.generate.generatedVideo
                     : t.generate.visual
                   }
-                  {(lastProvider || lastVideoProvider) && (
-                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${
-                      (lastVideoProvider || lastProvider) === 'k' ? 'bg-emerald-500' : 'bg-orange-500'
-                    }`} />
+                  {(generatedVideoUrl || generatedImageUrl) && (
+                    <span
+                      className={`w-2 h-2 rounded-full inline-block opacity-50 ${
+                        generatedVideoUrl
+                          ? (lastVideoProvider === 's' ? 'bg-orange-500' : 'bg-emerald-500')
+                          : (lastProvider === 'k' ? 'bg-emerald-500' : lastProvider === 's' ? 'bg-orange-500' : 'bg-neutral-400')
+                      }`}
+                      title={generatedVideoUrl
+                        ? (lastVideoProvider === 's' ? 'Seedream' : 'Kling')
+                        : (lastProvider === 'k' ? 'Kling' : lastProvider === 's' ? 'Seedream' : '')
+                      }
+                    />
                   )}
                 </h2>
                 <div className="flex items-center gap-1">
@@ -7202,7 +7257,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                       generationPrompt: null,
                                       thumbnailUrl: null,
                                       folderId: null,
-                                      aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
+                                      aiModel: lastProvider === 'k' ? 'kling' : lastProvider === 's' ? 'seedream' : null,
                                       tags: []
                                     };
 
@@ -7372,7 +7427,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   generationPrompt: null,
                                   thumbnailUrl: null,
                                   folderId: null,
-                                  aiModel: lastProvider === 'k' ? 'kling' : 'seedream',
+                                  aiModel: lastProvider === 'k' ? 'kling' : lastProvider === 's' ? 'seedream' : null,
                                   tags: []
                                 };
 

@@ -59,6 +59,18 @@
     {
       "path": "/api/agents/tiktok-comments",
       "schedule": "0 17 * * 1,3"
+    },
+    {
+      "path": "/api/agents/onboarding",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/agents/retention",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/agents/content",
+      "schedule": "0 7 * * *"
     }
   ]
 }

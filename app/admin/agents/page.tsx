@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'campagnes' | 'seo' | 'briefs' | 'ordres' | 'logs';
+type Tab = 'dashboard' | 'campagnes' | 'seo' | 'onboarding' | 'retention' | 'contenu' | 'briefs' | 'ordres' | 'logs';
 
 type MetricCard = {
   label: string;
@@ -117,6 +117,23 @@ export default function AdminAgentsPage() {
   const [seoGenerating, setSeoGenerating] = useState(false);
   const [seoPublishing, setSeoPublishing] = useState<string | null>(null);
   const [seoStatusFilter, setSeoStatusFilter] = useState<string>('all');
+
+  // Onboarding state
+  type OnboardingItem = { id: string; user_id: string; step_key: string; plan: string; scheduled_at: string; sent_at: string | null; status: string; message_text: string | null; first_name?: string; business_type?: string };
+  const [onboardingItems, setOnboardingItems] = useState<OnboardingItem[]>([]);
+  const [onboardingStats, setOnboardingStats] = useState({ pending: 0, sent: 0, alerts: 0 });
+  const [onboardingFilter, setOnboardingFilter] = useState<string>('all');
+
+  // Retention state
+  type RetentionClient = { user_id: string; health_score: number; health_level: string; days_since_login: number; weekly_generations: number; plan: string; monthly_revenue: number; last_message_type: string | null; last_message_sent_at: string | null; first_name?: string; business_type?: string; email?: string; days_to_renewal?: number };
+  const [retentionClients, setRetentionClients] = useState<RetentionClient[]>([]);
+  const [retentionStats, setRetentionStats] = useState({ green: 0, yellow: 0, orange: 0, red: 0, mrrAtRisk: 0, totalClients: 0 });
+
+  // Content state
+  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null };
+  const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
+  const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
+  const [contentGenerating, setContentGenerating] = useState(false);
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -585,6 +602,15 @@ export default function AdminAgentsPage() {
       case 'seo':
         loadSeoData();
         break;
+      case 'onboarding':
+        loadOnboardingData();
+        break;
+      case 'retention':
+        loadRetentionData();
+        break;
+      case 'contenu':
+        loadContentData();
+        break;
       case 'logs':
         loadLogs(0, logFilter);
         break;
@@ -619,8 +645,12 @@ export default function AdminAgentsPage() {
       const res = await fetch('/api/agents/seo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ action: 'generate_article' }),
       });
+      if (!res.ok && res.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`Erreur serveur (${res.status})`);
+      }
       const data = await res.json();
       if (data.ok) {
         loadSeoData();
@@ -640,8 +670,12 @@ export default function AdminAgentsPage() {
       const res = await fetch('/api/agents/seo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ action: 'publish', article_id: articleId }),
       });
+      if (!res.ok && res.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`Erreur serveur (${res.status})`);
+      }
       const data = await res.json();
       if (data.ok) {
         loadSeoData();
@@ -652,6 +686,117 @@ export default function AdminAgentsPage() {
       alert('Erreur: ' + err.message);
     } finally {
       setSeoPublishing(null);
+    }
+  };
+
+  // ─── Onboarding data loader ────────────────────────────
+  const loadOnboardingData = async () => {
+    try {
+      const { data: items } = await supabase
+        .from('onboarding_queue')
+        .select('id, user_id, step_key, plan, scheduled_at, sent_at, status, message_text')
+        .order('scheduled_at', { ascending: false })
+        .limit(50);
+
+      // Enrich with profile names
+      const enriched = [];
+      for (const item of items || []) {
+        const { data: profile } = await supabase.from('profiles').select('first_name, business_type').eq('id', item.user_id).single();
+        enriched.push({ ...item, first_name: profile?.first_name, business_type: profile?.business_type });
+      }
+      setOnboardingItems(enriched as OnboardingItem[]);
+
+      const pending = enriched.filter(i => i.status === 'pending').length;
+      const sent = enriched.filter(i => i.status === 'sent').length;
+      const alerts = enriched.filter(i => i.status === 'alert_sent').length;
+      setOnboardingStats({ pending, sent, alerts });
+    } catch (err) {
+      console.error('Failed to load onboarding data:', err);
+    }
+  };
+
+  // ─── Retention data loader ────────────────────────────
+  const loadRetentionData = async () => {
+    try {
+      const res = await fetch('/api/agents/retention', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'stats' }),
+      });
+      const statsData = await res.json();
+      if (statsData.ok) setRetentionStats(statsData);
+
+      const res2 = await fetch('/api/agents/retention', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'clients' }),
+      });
+      const clientsData = await res2.json();
+      if (clientsData.ok) setRetentionClients(clientsData.clients || []);
+    } catch (err) {
+      console.error('Failed to load retention data:', err);
+    }
+  };
+
+  // ─── Content data loader ────────────────────────────
+  const loadContentData = async () => {
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'stats' }),
+      });
+      const data = await res.json();
+      if (data.ok) setContentStats(data.stats);
+
+      const res2 = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'calendar' }),
+      });
+      const calData = await res2.json();
+      if (calData.ok) setContentPosts(calData.posts || []);
+    } catch (err) {
+      console.error('Failed to load content data:', err);
+    }
+  };
+
+  const handleContentGenerate = async (type: 'generate_weekly' | 'generate_post') => {
+    setContentGenerating(true);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: type }),
+      });
+      const data = await res.json();
+      if (data.ok) loadContentData();
+      else alert('Erreur: ' + (data.error || 'Echec'));
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setContentGenerating(false);
+    }
+  };
+
+  const handleContentAction = async (postId: string, action: 'approve' | 'publish' | 'skip') => {
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action, postId }),
+      });
+      const data = await res.json();
+      if (data.ok) loadContentData();
+      else alert('Erreur: ' + data.error);
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
     }
   };
 
@@ -734,6 +879,9 @@ export default function AdminAgentsPage() {
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'campagnes', label: 'Campagnes' },
     { key: 'seo', label: 'SEO Blog' },
+    { key: 'onboarding', label: 'Onboarding' },
+    { key: 'retention', label: 'Rétention' },
+    { key: 'contenu', label: 'Contenu' },
     { key: 'briefs', label: 'Briefs CEO' },
     { key: 'ordres', label: 'Ordres' },
     { key: 'logs', label: 'Logs' },
@@ -1081,7 +1229,7 @@ export default function AdminAgentsPage() {
               filteredCampaigns.map((campaign) => {
                 const isExpanded = expandedCampaign === campaign.id;
                 const channelLabel = campaign.agent === 'email'
-                  ? (campaign.action === 'daily_warm' ? 'Email (warm)' : 'Email (cold)')
+                  ? (campaign.action === 'daily_warm' ? 'Email chatbot' : 'Email (cold)')
                   : campaign.agent === 'dm_instagram'
                   ? 'DM Instagram'
                   : 'TikTok';
@@ -1657,6 +1805,209 @@ export default function AdminAgentsPage() {
         )}
 
         {/* ===== TAB LOGS ===== */}
+        {/* ===== TAB ONBOARDING ===== */}
+        {activeTab === 'onboarding' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: 'En attente', value: onboardingStats.pending, icon: '⏳', color: 'text-amber-600' },
+                { label: 'Envoyés', value: onboardingStats.sent, icon: '✅', color: 'text-green-600' },
+                { label: 'Alertes fondateur', value: onboardingStats.alerts, icon: '🚨', color: 'text-red-600' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 text-center">
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                  <div className="text-xs text-neutral-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button onClick={loadOnboardingData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
+              <select value={onboardingFilter} onChange={e => setOnboardingFilter(e.target.value)} className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5">
+                <option value="all">Tous</option>
+                <option value="pending">En attente</option>
+                <option value="sent">Envoyés</option>
+                <option value="alert_sent">Alertes</option>
+                <option value="skipped">Ignorés</option>
+              </select>
+            </div>
+
+            {onboardingItems.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun onboarding en cours.</div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                {onboardingItems.filter(i => onboardingFilter === 'all' || i.status === onboardingFilter).map(item => (
+                  <div key={item.id} className="px-4 py-3 border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{item.first_name || 'Client'}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{item.plan}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{item.step_key}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                          item.status === 'sent' ? 'bg-green-100 text-green-700'
+                          : item.status === 'pending' ? 'bg-amber-100 text-amber-700'
+                          : item.status === 'alert_sent' ? 'bg-red-100 text-red-700'
+                          : 'bg-neutral-100 text-neutral-600'
+                        }`}>{item.status}</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-400">
+                        {new Date(item.scheduled_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    {item.business_type && <div className="text-[10px] text-neutral-500 mb-1">{item.business_type}</div>}
+                    {item.message_text && (
+                      <div className="text-xs text-neutral-600 bg-neutral-50 rounded p-2 mt-1 whitespace-pre-line">{item.message_text.substring(0, 200)}{item.message_text.length > 200 ? '...' : ''}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== TAB RÉTENTION ===== */}
+        {activeTab === 'retention' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              {[
+                { label: 'Actifs', value: retentionStats.green, color: 'bg-green-500', textColor: 'text-green-700' },
+                { label: 'Baisse', value: retentionStats.yellow, color: 'bg-yellow-500', textColor: 'text-yellow-700' },
+                { label: 'Inactifs', value: retentionStats.orange, color: 'bg-orange-500', textColor: 'text-orange-700' },
+                { label: 'Danger', value: retentionStats.red, color: 'bg-red-500', textColor: 'text-red-700' },
+                { label: 'MRR en jeu', value: `${retentionStats.mrrAtRisk}€`, color: 'bg-purple-500', textColor: 'text-purple-700' },
+                { label: 'Total', value: retentionStats.totalClients, color: 'bg-neutral-500', textColor: 'text-neutral-700' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border p-3 text-center">
+                  <div className={`w-3 h-3 rounded-full ${s.color} mx-auto mb-1`} />
+                  <div className={`text-lg font-bold ${s.textColor}`}>{s.value}</div>
+                  <div className="text-[10px] text-neutral-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={loadRetentionData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
+
+            {retentionClients.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun client à risque.</div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-neutral-50 text-[10px] font-semibold text-neutral-500 uppercase">
+                  <span>Client</span><span>Plan</span><span>Score</span><span>Inactif</span><span>Créations/sem</span><span>Renouvellement</span><span>Dernier msg</span>
+                </div>
+                {retentionClients.map(c => (
+                  <div key={c.user_id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                    <div>
+                      <div className="text-sm font-medium">{c.first_name || 'Client'}</div>
+                      <div className="text-[10px] text-neutral-400">{c.business_type || ''}</div>
+                    </div>
+                    <span className="text-xs">{c.plan}</span>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        c.health_level === 'green' ? 'bg-green-500' : c.health_level === 'yellow' ? 'bg-yellow-500' : c.health_level === 'orange' ? 'bg-orange-500' : 'bg-red-500'
+                      }`} />
+                      <span className="text-xs font-medium">{c.health_score}/100</span>
+                    </div>
+                    <span className="text-xs">{c.days_since_login}j</span>
+                    <span className="text-xs">{c.weekly_generations}</span>
+                    <span className="text-xs">{c.days_to_renewal ? `${c.days_to_renewal}j` : '-'}</span>
+                    <span className="text-[10px] text-neutral-400">{c.last_message_type || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== TAB CONTENU ===== */}
+        {activeTab === 'contenu' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Total', value: contentStats.total, icon: '📱' },
+                { label: 'Publiés', value: contentStats.published, icon: '✅' },
+                { label: 'Approuvés', value: contentStats.approved, icon: '👍' },
+                { label: 'Brouillons', value: contentStats.drafts, icon: '📝' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border p-4 text-center">
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className="text-2xl font-bold text-neutral-900">{s.value}</div>
+                  <div className="text-xs text-neutral-500">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-neutral-500">Par plateforme :</span>
+              <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700">IG: {contentStats.byPlatform?.instagram || 0}</span>
+              <span className="px-2 py-0.5 rounded bg-neutral-800 text-white">TK: {contentStats.byPlatform?.tiktok || 0}</span>
+              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">LI: {contentStats.byPlatform?.linkedin || 0}</span>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => handleContentGenerate('generate_weekly')}
+                disabled={contentGenerating}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
+              >
+                {contentGenerating ? 'Génération...' : 'Planifier la semaine'}
+              </button>
+              <button
+                onClick={() => handleContentGenerate('generate_post')}
+                disabled={contentGenerating}
+                className="text-sm text-purple-600 border border-purple-300 px-4 py-2 rounded-lg hover:bg-purple-50 disabled:opacity-50"
+              >
+                Post du jour
+              </button>
+              <button onClick={loadContentData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
+            </div>
+
+            {contentPosts.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun contenu planifié. Clique sur &quot;Planifier la semaine&quot;.</div>
+            ) : (
+              <div className="space-y-3">
+                {contentPosts.map(post => (
+                  <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          post.platform === 'instagram' ? 'bg-pink-100 text-pink-700'
+                          : post.platform === 'tiktok' ? 'bg-neutral-800 text-white'
+                          : 'bg-blue-100 text-blue-700'
+                        }`}>{post.platform}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">{post.format}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-600">{post.pillar}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                          post.status === 'published' ? 'bg-green-100 text-green-700'
+                          : post.status === 'approved' ? 'bg-blue-100 text-blue-700'
+                          : post.status === 'skipped' ? 'bg-neutral-100 text-neutral-500'
+                          : 'bg-amber-100 text-amber-700'
+                        }`}>{post.status}</span>
+                      </div>
+                      <span className="text-[10px] text-neutral-400">{post.scheduled_date} {post.scheduled_time}</span>
+                    </div>
+                    {post.hook && <div className="text-sm font-semibold text-neutral-900 mb-1">{post.hook}</div>}
+                    <div className="text-xs text-neutral-600 whitespace-pre-line mb-2">{post.caption?.substring(0, 200)}{(post.caption?.length || 0) > 200 ? '...' : ''}</div>
+                    {post.visual_description && (
+                      <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
+                    )}
+                    {post.status === 'draft' && (
+                      <div className="flex gap-2">
+                        <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs text-blue-600 hover:underline">Approuver</button>
+                        <button onClick={() => handleContentAction(post.id, 'publish')} className="text-xs text-green-600 hover:underline">Publier</button>
+                        <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs text-neutral-400 hover:underline">Ignorer</button>
+                      </div>
+                    )}
+                    {post.status === 'approved' && (
+                      <button onClick={() => handleContentAction(post.id, 'publish')} className="text-xs text-green-600 hover:underline">Marquer publié</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'logs' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">

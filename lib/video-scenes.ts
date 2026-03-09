@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { fetchNewsContext, analyzeTrendForVisuals } from '@/lib/prompt-optimizer';
 
 export interface VideoScene {
   index: number;
@@ -46,6 +47,11 @@ export async function decomposePromptIntoScenes(
     characterStyle?: string;
     tone?: string;
     visualStyle?: string;
+    newsUrl?: string;
+    newsTitle?: string;
+    newsDescription?: string;
+    businessType?: string;
+    businessDescription?: string;
   }
 ): Promise<VideoScene[]> {
   const segments = calculateSegments(targetDuration);
@@ -72,8 +78,26 @@ export async function decomposePromptIntoScenes(
     }
   }
 
+  // Deep trend analysis if news context provided
+  let enrichedPrompt = prompt;
+  if (options?.newsUrl && options?.newsTitle && options?.businessType) {
+    try {
+      const articleContent = await fetchNewsContext(options.newsUrl, options.newsTitle);
+      const analysis = await analyzeTrendForVisuals(
+        options.newsTitle, options.newsDescription || '', articleContent,
+        options.businessType, options.businessDescription
+      );
+      if (analysis) {
+        enrichedPrompt = `${prompt}\n\nDEEP TREND ANALYSIS (use for stronger business-news visual link):\n${analysis}`;
+        console.log('[video-scenes] Enriched prompt with trend analysis');
+      }
+    } catch (err) {
+      console.warn('[video-scenes] Trend analysis failed, continuing with original prompt');
+    }
+  }
+
   try {
-    const scenePrompts = await generateShortScenePrompts(prompt, segments, options);
+    const scenePrompts = await generateShortScenePrompts(enrichedPrompt, segments, options);
 
     // Validate we got enough scenes
     const scenes: VideoScene[] = scenePrompts.map((p, i) => ({

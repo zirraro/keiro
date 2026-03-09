@@ -26,13 +26,14 @@ export const MUSIC_PROMPTS: Record<string, string> = {
 export async function generateBackgroundMusic(
   style: string,
   targetDuration: number,
+  customPrompt?: string,
 ): Promise<string> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     throw new Error('ELEVENLABS_API_KEY is not configured');
   }
 
-  const prompt = MUSIC_PROMPTS[style];
+  const prompt = customPrompt || MUSIC_PROMPTS[style];
   if (!prompt) {
     throw new Error(`Unknown music style: ${style}`);
   }

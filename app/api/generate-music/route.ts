@@ -22,11 +22,13 @@ export async function POST(req: NextRequest) {
 
     // Handle trending music: "trending:Song Title" → generate instrumental inspired by it
     let resolvedStyle = style;
+    let customPrompt: string | undefined;
     if (style && style.startsWith('trending:')) {
       const songTitle = style.replace('trending:', '').trim();
-      // Use 'trendy' as base style but we'll pass the song title to customize
       resolvedStyle = 'trendy';
-      console.log(`[GenerateMusic] Trending music requested: "${songTitle}", using style: trendy`);
+      // Build a custom prompt inspired by the actual song
+      customPrompt = `Instrumental version inspired by "${songTitle}". Capture the same energy, tempo, and mood of this trending song. Modern production, catchy melodic hook, viral beat. No vocals, purely instrumental but unmistakably reminiscent of the original song's vibe and rhythm.`;
+      console.log(`[GenerateMusic] Trending music requested: "${songTitle}", custom prompt`);
     }
 
     if (!resolvedStyle || !MUSIC_PROMPTS[resolvedStyle]) {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[GenerateMusic] User: ${user.id}, style: ${resolvedStyle}, duration: ${duration}s`);
 
-    const musicUrl = await generateBackgroundMusic(resolvedStyle, duration);
+    const musicUrl = await generateBackgroundMusic(resolvedStyle, duration, customPrompt);
 
     return NextResponse.json({ ok: true, musicUrl });
   } catch (error: any) {

@@ -1,9 +1,9 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingT2I } from '@/lib/kling';
-import { optimizePromptForImage } from '@/lib/prompt-optimizer';
+import { optimizePromptForImage, fetchNewsContext, analyzeTrendForVisuals } from '@/lib/prompt-optimizer';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const SEEDREAM_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
@@ -15,7 +15,7 @@ const NO_TEXT_SUFFIX = '\n\nAbsolutely no text, letters, words, numbers, writing
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, size = '2K' } = body;
+    const { prompt, size = '2K', newsUrl, newsTitle, newsDescription, businessType, businessDescription } = body;
 
     if (!prompt || typeof prompt !== 'string') {
       return Response.json({
@@ -61,9 +61,16 @@ export async function POST(request: Request) {
       }
     }
 
-    // --- Étape 1: Optimiser le prompt avec Claude Haiku ---
-    console.log('[T2I] Step 1: Optimizing prompt with Claude...', { rawLength: prompt.length });
-    const visualPrompt = await optimizePromptForImage(prompt);
+    // --- Étape 1: Deep trend analysis + optimize prompt ---
+    let trendAnalysis = '';
+    if (newsUrl && newsTitle && businessType) {
+      console.log('[T2I] Step 0: Deep trend analysis for', newsTitle);
+      const articleContent = await fetchNewsContext(newsUrl, newsTitle);
+      trendAnalysis = await analyzeTrendForVisuals(newsTitle, newsDescription || '', articleContent, businessType, businessDescription);
+    }
+
+    console.log('[T2I] Step 1: Optimizing prompt with Claude...', { rawLength: prompt.length, hasTrendAnalysis: !!trendAnalysis });
+    const visualPrompt = await optimizePromptForImage(prompt, trendAnalysis);
     const finalPrompt = visualPrompt + NO_TEXT_SUFFIX;
     console.log('[T2I] Optimized prompt:', finalPrompt.substring(0, 300));
 

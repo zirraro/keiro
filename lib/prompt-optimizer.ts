@@ -55,10 +55,100 @@ function getRandomElement<T>(arr: T[]): T {
 }
 
 /**
+ * Fetch and extract key content from a news article URL for deeper analysis.
+ * Returns a short summary of the article's key facts, figures, and visual elements.
+ */
+export async function fetchNewsContext(newsUrl: string, newsTitle: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(newsUrl, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KeiroAI/1.0)' },
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return '';
+
+    const html = await res.text();
+    // Extract text from article body — strip tags, get meaningful content
+    const stripped = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Take first 1500 chars of meaningful text (after title area)
+    const titleIdx = stripped.toLowerCase().indexOf(newsTitle.toLowerCase().substring(0, 30));
+    const startIdx = titleIdx > 0 ? titleIdx : Math.min(500, stripped.length);
+    const articleText = stripped.substring(startIdx, startIdx + 1500).trim();
+
+    if (articleText.length < 50) return '';
+
+    console.log(`[PromptOptimizer] Fetched news context: ${articleText.length} chars from ${newsUrl}`);
+    return articleText;
+  } catch {
+    console.log('[PromptOptimizer] Could not fetch news article, continuing without');
+    return '';
+  }
+}
+
+/**
+ * Use Claude to analyze a trend or news article deeply and extract key visual elements
+ * for stronger business-news link in generated content.
+ */
+export async function analyzeTrendForVisuals(
+  newsTitle: string,
+  newsDescription: string,
+  articleContent: string,
+  businessType: string,
+  businessDescription?: string,
+): Promise<string> {
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      messages: [{
+        role: 'user',
+        content: `Analyse cette actualité et trouve des PONTS VISUELS CONCRETS avec le business.
+
+ACTUALITÉ: ${newsTitle}
+${newsDescription ? `DÉTAILS: ${newsDescription}` : ''}
+${articleContent ? `CONTENU ARTICLE: ${articleContent.substring(0, 800)}` : ''}
+
+BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}
+
+En 3-5 lignes maximum, donne:
+1. Les FAITS CLÉS de l'actu (chiffres, personnes, lieux, dates)
+2. Les OBJETS VISUELS CONCRETS associés à cette actu (pas abstraits, des CHOSES qu'on peut photographier)
+3. 2-3 SCÈNES précises où le business et l'actu se rencontrent visuellement dans un même cadre
+
+Réponds en anglais, format concis, PAS de JSON.`
+      }],
+    });
+
+    const analysis = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    if (analysis.length > 30) {
+      console.log(`[PromptOptimizer] Trend analysis: ${analysis.length} chars`);
+      return analysis;
+    }
+    return '';
+  } catch (error: any) {
+    console.warn('[PromptOptimizer] Trend analysis failed:', error.message);
+    return '';
+  }
+}
+
+/**
  * Optimise un prompt d'image pour éliminer tout texte et créer une scène visuelle pure.
  * Injecte un angle et un mood aléatoires pour varier les résultats.
+ * Accepts optional enriched news analysis for deeper trend integration.
  */
-export async function optimizePromptForImage(rawPrompt: string): Promise<string> {
+export async function optimizePromptForImage(rawPrompt: string, trendAnalysis?: string): Promise<string> {
   const angle = getRandomElement(CREATIVE_ANGLES);
   const mood = getRandomElement(CREATIVE_MOODS);
 
@@ -79,6 +169,7 @@ TACHE: Transforme ce prompt en DESCRIPTION VISUELLE PURE pour un modele d'image.
 
 PROMPT ORIGINAL:
 ${rawPrompt}
+${trendAnalysis ? `\nANALYSE APPROFONDIE DE L'ACTUALITE (utilise ces details pour un lien FORT et VISIBLE entre business et actu):\n${trendAnalysis}` : ''}
 
 METHODE EN 2 TEMPS:
 A) D'abord, IDENTIFIE:

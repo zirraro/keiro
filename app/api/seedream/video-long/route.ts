@@ -236,6 +236,11 @@ export async function POST(request: Request) {
         characterStyle: body.characterStyle,
         tone: body.tone,
         visualStyle: body.visualStyle,
+        newsUrl: body.newsUrl,
+        newsTitle: body.newsTitle,
+        newsDescription: body.newsDescription,
+        businessType: body.businessType,
+        businessDescription: body.businessDescription,
       });
       console.log(`[video-long] Decomposed into ${scenes.length} scenes:`, scenes.map(s => `[${s.index}] ${s.duration}s (${s.prompt.length}chars)`));
     } catch (decomposeError: any) {
@@ -385,6 +390,7 @@ export async function POST(request: Request) {
       status: 'generating',
       newBalance,
       creditCost: getVideoCreditCost(duration),
+      _p: PRIMARY_PROVIDER === 'kling' ? 'k' : 's',
     });
 
   } catch (error: any) {
@@ -430,12 +436,15 @@ export async function GET(request: Request) {
 
     // If job is already completed or failed, return immediately
     if (job.status === 'completed') {
+      const segs: JobSegment[] = job.segments || [];
+      const completedProvider = segs.find(s => s.provider)?.provider || (PRIMARY_PROVIDER === 'kling' ? 'k' : 's');
       return Response.json({
         ok: true,
         status: 'completed',
         completedSegments: job.total_segments, totalSegments: job.total_segments,
         segments: job.segments,
         finalVideoUrl: job.final_video_url,
+        _p: completedProvider,
       });
     }
 
@@ -448,6 +457,10 @@ export async function GET(request: Request) {
         segments: job.segments,
       });
     }
+
+    // Determine provider for badge (_p) from segments or primary default
+    const jobSegments_: JobSegment[] = job.segments || [];
+    const detectedProvider = jobSegments_.find(s => s.provider)?.provider || (PRIMARY_PROVIDER === 'kling' ? 'k' : 's');
 
     // 4. Job is 'generating' — check current segment's task
     if (job.status === 'generating') {
@@ -533,6 +546,7 @@ export async function GET(request: Request) {
                 totalSegments: segments.length,
                 segments,
                 currentSegment: nextSegmentIndex,
+                _p: result.provider || detectedProvider,
               });
             } catch (nextError: any) {
               console.error(`[video-long] Failed to start segment ${nextSegmentIndex}:`, nextError.message);
@@ -580,6 +594,7 @@ export async function GET(request: Request) {
                 totalSegments: segments.length,
                 segments,
                 finalVideoUrl: allVideoUrls[0] || null,
+                _p: detectedProvider,
               });
             }
 
@@ -602,6 +617,7 @@ export async function GET(request: Request) {
                 totalSegments: segments.length,
                 segments,
                 finalVideoUrl: mergedUrl,
+                _p: detectedProvider,
               });
             } catch (mergeError: any) {
               console.error(`[video-long] Merge failed:`, mergeError.message);
@@ -691,6 +707,7 @@ export async function GET(request: Request) {
             segments,
             currentSegment: currentSegmentIndex,
             taskStatus: taskStatus.status,
+            _p: detectedProvider,
           });
         }
       } catch (pollError: any) {

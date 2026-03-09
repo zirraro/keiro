@@ -192,7 +192,7 @@ async function runEnrichment(): Promise<NextResponse> {
     // AND not yet in an active email sequence
     const { data: prospects, error: fetchError } = await supabase
       .from('crm_prospects')
-      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature')
+      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status')
       .or('type.is.null,quartier.is.null,note_google.is.null')
       .or('email_sequence_status.is.null,email_sequence_status.eq.not_started')
       .neq('temperature', 'dead')
@@ -228,6 +228,7 @@ async function runEnrichment(): Promise<NextResponse> {
     let enrichedCount = 0;
     let flaggedDeadCount = 0;
     let skippedCount = 0;
+    let advancedToContactCount = 0;
     const enrichmentDetails: Array<{
       prospect_id: string;
       company: string | null;
@@ -271,6 +272,19 @@ async function runEnrichment(): Promise<NextResponse> {
         }
       }
 
+      // Determine if prospect is ready to be contacted
+      // Needs: email + type + data completeness >= 60%
+      const isReadyForEmail = prospect.email && result.email_valid
+        && (prospect.type || (result.type && result.type_confidence >= 70))
+        && result.data_completeness_score >= 60;
+
+      if (isReadyForEmail && !prospect.email_sequence_status) {
+        updates.status = 'contacte';
+        updates.email_sequence_status = 'not_started';
+        updates.email_sequence_step = 0;
+        advancedToContactCount++;
+      }
+
       // Always update updated_at if we have any changes
       if (Object.keys(updates).length > 0) {
         updates.updated_at = nowISO;
@@ -298,12 +312,25 @@ async function runEnrichment(): Promise<NextResponse> {
       }
     }
 
+    // Get total CRM count for reporting
+    const { count: totalProspects } = await supabase
+      .from('crm_prospects')
+      .select('id', { count: 'exact', head: true });
+
+    const { count: readyToContact } = await supabase
+      .from('crm_prospects')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'contacte');
+
     // Log the enrichment run
     const runReport = {
       prospects_found: prospects.length,
       enriched: enrichedCount,
+      advanced_to_contact: advancedToContactCount,
       flagged_dead: flaggedDeadCount,
       skipped: skippedCount,
+      crm_total: totalProspects || 0,
+      crm_ready_to_contact: readyToContact || 0,
       details: enrichmentDetails,
       timestamp: nowISO,
     };
@@ -315,14 +342,16 @@ async function runEnrichment(): Promise<NextResponse> {
       created_at: nowISO,
     });
 
-    console.log(`[CommercialAgent] Enrichment complete: ${enrichedCount} enriched, ${flaggedDeadCount} flagged dead, ${skippedCount} skipped`);
+    console.log(`[CommercialAgent] Enrichment complete: ${enrichedCount} enriched, ${advancedToContactCount} → contacté, ${flaggedDeadCount} flagged dead, ${skippedCount} skipped | CRM total: ${totalProspects}`);
 
     return NextResponse.json({
       ok: true,
       enriched: enrichedCount,
+      advanced_to_contact: advancedToContactCount,
       flagged_dead: flaggedDeadCount,
       skipped: skippedCount,
       total: prospects.length,
+      crm_total: totalProspects || 0,
     });
   } catch (error: any) {
     console.error('[CommercialAgent] Error:', error);
