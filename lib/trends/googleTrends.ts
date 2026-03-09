@@ -12,11 +12,11 @@ export type GoogleTrendItem = {
   pictureUrl?: string;
 };
 
-export async function fetchGoogleTrendsFR(): Promise<GoogleTrendItem[]> {
+export async function fetchGoogleTrendsFR(geo = 'FR'): Promise<GoogleTrendItem[]> {
   try {
-    console.log('[GoogleTrends] Fetching daily trends via RSS for France...');
+    console.log(`[GoogleTrends] Fetching daily trends via RSS for ${geo}...`);
 
-    const response = await fetch('https://trends.google.com/trending/rss?geo=FR', {
+    const response = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; KeiroBot/1.0)',
         'Accept': 'application/rss+xml, application/xml, text/xml',

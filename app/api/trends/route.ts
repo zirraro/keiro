@@ -12,15 +12,16 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const history = searchParams.get('history');
+  const region = searchParams.get('region') || 'fr';
 
   // Si demande d'historique → lire depuis Supabase
   if (history) {
     return getHistoricalTrends(history);
   }
 
-  // Sinon → tendances du jour (avec cache)
+  // Sinon → tendances du jour (avec cache, par région)
   try {
-    const data = await fetchAllTrends();
+    const data = await fetchAllTrends(false, region);
 
     return NextResponse.json({
       ok: true,

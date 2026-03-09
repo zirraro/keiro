@@ -628,12 +628,13 @@ export default function GeneratePage() {
 
   useEffect(() => {
     fetchAllNews();
+    fetchTrends(); // Re-fetch trends for the new region
   }, [newsRegion]);
 
-  /* --- Fetch tendances réelles (Google Trends + TikTok, cache localStorage 24h) --- */
+  /* --- Fetch tendances réelles (Google Trends + TikTok, cache localStorage par région) --- */
   async function fetchTrends() {
-    const TRENDS_CACHE_KEY = 'keiro_trends_data';
-    const TRENDS_TTL = 12 * 60 * 60 * 1000; // 12h (refresh serveur 2x/jour)
+    const TRENDS_CACHE_KEY = `keiro_trends_data_${newsRegion}`;
+    const TRENDS_TTL = 12 * 60 * 60 * 1000; // 12h
     try {
       const cached = localStorage.getItem(TRENDS_CACHE_KEY);
       if (cached) {
@@ -645,7 +646,7 @@ export default function GeneratePage() {
       }
     } catch { /* */ }
     try {
-      const res = await fetch('/api/trends');
+      const res = await fetch(`/api/trends?region=${newsRegion}`);
       const json = await res.json();
       if (json.ok && json.data) {
         setTrendingData(json.data);
@@ -3101,6 +3102,29 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ===== COLONNE GAUCHE : Tendances + Actualités ===== */}
           <div className="lg:col-span-8">
+            {/* ─── Pays/Régions — filtre commun tendances + actualités ─── */}
+            <div className={`mb-3 -mx-1 overflow-x-auto scrollbar-hide ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div className="flex gap-1.5 px-1 pb-1">
+                {NEWS_REGIONS.map((r) => {
+                  const isActive = newsRegion === r.code;
+                  return (
+                    <button
+                      key={r.code}
+                      onClick={() => useNewsMode && setNewsRegion(r.code)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-blue-500 text-white shadow-sm'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                      disabled={!useNewsMode}
+                    >
+                      {locale === 'fr' ? r.nameFr : r.nameEn}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* ─── Tendances réseaux sociaux (style magazine) ─── */}
             <div className={`mb-4 relative ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
               <div className="flex items-center gap-1 mb-2">
@@ -3339,29 +3363,6 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={!useNewsMode}
                 />
-              </div>
-
-              {/* Pays/Régions — pills horizontales scrollables */}
-              <div className={`mb-4 -mx-1 overflow-x-auto scrollbar-hide ${!useNewsMode ? 'opacity-30' : ''}`}>
-                <div className="flex gap-1.5 px-1 pb-1">
-                  {NEWS_REGIONS.map((r) => {
-                    const isActive = newsRegion === r.code;
-                    return (
-                      <button
-                        key={r.code}
-                        onClick={() => useNewsMode && setNewsRegion(r.code)}
-                        className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                          isActive
-                            ? 'bg-blue-500 text-white shadow-sm'
-                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                        }`}
-                        disabled={!useNewsMode}
-                      >
-                        {locale === 'fr' ? r.nameFr : r.nameEn}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* Cartes d'actualités (3 colonnes) */}

@@ -22,10 +22,10 @@ export type SocialTrend = {
 /**
  * Fetch TikTok trends = Google Trends FR positions 4-6.
  */
-export async function fetchTikTokTrends(): Promise<SocialTrend[]> {
+export async function fetchTikTokTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log('[SocialTrends] Fetching TikTok trends (Google Trends FR 4-6)...');
-    return await fetchGoogleTrendsRange(4, 6, 'tiktok');
+    console.log(`[SocialTrends] Fetching TikTok trends (Google Trends ${geo} 4-6)...`);
+    return await fetchGoogleTrendsRange(4, 6, 'tiktok', geo);
   } catch (err: any) {
     console.warn('[SocialTrends] TikTok trends error:', err.message);
     return [];
@@ -33,12 +33,12 @@ export async function fetchTikTokTrends(): Promise<SocialTrend[]> {
 }
 
 /**
- * Fetch Instagram trends = Google Trends FR positions 7-9.
+ * Fetch Instagram trends = Google Trends positions 7-9.
  */
-export async function fetchInstagramTrends(): Promise<SocialTrend[]> {
+export async function fetchInstagramTrends(geo = 'FR'): Promise<SocialTrend[]> {
   try {
-    console.log('[SocialTrends] Fetching Instagram trends (Google Trends FR 7-9)...');
-    return await fetchGoogleTrendsRange(7, 9, 'instagram');
+    console.log(`[SocialTrends] Fetching Instagram trends (Google Trends ${geo} 7-9)...`);
+    return await fetchGoogleTrendsRange(7, 9, 'instagram', geo);
   } catch (err: any) {
     console.warn('[SocialTrends] Instagram trends error:', err.message);
     return [];
@@ -46,14 +46,15 @@ export async function fetchInstagramTrends(): Promise<SocialTrend[]> {
 }
 
 /**
- * Shared: fetch Google Trends FR RSS and extract a specific position range.
+ * Shared: fetch Google Trends RSS and extract a specific position range.
  */
 async function fetchGoogleTrendsRange(
   startPos: number,
   endPos: number,
-  platform: 'tiktok' | 'instagram'
+  platform: 'tiktok' | 'instagram',
+  geo: string
 ): Promise<SocialTrend[]> {
-  const res = await fetch('https://trends.google.com/trending/rss?geo=FR', {
+  const res = await fetch(`https://trends.google.com/trending/rss?geo=${geo}`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KeiroBot/1.0)' },
     signal: AbortSignal.timeout(8000),
   });

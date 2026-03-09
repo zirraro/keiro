@@ -19,28 +19,37 @@ export type TrendingData = {
   fetchedAt: string;  // ISO timestamp
 };
 
-// Cache serveur (persiste tant que le process Node tourne)
-let cachedTrends: TrendingData | null = null;
-let cacheTimestamp = 0;
+// Map newsRegion codes to Google Trends geo codes
+const REGION_TO_GEO: Record<string, string> = {
+  fr: 'FR', be: 'BE', es: 'ES', gb: 'GB', us: 'US', pt: 'PT',
+  me: 'SA', // Middle East → Saudi Arabia (closest Google Trends geo)
+  nord: 'SE', // Northern Europe → Sweden (closest)
+};
+
+// Cache serveur par région (persiste tant que le process Node tourne)
+const cachedByRegion: Record<string, { data: TrendingData; ts: number }> = {};
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12h (refresh 2x/jour via cron)
 
-export async function fetchAllTrends(force = false): Promise<TrendingData> {
-  // Vérifier le cache (sauf si force refresh via cron)
+export async function fetchAllTrends(force = false, region = 'fr'): Promise<TrendingData> {
+  const geo = REGION_TO_GEO[region] || 'FR';
   const now = Date.now();
-  if (!force && cachedTrends && now - cacheTimestamp < CACHE_TTL) {
-    const ageH = Math.round((now - cacheTimestamp) / 3600000);
-    console.log(`[Trends] Cache hit (age: ${ageH}h)`);
-    return cachedTrends;
+
+  // Vérifier le cache par région (sauf si force refresh via cron)
+  const cached = cachedByRegion[region];
+  if (!force && cached && now - cached.ts < CACHE_TTL) {
+    const ageH = Math.round((now - cached.ts) / 3600000);
+    console.log(`[Trends] Cache hit for ${region}/${geo} (age: ${ageH}h)`);
+    return cached.data;
   }
 
-  console.log('[Trends] Cache miss, fetching fresh trends...');
+  console.log(`[Trends] Cache miss for ${region}/${geo}, fetching fresh trends...`);
 
-  // Fetch all sources in parallel
+  // Fetch all sources in parallel with geo
   const [googleResult, musicResult, tiktokResult, instaResult] = await Promise.allSettled([
-    fetchGoogleTrendsFR(),
+    fetchGoogleTrendsFR(geo),
     fetchTikTokTrendingMusicFR(),
-    fetchTikTokTrends(),
-    fetchInstagramTrends(),
+    fetchTikTokTrends(geo),
+    fetchInstagramTrends(geo),
   ]);
 
   const googleTrends =
@@ -95,9 +104,8 @@ export async function fetchAllTrends(force = false): Promise<TrendingData> {
     fetchedAt: new Date().toISOString(),
   };
 
-  // Mettre en cache mémoire
-  cachedTrends = data;
-  cacheTimestamp = now;
+  // Mettre en cache mémoire par région
+  cachedByRegion[region] = { data, ts: now };
 
   console.log(
     `[Trends] Cached: ${googleTrends.length} Google, ${tiktokTrends.length} TikTok, ${instagramTrends.length} Instagram, ${trendingMusic.length} songs, ${data.keywords.length} keywords`
