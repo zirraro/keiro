@@ -281,6 +281,9 @@ Reponds en francais, sois direct et actionnable.`;
       created_at: now.toISOString(),
     });
 
+    // Extract and insert any orders from the CEO chat reply
+    await extractAndInsertOrders(supabase, reply, now.toISOString());
+
     return NextResponse.json({ ok: true, reply });
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
@@ -471,6 +474,9 @@ async function generateBrief(): Promise<NextResponse> {
       created_at: nowISO,
     });
 
+    // --- Extract structured orders from brief and insert into agent_orders ---
+    await extractAndInsertOrders(supabase, brief, nowISO);
+
     // --- Send email brief to founder ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const BREVO_API_KEY = process.env.BREVO_API_KEY;
@@ -581,5 +587,119 @@ async function generateBrief(): Promise<NextResponse> {
       { ok: false, error: error.message || 'Erreur serveur' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Extract structured orders from the CEO brief text and insert them into agent_orders.
+ * Uses a second Claude call to parse the natural language brief into actionable orders.
+ */
+async function extractAndInsertOrders(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  briefText: string,
+  nowISO: string
+): Promise<void> {
+  const VALID_AGENTS = [
+    'chatbot', 'email', 'gmaps', 'dm_instagram', 'tiktok_comments',
+    'commercial', 'seo', 'onboarding', 'retention', 'content',
+  ];
+
+  try {
+    console.log('[CEOAgent] Extracting structured orders from brief...');
+
+    const extractionResponse = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
+      system: `Tu es un parseur d'ordres. Tu recois un brief CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
+
+Agents valides: ${VALID_AGENTS.join(', ')}
+
+Mapping des noms vers les identifiants:
+- "Email" / "email agent" → "email"
+- "Chatbot" / "chat" → "chatbot"
+- "Commercial" / "enrichissement" → "commercial"
+- "DM" / "DM Instagram" / "Instagram" → "dm_instagram"
+- "Google Maps" / "GMaps" / "prospection" → "gmaps"
+- "TikTok" / "TikTok Comments" → "tiktok_comments"
+- "SEO" / "blog" / "articles" → "seo"
+- "Onboarding" → "onboarding"
+- "Retention" / "rétention" → "retention"
+- "Content" / "contenu" / "réseaux sociaux" → "content"
+
+Priorité: "haute" si urgent/critique/🔴, "basse" si optionnel/info/🟢, "moyenne" sinon.
+
+Réponds UNIQUEMENT avec un tableau JSON valide. Si aucun ordre, réponds [].
+Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}`,
+      messages: [
+        {
+          role: 'user',
+          content: `Extrait les ordres de ce brief CEO:\n\n${briefText}`,
+        },
+      ],
+    });
+
+    const rawOrders = extractionResponse.content[0].type === 'text'
+      ? extractionResponse.content[0].text.trim()
+      : '[]';
+
+    // Parse JSON — handle markdown code blocks if present
+    let cleanJson = rawOrders;
+    const jsonMatch = rawOrders.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      cleanJson = jsonMatch[0];
+    }
+
+    let orders: Array<{
+      to_agent: string;
+      order_type: string;
+      priority: string;
+      description: string;
+    }>;
+
+    try {
+      orders = JSON.parse(cleanJson);
+    } catch {
+      console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
+      return;
+    }
+
+    if (!Array.isArray(orders) || orders.length === 0) {
+      console.log('[CEOAgent] No orders extracted from brief');
+      return;
+    }
+
+    // Filter and validate orders
+    const validOrders = orders.filter(
+      (o) => o.to_agent && VALID_AGENTS.includes(o.to_agent) && o.order_type
+    );
+
+    if (validOrders.length === 0) {
+      console.log('[CEOAgent] No valid orders after filtering');
+      return;
+    }
+
+    // Insert orders into agent_orders table
+    const rows = validOrders.map((o) => ({
+      from_agent: 'ceo',
+      to_agent: o.to_agent,
+      order_type: o.order_type,
+      priority: ['haute', 'moyenne', 'basse'].includes(o.priority) ? o.priority : 'moyenne',
+      payload: { description: o.description || '' },
+      status: 'pending',
+      created_at: nowISO,
+    }));
+
+    const { error: insertError } = await supabase.from('agent_orders').insert(rows);
+
+    if (insertError) {
+      console.error('[CEOAgent] Failed to insert orders:', insertError.message);
+      return;
+    }
+
+    console.log(`[CEOAgent] ${validOrders.length} orders inserted into agent_orders`);
+
+  } catch (error: any) {
+    // Non-blocking: order extraction failure should not break the brief flow
+    console.error('[CEOAgent] Order extraction error (non-blocking):', error.message);
   }
 }

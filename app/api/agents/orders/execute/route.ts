@@ -90,6 +90,14 @@ export async function POST(request: NextRequest) {
         resultText = `Ordre DM Instagram noté: ${orderType}. ${payload.description || ''}`.trim();
       } else if (order.to_agent === 'tiktok_comments') {
         resultText = `Ordre TikTok noté: ${orderType}. ${payload.description || ''}`.trim();
+      } else if (order.to_agent === 'seo') {
+        resultText = `Ordre SEO noté: ${orderType}. ${payload.description || ''}`.trim();
+      } else if (order.to_agent === 'onboarding') {
+        resultText = `Ordre Onboarding noté: ${orderType}. ${payload.description || ''}`.trim();
+      } else if (order.to_agent === 'retention') {
+        resultText = `Ordre Retention noté: ${orderType}. ${payload.description || ''}`.trim();
+      } else if (order.to_agent === 'content') {
+        resultText = `Ordre Content noté: ${orderType}. ${payload.description || ''}`.trim();
       } else {
         resultText = `Agent inconnu: ${order.to_agent}`;
       }

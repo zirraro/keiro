@@ -62,6 +62,8 @@ Points forts, points faibles, ou est le blocage dans le funnel, tendance 7 jours
 ## ORDRES DU JOUR
 (Liste des actions concretes pour chaque agent, avec priorite et impact attendu)
 Format: **[Agent] Action** — Raison — Impact attendu
+Agents disponibles: Email, Chatbot, Commercial, DM Instagram, Google Maps, TikTok Comments, SEO, Onboarding, Retention, Content
+IMPORTANT: Chaque ordre DOIT specifier clairement l'agent cible entre crochets et une action precise. Ces ordres seront automatiquement transmis aux agents pour execution.
 
 ## RECOMMANDATION FONDATEUR
 La chose a faire aujourd'hui + opportunite terrain

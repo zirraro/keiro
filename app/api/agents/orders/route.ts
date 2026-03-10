@@ -72,6 +72,14 @@ export async function GET(request: NextRequest) {
           resultText = `Ordre TikTok noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
         } else if (order.to_agent === 'commercial') {
           resultText = `Ordre Commercial noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'seo') {
+          resultText = `Ordre SEO noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'onboarding') {
+          resultText = `Ordre Onboarding noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'retention') {
+          resultText = `Ordre Retention noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
+        } else if (order.to_agent === 'content') {
+          resultText = `Ordre Content noté: ${order.order_type}. ${(order.payload as any)?.description || ''}`.trim();
         } else {
           resultText = `Agent inconnu: ${order.to_agent}`;
         }
