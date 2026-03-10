@@ -14,7 +14,7 @@ function getSupabaseAdmin() {
 
 /**
  * POST /api/agents/email/test
- * Send a test email to any address without creating a prospect.
+ * Send a test email to any address via Resend without creating a prospect.
  * Auth: admin only.
  */
 export async function POST(request: NextRequest) {
@@ -51,15 +51,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.BREVO_API_KEY) {
+    if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
-        { ok: false, error: 'BREVO_API_KEY non configuree' },
+        { ok: false, error: 'RESEND_API_KEY non configurée' },
         { status: 500 }
       );
     }
 
     const vars: Record<string, string> = {
-      first_name: first_name || 'Oussama',
+      first_name: first_name || 'Victor',
       company: company || 'KeiroAI Test',
       type: category || 'agence',
       quartier: 'Paris 11e',
@@ -70,33 +70,36 @@ export async function POST(request: NextRequest) {
     const variant = Math.floor(Math.random() * 3);
     const template = getEmailTemplate(selectedCategory, step, vars, variant);
 
-    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'api-key': process.env.BREVO_API_KEY!,
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'Oussama \u2014 KeiroAI', email: 'contact@keiroai.com' },
-        to: [{ email, name: company || first_name || 'Test' }],
+        from: 'Victor de KeiroAI <contact@keiroai.com>',
+        to: [email],
         subject: `[TEST] ${template.subject}`,
-        htmlContent: template.htmlBody,
-        textContent: template.textBody,
-        tags: ['test-email', `step-${step}`, selectedCategory],
+        html: template.htmlBody,
+        text: template.textBody,
+        tags: [
+          { name: 'type', value: 'test-email' },
+          { name: 'step', value: String(step) },
+          { name: 'category', value: selectedCategory },
+        ],
       }),
     });
 
-    if (!brevoResponse.ok) {
-      const errorText = await brevoResponse.text();
+    if (!resendResponse.ok) {
+      const errorText = await resendResponse.text();
       return NextResponse.json(
-        { ok: false, error: 'Erreur envoi Brevo', details: errorText },
+        { ok: false, error: 'Erreur envoi Resend', details: errorText },
         { status: 502 }
       );
     }
 
-    const brevoData = await brevoResponse.json();
-    const messageId = brevoData.messageId || brevoData.messageIds?.[0] || 'unknown';
+    const resendData = await resendResponse.json();
+    const messageId = resendData.id || 'unknown';
 
     await supabase.from('agent_logs').insert({
       agent: 'email',
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant,
         message_id: messageId,
+        provider: 'resend',
       },
       created_at: new Date().toISOString(),
     });
@@ -118,6 +122,7 @@ export async function POST(request: NextRequest) {
       subject: template.subject,
       category: selectedCategory,
       variant,
+      provider: 'resend',
     });
   } catch (error: any) {
     console.error('[EmailTest] Error:', error);

@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -15,7 +15,7 @@ function getSupabaseAdmin() {
 
 /**
  * POST /api/agents/email/send
- * Send a single email to a prospect via Brevo.
+ * Send a single email to a prospect via Resend.
  * Auth: CRON_SECRET header OR authenticated admin user.
  */
 export async function POST(request: NextRequest) {
@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.BREVO_API_KEY) {
+    if (!process.env.RESEND_API_KEY) {
       return NextResponse.json(
-        { ok: false, error: 'BREVO_API_KEY non configuree' },
+        { ok: false, error: 'RESEND_API_KEY non configurée' },
         { status: 500 }
       );
     }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     if (prospectError || !prospect) {
       return NextResponse.json(
-        { ok: false, error: 'Prospect non trouve' },
+        { ok: false, error: 'Prospect non trouvé' },
         { status: 404 }
       );
     }
@@ -104,40 +104,43 @@ export async function POST(request: NextRequest) {
     };
     const template = getEmailTemplate(category, template_step, vars, selectedVariant);
 
-    // --- Send via Brevo ---
-    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
+    // --- Send via Resend ---
+    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant}) via Resend`);
 
-    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'api-key': process.env.BREVO_API_KEY!,
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'Oussama \u2014 KeiroAI', email: 'contact@keiroai.com' },
-        to: [{ email: prospect.email, name: prospect.company || prospect.first_name || '' }],
+        from: 'Victor de KeiroAI <contact@keiroai.com>',
+        to: [prospect.email],
         subject: template.subject,
-        htmlContent: template.htmlBody,
-        textContent: template.textBody,
-        headers: { 'X-Mailin-custom': prospect_id },
-        tags: ['cold-sequence', `step-${template_step}`, category],
+        html: template.htmlBody,
+        text: template.textBody,
+        tags: [
+          { name: 'type', value: 'cold-sequence' },
+          { name: 'step', value: String(template_step) },
+          { name: 'category', value: category },
+          { name: 'prospect_id', value: prospect_id },
+        ],
       }),
     });
 
-    if (!brevoResponse.ok) {
-      const errorText = await brevoResponse.text();
-      console.error('[EmailAgent] Brevo API error:', errorText);
+    if (!resendResponse.ok) {
+      const errorText = await resendResponse.text();
+      console.error('[EmailAgent] Resend API error:', errorText);
       return NextResponse.json(
-        { ok: false, error: 'Erreur envoi Brevo', details: errorText },
+        { ok: false, error: 'Erreur envoi Resend', details: errorText },
         { status: 502 }
       );
     }
 
-    const brevoData = await brevoResponse.json();
-    const messageId = brevoData.messageId || brevoData.messageIds?.[0] || 'unknown';
+    const resendData = await resendResponse.json();
+    const messageId = resendData.id || 'unknown';
 
-    console.log('[EmailAgent] Email sent, messageId:', messageId);
+    console.log('[EmailAgent] Email sent via Resend, messageId:', messageId);
 
     // --- Update prospect ---
     await supabase
@@ -155,13 +158,14 @@ export async function POST(request: NextRequest) {
     await supabase.from('crm_activities').insert({
       prospect_id,
       type: 'email',
-      description: `Email step ${template_step} envoye: "${template.subject}"`,
+      description: `Email step ${template_step} envoyé: "${template.subject}"`,
       data: {
         message_id: messageId,
         step: template_step,
         subject: template.subject,
         variant: selectedVariant,
         category,
+        provider: 'resend',
       },
       created_at: now,
     });
@@ -178,6 +182,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant: selectedVariant,
         message_id: messageId,
+        provider: 'resend',
       },
       created_at: now,
     });
@@ -185,6 +190,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       messageId,
+      provider: 'resend',
     });
   } catch (error: any) {
     console.error('[EmailAgent] Error:', error);

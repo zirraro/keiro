@@ -25,7 +25,7 @@ interface SendResult {
 }
 
 /**
- * Send a single email via Brevo (inline, no internal route call).
+ * Send a single email via Resend.
  */
 async function sendEmailDirect(
   prospect: any,
@@ -44,31 +44,35 @@ async function sendEmailDirect(
     };
     const template = getEmailTemplate(category, step, vars, selectedVariant);
 
-    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'accept': 'application/json',
-        'api-key': process.env.BREVO_API_KEY!,
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        sender: { name: 'Oussama \u2014 KeiroAI', email: 'contact@keiroai.com' },
-        to: [{ email: prospect.email, name: prospect.company || prospect.first_name || '' }],
+        from: 'Victor de KeiroAI <contact@keiroai.com>',
+        to: [prospect.email],
         subject: template.subject,
-        htmlContent: template.htmlBody,
-        textContent: template.textBody,
-        headers: { 'X-Mailin-custom': prospect.id },
-        tags: ['cold-sequence', `step-${step}`, category],
+        html: template.htmlBody,
+        text: template.textBody,
+        tags: [
+          { name: 'type', value: 'cold-sequence' },
+          { name: 'step', value: String(step) },
+          { name: 'category', value: category },
+          { name: 'prospect_id', value: prospect.id },
+        ],
       }),
     });
 
-    if (!brevoResponse.ok) {
-      const errorText = await brevoResponse.text();
+    if (!resendResponse.ok) {
+      const errorText = await resendResponse.text();
+      console.error(`[EmailDaily] Resend error for ${prospect.email}:`, errorText);
       return { success: false, error: errorText };
     }
 
-    const brevoData = await brevoResponse.json();
-    const messageId = brevoData.messageId || brevoData.messageIds?.[0] || 'unknown';
+    const resendData = await resendResponse.json();
+    const messageId = resendData.id || 'unknown';
 
     // Update prospect
     const supabase = getSupabaseAdmin();
@@ -89,7 +93,7 @@ async function sendEmailDirect(
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
       type: 'email',
-      description: `Email step ${step} envoye: "${template.subject}"`,
+      description: `Email step ${step} envoyé: "${template.subject}"`,
       data: {
         message_id: messageId,
         step,
@@ -97,10 +101,12 @@ async function sendEmailDirect(
         variant: selectedVariant,
         category,
         source: 'daily_cron',
+        provider: 'resend',
       },
       created_at: now,
     });
 
+    console.log(`[EmailDaily] ✓ Email sent to ${prospect.email} (step ${step}, ${category})`);
     return { success: true, messageId };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -122,9 +128,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.BREVO_API_KEY) {
+  if (!process.env.RESEND_API_KEY) {
     return NextResponse.json(
-      { ok: false, error: 'BREVO_API_KEY non configuree' },
+      { ok: false, error: 'RESEND_API_KEY non configurée' },
       { status: 500 }
     );
   }
@@ -139,7 +145,7 @@ export async function GET(request: NextRequest) {
   try {
     if (type === 'warm') {
       // --- Warm mode: follow-up chatbot leads ---
-      console.log('[EmailDaily] Running warm mode...');
+      console.log('[EmailDaily] Running warm mode (via Resend)...');
 
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
@@ -169,11 +175,10 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // --- Default: cold sequences ---
-      // Smart timing: use business-timing.ts to send at optimal hour per business type
       const slot = request.nextUrl.searchParams.get('slot') || 'all';
-      console.log(`[EmailDaily] Running cold sequence mode (slot=${slot})...`);
+      console.log(`[EmailDaily] Running cold sequence mode via Resend (slot=${slot})...`);
 
-      // Pull from ALL qualified prospects (not just chatbot leads)
+      // Pull from ALL qualified prospects
       const { data: prospects } = await supabase
         .from('crm_prospects')
         .select('*')
@@ -192,7 +197,7 @@ export async function GET(request: NextRequest) {
       for (const prospect of prospects || []) {
         const category = getSequenceForProspect(prospect);
 
-        // Smart timing filter: only send if NOW is a good time for this business type
+        // Smart timing filter
         if (slot !== 'all') {
           if (!isGoodTimeToContact(category, 'email')) {
             skippedTiming++;
@@ -200,7 +205,7 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Verify prospect data quality before sending
+        // Verify prospect data quality
         const verification = verifyProspectData(prospect);
         if (!verification.valid) {
           skippedVerification++;
@@ -216,7 +221,6 @@ export async function GET(request: NextRequest) {
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
 
         if (step === 0 && hoursSinceCreation >= 24) {
-          // Step 0 -> Send Email 1 (max 50/day)
           if (step1Count >= MAX_STEP1_PER_DAY) continue;
 
           const variant = Math.floor(Math.random() * 3);
@@ -231,7 +235,6 @@ export async function GET(request: NextRequest) {
           });
           if (result.success) step1Count++;
         } else if (step === 1 && lastSent) {
-          // Step 1 -> Send Email 2 after 4 days
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
           if (daysSinceLastSent >= 4) {
             const result = await sendEmailDirect(prospect, 2);
@@ -245,7 +248,6 @@ export async function GET(request: NextRequest) {
             });
           }
         } else if (step === 2 && lastSent) {
-          // Step 2 -> Send Email 3 after 5 days
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
           if (daysSinceLastSent >= 5) {
             const result = await sendEmailDirect(prospect, 3);
@@ -259,7 +261,6 @@ export async function GET(request: NextRequest) {
             });
           }
         } else if (step === 3) {
-          // Step 3 -> Mark sequence as completed
           await supabase
             .from('crm_prospects')
             .update({
@@ -280,14 +281,12 @@ export async function GET(request: NextRequest) {
       console.log(`[EmailDaily] Skipped: ${skippedTiming} timing, ${skippedVerification} verification`);
     }
 
-    // --- Log summary to agent_logs with campaign breakdown ---
+    // --- Log summary ---
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
-    // Group by business type for campaign tracking
     const byBusinessType: Record<string, { sent: number; failed: number; steps: number[] }> = {};
     for (const r of results) {
-      // Find the prospect to get its type
       const p = (type === 'warm')
         ? null
         : (await supabase.from('crm_prospects').select('type, company').eq('id', r.prospect_id).single()).data;
@@ -305,6 +304,7 @@ export async function GET(request: NextRequest) {
         total: results.length,
         success: successCount,
         failed: failCount,
+        provider: 'resend',
         by_business_type: byBusinessType,
         results: results.map((r) => ({
           prospect_id: r.prospect_id,
@@ -316,11 +316,12 @@ export async function GET(request: NextRequest) {
       created_at: nowISO,
     });
 
-    console.log(`[EmailDaily] Done: ${successCount} sent, ${failCount} failed`);
+    console.log(`[EmailDaily] Done (Resend): ${successCount} sent, ${failCount} failed`);
 
     return NextResponse.json({
       ok: true,
       mode: type === 'warm' ? 'warm' : 'cold',
+      provider: 'resend',
       stats: {
         total: results.length,
         success: successCount,
