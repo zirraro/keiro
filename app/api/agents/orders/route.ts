@@ -13,6 +13,55 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+const AGENT_LABELS: Record<string, string> = {
+  email: 'Email',
+  chatbot: 'Chatbot',
+  commercial: 'Commercial',
+  dm_instagram: 'DM Instagram',
+  tiktok_comments: 'TikTok Comments',
+  gmaps: 'Google Maps',
+  seo: 'SEO',
+  onboarding: 'Onboarding',
+  retention: 'Rétention',
+  content: 'Content',
+};
+
+/**
+ * Log a report from a sub-agent back to the CEO.
+ * These entries appear in agent_logs with action='report_to_ceo'
+ * so the CEO brief can incorporate execution feedback.
+ */
+async function reportToCeo(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  orderId: string,
+  agentName: string,
+  phase: 'started' | 'completed' | 'failed',
+  orderType: string,
+  details?: string
+): Promise<void> {
+  const label = AGENT_LABELS[agentName] || agentName;
+  const messages: Record<string, string> = {
+    started: `🚀 Agent ${label} démarre la tâche: ${orderType}`,
+    completed: `✅ Agent ${label} a terminé: ${orderType}${details ? ` — ${details}` : ''}`,
+    failed: `❌ Agent ${label} a échoué: ${orderType}${details ? ` — ${details}` : ''}`,
+  };
+
+  await supabase.from('agent_logs').insert({
+    agent: agentName,
+    action: 'report_to_ceo',
+    target_id: orderId,
+    data: {
+      phase,
+      order_id: orderId,
+      order_type: orderType,
+      message: messages[phase],
+      details: details || null,
+    },
+    status: phase === 'failed' ? 'error' : 'success',
+    created_at: new Date().toISOString(),
+  });
+}
+
 /**
  * Build the base URL for internal API calls.
  */
@@ -134,6 +183,9 @@ export async function GET(request: NextRequest) {
           result: { started_at: now },
         }).eq('id', order.id);
 
+        // Report to CEO: task started
+        await reportToCeo(supabase, order.id, order.to_agent, 'started', order.order_type);
+
         const executionResult = await executeOrder(supabase, order, baseUrl, cronSecret);
 
         // Mark as completed
@@ -147,6 +199,16 @@ export async function GET(request: NextRequest) {
           },
           completed_at: now,
         }).eq('id', order.id);
+
+        // Report to CEO: task completed or failed
+        await reportToCeo(
+          supabase,
+          order.id,
+          order.to_agent,
+          executionResult.ok ? 'completed' : 'failed',
+          order.order_type,
+          executionResult.summary
+        );
 
         results.push({
           id: order.id,
@@ -163,6 +225,9 @@ export async function GET(request: NextRequest) {
           status: 'failed',
           result: { error: orderError.message, failed_at: now },
         }).eq('id', order.id);
+
+        // Report to CEO: task failed with error
+        await reportToCeo(supabase, order.id, order.to_agent, 'failed', order.order_type, orderError.message);
 
         results.push({
           id: order.id,

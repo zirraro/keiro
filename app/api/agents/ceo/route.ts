@@ -207,6 +207,24 @@ async function handleCeoChat(
       chatMemory = `\nHISTORIQUE DECISIONS (ce que le fondateur a demande):\n${keyDecisions}`;
     }
 
+    // Fetch recent agent reports for chat context
+    const { data: recentReports } = await supabase
+      .from('agent_logs')
+      .select('agent, data, created_at')
+      .eq('action', 'report_to_ceo')
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    let reportsMemory = '';
+    if (recentReports && recentReports.length > 0) {
+      const reportLines = recentReports.map((r: any) => {
+        const time = new Date(r.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return `[${time}] ${r.data?.message || `${r.agent}: ${r.data?.phase}`}`;
+      });
+      reportsMemory = `\nRAPPORTS DES AGENTS (dernières 24h):\nLes agents te font un retour quand ils démarrent et terminent une tâche:\n${reportLines.join('\n')}`;
+    }
+
     const contextMetrics = `
 Metriques live:
 - Prospects total: ${totalProspects ?? 0}
@@ -215,6 +233,7 @@ Metriques live:
 - DMs prepares 24h: ${dmsPrepared24h ?? 0}
 ${briefsMemory}
 ${chatMemory}
+${reportsMemory}
 
 CAPACITES ACTUELLES:
 - Email cold: max 50/jour (Brevo limit), 5 slots horaires (early_morning/morning/midday/afternoon/evening)
@@ -441,6 +460,24 @@ async function generateBrief(): Promise<NextResponse> {
       },
     };
 
+    // --- Fetch agent reports (feedback from sub-agents on executed orders) ---
+    const { data: agentReports } = await supabase
+      .from('agent_logs')
+      .select('agent, data, created_at')
+      .eq('action', 'report_to_ceo')
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    let agentReportsText = '';
+    if (agentReports && agentReports.length > 0) {
+      const reportLines = agentReports.map((r: any) => {
+        const time = new Date(r.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        return `[${time}] ${r.data?.message || `${r.agent}: ${r.data?.phase}`}`;
+      });
+      agentReportsText = `\n\nRAPPORTS DES AGENTS (dernières 24h):\n${reportLines.join('\n')}`;
+    }
+
     console.log('[CEOAgent] Metrics collected, calling Claude...');
 
     // --- Call Claude Haiku ---
@@ -451,7 +488,7 @@ async function generateBrief(): Promise<NextResponse> {
       messages: [
         {
           role: 'user',
-          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}\n\nAnalyse et genere le brief quotidien.`,
+          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.`,
         },
       ],
     });
