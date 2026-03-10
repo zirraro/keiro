@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -78,6 +78,7 @@ export default function AdminAgentsPage() {
   const [ceoInput, setCeoInput] = useState('');
   const [ceoLoading, setCeoLoading] = useState(false);
   const [ceoHistoryLoaded, setCeoHistoryLoaded] = useState(false);
+  const ceoMessagesEndRef = useRef<HTMLDivElement>(null);
 
   // Campagnes state
   type CampaignEntry = {
@@ -161,6 +162,11 @@ export default function AdminAgentsPage() {
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, router]);
+
+  // Auto-scroll CEO chat to latest message
+  useEffect(() => {
+    ceoMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [ceoMessages, ceoLoading]);
 
   // ─── Dashboard metrics ─────────────────────────────────
   const loadDashboard = async () => {
@@ -1116,6 +1122,7 @@ export default function AdminAgentsPage() {
                     </div>
                   </div>
                 )}
+                <div ref={ceoMessagesEndRef} />
               </div>
 
               {/* Input */}
