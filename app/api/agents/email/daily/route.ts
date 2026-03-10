@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null)
-        .or('email_sequence_status.is.null,email_sequence_status.in.(not_started,in_progress)')
+        .or('email_sequence_status.is.null,email_sequence_status.eq.not_started,email_sequence_status.eq.in_progress')
         .neq('temperature', 'dead')
         .not('status', 'in', '("client","perdu","sprint")');
 

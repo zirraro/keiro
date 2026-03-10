@@ -14,7 +14,7 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 30;
+const MAX_PROSPECTS_PER_RUN = 200;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -187,14 +187,12 @@ async function runEnrichment(): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
     }
 
-    // Fetch prospects with incomplete data that haven't been emailed yet
-    // Criteria: missing type OR missing quartier OR missing note_google
-    // AND not yet in an active email sequence
+    // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
+    // Includes: missing data, status 'new'/'identifie' not yet in email sequence
     const { data: prospects, error: fetchError } = await supabase
       .from('crm_prospects')
       .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status')
-      .or('type.is.null,quartier.is.null,note_google.is.null')
-      .or('email_sequence_status.is.null,email_sequence_status.eq.not_started')
+      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie')
       .neq('temperature', 'dead')
       .order('created_at', { ascending: true })
       .limit(MAX_PROSPECTS_PER_RUN);

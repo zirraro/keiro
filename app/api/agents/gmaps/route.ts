@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300; // 5 min for multi-zone scanning
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -76,7 +76,7 @@ const ZONES = [
   { name: 'Libération Nice', lat: 43.7060, lng: 7.2730, radius: 800 },
 ];
 
-const MAX_RESULTS_PER_QUERY = 5; // Keep API costs low
+const MAX_RESULTS_PER_QUERY = 20; // Scale up for 200+ prospects/day
 
 /**
  * Score a prospect based on Google data
@@ -223,105 +223,114 @@ async function runGMapsScan(): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 
-  // Rotate zones: use day of year
+  // Rotate zones: scan 5 zones per run for higher volume
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const zone = ZONES[dayOfYear % ZONES.length];
+  const ZONES_PER_RUN = 5;
+  const startIdx = (dayOfYear * ZONES_PER_RUN) % ZONES.length;
+  const dailyZones = [];
+  for (let i = 0; i < ZONES_PER_RUN; i++) {
+    dailyZones.push(ZONES[(startIdx + i) % ZONES.length]);
+  }
 
-  console.log(`[GMaps] Scanning zone: ${zone.name}`);
+  console.log(`[GMaps] Scanning ${dailyZones.length} zones: ${dailyZones.map(z => z.name).join(', ')}`);
 
   let totalImported = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
   const importedNames: string[] = [];
+  const scannedZones: string[] = [];
 
-  // Pick 4 random queries per run to limit API costs
-  const shuffled = [...SEARCH_QUERIES].sort(() => Math.random() - 0.5);
-  const queries = shuffled.slice(0, 4);
+  // Use ALL 13 queries for maximum discovery
+  const queries = [...SEARCH_QUERIES];
 
-  for (const query of queries) {
-    const searchQuery = `${query} ${zone.name.split(' ')[0]}`;
-    console.log(`[GMaps] Searching: "${searchQuery}"`);
+  for (const zone of dailyZones) {
+    console.log(`[GMaps] --- Zone: ${zone.name} ---`);
+    scannedZones.push(zone.name);
 
-    const results = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
+    for (const query of queries) {
+      const searchQuery = `${query} ${zone.name.split(' ')[0]}`;
+      console.log(`[GMaps] Searching: "${searchQuery}"`);
 
-    for (const place of results) {
-      try {
-        // Check if already in DB
-        const { data: existing } = await supabase
-          .from('crm_prospects')
-          .select('id')
-          .eq('google_place_id', place.place_id)
-          .maybeSingle();
+      const results = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
 
-        if (existing) { totalSkipped++; continue; }
+      for (const place of results) {
+        try {
+          // Check if already in DB
+          const { data: existing } = await supabase
+            .from('crm_prospects')
+            .select('id')
+            .eq('google_place_id', place.place_id)
+            .maybeSingle();
 
-        // Get details
-        const details = await getPlaceDetails(place.place_id);
-        if (!details || details.business_status === 'CLOSED_PERMANENTLY') continue;
+          if (existing) { totalSkipped++; continue; }
 
-        // Try to find Instagram
-        const instagram = details.website ? await findInstagramFromWebsite(details.website) : null;
+          // Get details
+          const details = await getPlaceDetails(place.place_id);
+          if (!details || details.business_status === 'CLOSED_PERMANENTLY') continue;
 
-        const businessType = mapGoogleType(details.types || place.types || []);
-        const score = scoreProspect({
-          rating: details.rating,
-          reviewCount: details.user_ratings_total,
-          website: details.website,
-          instagram,
-        });
+          // Try to find Instagram
+          const instagram = details.website ? await findInstagramFromWebsite(details.website) : null;
 
-        // Insert into crm_prospects
-        const { error: insertError } = await supabase.from('crm_prospects').insert({
-          company: details.name,
-          type: businessType,
-          quartier: zone.name,
-          phone: details.formatted_phone_number || null,
-          website: details.website || null,
-          address: details.formatted_address || null,
-          instagram: instagram || null,
-          google_place_id: place.place_id,
-          google_maps_url: details.url || null,
-          google_rating: details.rating || null,
-          google_reviews: details.user_ratings_total || null,
-          score,
-          temperature: getTemperature(score),
-          source: 'google_maps',
-          source_agent: 'gmaps',
-          status: 'new',
-          created_at: now,
-          updated_at: now,
-        });
+          const businessType = mapGoogleType(details.types || place.types || []);
+          const score = scoreProspect({
+            rating: details.rating,
+            reviewCount: details.user_ratings_total,
+            website: details.website,
+            instagram,
+          });
 
-        if (insertError) {
-          // Likely duplicate
-          if (insertError.code === '23505') { totalSkipped++; }
-          else { console.warn(`[GMaps] Insert error:`, insertError.message); totalErrors++; }
-          continue;
+          // Insert into crm_prospects with status 'identifie' (ready for enrichment)
+          const { error: insertError } = await supabase.from('crm_prospects').insert({
+            company: details.name,
+            type: businessType,
+            quartier: zone.name,
+            phone: details.formatted_phone_number || null,
+            website: details.website || null,
+            address: details.formatted_address || null,
+            instagram: instagram || null,
+            google_place_id: place.place_id,
+            google_maps_url: details.url || null,
+            google_rating: details.rating || null,
+            google_reviews: details.user_ratings_total || null,
+            score,
+            temperature: getTemperature(score),
+            source: 'google_maps',
+            source_agent: 'gmaps',
+            status: 'identifie',
+            created_at: now,
+            updated_at: now,
+          });
+
+          if (insertError) {
+            if (insertError.code === '23505') { totalSkipped++; }
+            else { console.warn(`[GMaps] Insert error:`, insertError.message); totalErrors++; }
+            continue;
+          }
+
+          totalImported++;
+          importedNames.push(details.name);
+          console.log(`[GMaps] Imported: ${details.name} (${businessType}, score ${score})`);
+
+          await new Promise(r => setTimeout(r, 150));
+        } catch (e: any) {
+          console.warn(`[GMaps] Error processing place:`, e.message);
+          totalErrors++;
         }
-
-        totalImported++;
-        importedNames.push(details.name);
-        console.log(`[GMaps] Imported: ${details.name} (${businessType}, score ${score})`);
-
-        // Rate limiting
-        await new Promise(r => setTimeout(r, 200));
-      } catch (e: any) {
-        console.warn(`[GMaps] Error processing place:`, e.message);
-        totalErrors++;
       }
-    }
 
-    await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 300));
+    }
   }
 
   // Log
   const report = {
-    zone: zone.name,
+    zones: scannedZones,
     queries: queries,
     imported: totalImported,
     skipped: totalSkipped,
     errors: totalErrors,
-    imported_names: importedNames,
+    imported_names: importedNames.slice(0, 50),
+    total_names: importedNames.length,
     timestamp: now,
   };
 
@@ -332,7 +341,7 @@ async function runGMapsScan(): Promise<NextResponse> {
     created_at: now,
   });
 
-  console.log(`[GMaps] ${zone.name}: ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors`);
+  console.log(`[GMaps] ${scannedZones.join(', ')}: ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors`);
 
   return NextResponse.json({ ok: true, ...report });
 }
