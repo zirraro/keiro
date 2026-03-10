@@ -4,7 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     if (body.action === 'chat' && body.message) {
-      return handleCeoChat(body.message, body.history || []);
+      return handleCeoChat(body.message, body.history || [], request);
     }
   } catch {}
 
@@ -147,7 +149,8 @@ export async function POST(request: NextRequest) {
  */
 async function handleCeoChat(
   message: string,
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  request: NextRequest
 ): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin();
@@ -300,10 +303,19 @@ Reponds en francais, sois direct et actionnable.`;
       created_at: now.toISOString(),
     });
 
-    // Extract and insert any orders from the CEO chat reply
-    await extractAndInsertOrders(supabase, reply, now.toISOString());
+    // Extract, insert and EXECUTE orders immediately
+    const executionResults = await extractInsertAndExecuteOrders(supabase, reply, now.toISOString(), request);
 
-    return NextResponse.json({ ok: true, reply });
+    // If orders were executed, append results to reply
+    let finalReply = reply;
+    if (executionResults && executionResults.length > 0) {
+      const resultsText = executionResults.map((r: any) =>
+        `${r.ok ? '✅' : '❌'} **${r.agent}**: ${r.summary}`
+      ).join('\n');
+      finalReply += `\n\n---\n**Retour des agents :**\n${resultsText}`;
+    }
+
+    return NextResponse.json({ ok: true, reply: finalReply, executionResults });
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -624,6 +636,284 @@ async function generateBrief(): Promise<NextResponse> {
       { ok: false, error: error.message || 'Erreur serveur' },
       { status: 500 }
     );
+  }
+}
+
+// --- Agent execution helpers ---
+
+const AGENT_LABELS: Record<string, string> = {
+  email: 'Email',
+  chatbot: 'Chatbot',
+  commercial: 'Commercial',
+  dm_instagram: 'DM Instagram',
+  tiktok_comments: 'TikTok Comments',
+  gmaps: 'Google Maps',
+  seo: 'SEO',
+  onboarding: 'Onboarding',
+  retention: 'Rétention',
+  content: 'Content',
+};
+
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host') || 'localhost:3000';
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  return `${proto}://${host}`;
+}
+
+async function callAgentEndpoint(
+  baseUrl: string,
+  path: string,
+  method: 'GET' | 'POST',
+  cronSecret: string | undefined,
+  body?: Record<string, unknown>
+): Promise<{ ok: boolean; summary: string; data?: any }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cronSecret) headers['Authorization'] = `Bearer ${cronSecret}`;
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+  if (!res.ok || !data.ok) {
+    return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+  }
+
+  // Build a readable summary
+  if (path.includes('/email/daily')) return { ok: true, summary: `Campagne email: ${data.stats?.success || 0} envoyés, ${data.stats?.failed || 0} échoués`, data };
+  if (path.includes('/dm-instagram')) return { ok: true, summary: `${data.prepared || data.count || 0} messages préparés`, data };
+  if (path.includes('/tiktok-comments')) return { ok: true, summary: `${data.prepared || data.count || 0} commentaires préparés`, data };
+  if (path.includes('/gmaps')) return { ok: true, summary: `${data.new_prospects || data.found || 0} nouveaux prospects trouvés`, data };
+  if (path.includes('/commercial')) return { ok: true, summary: `${data.enriched || 0} enrichis, ${data.advanced_to_contact || 0} prêts`, data };
+  if (path.includes('/seo')) return { ok: true, summary: `${data.article ? `Article généré` : 'Tâche exécutée'}`, data };
+  if (path.includes('/onboarding')) return { ok: true, summary: `${data.sent || data.processed || 0} messages envoyés`, data };
+  if (path.includes('/retention')) return { ok: true, summary: `${data.actions || data.processed || 0} actions exécutées`, data };
+  if (path.includes('/content')) return { ok: true, summary: `${data.posts?.length || data.generated || 0} posts générés`, data };
+  return { ok: true, summary: `Exécuté avec succès`, data };
+}
+
+async function reportToCeo(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  orderId: string,
+  agentName: string,
+  phase: 'started' | 'completed' | 'failed',
+  orderType: string,
+  details?: string
+): Promise<void> {
+  const label = AGENT_LABELS[agentName] || agentName;
+  const messages: Record<string, string> = {
+    started: `🚀 Agent ${label} démarre: ${orderType}`,
+    completed: `✅ Agent ${label} a terminé: ${orderType}${details ? ` — ${details}` : ''}`,
+    failed: `❌ Agent ${label} a échoué: ${orderType}${details ? ` — ${details}` : ''}`,
+  };
+
+  await supabase.from('agent_logs').insert({
+    agent: agentName,
+    action: 'report_to_ceo',
+    target_id: orderId,
+    data: { phase, order_id: orderId, order_type: orderType, message: messages[phase], details: details || null },
+    status: phase === 'failed' ? 'error' : 'success',
+    created_at: new Date().toISOString(),
+  });
+}
+
+async function executeAgentOrder(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  agent: string,
+  orderType: string,
+  description: string,
+  baseUrl: string,
+  cronSecret: string | undefined
+): Promise<{ ok: boolean; agent: string; summary: string }> {
+  const ot = orderType.toLowerCase();
+  const label = AGENT_LABELS[agent] || agent;
+
+  try {
+    let result: { ok: boolean; summary: string; data?: any };
+
+    switch (agent) {
+      case 'email':
+        if (ot.includes('pause') || ot.includes('stop')) {
+          const { data: paused } = await supabase
+            .from('crm_prospects')
+            .update({ email_sequence_status: 'paused', updated_at: new Date().toISOString() })
+            .eq('email_sequence_status', 'in_progress')
+            .select('id');
+          result = { ok: true, summary: `Séquences en pause: ${paused?.length ?? 0} prospects` };
+        } else if (ot.includes('resume') || ot.includes('reprendre') || ot.includes('relance')) {
+          const { data: count } = await supabase
+            .from('crm_prospects')
+            .update({ email_sequence_status: 'in_progress', updated_at: new Date().toISOString() })
+            .eq('email_sequence_status', 'paused')
+            .select('id');
+          result = { ok: true, summary: `Séquences reprises: ${count?.length ?? 0} prospects` };
+        } else {
+          const mode = ot.includes('warm') ? '?type=warm' : '';
+          result = await callAgentEndpoint(baseUrl, `/api/agents/email/daily${mode}`, 'GET', cronSecret);
+        }
+        break;
+      case 'dm_instagram':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/dm-instagram', 'POST', cronSecret);
+        break;
+      case 'tiktok_comments':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/tiktok-comments', 'POST', cronSecret);
+        break;
+      case 'gmaps':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/gmaps', 'POST', cronSecret);
+        break;
+      case 'commercial':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
+        break;
+      case 'seo':
+        if (ot.includes('generat') || ot.includes('article') || ot.includes('creer') || ot.includes('créer')) {
+          result = await callAgentEndpoint(baseUrl, '/api/agents/seo', 'POST', cronSecret, { action: 'generate_article' });
+        } else {
+          result = await callAgentEndpoint(baseUrl, '/api/agents/seo', 'GET', cronSecret);
+        }
+        break;
+      case 'onboarding':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/onboarding', 'GET', cronSecret);
+        break;
+      case 'retention':
+        result = await callAgentEndpoint(baseUrl, '/api/agents/retention', 'GET', cronSecret);
+        break;
+      case 'content':
+        if (ot.includes('generat') || ot.includes('creer') || ot.includes('créer') || ot.includes('post')) {
+          result = await callAgentEndpoint(baseUrl, '/api/agents/content', 'POST', cronSecret, { action: 'generate_weekly' });
+        } else {
+          result = await callAgentEndpoint(baseUrl, '/api/agents/content', 'GET', cronSecret);
+        }
+        break;
+      case 'chatbot':
+        result = { ok: true, summary: `Ordre noté: ${description || orderType}` };
+        break;
+      default:
+        result = { ok: false, summary: `Agent inconnu: ${agent}` };
+    }
+
+    return { ok: result.ok, agent: label, summary: result.summary };
+  } catch (e: any) {
+    return { ok: false, agent: label, summary: `Erreur: ${e.message}` };
+  }
+}
+
+/**
+ * Extract orders from CEO text, insert into agent_orders, and execute them immediately.
+ * Returns execution results for each order.
+ */
+async function extractInsertAndExecuteOrders(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  briefText: string,
+  nowISO: string,
+  request: NextRequest
+): Promise<Array<{ ok: boolean; agent: string; summary: string }>> {
+  const VALID_AGENTS = [
+    'chatbot', 'email', 'gmaps', 'dm_instagram', 'tiktok_comments',
+    'commercial', 'seo', 'onboarding', 'retention', 'content',
+  ];
+
+  try {
+    const extractionResponse = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
+      system: `Tu es un parseur d'ordres. Tu recois un texte du CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
+
+Agents valides: ${VALID_AGENTS.join(', ')}
+
+Mapping des noms vers les identifiants:
+- "Email" / "email agent" → "email"
+- "Chatbot" / "chat" → "chatbot"
+- "Commercial" / "enrichissement" → "commercial"
+- "DM" / "DM Instagram" / "Instagram" → "dm_instagram"
+- "Google Maps" / "GMaps" / "prospection" → "gmaps"
+- "TikTok" / "TikTok Comments" → "tiktok_comments"
+- "SEO" / "blog" / "articles" → "seo"
+- "Onboarding" → "onboarding"
+- "Retention" / "rétention" → "retention"
+- "Content" / "contenu" / "réseaux sociaux" → "content"
+
+Priorité: "haute" si urgent/critique/🔴, "basse" si optionnel/info/🟢, "moyenne" sinon.
+
+Réponds UNIQUEMENT avec un tableau JSON valide. Si aucun ordre, réponds [].
+Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}`,
+      messages: [{ role: 'user', content: `Extrait les ordres de ce texte:\n\n${briefText}` }],
+    });
+
+    const rawOrders = extractionResponse.content[0].type === 'text' ? extractionResponse.content[0].text.trim() : '[]';
+    let cleanJson = rawOrders;
+    const jsonMatch = rawOrders.match(/\[[\s\S]*\]/);
+    if (jsonMatch) cleanJson = jsonMatch[0];
+
+    let orders: Array<{ to_agent: string; order_type: string; priority: string; description: string }>;
+    try {
+      orders = JSON.parse(cleanJson);
+    } catch {
+      console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
+      return [];
+    }
+
+    if (!Array.isArray(orders) || orders.length === 0) return [];
+
+    const validOrders = orders.filter(o => o.to_agent && VALID_AGENTS.includes(o.to_agent) && o.order_type);
+    if (validOrders.length === 0) return [];
+
+    // Insert orders
+    const rows = validOrders.map(o => ({
+      from_agent: 'ceo',
+      to_agent: o.to_agent,
+      order_type: o.order_type,
+      priority: ['haute', 'moyenne', 'basse'].includes(o.priority) ? o.priority : 'moyenne',
+      payload: { description: o.description || '' },
+      status: 'in_progress',
+      created_at: nowISO,
+    }));
+
+    const { data: insertedOrders, error: insertError } = await supabase
+      .from('agent_orders')
+      .insert(rows)
+      .select('id, to_agent, order_type, payload');
+
+    if (insertError || !insertedOrders) {
+      console.error('[CEOAgent] Failed to insert orders:', insertError?.message);
+      return [];
+    }
+
+    console.log(`[CEOAgent] ${insertedOrders.length} orders inserted, executing immediately...`);
+
+    // Execute each order immediately
+    const baseUrl = getBaseUrl(request);
+    const cronSecret = process.env.CRON_SECRET;
+    const results: Array<{ ok: boolean; agent: string; summary: string }> = [];
+
+    for (const order of insertedOrders) {
+      // Report started
+      await reportToCeo(supabase, order.id, order.to_agent, 'started', order.order_type);
+
+      const result = await executeAgentOrder(
+        supabase, order.to_agent, order.order_type,
+        order.payload?.description || '', baseUrl, cronSecret
+      );
+
+      // Update order status
+      await supabase.from('agent_orders').update({
+        status: result.ok ? 'completed' : 'failed',
+        result: { message: result.summary, executed_at: nowISO, executed_by: 'ceo_chat' },
+        completed_at: nowISO,
+      }).eq('id', order.id);
+
+      // Report result
+      await reportToCeo(supabase, order.id, order.to_agent,
+        result.ok ? 'completed' : 'failed', order.order_type, result.summary);
+
+      results.push(result);
+    }
+
+    return results;
+  } catch (error: any) {
+    console.error('[CEOAgent] Order extraction/execution error:', error.message);
+    return [];
   }
 }
 
