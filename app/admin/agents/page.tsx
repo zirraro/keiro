@@ -31,6 +31,8 @@ type AgentOrder = {
   action: string;
   status: string;
   payload: any;
+  result: any;
+  completed_at: string | null;
 };
 
 type AgentLog = {
@@ -97,6 +99,8 @@ export default function AdminAgentsPage() {
   const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
   const [campaignDateFilter, setCampaignDateFilter] = useState<string>('7d');
+  const [launchingCampaign, setLaunchingCampaign] = useState<string | null>(null);
+  const [campaignLaunchResult, setCampaignLaunchResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // DM queue preview
   type DMQueueItem = {
@@ -588,6 +592,59 @@ export default function AdminAgentsPage() {
     }
   };
 
+  // Launch a campaign manually from the UI
+  const launchCampaign = async (agentType: string) => {
+    setLaunchingCampaign(agentType);
+    setCampaignLaunchResult(null);
+    try {
+      const endpointMap: Record<string, { path: string; method: string }> = {
+        'email_cold': { path: '/api/agents/email/daily', method: 'GET' },
+        'email_warm': { path: '/api/agents/email/daily?type=warm', method: 'GET' },
+        'dm_instagram': { path: '/api/agents/dm-instagram', method: 'POST' },
+        'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
+        'gmaps': { path: '/api/agents/gmaps', method: 'POST' },
+        'commercial': { path: '/api/agents/commercial', method: 'POST' },
+        'seo': { path: '/api/agents/seo', method: 'POST' },
+        'onboarding': { path: '/api/agents/onboarding', method: 'GET' },
+        'retention': { path: '/api/agents/retention', method: 'GET' },
+        'content': { path: '/api/agents/content', method: 'POST' },
+      };
+      const endpoint = endpointMap[agentType];
+      if (!endpoint) throw new Error(`Agent inconnu: ${agentType}`);
+
+      const res = await fetch(endpoint.path, {
+        method: endpoint.method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: endpoint.method === 'POST' ? JSON.stringify({}) : undefined,
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const stats = data.stats || {};
+        const msg = agentType.startsWith('email')
+          ? `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués`
+          : agentType === 'dm_instagram'
+          ? `${data.prepared || data.count || 0} DMs préparés`
+          : agentType === 'tiktok_comments'
+          ? `${data.prepared || data.count || 0} commentaires préparés`
+          : agentType === 'gmaps'
+          ? `${data.new_prospects || data.found || 0} prospects trouvés`
+          : agentType === 'commercial'
+          ? `${data.enriched || 0} prospects enrichis`
+          : 'Tâche exécutée avec succès';
+        setCampaignLaunchResult({ ok: true, message: msg });
+        // Reload campaigns to show new entry
+        loadCampaigns(campaignFilter);
+      } else {
+        setCampaignLaunchResult({ ok: false, message: data.error || 'Erreur inconnue' });
+      }
+    } catch (err: any) {
+      setCampaignLaunchResult({ ok: false, message: err.message || 'Erreur réseau' });
+    } finally {
+      setLaunchingCampaign(null);
+    }
+  };
+
   // ─── Tab change handler ────────────────────────────────
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
@@ -823,17 +880,25 @@ export default function AdminAgentsPage() {
 
   // ─── Helper: status badge ─────────────────────────────
   const statusBadge = (status: string) => {
+    const labels: Record<string, string> = {
+      pending: 'En attente',
+      in_progress: 'En cours',
+      completed: 'Terminé',
+      failed: 'Échoué',
+    };
     const cls =
       status === 'pending'
         ? 'bg-amber-100 text-amber-700'
+        : status === 'in_progress'
+        ? 'bg-blue-100 text-blue-700'
         : status === 'completed'
         ? 'bg-green-100 text-green-700'
         : status === 'failed'
         ? 'bg-red-100 text-red-700'
         : 'bg-neutral-100 text-neutral-600';
     return (
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cls}`}>
-        {status}
+      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cls} ${status === 'in_progress' ? 'animate-pulse' : ''}`}>
+        {labels[status] || status}
       </span>
     );
   };
@@ -1186,6 +1251,42 @@ export default function AdminAgentsPage() {
                   Actualiser
                 </button>
               </div>
+            </div>
+
+            {/* Campaign Launch Buttons */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4">
+              <h3 className="text-sm font-semibold text-neutral-900 mb-3">Lancer une campagne</h3>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'email_cold', label: 'Email Cold', icon: '✉️', color: 'from-green-500 to-green-600' },
+                  { key: 'email_warm', label: 'Email Warm', icon: '🔥', color: 'from-orange-500 to-orange-600' },
+                  { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
+                  { key: 'tiktok_comments', label: 'TikTok Comments', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
+                  { key: 'gmaps', label: 'Google Maps', icon: '📍', color: 'from-blue-500 to-blue-600' },
+                  { key: 'commercial', label: 'Enrichissement', icon: '🔍', color: 'from-purple-500 to-purple-600' },
+                ].map((btn) => (
+                  <button
+                    key={btn.key}
+                    onClick={() => launchCampaign(btn.key)}
+                    disabled={launchingCampaign !== null}
+                    className={`px-3 py-2 bg-gradient-to-r ${btn.color} text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5`}
+                  >
+                    {launchingCampaign === btn.key ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>{btn.icon}</span>
+                    )}
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+              {campaignLaunchResult && (
+                <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${
+                  campaignLaunchResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {campaignLaunchResult.ok ? '✓' : '✗'} {campaignLaunchResult.message}
+                </div>
+              )}
             </div>
 
             {/* DM Queue Preview */}
@@ -1670,6 +1771,7 @@ export default function AdminAgentsPage() {
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="pending">En attente</option>
+                  <option value="in_progress">En cours</option>
                   <option value="completed">Terminé</option>
                   <option value="failed">Échoué</option>
                 </select>
@@ -1794,13 +1896,92 @@ export default function AdminAgentsPage() {
                       </div>
 
                       {isExpanded && (
-                        <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-100">
-                          <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">
-                            Payload
-                          </h4>
-                          <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-48 overflow-y-auto">
-                            {JSON.stringify(order.payload, null, 2)}
-                          </pre>
+                        <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-100 space-y-3">
+                          {/* Description de l'ordre */}
+                          {(order.payload as any)?.description && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Description</h4>
+                              <p className="text-sm text-neutral-700 bg-white p-3 rounded-lg border border-neutral-200">
+                                {(order.payload as any).description}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Résultat d'exécution */}
+                          {(order as any).result && (
+                            <div>
+                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Résultat d&apos;exécution</h4>
+                              <div className={`text-sm p-3 rounded-lg border ${
+                                order.status === 'completed' ? 'bg-green-50 border-green-200 text-green-800' :
+                                order.status === 'failed' ? 'bg-red-50 border-red-200 text-red-800' :
+                                'bg-blue-50 border-blue-200 text-blue-800'
+                              }`}>
+                                {typeof (order as any).result === 'object' ? (
+                                  <>
+                                    {(order as any).result.message && (
+                                      <p className="font-medium">{(order as any).result.message}</p>
+                                    )}
+                                    {(order as any).result.error && (
+                                      <p className="font-medium text-red-700">{(order as any).result.error}</p>
+                                    )}
+                                    {(order as any).result.executed_at && (
+                                      <p className="text-xs mt-1 opacity-70">
+                                        Exécuté le {new Date((order as any).result.executed_at).toLocaleString('fr-FR')}
+                                        {(order as any).result.executed_by === 'admin_manual' && ' (manuel)'}
+                                      </p>
+                                    )}
+                                    {(order as any).result.api_response && (
+                                      <details className="mt-2">
+                                        <summary className="text-xs cursor-pointer hover:underline opacity-70">Réponse API détaillée</summary>
+                                        <pre className="text-xs mt-1 bg-white p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
+                                          {JSON.stringify((order as any).result.api_response, null, 2)}
+                                        </pre>
+                                      </details>
+                                    )}
+                                  </>
+                                ) : (
+                                  <p>{String((order as any).result)}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Timeline */}
+                          <div>
+                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Timeline</h4>
+                            <div className="flex items-center gap-2 text-xs text-neutral-500">
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-neutral-300" />
+                                Créé {new Date(order.created_at).toLocaleString('fr-FR')}
+                              </span>
+                              {(order as any).result?.started_at && (
+                                <>
+                                  <span className="text-neutral-300">→</span>
+                                  <span className="flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-blue-400" />
+                                    Démarré {new Date((order as any).result.started_at).toLocaleString('fr-FR')}
+                                  </span>
+                                </>
+                              )}
+                              {(order as any).completed_at && (
+                                <>
+                                  <span className="text-neutral-300">→</span>
+                                  <span className="flex items-center gap-1">
+                                    <span className={`w-2 h-2 rounded-full ${order.status === 'completed' ? 'bg-green-400' : 'bg-red-400'}`} />
+                                    {order.status === 'completed' ? 'Terminé' : 'Échoué'} {new Date((order as any).completed_at).toLocaleString('fr-FR')}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Payload brut */}
+                          <details className="text-xs">
+                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">Payload brut</summary>
+                            <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-48 overflow-y-auto mt-1">
+                              {JSON.stringify(order.payload, null, 2)}
+                            </pre>
+                          </details>
                         </div>
                       )}
                     </div>

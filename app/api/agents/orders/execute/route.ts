@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -13,13 +13,54 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get('host') || 'localhost:3000';
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  return `${proto}://${host}`;
+}
+
+async function callAgentEndpoint(
+  baseUrl: string,
+  path: string,
+  method: 'GET' | 'POST',
+  cronSecret: string | undefined,
+  body?: Record<string, unknown>
+): Promise<{ ok: boolean; summary: string; data?: any }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (cronSecret) headers['Authorization'] = `Bearer ${cronSecret}`;
+
+  const res = await fetch(`${baseUrl}${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+  if (!res.ok || !data.ok) {
+    return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+  }
+  return { ok: true, summary: buildSummary(path, data), data };
+}
+
+function buildSummary(path: string, data: any): string {
+  if (path.includes('/email/daily')) return `Campagne email: ${data.stats?.success || 0} envoyés, ${data.stats?.failed || 0} échoués`;
+  if (path.includes('/dm-instagram')) return `DM Instagram: ${data.prepared || data.count || 0} messages préparés`;
+  if (path.includes('/tiktok-comments')) return `TikTok: ${data.prepared || data.count || 0} commentaires préparés`;
+  if (path.includes('/gmaps')) return `Google Maps: ${data.new_prospects || data.found || 0} nouveaux prospects`;
+  if (path.includes('/commercial')) return `Commercial: ${data.enriched || 0} enrichis, ${data.advanced_to_contact || 0} prêts`;
+  if (path.includes('/seo')) return `SEO: ${data.article ? `Article généré` : 'Tâche exécutée'}`;
+  if (path.includes('/onboarding')) return `Onboarding: ${data.sent || data.processed || 0} messages`;
+  if (path.includes('/retention')) return `Retention: ${data.actions || data.processed || 0} actions`;
+  if (path.includes('/content')) return `Content: ${data.posts?.length || data.generated || 0} posts`;
+  return `Exécuté: ${JSON.stringify(data).substring(0, 150)}`;
+}
+
 /**
  * POST /api/agents/orders/execute
- * Execute specific pending orders by IDs (admin only, no cron).
+ * Execute specific pending orders by IDs (admin only).
  * Body: { order_ids: string[] }
  */
 export async function POST(request: NextRequest) {
-  // Admin auth only
   const { user, error: authError } = await getAuthUser();
   if (authError || !user) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -36,10 +77,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'order_ids requis (array)' }, { status: 400 });
   }
 
+  const baseUrl = getBaseUrl(request);
+  const cronSecret = process.env.CRON_SECRET;
   const now = new Date().toISOString();
-  const results: Array<{ id: string; status: string; result?: string }> = [];
+  const results: Array<{ id: string; to_agent: string; status: string; result?: string; api_response?: any }> = [];
 
-  // Fetch the orders
   const { data: orders, error: fetchError } = await supabase
     .from('agent_orders')
     .select('*')
@@ -58,63 +100,37 @@ export async function POST(request: NextRequest) {
 
   for (const order of orders) {
     try {
-      await supabase.from('agent_orders').update({ status: 'in_progress' }).eq('id', order.id);
+      await supabase.from('agent_orders').update({
+        status: 'in_progress',
+        result: { started_at: now, executed_by: 'admin_manual' },
+      }).eq('id', order.id);
 
-      let resultText = '';
-      const payload = order.payload || {};
-      const orderType = (order.order_type || '').toLowerCase();
-
-      if (order.to_agent === 'email') {
-        if (orderType.includes('pause') || orderType.includes('stop')) {
-          const { data: paused } = await supabase
-            .from('crm_prospects')
-            .update({ email_sequence_status: 'paused', updated_at: now })
-            .eq('email_sequence_status', 'in_progress')
-            .select('id');
-          resultText = `Séquences email en pause: ${paused?.length ?? 0} prospects`;
-        } else if (orderType.includes('resume') || orderType.includes('reprendre')) {
-          const { data: resumed } = await supabase
-            .from('crm_prospects')
-            .update({ email_sequence_status: 'in_progress', updated_at: now })
-            .eq('email_sequence_status', 'paused')
-            .select('id');
-          resultText = `Séquences email reprises: ${resumed?.length ?? 0} prospects`;
-        } else {
-          resultText = `Ordre email traité: ${orderType}. ${payload.description || ''}`.trim();
-        }
-      } else if (order.to_agent === 'chatbot') {
-        resultText = `Ordre chatbot traité: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'gmaps') {
-        resultText = `Ordre Google Maps noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'dm_instagram') {
-        resultText = `Ordre DM Instagram noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'tiktok_comments') {
-        resultText = `Ordre TikTok noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'seo') {
-        resultText = `Ordre SEO noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'onboarding') {
-        resultText = `Ordre Onboarding noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'retention') {
-        resultText = `Ordre Retention noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else if (order.to_agent === 'content') {
-        resultText = `Ordre Content noté: ${orderType}. ${payload.description || ''}`.trim();
-      } else {
-        resultText = `Agent inconnu: ${order.to_agent}`;
-      }
+      const executionResult = await executeOrder(supabase, order, baseUrl, cronSecret);
 
       await supabase.from('agent_orders').update({
-        status: 'completed',
-        result: { message: resultText, executed_at: now, executed_by: 'admin_manual' },
+        status: executionResult.ok ? 'completed' : 'failed',
+        result: {
+          message: executionResult.summary,
+          api_response: executionResult.data,
+          executed_at: now,
+          executed_by: 'admin_manual',
+        },
         completed_at: now,
       }).eq('id', order.id);
 
-      results.push({ id: order.id, status: 'completed', result: resultText });
+      results.push({
+        id: order.id,
+        to_agent: order.to_agent,
+        status: executionResult.ok ? 'completed' : 'failed',
+        result: executionResult.summary,
+        api_response: executionResult.data,
+      });
     } catch (e: any) {
       await supabase.from('agent_orders').update({
         status: 'failed',
         result: { error: e.message, failed_at: now },
       }).eq('id', order.id);
-      results.push({ id: order.id, status: 'failed', result: e.message });
+      results.push({ id: order.id, to_agent: order.to_agent, status: 'failed', result: e.message });
     }
   }
 
@@ -124,4 +140,93 @@ export async function POST(request: NextRequest) {
   console.log(`[ExecuteNow] Done: ${succeeded} succeeded, ${failed} failed`);
 
   return NextResponse.json({ ok: true, processed: results.length, succeeded, failed, results });
+}
+
+/**
+ * Route an order to the correct agent and execute it.
+ */
+async function executeOrder(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  order: any,
+  baseUrl: string,
+  cronSecret: string | undefined
+): Promise<{ ok: boolean; summary: string; data?: any }> {
+  const orderType = (order.order_type || '').toLowerCase();
+  const payload = order.payload || {};
+
+  switch (order.to_agent) {
+    case 'email':
+      return executeEmailOrder(supabase, order, baseUrl, cronSecret);
+
+    case 'chatbot':
+      return { ok: true, summary: `Ordre chatbot noté: ${orderType}. ${payload.description || ''}`.trim() };
+
+    case 'dm_instagram':
+      return callAgentEndpoint(baseUrl, '/api/agents/dm-instagram', 'POST', cronSecret);
+
+    case 'tiktok_comments':
+      return callAgentEndpoint(baseUrl, '/api/agents/tiktok-comments', 'POST', cronSecret);
+
+    case 'gmaps':
+      return callAgentEndpoint(baseUrl, '/api/agents/gmaps', 'POST', cronSecret);
+
+    case 'commercial':
+      return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
+
+    case 'seo':
+      if (orderType.includes('generat') || orderType.includes('article') || orderType.includes('creer') || orderType.includes('créer')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/seo', 'POST', cronSecret, { action: 'generate_article' });
+      }
+      return callAgentEndpoint(baseUrl, '/api/agents/seo', 'GET', cronSecret);
+
+    case 'onboarding':
+      return callAgentEndpoint(baseUrl, '/api/agents/onboarding', 'GET', cronSecret);
+
+    case 'retention':
+      return callAgentEndpoint(baseUrl, '/api/agents/retention', 'GET', cronSecret);
+
+    case 'content':
+      if (orderType.includes('generat') || orderType.includes('creer') || orderType.includes('créer') || orderType.includes('post')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/content', 'POST', cronSecret, { action: 'generate_weekly' });
+      }
+      return callAgentEndpoint(baseUrl, '/api/agents/content', 'GET', cronSecret);
+
+    default:
+      return { ok: false, summary: `Agent inconnu: ${order.to_agent}` };
+  }
+}
+
+async function executeEmailOrder(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  order: any,
+  baseUrl: string,
+  cronSecret: string | undefined
+): Promise<{ ok: boolean; summary: string; data?: any }> {
+  const orderType = (order.order_type || '').toLowerCase();
+  const payload = order.payload || {};
+
+  if (orderType.includes('pause') || orderType.includes('stop')) {
+    const { data: paused } = await supabase
+      .from('crm_prospects')
+      .update({ email_sequence_status: 'paused', updated_at: new Date().toISOString() })
+      .eq('email_sequence_status', 'in_progress')
+      .select('id');
+    return { ok: true, summary: `Séquences email en pause: ${paused?.length ?? 0} prospects` };
+
+  } else if (orderType.includes('resume') || orderType.includes('reprendre') || orderType.includes('relance')) {
+    const { data: count } = await supabase
+      .from('crm_prospects')
+      .update({ email_sequence_status: 'in_progress', updated_at: new Date().toISOString() })
+      .eq('email_sequence_status', 'paused')
+      .select('id');
+    return { ok: true, summary: `Séquences email reprises: ${count?.length ?? 0} prospects` };
+
+  } else if (orderType.includes('campagne') || orderType.includes('campaign') || orderType.includes('envoyer') || orderType.includes('send') || orderType.includes('lancer')) {
+    const mode = orderType.includes('warm') ? '?type=warm' : '';
+    return callAgentEndpoint(baseUrl, `/api/agents/email/daily${mode}`, 'GET', cronSecret);
+
+  } else {
+    // Default: trigger email campaign
+    return callAgentEndpoint(baseUrl, '/api/agents/email/daily', 'GET', cronSecret);
+  }
 }
