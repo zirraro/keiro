@@ -120,11 +120,28 @@ async function sendEmailDirect(
  * Query: ?type=warm for warm chatbot leads follow-up.
  */
 export async function GET(request: NextRequest) {
-  // --- Auth: CRON_SECRET ---
+  // --- Auth: CRON_SECRET or admin user ---
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+  let isAuthorized = false;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    try {
+      const { getAuthUser } = await import('@/lib/auth-server');
+      const { user } = await getAuthUser();
+      if (user) {
+        const supabaseAuth = getSupabaseAdmin();
+        const { data: profile } = await supabaseAuth.from('profiles').select('is_admin').eq('id', user.id).single();
+        if (profile?.is_admin) isAuthorized = true;
+      }
+    } catch {}
+  }
+
+  if (!isAuthorized) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
