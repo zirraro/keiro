@@ -17,18 +17,6 @@
       "schedule": "15 5 * * *"
     },
     {
-      "path": "/api/agents/orders",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/agents/orders",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/agents/orders",
-      "schedule": "0 17 * * *"
-    },
-    {
       "path": "/api/cron/refresh-trends",
       "schedule": "30 5 * * *"
     },
