@@ -133,6 +133,9 @@ function buildSummary(path: string, data: any): string {
     return `Google Maps: ${data.new_prospects || data.found || 0} nouveaux prospects trouvés`;
   }
   if (path.includes('/commercial')) {
+    if (data.audited != null) {
+      return `Commercial audit: ${data.audited} prospects vérifiés, ${data.emails_found || 0} emails trouvés, ${data.flagged_dead || 0} disqualifiés`;
+    }
     return `Commercial: ${data.enriched || 0} prospects enrichis, ${data.advanced_to_contact || 0} prêts à contacter`;
   }
   if (path.includes('/seo')) {
