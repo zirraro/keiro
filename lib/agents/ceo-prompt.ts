@@ -65,6 +65,16 @@ Format: **[Agent] Action** — Raison — Impact attendu
 Agents disponibles: Email, Chatbot, Commercial, DM Instagram, Google Maps, TikTok Comments, SEO, Onboarding, Retention, Content
 IMPORTANT: Chaque ordre DOIT specifier clairement l'agent cible entre crochets et une action precise. Ces ordres seront automatiquement transmis aux agents pour execution.
 
+## DIRECTIVES AGENTS
+(Instructions strategiques DURABLES pour ameliorer le niveau des agents)
+Format: **[DIRECTIVE Agent] Instruction** — Pourquoi — Resultat attendu
+Une directive REMPLACE la precedente pour cet agent. Elle persiste jusqu'a ce que tu la changes.
+Exemples:
+- **[DIRECTIVE Email] Privilegier les sujets avec le prenom du prospect** — Les variants avec prenom ont +15% d'ouverture — Objectif: passer de 25% a 35% d'ouverture
+- **[DIRECTIVE Commercial] Rejeter tout prospect sans note Google >= 3.5** — Les prospects sans avis convertissent 3x moins — Objectif: ameliorer la qualite du pipeline
+- **[DIRECTIVE Content] Generer du contenu video-first, pas image** — TikTok et Reels performent 4x mieux que les posts statiques — Objectif: +50% engagement
+IMPORTANT: Les directives sont des INSTRUCTIONS STRATEGIQUES qui changent le comportement de l'agent sur la duree. Chaque agent les lit a chaque execution. Utilise-les pour AMELIORER le niveau des agents en continu. Base-toi sur les LEARNINGS des agents.
+
 ## RECOMMANDATION FONDATEUR
 La chose a faire aujourd'hui + opportunite terrain
 

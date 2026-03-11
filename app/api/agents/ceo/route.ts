@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt, getCeoArchitectureKnowledge, getCeoChatSystemAddendum } from '@/lib/agents/ceo-prompt';
+import { getCeoIntelligenceSummary, setDirectiveForAgent } from '@/lib/agents/agent-memory';
 
 export const runtime = 'edge';
 export const maxDuration = 120;
@@ -497,17 +498,29 @@ async function generateBrief(): Promise<NextResponse> {
       failedOrdersText = `\n\nORDRES ECHOUES (dernières 24h) — DIAGNOSTIQUE ET PROPOSE UN FIX:\n${failLines.join('\n')}`;
     }
 
+    // --- Fetch agent intelligence (directives + learnings) ---
+    let intelligenceSummary = '';
+    try {
+      intelligenceSummary = await getCeoIntelligenceSummary();
+    } catch (e: any) {
+      console.warn('[CEOAgent] Failed to fetch intelligence summary:', e.message);
+    }
+
+    const intelligenceText = intelligenceSummary
+      ? `\n\nINTELLIGENCE AGENTS (directives actives + learnings):\n${intelligenceSummary}`
+      : '';
+
     console.log('[CEOAgent] Metrics collected, calling Claude...');
 
     // --- Call Claude Sonnet for brief (smarter reasoning) ---
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20241022',
-      max_tokens: 3000,
+      max_tokens: 4000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}`,
       messages: [
         {
           role: 'user',
-          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}${failedOrdersText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Si des ordres ont echoue, diagnostique le probleme et donne les instructions Claude Code exactes pour les fixer.`,
+          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}${failedOrdersText}${intelligenceText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Si des ordres ont echoue, diagnostique le probleme et donne les instructions Claude Code exactes pour les fixer. Analyse les LEARNINGS des agents et ajuste les DIRECTIVES si necessaire pour ameliorer leur performance.`,
         },
       ],
     });
@@ -684,8 +697,11 @@ Mapping des noms vers les identifiants:
 
 Priorité: "haute" si urgent/critique/🔴, "basse" si optionnel/info/🟢, "moyenne" sinon.
 
-Réponds UNIQUEMENT avec un tableau JSON valide. Si aucun ordre, réponds [].
-Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}`,
+Il y a DEUX types d'elements a extraire:
+1. ORDRES (actions one-shot): {"type": "order", "to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}
+2. DIRECTIVES (instructions strategiques durables, marquees [DIRECTIVE Agent]): {"type": "directive", "to_agent": "...", "instruction": "...", "context": "..."}
+
+Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
       messages: [
         {
           role: 'user',
@@ -705,37 +721,45 @@ Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenn
       cleanJson = jsonMatch[0];
     }
 
-    let orders: Array<{
-      to_agent: string;
-      order_type: string;
-      priority: string;
-      description: string;
-    }>;
+    let items: Array<any>;
 
     try {
-      orders = JSON.parse(cleanJson);
+      items = JSON.parse(cleanJson);
     } catch {
       console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
       return;
     }
 
-    if (!Array.isArray(orders) || orders.length === 0) {
-      console.log('[CEOAgent] No orders extracted from brief');
+    if (!Array.isArray(items) || items.length === 0) {
+      console.log('[CEOAgent] No orders/directives extracted from brief');
       return;
     }
 
-    // Filter and validate orders
-    const validOrders = orders.filter(
-      (o) => o.to_agent && VALID_AGENTS.includes(o.to_agent) && o.order_type
+    // Separate directives from orders
+    const directives = items.filter(
+      (i) => i.type === 'directive' && i.to_agent && VALID_AGENTS.includes(i.to_agent) && i.instruction
+    );
+    const orders = items.filter(
+      (i) => i.type !== 'directive' && i.to_agent && VALID_AGENTS.includes(i.to_agent) && i.order_type
     );
 
-    if (validOrders.length === 0) {
-      console.log('[CEOAgent] No valid orders after filtering');
+    // Save directives via agent-memory system
+    for (const d of directives) {
+      try {
+        await setDirectiveForAgent(d.to_agent, d.instruction, d.context || '');
+        console.log(`[CEOAgent] Directive saved for ${d.to_agent}: ${d.instruction.substring(0, 80)}`);
+      } catch (e: any) {
+        console.error(`[CEOAgent] Failed to save directive for ${d.to_agent}:`, e.message);
+      }
+    }
+
+    if (orders.length === 0) {
+      console.log(`[CEOAgent] ${directives.length} directives saved, no orders to insert`);
       return;
     }
 
     // Insert orders into agent_orders table
-    const rows = validOrders.map((o) => ({
+    const rows = orders.map((o: any) => ({
       from_agent: 'ceo',
       to_agent: o.to_agent,
       order_type: o.order_type,
@@ -752,7 +776,7 @@ Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenn
       return;
     }
 
-    console.log(`[CEOAgent] ${validOrders.length} orders inserted into agent_orders`);
+    console.log(`[CEOAgent] ${orders.length} orders inserted, ${directives.length} directives saved`);
 
   } catch (error: any) {
     // Non-blocking: order extraction failure should not break the brief flow

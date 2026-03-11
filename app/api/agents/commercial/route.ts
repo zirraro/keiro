@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
+import { getAgentContext, reportLearning } from '@/lib/agents/agent-memory';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,7 +77,7 @@ async function enrichProspect(prospect: {
   type: string | null;
   quartier: string | null;
   note_google: number | null;
-}): Promise<EnrichmentResult | null> {
+}, directive?: string): Promise<EnrichmentResult | null> {
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_API_KEY) return null;
 
@@ -107,7 +108,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 500,
-        system: getCommercialSystemPrompt(),
+        system: getCommercialSystemPrompt() + (directive ? `\n\n--- DIRECTIVE STRATEGIQUE DU CEO ---\n${directive}\n--- FIN DIRECTIVE ---` : ''),
         messages: [{ role: 'user', content: prospectAnalysisPrompt }],
       }),
     });
@@ -187,6 +188,15 @@ async function runEnrichment(): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
     }
 
+    // --- Read CEO directive for commercial agent ---
+    let agentDirective = '';
+    try {
+      agentDirective = await getAgentContext('commercial');
+      if (agentDirective) {
+        console.log(`[CommercialAgent] Active directive: ${agentDirective.substring(0, 100)}...`);
+      }
+    } catch {}
+
     // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
     // Includes: missing data, status 'new'/'identifie' not yet in email sequence
     const { data: prospects, error: fetchError } = await supabase
@@ -235,7 +245,7 @@ async function runEnrichment(): Promise<NextResponse> {
     }> = [];
 
     for (const prospect of prospects) {
-      const result = await enrichProspect(prospect);
+      const result = await enrichProspect(prospect, agentDirective || undefined);
 
       if (!result) {
         skippedCount++;
@@ -348,6 +358,21 @@ async function runEnrichment(): Promise<NextResponse> {
     });
 
     console.log(`[CommercialAgent] Enrichment complete: ${enrichedCount} enriched, ${advancedToContactCount} → contacté, ${flaggedDeadCount} flagged dead, ${skippedCount} skipped | CRM total: ${totalProspects}`);
+
+    // --- Auto-learning: report insights to CEO ---
+    try {
+      const enrichRate = prospects.length > 0 ? Math.round((enrichedCount / prospects.length) * 100) : 0;
+      await reportLearning('commercial', {
+        insight: `Enrichissement: ${enrichedCount}/${prospects.length} prospects enrichis (${enrichRate}%). ${advancedToContactCount} prets a contacter, ${flaggedDeadCount} disqualifies.`,
+        metric_name: 'enrichment_rate',
+        metric_after: enrichRate,
+        recommendation: flaggedDeadCount > enrichedCount
+          ? 'Beaucoup de prospects disqualifies. La source de prospection genere des donnees de mauvaise qualite.'
+          : advancedToContactCount === 0
+            ? 'Aucun prospect pret a contacter. Verifier les criteres de qualification (email, type, completeness).'
+            : `${advancedToContactCount} prospects prets pour la sequence email.`,
+      });
+    } catch {}
 
     return NextResponse.json({
       ok: true,

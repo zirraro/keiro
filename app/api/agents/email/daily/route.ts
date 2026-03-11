@@ -4,6 +4,7 @@ import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { isGoodTimeToContact, getOptimalCronSlot, verifyProspectData } from '@/lib/agents/business-timing';
 import { sendEmail } from '@/lib/agents/email-sender';
+import { getAgentContext, reportLearning } from '@/lib/agents/agent-memory';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -153,6 +154,15 @@ export async function GET(request: NextRequest) {
   const results: SendResult[] = [];
 
   try {
+    // --- Read CEO directive for email agent ---
+    let agentDirective = '';
+    try {
+      agentDirective = await getAgentContext('email');
+      if (agentDirective) {
+        console.log(`[EmailDaily] Active directive: ${agentDirective.substring(0, 100)}...`);
+      }
+    } catch {}
+
     if (type === 'warm') {
       // --- Warm mode: follow-up chatbot leads ---
       console.log('[EmailDaily] Running warm mode...');
@@ -326,6 +336,32 @@ export async function GET(request: NextRequest) {
     });
 
     console.log(`[EmailDaily] Done: ${successCount} sent, ${failCount} failed`);
+
+    // --- Auto-learning: report insights to CEO ---
+    try {
+      if (results.length > 0) {
+        const successRate = results.length > 0 ? Math.round((successCount / results.length) * 100) : 0;
+        await reportLearning('email', {
+          insight: `Campagne ${type === 'warm' ? 'warm' : 'cold'}: ${successCount}/${results.length} envoyes (${successRate}% succes). ${failCount} echecs.`,
+          metric_name: 'email_send_success_rate',
+          metric_after: successRate,
+          recommendation: failCount > 0
+            ? `${failCount} echecs a investiguer. Verifier les erreurs dans les logs.`
+            : 'Tous les envois ont reussi.',
+        });
+      }
+
+      // Report on skipped prospects if significant
+      const totalSkipped = (type !== 'warm') ? ((results as any).__skippedTiming || 0) + ((results as any).__skippedVerification || 0) : 0;
+      if (type !== 'warm' && results.length === 0) {
+        await reportLearning('email', {
+          insight: `Aucun email envoye. Tous les prospects ont ete filtres par timing ou verification.`,
+          metric_name: 'email_prospects_eligible',
+          metric_after: 0,
+          recommendation: 'Verifier business-timing.ts et verifyProspectData. Possible probleme de qualite des donnees CRM.',
+        });
+      }
+    } catch {}
 
     return NextResponse.json({
       ok: true,
