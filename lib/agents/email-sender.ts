@@ -2,6 +2,8 @@
  * Shared email sender: tries Brevo first, falls back to Resend.
  */
 
+const FOUNDER_BCC = 'mrzirraro@gmail.com';
+
 interface EmailPayload {
   from_name: string;
   from_email: string;
@@ -10,6 +12,8 @@ interface EmailPayload {
   html: string;
   text?: string;
   tags?: Array<{ name: string; value: string }>;
+  /** Set to false to skip BCC to founder. Default: true */
+  bcc_founder?: boolean;
 }
 
 interface SendEmailResult {
@@ -59,6 +63,7 @@ async function sendViaBrevo(apiKey: string, payload: EmailPayload): Promise<Send
       body: JSON.stringify({
         sender: { name: payload.from_name, email: payload.from_email },
         to: payload.to.map(email => ({ email })),
+        ...(payload.bcc_founder !== false ? { bcc: [{ email: FOUNDER_BCC }] } : {}),
         subject: payload.subject,
         htmlContent: payload.html,
         textContent: payload.text,
@@ -89,6 +94,7 @@ async function sendViaResend(apiKey: string, payload: EmailPayload): Promise<Sen
       body: JSON.stringify({
         from: `${payload.from_name} <${payload.from_email}>`,
         to: payload.to,
+        ...(payload.bcc_founder !== false ? { bcc: [FOUNDER_BCC] } : {}),
         subject: payload.subject,
         html: payload.html,
         text: payload.text,
