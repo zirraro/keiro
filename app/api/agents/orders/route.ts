@@ -330,6 +330,15 @@ async function executeOrder(
       return callAgentEndpoint(baseUrl, '/api/agents/gmaps', 'POST', cronSecret);
 
     case 'commercial':
+      if (orderType.includes('sourc') || orderType.includes('prospect') || orderType.includes('generer') || orderType.includes('générer') || orderType.includes('ajout') || orderType.includes('import')) {
+        const query = payload.query || payload.description || 'commerces locaux Paris';
+        const count = payload.count || 10;
+        return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'POST', cronSecret, {
+          action: 'source_ai',
+          query,
+          count,
+        });
+      }
       return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
 
     case 'seo':

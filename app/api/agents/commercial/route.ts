@@ -445,3 +445,179 @@ async function runEnrichment(): Promise<NextResponse> {
     );
   }
 }
+
+/**
+ * POST /api/agents/commercial
+ * Source new qualified prospects into the CRM.
+ * Accepts: { prospects: Array<{ company, email?, phone?, type?, quartier?, website?, instagram?, notes? }> }
+ * Or: { action: "source_ai", query: "restaurants italiens Paris 11e", count?: number }
+ */
+export async function POST(request: NextRequest) {
+  const { authorized } = await verifyAuth(request);
+  if (!authorized) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const supabase = getSupabaseAdmin();
+  const nowISO = new Date().toISOString();
+
+  // --- Mode 1: AI-assisted prospect generation ---
+  if (body.action === 'source_ai') {
+    if (!isAIConfigured()) {
+      return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configuree` }, { status: 500 });
+    }
+
+    const query = body.query || 'commerces locaux Paris';
+    const count = Math.min(body.count || 10, 20);
+
+    try {
+      const aiResponse = await generateAIResponse({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 3000,
+        system: `Tu es un agent commercial expert en prospection B2B pour KeiroAI, une plateforme SaaS pour commerces locaux (restaurants, boutiques, coaches, coiffeurs, etc.).
+
+Tu dois generer des prospects REALISTES et QUALIFIES pour la requete donnee. Chaque prospect doit avoir:
+- company: nom d'entreprise realiste et credible
+- type: un de ${VALID_TYPES.join(', ')}
+- quartier: quartier/zone geographique
+- email: email professionnel plausible (format prenom@domaine.com ou contact@entreprise.com)
+- phone: numero de telephone francais (06/07)
+- score: score de qualification 0-100 (base sur la pertinence pour KeiroAI)
+
+IMPORTANT: Genere UNIQUEMENT des prospects qui correspondent a la cible KeiroAI (commerces locaux qui beneficieraient d'une solution IA pour leur marketing/operations).
+
+Reponds UNIQUEMENT avec un tableau JSON valide, sans markdown.`,
+        messages: [{
+          role: 'user',
+          content: `Genere ${count} prospects qualifies pour: "${query}"`,
+        }],
+      });
+
+      const jsonMatch = aiResponse.text.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) {
+        return NextResponse.json({ ok: false, error: 'AI n\'a pas genere de JSON valide' }, { status: 500 });
+      }
+
+      const aiProspects = JSON.parse(jsonMatch[0]);
+      body.prospects = aiProspects;
+    } catch (error: any) {
+      return NextResponse.json({ ok: false, error: `AI sourcing error: ${error.message}` }, { status: 500 });
+    }
+  }
+
+  // --- Mode 2: Direct prospect insertion ---
+  const prospects = body.prospects;
+  if (!Array.isArray(prospects) || prospects.length === 0) {
+    return NextResponse.json({ ok: false, error: 'prospects[] requis (array non vide)' }, { status: 400 });
+  }
+
+  const inserted: string[] = [];
+  const skipped: Array<{ company: string; reason: string }> = [];
+
+  for (const p of prospects) {
+    if (!p.company || p.company.length < 2) {
+      skipped.push({ company: p.company || '(vide)', reason: 'Nom entreprise manquant ou trop court' });
+      continue;
+    }
+
+    // Check for duplicates by company name
+    const { data: existing } = await supabase
+      .from('crm_prospects')
+      .select('id')
+      .ilike('company', p.company)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      skipped.push({ company: p.company, reason: 'Doublon (entreprise deja en CRM)' });
+      continue;
+    }
+
+    // Also check by email if provided
+    if (p.email) {
+      const { data: emailExists } = await supabase
+        .from('crm_prospects')
+        .select('id')
+        .eq('email', p.email.toLowerCase())
+        .limit(1);
+
+      if (emailExists && emailExists.length > 0) {
+        skipped.push({ company: p.company, reason: 'Doublon (email deja en CRM)' });
+        continue;
+      }
+    }
+
+    const type = p.type && VALID_TYPES.includes(p.type.toLowerCase()) ? p.type.toLowerCase() : null;
+    const score = typeof p.score === 'number' ? Math.min(100, Math.max(0, p.score)) : 50;
+
+    const row: Record<string, any> = {
+      company: p.company,
+      email: p.email?.toLowerCase() || null,
+      phone: p.phone || null,
+      type,
+      quartier: p.quartier || null,
+      website: p.website || null,
+      instagram: p.instagram || null,
+      notes: p.notes || null,
+      source: 'import',
+      source_agent: 'commercial',
+      status: 'identifie',
+      temperature: score >= 70 ? 'hot' : score >= 40 ? 'warm' : 'cold',
+      score,
+      email_sequence_status: p.email ? 'not_started' : null,
+      email_sequence_step: 0,
+      created_at: nowISO,
+      updated_at: nowISO,
+    };
+
+    const { data: insertedRow, error: insertError } = await supabase
+      .from('crm_prospects')
+      .insert(row)
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error(`[CommercialAgent] Insert error for ${p.company}:`, insertError.message);
+      skipped.push({ company: p.company, reason: insertError.message });
+    } else {
+      inserted.push(insertedRow.id);
+    }
+  }
+
+  // Log the sourcing run
+  await supabase.from('agent_logs').insert({
+    agent: 'commercial',
+    action: 'prospect_sourcing',
+    data: {
+      total_input: prospects.length,
+      inserted: inserted.length,
+      skipped: skipped.length,
+      skipped_details: skipped,
+      source: body.action === 'source_ai' ? 'ai_generated' : 'manual_import',
+      query: body.query || null,
+    },
+    created_at: nowISO,
+  });
+
+  // Report to CEO
+  await supabase.from('agent_logs').insert({
+    agent: 'commercial',
+    action: 'report_to_ceo',
+    data: {
+      message: `Sourcing: ${inserted.length} nouveaux prospects ajoutes, ${skipped.length} ignores. Source: ${body.action === 'source_ai' ? 'IA' : 'import manuel'}.`,
+      phase: 'sourcing_complete',
+    },
+    status: 'success',
+    created_at: nowISO,
+  });
+
+  console.log(`[CommercialAgent] Sourcing complete: ${inserted.length} inserted, ${skipped.length} skipped`);
+
+  return NextResponse.json({
+    ok: true,
+    inserted: inserted.length,
+    skipped: skipped.length,
+    skipped_details: skipped,
+    prospect_ids: inserted,
+  });
+}
