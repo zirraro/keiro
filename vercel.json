@@ -1,76 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/agents/gmaps",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/agents/commercial",
-      "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/agents/ceo",
+      "path": "/api/cron/scheduler?slot=ceo",
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/agents/orders",
-      "schedule": "15 5 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-trends",
-      "schedule": "30 5 * * *"
-    },
-    {
-      "path": "/api/agents/email/daily?slot=early_morning",
-      "schedule": "0 6 * * 1,2,3,4"
-    },
-    {
-      "path": "/api/agents/dm-instagram?slot=morning",
-      "schedule": "0 7 * * 1,2,3,4,5"
-    },
-    {
-      "path": "/api/agents/seo",
-      "schedule": "0 7 * * 1,3,5"
-    },
-    {
-      "path": "/api/agents/email/daily?slot=morning",
-      "schedule": "0 8 * * 1,2,3,4"
-    },
-    {
-      "path": "/api/agents/email/daily?slot=midday",
-      "schedule": "0 10 * * 1,2,3,4"
-    },
-    {
-      "path": "/api/agents/email/daily?type=warm",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/agents/email/daily?slot=afternoon",
-      "schedule": "0 12 * * 1,2,3,4"
-    },
-    {
-      "path": "/api/agents/email/daily?slot=evening",
-      "schedule": "0 16 * * 1,2,3,4"
-    },
-    {
-      "path": "/api/agents/dm-instagram?slot=evening",
-      "schedule": "0 17 * * 1,2,3,4,5"
-    },
-    {
-      "path": "/api/agents/tiktok-comments",
-      "schedule": "0 17 * * 1,3"
-    },
-    {
-      "path": "/api/agents/onboarding",
+      "path": "/api/cron/scheduler?slot=morning",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/agents/retention",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/agents/content",
-      "schedule": "0 7 * * *"
     }
   ]
 }
