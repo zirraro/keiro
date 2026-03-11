@@ -103,6 +103,7 @@ type Activity = {
   heure_rappel: string | null;
   rappel_fait: boolean;
   created_at: string;
+  data?: { message_id?: string; step?: number; subject?: string; variant?: number; category?: string; provider?: string; [key: string]: any } | null;
   // Joined from reminder query
   crm_prospects?: { id: string; first_name: string | null; last_name: string | null; company: string | null; instagram: string | null };
 };
@@ -1917,6 +1918,41 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
           </div>
         )}
       </div>
+
+      {/* Emails envoyés */}
+      {(() => {
+        const emailActivities = activities.filter(a => a.type === 'email' && a.data?.subject);
+        if (emailActivities.length === 0) return null;
+        return (
+          <div className="px-4 py-3 border-b border-neutral-200">
+            <p className="text-[10px] text-neutral-500 uppercase mb-2">Emails envoyés ({emailActivities.length})</p>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {emailActivities.map(ea => (
+                <details key={ea.id} className="group">
+                  <summary className="flex items-center gap-2 text-xs cursor-pointer list-none hover:bg-neutral-50 rounded p-1 -m-1">
+                    <span className="flex-shrink-0">✉️</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-neutral-500 flex-shrink-0">{formatDateRelative(ea.date_activite)}</span>
+                        <span className="font-medium text-neutral-700 truncate">Step {ea.data?.step}</span>
+                        <span className={`text-[10px] px-1 py-0.5 rounded ${ea.data?.provider === 'brevo' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{ea.data?.provider || '?'}</span>
+                      </div>
+                      <p className="text-neutral-600 mt-0.5 truncate font-medium">{ea.data?.subject}</p>
+                    </div>
+                    <span className="text-neutral-400 group-open:rotate-90 transition-transform text-[10px]">▶</span>
+                  </summary>
+                  <div className="mt-2 ml-6 p-2 bg-neutral-50 rounded-lg text-xs">
+                    <p className="text-neutral-500 mb-1"><strong>Objet:</strong> {ea.data?.subject}</p>
+                    <p className="text-neutral-500 mb-1"><strong>Catégorie:</strong> {ea.data?.category} · <strong>Variante:</strong> {ea.data?.variant ?? '?'}</p>
+                    <p className="text-neutral-500"><strong>Provider:</strong> {ea.data?.provider} · <strong>ID:</strong> <span className="font-mono text-[10px]">{ea.data?.message_id?.substring(0, 20)}...</span></p>
+                    {ea.description && <p className="text-neutral-600 mt-1 whitespace-pre-wrap">{ea.description}</p>}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Action buttons */}
       <div className="px-4 py-3 space-y-2">

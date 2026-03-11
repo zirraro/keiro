@@ -184,8 +184,20 @@ export async function GET(request: NextRequest) {
   }
 
   if (isCron) {
-    console.log('[CommercialAgent] Cron triggered — running enrichment pipeline');
-    return runEnrichment();
+    console.log('[CommercialAgent] Cron triggered — running enrichment pipeline + audit');
+    // Run enrichment first, then audit existing prospects
+    const enrichResult = await runEnrichment();
+
+    // Also run a quick audit of existing CRM prospects (non-blocking)
+    try {
+      const supabase = getSupabaseAdmin();
+      await runCRMAudit(supabase, new Date().toISOString());
+      console.log('[CommercialAgent] Cron audit complete');
+    } catch (e: any) {
+      console.warn('[CommercialAgent] Cron audit failed (non-blocking):', e.message);
+    }
+
+    return enrichResult;
   }
 
   // Admin UI: return last enrichment report

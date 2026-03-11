@@ -697,7 +697,7 @@ async function generateBrief(): Promise<NextResponse> {
           },
           body: JSON.stringify({
             sender: { name: 'KeiroAI CEO Agent', email: 'contact@keiroai.com' },
-            to: [{ email: FOUNDER_EMAIL, name: 'Oussama' }],
+            to: [{ email: FOUNDER_EMAIL, name: 'Victor' }],
             subject: emailSubject,
             htmlContent: emailHtml,
             tags: ['ceo-brief'],

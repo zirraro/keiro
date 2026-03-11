@@ -1,6 +1,6 @@
 // KeiroAI Agent System - Email Templates
 // 6 categories x 3 emails + 1 warm template
-// Sender: "Oussama -- KeiroAI" / contact@keiroai.com
+// Sender: "Victor de KeiroAI" / contact@keiroai.com
 
 export interface EmailTemplate {
   subject: string;
@@ -28,7 +28,7 @@ function wrapHtmlEmail(subject: string, bodyHtml: string): string {
     <div style="background:#ffffff;padding:24px 20px;border:1px solid #e5e7eb;border-top:none;">
       ${bodyHtml}
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:14px;color:#6b7280;">
-        <p style="margin:0;">Oussama</p>
+        <p style="margin:0;">Victor</p>
         <p style="margin:2px 0;color:#9333ea;font-weight:bold;">KeiroAI</p>
         <p style="margin:2px 0;font-size:13px;">contact@keiroai.com</p>
       </div>
@@ -232,7 +232,7 @@ Avec KeiroAI, vous g\u00E9n\u00E9rez des visuels et vid\u00E9os pro de vos plats
 
 \u2192 Voyez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('On offre 3 cr\u00E9ations gratuites pour tester, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> en cherchant les meilleurs restos du {{quartier}}.</p>
@@ -258,7 +258,7 @@ Imaginez \u00E7a avec VOTRE logo, VOS plats, VOS couleurs. G\u00E9n\u00E9r\u00E9
 
 \u2192 Testez avec vos propres plats : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : testez 3 jours complets pour 4.99\u20AC. Sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai pris 2 minutes pour cr\u00E9er un visuel type pour un resto comme <strong>{{company}}</strong>.</p>
@@ -283,7 +283,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les restos qui postent 3x/semaine voient +40% de r\u00E9servations via les r\u00E9seaux. C\u2019est pas moi qui le dis, c\u2019est l\u2019\u00E9tude Zenchef 2025.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : vos concurrents dans le {{quartier}} postent d\u00E9j\u00E0 sur Instagram et TikTok. <strong>Chaque jour sans contenu, ce sont des clients qui d\u00E9couvrent un autre resto.</strong></p>
@@ -315,7 +315,7 @@ UNE vente en plus par mois et c\u2019est pay\u00E9.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> dans le {{quartier}} \u2014 vos produits m\u00E9ritent d\u2019\u00EAtre vus par plus de monde.</p>
@@ -338,7 +338,7 @@ Imaginez vos produits mis en valeur comme \u00E7a, avec votre identit\u00E9 visu
 
 \u2192 Testez avec vos propres produits : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour une boutique comme la v\u00F4tre \u2014 c\u2019est en pi\u00E8ce jointe.</p>
@@ -362,7 +362,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les boutiques qui postent r\u00E9guli\u00E8rement sur Instagram vendent en moyenne 35% de plus en ligne. Source : Shopify 2025.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : pendant que vous lisez cet email, vos concurrents dans le {{quartier}} postent sur Instagram et TikTok. <strong>Chaque jour sans contenu, ce sont des clients qui ach\u00E8tent ailleurs.</strong></p>
@@ -394,7 +394,7 @@ Et un client coaching reste en moyenne 8 \u00E0 12 mois. Le ROI est \u00E9norme.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai vu que <strong>{{company}}</strong> propose des s\u00E9ances dans le {{quartier}} \u2014 super concept.</p>
@@ -417,7 +417,7 @@ Imaginez \u00E7a avec votre marque, vos couleurs, votre offre. 3 min chrono.
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Voici un exemple de visuel type pour un coach \u2014 en pi\u00E8ce jointe.</p>
@@ -441,7 +441,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les coachs qui postent 3x/semaine ont en moyenne 60% de clients en plus. Le personal branding, c\u2019est le nouveau bouche-\u00E0-oreille.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres coachs dans le {{quartier}} attirent d\u00E9j\u00E0 des clients via Instagram. <strong>Chaque jour sans contenu, ce sont des clients qui trouvent un autre coach.</strong></p>
@@ -473,7 +473,7 @@ Un client fid\u00E8le en coiffure, c\u2019est 1000\u20AC sur 2 ans.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>{{company}}</strong> dans le {{quartier}}, <strong>{{note_google}} sur Google</strong> \u2014 vos clients sont fans.</p>
@@ -496,7 +496,7 @@ Avec vos r\u00E9alisations et votre logo, \u00E7a d\u00E9chire. 3 min de cr\u00E
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un salon comme le v\u00F4tre en pi\u00E8ce jointe.</p>
@@ -520,7 +520,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Un client fid\u00E8le en coiffure, c\u2019est 1000\u20AC sur 2 ans. 3 coupes en plus par mois et votre abonnement est pay\u00E9 10 fois.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres salons dans le {{quartier}} montrent d\u00E9j\u00E0 leurs cr\u00E9ations. <strong>Chaque jour sans contenu, ce sont des clients qui prennent RDV ailleurs.</strong></p>
@@ -552,7 +552,7 @@ Avant No\u00EBl, 1 post bien fait = 10 commandes minimum.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>{{company}}</strong> dans le {{quartier}} \u2014 belle s\u00E9lection.</p>
@@ -573,7 +573,7 @@ Un visuel type pour un caviste en pi\u00E8ce jointe \u2014 imaginez \u00E7a avec
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un caviste en pi\u00E8ce jointe \u2014 imaginez \u00E7a avec vos bouteilles.</p>
@@ -596,7 +596,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les cavistes actifs sur Instagram vendent 30% de plus pendant les f\u00EAtes. La prochaine p\u00E9riode cl\u00E9 approche.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres cavistes attirent des clients avec des contenus inspirants. <strong>Chaque jour sans contenu, la p\u00E9riode des f\u00EAtes n\u2019attend pas.</strong></p>
@@ -626,7 +626,7 @@ KeiroAI g\u00E9n\u00E8re vos visuels en 3 min. 2 bouquets en plus et c\u2019est 
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>{{company}}</strong> dans le {{quartier}} \u2014 vos cr\u00E9ations sont magnifiques.</p>
@@ -646,7 +646,7 @@ Un visuel type pour un fleuriste en pi\u00E8ce jointe \u2014 imaginez avec vos c
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un fleuriste en pi\u00E8ce jointe \u2014 imaginez avec vos compositions.</p>
@@ -669,7 +669,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Instagram est le r\u00E9seau #1 des fleuristes. 2 bouquets en plus par mois et c\u2019est pay\u00E9.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres fleuristes dans le {{quartier}} montrent d\u00E9j\u00E0 leurs compositions. <strong>Chaque jour sans contenu, ce sont des clients qui commandent ailleurs.</strong></p>
@@ -701,7 +701,7 @@ Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros pour votre persona
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 votre expertise m\u00E9rite clairement plus de visibilit\u00E9.</p>
@@ -724,7 +724,7 @@ Imaginez \u00E7a avec votre marque personnelle. G\u00E9n\u00E9r\u00E9 en 3 min.
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un freelance \u2014 c\u2019est en pi\u00E8ce jointe.</p>
@@ -748,7 +748,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les freelances actifs sur LinkedIn re\u00E7oivent 3x plus de demandes de devis. Le personal branding, c\u2019est le meilleur investissement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres freelances dans votre domaine publient d\u00E9j\u00E0 sur LinkedIn et Instagram. <strong>Chaque jour sans contenu, ce sont des missions qui vont \u00E0 un concurrent plus visible.</strong></p>
@@ -780,7 +780,7 @@ Avec KeiroAI, vous cr\u00E9ez des visuels et vid\u00E9os pros en 3 min.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> dans le {{quartier}} \u2014 vos r\u00E9alisations parlent d\u2019elles-m\u00EAmes.</p>
@@ -803,7 +803,7 @@ Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. 
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour mettre en valeur vos r\u00E9alisations \u2014 c\u2019est en pi\u00E8ce jointe.</p>
@@ -827,7 +827,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les artisans qui postent des avant/apr\u00E8s re\u00E7oivent +30% de demandes de devis. Source : \u00E9tude BTP Digital 2025.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : vos concurrents dans le {{quartier}} montrent d\u00E9j\u00E0 leurs r\u00E9alisations. <strong>Chaque jour sans contenu, ce sont des devis qui vont \u00E0 un concurrent plus visible.</strong></p>
@@ -859,7 +859,7 @@ Avec KeiroAI, vous cr\u00E9ez des visuels professionnels en 3 min, pas en 3 heur
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> dans le {{quartier}} \u2014 votre image professionnelle est cl\u00E9.</p>
@@ -882,7 +882,7 @@ Une pr\u00E9sence en ligne professionnelle attire la confiance et les nouveaux c
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un professionnel comme vous \u2014 c\u2019est en pi\u00E8ce jointe.</p>
@@ -906,7 +906,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('72% des patients cherchent leur praticien en ligne avant de prendre RDV. La confiance passe par la visibilit\u00E9.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : vos confr\u00E8res ont d\u00E9j\u00E0 une pr\u00E9sence en ligne professionnelle. <strong>Chaque jour sans contenu, ce sont des patients/clients qui trouvent un autre praticien.</strong></p>
@@ -936,7 +936,7 @@ Avec KeiroAI, vous pouvez scaler votre offre contenu sans embaucher. 3 min par v
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 vous g\u00E9rez le contenu de plusieurs clients, et je sais que \u00E7a prend un temps fou.</p>
@@ -958,7 +958,7 @@ Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer vo
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez du contenu pour vos clients en <strong>3 min</strong>.</p>
@@ -982,7 +982,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les agences qui automatisent le contenu gagnent 2h par client par semaine. C\u2019est du temps que vous pouvez facturer.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : d\u2019autres agences automatisent d\u00E9j\u00E0 la cr\u00E9ation de contenu. <strong>Chaque jour sans automatisation, c\u2019est du temps que vous pourriez facturer.</strong></p>
@@ -1014,7 +1014,7 @@ Marque employeur + r\u00E9seaux = recrutement et visibilit\u00E9.
 
 \u2192 Testez gratuitement : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">Bonjour {{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je suis tomb\u00E9 sur <strong>{{company}}</strong> \u2014 votre communication m\u00E9rite d\u2019\u00EAtre \u00E0 la hauteur de votre entreprise.</p>
@@ -1037,7 +1037,7 @@ Communication corporate pro = confiance, recrutement et visibilit\u00E9.
 
 \u2192 Testez par vous-m\u00EAme : https://keiroai.com
 
-Oussama
+Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez votre marque sur tous les r\u00E9seaux.</p>
@@ -1061,7 +1061,7 @@ Ce que je vous propose :
 
 Apr\u00E8s, vous d\u00E9ciderez.
 
-Oussama
+Victor
 KeiroAI${psLineText('Les PME actives sur les r\u00E9seaux voient +25% de candidatures et +40% de demandes entrantes.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Je serai direct : vos concurrents communiquent d\u00E9j\u00E0 sur les r\u00E9seaux. <strong>Chaque jour sans contenu, c\u2019est une visibilit\u00E9 que vous laissez \u00E0 d\u2019autres.</strong></p>
@@ -1126,7 +1126,7 @@ Deux options pour d\u00E9marrer :
 
 R\u00E9pondez \u00E0 cet email et je m\u2019occupe de tout.
 
-Oussama
+Victor
 KeiroAI${psLineText('Plus de 200 entrepreneurs utilisent d\u00E9j\u00E0 KeiroAI pour leur marketing. Rejoignez-les.')}`,
     html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Suite \u00E0 notre \u00E9change sur le site, j\u2019ai pr\u00E9par\u00E9 un visuel pour <strong>{{company}}</strong> \u2014 c\u2019est en pi\u00E8ce jointe.</p>

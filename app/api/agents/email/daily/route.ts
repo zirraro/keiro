@@ -314,13 +314,37 @@ export async function GET(request: NextRequest) {
       console.log(`[EmailDaily] Running cold sequence mode (slot=${slot})...`);
 
       // Pull from ALL qualified prospects
+      // ALSO: auto-fix prospects that have email but broken sequence status
+      // (e.g., status='new' or email_sequence_status='completed' but step=0)
+      const { data: fixableProspects } = await supabase
+        .from('crm_prospects')
+        .select('id')
+        .not('email', 'is', null)
+        .neq('temperature', 'dead')
+        .not('status', 'in', '("client","perdu","sprint","disqualified")')
+        .or('email_sequence_status.eq.completed,status.eq.new')
+        .eq('email_sequence_step', 0)
+        .limit(20);
+
+      if (fixableProspects && fixableProspects.length > 0) {
+        console.log(`[EmailDaily] Auto-fixing ${fixableProspects.length} prospects with broken sequence status`);
+        for (const fp of fixableProspects) {
+          await supabase.from('crm_prospects').update({
+            email_sequence_status: 'not_started',
+            email_sequence_step: 0,
+            status: 'contacte',
+            updated_at: now.toISOString(),
+          }).eq('id', fp.id);
+        }
+      }
+
       const { data: prospects } = await supabase
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null)
         .or('email_sequence_status.is.null,email_sequence_status.eq.not_started,email_sequence_status.eq.in_progress')
         .neq('temperature', 'dead')
-        .not('status', 'in', '("client","perdu","sprint")');
+        .not('status', 'in', '("client","perdu","sprint","disqualified")');
 
       console.log(`[EmailDaily] Eligible prospects (before timing filter): ${prospects?.length ?? 0}`);
 
