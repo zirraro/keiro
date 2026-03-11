@@ -223,6 +223,47 @@ async function handleCeoChat(
       reportsMemory = `\nRAPPORTS DES AGENTS (dernières 24h):\nLes agents te font un retour quand ils démarrent et terminent une tâche:\n${reportLines.join('\n')}`;
     }
 
+    // Fetch actual order statuses from agent_orders — this is the SOURCE OF TRUTH
+    const { data: pendingOrders } = await supabase
+      .from('agent_orders')
+      .select('id, to_agent, order_type, status, priority, payload, created_at')
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: true })
+      .limit(30);
+
+    const { data: recentCompletedOrders } = await supabase
+      .from('agent_orders')
+      .select('id, to_agent, order_type, status, result, completed_at')
+      .in('status', ['completed', 'failed'])
+      .gte('completed_at', twentyFourHoursAgo)
+      .order('completed_at', { ascending: false })
+      .limit(20);
+
+    let ordersStatusMemory = '';
+    if ((pendingOrders && pendingOrders.length > 0) || (recentCompletedOrders && recentCompletedOrders.length > 0)) {
+      const lines: string[] = [];
+
+      if (pendingOrders && pendingOrders.length > 0) {
+        lines.push(`⏳ ORDRES EN ATTENTE/EN COURS (${pendingOrders.length}):`);
+        for (const o of pendingOrders) {
+          const created = new Date(o.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+          const desc = o.payload?.description ? ` — ${(o.payload.description as string).substring(0, 80)}` : '';
+          lines.push(`  [${o.status.toUpperCase()}] ${o.to_agent} → ${o.order_type} (priorité: ${o.priority}, créé: ${created})${desc}`);
+        }
+      }
+
+      if (recentCompletedOrders && recentCompletedOrders.length > 0) {
+        lines.push(`\n✅❌ ORDRES TERMINÉS/ÉCHOUÉS (dernières 24h, ${recentCompletedOrders.length}):`);
+        for (const o of recentCompletedOrders) {
+          const emoji = o.status === 'completed' ? '✅' : '❌';
+          const summary = o.result?.message ? ` — ${(o.result.message as string).substring(0, 80)}` : '';
+          lines.push(`  ${emoji} ${o.to_agent} → ${o.order_type}${summary}`);
+        }
+      }
+
+      ordersStatusMemory = `\nSTATUT RÉEL DES ORDRES (source de vérité — table agent_orders):\n${lines.join('\n')}`;
+    }
+
     const contextMetrics = `
 Metriques live:
 - Prospects total: ${totalProspects ?? 0}
@@ -232,6 +273,13 @@ Metriques live:
 ${briefsMemory}
 ${chatMemory}
 ${reportsMemory}
+${ordersStatusMemory}
+
+REGLE CRITIQUE SUR LES ORDRES:
+- La section "STATUT RÉEL DES ORDRES" ci-dessus est la SOURCE DE VÉRITÉ. Ne dis JAMAIS qu'une tâche est terminée si elle apparaît comme "PENDING" ou "IN_PROGRESS" dans cette section.
+- Si des ordres sont en attente (pending), dis-le clairement au fondateur. Ne prétends pas que le travail est fait.
+- Quand tu donnes un nouvel ordre, précise que c'est un ORDRE qui sera exécuté par le système (pas immédiatement fait).
+- Différencie ce qui EST fait (status=completed) de ce qui DOIT être fait (status=pending/in_progress).
 
 CAPACITES ACTUELLES:
 - Email cold: max 50/jour (Brevo limit), 5 slots horaires (early_morning/morning/midday/afternoon/evening)
@@ -482,7 +530,24 @@ async function generateBrief(): Promise<NextResponse> {
       agentReportsText = `\n\nRAPPORTS DES AGENTS (dernières 24h):\n${reportLines.join('\n')}`;
     }
 
-    // --- Fetch failed orders for diagnosis ---
+    // --- Fetch ALL orders status for accurate reporting ---
+    const { data: pendingBriefOrders } = await supabase
+      .from('agent_orders')
+      .select('to_agent, order_type, status, priority, payload, created_at')
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: true })
+      .limit(30);
+
+    let pendingOrdersText = '';
+    if (pendingBriefOrders && pendingBriefOrders.length > 0) {
+      const pendingLines = pendingBriefOrders.map((o: any) => {
+        const created = new Date(o.created_at).toLocaleDateString('fr-FR');
+        const desc = o.payload?.description ? ` — ${(o.payload.description as string).substring(0, 100)}` : '';
+        return `- [${o.status.toUpperCase()}] ${o.to_agent} → ${o.order_type} (priorité: ${o.priority}, créé: ${created})${desc}`;
+      });
+      pendingOrdersText = `\n\n⚠️ ORDRES EN ATTENTE/EN COURS (${pendingBriefOrders.length}) — CES TACHES NE SONT PAS ENCORE FAITES:\n${pendingLines.join('\n')}\nIMPORTANT: Ne considère PAS ces ordres comme terminés. Ils attendent encore d'être exécutés.`;
+    }
+
     const { data: failedOrders } = await supabase
       .from('agent_orders')
       .select('to_agent, order_type, result, created_at')
@@ -522,7 +587,7 @@ async function generateBrief(): Promise<NextResponse> {
       messages: [
         {
           role: 'user',
-          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}${failedOrdersText}${intelligenceText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Si des ordres ont echoue, diagnostique le probleme et donne les instructions Claude Code exactes pour les fixer. Analyse les LEARNINGS des agents et ajuste les DIRECTIVES si necessaire pour ameliorer leur performance.`,
+          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}${pendingOrdersText}${failedOrdersText}${intelligenceText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. IMPORTANT: Si des ordres sont en attente (pending/in_progress), signale-les clairement — ne les presente PAS comme terminés. Si des ordres ont echoue, diagnostique le probleme et donne les instructions Claude Code exactes pour les fixer. Analyse les LEARNINGS des agents et ajuste les DIRECTIVES si necessaire pour ameliorer leur performance.`,
         },
       ],
     });
