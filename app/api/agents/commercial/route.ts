@@ -482,18 +482,47 @@ async function runEnrichment(): Promise<NextResponse> {
 
     console.log(`[CommercialAgent] Enrichment complete: ${enrichedCount} enriched, ${advancedToContactCount} → contacté, ${flaggedDeadCount} flagged dead, ${skippedCount} skipped | CRM total: ${totalProspects}`);
 
-    // --- Auto-learning: report insights to CEO ---
+    // --- Auto-learning: detailed insights for CEO ---
     try {
       const enrichRate = prospects.length > 0 ? Math.round((enrichedCount / prospects.length) * 100) : 0;
+
+      // Analyze which sources produce the best prospects
+      const sourceStats: Record<string, { total: number; withEmail: number; dead: number }> = {};
+      for (const p of prospects) {
+        const src = (p as any).source_agent || 'unknown';
+        if (!sourceStats[src]) sourceStats[src] = { total: 0, withEmail: 0, dead: 0 };
+        sourceStats[src].total++;
+        if (p.email) sourceStats[src].withEmail++;
+      }
+      // Count dead from this run
+      for (const d of enrichmentDetails) {
+        if (d.updates.temperature === 'dead') {
+          const src = (prospects.find(p => p.id === d.prospect_id) as any)?.source_agent || 'unknown';
+          if (sourceStats[src]) sourceStats[src].dead++;
+        }
+      }
+
+      const sourceInsights = Object.entries(sourceStats)
+        .map(([src, s]) => `${src}: ${s.total} prospects, ${s.withEmail} avec email, ${s.dead} dead`)
+        .join('; ');
+
+      // Analyze types distribution
+      const typeStats: Record<string, number> = {};
+      for (const p of prospects) {
+        const t = p.type || 'inconnu';
+        typeStats[t] = (typeStats[t] || 0) + 1;
+      }
+      const topTypes = Object.entries(typeStats).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
       await reportLearning('commercial', {
-        insight: `Enrichissement: ${enrichedCount}/${prospects.length} prospects enrichis (${enrichRate}%). ${advancedToContactCount} prets a contacter, ${flaggedDeadCount} disqualifies.`,
+        insight: `Enrichissement: ${enrichedCount}/${prospects.length} (${enrichRate}%). ${advancedToContactCount} prets, ${flaggedDeadCount} dead. Sources: ${sourceInsights}. Top types: ${topTypes.map(([t, n]) => `${t}(${n})`).join(', ')}.`,
         metric_name: 'enrichment_rate',
         metric_after: enrichRate,
         recommendation: flaggedDeadCount > enrichedCount
-          ? 'Beaucoup de prospects disqualifies. La source de prospection genere des donnees de mauvaise qualite.'
+          ? `Trop de prospects disqualifies (${flaggedDeadCount}/${prospects.length}). Ameliorer la qualite du sourcing.`
           : advancedToContactCount === 0
-            ? 'Aucun prospect pret a contacter. Verifier les criteres de qualification (email, type, completeness).'
-            : `${advancedToContactCount} prospects prets pour la sequence email.`,
+            ? `Aucun prospect pret. ${prospects.filter(p => !p.email).length} sans email — besoin de sources avec emails (sites web).`
+            : `${advancedToContactCount} prets pour email. Continuer le sourcing.`,
       });
     } catch {}
 
@@ -676,6 +705,20 @@ async function runCRMAudit(
   });
 
   console.log(`[CommercialAgent] Audit complete: ${prospects.length} checked, ${fixedEmail} emails found, ${flaggedDead} flagged dead`);
+
+  // Report learning from audit
+  try {
+    await reportLearning('commercial', {
+      insight: `Audit CRM: ${prospects.length} verifies, ${fixedEmail} emails trouves via scraping site web, ${flaggedDead} disqualifies (noms generiques ou emails jetables).`,
+      metric_name: 'audit_email_discovery_rate',
+      metric_after: prospects.length > 0 ? Math.round((fixedEmail / prospects.length) * 100) : 0,
+      recommendation: fixedEmail > 0
+        ? `Le scraping de sites web fonctionne: ${fixedEmail} emails decouverts. Continuer les audits reguliers.`
+        : flaggedDead > 0
+          ? `${flaggedDead} prospects nettoyes. La qualite du CRM s'ameliore.`
+          : 'CRM propre, tous les prospects verifies sont OK.',
+    });
+  } catch {}
 
   return NextResponse.json({ ok: true, ...report });
 }

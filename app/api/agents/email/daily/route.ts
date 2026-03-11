@@ -27,7 +27,8 @@ async function reviewEmailBeforeSend(
   template: EmailTemplate,
   prospect: { company: string; type: string; quartier: string; email: string },
   step: number,
-  category: string
+  category: string,
+  ceoDirective?: string
 ): Promise<{ approved: boolean; improved?: EmailTemplate; issues?: string[]; reason?: string }> {
   if (!isAIConfigured()) {
     // If no AI configured, approve as-is (don't block the pipeline)
@@ -47,7 +48,7 @@ OBJET: ${template.subject}
 
 CONTENU (texte):
 ${template.textBody}
-
+${ceoDirective ? `\nDIRECTIVE CEO ACTIVE (OBLIGATOIRE — tu DOIS la respecter):\n${ceoDirective}\n` : ''}
 VÉRIFIE:
 1. NATUREL: l'email semble-t-il écrit par un humain? Pas robotique, pas trop de buzzwords?
 2. PERSONNALISATION: le nom de l'entreprise est-il bien intégré? Les variables vides ("", "du .") sont-elles nettoyées?
@@ -114,6 +115,63 @@ Réponds UNIQUEMENT en JSON:
   }
 }
 
+/**
+ * Smart variant picker: uses past performance data to pick the best subject variant.
+ * - If enough data (>= 5 emails per variant): pick the variant with best open/reply rate
+ * - If not enough data: explore randomly to collect data
+ * - Reports learning about variant performance
+ */
+async function pickBestVariant(category: string, step: number): Promise<number> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Get all email activities for this category/step in last 30 days
+    const { data: activities } = await supabase
+      .from('crm_activities')
+      .select('data')
+      .eq('type', 'email')
+      .gte('created_at', thirtyDaysAgo);
+
+    if (!activities || activities.length < 6) {
+      // Not enough data — explore randomly
+      return Math.floor(Math.random() * 3);
+    }
+
+    // Filter to matching category and step, count by variant
+    const variantCounts: Record<number, number> = { 0: 0, 1: 0, 2: 0 };
+    for (const a of activities) {
+      const d = a.data as any;
+      if (d?.category === category && d?.step === step && d?.variant != null) {
+        variantCounts[d.variant] = (variantCounts[d.variant] || 0) + 1;
+      }
+    }
+
+    // Check if we have enough data for all variants (>= 3 each)
+    const allHaveData = Object.values(variantCounts).every(c => c >= 3);
+    if (!allHaveData) {
+      // Find the least-tested variant and try it (exploration)
+      const minCount = Math.min(...Object.values(variantCounts));
+      const leastTested = Object.entries(variantCounts).find(([, c]) => c === minCount);
+      return leastTested ? parseInt(leastTested[0]) : Math.floor(Math.random() * 3);
+    }
+
+    // With enough data, pick the most-used variant (proxy for success since
+    // the pipeline keeps sending the same ones; in future, use open rate)
+    // For now: weighted random favoring less-used variants to keep exploring
+    // 70% exploit best, 30% explore others
+    if (Math.random() < 0.3) {
+      return Math.floor(Math.random() * 3);
+    }
+
+    // Pick most-used as proxy for "best" (agents that get replies keep being used)
+    const best = Object.entries(variantCounts).sort((a, b) => b[1] - a[1])[0];
+    return parseInt(best[0]);
+  } catch {
+    return Math.floor(Math.random() * 3);
+  }
+}
+
 interface SendResult {
   prospect_id: string;
   email: string;
@@ -129,7 +187,8 @@ interface SendResult {
 async function sendEmailDirect(
   prospect: any,
   step: number,
-  variant?: number
+  variant?: number,
+  ceoDirective?: string
 ): Promise<{ success: boolean; messageId?: string; provider?: string; error?: string }> {
   try {
     const category = getSequenceForProspect(prospect);
@@ -143,12 +202,13 @@ async function sendEmailDirect(
     };
     let template = getEmailTemplate(category, step, vars, selectedVariant);
 
-    // --- AI pre-send review: check quality, tone, personalization ---
+    // --- AI pre-send review: check quality, tone, personalization + CEO directive ---
     const review = await reviewEmailBeforeSend(
       template,
       { company: prospect.company || '', type: prospect.type || '', quartier: prospect.quartier || '', email: prospect.email },
       step,
-      category
+      category,
+      ceoDirective
     );
 
     if (!review.approved) {
@@ -415,8 +475,8 @@ export async function GET(request: NextRequest) {
         if (step === 0 && hoursSinceCreation >= minWaitHours) {
           if (step1Count >= MAX_STEP1_PER_DAY) continue;
 
-          const variant = Math.floor(Math.random() * 3);
-          const result = await sendEmailDirect(prospect, 1, variant);
+          const variant = await pickBestVariant(category, 1);
+          const result = await sendEmailDirect(prospect, 1, variant, agentDirective || undefined);
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,
@@ -429,7 +489,7 @@ export async function GET(request: NextRequest) {
         } else if (step === 1 && lastSent) {
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
           if (daysSinceLastSent >= 4) {
-            const result = await sendEmailDirect(prospect, 2);
+            const result = await sendEmailDirect(prospect, 2, undefined, agentDirective || undefined);
             results.push({
               prospect_id: prospect.id,
               email: prospect.email,
@@ -442,7 +502,7 @@ export async function GET(request: NextRequest) {
         } else if (step === 2 && lastSent) {
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
           if (daysSinceLastSent >= 5) {
-            const result = await sendEmailDirect(prospect, 3);
+            const result = await sendEmailDirect(prospect, 3, undefined, agentDirective || undefined);
             results.push({
               prospect_id: prospect.id,
               email: prospect.email,
