@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
+import { generateAIResponse } from '@/lib/ai-client';
 
 export const runtime = 'edge';
 
@@ -45,9 +45,7 @@ export async function POST(req: NextRequest) {
       businessType
     });
 
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
+    // AI client initialized via lib/ai-client
 
     // Prompt adapté selon le mode (avec ou sans actualité)
     let prompt: string;
@@ -135,14 +133,14 @@ FORMAT: JSON array pur, 10 éléments, EN FRANÇAIS.
 ["Punchline 1", "Punchline 2", ...]`;
     }
 
-    const message = await anthropic.messages.create({
+    const message = await generateAIResponse({
       model: 'claude-3-haiku-20240307',
       max_tokens: 2048,
       temperature: 0.85,
       messages: [{ role: 'user', content: prompt }]
     });
 
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    const responseText = message.text;
     console.log('[SuggestText] Claude response:', responseText.substring(0, 200));
 
     let suggestions: string[] = [];

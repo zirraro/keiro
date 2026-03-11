@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
 function getSupabaseAdmin() {
   return createClient(
@@ -38,8 +36,8 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
+  if (!isAIConfigured()) {
+    return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configurée` }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -228,14 +226,14 @@ HEURES DE PUBLICATION OPTIMALES :
 - LinkedIn : Jeudi 8h30
 Adapte les heures au jour prévu.`;
 
-  const response = await anthropic.messages.create({
+  const response = await generateAIResponse({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 4000,
     system: enhancedSystemPrompt,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
+  const rawText = response.text;
 
   let weekPlan: any[];
   try {
@@ -361,14 +359,14 @@ IMPORTANT — COHÉRENCE VISUELLE :
 
 Retourne UN SEUL objet JSON (pas de markdown).`;
 
-  const response = await anthropic.messages.create({
+  const response = await generateAIResponse({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1500,
     system: getContentSystemPrompt() + `\n\nRÈGLE VISUELLE : Pour chaque post, ajoute "thumbnail_description" décrivant exactement la miniature dans la grille (couleur de fond, texte visible, composition). Pense TOUJOURS à comment ça s'intègre visuellement dans le feed.`,
     messages: [{ role: 'user', content: enhancedPrompt }],
   });
 
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
+  const rawText = response.text;
 
   let post: any;
   try {

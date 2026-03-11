@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
+import { generateAIResponse } from '@/lib/ai-client';
 
 export const runtime = 'edge';
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Business type requis' }, { status: 400 });
     }
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // AI client initialized via lib/ai-client
 
     const hasNews = newsTitle && newsTitle.trim();
     const isTrend = newsCategory === 'Tendance' || newsCategory === 'Business' || (newsSource && /Trends|TikTok Trends|Instagram Trends|LinkedIn Trends|Google Trends/.test(newsSource));
@@ -243,14 +243,14 @@ RÈGLES:
 Réponds UNIQUEMENT avec le JSON valide.`;
     }
 
-    const message = await anthropic.messages.create({
+    const message = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       temperature: 0.9,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+    const responseText = message.text;
     console.log('[AutoFill] Claude response:', responseText.substring(0, 400));
 
     let fields: any = {};

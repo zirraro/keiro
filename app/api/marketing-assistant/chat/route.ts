@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 import { getAuthUser } from '@/lib/auth-server';
 import { createClient } from '@supabase/supabase-js';
 import { checkCredits, deductCredits, isAdmin as checkIsAdmin } from '@/lib/credits/server';
 
 export const runtime = 'edge';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -36,7 +32,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!isAIConfigured()) {
       return NextResponse.json(
         { ok: false, error: 'API IA non configurée' },
         { status: 500 }
@@ -191,15 +187,15 @@ Style:
 
     console.log('[MarketingAssistant] Calling Claude Haiku...');
 
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307', // Haiku stable et disponible partout
-      max_tokens: 800, // Réduit de 1500 pour économiser
+    const response = await generateAIResponse({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 800,
       system: systemPrompt,
       temperature: 0.7,
       messages: claudeMessages,
     });
 
-    const assistantMessage = response.content[0].type === 'text' ? response.content[0].text : '';
+    const assistantMessage = response.text;
     const tokensUsed = response.usage.input_tokens + response.usage.output_tokens;
 
     console.log('[MarketingAssistant] Response received:', assistantMessage.substring(0, 100));
@@ -248,7 +244,7 @@ Style:
         user_id: user.id,
         role: 'assistant',
         content: assistantMessage,
-        model: 'claude-3-haiku-20240307',
+        model: 'gemini-2.0-flash',
         tokens_used: tokensUsed,
       },
     ]);

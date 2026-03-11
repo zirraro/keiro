@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse } from '@/lib/ai-client';
 import { fetchNewsContext, analyzeTrendForVisuals } from '@/lib/prompt-optimizer';
 
 export interface VideoScene {
@@ -151,10 +151,6 @@ async function generateShortScenePrompts(
   const mood = options?.tone || 'professional';
   const style = options?.visualStyle || 'cinematic';
 
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-
   const systemPrompt = `You are an elite cinematographer creating a ${numScenes}-segment video. Each segment is generated INDEPENDENTLY by AI, so visual continuity must be EMBEDDED in every prompt.
 
 CRITICAL RULES:
@@ -192,7 +188,7 @@ Example for 3 scenes (30s video, "bakery" business + "Tour de France" news):
 "Smooth tracking shot of baker's flour-dusted hands in same charming bakery, golden hour amber light, shaping croissants on marble counter, a small cycling figurine on the shelf behind, warm amber tones, shallow depth of field",
 "Gentle macro dolly in on golden flaky croissant in same charming bakery, golden hour amber light, a tiny Tour de France flag tucked beside it on rustic wooden board, steam rising in slow motion, film grain"]`;
 
-  const response = await anthropic.messages.create({
+  const response = await generateAIResponse({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1024,
     system: systemPrompt,
@@ -202,12 +198,11 @@ Example for 3 scenes (30s video, "bakery" business + "Tour de France" news):
     }],
   });
 
-  const textContent = response.content.find(c => c.type === 'text');
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from Claude');
+  if (!response.text) {
+    throw new Error('No text response from AI');
   }
 
-  let jsonStr = textContent.text.trim();
+  let jsonStr = response.text.trim();
   const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
   if (jsonMatch) {
     jsonStr = jsonMatch[0];

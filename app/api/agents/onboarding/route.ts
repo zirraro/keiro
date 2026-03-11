@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getOnboardingSystemPrompt, getOnboardingStepPrompt } from '@/lib/agents/onboarding-prompt';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
 function getSupabaseAdmin() {
   return createClient(
@@ -39,8 +37,8 @@ export async function GET(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
+  if (!isAIConfigured()) {
+    return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configurée` }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -148,14 +146,14 @@ export async function GET(request: NextRequest) {
         // Generate message via Claude
         const stepPrompt = getOnboardingStepPrompt(item.step_key, context);
 
-        const response = await anthropic.messages.create({
+        const response = await generateAIResponse({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 400,
           system: getOnboardingSystemPrompt(),
           messages: [{ role: 'user', content: stepPrompt }],
         });
 
-        const messageText = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+        const messageText = response.text.trim();
 
         if (!messageText) {
           await supabase.from('onboarding_queue').update({ status: 'failed', skip_reason: 'empty_response' }).eq('id', item.id);

@@ -118,7 +118,7 @@ AGENTS ET LEURS FICHIERS:
 - Business timing: lib/agents/business-timing.ts
 
 VARIABLES D'ENVIRONNEMENT CRITIQUES (Vercel):
-- ANTHROPIC_API_KEY: cle API Claude (requise pour CEO, chatbot, content, seo)
+- GOOGLE_GEMINI_API_KEY: cle API Gemini gratuite (requise pour CEO, chatbot, content, seo)
 - BREVO_API_KEY: cle API Brevo (emails campagnes + transactionnel)
 - RESEND_API_KEY: cle API Resend (fallback email)
 - CRON_SECRET: secret pour les crons Vercel (auth des agents automatiques)
@@ -140,7 +140,7 @@ TABLES SUPABASE CLES:
 
 ERREURS COURANTES ET DIAGNOSTICS:
 1. "RESEND_API_KEY non configuree" → Variable manquante dans Vercel. Mais maintenant on utilise email-sender.ts avec Brevo+Resend fallback.
-2. "ANTHROPIC_API_KEY non configuree" → Ajouter dans Vercel Settings > Environment Variables
+2. "GOOGLE_GEMINI_API_KEY non configuree" → Ajouter dans Vercel Settings > Environment Variables (cle gratuite sur ai.google.dev)
 3. Agent timeout → maxDuration trop bas dans le fichier route.ts, augmenter a 120
 4. "Unauthorized" sur cron → Verifier CRON_SECRET dans Vercel et vercel.json
 5. Emails qui n'arrivent pas → Verifier domaine dans Brevo (keiroai.com doit etre verifie)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 import { createClient } from '@supabase/supabase-js';
 import {
   detectBusinessType,
@@ -15,10 +15,6 @@ import {
 import { calculateScore } from '@/lib/agents/scoring';
 
 export const runtime = 'edge';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -62,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!isAIConfigured()) {
       return NextResponse.json(
         { ok: false, error: 'API IA non configuree' },
         { status: 500 }
@@ -238,15 +234,14 @@ export async function POST(request: NextRequest) {
     // --- Call Claude Haiku ---
     console.log('[Chatbot] Calling Claude Haiku for visitor:', visitorId);
 
-    const response = await anthropic.messages.create({
+    const response = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
       system: systemPrompt + '\n' + contextualInstructions,
       messages: conversationHistory,
     });
 
-    const assistantMessage =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+    const assistantMessage = response.text;
 
     console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
 

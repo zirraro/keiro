@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateAIResponse } from '@/lib/ai-client';
 
 interface VideoPromptOptions {
   duration: number;
@@ -38,11 +38,7 @@ export async function enhanceVideoPrompt(
   ].join('. ');
 
   try {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
-    const response = await anthropic.messages.create({
+    const response = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
       system: `Tu es un directeur de la photographie primé, spécialiste des publicités virales et du contenu social media premium. Tu transformes des descriptions en prompts vidéo ultra-cinématiques.
@@ -66,9 +62,8 @@ RÈGLES ABSOLUES:
       }],
     });
 
-    const textContent = response.content.find(c => c.type === 'text');
-    if (textContent && textContent.type === 'text') {
-      const enhanced = textContent.text.trim();
+    const enhanced = response.text.trim();
+    if (enhanced) {
       // Ensure zero-text instruction is always present
       if (!enhanced.toLowerCase().includes('zero text')) {
         return `${enhanced} ABSOLUTELY ZERO text, words, letters, numbers, watermarks in the video.`;

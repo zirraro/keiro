@@ -8,9 +8,7 @@
  * 4. Varier les compositions via angles/moods aléatoires
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { generateAIResponse } from '@/lib/ai-client';
 
 // Angles de caméra/composition — sélection aléatoire à chaque appel
 const CREATIVE_ANGLES = [
@@ -109,7 +107,7 @@ export async function analyzeTrendForVisuals(
   businessDescription?: string,
 ): Promise<string> {
   try {
-    const message = await anthropic.messages.create({
+    const message = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       messages: [{
@@ -131,7 +129,7 @@ Réponds en anglais, format concis, PAS de JSON.`
       }],
     });
 
-    const analysis = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const analysis = message.text.trim();
     if (analysis.length > 30) {
       console.log(`[PromptOptimizer] Trend analysis: ${analysis.length} chars`);
       return analysis;
@@ -153,7 +151,7 @@ export async function optimizePromptForImage(rawPrompt: string, trendAnalysis?: 
   const mood = getRandomElement(CREATIVE_MOODS);
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await generateAIResponse({
       model: 'claude-3-haiku-20240307',
       max_tokens: 800,
       temperature: 0.85,
@@ -203,7 +201,7 @@ REPONDS uniquement avec le prompt visuel, rien d'autre.`
       }],
     });
 
-    const optimized = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const optimized = message.text.trim();
 
     if (!optimized || optimized.length < 20) {
       console.warn('[PromptOptimizer] Output too short, using raw prompt');

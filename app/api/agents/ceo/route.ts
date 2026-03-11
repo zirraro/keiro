@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt, getCeoArchitectureKnowledge, getCeoChatSystemAddendum } from '@/lib/agents/ceo-prompt';
 import { getCeoIntelligenceSummary, setDirectiveForAgent } from '@/lib/agents/agent-memory';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 
 export const maxDuration = 120;
-
-function getAnthropic() {
-  return new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY || '',
-  });
-}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -130,8 +124,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+  if (!isAIConfigured()) {
+    return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configuree` }, { status: 500 });
   }
 
   // Check if this is a chat request
@@ -279,14 +273,14 @@ Reponds en francais, sois direct et actionnable.`;
       { role: 'user' as const, content: message },
     ];
 
-    const response = await getAnthropic().messages.create({
+    const response = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 3000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}\n\n${getCeoChatSystemAddendum(contextMetrics)}`,
       messages,
     });
 
-    const reply = response.content[0].type === 'text' ? response.content[0].text : '';
+    const reply = response.text;
 
     // Log the conversation with richer metadata
     await supabase.from('agent_logs').insert({
@@ -520,8 +514,8 @@ async function generateBrief(): Promise<NextResponse> {
 
     console.log('[CEOAgent] Metrics collected, calling Claude...');
 
-    // --- Call Claude Sonnet for brief (smarter reasoning) ---
-    const response = await getAnthropic().messages.create({
+    // --- Call AI for brief ---
+    const response = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}`,
@@ -533,7 +527,7 @@ async function generateBrief(): Promise<NextResponse> {
       ],
     });
 
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
+    const rawText = response.text;
     console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
 
     // --- Store raw natural language brief (no JSON parsing) ---
@@ -684,7 +678,7 @@ async function extractAndInsertOrders(
   try {
     console.log('[CEOAgent] Extracting structured orders from brief...');
 
-    const extractionResponse = await getAnthropic().messages.create({
+    const extractionResponse = await generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       system: `Tu es un parseur d'ordres. Tu recois un brief CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
@@ -718,9 +712,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
       ],
     });
 
-    const rawOrders = extractionResponse.content[0].type === 'text'
-      ? extractionResponse.content[0].text.trim()
-      : '[]';
+    const rawOrders = extractionResponse.text.trim();
 
     // Parse JSON — handle markdown code blocks if present
     let cleanJson = rawOrders;

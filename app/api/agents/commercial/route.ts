@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
 import { getAgentContext, reportLearning } from '@/lib/agents/agent-memory';
+import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,8 +79,7 @@ async function enrichProspect(prospect: {
   quartier: string | null;
   note_google: number | null;
 }, directive?: string): Promise<EnrichmentResult | null> {
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_API_KEY) return null;
+  if (!isAIConfigured()) return null;
 
   const prospectAnalysisPrompt = `Analyse ce prospect et enrichis les données manquantes :
 
@@ -98,29 +98,13 @@ ${prospect.email ? 'Vérifie la validité de l\'email (format, domaine jetable, 
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        system: getCommercialSystemPrompt() + (directive ? `\n\n--- DIRECTIVE STRATEGIQUE DU CEO ---\n${directive}\n--- FIN DIRECTIVE ---` : ''),
-        messages: [{ role: 'user', content: prospectAnalysisPrompt }],
-      }),
+    const aiResponse = await generateAIResponse({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system: getCommercialSystemPrompt() + (directive ? `\n\n--- DIRECTIVE STRATEGIQUE DU CEO ---\n${directive}\n--- FIN DIRECTIVE ---` : ''),
+      messages: [{ role: 'user', content: prospectAnalysisPrompt }],
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[CommercialAgent] Claude API error: ${response.status} ${errText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.type === 'text' ? data.content[0].text : '';
+    const rawText = aiResponse.text;
 
     // Parse JSON from response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -184,8 +168,8 @@ async function runEnrichment(): Promise<NextResponse> {
     const supabase = getSupabaseAdmin();
     const nowISO = new Date().toISOString();
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+    if (!isAIConfigured()) {
+      return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configuree` }, { status: 500 });
     }
 
     // --- Read CEO directive for commercial agent ---

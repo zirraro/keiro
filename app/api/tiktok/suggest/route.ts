@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
+import { generateAIResponse } from '@/lib/ai-client';
 
 export const runtime = 'edge';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,15 +93,15 @@ HASHTAGS TIKTOK:
 JSON pur:
 {"caption": "...", "hashtags": ["#fyp", "#pourtoi", "#viral", "#h4", "#h5", "#h6", "#h7", "#h8", "#h9", "#h10"]}`;
 
-    console.log('[TikTok Suggest] Calling Claude Haiku...');
-    const message = await anthropic.messages.create({
+    console.log('[TikTok Suggest] Calling AI...');
+    const message = await generateAIResponse({
       model: 'claude-3-haiku-20240307',
       max_tokens: 2048,
       temperature: 0.9,
       messages: [{ role: 'user', content: promptText }],
     });
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const text = message.text;
     console.log('[TikTok Suggest] Response:', text.substring(0, 200));
 
     let suggestion: { caption: string; hashtags: string[] };

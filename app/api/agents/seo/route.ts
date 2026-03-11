@@ -1,38 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-prompt';
 import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
+import { generateAIResponseWithRetry, isAIConfigured, AI_API_KEY_NAME, type AIRequestParams } from '@/lib/ai-client';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
-/** Call Anthropic with automatic retry on 429 rate limit */
-async function callAnthropicWithRetry(
-  params: Anthropic.MessageCreateParamsNonStreaming,
-  maxRetries = 3
-): Promise<Anthropic.Message> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await anthropic.messages.create(params);
-    } catch (err: any) {
-      const is429 = err?.status === 429 || err?.error?.type === 'rate_limit_error';
-      if (is429 && attempt < maxRetries) {
-        const delay = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
-        console.warn(`[SEOAgent] Rate limited (429), retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error('Unreachable');
-}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -144,8 +118,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+  if (!isAIConfigured()) {
+    return NextResponse.json({ ok: false, error: `${AI_API_KEY_NAME} non configuree` }, { status: 500 });
   }
 
   try {
@@ -202,7 +176,7 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
     // Call Claude Haiku
-    const response = await callAnthropicWithRetry({
+    const response = await generateAIResponseWithRetry({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
       system: getSeoWriterPrompt(),
@@ -222,7 +196,7 @@ Genere le JSON complet comme specifie dans tes instructions.`,
       ],
     });
 
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
+    const rawText = response.text;
     console.log('[SEOAgent] Raw response length:', rawText.length);
 
     // Parse JSON
@@ -346,7 +320,7 @@ async function generateCalendar(): Promise<NextResponse> {
       ...KEYWORD_CLUSTERS.paa.map((k) => `[paa] ${k.primary} (vol:${k.volume}, diff:${k.difficulty})`),
     ];
 
-    const response = await callAnthropicWithRetry({
+    const response = await generateAIResponseWithRetry({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       system: getSeoCalendarPrompt(),
@@ -366,7 +340,7 @@ Genere le JSON comme specifie.`,
       ],
     });
 
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
+    const rawText = response.text;
 
     let calendar: any;
     try {

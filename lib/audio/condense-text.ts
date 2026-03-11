@@ -5,11 +5,7 @@
  * Uses Claude AI to maintain meaning while reducing word count
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { generateAIResponse } from '@/lib/ai-client';
 
 /**
  * Condense text to target word count using Claude AI
@@ -65,7 +61,7 @@ Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'déve
 
   console.log(`[Condense] Calling Claude to ${action} text (${currentWords} → ${targetWords} words)...`);
 
-  const message = await anthropic.messages.create({
+  const message = await generateAIResponse({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 600,
     messages: [
@@ -76,7 +72,7 @@ Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'déve
     ],
   });
 
-  const result = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+  const result = message.text.trim();
   const finalWords = result.split(/\s+/).length;
 
   console.log(`[Condense] ✅ ${action} from`, currentWords, 'to', finalWords, 'words');
@@ -127,7 +123,7 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre.`;
 
   console.log('[Suggestions] Generating 3 narration suggestions...');
 
-  const message = await anthropic.messages.create({
+  const message = await generateAIResponse({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 800,
     messages: [
@@ -138,7 +134,7 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre.`;
     ],
   });
 
-  const responseText = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}';
+  const responseText = message.text.trim() || '{}';
 
   // Extract JSON from response (handle potential markdown code blocks)
   let jsonText = responseText;
