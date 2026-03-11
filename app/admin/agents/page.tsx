@@ -987,12 +987,12 @@ export default function AdminAgentsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 bg-neutral-100 rounded-xl p-1 mb-6">
+        <div className="flex gap-2 bg-neutral-100 rounded-xl p-1 mb-6 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => handleTabChange(tab.key)}
-              className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              className={`shrink-0 py-2.5 px-4 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'bg-white shadow-sm text-neutral-900'
                   : 'text-neutral-500 hover:text-neutral-700'
