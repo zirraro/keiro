@@ -205,7 +205,7 @@ export default function AdminAgentsPage() {
         .from('agent_logs')
         .select('*', { count: 'exact', head: true })
         .eq('agent', 'email')
-        .in('action', ['email_sent', 'send_email']);
+        .in('action', ['email_sent', 'send_email', 'daily_cold', 'daily_warm']);
 
       const { count: totalOpened } = await supabase
         .from('agent_logs')
@@ -893,13 +893,14 @@ export default function AdminAgentsPage() {
   const priorityBadge = (priority: string) => {
     const cls =
       priority === 'haute'
-        ? 'bg-red-100 text-red-700'
+        ? 'bg-red-100 text-red-700 border-red-200'
         : priority === 'moyenne'
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-green-100 text-green-700';
+        ? 'bg-amber-100 text-amber-700 border-amber-200'
+        : 'bg-green-100 text-green-700 border-green-200';
+    const icon = priority === 'haute' ? '!!' : priority === 'moyenne' ? '!' : '-';
     return (
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cls}`}>
-        {priority}
+      <span className={`text-xs px-3 py-1 rounded-full font-semibold border ${cls}`}>
+        {icon} {priority.charAt(0).toUpperCase() + priority.slice(1)}
       </span>
     );
   };
@@ -909,21 +910,21 @@ export default function AdminAgentsPage() {
     const labels: Record<string, string> = {
       pending: 'En attente',
       in_progress: 'En cours',
-      completed: 'Terminé',
-      failed: 'Échoué',
+      completed: 'Termine',
+      failed: 'Echoue',
     };
     const cls =
       status === 'pending'
-        ? 'bg-amber-100 text-amber-700'
+        ? 'bg-amber-100 text-amber-700 border-amber-200'
         : status === 'in_progress'
-        ? 'bg-blue-100 text-blue-700'
+        ? 'bg-blue-100 text-blue-700 border-blue-200'
         : status === 'completed'
-        ? 'bg-green-100 text-green-700'
+        ? 'bg-green-100 text-green-700 border-green-200'
         : status === 'failed'
-        ? 'bg-red-100 text-red-700'
-        : 'bg-neutral-100 text-neutral-600';
+        ? 'bg-red-100 text-red-700 border-red-200'
+        : 'bg-neutral-100 text-neutral-600 border-neutral-200';
     return (
-      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cls} ${status === 'in_progress' ? 'animate-pulse' : ''}`}>
+      <span className={`text-xs px-3 py-1 rounded-full font-semibold border ${cls} ${status === 'in_progress' ? 'animate-pulse' : ''}`}>
         {labels[status] || status}
       </span>
     );
@@ -1782,29 +1783,30 @@ export default function AdminAgentsPage() {
         {/* ===== TAB ORDRES ===== */}
         {activeTab === 'ordres' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Ordres ({orders.filter(o =>
+            {/* Header + filtres */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <h2 className="text-xl font-bold text-neutral-900">
+                Ordres CEO ({orders.filter(o =>
                   (orderFilterStatus === 'all' || o.status === orderFilterStatus) &&
                   (orderFilterAgent === 'all' || o.to_agent === orderFilterAgent || o.from_agent === orderFilterAgent)
                 ).length})
               </h2>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                 <select
                   value={orderFilterStatus}
                   onChange={(e) => setOrderFilterStatus(e.target.value)}
-                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent flex-1 sm:flex-none"
                 >
                   <option value="all">Tous les statuts</option>
                   <option value="pending">En attente</option>
                   <option value="in_progress">En cours</option>
-                  <option value="completed">Terminé</option>
-                  <option value="failed">Échoué</option>
+                  <option value="completed">Termine</option>
+                  <option value="failed">Echoue</option>
                 </select>
                 <select
                   value={orderFilterAgent}
                   onChange={(e) => setOrderFilterAgent(e.target.value)}
-                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="text-sm border border-neutral-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent flex-1 sm:flex-none"
                 >
                   <option value="all">Tous les agents</option>
                   <option value="ceo">CEO</option>
@@ -1814,130 +1816,146 @@ export default function AdminAgentsPage() {
                   <option value="dm_instagram">DM Instagram</option>
                   <option value="seo">SEO</option>
                 </select>
-                {selectedOrders.size > 0 && (
-                  <button
-                    onClick={executeSelectedOrders}
-                    disabled={executingOrders}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
-                  >
-                    {executingOrders ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Exécution...
-                      </span>
-                    ) : (
-                      `Exécuter maintenant (${selectedOrders.size})`
-                    )}
-                  </button>
-                )}
                 <button
                   onClick={loadOrders}
-                  className="text-xs text-purple-600 hover:underline"
+                  className="text-sm text-purple-600 font-medium hover:underline px-2 py-2"
                 >
                   Actualiser
                 </button>
               </div>
             </div>
 
+            {/* Bouton executer (sticky) */}
+            {selectedOrders.size > 0 && (
+              <div className="sticky top-0 z-10">
+                <button
+                  onClick={executeSelectedOrders}
+                  disabled={executingOrders}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-bold rounded-xl hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all shadow-lg"
+                >
+                  {executingOrders ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Execution en cours...
+                    </span>
+                  ) : (
+                    `Executer (${selectedOrders.size} ordre${selectedOrders.size > 1 ? 's' : ''})`
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Select all pending */}
+            {orders.filter(o => o.status === 'pending').length > 0 && (
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-neutral-600">
+                <input
+                  type="checkbox"
+                  checked={selectedOrders.size > 0 && selectedOrders.size === orders.filter(o => o.status === 'pending').length}
+                  onChange={selectAllPendingOrders}
+                  className="w-5 h-5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
+                />
+                Tout selectionner ({orders.filter(o => o.status === 'pending').length} en attente)
+              </label>
+            )}
+
             {orders.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-10 text-center text-neutral-400 text-base">
                 Aucun ordre pour le moment
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-8 gap-2 px-4 py-3 bg-neutral-50 border-b border-neutral-200 text-[11px] font-semibold text-neutral-500 uppercase">
-                  <span className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedOrders.size > 0 && selectedOrders.size === orders.filter(o => o.status === 'pending').length}
-                      onChange={selectAllPendingOrders}
-                      className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
-                    />
-                  </span>
-                  <span>Date</span>
-                  <span>De \u2192 Vers</span>
-                  <span>Type</span>
-                  <span>Priorit\u00E9</span>
-                  <span>Action</span>
-                  <span>Statut</span>
-                  <span></span>
-                </div>
-
-                {/* Table body */}
+              <div className="space-y-3">
                 {orders.filter(o =>
                   (orderFilterStatus === 'all' || o.status === orderFilterStatus) &&
                   (orderFilterAgent === 'all' || o.to_agent === orderFilterAgent || o.from_agent === orderFilterAgent)
                 ).map((order) => {
                   const isExpanded = expandedOrder === order.id;
                   const isPending = order.status === 'pending';
+                  const agentLabels: Record<string, string> = {
+                    ceo: 'CEO', email: 'Email', chatbot: 'Chatbot',
+                    commercial: 'Commercial', dm_instagram: 'DM Insta',
+                    gmaps: 'Google Maps', tiktok_comments: 'TikTok',
+                    seo: 'SEO', onboarding: 'Onboarding', retention: 'Retention',
+                    content: 'Content',
+                  };
                   return (
-                    <div key={order.id}>
+                    <div
+                      key={order.id}
+                      className={`bg-white rounded-2xl shadow-sm border-2 overflow-hidden transition-all ${
+                        order.status === 'pending' ? 'border-amber-200' :
+                        order.status === 'in_progress' ? 'border-blue-200' :
+                        order.status === 'completed' ? 'border-green-200' :
+                        order.status === 'failed' ? 'border-red-200' :
+                        'border-neutral-200'
+                      }`}
+                    >
+                      {/* Card header */}
                       <div
-                        className="w-full grid grid-cols-8 gap-2 px-4 py-3 items-center text-left hover:bg-neutral-50 transition-all border-b border-neutral-100 last:border-0 cursor-pointer"
+                        className="p-4 cursor-pointer active:bg-neutral-50"
+                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
                       >
-                        <span className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                          {isPending ? (
-                            <input
-                              type="checkbox"
-                              checked={selectedOrders.has(order.id)}
-                              onChange={() => toggleOrderSelection(order.id)}
-                              className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
-                            />
-                          ) : (
-                            <span className="w-3.5" />
-                          )}
-                        </span>
-                        <span className="text-xs text-neutral-600" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {new Date(order.created_at).toLocaleDateString('fr-FR')}
-                        </span>
-                        <span className="text-xs font-medium text-neutral-800" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.from_agent} \u2192 {order.to_agent}
-                        </span>
-                        <span className="text-xs text-neutral-600" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.order_type}
-                        </span>
-                        <span onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>{priorityBadge(order.priority)}</span>
-                        <span className="text-xs text-neutral-700 truncate" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.order_type}
-                        </span>
-                        <span onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>{statusBadge(order.status)}</span>
-                        <span className="text-right" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          <svg
-                            className={`w-4 h-4 text-neutral-400 inline-block transition-transform ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </span>
+                        {/* Row 1: Checkbox + Agents + Status */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {isPending && (
+                              <input
+                                type="checkbox"
+                                checked={selectedOrders.has(order.id)}
+                                onChange={(e) => { e.stopPropagation(); toggleOrderSelection(order.id); }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-5 h-5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
+                              />
+                            )}
+                            <span className="text-base font-bold text-purple-700 truncate">
+                              {agentLabels[order.from_agent] || order.from_agent}
+                            </span>
+                            <span className="text-neutral-400 font-bold text-lg flex-shrink-0">{'\u2192'}</span>
+                            <span className="text-base font-bold text-blue-700 truncate">
+                              {agentLabels[order.to_agent] || order.to_agent}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                            {statusBadge(order.status)}
+                            <svg
+                              className={`w-5 h-5 text-neutral-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Row 2: Type + Priority */}
+                        <div className="flex items-center gap-3 flex-wrap mb-2">
+                          <span className="text-sm font-semibold text-neutral-800 bg-neutral-100 px-3 py-1 rounded-lg">
+                            {order.order_type}
+                          </span>
+                          {priorityBadge(order.priority)}
+                        </div>
+
+                        {/* Row 3: Description preview */}
+                        {(order.payload as any)?.description && (
+                          <p className={`text-sm text-neutral-600 leading-relaxed mt-2 ${isExpanded ? '' : 'line-clamp-2'}`}>
+                            {(order.payload as any).description}
+                          </p>
+                        )}
+
+                        {/* Row 4: Date */}
+                        <p className="text-xs text-neutral-400 mt-2">
+                          {new Date(order.created_at).toLocaleString('fr-FR', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
                       </div>
 
+                      {/* Expanded details */}
                       {isExpanded && (
-                        <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-100 space-y-3">
-                          {/* Description de l'ordre */}
-                          {(order.payload as any)?.description && (
-                            <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Description</h4>
-                              <p className="text-sm text-neutral-700 bg-white p-3 rounded-lg border border-neutral-200">
-                                {(order.payload as any).description}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Résultat d'exécution */}
+                        <div className="px-4 pb-4 space-y-4 border-t border-neutral-100 pt-4">
+                          {/* Resultat */}
                           {(order as any).result && (
                             <div>
-                              <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Résultat d&apos;exécution</h4>
-                              <div className={`text-sm p-3 rounded-lg border ${
+                              <h4 className="text-sm font-bold text-neutral-700 mb-2">Resultat</h4>
+                              <div className={`text-sm p-4 rounded-xl border ${
                                 order.status === 'completed' ? 'bg-green-50 border-green-200 text-green-800' :
                                 order.status === 'failed' ? 'bg-red-50 border-red-200 text-red-800' :
                                 'bg-blue-50 border-blue-200 text-blue-800'
@@ -1945,28 +1963,28 @@ export default function AdminAgentsPage() {
                                 {typeof (order as any).result === 'object' ? (
                                   <>
                                     {(order as any).result.message && (
-                                      <p className="font-medium">{(order as any).result.message}</p>
+                                      <p className="font-semibold text-base">{(order as any).result.message}</p>
                                     )}
                                     {(order as any).result.error && (
-                                      <p className="font-medium text-red-700">{(order as any).result.error}</p>
+                                      <p className="font-semibold text-base text-red-700">{(order as any).result.error}</p>
                                     )}
                                     {(order as any).result.executed_at && (
-                                      <p className="text-xs mt-1 opacity-70">
-                                        Exécuté le {new Date((order as any).result.executed_at).toLocaleString('fr-FR')}
+                                      <p className="text-sm mt-2 opacity-70">
+                                        Execute le {new Date((order as any).result.executed_at).toLocaleString('fr-FR')}
                                         {(order as any).result.executed_by === 'admin_manual' && ' (manuel)'}
                                       </p>
                                     )}
                                     {(order as any).result.api_response && (
-                                      <details className="mt-2">
-                                        <summary className="text-xs cursor-pointer hover:underline opacity-70">Réponse API détaillée</summary>
-                                        <pre className="text-xs mt-1 bg-white p-2 rounded border overflow-x-auto max-h-32 overflow-y-auto">
+                                      <details className="mt-3">
+                                        <summary className="text-sm cursor-pointer hover:underline opacity-70 font-medium">Reponse API</summary>
+                                        <pre className="text-xs mt-2 bg-white p-3 rounded-lg border overflow-x-auto max-h-40 overflow-y-auto">
                                           {JSON.stringify((order as any).result.api_response, null, 2)}
                                         </pre>
                                       </details>
                                     )}
                                   </>
                                 ) : (
-                                  <p>{String((order as any).result)}</p>
+                                  <p className="text-base">{String((order as any).result)}</p>
                                 )}
                               </div>
                             </div>
@@ -1974,37 +1992,31 @@ export default function AdminAgentsPage() {
 
                           {/* Timeline */}
                           <div>
-                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-1">Timeline</h4>
-                            <div className="flex items-center gap-2 text-xs text-neutral-500">
-                              <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-neutral-300" />
-                                Créé {new Date(order.created_at).toLocaleString('fr-FR')}
+                            <h4 className="text-sm font-bold text-neutral-700 mb-2">Timeline</h4>
+                            <div className="flex flex-col gap-2 text-sm text-neutral-500">
+                              <span className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-neutral-300 flex-shrink-0" />
+                                Cree le {new Date(order.created_at).toLocaleString('fr-FR')}
                               </span>
                               {(order as any).result?.started_at && (
-                                <>
-                                  <span className="text-neutral-300">→</span>
-                                  <span className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                                    Démarré {new Date((order as any).result.started_at).toLocaleString('fr-FR')}
-                                  </span>
-                                </>
+                                <span className="flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-full bg-blue-400 flex-shrink-0" />
+                                  Demarre le {new Date((order as any).result.started_at).toLocaleString('fr-FR')}
+                                </span>
                               )}
                               {(order as any).completed_at && (
-                                <>
-                                  <span className="text-neutral-300">→</span>
-                                  <span className="flex items-center gap-1">
-                                    <span className={`w-2 h-2 rounded-full ${order.status === 'completed' ? 'bg-green-400' : 'bg-red-400'}`} />
-                                    {order.status === 'completed' ? 'Terminé' : 'Échoué'} {new Date((order as any).completed_at).toLocaleString('fr-FR')}
-                                  </span>
-                                </>
+                                <span className="flex items-center gap-2">
+                                  <span className={`w-3 h-3 rounded-full flex-shrink-0 ${order.status === 'completed' ? 'bg-green-400' : 'bg-red-400'}`} />
+                                  {order.status === 'completed' ? 'Termine' : 'Echoue'} le {new Date((order as any).completed_at).toLocaleString('fr-FR')}
+                                </span>
                               )}
                             </div>
                           </div>
 
                           {/* Payload brut */}
-                          <details className="text-xs">
-                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">Payload brut</summary>
-                            <pre className="text-xs text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-48 overflow-y-auto mt-1">
+                          <details className="text-sm">
+                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold">Payload brut</summary>
+                            <pre className="text-xs text-neutral-600 bg-neutral-50 p-4 rounded-xl border border-neutral-200 overflow-x-auto max-h-48 overflow-y-auto mt-2">
                               {JSON.stringify(order.payload, null, 2)}
                             </pre>
                           </details>

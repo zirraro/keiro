@@ -12,6 +12,28 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
+/** Call Anthropic with automatic retry on 429 rate limit */
+async function callAnthropicWithRetry(
+  params: Parameters<typeof anthropic.messages.create>[0],
+  maxRetries = 3
+): ReturnType<typeof anthropic.messages.create> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await anthropic.messages.create(params);
+    } catch (err: any) {
+      const is429 = err?.status === 429 || err?.error?.type === 'rate_limit_error';
+      if (is429 && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+        console.warn(`[SEOAgent] Rate limited (429), retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Unreachable');
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -180,7 +202,7 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
     // Call Claude Haiku
-    const response = await anthropic.messages.create({
+    const response = await callAnthropicWithRetry({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4000,
       system: getSeoWriterPrompt(),
@@ -324,7 +346,7 @@ async function generateCalendar(): Promise<NextResponse> {
       ...KEYWORD_CLUSTERS.paa.map((k) => `[paa] ${k.primary} (vol:${k.volume}, diff:${k.difficulty})`),
     ];
 
-    const response = await anthropic.messages.create({
+    const response = await callAnthropicWithRetry({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       system: getSeoCalendarPrompt(),
