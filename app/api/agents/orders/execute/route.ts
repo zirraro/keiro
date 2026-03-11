@@ -276,7 +276,8 @@ async function executeEmailOrder(
 
 /**
  * DELETE /api/agents/orders/execute
- * Purge stale orders: mark all in_progress > 1h and pending > 24h as failed.
+ * Purge stale orders. Query param ?mode=all to cancel ALL pending orders.
+ * Default: mark in_progress > 1h and pending > 6h as cancelled.
  * Admin only.
  */
 export async function DELETE(request: NextRequest) {
@@ -292,23 +293,49 @@ export async function DELETE(request: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const mode = request.nextUrl.searchParams.get('mode');
 
-  // Purge in_progress stuck > 1 hour
+  if (mode === 'all') {
+    // Cancel ALL pending and in_progress orders
+    const { data: purgedPending } = await supabase
+      .from('agent_orders')
+      .update({ status: 'failed', result: { error: 'Manual purge: all pending cancelled', purged_at: now }, completed_at: now })
+      .eq('status', 'pending')
+      .select('id');
+
+    const { data: purgedInProgress } = await supabase
+      .from('agent_orders')
+      .update({ status: 'failed', result: { error: 'Manual purge: all in_progress cancelled', purged_at: now }, completed_at: now })
+      .eq('status', 'in_progress')
+      .select('id');
+
+    const purgedCount = (purgedPending?.length || 0) + (purgedInProgress?.length || 0);
+    console.log(`[ExecuteNow] Purge ALL: ${purgedCount} orders cancelled`);
+
+    return NextResponse.json({
+      ok: true,
+      purged: purgedCount,
+      pending_purged: purgedPending?.length || 0,
+      in_progress_purged: purgedInProgress?.length || 0,
+    });
+  }
+
+  // Default: purge stale orders only
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
   const { data: staleInProgress } = await supabase
     .from('agent_orders')
-    .update({ status: 'failed', result: { error: 'Manual purge: stuck in_progress', purged_at: now }, completed_at: now })
+    .update({ status: 'failed', result: { error: 'Auto-purge: stuck in_progress > 1h', purged_at: now }, completed_at: now })
     .eq('status', 'in_progress')
     .lt('created_at', oneHourAgo)
     .select('id');
 
-  // Purge pending stuck > 24 hours
   const { data: stalePending } = await supabase
     .from('agent_orders')
-    .update({ status: 'failed', result: { error: 'Manual purge: pending > 24h', purged_at: now }, completed_at: now })
+    .update({ status: 'failed', result: { error: 'Auto-purge: pending > 6h', purged_at: now }, completed_at: now })
     .eq('status', 'pending')
-    .lt('created_at', twentyFourHoursAgo)
+    .lt('created_at', sixHoursAgo)
     .select('id');
 
   const purgedCount = (staleInProgress?.length || 0) + (stalePending?.length || 0);

@@ -1958,26 +1958,31 @@ export default function AdminAgentsPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!confirm('Purger les ordres bloques (in_progress > 1h, pending > 24h) ?')) return;
+                    if (!confirm('Purger les ordres bloques (in_progress > 1h, pending > 6h) ?')) return;
                     try {
-                      const res = await fetch('/api/agents/orders/execute', {
-                        method: 'DELETE',
-                        credentials: 'include',
-                      });
+                      const res = await fetch('/api/agents/orders/execute', { method: 'DELETE', credentials: 'include' });
                       const data = await res.json();
-                      if (res.ok) {
-                        alert(`${data.purged} ordre(s) purge(s) (${data.in_progress_purged} in_progress, ${data.pending_purged} pending)`);
-                        await loadOrders();
-                      } else {
-                        alert(`Erreur: ${data.error}`);
-                      }
-                    } catch (err) {
-                      console.error('Purge error:', err);
-                    }
+                      alert(res.ok ? `${data.purged} ordre(s) purge(s)` : `Erreur: ${data.error}`);
+                      if (res.ok) await loadOrders();
+                    } catch (err) { console.error('Purge error:', err); }
                   }}
                   className="text-sm text-red-600 font-medium hover:underline px-2 py-2"
                 >
-                  Purger bloques
+                  Purger vieux
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('ANNULER TOUS les ordres pending et in_progress ? Cette action est irreversible.')) return;
+                    try {
+                      const res = await fetch('/api/agents/orders/execute?mode=all', { method: 'DELETE', credentials: 'include' });
+                      const data = await res.json();
+                      alert(res.ok ? `${data.purged} ordre(s) annule(s)` : `Erreur: ${data.error}`);
+                      if (res.ok) await loadOrders();
+                    } catch (err) { console.error('Purge error:', err); }
+                  }}
+                  className="text-sm text-red-500 font-bold hover:underline px-2 py-2"
+                >
+                  Tout annuler
                 </button>
               </div>
             </div>

@@ -176,21 +176,37 @@ export async function GET(request: NextRequest) {
   const results: { id: string; to_agent: string; order_type: string; status: string; result?: string; api_response?: any }[] = [];
 
   try {
-    // --- Cleanup stale orders stuck in 'in_progress' for over 1 hour ---
+    // --- Cleanup stale orders ---
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { data: staleOrders } = await supabase
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+
+    // Clean in_progress stuck > 1 hour
+    const { data: staleInProgress } = await supabase
       .from('agent_orders')
       .update({
         status: 'failed',
-        result: { error: 'Auto-cleanup: stuck in_progress for over 1 hour', failed_at: now },
+        result: { error: 'Auto-cleanup: stuck in_progress > 1h', failed_at: now },
         completed_at: now,
       })
       .eq('status', 'in_progress')
       .lt('created_at', oneHourAgo)
       .select('id');
 
-    if (staleOrders && staleOrders.length > 0) {
-      console.log(`[OrderExecutor] Cleaned up ${staleOrders.length} stale in_progress orders`);
+    // Clean pending stuck > 6 hours
+    const { data: stalePending } = await supabase
+      .from('agent_orders')
+      .update({
+        status: 'failed',
+        result: { error: 'Auto-cleanup: pending > 6h', failed_at: now },
+        completed_at: now,
+      })
+      .eq('status', 'pending')
+      .lt('created_at', sixHoursAgo)
+      .select('id');
+
+    const totalCleaned = (staleInProgress?.length || 0) + (stalePending?.length || 0);
+    if (totalCleaned > 0) {
+      console.log(`[OrderExecutor] Cleaned up ${totalCleaned} stale orders (${staleInProgress?.length || 0} in_progress, ${stalePending?.length || 0} pending)`);
     }
 
     // Fetch all pending orders (max 20 per run)

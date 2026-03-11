@@ -863,8 +863,33 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
       return [];
     }
 
+    // --- Dedup: skip orders that already exist as pending for the same agent+type ---
+    const { data: existingPending } = await supabase
+      .from('agent_orders')
+      .select('to_agent, order_type')
+      .in('status', ['pending', 'in_progress']);
+
+    const existingKeys = new Set(
+      (existingPending || []).map((o: any) => `${o.to_agent}::${o.order_type}`)
+    );
+
+    const dedupedOrders = orders.filter((o: any) => {
+      const key = `${o.to_agent}::${o.order_type}`;
+      if (existingKeys.has(key)) {
+        console.log(`[CEOAgent] Skipping duplicate order: ${key}`);
+        return false;
+      }
+      existingKeys.add(key); // prevent dupes within same batch
+      return true;
+    });
+
+    if (dedupedOrders.length === 0) {
+      console.log(`[CEOAgent] All ${orders.length} orders already exist as pending — skipping`);
+      return [];
+    }
+
     // Insert orders into agent_orders table and return their IDs
-    const rows = orders.map((o: any) => ({
+    const rows = dedupedOrders.map((o: any) => ({
       from_agent: 'ceo',
       to_agent: o.to_agent,
       order_type: o.order_type,
@@ -885,7 +910,7 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
     }
 
     const insertedIds = (insertedRows || []).map((r: any) => r.id);
-    console.log(`[CEOAgent] ${orders.length} orders inserted (IDs: ${insertedIds.join(', ')}), ${directives.length} directives saved`);
+    console.log(`[CEOAgent] ${dedupedOrders.length}/${orders.length} orders inserted (${orders.length - dedupedOrders.length} dupes skipped), ${directives.length} directives saved`);
     return insertedIds;
 
   } catch (error: any) {
