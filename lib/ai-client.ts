@@ -1,25 +1,25 @@
 /**
  * AI Client — Central abstraction for LLM calls
  *
- * Uses Google Gemini (free tier) instead of Anthropic Claude API.
- * Drop-in replacement: same interface pattern (system prompt + messages + max_tokens).
- *
- * Free tier: 15 req/min, 1M tokens/day on Gemini 2.0 Flash.
- * Get your free key at: https://ai.google.dev
+ * Uses Google Gemini API (gemini-2.5-flash).
+ * Free tier: 10 req/min, 250 req/day on Gemini 2.5 Flash.
+ * Paid tier (Tier 1): 150 RPM, 1500 RPD — enable billing in AI Studio.
+ * Get your key at: https://ai.google.dev
  */
 
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
-// Model mapping: map Anthropic model names to Gemini equivalents
+// Model mapping: map legacy model names to Gemini equivalents
 const MODEL_MAP: Record<string, string> = {
-  'claude-haiku-4-5-20251001': 'gemini-2.0-flash',
-  'claude-3-haiku-20240307': 'gemini-2.0-flash',
-  'claude-sonnet-4-20250514': 'gemini-2.0-flash',
+  'claude-haiku-4-5-20251001': 'gemini-2.5-flash',
+  'claude-3-haiku-20240307': 'gemini-2.5-flash',
+  'claude-sonnet-4-20250514': 'gemini-2.5-flash',
+  'gemini-2.0-flash': 'gemini-2.5-flash',
 };
 
-function getGeminiModel(anthropicModel?: string): string {
-  if (!anthropicModel) return 'gemini-2.0-flash';
-  return MODEL_MAP[anthropicModel] || 'gemini-2.0-flash';
+function getGeminiModel(requestedModel?: string): string {
+  if (!requestedModel) return 'gemini-2.5-flash';
+  return MODEL_MAP[requestedModel] || 'gemini-2.5-flash';
 }
 
 function getClient() {
