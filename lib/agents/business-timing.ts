@@ -263,7 +263,9 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues.push('already_client');
   }
 
-  const blockingIssues = ['email_missing', 'company_missing', 'type_missing', 'prospect_dead', 'already_client', 'company_is_just_type', 'company_is_type_location', 'company_name_generic'];
+  // Only truly critical issues block sending
+  // type_missing is a warning (defaults to 'pme' template), generic_email is a warning (contact@ is common for small biz)
+  const blockingIssues = ['email_missing', 'company_missing', 'prospect_dead', 'already_client', 'company_is_just_type', 'company_is_type_location', 'company_name_generic'];
   const hasBlockingIssue = issues.some(i => blockingIssues.includes(i));
 
   return {

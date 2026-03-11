@@ -270,7 +270,10 @@ export async function GET(request: NextRequest) {
         const created = new Date(prospect.created_at);
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
 
-        if (step === 0 && hoursSinceCreation >= 24) {
+        // Wait 2h before first email (was 24h — too long for sourced prospects)
+        // Agent-sourced prospects (source_agent = 'commercial') can be contacted faster
+        const minWaitHours = prospect.source_agent === 'commercial' ? 0.5 : 2;
+        if (step === 0 && hoursSinceCreation >= minWaitHours) {
           if (step1Count >= MAX_STEP1_PER_DAY) continue;
 
           const variant = Math.floor(Math.random() * 3);
