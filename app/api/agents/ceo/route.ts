@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     if (body.action === 'chat' && body.message) {
-      return handleCeoChat(body.message, body.history || []);
+      return handleCeoChat(request, body.message, body.history || []);
     }
   } catch {}
 
@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
  * Direct chat with the CEO agent. Admin can discuss strategy, ask for changes, get recommendations.
  */
 async function handleCeoChat(
+  request: NextRequest,
   message: string,
   history: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<NextResponse> {
@@ -304,9 +305,16 @@ Reponds en francais, sois direct et actionnable.`;
     });
 
     // Extract and insert any orders from the CEO chat reply
-    await extractAndInsertOrders(supabase, reply, now.toISOString());
+    const orderIds = await extractAndInsertOrders(supabase, reply, now.toISOString());
 
-    return NextResponse.json({ ok: true, reply });
+    // Execute orders IMMEDIATELY after chat (don't wait for cron)
+    let executionResults: any[] = [];
+    if (orderIds.length > 0) {
+      console.log(`[CEOAgent] Chat generated ${orderIds.length} orders — executing immediately...`);
+      executionResults = await executeOrdersNow(supabase, request, orderIds);
+    }
+
+    return NextResponse.json({ ok: true, reply, orders_executed: executionResults });
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -668,7 +676,7 @@ async function extractAndInsertOrders(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   briefText: string,
   nowISO: string
-): Promise<void> {
+): Promise<string[]> {
   const VALID_AGENTS = [
     'chatbot', 'email', 'gmaps', 'dm_instagram', 'tiktok_comments',
     'commercial', 'seo', 'onboarding', 'retention', 'content',
@@ -728,12 +736,12 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
       items = JSON.parse(cleanJson);
     } catch {
       console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
-      return;
+      return [];
     }
 
     if (!Array.isArray(items) || items.length === 0) {
       console.log('[CEOAgent] No orders/directives extracted from brief');
-      return;
+      return [];
     }
 
     // Separate directives from orders
@@ -756,10 +764,10 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
 
     if (orders.length === 0) {
       console.log(`[CEOAgent] ${directives.length} directives saved, no orders to insert`);
-      return;
+      return [];
     }
 
-    // Insert orders into agent_orders table
+    // Insert orders into agent_orders table and return their IDs
     const rows = orders.map((o: any) => ({
       from_agent: 'ceo',
       to_agent: o.to_agent,
@@ -770,17 +778,65 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
       created_at: nowISO,
     }));
 
-    const { error: insertError } = await supabase.from('agent_orders').insert(rows);
+    const { data: insertedRows, error: insertError } = await supabase
+      .from('agent_orders')
+      .insert(rows)
+      .select('id');
 
     if (insertError) {
       console.error('[CEOAgent] Failed to insert orders:', insertError.message);
-      return;
+      return [];
     }
 
-    console.log(`[CEOAgent] ${orders.length} orders inserted, ${directives.length} directives saved`);
+    const insertedIds = (insertedRows || []).map((r: any) => r.id);
+    console.log(`[CEOAgent] ${orders.length} orders inserted (IDs: ${insertedIds.join(', ')}), ${directives.length} directives saved`);
+    return insertedIds;
 
   } catch (error: any) {
     // Non-blocking: order extraction failure should not break the brief flow
     console.error('[CEOAgent] Order extraction error (non-blocking):', error.message);
+    return [];
+  }
+}
+
+/**
+ * Execute orders immediately (used after CEO chat to avoid waiting for cron).
+ * Calls the /api/agents/orders endpoint internally.
+ */
+async function executeOrdersNow(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  request: NextRequest,
+  orderIds: string[]
+): Promise<any[]> {
+  try {
+    const host = request.headers.get('host') || 'localhost:3000';
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = `${proto}://${host}`;
+    const cronSecret = process.env.CRON_SECRET;
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (cronSecret) {
+      headers['Authorization'] = `Bearer ${cronSecret}`;
+    }
+
+    console.log(`[CEOAgent] Triggering immediate execution of ${orderIds.length} orders...`);
+
+    const res = await fetch(`${baseUrl}/api/agents/orders`, {
+      method: 'GET',
+      headers,
+    });
+
+    const data = await res.json().catch(() => ({ ok: false }));
+
+    if (data.ok) {
+      console.log(`[CEOAgent] Immediate execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
+    } else {
+      console.error('[CEOAgent] Immediate execution failed:', data.error);
+    }
+
+    return data.results || [];
+  } catch (error: any) {
+    console.error('[CEOAgent] executeOrdersNow error:', error.message);
+    return [];
   }
 }

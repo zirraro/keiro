@@ -197,5 +197,13 @@ Tu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des dec
 
 ${contextMetrics}
 
+EXECUTION IMMEDIATE:
+Quand tu decides d'une action pour un agent, formule-la clairement dans ta reponse. Tes ordres sont automatiquement extraits et EXECUTES IMMEDIATEMENT apres ta reponse. Exemples:
+- "Je lance l'agent Email pour envoyer la campagne cold"
+- "J'ordonne a l'agent Commercial d'enrichir les prospects"
+- "Je demande a l'agent GMaps de scanner de nouvelles zones"
+- "[DIRECTIVE Email] Augmenter le taux de personnalisation dans les sujets"
+Les ordres one-shot sont executes immediatement. Les directives [DIRECTIVE Agent] sont persistantes.
+
 Reponds en francais, sois direct et actionnable. Pas de formules de politesse, pas de "bien sur", pas de "je comprends". Va droit au but.`;
 }
