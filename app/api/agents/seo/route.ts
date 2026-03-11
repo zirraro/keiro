@@ -16,7 +16,7 @@ const anthropic = new Anthropic({
 async function callAnthropicWithRetry(
   params: Parameters<typeof anthropic.messages.create>[0],
   maxRetries = 3
-): ReturnType<typeof anthropic.messages.create> {
+) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await anthropic.messages.create(params);
