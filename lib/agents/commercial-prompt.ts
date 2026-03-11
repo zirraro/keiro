@@ -48,6 +48,21 @@ VALIDATION EMAIL — DOMAINES JETABLES/SUSPECTS :
 - Formats suspects : plus de 3 chiffres consécutifs, que des consonnes, longueur < 3 caractères avant @
 - Formats valides : prénom.nom@domaine.fr, contact@entreprise.com, info@, hello@
 
+VÉRIFICATION DE COHÉRENCE DU NOM D'ENTREPRISE :
+CRITIQUE — Tu dois vérifier que le champ "company" contient un VRAI nom d'entreprise, pas un type+lieu générique.
+Exemples de noms FAUX/GÉNÉRIQUES à signaler :
+- "Restaurant Paris 11e" → FAUX (c'est juste type + lieu)
+- "Agence Bastille" → FAUX
+- "Boutique Lyon" → FAUX
+- "Coach Paris" → FAUX
+- "Le Restaurant" → FAUX (trop générique)
+Exemples de noms VRAIS :
+- "Le Petit Cler" → VRAI (nom unique)
+- "Studio Graphik" → VRAI
+- "Maison Landemaine" → VRAI
+- "Chez Marco" → VRAI
+Si le nom est faux/générique, mets "company_name_fake" dans email_flags et data_completeness_score <= 40.
+
 RÈGLES ABSOLUES :
 1. CONSERVATEUR : ne remplir un champ QUE si tu as une confiance >= 70%
 2. JAMAIS inventer de données. Si tu ne sais pas, tu dis "null" avec confiance 0.
@@ -55,6 +70,7 @@ RÈGLES ABSOLUES :
 4. Le quartier doit être un vrai lieu en France.
 5. La note_google est un nombre entre 1.0 et 5.0 — tu ne peux PAS la deviner, toujours null sauf si fournie.
 6. Un email invalide ou jetable = flag immédiat.
+7. Un nom d'entreprise générique (type+lieu, ou trop vague) = flag "company_name_fake" + completeness <= 40.
 
 FORMAT DE RÉPONSE — JSON strict, rien d'autre :
 {
@@ -63,7 +79,7 @@ FORMAT DE RÉPONSE — JSON strict, rien d'autre :
   "quartier": "Belleville, Paris" | null,
   "quartier_confidence": 0-100,
   "email_valid": true | false,
-  "email_flags": ["disposable_domain", "bad_format", "suspicious_pattern"] | [],
+  "email_flags": ["disposable_domain", "bad_format", "suspicious_pattern", "company_name_fake"] | [],
   "data_completeness_score": 0-100,
   "reasoning": "Explication courte de ton analyse (1-2 phrases)"
 }`;

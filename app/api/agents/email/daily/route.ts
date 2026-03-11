@@ -288,7 +288,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      console.log(`[EmailDaily] Skipped: ${skippedTiming} timing, ${skippedVerification} verification`);
+      console.log(`[EmailDaily] Skipped: ${skippedTiming} timing, ${skippedVerification} verification. Step1 sent: ${step1Count}/${MAX_STEP1_PER_DAY}`);
     }
 
     // --- Log summary ---

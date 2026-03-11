@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
-import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
+import { getCeoSystemPrompt, getCeoArchitectureKnowledge, getCeoChatSystemAddendum } from '@/lib/agents/ceo-prompt';
 
 export const runtime = 'edge';
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -274,9 +275,9 @@ Reponds en francais, sois direct et actionnable.`;
     ];
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Il te pose des questions strategiques, te demande des changements, ou veut ton avis. Reponds comme un vrai CEO partner — direct, pas de formules, pas de JSON, juste du texte conversationnel. Tu peux utiliser des bullet points pour la clarte.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises. Tu ne repetes pas les memes recommandations. Tu fais progresser la strategie jour apres jour.\n${contextMetrics}`,
+      model: 'claude-sonnet-4-6-20250514',
+      max_tokens: 4000,
+      system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}\n\n${getCeoChatSystemAddendum(contextMetrics)}`,
       messages,
     });
 
@@ -478,17 +479,35 @@ async function generateBrief(): Promise<NextResponse> {
       agentReportsText = `\n\nRAPPORTS DES AGENTS (dernières 24h):\n${reportLines.join('\n')}`;
     }
 
+    // --- Fetch failed orders for diagnosis ---
+    const { data: failedOrders } = await supabase
+      .from('agent_orders')
+      .select('to_agent, order_type, result, created_at')
+      .eq('status', 'failed')
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    let failedOrdersText = '';
+    if (failedOrders && failedOrders.length > 0) {
+      const failLines = failedOrders.map((o: any) => {
+        const err = o.result?.error || o.result?.message || JSON.stringify(o.result).substring(0, 150);
+        return `- [${o.to_agent}] ${o.order_type}: ${err}`;
+      });
+      failedOrdersText = `\n\nORDRES ECHOUES (dernières 24h) — DIAGNOSTIQUE ET PROPOSE UN FIX:\n${failLines.join('\n')}`;
+    }
+
     console.log('[CEOAgent] Metrics collected, calling Claude...');
 
-    // --- Call Claude Haiku ---
+    // --- Call Claude Sonnet for brief (smarter reasoning) ---
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      system: getCeoSystemPrompt(),
+      model: 'claude-sonnet-4-6-20250514',
+      max_tokens: 3000,
+      system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}`,
       messages: [
         {
           role: 'user',
-          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.`,
+          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}${failedOrdersText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Si des ordres ont echoue, diagnostique le probleme et donne les instructions Claude Code exactes pour les fixer.`,
         },
       ],
     });

@@ -43,9 +43,54 @@ function wrapHtmlEmail(subject: string, bodyHtml: string): string {
 </html>`;
 }
 
+/**
+ * Sanitize variables before injecting into email templates.
+ * Detects fake/generic company names and replaces with appropriate fallbacks.
+ */
+function sanitizeVars(v: Record<string, string>): Record<string, string> {
+  const sanitized = { ...v };
+  const company = (sanitized.company || '').trim();
+  const type = (sanitized.type || '').toLowerCase().trim();
+  const quartier = (sanitized.quartier || '').toLowerCase().trim();
+
+  if (company) {
+    const companyLower = company.toLowerCase();
+
+    // Detect generic patterns: "type + location", just the type, etc.
+    const isGeneric =
+      companyLower === type ||
+      (quartier && companyLower === `${type} ${quartier}`) ||
+      /^(restaurant|boutique|agence|coach|salon|caviste|fleuriste|freelance|coiffeur|traiteur|boulangerie|café|bar)\s+(paris|lyon|marseille|bordeaux|lille|toulouse|nice)/i.test(company) ||
+      /^(restaurant|boutique|agence|coach|salon|caviste|fleuriste|freelance|coiffeur|traiteur)\s+\d/i.test(company) ||
+      /^(le |la |les )?(restaurant|boutique|agence|salon)$/i.test(company);
+
+    if (isGeneric) {
+      // Use "votre [type]" as a natural fallback instead of the fake name
+      const typeLabels: Record<string, string> = {
+        restaurant: 'votre restaurant',
+        boutique: 'votre boutique',
+        agence: 'votre agence',
+        coach: 'votre activité',
+        coiffeur: 'votre salon',
+        caviste: 'votre cave',
+        fleuriste: 'votre boutique',
+        traiteur: 'votre entreprise',
+        freelance: 'votre activité',
+        services: 'votre entreprise',
+        professionnel: 'votre cabinet',
+        pme: 'votre entreprise',
+      };
+      sanitized.company = typeLabels[type] || 'votre entreprise';
+    }
+  }
+
+  return sanitized;
+}
+
 function replaceVars(template: string, v: Record<string, string>): string {
+  const vars = sanitizeVars(v);
   let result = template;
-  for (const [key, value] of Object.entries(v)) {
+  for (const [key, value] of Object.entries(vars)) {
     result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
   }
   // Clean up sentences with empty variables (e.g., "du ." → remove entire phrase)

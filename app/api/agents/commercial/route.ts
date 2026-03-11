@@ -270,11 +270,18 @@ async function runEnrichment(): Promise<NextResponse> {
         }
       }
 
+      // Flag fake company names — not ready for email outreach
+      const hasCompanyNameFake = result.email_flags?.includes('company_name_fake');
+      if (hasCompanyNameFake) {
+        console.log(`[CommercialAgent] Fake company name detected for ${prospect.id}: "${prospect.company}" — blocking from email sequence`);
+      }
+
       // Determine if prospect is ready to be contacted
-      // Needs: email + type + data completeness >= 60%
+      // Needs: email + type + data completeness >= 60% + real company name
       const isReadyForEmail = prospect.email && result.email_valid
         && (prospect.type || (result.type && result.type_confidence >= 70))
-        && result.data_completeness_score >= 60;
+        && result.data_completeness_score >= 60
+        && !hasCompanyNameFake;
 
       if (isReadyForEmail && !prospect.email_sequence_status) {
         updates.status = 'contacte';

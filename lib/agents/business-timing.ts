@@ -206,6 +206,40 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     }
   }
 
+  // Detect fake/generic company names (type + location pattern)
+  if (prospect.company && prospect.type) {
+    const companyLower = prospect.company.toLowerCase().trim();
+    const typeLower = prospect.type.toLowerCase().trim();
+    const quartierLower = (prospect.quartier || prospect.city || prospect.ville || '').toLowerCase().trim();
+
+    // Company name is just the type (e.g., "agence", "restaurant")
+    if (companyLower === typeLower) {
+      issues.push('company_is_just_type');
+    }
+
+    // Company name is type + location (e.g., "Agence Paris 11e", "Restaurant Bastille")
+    if (quartierLower && (
+      companyLower === `${typeLower} ${quartierLower}` ||
+      companyLower === `${typeLower} ${quartierLower}`.toLowerCase() ||
+      companyLower.startsWith(`${typeLower} `) && companyLower.includes(quartierLower)
+    )) {
+      issues.push('company_is_type_location');
+    }
+
+    // Company name matches common generic patterns
+    const genericPatterns = [
+      /^(restaurant|boutique|agence|coach|salon|caviste|fleuriste|freelance|coiffeur|traiteur|boulangerie|café|bar)\s+(paris|lyon|marseille|bordeaux|lille|toulouse|nice)/i,
+      /^(restaurant|boutique|agence|coach|salon|caviste|fleuriste|freelance|coiffeur|traiteur)\s+\d/i,
+      /^(le |la |les )?(restaurant|boutique|agence|salon)$/i,
+    ];
+    for (const pattern of genericPatterns) {
+      if (pattern.test(companyLower)) {
+        issues.push('company_name_generic');
+        break;
+      }
+    }
+  }
+
   // City should be present for personalization
   if (!prospect.quartier && !prospect.city && !prospect.ville) {
     issues.push('location_missing');
@@ -229,7 +263,7 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues.push('already_client');
   }
 
-  const blockingIssues = ['email_missing', 'company_missing', 'type_missing', 'prospect_dead', 'already_client'];
+  const blockingIssues = ['email_missing', 'company_missing', 'type_missing', 'prospect_dead', 'already_client', 'company_is_just_type', 'company_is_type_location', 'company_name_generic'];
   const hasBlockingIssue = issues.some(i => blockingIssues.includes(i));
 
   return {
