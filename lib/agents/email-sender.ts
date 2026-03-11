@@ -35,19 +35,32 @@ export async function sendEmail(payload: EmailPayload): Promise<SendEmailResult>
     throw new Error('Aucun provider email configuré (BREVO_API_KEY ou RESEND_API_KEY requis)');
   }
 
+  const recipient = payload.to[0] || 'unknown';
+  console.log(`[EmailSender] Sending to ${recipient} — subject: "${payload.subject?.substring(0, 50)}"`);
+
   // Try Brevo first
   if (BREVO_API_KEY) {
     const result = await sendViaBrevo(BREVO_API_KEY, payload);
-    if (result.ok) return result;
-    console.warn('[EmailSender] Brevo failed, trying Resend fallback...', result.error);
+    if (result.ok) {
+      console.log(`[EmailSender] ✅ Sent via Brevo to ${recipient} — messageId: ${result.messageId}`);
+      return result;
+    }
+    console.warn(`[EmailSender] ❌ Brevo failed for ${recipient}: ${result.error} — trying Resend fallback...`);
   }
 
   // Fallback to Resend
   if (RESEND_API_KEY) {
-    return sendViaResend(RESEND_API_KEY, payload);
+    const result = await sendViaResend(RESEND_API_KEY, payload);
+    if (result.ok) {
+      console.log(`[EmailSender] ✅ Sent via Resend to ${recipient} — messageId: ${result.messageId}`);
+    } else {
+      console.error(`[EmailSender] ❌ Resend also failed for ${recipient}: ${result.error}`);
+    }
+    return result;
   }
 
   // Brevo was tried and failed, no Resend available
+  console.error(`[EmailSender] ❌ No fallback available for ${recipient}`);
   return { ok: false, provider: 'brevo', error: 'Brevo failed and no Resend fallback' };
 }
 

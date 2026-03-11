@@ -209,6 +209,36 @@ export async function GET(request: NextRequest) {
 
       console.log(`[EmailDaily] Eligible prospects (before timing filter): ${prospects?.length ?? 0}`);
 
+      // Log sample prospects for debugging
+      if (prospects && prospects.length > 0) {
+        for (const p of prospects.slice(0, 3)) {
+          console.log(`[EmailDaily] Sample: id=${p.id}, email=${p.email}, type=${p.type}, company=${p.company}, status=${p.status}, step=${p.email_sequence_step}, seq=${p.email_sequence_status}`);
+        }
+      } else {
+        // Diagnostic: why no prospects?
+        const { count: totalAll } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
+        const { count: withEmail } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null);
+        const { count: dead } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead');
+        const { count: clients } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).in('status', ['client', 'perdu', 'sprint']);
+        const { count: seqCompleted } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'completed');
+        console.log(`[EmailDaily] === DIAGNOSTIC: 0 prospects ===`);
+        console.log(`[EmailDaily] CRM total: ${totalAll ?? 0}, with email: ${withEmail ?? 0}, dead: ${dead ?? 0}`);
+        console.log(`[EmailDaily] client/perdu/sprint: ${clients ?? 0}, seq completed: ${seqCompleted ?? 0}`);
+        console.log(`[EmailDaily] === Besoin de prospects avec email + (seq null/not_started/in_progress) + NOT dead ===`);
+
+        // Report to CEO
+        await supabase.from('agent_logs').insert({
+          agent: 'email',
+          action: 'report_to_ceo',
+          data: {
+            message: `0 prospects eligibles pour email. CRM: ${totalAll ?? 0} total, ${withEmail ?? 0} avec email, ${dead ?? 0} dead, ${clients ?? 0} client/perdu, ${seqCompleted ?? 0} sequence terminee. Pipeline vide — besoin que Commercial ou GMaps alimente la base.`,
+            phase: 'campaign_blocked',
+          },
+          status: 'success',
+          created_at: nowISO,
+        });
+      }
+
       let step1Count = 0;
       const MAX_STEP1_PER_DAY = 50;
       let skippedTiming = 0;
@@ -217,7 +247,7 @@ export async function GET(request: NextRequest) {
       for (const prospect of prospects || []) {
         const category = getSequenceForProspect(prospect);
 
-        // Smart timing filter
+        // Smart timing filter — but when slot='all', skip timing check entirely
         if (slot !== 'all') {
           if (!isGoodTimeToContact(category, 'email')) {
             skippedTiming++;
@@ -336,6 +366,20 @@ export async function GET(request: NextRequest) {
     });
 
     console.log(`[EmailDaily] Done: ${successCount} sent, ${failCount} failed`);
+
+    // Report to CEO with actionable diagnostic
+    await supabase.from('agent_logs').insert({
+      agent: 'email',
+      action: 'report_to_ceo',
+      data: {
+        message: successCount > 0
+          ? `Campagne ${type === 'warm' ? 'warm' : 'cold'}: ${successCount} emails envoyes, ${failCount} echecs. Types: ${Object.keys(byBusinessType).join(', ')}.`
+          : `0 emails envoyes. ${results.length} prospects traites mais aucun envoi. Pipeline probablement vide ou timing inadapte.`,
+        phase: 'campaign_complete',
+      },
+      status: 'success',
+      created_at: nowISO,
+    });
 
     // --- Auto-learning: report insights to CEO ---
     try {
