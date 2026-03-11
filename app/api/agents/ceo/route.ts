@@ -304,17 +304,14 @@ Reponds en francais, sois direct et actionnable.`;
       created_at: now.toISOString(),
     });
 
-    // Extract and insert any orders from the CEO chat reply
-    const orderIds = await extractAndInsertOrders(supabase, reply, now.toISOString());
+    // Return the CEO reply immediately — extract orders in background
+    // This prevents "Load failed" timeout on the frontend
+    const response = NextResponse.json({ ok: true, reply });
 
-    // Execute orders IMMEDIATELY after chat (don't wait for cron)
-    let executionResults: any[] = [];
-    if (orderIds.length > 0) {
-      console.log(`[CEOAgent] Chat generated ${orderIds.length} orders — executing immediately...`);
-      executionResults = await executeOrdersNow(supabase, request, orderIds);
-    }
+    // Fire-and-forget: extract orders + trigger execution without blocking
+    extractAndExecuteInBackground(supabase, request, reply, now.toISOString());
 
-    return NextResponse.json({ ok: true, reply, orders_executed: executionResults });
+    return response;
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -800,43 +797,43 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
 }
 
 /**
- * Execute orders immediately (used after CEO chat to avoid waiting for cron).
- * Calls the /api/agents/orders endpoint internally.
+ * Extract orders from CEO reply and trigger execution — all in background.
+ * This is fire-and-forget so the CEO chat response returns instantly.
  */
-async function executeOrdersNow(
+function extractAndExecuteInBackground(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   request: NextRequest,
-  orderIds: string[]
-): Promise<any[]> {
-  try {
-    const host = request.headers.get('host') || 'localhost:3000';
-    const proto = request.headers.get('x-forwarded-proto') || 'https';
-    const baseUrl = `${proto}://${host}`;
-    const cronSecret = process.env.CRON_SECRET;
+  reply: string,
+  nowISO: string
+): void {
+  // Run async work without blocking
+  (async () => {
+    try {
+      const orderIds = await extractAndInsertOrders(supabase, reply, nowISO);
 
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (cronSecret) {
-      headers['Authorization'] = `Bearer ${cronSecret}`;
+      if (orderIds.length > 0) {
+        console.log(`[CEOAgent] ${orderIds.length} orders inserted from chat — triggering execution...`);
+
+        const host = request.headers.get('host') || 'localhost:3000';
+        const proto = request.headers.get('x-forwarded-proto') || 'https';
+        const baseUrl = `${proto}://${host}`;
+        const cronSecret = process.env.CRON_SECRET;
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (cronSecret) {
+          headers['Authorization'] = `Bearer ${cronSecret}`;
+        }
+
+        // Call orders executor — this is a separate serverless invocation
+        const res = await fetch(`${baseUrl}/api/agents/orders`, {
+          method: 'GET',
+          headers,
+        });
+        const data = await res.json().catch(() => ({ ok: false }));
+        console.log(`[CEOAgent] Order execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
+      }
+    } catch (err: any) {
+      console.error('[CEOAgent] Background order processing error:', err.message);
     }
-
-    console.log(`[CEOAgent] Triggering immediate execution of ${orderIds.length} orders...`);
-
-    const res = await fetch(`${baseUrl}/api/agents/orders`, {
-      method: 'GET',
-      headers,
-    });
-
-    const data = await res.json().catch(() => ({ ok: false }));
-
-    if (data.ok) {
-      console.log(`[CEOAgent] Immediate execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
-    } else {
-      console.error('[CEOAgent] Immediate execution failed:', data.error);
-    }
-
-    return data.results || [];
-  } catch (error: any) {
-    console.error('[CEOAgent] executeOrdersNow error:', error.message);
-    return [];
-  }
+  })();
 }
