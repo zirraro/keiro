@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { type Message } from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-prompt';
@@ -14,9 +14,9 @@ const anthropic = new Anthropic({
 
 /** Call Anthropic with automatic retry on 429 rate limit */
 async function callAnthropicWithRetry(
-  params: Parameters<typeof anthropic.messages.create>[0],
+  params: Anthropic.MessageCreateParamsNonStreaming,
   maxRetries = 3
-) {
+): Promise<Message> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await anthropic.messages.create(params);
