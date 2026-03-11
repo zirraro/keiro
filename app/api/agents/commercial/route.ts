@@ -60,6 +60,48 @@ const VALID_TYPES = [
   'traiteur', 'freelance', 'services', 'professionnel', 'agence', 'pme',
 ];
 
+/**
+ * Try to extract email from a website's HTML.
+ * Looks for mailto: links and email patterns in page content.
+ */
+async function findEmailFromWebsite(website: string): Promise<string | null> {
+  try {
+    const res = await fetch(website, { signal: AbortSignal.timeout(5000), redirect: 'follow' });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // 1. Check mailto: links first (most reliable)
+    const mailtoRegex = /mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/gi;
+    const mailtoMatch = mailtoRegex.exec(html);
+    if (mailtoMatch) return mailtoMatch[1].toLowerCase();
+
+    // 2. Look for email patterns in text
+    const emailRegex = /\b([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b/gi;
+    const allEmails: string[] = [];
+    let match;
+    while ((match = emailRegex.exec(html)) !== null) {
+      const email = match[1].toLowerCase();
+      // Skip common non-contact emails
+      if (!email.endsWith('.png') && !email.endsWith('.jpg') && !email.endsWith('.svg')
+          && !email.includes('example.com') && !email.includes('sentry.io')
+          && !email.includes('webpack') && !email.includes('schema.org')) {
+        allEmails.push(email);
+      }
+    }
+
+    if (allEmails.length === 0) return null;
+
+    // Prefer professional emails (contact@, info@, bonjour@) over generic ones
+    const preferred = allEmails.find(e => {
+      const local = e.split('@')[0];
+      return ['contact', 'info', 'bonjour', 'hello', 'reservation', 'reservations'].includes(local);
+    });
+    return preferred || allEmails[0];
+  } catch {
+    return null;
+  }
+}
+
 interface EnrichmentResult {
   type: string | null;
   type_confidence: number;
@@ -209,8 +251,8 @@ async function runEnrichment(): Promise<NextResponse> {
     // Includes: missing data, status 'new'/'identifie' not yet in email sequence
     const { data: prospects, error: fetchError } = await supabase
       .from('crm_prospects')
-      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status')
-      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie')
+      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, website, source_agent')
+      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie,email.is.null')
       .neq('temperature', 'dead')
       .order('created_at', { ascending: true })
       .limit(MAX_PROSPECTS_PER_RUN);
@@ -296,6 +338,21 @@ async function runEnrichment(): Promise<NextResponse> {
     }> = [];
 
     for (const prospect of prospects) {
+      // --- Step 0: Try to find email from website if prospect has no email ---
+      if (!prospect.email && prospect.website) {
+        console.log(`[CommercialAgent] Prospect ${prospect.id} (${prospect.company}) has no email but has website — extracting...`);
+        const extractedEmail = await findEmailFromWebsite(prospect.website);
+        if (extractedEmail) {
+          console.log(`[CommercialAgent] Found email for ${prospect.company}: ${extractedEmail}`);
+          prospect.email = extractedEmail;
+          // Update DB immediately so we don't lose the email if enrichment fails
+          await supabase.from('crm_prospects').update({
+            email: extractedEmail,
+            updated_at: nowISO,
+          }).eq('id', prospect.id);
+        }
+      }
+
       const result = await enrichProspect(prospect, agentDirective || undefined);
 
       if (!result) {

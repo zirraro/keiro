@@ -347,13 +347,21 @@ async function executeOrder(
 
     case 'commercial':
       if (orderType.includes('sourc') || orderType.includes('prospect') || orderType.includes('generer') || orderType.includes('générer') || orderType.includes('ajout') || orderType.includes('import')) {
-        const query = payload.query || payload.description || 'commerces locaux Paris';
-        const count = payload.count || 10;
-        return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'POST', cronSecret, {
-          action: 'source_ai',
-          query,
-          count,
-        });
+        // Step 1: Trigger Google Maps scan first to get REAL prospects
+        console.log(`[Orders] Commercial sourcing: triggering GMaps scan first, then enrichment`);
+        const gmapsResult = await callAgentEndpoint(baseUrl, '/api/agents/gmaps', 'POST', cronSecret);
+
+        // Step 2: Run Commercial enrichment to find emails for new GMaps prospects
+        const enrichResult = await callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
+
+        const gmapsSummary = gmapsResult.ok ? gmapsResult.summary : `GMaps: ${gmapsResult.summary}`;
+        const enrichSummary = enrichResult.ok ? enrichResult.summary : `Enrichment: ${enrichResult.summary}`;
+
+        return {
+          ok: gmapsResult.ok || enrichResult.ok,
+          summary: `${gmapsSummary} → ${enrichSummary}`,
+          data: { gmaps: gmapsResult.data, enrichment: enrichResult.data },
+        };
       }
       return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
 
@@ -409,8 +417,9 @@ async function executeEmailOrder(
     return { ok: true, summary: `Séquences email reprises: ${count?.length ?? 0} prospects réactivés` };
 
   } else if (orderType.includes('campagne') || orderType.includes('campaign') || orderType.includes('envoyer') || orderType.includes('send') || orderType.includes('lancer')) {
-    // Actually trigger the email daily campaign
-    const mode = orderType.includes('warm') ? '?type=warm' : '';
+    // CEO-triggered campaigns use slot=all to bypass timing filter
+    // (timing is for cron auto-runs, not manual CEO orders)
+    const mode = orderType.includes('warm') ? '?type=warm' : '?slot=all';
     return callAgentEndpoint(baseUrl, `/api/agents/email/daily${mode}`, 'GET', cronSecret);
 
   } else if (orderType.includes('variant') || orderType.includes('objet') || orderType.includes('subject')) {
@@ -420,8 +429,8 @@ async function executeEmailOrder(
     return { ok: true, summary: `A/B test email noté: ${payload.test || payload.description || orderType}. Suivi dans le prochain brief.` };
 
   } else {
-    // For any other email order, trigger a campaign run
-    return callAgentEndpoint(baseUrl, '/api/agents/email/daily', 'GET', cronSecret);
+    // For any other email order, use slot=all (CEO-triggered = send now)
+    return callAgentEndpoint(baseUrl, '/api/agents/email/daily?slot=all', 'GET', cronSecret);
   }
 }
 
