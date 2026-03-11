@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-type Tab = 'dashboard' | 'campagnes' | 'seo' | 'onboarding' | 'retention' | 'contenu' | 'briefs' | 'ordres' | 'logs';
+type Tab = 'dashboard' | 'chat' | 'campagnes' | 'seo' | 'onboarding' | 'retention' | 'contenu' | 'briefs' | 'ordres' | 'logs';
+
+type AgentOption = {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+};
 
 type MetricCard = {
   label: string;
@@ -81,6 +88,25 @@ export default function AdminAgentsPage() {
   const [ceoLoading, setCeoLoading] = useState(false);
   const [ceoHistoryLoaded, setCeoHistoryLoaded] = useState(false);
   const ceoMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Multi-agent chat state
+  const [agentList] = useState<AgentOption[]>([
+    { id: 'ceo', label: 'CEO Agent', icon: '👔', color: 'purple' },
+    { id: 'email', label: 'Email Agent', icon: '📧', color: 'blue' },
+    { id: 'commercial', label: 'Commercial Agent', icon: '🔍', color: 'green' },
+    { id: 'dm_instagram', label: 'DM Instagram', icon: '📱', color: 'pink' },
+    { id: 'tiktok_comments', label: 'TikTok Agent', icon: '🎵', color: 'purple' },
+    { id: 'seo', label: 'SEO Agent', icon: '📝', color: 'orange' },
+    { id: 'content', label: 'Content Agent', icon: '🎨', color: 'indigo' },
+    { id: 'onboarding', label: 'Onboarding Agent', icon: '🚀', color: 'emerald' },
+    { id: 'retention', label: 'Retention Agent', icon: '🛡️', color: 'red' },
+    { id: 'chatbot', label: 'Chatbot Agent', icon: '💬', color: 'cyan' },
+  ]);
+  const [selectedAgent, setSelectedAgent] = useState<string>('ceo');
+  const [agentChatMessages, setAgentChatMessages] = useState<Record<string, Array<{ role: 'user' | 'assistant'; content: string }>>>({});
+  const [agentChatInput, setAgentChatInput] = useState('');
+  const [agentChatLoading, setAgentChatLoading] = useState(false);
+  const agentChatEndRef = useRef<HTMLDivElement>(null);
 
   // Campagnes state
   type CampaignEntry = {
@@ -171,6 +197,11 @@ export default function AdminAgentsPage() {
   useEffect(() => {
     ceoMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [ceoMessages, ceoLoading]);
+
+  // Auto-scroll agent chat
+  useEffect(() => {
+    agentChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [agentChatMessages, agentChatLoading]);
 
   // ─── Dashboard metrics ─────────────────────────────────
   const loadDashboard = async () => {
@@ -556,6 +587,60 @@ export default function AdminAgentsPage() {
       setCeoMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setCeoLoading(false);
+    }
+  };
+
+  // ─── Multi-Agent Chat ────────────────────────────────────
+  const sendAgentMessage = async () => {
+    if (!agentChatInput.trim() || agentChatLoading) return;
+    const userMsg = agentChatInput.trim();
+    const agent = selectedAgent;
+    setAgentChatInput('');
+
+    const currentMessages = agentChatMessages[agent] || [];
+    const updatedMessages = [...currentMessages, { role: 'user' as const, content: userMsg }];
+    setAgentChatMessages(prev => ({ ...prev, [agent]: updatedMessages }));
+    setAgentChatLoading(true);
+
+    const isCeo = agent === 'ceo';
+    const url = isCeo ? '/api/agents/ceo' : '/api/agents/chat';
+    const recentHistory = currentMessages.slice(-10);
+
+    const bodyPayload = isCeo
+      ? { action: 'chat', message: userMsg, history: recentHistory }
+      : { agent, message: userMsg, history: recentHistory };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90_000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        signal: controller.signal,
+        body: JSON.stringify(bodyPayload),
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+
+      const replyContent = (data.ok && data.reply)
+        ? data.reply
+        : `Erreur: ${data.error || 'Pas de reponse'}`;
+
+      setAgentChatMessages(prev => ({
+        ...prev,
+        [agent]: [...(prev[agent] || []), { role: 'assistant' as const, content: replyContent }],
+      }));
+    } catch (err: any) {
+      const errorMsg = err.name === 'AbortError'
+        ? "Timeout — l'agent met trop de temps. Reessayez."
+        : `Erreur reseau: ${err.message}`;
+      setAgentChatMessages(prev => ({
+        ...prev,
+        [agent]: [...(prev[agent] || []), { role: 'assistant' as const, content: errorMsg }],
+      }));
+    } finally {
+      setAgentChatLoading(false);
     }
   };
 
@@ -975,6 +1060,7 @@ export default function AdminAgentsPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'dashboard', label: 'Dashboard' },
+    { key: 'chat', label: 'Chat Agents' },
     { key: 'campagnes', label: 'Campagnes' },
     { key: 'seo', label: 'SEO Blog' },
     { key: 'onboarding', label: 'Onboarding' },
@@ -1230,6 +1316,154 @@ export default function AdminAgentsPage() {
                 <button
                   onClick={sendCeoMessage}
                   disabled={ceoLoading || !ceoInput.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                >
+                  Envoyer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== TAB CHAT AGENTS ===== */}
+        {activeTab === 'chat' && (
+          <div className="grid grid-cols-12 gap-4" style={{ height: 'calc(100vh - 220px)' }}>
+            {/* Agent list sidebar */}
+            <div className="col-span-3 bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col">
+              <div className="p-3 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50">
+                <h3 className="text-sm font-semibold text-neutral-900">Agents</h3>
+                <p className="text-[11px] text-neutral-500">Parle directement a chaque agent</p>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {agentList.map((agent) => {
+                  const msgCount = (agentChatMessages[agent.id] || []).length;
+                  return (
+                    <button
+                      key={agent.id}
+                      onClick={() => setSelectedAgent(agent.id)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all border-b border-neutral-50 ${
+                        selectedAgent === agent.id
+                          ? 'bg-purple-50 border-l-4 border-l-purple-500'
+                          : 'hover:bg-neutral-50'
+                      }`}
+                    >
+                      <span className="text-xl">{agent.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-neutral-900 truncate">{agent.label}</div>
+                        {msgCount > 0 && (
+                          <div className="text-[11px] text-neutral-400">{msgCount} messages</div>
+                        )}
+                      </div>
+                      {selectedAgent === agent.id && (
+                        <div className="w-2 h-2 bg-green-400 rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Chat area */}
+            <div className="col-span-9 bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden flex flex-col">
+              {/* Chat header */}
+              <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50 flex items-center gap-3">
+                <span className="text-2xl">{agentList.find(a => a.id === selectedAgent)?.icon}</span>
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">
+                    {agentList.find(a => a.id === selectedAgent)?.label}
+                  </h3>
+                  <p className="text-[11px] text-neutral-500">
+                    {selectedAgent === 'ceo' ? 'Strategie, briefs, ordres aux agents, diagnostics' : 'Conversation directe — demande des taches, analyse, suggestions'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {(!agentChatMessages[selectedAgent] || agentChatMessages[selectedAgent].length === 0) && (
+                  <div className="text-center py-12">
+                    <span className="text-4xl block mb-3">{agentList.find(a => a.id === selectedAgent)?.icon}</span>
+                    <p className="text-sm text-neutral-400 mb-4">Demande ce que tu veux a {agentList.find(a => a.id === selectedAgent)?.label}</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {selectedAgent === 'ceo' && ['Statut des campagnes ?', 'Lance 100 emails cold', 'Quels business convertissent ?'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-all">{q}</button>
+                      ))}
+                      {selectedAgent === 'email' && ['Taux ouverture actuel ?', 'Propose un nouveau sujet A/B test', 'Quels segments cibler ?'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-all">{q}</button>
+                      ))}
+                      {selectedAgent === 'commercial' && ['Qualite du pipeline ?', 'Quelles zones prospecter ?', 'Analyse les types de business'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-all">{q}</button>
+                      ))}
+                      {selectedAgent === 'content' && ['Idees de posts cette semaine ?', 'Quel format performe le mieux ?', 'Genere 3 captions Instagram'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 transition-all">{q}</button>
+                      ))}
+                      {selectedAgent === 'seo' && ['Quels mots-cles cibler ?', 'Propose un article SEO', 'Analyse le calendrier editorial'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full hover:bg-orange-100 transition-all">{q}</button>
+                      ))}
+                      {!['ceo', 'email', 'commercial', 'content', 'seo'].includes(selectedAgent) && ['Quel est ton statut ?', 'Comment ameliorer ?', 'Analyse tes performances'].map((q) => (
+                        <button key={q} onClick={() => setAgentChatInput(q)} className="text-xs px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full hover:bg-neutral-200 transition-all">{q}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(agentChatMessages[selectedAgent] || []).map((msg, i) => {
+                  const actions = msg.role === 'assistant'
+                    ? (msg.content.match(/\[ACTION:([^\]]+)\]/g) || []).map(a => a.replace(/^\[ACTION:/, '').replace(/\]$/, ''))
+                    : [];
+                  const displayContent = msg.role === 'assistant'
+                    ? msg.content.replace(/\[ACTION:[^\]]+\]/g, '').trim()
+                    : msg.content;
+
+                  return (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
+                        msg.role === 'user'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-neutral-100 text-neutral-800'
+                      }`}>
+                        <p className="whitespace-pre-wrap">{displayContent}</p>
+                        {actions.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-neutral-200 space-y-1">
+                            {actions.map((action, j) => (
+                              <div key={j} className="flex items-center gap-2 text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg">
+                                <span className="text-base">&#9889;</span>
+                                <span className="font-medium">Action:</span>
+                                <span>{action}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {agentChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-neutral-100 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={agentChatEndRef} />
+              </div>
+
+              {/* Input */}
+              <div className="p-3 border-t border-neutral-100 flex gap-2">
+                <input
+                  type="text"
+                  value={agentChatInput}
+                  onChange={(e) => setAgentChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAgentMessage(); } }}
+                  placeholder={`Demande a ${agentList.find(a => a.id === selectedAgent)?.label}...`}
+                  className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                />
+                <button
+                  onClick={sendAgentMessage}
+                  disabled={agentChatLoading || !agentChatInput.trim()}
                   className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
                 >
                   Envoyer
