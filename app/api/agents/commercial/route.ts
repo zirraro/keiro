@@ -503,11 +503,177 @@ async function runEnrichment(): Promise<NextResponse> {
   }
 }
 
+const MAX_AUDIT_PER_RUN = 20;
+
+/**
+ * Audit existing CRM prospects: re-verify data quality, check websites, find missing emails.
+ * Targets prospects already in 'contacte' or in email sequence that haven't been audited recently.
+ */
+async function runCRMAudit(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  nowISO: string
+): Promise<NextResponse> {
+  console.log('[CommercialAgent] Running CRM audit...');
+
+  // Fetch active prospects that are already in sequence or contacte
+  // Prioritize those without recent audit (updated_at > 7 days ago)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: prospects, error } = await supabase
+    .from('crm_prospects')
+    .select('id, email, company, type, quartier, website, phone, status, temperature, email_sequence_status, email_sequence_step, source_agent, updated_at')
+    .neq('temperature', 'dead')
+    .not('status', 'in', '("perdu","disqualified")')
+    .lt('updated_at', sevenDaysAgo)
+    .order('updated_at', { ascending: true })
+    .limit(MAX_AUDIT_PER_RUN);
+
+  if (error) {
+    console.error('[CommercialAgent] Audit fetch error:', error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  if (!prospects || prospects.length === 0) {
+    console.log('[CommercialAgent] Audit: all prospects audited recently');
+    return NextResponse.json({ ok: true, audited: 0, message: 'Tous les prospects ont ete verifies recemment' });
+  }
+
+  console.log(`[CommercialAgent] Auditing ${prospects.length} prospects...`);
+
+  let fixedEmail = 0;
+  let fixedWebsite = 0;
+  let flaggedDead = 0;
+  let updatedCount = 0;
+  const auditDetails: Array<{ id: string; company: string; actions: string[] }> = [];
+
+  for (const prospect of prospects) {
+    const actions: string[] = [];
+    const updates: Record<string, any> = {};
+
+    // 1. Check if website is still up (if we have one)
+    if (prospect.website) {
+      try {
+        const res = await fetch(prospect.website, {
+          method: 'HEAD',
+          signal: AbortSignal.timeout(5000),
+          redirect: 'follow',
+        });
+        if (!res.ok && res.status >= 400) {
+          actions.push(`website_down (HTTP ${res.status})`);
+          // Don't kill the prospect, just note it
+        }
+      } catch {
+        actions.push('website_unreachable');
+      }
+    }
+
+    // 2. Try to find/update email if prospect has no email but has website
+    if (!prospect.email && prospect.website) {
+      const extractedEmail = await findEmailFromWebsite(prospect.website);
+      if (extractedEmail) {
+        updates.email = extractedEmail;
+        updates.email_sequence_status = 'not_started';
+        updates.email_sequence_step = 0;
+        updates.status = 'contacte';
+        fixedEmail++;
+        actions.push(`email_found: ${extractedEmail}`);
+      }
+    }
+
+    // 3. Verify email format for existing emails
+    if (prospect.email) {
+      const emailLower = prospect.email.toLowerCase();
+      const disposableDomains = ['yopmail.com', 'guerrillamail.com', 'tempmail.com', 'mailinator.com', 'throwaway.email', 'trashmail.com', 'fakeinbox.com'];
+      const domain = emailLower.split('@')[1];
+      if (domain && disposableDomains.includes(domain)) {
+        updates.temperature = 'dead';
+        updates.status = 'disqualified';
+        flaggedDead++;
+        actions.push(`disposable_email: ${domain}`);
+      }
+    }
+
+    // 4. Check company name coherence (flag generic names)
+    if (prospect.company && prospect.type) {
+      const companyLower = prospect.company.toLowerCase().trim();
+      const typeLower = prospect.type.toLowerCase().trim();
+      const genericPatterns = [
+        new RegExp(`^${typeLower}\\s+(paris|lyon|marseille|bordeaux|lille|toulouse|nice)`, 'i'),
+        new RegExp(`^(le |la |les )?${typeLower}$`, 'i'),
+      ];
+      for (const pattern of genericPatterns) {
+        if (pattern.test(companyLower)) {
+          updates.temperature = 'dead';
+          updates.status = 'disqualified';
+          flaggedDead++;
+          actions.push(`generic_company_name: "${prospect.company}"`);
+          break;
+        }
+      }
+    }
+
+    // Always bump updated_at to mark as audited
+    updates.updated_at = nowISO;
+
+    if (Object.keys(updates).length > 1 || actions.length > 0) {
+      const { error: updateError } = await supabase
+        .from('crm_prospects')
+        .update(updates)
+        .eq('id', prospect.id);
+
+      if (!updateError) {
+        updatedCount++;
+        if (actions.length > 0) {
+          auditDetails.push({ id: prospect.id, company: prospect.company || '?', actions });
+        }
+      }
+    } else {
+      // Just mark as audited
+      await supabase.from('crm_prospects').update({ updated_at: nowISO }).eq('id', prospect.id);
+    }
+  }
+
+  // Log audit
+  const report = {
+    audited: prospects.length,
+    updated: updatedCount,
+    emails_found: fixedEmail,
+    websites_checked: fixedWebsite,
+    flagged_dead: flaggedDead,
+    details: auditDetails,
+    timestamp: nowISO,
+  };
+
+  await supabase.from('agent_logs').insert({
+    agent: 'commercial',
+    action: 'crm_audit',
+    data: report,
+    created_at: nowISO,
+  });
+
+  // Report to CEO
+  await supabase.from('agent_logs').insert({
+    agent: 'commercial',
+    action: 'report_to_ceo',
+    data: {
+      message: `Audit CRM: ${prospects.length} prospects verifies, ${fixedEmail} emails trouves, ${flaggedDead} disqualifies.${auditDetails.length > 0 ? ' Actions: ' + auditDetails.map(d => `${d.company}: ${d.actions.join(', ')}`).slice(0, 5).join('; ') : ''}`,
+      phase: 'audit_complete',
+    },
+    status: 'success',
+    created_at: nowISO,
+  });
+
+  console.log(`[CommercialAgent] Audit complete: ${prospects.length} checked, ${fixedEmail} emails found, ${flaggedDead} flagged dead`);
+
+  return NextResponse.json({ ok: true, ...report });
+}
+
 /**
  * POST /api/agents/commercial
  * Source new qualified prospects into the CRM.
  * Accepts: { prospects: Array<{ company, email?, phone?, type?, quartier?, website?, instagram?, notes? }> }
  * Or: { action: "source_ai", query: "restaurants italiens Paris 11e", count?: number }
+ * Or: { action: "audit" } — re-verify existing CRM prospects (website up, email valid, data coherence)
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
@@ -518,6 +684,11 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const supabase = getSupabaseAdmin();
   const nowISO = new Date().toISOString();
+
+  // --- Mode: Audit existing CRM prospects ---
+  if (body.action === 'audit') {
+    return runCRMAudit(supabase, nowISO);
+  }
 
   // --- Mode 1: AI-assisted prospect generation ---
   if (body.action === 'source_ai') {

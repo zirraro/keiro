@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getEmailTemplate } from '@/lib/agents/email-templates';
+import { getEmailTemplate, EmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { isGoodTimeToContact, getOptimalCronSlot, verifyProspectData } from '@/lib/agents/business-timing';
 import { sendEmail } from '@/lib/agents/email-sender';
 import { getAgentContext, reportLearning } from '@/lib/agents/agent-memory';
+import { generateAIResponse, isAIConfigured } from '@/lib/ai-client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,102 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+/**
+ * AI pre-send review: checks email quality before sending.
+ * Verifies: natural tone, CTA placement, personalization, spam triggers, coherence.
+ * Returns the (possibly improved) template, or null if email should be blocked.
+ */
+async function reviewEmailBeforeSend(
+  template: EmailTemplate,
+  prospect: { company: string; type: string; quartier: string; email: string },
+  step: number,
+  category: string
+): Promise<{ approved: boolean; improved?: EmailTemplate; issues?: string[]; reason?: string }> {
+  if (!isAIConfigured()) {
+    // If no AI configured, approve as-is (don't block the pipeline)
+    return { approved: true };
+  }
+
+  try {
+    const reviewPrompt = `Tu es un expert en cold email B2B pour commerces locaux en France. Review cet email AVANT envoi.
+
+DESTINATAIRE:
+- Entreprise: ${prospect.company}
+- Type: ${prospect.type || 'inconnu'}
+- Quartier: ${prospect.quartier || 'inconnu'}
+- Step séquence: ${step} (1=premier contact, 2=relance, 3=dernier)
+
+OBJET: ${template.subject}
+
+CONTENU (texte):
+${template.textBody}
+
+VÉRIFIE:
+1. NATUREL: l'email semble-t-il écrit par un humain? Pas robotique, pas trop de buzzwords?
+2. PERSONNALISATION: le nom de l'entreprise est-il bien intégré? Les variables vides ("", "du .") sont-elles nettoyées?
+3. CTA: le call-to-action est-il clair, unique et bien placé (pas au début, pas noyé)?
+4. SPAM TRIGGERS: mots spam (gratuit, offre limitée, cliquez ici)? Trop de majuscules? Trop de liens?
+5. COHÉRENCE: le type de commerce correspond au contenu? Un restaurant reçoit un email resto?
+6. LONGUEUR: cold email < 150 mots? Pas de pavés?
+7. VALEUR: on donne une raison claire de répondre?
+
+Si l'email contient des erreurs GRAVES (variables vides visibles, incohérence type/contenu, spam flagrant), mets approved=false.
+Si l'email est OK mais perfectible, mets approved=true avec des suggestions dans improved_subject/improved_text.
+Si l'email est bon, mets approved=true sans modifications.
+
+Réponds UNIQUEMENT en JSON:
+{
+  "approved": true/false,
+  "issues": ["liste des problèmes trouvés"],
+  "reason": "raison du refus si approved=false",
+  "improved_subject": "objet amélioré (ou null si OK)",
+  "improved_text": "texte amélioré (ou null si OK)"
+}`;
+
+    const aiResponse = await Promise.race([
+      generateAIResponse({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 800,
+        system: 'Tu es un expert cold email B2B. Réponds uniquement en JSON valide, sans markdown.',
+        messages: [{ role: 'user', content: reviewPrompt }],
+      }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('review_timeout')), 10_000)),
+    ]);
+
+    const jsonMatch = aiResponse.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('[EmailDaily] Review: no JSON in response, approving as-is');
+      return { approved: true };
+    }
+
+    const review = JSON.parse(jsonMatch[0]);
+
+    if (!review.approved) {
+      console.log(`[EmailDaily] Review BLOCKED email to ${prospect.email}: ${review.reason}`);
+      return { approved: false, issues: review.issues, reason: review.reason };
+    }
+
+    // If AI suggested improvements, apply them
+    if (review.improved_subject || review.improved_text) {
+      console.log(`[EmailDaily] Review improved email to ${prospect.email}: ${(review.issues || []).join(', ')}`);
+      const improved: EmailTemplate = {
+        subject: review.improved_subject || template.subject,
+        htmlBody: review.improved_text
+          ? template.htmlBody // Keep HTML structure, we can't reliably rebuild it
+          : template.htmlBody,
+        textBody: review.improved_text || template.textBody,
+      };
+      return { approved: true, improved, issues: review.issues };
+    }
+
+    return { approved: true, issues: review.issues };
+  } catch (error: any) {
+    // On review failure, approve as-is (don't block pipeline)
+    console.log(`[EmailDaily] Review error (approving as-is): ${error.message}`);
+    return { approved: true };
+  }
 }
 
 interface SendResult {
@@ -44,7 +141,25 @@ async function sendEmailDirect(
       quartier: prospect.quartier || '',
       note_google: prospect.note_google != null ? String(prospect.note_google) : '',
     };
-    const template = getEmailTemplate(category, step, vars, selectedVariant);
+    let template = getEmailTemplate(category, step, vars, selectedVariant);
+
+    // --- AI pre-send review: check quality, tone, personalization ---
+    const review = await reviewEmailBeforeSend(
+      template,
+      { company: prospect.company || '', type: prospect.type || '', quartier: prospect.quartier || '', email: prospect.email },
+      step,
+      category
+    );
+
+    if (!review.approved) {
+      console.log(`[EmailDaily] Email to ${prospect.email} BLOCKED by review: ${review.reason}`);
+      return { success: false, error: `review_blocked: ${review.reason}` };
+    }
+
+    // Apply improvements if the reviewer suggested them
+    if (review.improved) {
+      template = review.improved;
+    }
 
     const emailResult = await sendEmail({
       from_name: 'Victor de KeiroAI',

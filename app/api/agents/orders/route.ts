@@ -363,6 +363,9 @@ async function executeOrder(
           data: { gmaps: gmapsResult.data, enrichment: enrichResult.data },
         };
       }
+      if (orderType.includes('audit') || orderType.includes('verif') || orderType.includes('véri') || orderType.includes('check') || orderType.includes('qualit')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'POST', cronSecret, { action: 'audit' });
+      }
       return callAgentEndpoint(baseUrl, '/api/agents/commercial', 'GET', cronSecret);
 
     case 'seo':
