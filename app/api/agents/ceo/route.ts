@@ -306,12 +306,12 @@ Reponds en francais, sois direct et actionnable.`;
 
     // Return the CEO reply immediately — extract orders in background
     // This prevents "Load failed" timeout on the frontend
-    const response = NextResponse.json({ ok: true, reply });
+    const jsonResponse = NextResponse.json({ ok: true, reply });
 
     // Fire-and-forget: extract orders + trigger execution without blocking
     extractAndExecuteInBackground(supabase, request, reply, now.toISOString());
 
-    return response;
+    return jsonResponse;
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
