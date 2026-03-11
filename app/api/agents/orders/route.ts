@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300; // 5 min for agent execution
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -263,6 +263,59 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[OrderExecutor] Error:', error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/agents/orders
+ * Create new orders and optionally execute them immediately. Admin only.
+ * Body: { orders: [{to_agent, order_type, priority?, payload?}], execute?: boolean }
+ */
+export async function POST(request: NextRequest) {
+  const { user } = await getAuthUser();
+  if (!user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const supabase = getSupabaseAdmin();
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return NextResponse.json({ ok: false, error: 'Admin required' }, { status: 403 });
+
+  try {
+    const body = await request.json();
+    if (!body.orders || !Array.isArray(body.orders)) {
+      return NextResponse.json({ ok: false, error: 'orders[] requis' }, { status: 400 });
+    }
+
+    const now = new Date().toISOString();
+    const createdIds: string[] = [];
+
+    for (const order of body.orders) {
+      const { data: inserted } = await supabase.from('agent_orders').insert({
+        from_agent: 'admin',
+        to_agent: order.to_agent,
+        order_type: order.order_type,
+        priority: order.priority || 'haute',
+        payload: order.payload || {},
+        status: 'pending',
+        created_at: now,
+      }).select('id').single();
+
+      if (inserted) createdIds.push(inserted.id);
+    }
+
+    // Auto-execute unless explicitly disabled
+    if (body.execute !== false && createdIds.length > 0) {
+      const baseUrl = getBaseUrl(request);
+      const cronSecret = process.env.CRON_SECRET;
+      const execRes = await fetch(`${baseUrl}/api/agents/orders`, {
+        method: 'GET',
+        headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {},
+      });
+      const execData = await execRes.json();
+      return NextResponse.json({ ok: true, created: createdIds.length, execution: execData });
+    }
+
+    return NextResponse.json({ ok: true, created: createdIds.length, order_ids: createdIds });
+  } catch (error: any) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }

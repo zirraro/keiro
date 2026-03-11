@@ -4,7 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -236,32 +238,25 @@ ${chatMemory}
 ${reportsMemory}
 
 CAPACITES ACTUELLES:
-- Email cold: max 50/jour (Brevo limit), 5 slots horaires (early_morning/morning/midday/afternoon/evening)
-- DM Instagram: max 10/jour (limit anti-spam), 2 slots (matin/soir)
+- Email cold: max 50/jour (Resend), 5 slots horaires
+- DM Instagram: max 10/jour, 2 slots (matin/soir)
 - TikTok comments: max 5/jour, 1 slot (soir)
-- Timing intelligent par type de business (12 categories x 4 canaux)
-- Verification prospect (type, email, ville, coherence nom/type)
-- Prospection externe: Google Places API, 30 zones, 7 villes (Paris, Lyon, Marseille, Bordeaux, Lille, Toulouse, Nice)
+- GMaps: scan 5 zones/jour, 30 zones, 7 villes, 200+ prospects/jour
+- Commercial: enrichissement auto via Claude Haiku, qualification CRM
+- Pipeline: GMaps decouvre → Commercial enrichit → Email contacte
 
-Tu peux proposer des changements concrets:
-- Augmenter/diminuer les limites d'envoi
-- Changer les heures de cron
-- Modifier les templates email/DM
-- Ajouter/supprimer des categories business
-- Ajuster le scoring des prospects
-- Modifier les sequences (delais entre emails, nombre d'etapes)
+TU CONTROLES CES AGENTS DIRECTEMENT (via la section ORDRES DU JOUR):
+- [Google Maps] Scanner → lance un scan (200+ prospects)
+- [Commercial] Enrichir → enrichit et qualifie les prospects
+- [Email] Campagne cold/warm → envoie les emails
+- [Email] Pause/Reprendre → pause/reprend les sequences
+- [DM Instagram] Preparer → prepare les DMs du jour
+- [TikTok Comments] Commenter → prepare les commentaires
 
-EXECUTION DES ORDRES:
-Quand le fondateur te demande un changement technique (code, config, cron, template, etc.), tu dois donner des INSTRUCTIONS PRECISES et EXECUTABLES au format suivant:
----INSTRUCTION---
-Fichier: chemin/du/fichier.ts
-Ligne: ~numero (approximatif)
-Action: modifier/ajouter/supprimer
-Avant: (code actuel si modification)
-Apres: (nouveau code)
-Raison: pourquoi ce changement
----FIN---
-Le fondateur copiera ces instructions dans Claude Code pour execution directe. Sois precis sur les noms de fichiers, variables et valeurs.
+CRM KEIRO (lecture/ecriture par tous les agents):
+- Statuts: identifie → contacte → repondu → demo → sprint → client (ou perdu)
+- Temperature: cold → warm → hot (ou dead)
+- Email sequence: step 0 → 1 → 2 → 3 → completed
 
 Reponds en francais, sois direct et actionnable.`;
 
@@ -276,7 +271,7 @@ Reponds en francais, sois direct et actionnable.`;
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
-      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Il te pose des questions strategiques, te demande des changements, ou veut ton avis. Reponds comme un vrai CEO partner — direct, pas de formules, pas de JSON, juste du texte conversationnel. Tu peux utiliser des bullet points pour la clarte.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises. Tu ne repetes pas les memes recommandations. Tu fais progresser la strategie jour apres jour.\n${contextMetrics}`,
+      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`,
       messages,
     });
 
@@ -300,10 +295,37 @@ Reponds en francais, sois direct et actionnable.`;
       created_at: now.toISOString(),
     });
 
-    // Extract and insert any orders from the CEO chat reply
-    await extractAndInsertOrders(supabase, reply, now.toISOString());
+    // Extract, insert, and EXECUTE orders from CEO chat reply
+    const chatOrdersCount = await extractAndInsertOrders(supabase, reply, now.toISOString());
 
-    return NextResponse.json({ ok: true, reply });
+    // Trigger immediate execution of any newly created orders
+    let ordersExecuted = 0;
+    if (chatOrdersCount > 0) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : 'http://localhost:3000');
+        const cronSecretVal = process.env.CRON_SECRET;
+        const execRes = await fetch(`${appUrl}/api/agents/orders`, {
+          method: 'GET',
+          headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
+        });
+        const execData = await execRes.json();
+        ordersExecuted = execData.succeeded || 0;
+        console.log(`[CEOAgent Chat] ${ordersExecuted}/${chatOrdersCount} orders executed`);
+      } catch (e: any) {
+        console.error('[CEOAgent Chat] Order execution failed:', e.message);
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      reply,
+      orders: chatOrdersCount > 0 ? {
+        created: chatOrdersCount,
+        executed: ordersExecuted,
+      } : undefined,
+    });
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
@@ -514,11 +536,9 @@ async function generateBrief(): Promise<NextResponse> {
     // --- Extract structured orders from brief and insert into agent_orders ---
     await extractAndInsertOrders(supabase, brief, nowISO);
 
-    // --- Send email brief to founder ---
+    // --- Send email brief to founder via Resend ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
-    // Convert markdown-style brief to HTML for email
     const briefHtml = brief
       .replace(/## /g, '<h3 style="color:#9333ea;margin-top:16px;">')
       .replace(/\n(?=<h3)/g, '</p>\n')
@@ -541,44 +561,11 @@ async function generateBrief(): Promise<NextResponse> {
 </body>
 </html>`;
 
-    // Extract first line of brief for subject
     const firstLine = brief.split('\n').find((l: string) => l.trim() && !l.startsWith('##'))?.trim() || 'Brief quotidien';
     const emailSubject = `CEO Brief — ${firstLine.substring(0, 60)}`;
     let emailSent = false;
 
-    // Try Brevo first (more reliable, already configured for transactional)
-    if (BREVO_API_KEY) {
-      try {
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'accept': 'application/json',
-            'api-key': BREVO_API_KEY,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: { name: 'KeiroAI CEO Agent', email: 'contact@keiroai.com' },
-            to: [{ email: FOUNDER_EMAIL, name: 'Oussama' }],
-            subject: emailSubject,
-            htmlContent: emailHtml,
-            tags: ['ceo-brief'],
-          }),
-        });
-
-        if (brevoRes.ok) {
-          emailSent = true;
-          console.log(`[CEOAgent] Brief email sent via Brevo to ${FOUNDER_EMAIL}`);
-        } else {
-          const errText = await brevoRes.text();
-          console.error('[CEOAgent] Brevo email failed:', errText);
-        }
-      } catch (e: any) {
-        console.error('[CEOAgent] Brevo email error:', e.message);
-      }
-    }
-
-    // Fallback to Resend
-    if (!emailSent && RESEND_API_KEY) {
+    if (RESEND_API_KEY) {
       try {
         const resendRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -587,7 +574,7 @@ async function generateBrief(): Promise<NextResponse> {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'KeiroAI Agents <noreply@keiroai.com>',
+            from: 'KeiroAI CEO Agent <contact@keiroai.com>',
             to: [FOUNDER_EMAIL],
             subject: emailSubject,
             html: emailHtml,
@@ -607,7 +594,7 @@ async function generateBrief(): Promise<NextResponse> {
     }
 
     if (!emailSent) {
-      console.warn('[CEOAgent] No email provider available (need BREVO_API_KEY or RESEND_API_KEY)');
+      console.warn('[CEOAgent] No email provider — need RESEND_API_KEY');
     }
 
     console.log('[CEOAgent] Brief generated successfully');
@@ -635,7 +622,7 @@ async function extractAndInsertOrders(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   briefText: string,
   nowISO: string
-): Promise<void> {
+): Promise<number> {
   const VALID_AGENTS = [
     'chatbot', 'email', 'gmaps', 'dm_instagram', 'tiktok_comments',
     'commercial', 'seo', 'onboarding', 'retention', 'content',
@@ -697,12 +684,12 @@ Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenn
       orders = JSON.parse(cleanJson);
     } catch {
       console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
-      return;
+      return 0;
     }
 
     if (!Array.isArray(orders) || orders.length === 0) {
       console.log('[CEOAgent] No orders extracted from brief');
-      return;
+      return 0;
     }
 
     // Filter and validate orders
@@ -712,7 +699,7 @@ Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenn
 
     if (validOrders.length === 0) {
       console.log('[CEOAgent] No valid orders after filtering');
-      return;
+      return 0;
     }
 
     // Insert orders into agent_orders table
@@ -730,13 +717,15 @@ Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenn
 
     if (insertError) {
       console.error('[CEOAgent] Failed to insert orders:', insertError.message);
-      return;
+      return 0;
     }
 
     console.log(`[CEOAgent] ${validOrders.length} orders inserted into agent_orders`);
+    return validOrders.length;
 
   } catch (error: any) {
     // Non-blocking: order extraction failure should not break the brief flow
     console.error('[CEOAgent] Order extraction error (non-blocking):', error.message);
+    return 0;
   }
 }
