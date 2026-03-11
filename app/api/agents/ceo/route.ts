@@ -5,12 +5,13 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt, getCeoArchitectureKnowledge, getCeoChatSystemAddendum } from '@/lib/agents/ceo-prompt';
 import { getCeoIntelligenceSummary, setDirectiveForAgent } from '@/lib/agents/agent-memory';
 
-export const runtime = 'edge';
 export const maxDuration = 120;
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+function getAnthropic() {
+  return new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+  });
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -275,7 +276,7 @@ Reponds en francais, sois direct et actionnable.`;
       { role: 'user' as const, content: message },
     ];
 
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}\n\n${getCeoChatSystemAddendum(contextMetrics)}`,
@@ -513,7 +514,7 @@ async function generateBrief(): Promise<NextResponse> {
     console.log('[CEOAgent] Metrics collected, calling Claude...');
 
     // --- Call Claude Sonnet for brief (smarter reasoning) ---
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}`,
@@ -676,7 +677,7 @@ async function extractAndInsertOrders(
   try {
     console.log('[CEOAgent] Extracting structured orders from brief...');
 
-    const extractionResponse = await anthropic.messages.create({
+    const extractionResponse = await getAnthropic().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2000,
       system: `Tu es un parseur d'ordres. Tu recois un brief CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
