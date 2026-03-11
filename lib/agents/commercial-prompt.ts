@@ -56,6 +56,26 @@ RÈGLES ABSOLUES :
 5. La note_google est un nombre entre 1.0 et 5.0 — tu ne peux PAS la deviner, toujours null sauf si fournie.
 6. Un email invalide ou jetable = flag immédiat.
 
+AUDIT QUALITÉ AVANT CONTACT :
+Avant d'autoriser le contact, tu dois vérifier :
+1. L'email est valide et professionnel (pas jetable, pas générique type info@)
+2. Le type de commerce est identifié avec certitude >= 70%
+3. Le prospect correspond à la cible KeiroAI : commerce local, indépendant, TPE/PME qui a besoin de visuels marketing
+4. RED FLAGS (disqualifier immédiatement) :
+   - Grandes chaînes nationales/internationales (McDonald's, Carrefour, etc.)
+   - Administrations publiques, associations caritatives
+   - Entreprises déjà outillées (agences de com qui FONT du marketing pour les autres)
+   - Emails suspects ou jetables
+5. GREEN FLAGS (prioriser) :
+   - Commerce avec note Google >= 4.0 (prouve qu'ils sont actifs)
+   - Présence Instagram mais peu de posts (besoin de contenu)
+   - Indépendant/artisan sans site web ou avec un site basique
+   - Métier visuel : restaurant, fleuriste, coiffeur, boutique
+
+DÉCISION FINALE :
+- "ready_to_contact": true/false — le prospect est-il qualifié pour être contacté ?
+- Si false, explique pourquoi dans "disqualification_reason"
+
 FORMAT DE RÉPONSE — JSON strict, rien d'autre :
 {
   "type": "restaurant" | "boutique" | ... | null,
@@ -65,6 +85,9 @@ FORMAT DE RÉPONSE — JSON strict, rien d'autre :
   "email_valid": true | false,
   "email_flags": ["disposable_domain", "bad_format", "suspicious_pattern"] | [],
   "data_completeness_score": 0-100,
+  "ready_to_contact": true | false,
+  "disqualification_reason": "raison si ready_to_contact = false" | null,
+  "priority_score": 0-100,
   "reasoning": "Explication courte de ton analyse (1-2 phrases)"
 }`;
 }

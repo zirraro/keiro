@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
+import { callGemini } from '@/lib/agents/gemini';
 import { isGoodTimeToContact, verifyProspectData } from '@/lib/agents/business-timing';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 
@@ -37,8 +38,7 @@ const MAX_DM_PER_DAY = 10;
  * Generate personalized DM via Claude Haiku
  */
 async function generateDM(prospect: any): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string } | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.GEMINI_API_KEY) return null;
 
   const prospectData = JSON.stringify({
     business_name: prospect.company,
@@ -61,25 +61,11 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
   });
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        system: getDMSystemPrompt(),
-        messages: [{ role: 'user', content: prospectData }],
-      }),
+    const rawText = await callGemini({
+      system: getDMSystemPrompt(),
+      message: prospectData,
+      maxTokens: 400,
     });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.type === 'text' ? data.content[0].text : '';
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 

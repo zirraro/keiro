@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
+import { callGemini, callGeminiChat } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -129,8 +125,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configuree' }, { status: 500 });
   }
 
   // Check if this is a chat request
@@ -260,22 +256,17 @@ CRM KEIRO (lecture/ecriture par tous les agents):
 
 Reponds en francais, sois direct et actionnable.`;
 
-    const messages = [
-      ...history.map((h) => ({
+    const systemPrompt = `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`;
+
+    const reply = await callGeminiChat({
+      system: systemPrompt,
+      history: history.map((h) => ({
         role: h.role as 'user' | 'assistant',
         content: h.content,
       })),
-      { role: 'user' as const, content: message },
-    ];
-
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
-      system: `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`,
-      messages,
+      message,
+      maxTokens: 2000,
     });
-
-    const reply = response.content[0].type === 'text' ? response.content[0].text : '';
 
     // Log the conversation with richer metadata
     await supabase.from('agent_logs').insert({
@@ -500,22 +491,14 @@ async function generateBrief(): Promise<NextResponse> {
       agentReportsText = `\n\nRAPPORTS DES AGENTS (dernières 24h):\n${reportLines.join('\n')}`;
     }
 
-    console.log('[CEOAgent] Metrics collected, calling Claude...');
+    console.log('[CEOAgent] Metrics collected, calling Gemini...');
 
-    // --- Call Claude Haiku ---
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+    // --- Call Gemini 2.0 Flash ---
+    const rawText = await callGemini({
       system: getCeoSystemPrompt(),
-      messages: [
-        {
-          role: 'user',
-          content: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.`,
-        },
-      ],
+      message: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.`,
+      maxTokens: 2000,
     });
-
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
     console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
 
     // --- Store raw natural language brief (no JSON parsing) ---
@@ -631,9 +614,7 @@ async function extractAndInsertOrders(
   try {
     console.log('[CEOAgent] Extracting structured orders from brief...');
 
-    const extractionResponse = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+    const rawOrders = (await callGemini({
       system: `Tu es un parseur d'ordres. Tu recois un brief CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
 
 Agents valides: ${VALID_AGENTS.join(', ')}
@@ -654,17 +635,9 @@ Priorité: "haute" si urgent/critique/🔴, "basse" si optionnel/info/🟢, "moy
 
 Réponds UNIQUEMENT avec un tableau JSON valide. Si aucun ordre, réponds [].
 Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}`,
-      messages: [
-        {
-          role: 'user',
-          content: `Extrait les ordres de ce brief CEO:\n\n${briefText}`,
-        },
-      ],
-    });
-
-    const rawOrders = extractionResponse.content[0].type === 'text'
-      ? extractionResponse.content[0].text.trim()
-      : '[]';
+      message: `Extrait les ordres de ce brief CEO:\n\n${briefText}`,
+      maxTokens: 2000,
+    })).trim();
 
     // Parse JSON — handle markdown code blocks if present
     let cleanJson = rawOrders;

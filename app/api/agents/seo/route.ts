@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-prompt';
 import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
+import { callGemini } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -122,8 +118,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configuree' }, { status: 500 });
   }
 
   try {
@@ -179,15 +175,10 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
 
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
-    // Call Claude Haiku
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4000,
+    // Call Gemini 2.0 Flash
+    const rawText = await callGemini({
       system: getSeoWriterPrompt(),
-      messages: [
-        {
-          role: 'user',
-          content: `Ecris un article de blog SEO optimise pour le mot-cle principal : "${targetKeyword}"
+      message: `Ecris un article de blog SEO optimise pour le mot-cle principal : "${targetKeyword}"
 
 Contexte supplementaire :
 - KeiroAI permet de generer des visuels marketing en quelques secondes grace a l'IA
@@ -196,11 +187,8 @@ Contexte supplementaire :
 - L'article sera publie sur le blog de KeiroAI
 
 Genere le JSON complet comme specifie dans tes instructions.`,
-        },
-      ],
+      maxTokens: 4000,
     });
-
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
     console.log('[SEOAgent] Raw response length:', rawText.length);
 
     // Parse JSON
@@ -324,14 +312,9 @@ async function generateCalendar(): Promise<NextResponse> {
       ...KEYWORD_CLUSTERS.paa.map((k) => `[paa] ${k.primary} (vol:${k.volume}, diff:${k.difficulty})`),
     ];
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
+    const rawText = await callGemini({
       system: getSeoCalendarPrompt(),
-      messages: [
-        {
-          role: 'user',
-          content: `Planifie le calendrier editorial pour la semaine du ${now.toISOString().split('T')[0]}.
+      message: `Planifie le calendrier editorial pour la semaine du ${now.toISOString().split('T')[0]}.
 
 Mots-cles disponibles :
 ${allKeywords.join('\n')}
@@ -340,11 +323,8 @@ Mots-cles deja couverts (a eviter) :
 ${existingKeywords.length > 0 ? existingKeywords.join('\n') : 'Aucun article encore publie'}
 
 Genere le JSON comme specifie.`,
-        },
-      ],
+      maxTokens: 1500,
     });
-
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
     let calendar: any;
     try {

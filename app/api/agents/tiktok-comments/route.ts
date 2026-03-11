@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getTikTokCommentPrompt } from '@/lib/agents/tiktok-comment-prompt';
+import { callGemini } from '@/lib/agents/gemini';
 import { isGoodTimeToContact, verifyProspectData } from '@/lib/agents/business-timing';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 
@@ -35,8 +36,7 @@ async function verifyAuth(request: NextRequest) {
  * Generate a TikTok comment via Claude Haiku
  */
 async function generateComment(prospect: any): Promise<{ comment: string; dm_text?: string; strategy: string; follow_up?: string } | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!process.env.GEMINI_API_KEY) return null;
 
   const context = JSON.stringify({
     business_name: prospect.company,
@@ -53,25 +53,11 @@ async function generateComment(prospect: any): Promise<{ comment: string; dm_tex
   });
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        system: getTikTokCommentPrompt(),
-        messages: [{ role: 'user', content: context }],
-      }),
+    const rawText = await callGemini({
+      system: getTikTokCommentPrompt(),
+      message: context,
+      maxTokens: 200,
     });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.type === 'text' ? data.content[0].text : '';
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 

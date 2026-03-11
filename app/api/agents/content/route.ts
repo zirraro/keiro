@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
+import { callGemini } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
 function getSupabaseAdmin() {
   return createClient(
@@ -41,14 +39,13 @@ const NO_TEXT_SUFFIX = '\nAbsolutely no text, letters, words, numbers, writing, 
 async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
   try {
     // Optimize the visual description into a Seedream-friendly prompt
-    const optimizeResponse = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+    const optimizedText = await callGemini({
       system: 'Tu es un expert en prompt engineering pour la génération d\'images IA. Transforme la description en un prompt visuel détaillé en anglais pour Seedream (text-to-image). Décris précisément : composition, couleurs, style, éclairage, ambiance. Pas de texte dans l\'image. Réponse = juste le prompt, rien d\'autre.',
-      messages: [{ role: 'user', content: `Description du visuel pour un post ${format} de KeiroAI (app de création de contenu IA pour commerces) :\n\n${visualDescription}` }],
+      message: `Description du visuel pour un post ${format} de KeiroAI (app de création de contenu IA pour commerces) :\n\n${visualDescription}`,
+      maxTokens: 300,
     });
 
-    const imagePrompt = (optimizeResponse.content[0].type === 'text' ? optimizeResponse.content[0].text : visualDescription) + NO_TEXT_SUFFIX;
+    const imagePrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
 
     // Determine aspect ratio based on format
     let width = 1024;
@@ -105,8 +102,8 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -295,14 +292,11 @@ HEURES DE PUBLICATION OPTIMALES :
 - LinkedIn : Jeudi 8h30
 Adapte les heures au jour prévu.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4000,
+  const rawText = await callGemini({
     system: enhancedSystemPrompt,
-    messages: [{ role: 'user', content: prompt }],
+    message: prompt,
+    maxTokens: 4000,
   });
-
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
   let weekPlan: any[];
   try {
@@ -358,23 +352,22 @@ Adapte les heures au jour prévu.`;
       script: post.script || null,
       scheduled_date: scheduledDate,
       scheduled_time: scheduledTime,
-      status: 'draft',
+      status: 'approved',
       ai_generated: true,
     });
 
     if (!insertError) {
       inserted++;
-      // Generate visual using KeiroAI Seedream (proof of product)
+      // Generate visual using KeiroAI Seedream (proof of product) + auto-publish
       const postVisualDesc = post.thumbnail_description || post.visual_description || post.hook;
       if (postVisualDesc) {
         const postVisualUrl = await generateVisual(postVisualDesc, post.format || 'post');
         if (postVisualUrl) {
-          // Update the just-inserted post with the visual URL
           await supabase.from('content_calendar')
-            .update({ visual_url: postVisualUrl, updated_at: new Date().toISOString() })
+            .update({ visual_url: postVisualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
             .eq('scheduled_date', scheduledDate)
             .eq('platform', post.platform || 'instagram')
-            .eq('status', 'draft')
+            .eq('status', 'approved')
             .is('visual_url', null);
         }
       }
@@ -444,14 +437,11 @@ IMPORTANT — COHÉRENCE VISUELLE :
 
 Retourne UN SEUL objet JSON (pas de markdown).`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1500,
+  const rawText = await callGemini({
     system: getContentSystemPrompt() + `\n\nRÈGLE VISUELLE : Pour chaque post, ajoute "thumbnail_description" décrivant exactement la miniature dans la grille (couleur de fond, texte visible, composition). Pense TOUJOURS à comment ça s'intègre visuellement dans le feed.`,
-    messages: [{ role: 'user', content: enhancedPrompt }],
+    message: enhancedPrompt,
+    maxTokens: 1500,
   });
-
-  const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
   let post: any;
   try {
@@ -490,7 +480,7 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
     script: post.script || null,
     scheduled_date: todayStr,
     scheduled_time: scheduledTime,
-    status: 'draft',
+    status: 'approved',
     ai_generated: true,
   }).select().single();
 
@@ -506,29 +496,30 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
     if (visualUrl) {
       await supabase
         .from('content_calendar')
-        .update({ visual_url: visualUrl, updated_at: new Date().toISOString() })
+        .update({ visual_url: visualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
         .eq('id', inserted.id);
-      console.log(`[Content] Visual stored for post ${inserted.id}`);
+      console.log(`[Content] Visual generated + auto-published for post ${inserted.id}`);
     }
   }
 
-  // Send notification to founder
+  // Send notification to founder (post is ready/published)
   if (process.env.RESEND_API_KEY) {
+    const isPublished = !!visualUrl;
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'KeiroAI Content <contact@keiroai.com>',
         to: ['mrzirraro@gmail.com'],
-        subject: `📱 Post du jour : ${post.platform} ${post.format} — ${post.hook || 'Nouveau contenu'}`,
+        subject: `${isPublished ? '✅' : '📱'} Post ${isPublished ? 'publié' : 'prêt'} : ${post.platform} ${post.format} — ${post.hook || 'Nouveau contenu'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
-          <h2 style="color:#9333ea;">📱 ${post.platform} — ${post.format}</h2>
+          <h2 style="color:#9333ea;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${post.platform} ${post.format}</h2>
           <p><strong>Pilier :</strong> ${post.pillar} | <strong>Heure :</strong> ${post.best_time || scheduledTime}</p>
           <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
           <p>${post.caption || ''}</p>
           ${visualUrl ? `<img src="${visualUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Visuel généré par KeiroAI"/>
-          <p style="color:#6b7280;font-size:12px;">🎨 Visuel généré automatiquement par KeiroAI (preuve produit)</p>` : ''}
-          <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Valider dans l'admin</a></p>
+          <p style="color:#6b7280;font-size:12px;">Visuel généré et publié automatiquement par KeiroAI</p>` : ''}
+          <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Voir dans l'admin</a></p>
         </div>`,
       }),
     });

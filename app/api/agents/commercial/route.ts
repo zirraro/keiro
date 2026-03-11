@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
+import { callGemini } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,6 +63,9 @@ interface EnrichmentResult {
   email_valid: boolean;
   email_flags: string[];
   data_completeness_score: number;
+  ready_to_contact: boolean;
+  disqualification_reason: string | null;
+  priority_score: number;
   reasoning: string;
 }
 
@@ -77,8 +81,8 @@ async function enrichProspect(prospect: {
   quartier: string | null;
   note_google: number | null;
 }): Promise<EnrichmentResult | null> {
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_API_KEY) return null;
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) return null;
 
   const prospectAnalysisPrompt = `Analyse ce prospect et enrichis les données manquantes :
 
@@ -97,29 +101,11 @@ ${prospect.email ? 'Vérifie la validité de l\'email (format, domaine jetable, 
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        system: getCommercialSystemPrompt(),
-        messages: [{ role: 'user', content: prospectAnalysisPrompt }],
-      }),
+    const rawText = await callGemini({
+      system: getCommercialSystemPrompt(),
+      message: prospectAnalysisPrompt,
+      maxTokens: 500,
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`[CommercialAgent] Claude API error: ${response.status} ${errText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.type === 'text' ? data.content[0].text : '';
 
     // Parse JSON from response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -183,8 +169,8 @@ async function runEnrichment(): Promise<NextResponse> {
     const supabase = getSupabaseAdmin();
     const nowISO = new Date().toISOString();
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 });
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configuree' }, { status: 500 });
     }
 
     // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
@@ -270,17 +256,23 @@ async function runEnrichment(): Promise<NextResponse> {
         }
       }
 
-      // Determine if prospect is ready to be contacted
-      // Needs: email + type + data completeness >= 60%
-      const isReadyForEmail = prospect.email && result.email_valid
-        && (prospect.type || (result.type && result.type_confidence >= 70))
-        && result.data_completeness_score >= 60;
-
-      if (isReadyForEmail && !prospect.email_sequence_status) {
-        updates.status = 'contacte';
-        updates.email_sequence_status = 'not_started';
-        updates.email_sequence_step = 0;
-        advancedToContactCount++;
+      // Agent commercial gives the GO/NO-GO for contact
+      if (result.ready_to_contact && prospect.email && result.email_valid) {
+        if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
+          updates.status = 'contacte';
+          updates.email_sequence_status = 'not_started';
+          updates.email_sequence_step = 0;
+          if (result.priority_score) {
+            updates.score = result.priority_score;
+          }
+          advancedToContactCount++;
+        }
+      } else if (result.ready_to_contact === false && result.disqualification_reason) {
+        // Disqualified by commercial audit
+        updates.status = 'disqualified';
+        updates.temperature = 'dead';
+        flaggedDeadCount++;
+        console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
       }
 
       // Always update updated_at if we have any changes

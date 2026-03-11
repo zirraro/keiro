@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import {
   detectBusinessType,
@@ -13,12 +12,9 @@ import {
   buildContextualInstructions,
 } from '@/lib/agents/chatbot-prompt';
 import { calculateScore } from '@/lib/agents/scoring';
+import { callGeminiChat } from '@/lib/agents/gemini';
 
 export const runtime = 'edge';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -62,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
         { ok: false, error: 'API IA non configuree' },
         { status: 500 }
@@ -235,18 +231,18 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    // --- Call Claude Haiku ---
-    console.log('[Chatbot] Calling Claude Haiku for visitor:', visitorId);
+    // --- Call Gemini 2.0 Flash ---
+    console.log('[Chatbot] Calling Gemini for visitor:', visitorId);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+    const assistantMessage = await callGeminiChat({
       system: systemPrompt + '\n' + contextualInstructions,
-      messages: conversationHistory,
+      history: recentMessages.map((msg: any) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
+      message,
+      maxTokens: 300,
     });
-
-    const assistantMessage =
-      response.content[0].type === 'text' ? response.content[0].text : '';
 
     console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
 
@@ -282,7 +278,7 @@ export async function POST(request: NextRequest) {
         session_id: session.id,
         detected,
         message_count: updatedMessages.length,
-        tokens_used: response.usage.input_tokens + response.usage.output_tokens,
+        tokens_used: 0,
       },
       created_at: now,
     });

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getRetentionSystemPrompt, getRetentionMessagePrompt } from '@/lib/agents/retention-prompt';
+import { callGemini } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
 function getSupabaseAdmin() {
   return createClient(
@@ -77,8 +75,8 @@ export async function GET(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -237,14 +235,11 @@ export async function GET(request: NextRequest) {
 
         // Generate message via Claude
         const prompt = getRetentionMessagePrompt(messageType, msgContext);
-        const response = await anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 300,
+        const messageText = (await callGemini({
           system: getRetentionSystemPrompt(),
-          messages: [{ role: 'user', content: prompt }],
-        });
-
-        const messageText = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+          message: prompt,
+          maxTokens: 300,
+        })).trim();
         if (!messageText) continue;
 
         // Send to client

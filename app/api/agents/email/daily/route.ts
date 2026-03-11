@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { isGoodTimeToContact, getOptimalCronSlot, verifyProspectData } from '@/lib/agents/business-timing';
+import { callGemini } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,73 @@ interface SendResult {
 }
 
 /**
+ * Pre-send review: verify data coherence and personalize email via Gemini.
+ * Returns null if prospect should NOT be contacted, or the reviewed template.
+ */
+async function reviewBeforeSend(
+  prospect: any,
+  template: { subject: string; htmlBody: string; textBody: string },
+  category: string,
+  step: number,
+): Promise<{ subject: string; textBody: string; htmlBody: string } | null> {
+  if (!process.env.GEMINI_API_KEY) return template; // Fallback: send as-is
+
+  try {
+    const reviewResult = await callGemini({
+      system: `Tu es le responsable qualité email de KeiroAI. Avant chaque envoi, tu vérifies :
+1. COHÉRENCE : le type de commerce (${category}) correspond au contenu de l'email
+2. DONNÉES : les champs personnalisés sont remplis (pas de "{{company}}" ou "(vide)" dans le texte final)
+3. NATUREL : l'email doit sonner comme un vrai humain, pas un template. Si c'est trop robotique, reformule.
+4. CTA : le call-to-action doit être clair, fort, et adapté à la cible
+5. SIGNATURE : toujours "Victor" de KeiroAI, jamais "Oussama"
+
+Si le mail est OK, réponds: {"approved": true, "subject": "...", "text": "..."}
+Si tu améliores le texte, renvoie la version améliorée dans "text" et "subject".
+Si le prospect ne devrait PAS être contacté (données incohérentes, email suspect), réponds: {"approved": false, "reason": "..."}
+
+IMPORTANT : garde le même style et longueur. Ne rallonge pas. Sois concis et percutant.
+Réponds UNIQUEMENT en JSON valide.`,
+      message: `Prospect: ${JSON.stringify({
+        company: prospect.company,
+        type: prospect.type || category,
+        quartier: prospect.quartier,
+        email: prospect.email,
+        first_name: prospect.first_name,
+        note_google: prospect.note_google,
+      })}
+
+Email step ${step} à envoyer :
+Sujet: ${template.subject}
+Corps: ${template.textBody}`,
+      maxTokens: 800,
+    });
+
+    const jsonMatch = reviewResult.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return template;
+
+    const review = JSON.parse(jsonMatch[0]);
+    if (!review.approved) {
+      console.log(`[EmailDaily] Review rejected ${prospect.email}: ${review.reason}`);
+      return null;
+    }
+
+    // Use reviewed text if provided
+    if (review.text && review.text !== template.textBody) {
+      return {
+        subject: review.subject || template.subject,
+        textBody: review.text,
+        htmlBody: template.htmlBody, // Keep HTML for formatting
+      };
+    }
+
+    return template;
+  } catch (e: any) {
+    console.warn(`[EmailDaily] Review failed, sending as-is: ${e.message}`);
+    return template; // Fallback
+  }
+}
+
+/**
  * Send a single email via Resend.
  */
 async function sendEmailDirect(
@@ -42,7 +110,14 @@ async function sendEmailDirect(
       quartier: prospect.quartier || '',
       note_google: prospect.note_google != null ? String(prospect.note_google) : '',
     };
-    const template = getEmailTemplate(category, step, vars, selectedVariant);
+    let template = getEmailTemplate(category, step, vars, selectedVariant);
+
+    // Pre-send review by Gemini
+    const reviewed = await reviewBeforeSend(prospect, template, category, step);
+    if (!reviewed) {
+      return { success: false, error: 'Rejected by pre-send review' };
+    }
+    template = reviewed;
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
