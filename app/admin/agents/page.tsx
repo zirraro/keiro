@@ -509,25 +509,51 @@ export default function AdminAgentsPage() {
     setCeoInput('');
     setCeoMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setCeoLoading(true);
+
+    // Only send last 10 messages as history to keep the request fast
+    const recentHistory = ceoMessages.slice(-10);
+
+    const attemptFetch = async (retryCount: number): Promise<any> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s timeout
+
+      try {
+        const res = await fetch('/api/agents/ceo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          signal: controller.signal,
+          body: JSON.stringify({
+            action: 'chat',
+            message: userMsg,
+            history: recentHistory,
+          }),
+        });
+        clearTimeout(timeoutId);
+        return await res.json();
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (retryCount < 2) {
+          // Wait 2s then retry once
+          await new Promise(r => setTimeout(r, 2000));
+          return attemptFetch(retryCount + 1);
+        }
+        throw err;
+      }
+    };
+
     try {
-      const res = await fetch('/api/agents/ceo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'chat',
-          message: userMsg,
-          history: ceoMessages,
-        }),
-      });
-      const data = await res.json();
+      const data = await attemptFetch(0);
       if (data.ok && data.reply) {
         setCeoMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
       } else {
         setCeoMessages(prev => [...prev, { role: 'assistant', content: `Erreur: ${data.error || 'Pas de reponse'}` }]);
       }
     } catch (err: any) {
-      setCeoMessages(prev => [...prev, { role: 'assistant', content: `Erreur reseau: ${err.message}` }]);
+      const errorMsg = err.name === 'AbortError'
+        ? 'Timeout — le CEO met trop de temps a repondre. Reessayez.'
+        : `Erreur reseau: ${err.message}`;
+      setCeoMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     } finally {
       setCeoLoading(false);
     }

@@ -269,8 +269,10 @@ Le fondateur copiera ces instructions dans Claude Code pour execution directe. S
 
 Reponds en francais, sois direct et actionnable.`;
 
+    // Limit history to last 10 messages to keep Claude calls fast and avoid timeouts
+    const trimmedHistory = history.slice(-10);
     const messages = [
-      ...history.map((h) => ({
+      ...trimmedHistory.map((h) => ({
         role: h.role as 'user' | 'assistant',
         content: h.content,
       })),
@@ -279,7 +281,7 @@ Reponds en francais, sois direct et actionnable.`;
 
     const response = await getAnthropic().messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      max_tokens: 3000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}\n\n${getCeoChatSystemAddendum(contextMetrics)}`,
       messages,
     });
