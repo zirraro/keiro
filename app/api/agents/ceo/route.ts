@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt, getCeoArchitectureKnowledge, getCeoChatSystemAddendum } from '@/lib/agents/ceo-prompt';
@@ -352,8 +353,36 @@ Reponds en francais, sois direct et actionnable.`;
     // This prevents "Load failed" timeout on the frontend
     const jsonResponse = NextResponse.json({ ok: true, reply });
 
-    // Fire-and-forget: extract orders + trigger execution without blocking
-    extractAndExecuteInBackground(supabase, request, reply, now.toISOString());
+    // Use next/server after() to run order extraction AFTER the response is sent
+    // Unlike fire-and-forget, after() keeps the serverless function alive on Vercel
+    const host = request.headers.get('host') || 'localhost:3000';
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl = `${proto}://${host}`;
+    const cronSecret = process.env.CRON_SECRET;
+
+    after(async () => {
+      try {
+        const orderIds = await extractAndInsertOrders(supabase, reply, now.toISOString());
+
+        if (orderIds.length > 0) {
+          console.log(`[CEOAgent] ${orderIds.length} orders inserted from chat — triggering execution...`);
+
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (cronSecret) {
+            headers['Authorization'] = `Bearer ${cronSecret}`;
+          }
+
+          const res = await fetch(`${baseUrl}/api/agents/orders`, {
+            method: 'GET',
+            headers,
+          });
+          const data = await res.json().catch(() => ({ ok: false }));
+          console.log(`[CEOAgent] Order execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
+        }
+      } catch (err: any) {
+        console.error('[CEOAgent] Background order processing error:', err.message);
+      }
+    });
 
     return jsonResponse;
   } catch (error: any) {
@@ -855,44 +884,3 @@ Réponds UNIQUEMENT avec un tableau JSON valide. Si rien, réponds [].`,
   }
 }
 
-/**
- * Extract orders from CEO reply and trigger execution — all in background.
- * This is fire-and-forget so the CEO chat response returns instantly.
- */
-function extractAndExecuteInBackground(
-  supabase: ReturnType<typeof getSupabaseAdmin>,
-  request: NextRequest,
-  reply: string,
-  nowISO: string
-): void {
-  // Run async work without blocking
-  (async () => {
-    try {
-      const orderIds = await extractAndInsertOrders(supabase, reply, nowISO);
-
-      if (orderIds.length > 0) {
-        console.log(`[CEOAgent] ${orderIds.length} orders inserted from chat — triggering execution...`);
-
-        const host = request.headers.get('host') || 'localhost:3000';
-        const proto = request.headers.get('x-forwarded-proto') || 'https';
-        const baseUrl = `${proto}://${host}`;
-        const cronSecret = process.env.CRON_SECRET;
-
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (cronSecret) {
-          headers['Authorization'] = `Bearer ${cronSecret}`;
-        }
-
-        // Call orders executor — this is a separate serverless invocation
-        const res = await fetch(`${baseUrl}/api/agents/orders`, {
-          method: 'GET',
-          headers,
-        });
-        const data = await res.json().catch(() => ({ ok: false }));
-        console.log(`[CEOAgent] Order execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
-      }
-    } catch (err: any) {
-      console.error('[CEOAgent] Background order processing error:', err.message);
-    }
-  })();
-}
