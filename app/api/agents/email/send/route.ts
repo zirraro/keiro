@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
+import { sendEmail } from '@/lib/agents/email-sender';
 
 export const runtime = 'nodejs';
 
@@ -61,9 +62,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY && !process.env.BREVO_API_KEY) {
       return NextResponse.json(
-        { ok: false, error: 'RESEND_API_KEY non configurée' },
+        { ok: false, error: 'Aucun provider email configuré (BREVO_API_KEY ou RESEND_API_KEY requis)' },
         { status: 500 }
       );
     }
@@ -104,43 +105,34 @@ export async function POST(request: NextRequest) {
     };
     const template = getEmailTemplate(category, template_step, vars, selectedVariant);
 
-    // --- Send via Resend ---
-    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant}) via Resend`);
+    // --- Send via Brevo or Resend ---
+    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Victor de KeiroAI <contact@keiroai.com>',
-        to: [prospect.email],
-        subject: template.subject,
-        html: template.htmlBody,
-        text: template.textBody,
-        tags: [
-          { name: 'type', value: 'cold-sequence' },
-          { name: 'step', value: String(template_step) },
-          { name: 'category', value: category },
-          { name: 'prospect_id', value: prospect_id },
-        ],
-      }),
+    const emailResult = await sendEmail({
+      from_name: 'Victor de KeiroAI',
+      from_email: 'contact@keiroai.com',
+      to: [prospect.email],
+      subject: template.subject,
+      html: template.htmlBody,
+      text: template.textBody,
+      tags: [
+        { name: 'type', value: 'cold-sequence' },
+        { name: 'step', value: String(template_step) },
+        { name: 'category', value: category },
+        { name: 'prospect_id', value: prospect_id },
+      ],
     });
 
-    if (!resendResponse.ok) {
-      const errorText = await resendResponse.text();
-      console.error('[EmailAgent] Resend API error:', errorText);
+    if (!emailResult.ok) {
+      console.error(`[EmailAgent] Email send error (${emailResult.provider}):`, emailResult.error);
       return NextResponse.json(
-        { ok: false, error: 'Erreur envoi Resend', details: errorText },
+        { ok: false, error: `Erreur envoi ${emailResult.provider}`, details: emailResult.error },
         { status: 502 }
       );
     }
 
-    const resendData = await resendResponse.json();
-    const messageId = resendData.id || 'unknown';
-
-    console.log('[EmailAgent] Email sent via Resend, messageId:', messageId);
+    const messageId = emailResult.messageId || 'unknown';
+    console.log(`[EmailAgent] Email sent via ${emailResult.provider}, messageId:`, messageId);
 
     // --- Update prospect ---
     await supabase
@@ -165,7 +157,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant: selectedVariant,
         category,
-        provider: 'resend',
+        provider: emailResult.provider,
       },
       created_at: now,
     });
@@ -182,7 +174,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant: selectedVariant,
         message_id: messageId,
-        provider: 'resend',
+        provider: emailResult.provider,
       },
       created_at: now,
     });
@@ -190,7 +182,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       messageId,
-      provider: 'resend',
+      provider: emailResult.provider,
     });
   } catch (error: any) {
     console.error('[EmailAgent] Error:', error);

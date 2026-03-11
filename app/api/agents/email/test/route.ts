@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
+import { sendEmail } from '@/lib/agents/email-sender';
 
 export const runtime = 'nodejs';
 
@@ -51,9 +52,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY && !process.env.BREVO_API_KEY) {
       return NextResponse.json(
-        { ok: false, error: 'RESEND_API_KEY non configurée' },
+        { ok: false, error: 'Aucun provider email configuré (BREVO_API_KEY ou RESEND_API_KEY requis)' },
         { status: 500 }
       );
     }
@@ -70,36 +71,28 @@ export async function POST(request: NextRequest) {
     const variant = Math.floor(Math.random() * 3);
     const template = getEmailTemplate(selectedCategory, step, vars, variant);
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Victor de KeiroAI <contact@keiroai.com>',
-        to: [email],
-        subject: `[TEST] ${template.subject}`,
-        html: template.htmlBody,
-        text: template.textBody,
-        tags: [
-          { name: 'type', value: 'test-email' },
-          { name: 'step', value: String(step) },
-          { name: 'category', value: selectedCategory },
-        ],
-      }),
+    const emailResult = await sendEmail({
+      from_name: 'Victor de KeiroAI',
+      from_email: 'contact@keiroai.com',
+      to: [email],
+      subject: `[TEST] ${template.subject}`,
+      html: template.htmlBody,
+      text: template.textBody,
+      tags: [
+        { name: 'type', value: 'test-email' },
+        { name: 'step', value: String(step) },
+        { name: 'category', value: selectedCategory },
+      ],
     });
 
-    if (!resendResponse.ok) {
-      const errorText = await resendResponse.text();
+    if (!emailResult.ok) {
       return NextResponse.json(
-        { ok: false, error: 'Erreur envoi Resend', details: errorText },
+        { ok: false, error: `Erreur envoi ${emailResult.provider}`, details: emailResult.error },
         { status: 502 }
       );
     }
 
-    const resendData = await resendResponse.json();
-    const messageId = resendData.id || 'unknown';
+    const messageId = emailResult.messageId || 'unknown';
 
     await supabase.from('agent_logs').insert({
       agent: 'email',
@@ -111,7 +104,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant,
         message_id: messageId,
-        provider: 'resend',
+        provider: emailResult.provider,
       },
       created_at: new Date().toISOString(),
     });
@@ -122,7 +115,7 @@ export async function POST(request: NextRequest) {
       subject: template.subject,
       category: selectedCategory,
       variant,
-      provider: 'resend',
+      provider: emailResult.provider,
     });
   } catch (error: any) {
     console.error('[EmailTest] Error:', error);
