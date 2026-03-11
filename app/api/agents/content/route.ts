@@ -5,7 +5,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
@@ -29,6 +29,73 @@ async function verifyAuth(request: NextRequest) {
     if (profile?.is_admin) return { authorized: true, isAdmin: true };
   } catch {}
   return { authorized: false };
+}
+
+// ──────────────────────────────────────
+// Generate visual using KeiroAI's own Seedream API (proof of product)
+// ──────────────────────────────────────
+const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
+const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+const NO_TEXT_SUFFIX = '\nAbsolutely no text, letters, words, numbers, writing, signs, labels, watermarks, logos in the image. Pure visual only.';
+
+async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
+  try {
+    // Optimize the visual description into a Seedream-friendly prompt
+    const optimizeResponse = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: 'Tu es un expert en prompt engineering pour la génération d\'images IA. Transforme la description en un prompt visuel détaillé en anglais pour Seedream (text-to-image). Décris précisément : composition, couleurs, style, éclairage, ambiance. Pas de texte dans l\'image. Réponse = juste le prompt, rien d\'autre.',
+      messages: [{ role: 'user', content: `Description du visuel pour un post ${format} de KeiroAI (app de création de contenu IA pour commerces) :\n\n${visualDescription}` }],
+    });
+
+    const imagePrompt = (optimizeResponse.content[0].type === 'text' ? optimizeResponse.content[0].text : visualDescription) + NO_TEXT_SUFFIX;
+
+    // Determine aspect ratio based on format
+    let width = 1024;
+    let height = 1024;
+    if (format === 'story' || format === 'reel' || format === 'video') {
+      width = 720; height = 1280; // 9:16
+    } else if (format === 'text') {
+      width = 1280; height = 720; // 16:9 for LinkedIn
+    }
+    // carrousel, post = 1:1 (1024x1024)
+
+    console.log(`[Content] Generating visual with Seedream (${width}x${height})...`);
+
+    const seedreamRes = await fetch(SEEDREAM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'seedream-4-5-251128',
+        prompt: imagePrompt,
+        size: `${width}x${height}`,
+        response_format: 'url',
+        seed: -1,
+      }),
+    });
+
+    if (!seedreamRes.ok) {
+      console.error('[Content] Seedream HTTP error:', seedreamRes.status);
+      return null;
+    }
+
+    const seedreamData = await seedreamRes.json();
+    const imageUrl = seedreamData.data?.[0]?.url || null;
+
+    if (imageUrl) {
+      console.log('[Content] ✓ Visual generated successfully');
+    } else {
+      console.warn('[Content] Seedream returned no image URL');
+    }
+
+    return imageUrl;
+  } catch (e: any) {
+    console.error('[Content] Visual generation error:', e.message);
+    return null;
+  }
 }
 
 // ──────────────────────────────────────
@@ -295,7 +362,23 @@ Adapte les heures au jour prévu.`;
       ai_generated: true,
     });
 
-    if (!insertError) inserted++;
+    if (!insertError) {
+      inserted++;
+      // Generate visual using KeiroAI Seedream (proof of product)
+      const postVisualDesc = post.thumbnail_description || post.visual_description || post.hook;
+      if (postVisualDesc) {
+        const postVisualUrl = await generateVisual(postVisualDesc, post.format || 'post');
+        if (postVisualUrl) {
+          // Update the just-inserted post with the visual URL
+          await supabase.from('content_calendar')
+            .update({ visual_url: postVisualUrl, updated_at: new Date().toISOString() })
+            .eq('scheduled_date', scheduledDate)
+            .eq('platform', post.platform || 'instagram')
+            .eq('status', 'draft')
+            .is('visual_url', null);
+        }
+      }
+    }
   }
 
   await supabase.from('agent_logs').insert({
@@ -415,6 +498,20 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
     return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
   }
 
+  // Generate visual using KeiroAI's own Seedream (proof of product!)
+  const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
+  let visualUrl: string | null = null;
+  if (visualDesc && inserted?.id) {
+    visualUrl = await generateVisual(visualDesc, post.format || schedule.format);
+    if (visualUrl) {
+      await supabase
+        .from('content_calendar')
+        .update({ visual_url: visualUrl, updated_at: new Date().toISOString() })
+        .eq('id', inserted.id);
+      console.log(`[Content] Visual stored for post ${inserted.id}`);
+    }
+  }
+
   // Send notification to founder
   if (process.env.RESEND_API_KEY) {
     await fetch('https://api.resend.com/emails', {
@@ -424,7 +521,15 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
         from: 'KeiroAI Content <contact@keiroai.com>',
         to: ['mrzirraro@gmail.com'],
         subject: `📱 Post du jour : ${post.platform} ${post.format} — ${post.hook || 'Nouveau contenu'}`,
-        text: `Nouveau post généré pour ${post.platform}\n\nFormat : ${post.format}\nPilier : ${post.pillar}\nHeure optimale : ${post.best_time || scheduledTime}\n\nHook : ${post.hook || 'N/A'}\n\nCaption :\n${post.caption}\n\nVisuel :\n${post.thumbnail_description || post.visual_description || 'Pas de description'}\n\n→ Valide dans /admin/agents (tab Contenu)`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
+          <h2 style="color:#9333ea;">📱 ${post.platform} — ${post.format}</h2>
+          <p><strong>Pilier :</strong> ${post.pillar} | <strong>Heure :</strong> ${post.best_time || scheduledTime}</p>
+          <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
+          <p>${post.caption || ''}</p>
+          ${visualUrl ? `<img src="${visualUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Visuel généré par KeiroAI"/>
+          <p style="color:#6b7280;font-size:12px;">🎨 Visuel généré automatiquement par KeiroAI (preuve produit)</p>` : ''}
+          <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Valider dans l'admin</a></p>
+        </div>`,
       }),
     });
   }
