@@ -254,26 +254,48 @@ export async function POST(request: NextRequest) {
       activityContext = `\n\nACTIVITE RECENTE (24h):\n${logLines.join('\n')}`;
     }
 
-    // Load chat history for this agent
+    // Load full chat history for this agent (last 20 exchanges)
     const { data: pastChats } = await supabase
       .from('agent_logs')
       .select('data, created_at')
       .eq('agent', agentId)
       .eq('action', 'direct_chat')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(20);
 
     let chatMemory = '';
     if (pastChats && pastChats.length > 0) {
       const prevChats = pastChats
         .filter((c: any) => c.data?.user_message)
+        .reverse()  // chronological order
         .map((c: any) => {
           const date = new Date(c.created_at).toLocaleDateString('fr-FR');
-          return `[${date}] Fondateur: "${(c.data.user_message as string).substring(0, 80)}"`;
+          const time = new Date(c.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          const userMsg = (c.data.user_message as string).substring(0, 150);
+          const agentReply = c.data.reply ? (c.data.reply as string).substring(0, 200) : '';
+          return `[${date} ${time}] Fondateur: "${userMsg}"${agentReply ? `\n→ Toi: "${agentReply}"` : ''}`;
         });
       if (prevChats.length > 0) {
-        chatMemory = `\n\nHISTORIQUE CONVERSATIONS:\n${prevChats.join('\n')}`;
+        chatMemory = `\n\nHISTORIQUE COMPLET DES CONVERSATIONS (${prevChats.length} echanges):\nTu DOIS te souvenir de ces echanges et ne pas repeter les memes conseils:\n${prevChats.join('\n')}`;
       }
+    }
+
+    // Load learnings this agent has reported
+    const { data: agentLearnings } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', agentId)
+      .eq('action', 'learning')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    let learningsMemory = '';
+    if (agentLearnings && agentLearnings.length > 0) {
+      const learningLines = agentLearnings.map((l: any) => {
+        const date = new Date(l.created_at).toLocaleDateString('fr-FR');
+        return `[${date}] ${l.data?.insight || l.data?.recommendation || ''}`;
+      });
+      learningsMemory = `\n\nTES LEARNINGS PRECEDENTS (ce que tu as appris):\n${learningLines.join('\n')}`;
     }
 
     // Build system prompt
@@ -284,6 +306,7 @@ ${agentConfig.chatAddendum}
 ${agentContextText ? `\nCONTEXTE STRATEGIQUE:\n${agentContextText}` : ''}
 ${activityContext}
 ${chatMemory}
+${learningsMemory}
 
 IMPORTANT: Tu es en mode conversation directe avec Oussama, le fondateur. Reponds a sa question/demande de maniere directe et actionnable. Si tu proposes une action, utilise [ACTION: description] pour qu'elle puisse etre executee.
 
@@ -315,7 +338,7 @@ Ces learnings sont enregistres et utilises par le CEO pour ameliorer la strategi
       action: 'direct_chat',
       data: {
         user_message: message,
-        reply: reply.substring(0, 500),
+        reply: reply.substring(0, 1000),
       },
       status: 'success',
       created_at: new Date().toISOString(),

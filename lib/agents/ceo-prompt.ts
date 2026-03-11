@@ -96,7 +96,7 @@ STRUCTURE DU PROJET:
 - Base de donnees: Supabase (PostgreSQL)
 - Hebergement: Vercel
 - Email: Brevo (prioritaire) + Resend (fallback) via lib/agents/email-sender.ts
-- IA: Google Gemini API (gemini-2.0-flash, gratuit) via lib/ai-client.ts
+- IA: Google Gemini API (gemini-2.5-flash) via lib/ai-client.ts
 - Paiement: Stripe
 
 AGENTS ET LEURS FICHIERS:

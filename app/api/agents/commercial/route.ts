@@ -181,6 +181,50 @@ async function runEnrichment(): Promise<NextResponse> {
       }
     } catch {}
 
+    // --- Diagnostic: log CRM state before filtering ---
+    const { count: totalAll } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true });
+    const { count: totalDead } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('temperature', 'dead');
+    const { count: totalNoType } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .is('type', null);
+    const { count: totalNoQuartier } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .is('quartier', null);
+    const { count: totalNew } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('status', 'new');
+    const { count: totalIdentifie } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('status', 'identifie');
+    const { count: totalNotStarted } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('email_sequence_status', 'not_started');
+    const { count: totalNoSequence } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .is('email_sequence_status', null);
+    const { count: totalContacte } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('status', 'contacte');
+    const { count: totalWithEmail } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .not('email', 'is', null);
+
+    console.log(`[CommercialAgent] === CRM DIAGNOSTIC ===`);
+    console.log(`[CommercialAgent] Total prospects: ${totalAll ?? 0}`);
+    console.log(`[CommercialAgent] Dead (excluded): ${totalDead ?? 0}`);
+    console.log(`[CommercialAgent] No type: ${totalNoType ?? 0}`);
+    console.log(`[CommercialAgent] No quartier: ${totalNoQuartier ?? 0}`);
+    console.log(`[CommercialAgent] Status 'new': ${totalNew ?? 0}`);
+    console.log(`[CommercialAgent] Status 'identifie': ${totalIdentifie ?? 0}`);
+    console.log(`[CommercialAgent] Status 'contacte': ${totalContacte ?? 0}`);
+    console.log(`[CommercialAgent] Email sequence null: ${totalNoSequence ?? 0}`);
+    console.log(`[CommercialAgent] Email sequence not_started: ${totalNotStarted ?? 0}`);
+    console.log(`[CommercialAgent] With email: ${totalWithEmail ?? 0}`);
+    console.log(`[CommercialAgent] === END DIAGNOSTIC ===`);
+
     // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
     // Includes: missing data, status 'new'/'identifie' not yet in email sequence
     const { data: prospects, error: fetchError } = await supabase
@@ -196,8 +240,25 @@ async function runEnrichment(): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });
     }
 
+    console.log(`[CommercialAgent] Query returned ${prospects?.length ?? 0} prospects after filters`);
+
     if (!prospects || prospects.length === 0) {
-      console.log('[CommercialAgent] No prospects to enrich');
+      console.log('[CommercialAgent] No prospects to enrich — all prospects are either enriched+in_sequence or dead');
+
+      // Report learning about empty pipeline
+      try {
+        await reportLearning('commercial', {
+          insight: `Pipeline vide: 0 prospects a enrichir. CRM total: ${totalAll ?? 0}, dead: ${totalDead ?? 0}, contacte: ${totalContacte ?? 0}, avec email: ${totalWithEmail ?? 0}`,
+          metric_name: 'pipeline_status',
+          metric_before: 0,
+          metric_after: 0,
+          recommendation: (totalAll ?? 0) === 0
+            ? 'CRM vide. Besoin de lancer l\'agent GMaps ou d\'importer des prospects.'
+            : (totalDead ?? 0) > (totalAll ?? 0) * 0.5
+              ? 'Plus de 50% des prospects sont dead. La source de prospection genere des donnees de mauvaise qualite. Lancer GMaps avec de nouveaux criteres.'
+              : 'Tous les prospects actifs sont deja en sequence email. Besoin de nouvelles sources.',
+        });
+      } catch {}
 
       await supabase.from('agent_logs').insert({
         agent: 'commercial',
@@ -207,15 +268,44 @@ async function runEnrichment(): Promise<NextResponse> {
           enriched: 0,
           flagged_dead: 0,
           skipped: 0,
+          crm_total: totalAll ?? 0,
+          crm_dead: totalDead ?? 0,
+          crm_contacte: totalContacte ?? 0,
+          crm_with_email: totalWithEmail ?? 0,
+          diagnostic: 'No prospects match enrichment criteria',
           timestamp: nowISO,
         },
         created_at: nowISO,
       });
 
-      return NextResponse.json({ ok: true, enriched: 0, message: 'Aucun prospect a enrichir' });
+      // Report to CEO
+      await supabase.from('agent_logs').insert({
+        agent: 'commercial',
+        action: 'report_to_ceo',
+        data: {
+          message: `Pipeline enrichissement vide. CRM: ${totalAll ?? 0} total, ${totalDead ?? 0} dead, ${totalContacte ?? 0} prets, ${totalWithEmail ?? 0} avec email. Besoin de nouvelles sources (GMaps, import).`,
+          phase: 'enrichment_complete',
+        },
+        status: 'success',
+        created_at: nowISO,
+      });
+
+      return NextResponse.json({ ok: true, enriched: 0, message: 'Aucun prospect a enrichir', diagnostic: {
+        crm_total: totalAll ?? 0,
+        crm_dead: totalDead ?? 0,
+        crm_contacte: totalContacte ?? 0,
+        crm_with_email: totalWithEmail ?? 0,
+        crm_no_type: totalNoType ?? 0,
+        crm_status_new: totalNew ?? 0,
+        crm_status_identifie: totalIdentifie ?? 0,
+      }});
     }
 
     console.log(`[CommercialAgent] Found ${prospects.length} prospects to enrich`);
+    // Log first 3 prospects for debugging
+    for (const p of prospects.slice(0, 3)) {
+      console.log(`[CommercialAgent] Sample prospect: id=${p.id}, email=${p.email}, type=${p.type}, status=${p.status}, seq_status=${p.email_sequence_status}`);
+    }
 
     let enrichedCount = 0;
     let flaggedDeadCount = 0;
