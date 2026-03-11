@@ -1,12 +1,48 @@
 {
   "crons": [
     {
+      "path": "/api/cron/scheduler?slot=discovery",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=ceo",
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=trends",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=early_morning",
+      "schedule": "0 6 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=morning_prep",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=morning",
-      "schedule": "0 8 * * *"
+      "schedule": "0 8 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=retention",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=midday",
+      "schedule": "0 10 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=afternoon",
+      "schedule": "0 12 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=evening",
+      "schedule": "0 16 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=evening_prep",
+      "schedule": "0 17 * * 1,3"
     }
   ]
 }
