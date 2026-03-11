@@ -19,6 +19,9 @@ function getBaseUrl(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+// Timeout for agent endpoint calls (90s) — prevents hanging when a sub-agent is slow
+const AGENT_CALL_TIMEOUT_MS = 90_000;
+
 async function callAgentEndpoint(
   baseUrl: string,
   path: string,
@@ -29,17 +32,30 @@ async function callAgentEndpoint(
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (cronSecret) headers['Authorization'] = `Bearer ${cronSecret}`;
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 
-  const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
-  if (!res.ok || !data.ok) {
-    return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+
+    const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+    if (!res.ok || !data.ok) {
+      return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+    }
+    return { ok: true, summary: buildSummary(path, data), data };
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return { ok: false, summary: `Timeout: l'agent ${path} n'a pas répondu en ${AGENT_CALL_TIMEOUT_MS / 1000}s` };
+    }
+    return { ok: false, summary: `Erreur réseau: ${error.message}` };
+  } finally {
+    clearTimeout(timeout);
   }
-  return { ok: true, summary: buildSummary(path, data), data };
 }
 
 function buildSummary(path: string, data: any): string {
@@ -82,11 +98,29 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString();
   const results: Array<{ id: string; to_agent: string; status: string; result?: string; api_response?: any }> = [];
 
+  // --- Cleanup stale orders stuck in 'in_progress' for over 1 hour ---
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: staleOrders } = await supabase
+    .from('agent_orders')
+    .update({
+      status: 'failed',
+      result: { error: 'Auto-cleanup: stuck in_progress for over 1 hour', failed_at: now },
+      completed_at: now,
+    })
+    .eq('status', 'in_progress')
+    .lt('created_at', oneHourAgo)
+    .select('id');
+
+  if (staleOrders && staleOrders.length > 0) {
+    console.log(`[ExecuteNow] Cleaned up ${staleOrders.length} stale in_progress orders`);
+  }
+
+  // Also allow re-executing failed orders that the user selected
   const { data: orders, error: fetchError } = await supabase
     .from('agent_orders')
     .select('*')
     .in('id', order_ids)
-    .eq('status', 'pending');
+    .in('status', ['pending', 'failed']);
 
   if (fetchError) {
     return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });

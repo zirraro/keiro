@@ -7,7 +7,7 @@ import { generateAIResponse, isAIConfigured, AI_API_KEY_NAME } from '@/lib/ai-cl
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,7 +16,11 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 200;
+// Reduced from 200 to 30 to avoid 504 timeouts — each prospect = 1 AI call (~2-3s)
+const MAX_PROSPECTS_PER_RUN = 30;
+
+// Timeout per AI enrichment call (15s max)
+const ENRICHMENT_TIMEOUT_MS = 15_000;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -98,12 +102,17 @@ ${prospect.email ? 'Vérifie la validité de l\'email (format, domaine jetable, 
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON.`;
 
   try {
-    const aiResponse = await generateAIResponse({
+    // Race the AI call against a timeout to avoid hanging the entire run
+    const aiPromise = generateAIResponse({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       system: getCommercialSystemPrompt() + (directive ? `\n\n--- DIRECTIVE STRATEGIQUE DU CEO ---\n${directive}\n--- FIN DIRECTIVE ---` : ''),
       messages: [{ role: 'user', content: prospectAnalysisPrompt }],
     });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI call timeout')), ENRICHMENT_TIMEOUT_MS)
+    );
+    const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
     const rawText = aiResponse.text;
 
     // Parse JSON from response
@@ -181,49 +190,20 @@ async function runEnrichment(): Promise<NextResponse> {
       }
     } catch {}
 
-    // --- Diagnostic: log CRM state before filtering ---
+    // --- Fast diagnostic: single count query ---
     const { count: totalAll } = await supabase
       .from('crm_prospects').select('id', { count: 'exact', head: true });
-    const { count: totalDead } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .eq('temperature', 'dead');
-    const { count: totalNoType } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .is('type', null);
-    const { count: totalNoQuartier } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .is('quartier', null);
-    const { count: totalNew } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .eq('status', 'new');
-    const { count: totalIdentifie } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .eq('status', 'identifie');
-    const { count: totalNotStarted } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .eq('email_sequence_status', 'not_started');
-    const { count: totalNoSequence } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true })
-      .is('email_sequence_status', null);
     const { count: totalContacte } = await supabase
       .from('crm_prospects').select('id', { count: 'exact', head: true })
       .eq('status', 'contacte');
     const { count: totalWithEmail } = await supabase
       .from('crm_prospects').select('id', { count: 'exact', head: true })
       .not('email', 'is', null);
+    const { count: totalDead } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true })
+      .eq('temperature', 'dead');
 
-    console.log(`[CommercialAgent] === CRM DIAGNOSTIC ===`);
-    console.log(`[CommercialAgent] Total prospects: ${totalAll ?? 0}`);
-    console.log(`[CommercialAgent] Dead (excluded): ${totalDead ?? 0}`);
-    console.log(`[CommercialAgent] No type: ${totalNoType ?? 0}`);
-    console.log(`[CommercialAgent] No quartier: ${totalNoQuartier ?? 0}`);
-    console.log(`[CommercialAgent] Status 'new': ${totalNew ?? 0}`);
-    console.log(`[CommercialAgent] Status 'identifie': ${totalIdentifie ?? 0}`);
-    console.log(`[CommercialAgent] Status 'contacte': ${totalContacte ?? 0}`);
-    console.log(`[CommercialAgent] Email sequence null: ${totalNoSequence ?? 0}`);
-    console.log(`[CommercialAgent] Email sequence not_started: ${totalNotStarted ?? 0}`);
-    console.log(`[CommercialAgent] With email: ${totalWithEmail ?? 0}`);
-    console.log(`[CommercialAgent] === END DIAGNOSTIC ===`);
+    console.log(`[CommercialAgent] CRM: ${totalAll ?? 0} total, ${totalContacte ?? 0} contacte, ${totalWithEmail ?? 0} with email, ${totalDead ?? 0} dead`);
 
     // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
     // Includes: missing data, status 'new'/'identifie' not yet in email sequence
@@ -295,9 +275,6 @@ async function runEnrichment(): Promise<NextResponse> {
         crm_dead: totalDead ?? 0,
         crm_contacte: totalContacte ?? 0,
         crm_with_email: totalWithEmail ?? 0,
-        crm_no_type: totalNoType ?? 0,
-        crm_status_new: totalNew ?? 0,
-        crm_status_identifie: totalIdentifie ?? 0,
       }});
     }
 
@@ -367,7 +344,10 @@ async function runEnrichment(): Promise<NextResponse> {
         && result.data_completeness_score >= 60
         && !hasCompanyNameFake;
 
-      if (isReadyForEmail && !prospect.email_sequence_status) {
+      // Advance prospect to 'contacte' if ready and not already in email sequence
+      const notYetInSequence = !prospect.email_sequence_status
+        || prospect.email_sequence_status === 'not_started';
+      if (isReadyForEmail && notYetInSequence && prospect.status !== 'contacte') {
         updates.status = 'contacte';
         updates.email_sequence_status = 'not_started';
         updates.email_sequence_step = 0;

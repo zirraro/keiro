@@ -71,6 +71,9 @@ function getBaseUrl(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+// Timeout for agent endpoint calls (90s) — prevents hanging when a sub-agent is slow
+const AGENT_CALL_TIMEOUT_MS = 90_000;
+
 /**
  * Call an internal agent API endpoint and return a summary result.
  */
@@ -88,19 +91,32 @@ async function callAgentEndpoint(
     headers['Authorization'] = `Bearer ${cronSecret}`;
   }
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AGENT_CALL_TIMEOUT_MS);
 
-  const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
 
-  if (!res.ok || !data.ok) {
-    return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+    const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+
+    if (!res.ok || !data.ok) {
+      return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+    }
+
+    return { ok: true, summary: buildSummary(path, data), data };
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return { ok: false, summary: `Timeout: l'agent ${path} n'a pas répondu en ${AGENT_CALL_TIMEOUT_MS / 1000}s` };
+    }
+    return { ok: false, summary: `Erreur réseau: ${error.message}` };
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return { ok: true, summary: buildSummary(path, data), data };
 }
 
 function buildSummary(path: string, data: any): string {
@@ -160,6 +176,23 @@ export async function GET(request: NextRequest) {
   const results: { id: string; to_agent: string; order_type: string; status: string; result?: string; api_response?: any }[] = [];
 
   try {
+    // --- Cleanup stale orders stuck in 'in_progress' for over 1 hour ---
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: staleOrders } = await supabase
+      .from('agent_orders')
+      .update({
+        status: 'failed',
+        result: { error: 'Auto-cleanup: stuck in_progress for over 1 hour', failed_at: now },
+        completed_at: now,
+      })
+      .eq('status', 'in_progress')
+      .lt('created_at', oneHourAgo)
+      .select('id');
+
+    if (staleOrders && staleOrders.length > 0) {
+      console.log(`[OrderExecutor] Cleaned up ${staleOrders.length} stale in_progress orders`);
+    }
+
     // Fetch all pending orders (max 20 per run)
     const { data: orders, error } = await supabase
       .from('agent_orders')
