@@ -275,7 +275,7 @@ Reponds en francais, sois direct et actionnable.`;
     ];
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-5-20241022',
       max_tokens: 4000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}\n\n${getCeoChatSystemAddendum(contextMetrics)}`,
       messages,
@@ -501,7 +501,7 @@ async function generateBrief(): Promise<NextResponse> {
 
     // --- Call Claude Sonnet for brief (smarter reasoning) ---
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-5-20241022',
       max_tokens: 3000,
       system: `${getCeoSystemPrompt()}\n\n${getCeoArchitectureKnowledge()}`,
       messages: [

@@ -86,7 +86,7 @@ STRUCTURE DU PROJET:
 - Base de donnees: Supabase (PostgreSQL)
 - Hebergement: Vercel
 - Email: Brevo (prioritaire) + Resend (fallback) via lib/agents/email-sender.ts
-- IA: Anthropic Claude API (claude-sonnet-4-6 pour CEO, claude-haiku-4-5 pour parsing)
+- IA: Anthropic Claude API (claude-sonnet-4-5 pour CEO, claude-haiku-4-5 pour parsing)
 - Paiement: Stripe
 
 AGENTS ET LEURS FICHIERS:
