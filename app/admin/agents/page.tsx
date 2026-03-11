@@ -1956,6 +1956,29 @@ export default function AdminAgentsPage() {
                 >
                   Actualiser
                 </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('Purger les ordres bloques (in_progress > 1h, pending > 24h) ?')) return;
+                    try {
+                      const res = await fetch('/api/agents/orders/execute', {
+                        method: 'DELETE',
+                        credentials: 'include',
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        alert(`${data.purged} ordre(s) purge(s) (${data.in_progress_purged} in_progress, ${data.pending_purged} pending)`);
+                        await loadOrders();
+                      } else {
+                        alert(`Erreur: ${data.error}`);
+                      }
+                    } catch (err) {
+                      console.error('Purge error:', err);
+                    }
+                  }}
+                  className="text-sm text-red-600 font-medium hover:underline px-2 py-2"
+                >
+                  Purger bloques
+                </button>
               </div>
             </div>
 

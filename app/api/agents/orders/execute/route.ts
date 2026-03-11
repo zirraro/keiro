@@ -264,3 +264,51 @@ async function executeEmailOrder(
     return callAgentEndpoint(baseUrl, '/api/agents/email/daily', 'GET', cronSecret);
   }
 }
+
+/**
+ * DELETE /api/agents/orders/execute
+ * Purge stale orders: mark all in_progress > 1h and pending > 24h as failed.
+ * Admin only.
+ */
+export async function DELETE(request: NextRequest) {
+  const { user, error: authError } = await getAuthUser();
+  if (authError || !user) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) {
+    return NextResponse.json({ ok: false, error: 'Admin required' }, { status: 403 });
+  }
+
+  const now = new Date().toISOString();
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  // Purge in_progress stuck > 1 hour
+  const { data: staleInProgress } = await supabase
+    .from('agent_orders')
+    .update({ status: 'failed', result: { error: 'Manual purge: stuck in_progress', purged_at: now }, completed_at: now })
+    .eq('status', 'in_progress')
+    .lt('created_at', oneHourAgo)
+    .select('id');
+
+  // Purge pending stuck > 24 hours
+  const { data: stalePending } = await supabase
+    .from('agent_orders')
+    .update({ status: 'failed', result: { error: 'Manual purge: pending > 24h', purged_at: now }, completed_at: now })
+    .eq('status', 'pending')
+    .lt('created_at', twentyFourHoursAgo)
+    .select('id');
+
+  const purgedCount = (staleInProgress?.length || 0) + (stalePending?.length || 0);
+  console.log(`[ExecuteNow] Purged ${purgedCount} stale orders (${staleInProgress?.length || 0} in_progress, ${stalePending?.length || 0} pending)`);
+
+  return NextResponse.json({
+    ok: true,
+    purged: purgedCount,
+    in_progress_purged: staleInProgress?.length || 0,
+    pending_purged: stalePending?.length || 0,
+  });
+}

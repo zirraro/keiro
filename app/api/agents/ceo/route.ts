@@ -372,12 +372,23 @@ Reponds en francais, sois direct et actionnable.`;
             headers['Authorization'] = `Bearer ${cronSecret}`;
           }
 
-          const res = await fetch(`${baseUrl}/api/agents/orders`, {
-            method: 'GET',
-            headers,
-          });
-          const data = await res.json().catch(() => ({ ok: false }));
-          console.log(`[CEOAgent] Order execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
+          // Use AbortController to prevent hanging if order execution is slow
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 90_000);
+
+          try {
+            const res = await fetch(`${baseUrl}/api/agents/orders`, {
+              method: 'GET',
+              headers,
+              signal: controller.signal,
+            });
+            const data = await res.json().catch(() => ({ ok: false }));
+            console.log(`[CEOAgent] Order execution: ${data.succeeded || 0} succeeded, ${data.failed || 0} failed`);
+          } catch (fetchErr: any) {
+            console.error(`[CEOAgent] Order execution fetch error: ${fetchErr.name === 'AbortError' ? 'timeout after 90s' : fetchErr.message}`);
+          } finally {
+            clearTimeout(timeout);
+          }
         }
       } catch (err: any) {
         console.error('[CEOAgent] Background order processing error:', err.message);
