@@ -294,6 +294,7 @@ export async function GET(request: NextRequest) {
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
+      // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
       const { data: warmProspects } = await supabase
         .from('crm_prospects')
         .select('*')
@@ -302,7 +303,7 @@ export async function GET(request: NextRequest) {
         .eq('email_sequence_step', 0)
         .lte('created_at', twentyFourHoursAgo)
         .gte('created_at', fortyEightHoursAgo)
-        .not('status', 'in', '("sprint","client","perdu")');
+        .or('status.is.null,status.not.in.("sprint","client","perdu")');
 
       console.log(`[EmailDaily] Warm prospects found: ${warmProspects?.length ?? 0}`);
 
@@ -323,13 +324,14 @@ export async function GET(request: NextRequest) {
       console.log(`[EmailDaily] Running cold sequence mode via Resend+Brevo (slot=${slot})...`);
 
       // Pull from ALL qualified prospects
+      // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
       const { data: prospects } = await supabase
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null)
         .or('email_sequence_status.is.null,email_sequence_status.eq.not_started,email_sequence_status.eq.in_progress')
-        .neq('temperature', 'dead')
-        .not('status', 'in', '("client","perdu","sprint")');
+        .or('temperature.is.null,temperature.neq.dead')
+        .or('status.is.null,status.not.in.("client","perdu","sprint")');
 
       console.log(`[EmailDaily] Eligible prospects (before timing filter): ${prospects?.length ?? 0}`);
 

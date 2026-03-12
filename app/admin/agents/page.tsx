@@ -730,7 +730,7 @@ export default function AdminAgentsPage() {
           : agentType === 'commercial'
           ? `${data.enriched || 0} prospects enrichis`
           : agentType === 'content'
-          ? `${data.postsPlanned || data.post ? 1 : 0} post(s) généré(s)`
+          ? `${data.postsPlanned || data.published || (data.post ? 1 : 0)} post(s) généré(s)`
           : 'Tâche exécutée avec succès';
         setCampaignLaunchResult({ ok: true, message: msg });
         // Reload campaigns to show new entry

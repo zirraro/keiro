@@ -118,12 +118,13 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
   console.log('[TikTokAgent] Preparing and sending comments/DMs...');
 
   // Select prospects with TikTok handles
+  // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
   const { data: prospects } = await supabase
     .from('crm_prospects')
     .select('*')
     .not('tiktok_handle', 'is', null)
-    .neq('temperature', 'dead')
-    .not('status', 'in', '("client","perdu","sprint")')
+    .or('temperature.is.null,temperature.neq.dead')
+    .or('status.is.null,status.not.in.("client","perdu","sprint")')
     .order('score', { ascending: false })
     .limit(15);
 

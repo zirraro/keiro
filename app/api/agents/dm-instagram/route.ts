@@ -139,14 +139,15 @@ async function runDMPreparation(): Promise<NextResponse> {
   console.log('[DMAgent] Preparing and sending daily DMs...');
 
   // Select top prospects with Instagram that haven't been DMed yet
+  // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
   const { data: prospects, error } = await supabase
     .from('crm_prospects')
     .select('*')
     .not('instagram', 'is', null)
     .neq('instagram', 'A_VERIFIER')
-    .eq('dm_status', 'none')
-    .neq('temperature', 'dead')
-    .not('status', 'in', '("client_pro","client_fondateurs","lost","perdu","client","sprint")')
+    .or('dm_status.is.null,dm_status.eq.none')
+    .or('temperature.is.null,temperature.neq.dead')
+    .or('status.is.null,status.not.in.("client_pro","client_fondateurs","lost","perdu","client","sprint")')
     .order('score', { ascending: false })
     .limit(MAX_DM_PER_DAY * 3);
 
