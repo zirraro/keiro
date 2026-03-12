@@ -12,7 +12,7 @@ export const maxDuration = 300;
  *
  * Slots and what they trigger:
  *
- * 03:00 UTC  slot=discovery     → GMaps scan + Commercial enrichment
+ * 03:00 UTC  slot=discovery     → Commercial enrichment + Google Search social
  * 05:00 UTC  slot=ceo           → CEO brief (auto-triggers orders)
  * 05:30 UTC  slot=trends        → Refresh trends
  * 06:00 UTC  slot=early_morning → Email cold (weekdays)
@@ -71,9 +71,8 @@ export async function GET(request: NextRequest) {
 
   switch (slot) {
     case 'discovery':
-      // 03:00 UTC — Prospect discovery + enrichment
-      await callEndpoint('GMaps Scan', '/api/agents/gmaps', 'POST');
-      await callEndpoint('Commercial Enrichment', '/api/agents/commercial');
+      // 03:00 UTC — Commercial enrichment + Google Search for social profiles
+      await callEndpoint('Commercial Enrichment + Google', '/api/agents/commercial');
       break;
 
     case 'ceo':

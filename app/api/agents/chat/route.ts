@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGeminiChat } from '@/lib/agents/gemini';
+import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -229,15 +230,6 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Load agent memory (learnings)
-    const { data: memories } = await supabase
-      .from('agent_logs')
-      .select('data')
-      .eq('agent', agent)
-      .eq('action', 'memory')
-      .order('created_at', { ascending: false })
-      .limit(10);
-
     let activityContext = '';
     if (recentLogs && recentLogs.length > 0) {
       activityContext = '\n\nACTIVITÉ RÉCENTE :\n' + recentLogs.map((l: any) => {
@@ -246,35 +238,11 @@ export async function POST(request: NextRequest) {
       }).join('\n');
     }
 
-    let memoryContext = '';
-    if (memories && memories.length > 0) {
-      const learnings = memories.map((m: any) => m.data?.learning).filter(Boolean);
-      if (learnings.length > 0) {
-        memoryContext = '\n\nMÉMOIRE (ce que tu as appris) :\n' + learnings.join('\n');
-      }
-    }
+    // Shared CRM context (all agents see the same data)
+    const sharedCtx = await loadSharedContext(supabase, agent);
+    const statsContext = '\n\n' + formatContextForPrompt(sharedCtx) + `\n- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 
-    // CRM stats for context
-    const { count: totalProspects } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true });
-    const { count: hotProspects } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'hot');
-    const { count: withInstagram } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null);
-    const { count: withTiktok } = await supabase
-      .from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null);
-    const { count: emailsSent7d } = await supabase
-      .from('crm_activities').select('id', { count: 'exact', head: true })
-      .eq('type', 'email')
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-    const statsContext = `\n\nSTATS CRM :
-- ${totalProspects ?? 0} prospects total, ${hotProspects ?? 0} chauds
-- ${withInstagram ?? 0} avec Instagram, ${withTiktok ?? 0} avec TikTok
-- ${emailsSent7d ?? 0} emails envoyés (7 derniers jours)
-- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
-
-    const systemPrompt = agentConfig.systemPrompt + activityContext + memoryContext + statsContext;
+    const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext;
 
     const reply = await callGeminiChat({
       system: systemPrompt,

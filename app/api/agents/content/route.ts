@@ -318,15 +318,28 @@ export async function POST(request: NextRequest) {
           return generateDailyPost(supabase, todayDate, dayOfWeek);
         }
 
+        const nowISO = new Date().toISOString();
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'execute_publication',
+          data: {
+            total: publishedCount,
+            success: publishedCount,
+            failed: 0,
+            published: publishedPosts,
+          },
+          created_at: nowISO,
+        });
+
+        // Also report to CEO
         await supabase.from('agent_logs').insert({
           agent: 'content',
           action: 'report_to_ceo',
           data: {
             phase: 'completed',
-            message: `Contenu: ${publishedCount} publications exécutées directement`,
-            published: publishedPosts,
+            message: `Contenu: ${publishedCount} publications exécutées`,
           },
-          created_at: new Date().toISOString(),
+          created_at: nowISO,
         });
 
         return NextResponse.json({ ok: true, published: publishedCount, posts: publishedPosts });

@@ -636,13 +636,15 @@ export default function AdminAgentsPage() {
       let query = supabase
         .from('agent_logs')
         .select('*')
-        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared'])
+        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared', 'enrichment_run', 'daily_post_generated', 'weekly_plan_generated', 'execute_publication'])
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (filter === 'email') query = query.eq('agent', 'email');
       else if (filter === 'dm_instagram') query = query.eq('agent', 'dm_instagram');
       else if (filter === 'tiktok') query = query.eq('agent', 'tiktok_comments');
+      else if (filter === 'content') query = query.eq('agent', 'content');
+      else if (filter === 'commercial') query = query.eq('agent', 'commercial');
 
       const { data, error } = await query;
       if (error) throw error;
@@ -661,7 +663,7 @@ export default function AdminAgentsPage() {
       }));
       setCampaigns(entries);
 
-      // Also load DM queue for preview
+      // Load DM queue + content calendar for preview
       const { data: queueData } = await supabase
         .from('dm_queue')
         .select('id, channel, handle, message, personalization, business_type, created_at, prospect_id')
@@ -669,7 +671,6 @@ export default function AdminAgentsPage() {
         .limit(20);
 
       if (queueData) {
-        // Fetch prospect names
         const prospectIds = [...new Set(queueData.map((q: any) => q.prospect_id))];
         const { data: prospects } = await supabase
           .from('crm_prospects')
@@ -684,6 +685,14 @@ export default function AdminAgentsPage() {
           prospect_name: nameMap[q.prospect_id] || 'Inconnu',
         })));
       }
+
+      // Load content calendar posts
+      const { data: contentData } = await supabase
+        .from('content_calendar')
+        .select('*')
+        .order('scheduled_date', { ascending: false })
+        .limit(20);
+      if (contentData) setContentPosts(contentData);
     } catch (err) {
       console.error('[Admin Agents] Campaigns load error:', err);
     }
@@ -699,7 +708,6 @@ export default function AdminAgentsPage() {
         'email_warm': { path: '/api/agents/email/daily?type=warm', method: 'GET' },
         'dm_instagram': { path: '/api/agents/dm-instagram', method: 'POST' },
         'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
-        'gmaps': { path: '/api/agents/gmaps', method: 'POST' },
         'commercial': { path: '/api/agents/commercial', method: 'POST' },
         'seo': { path: '/api/agents/seo', method: 'POST' },
         'onboarding': { path: '/api/agents/onboarding', method: 'GET' },
@@ -1351,6 +1359,8 @@ export default function AdminAgentsPage() {
                   <option value="email">Email</option>
                   <option value="dm_instagram">DM Instagram</option>
                   <option value="tiktok">TikTok</option>
+                  <option value="content">Contenu</option>
+                  <option value="commercial">Commercial</option>
                 </select>
                 <button
                   onClick={() => loadCampaigns(campaignFilter)}
@@ -1371,8 +1381,7 @@ export default function AdminAgentsPage() {
                   { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
                   { key: 'tiktok_comments', label: 'TikTok Comments', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
                   { key: 'content', label: 'Contenu', icon: '📱', color: 'from-indigo-500 to-indigo-600' },
-                  { key: 'gmaps', label: 'Google Maps', icon: '📍', color: 'from-blue-500 to-blue-600' },
-                  { key: 'commercial', label: 'Enrichissement', icon: '🔍', color: 'from-purple-500 to-purple-600' },
+                  { key: 'commercial', label: 'Commercial + Google', icon: '🔍', color: 'from-purple-500 to-purple-600' },
                 ].map((btn) => (
                   <button
                     key={btn.key}
@@ -1432,6 +1441,43 @@ export default function AdminAgentsPage() {
               </div>
             )}
 
+            {/* Content Calendar Preview */}
+            {contentPosts.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-orange-50 to-pink-50">
+                  <h3 className="text-sm font-semibold text-neutral-900">Posts planifiés ({contentPosts.length})</h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">Contenu généré par l'agent — publications à venir</p>
+                </div>
+                <div className="divide-y divide-neutral-100">
+                  {contentPosts.slice(0, 10).map((post) => (
+                    <div key={post.id} className="p-4 hover:bg-neutral-50 transition-all">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          post.platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
+                          post.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
+                          post.platform === 'linkedin' ? 'bg-blue-100 text-blue-700' :
+                          'bg-neutral-100 text-neutral-600'
+                        }`}>{post.platform}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700">{post.format}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                          post.status === 'published' ? 'bg-green-100 text-green-700' :
+                          post.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>{post.status}</span>
+                        <span className="text-xs text-neutral-400 ml-auto">{new Date(post.scheduled_date).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      {post.hook && <p className="text-sm font-medium text-neutral-800 mb-1">{post.hook}</p>}
+                      {post.caption && (
+                        <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-100">
+                          <p className="text-sm text-neutral-700 whitespace-pre-wrap line-clamp-3">{post.caption}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Campaign History */}
             {(() => {
               const dateMap: Record<string, number> = { '1d': 1, '3d': 3, '7d': 7, '30d': 30 };
@@ -1449,9 +1495,19 @@ export default function AdminAgentsPage() {
                   ? (campaign.action === 'daily_warm' ? 'Email chatbot' : 'Email (cold)')
                   : campaign.agent === 'dm_instagram'
                   ? 'DM Instagram'
-                  : 'TikTok';
+                  : campaign.agent === 'content'
+                  ? 'Contenu'
+                  : campaign.agent === 'commercial'
+                  ? 'Commercial'
+                  : campaign.agent === 'tiktok_comments'
+                  ? 'TikTok'
+                  : campaign.agent;
                 const channelColor = campaign.agent === 'email'
                   ? 'bg-green-100 text-green-700'
+                  : campaign.agent === 'content'
+                  ? 'bg-orange-100 text-orange-700'
+                  : campaign.agent === 'commercial'
+                  ? 'bg-purple-100 text-purple-700'
                   : campaign.agent === 'dm_instagram'
                   ? 'bg-pink-100 text-pink-700'
                   : 'bg-neutral-900 text-white';

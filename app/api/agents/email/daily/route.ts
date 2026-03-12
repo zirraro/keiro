@@ -4,6 +4,7 @@ import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
+import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,48 +28,28 @@ interface SendResult {
 }
 
 /**
- * Load agent learnings from past performance data.
- * Returns insights the agent has accumulated over time.
+ * Load shared context + agent-specific learnings.
  */
 async function loadAgentLearnings(): Promise<string> {
   const supabase = getSupabaseAdmin();
+  const ctx = await loadSharedContext(supabase, 'email');
+  let context = formatContextForPrompt(ctx);
 
-  // Load explicit learnings
-  const { data: memories } = await supabase
-    .from('agent_logs')
-    .select('data')
-    .eq('agent', 'email')
-    .eq('action', 'memory')
-    .order('created_at', { ascending: false })
-    .limit(15);
-
-  // Load performance stats from recent runs
+  // Add email-specific performance data
   const { data: recentRuns } = await supabase
     .from('agent_logs')
     .select('data, created_at')
     .eq('agent', 'email')
-    .in('action', ['daily_cold', 'daily_warm', 'performance_learning'])
+    .in('action', ['daily_cold', 'daily_warm'])
     .order('created_at', { ascending: false })
     .limit(5);
 
-  let context = '';
-
-  if (memories && memories.length > 0) {
-    const learnings = memories.map((m: any) => m.data?.learning).filter(Boolean);
-    if (learnings.length > 0) {
-      context += 'APPRENTISSAGES ACCUMULÉS :\n' + learnings.map((l: string) => `- ${l}`).join('\n') + '\n\n';
-    }
-  }
-
   if (recentRuns && recentRuns.length > 0) {
-    context += 'RÉSULTATS RÉCENTS :\n';
+    context += '\n\nRÉSULTATS RÉCENTS EMAIL :\n';
     for (const run of recentRuns) {
       const d = run.data;
       if (d?.total !== undefined) {
-        context += `- ${new Date(run.created_at).toLocaleDateString('fr-FR')}: ${d.success || 0} envoyés, ${d.failed || 0} échoués\n`;
-      }
-      if (d?.best_performing) {
-        context += `  Meilleur: ${d.best_performing}\n`;
+        context += `- ${new Date(run.created_at).toLocaleDateString('fr-FR')}: ${d.success || 0} envoyés (${d.ai_generated || 0} IA), ${d.failed || 0} échoués\n`;
       }
     }
   }

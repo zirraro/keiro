@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
+import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -276,6 +277,11 @@ async function runEnrichment(): Promise<NextResponse> {
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configuree' }, { status: 500 });
     }
+
+    // Load shared context from all agents (see what email/DM/content agents have done)
+    const sharedCtx = await loadSharedContext(supabase, 'commercial');
+    const ctxText = formatContextForPrompt(sharedCtx);
+    console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG`);
 
     // === PHASE 1: Data enrichment (type, quartier, email validation) ===
     const { data: prospects, error: fetchError } = await supabase
