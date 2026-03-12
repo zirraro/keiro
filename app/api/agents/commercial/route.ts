@@ -141,7 +141,9 @@ Cherche sur Google Maps, Instagram, TikTok, et le web en général.`,
       maxTokens: 600,
     });
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    // Strip markdown code fences if present
+    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
     const result: SocialSearchResult = JSON.parse(jsonMatch[0]);
@@ -206,7 +208,9 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
       maxTokens: 500,
     });
 
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    // Strip markdown code fences if present
+    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 200));
       return null;

@@ -65,7 +65,8 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
       message: prospectData,
       maxTokens: 400,
     });
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
     return JSON.parse(jsonMatch[0]);

@@ -77,7 +77,8 @@ async function generateVisual(visualDescription: string, format: string): Promis
       maxTokens: 400,
     });
 
-    const imagePrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
+    const rawPrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
+    const imagePrompt = rawPrompt.length > 2000 ? rawPrompt.substring(0, 2000) : rawPrompt;
 
     // Determine aspect ratio based on format
     let width = 1024;
@@ -107,7 +108,8 @@ async function generateVisual(visualDescription: string, format: string): Promis
     });
 
     if (!seedreamRes.ok) {
-      console.error('[Content] Seedream HTTP error:', seedreamRes.status);
+      const errBody = await seedreamRes.text().catch(() => '');
+      console.error('[Content] Seedream HTTP error:', seedreamRes.status, errBody.substring(0, 500));
       return null;
     }
 
@@ -445,7 +447,8 @@ async function generateWeeklyPlan(supabase: any) {
 
   let weekPlan: any[];
   try {
-    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       weekPlan = JSON.parse(jsonMatch[0]);
     } else {
@@ -611,7 +614,8 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
 
   let post: any;
   try {
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const cleanText2 = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const jsonMatch = cleanText2.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       post = JSON.parse(jsonMatch[0]);
     } else {
