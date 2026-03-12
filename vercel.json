@@ -37,6 +37,10 @@
       "schedule": "0 12 * * 1,2,3,4"
     },
     {
+      "path": "/api/cron/scheduler?slot=ceo_evening",
+      "schedule": "0 15 * * 1,2,3,4"
+    },
+    {
       "path": "/api/cron/scheduler?slot=evening",
       "schedule": "0 16 * * 1,2,3,4"
     },

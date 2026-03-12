@@ -20,6 +20,7 @@ export const maxDuration = 300;
  * 08:00 UTC  slot=morning       → Email cold + Onboarding (weekdays)
  * 10:00 UTC  slot=midday        → Email cold + Email warm (weekdays)
  * 12:00 UTC  slot=afternoon     → Email cold (weekdays)
+ * 15:00 UTC  slot=ceo_evening    → CEO brief #2 (suivi après-midi) + execute orders
  * 16:00 UTC  slot=evening       → Email cold (weekdays)
  * 17:00 UTC  slot=evening_prep  → DM Instagram evening + TikTok comments
  * 09:00 UTC  slot=retention     → Retention checks
@@ -78,8 +79,8 @@ export async function GET(request: NextRequest) {
     case 'ceo':
       // 05:00 UTC — CEO brief + auto-execute orders
       await callEndpoint('CEO Brief', '/api/agents/ceo');
-      // Wait a bit then execute pending orders
-      await new Promise(r => setTimeout(r, 3000));
+      // Orders are already inserted by the brief generation (extractAndInsertOrders)
+      // Execute them immediately after
       await callEndpoint('Execute Orders', '/api/agents/orders');
       break;
 
@@ -132,6 +133,12 @@ export async function GET(request: NextRequest) {
     case 'retention':
       // 09:00 UTC — Retention checks
       await callEndpoint('Retention', '/api/agents/retention');
+      break;
+
+    case 'ceo_evening':
+      // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
+      await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
+      await callEndpoint('Execute Orders', '/api/agents/orders');
       break;
 
     case 'evening':
