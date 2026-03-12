@@ -186,7 +186,7 @@ async function runDMPreparation(): Promise<NextResponse> {
     const dm = await generateDM(prospect);
     if (!dm) { failed++; continue; }
 
-    // Insert into dm_queue with status 'sent' (direct send)
+    // Insert into dm_queue with status 'pending' — founder must manually send via Instagram
     const { error: queueError } = await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
       channel: 'instagram',
@@ -202,7 +202,7 @@ async function runDMPreparation(): Promise<NextResponse> {
         business_type: category,
       }),
       priority: prospect.score || 50,
-      status: 'sent',
+      status: 'pending',
       created_at: now,
     });
 
@@ -212,12 +212,11 @@ async function runDMPreparation(): Promise<NextResponse> {
       continue;
     }
 
-    // Update prospect dm_status to 'sent' directly (skip 'queued' intermediate state)
+    // Update prospect dm_status to 'queued' — will be set to 'sent' when founder confirms
     const followupDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     await supabase.from('crm_prospects').update({
-      dm_status: 'sent',
+      dm_status: 'queued',
       dm_queued_at: now,
-      dm_sent_at: now,
       dm_message: dm.dm_text,
       dm_followup_message: dm.follow_up_3d,
       dm_followup_date: followupDate,
@@ -228,7 +227,7 @@ async function runDMPreparation(): Promise<NextResponse> {
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
       type: 'dm_instagram',
-      description: `DM Instagram envoyé à @${prospect.instagram}`,
+      description: `DM Instagram préparé pour @${prospect.instagram}`,
       data: {
         handle: prospect.instagram,
         message_preview: dm.dm_text.substring(0, 100),
@@ -269,7 +268,7 @@ async function runDMPreparation(): Promise<NextResponse> {
           message: p.dm_followup_message,
           personalization: 'Relance J+3',
           priority: (p.score || 50) + 10,
-          status: 'sent',
+          status: 'pending',
           created_at: now,
         });
 

@@ -154,7 +154,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
     const result = await generateComment(prospect);
     if (!result) continue;
 
-    // Insert into dm_queue with status 'sent' (direct send)
+    // Insert into dm_queue with status 'pending' — founder must manually send
     await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
       channel: 'tiktok',
@@ -168,7 +168,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
         business_type: category,
       }),
       priority: prospect.score || 30,
-      status: 'sent',
+      status: 'pending',
       created_at: now,
     });
 
@@ -176,7 +176,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
       type: 'tiktok_comment',
-      description: `TikTok comment/DM envoyé à @${prospect.tiktok_handle}`,
+      description: `TikTok comment préparé pour @${prospect.tiktok_handle}`,
       data: {
         handle: prospect.tiktok_handle,
         comment: result.comment,
