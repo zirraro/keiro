@@ -594,7 +594,13 @@ export default function AdminAgentsPage() {
         credentials: 'include',
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { ok: false, error: `Réponse serveur invalide (${res.status}): ${text.substring(0, 200)}` };
+      }
       if (data.ok && data.reply) {
         setAgentMessages(prev => {
           const msgs = prev[selectedAgent] || [];

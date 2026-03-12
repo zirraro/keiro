@@ -6,7 +6,7 @@ import { callGemini, callGeminiChat } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -133,9 +133,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     if (body.action === 'chat' && body.message) {
-      return handleCeoChat(body.message, body.history || []);
+      return await handleCeoChat(body.message, body.history || []);
     }
-  } catch {}
+  } catch (error: any) {
+    console.error('[CEOAgent] POST error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
+  }
 
   return generateBrief();
 }
@@ -256,7 +259,7 @@ CRM KEIRO (lecture/ecriture par tous les agents):
 
 Reponds en francais, sois direct et actionnable.`;
 
-    const systemPrompt = `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Oussama, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`;
+    const systemPrompt = `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Victor, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`;
 
     const reply = await callGeminiChat({
       system: systemPrompt,
@@ -286,36 +289,25 @@ Reponds en francais, sois direct et actionnable.`;
       created_at: now.toISOString(),
     });
 
-    // Extract, insert, and EXECUTE orders from CEO chat reply
+    // Extract and insert orders from CEO chat reply
     const chatOrdersCount = await extractAndInsertOrders(supabase, reply, now.toISOString());
 
-    // Trigger immediate execution of any newly created orders
-    let ordersExecuted = 0;
+    // Fire-and-forget: trigger order execution without waiting (avoids timeout)
     if (chatOrdersCount > 0) {
-      try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000');
-        const cronSecretVal = process.env.CRON_SECRET;
-        const execRes = await fetch(`${appUrl}/api/agents/orders`, {
-          method: 'GET',
-          headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
-        });
-        const execData = await execRes.json();
-        ordersExecuted = execData.succeeded || 0;
-        console.log(`[CEOAgent Chat] ${ordersExecuted}/${chatOrdersCount} orders executed`);
-      } catch (e: any) {
-        console.error('[CEOAgent Chat] Order execution failed:', e.message);
-      }
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000');
+      const cronSecretVal = process.env.CRON_SECRET;
+      fetch(`${appUrl}/api/agents/orders`, {
+        method: 'GET',
+        headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
+      }).catch(e => console.error('[CEOAgent Chat] Order exec fire-and-forget error:', e.message));
     }
 
     return NextResponse.json({
       ok: true,
       reply,
-      orders: chatOrdersCount > 0 ? {
-        created: chatOrdersCount,
-        executed: ordersExecuted,
-      } : undefined,
+      orders: chatOrdersCount > 0 ? { created: chatOrdersCount } : undefined,
     });
   } catch (error: any) {
     console.error('[CEOAgent] Chat error:', error);
