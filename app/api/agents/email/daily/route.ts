@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
-import { isGoodTimeToContact, getOptimalCronSlot, verifyProspectData } from '@/lib/agents/business-timing';
-import { callGemini } from '@/lib/agents/gemini';
+import { verifyProspectData } from '@/lib/agents/business-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,70 +25,48 @@ interface SendResult {
 }
 
 /**
- * Pre-send review: verify data coherence and personalize email via Gemini.
- * Returns null if prospect should NOT be contacted, or the reviewed template.
+ * Pre-send data quality check (fast, no AI call).
+ * Returns null if prospect should NOT be contacted, or the cleaned template.
  */
-async function reviewBeforeSend(
+function reviewBeforeSend(
   prospect: any,
   template: { subject: string; htmlBody: string; textBody: string },
-  category: string,
-  step: number,
-): Promise<{ subject: string; textBody: string; htmlBody: string } | null> {
-  if (!process.env.GEMINI_API_KEY) return template; // Fallback: send as-is
-
-  try {
-    const reviewResult = await callGemini({
-      system: `Tu es le responsable qualité email de KeiroAI. Avant chaque envoi, tu vérifies :
-1. COHÉRENCE : le type de commerce (${category}) correspond au contenu de l'email
-2. DONNÉES : les champs personnalisés sont remplis (pas de "{{company}}" ou "(vide)" dans le texte final)
-3. NATUREL : l'email doit sonner comme un vrai humain, pas un template. Si c'est trop robotique, reformule.
-4. CTA : le call-to-action doit être clair, fort, et adapté à la cible
-5. SIGNATURE : toujours "Victor" de KeiroAI, jamais "Oussama"
-
-Si le mail est OK, réponds: {"approved": true, "subject": "...", "text": "..."}
-Si tu améliores le texte, renvoie la version améliorée dans "text" et "subject".
-Si le prospect ne devrait PAS être contacté (données incohérentes, email suspect), réponds: {"approved": false, "reason": "..."}
-
-IMPORTANT : garde le même style et longueur. Ne rallonge pas. Sois concis et percutant.
-Réponds UNIQUEMENT en JSON valide.`,
-      message: `Prospect: ${JSON.stringify({
-        company: prospect.company,
-        type: prospect.type || category,
-        quartier: prospect.quartier,
-        email: prospect.email,
-        first_name: prospect.first_name,
-        note_google: prospect.note_google,
-      })}
-
-Email step ${step} à envoyer :
-Sujet: ${template.subject}
-Corps: ${template.textBody}`,
-      maxTokens: 800,
-    });
-
-    const jsonMatch = reviewResult.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return template;
-
-    const review = JSON.parse(jsonMatch[0]);
-    if (!review.approved) {
-      console.log(`[EmailDaily] Review rejected ${prospect.email}: ${review.reason}`);
-      return null;
-    }
-
-    // Use reviewed text if provided
-    if (review.text && review.text !== template.textBody) {
-      return {
-        subject: review.subject || template.subject,
-        textBody: review.text,
-        htmlBody: template.htmlBody, // Keep HTML for formatting
-      };
-    }
-
-    return template;
-  } catch (e: any) {
-    console.warn(`[EmailDaily] Review failed, sending as-is: ${e.message}`);
-    return template; // Fallback
+): { subject: string; textBody: string; htmlBody: string } | null {
+  // Check for broken template variables in final text
+  if (template.textBody.includes('{{') || template.subject.includes('{{')) {
+    console.log(`[EmailDaily] Rejected ${prospect.email}: unresolved template variables`);
+    return null;
   }
+
+  // Check for empty/broken personalization
+  if (template.textBody.includes('Bonjour ,') || template.textBody.includes('Bonjour,\n')) {
+    const fixed = {
+      ...template,
+      textBody: template.textBody.replace(/Bonjour\s*,/, `Bonjour${prospect.first_name ? ' ' + prospect.first_name : ''},`),
+      htmlBody: template.htmlBody.replace(/Bonjour\s*,/, `Bonjour${prospect.first_name ? ' ' + prospect.first_name : ''},`),
+    };
+    return fixed;
+  }
+
+  // Check for suspicious email domains
+  const disposableDomains = ['yopmail.com', 'guerrillamail.com', 'tempmail.com', 'mailinator.com', 'throwaway.email'];
+  const emailDomain = (prospect.email || '').split('@')[1]?.toLowerCase();
+  if (emailDomain && disposableDomains.includes(emailDomain)) {
+    console.log(`[EmailDaily] Rejected ${prospect.email}: disposable email domain`);
+    return null;
+  }
+
+  // Check "Oussama" isn't in the final email
+  if (template.textBody.includes('Oussama') || template.htmlBody.includes('Oussama')) {
+    const fixed = {
+      subject: template.subject,
+      textBody: template.textBody.replace(/Oussama/g, 'Victor'),
+      htmlBody: template.htmlBody.replace(/Oussama/g, 'Victor'),
+    };
+    return fixed;
+  }
+
+  return template;
 }
 
 /**
@@ -112,8 +89,8 @@ async function sendEmailDirect(
     };
     let template = getEmailTemplate(category, step, vars, selectedVariant);
 
-    // Pre-send review by Gemini
-    const reviewed = await reviewBeforeSend(prospect, template, category, step);
+    // Pre-send quality check (fast, no AI call)
+    const reviewed = reviewBeforeSend(prospect, template);
     if (!reviewed) {
       return { success: false, error: 'Rejected by pre-send review' };
     }
@@ -324,8 +301,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // --- Default: cold sequences ---
-      const slot = request.nextUrl.searchParams.get('slot') || 'all';
-      console.log(`[EmailDaily] Running cold sequence mode via Resend+Brevo (slot=${slot}, manual=${isManualTrigger})...`);
+      console.log(`[EmailDaily] Running cold sequence mode via Resend+Brevo (manual=${isManualTrigger})...`);
 
       // Pull from ALL qualified prospects
       // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
@@ -379,11 +355,9 @@ export async function GET(request: NextRequest) {
 
       let step1Count = 0;
       const MAX_STEP1_PER_DAY = isManualTrigger ? 200 : 50;
-      // Manual trigger: no 24h delay, send immediately to step 0 prospects
-      // Cron trigger: wait 24h after import before first contact
-      const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 24;
-
-      let skippedTiming = 0;
+      // Manual trigger: no delay, send immediately
+      // Cron trigger: wait 1h after import before first contact
+      const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 1;
       let skippedVerification = 0;
       let skippedTooRecent = 0;
       let skippedWaitingNextStep = 0;
@@ -391,14 +365,6 @@ export async function GET(request: NextRequest) {
 
       for (const prospect of prospects) {
         const category = getSequenceForProspect(prospect);
-
-        // Smart timing filter (only for cron slots, not manual or 'all')
-        if (slot !== 'all') {
-          if (!isGoodTimeToContact(category, 'email')) {
-            skippedTiming++;
-            continue;
-          }
-        }
 
         // Verify prospect data quality
         const verification = verifyProspectData(prospect);
@@ -483,7 +449,6 @@ export async function GET(request: NextRequest) {
       }
 
       const skipDiagnostic = {
-        timing: skippedTiming,
         verification: skippedVerification,
         too_recent: skippedTooRecent,
         waiting_next_step: skippedWaitingNextStep,

@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
-import { callGemini } from '@/lib/agents/gemini';
+import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,6 +16,7 @@ function getSupabaseAdmin() {
 }
 
 const MAX_PROSPECTS_PER_RUN = 15;
+const MAX_SEARCH_ENRICHMENT = 10;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -69,8 +70,105 @@ interface EnrichmentResult {
   reasoning: string;
 }
 
+interface SocialSearchResult {
+  instagram: string | null;
+  tiktok: string | null;
+  website: string | null;
+  google_rating: number | null;
+  google_reviews: number | null;
+  phone: string | null;
+  address: string | null;
+  description: string | null;
+  confidence: number;
+}
+
 /**
- * Enrich a single prospect using Claude Haiku.
+ * Search Google for a prospect's social media profiles, website, and Google Maps data.
+ * Uses Gemini with Google Search grounding.
+ */
+async function searchSocialProfiles(prospect: {
+  company: string | null;
+  quartier: string | null;
+  type: string | null;
+  email: string | null;
+}): Promise<SocialSearchResult | null> {
+  if (!prospect.company) return null;
+
+  const location = prospect.quartier || 'Paris';
+  const businessType = prospect.type || 'commerce';
+
+  try {
+    const rawText = await callGeminiWithSearch({
+      system: `Tu es un assistant de recherche commerciale. Tu dois trouver les informations en ligne d'un commerce local français.
+
+RECHERCHE EXACTEMENT CES INFORMATIONS :
+1. Compte Instagram (handle exact avec @, pas un lien)
+2. Compte TikTok (handle exact avec @)
+3. Site web officiel (URL complète)
+4. Note Google Maps et nombre d'avis
+5. Numéro de téléphone
+6. Adresse physique
+7. Description courte de l'activité
+
+RÈGLES :
+- Ne retourne QUE des informations TROUVÉES et VÉRIFIÉES via la recherche
+- Si tu ne trouves pas un champ, mets null
+- Pour Instagram/TikTok, donne UNIQUEMENT le handle (ex: @restaurant_paris) sans le lien
+- La note Google doit être un nombre entre 1.0 et 5.0
+- Ne confonds pas avec des homonymes — vérifie que c'est bien le commerce dans la bonne ville
+
+Réponds UNIQUEMENT en JSON valide :
+{
+  "instagram": "@handle" | null,
+  "tiktok": "@handle" | null,
+  "website": "https://..." | null,
+  "google_rating": 4.5 | null,
+  "google_reviews": 123 | null,
+  "phone": "+33..." | null,
+  "address": "12 rue..." | null,
+  "description": "..." | null,
+  "confidence": 0-100
+}`,
+      message: `Recherche les informations en ligne de ce commerce :
+- Nom : ${prospect.company}
+- Type : ${businessType}
+- Localisation : ${location}
+- Email : ${prospect.email || '(inconnu)'}
+
+Cherche sur Google Maps, Instagram, TikTok, et le web en général.`,
+      maxTokens: 600,
+    });
+
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const result: SocialSearchResult = JSON.parse(jsonMatch[0]);
+
+    // Validate handles format
+    if (result.instagram && !result.instagram.startsWith('@')) {
+      result.instagram = '@' + result.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '');
+    }
+    if (result.tiktok && !result.tiktok.startsWith('@')) {
+      result.tiktok = '@' + result.tiktok.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '').replace(/\/$/, '');
+    }
+
+    // Clean Instagram handle (remove @ for DB storage)
+    if (result.instagram) {
+      result.instagram = result.instagram.replace(/^@/, '');
+    }
+    if (result.tiktok) {
+      result.tiktok = result.tiktok.replace(/^@/, '');
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error(`[CommercialAgent] Google search error for ${prospect.company}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Enrich a single prospect using Gemini (data analysis, no web search).
  */
 async function enrichProspect(prospect: {
   id: string;
@@ -81,8 +179,7 @@ async function enrichProspect(prospect: {
   quartier: string | null;
   note_google: number | null;
 }): Promise<EnrichmentResult | null> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) return null;
+  if (!process.env.GEMINI_API_KEY) return null;
 
   const prospectAnalysisPrompt = `Analyse ce prospect et enrichis les données manquantes :
 
@@ -107,7 +204,6 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
       maxTokens: 500,
     });
 
-    // Parse JSON from response
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 200));
@@ -134,7 +230,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (isCron) {
-    console.log('[CommercialAgent] Cron triggered — running enrichment pipeline');
+    console.log('[CommercialAgent] Cron triggered — running enrichment + social search pipeline');
     return runEnrichment();
   }
 
@@ -145,7 +241,6 @@ export async function GET(request: NextRequest) {
       .from('agent_logs')
       .select('*')
       .eq('agent', 'commercial')
-      .eq('action', 'enrichment_run')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -162,7 +257,16 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Core: fetch incomplete prospects, enrich via Claude, update DB.
+ * POST /api/agents/commercial — manual trigger
+ */
+export async function POST(request: NextRequest) {
+  const { authorized } = await verifyAuth(request);
+  if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  return runEnrichment();
+}
+
+/**
+ * Core: fetch incomplete prospects, enrich via Gemini + Google Search, update DB.
  */
 async function runEnrichment(): Promise<NextResponse> {
   try {
@@ -173,12 +277,10 @@ async function runEnrichment(): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configuree' }, { status: 500 });
     }
 
-    // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
-    // Includes: missing data, status 'new'/'identifie' not yet in email sequence
-    // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL <> 'dead' = NULL (excluded)
+    // === PHASE 1: Data enrichment (type, quartier, email validation) ===
     const { data: prospects, error: fetchError } = await supabase
       .from('crm_prospects')
-      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status')
+      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
       .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie,status.is.null')
       .or('temperature.is.null,temperature.neq.dead')
       .order('created_at', { ascending: true })
@@ -189,31 +291,11 @@ async function runEnrichment(): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: fetchError.message }, { status: 500 });
     }
 
-    if (!prospects || prospects.length === 0) {
-      console.log('[CommercialAgent] No prospects to enrich');
-
-      await supabase.from('agent_logs').insert({
-        agent: 'commercial',
-        action: 'enrichment_run',
-        data: {
-          prospects_found: 0,
-          enriched: 0,
-          flagged_dead: 0,
-          skipped: 0,
-          timestamp: nowISO,
-        },
-        created_at: nowISO,
-      });
-
-      return NextResponse.json({ ok: true, enriched: 0, message: 'Aucun prospect a enrichir' });
-    }
-
-    console.log(`[CommercialAgent] Found ${prospects.length} prospects to enrich`);
-
     let enrichedCount = 0;
     let flaggedDeadCount = 0;
     let skippedCount = 0;
     let advancedToContactCount = 0;
+    let socialEnrichedCount = 0;
     const enrichmentDetails: Array<{
       prospect_id: string;
       company: string | null;
@@ -221,89 +303,158 @@ async function runEnrichment(): Promise<NextResponse> {
       reasoning: string;
     }> = [];
 
-    for (const prospect of prospects) {
-      const result = await enrichProspect(prospect);
+    if (!prospects || prospects.length === 0) {
+      console.log('[CommercialAgent] No prospects to enrich in phase 1');
+    } else {
+      console.log(`[CommercialAgent] Phase 1: ${prospects.length} prospects to enrich`);
 
-      if (!result) {
-        skippedCount++;
-        continue;
-      }
+      for (const prospect of prospects) {
+        const result = await enrichProspect(prospect);
 
-      // Build update object — only update fields that are currently missing
-      // and where the AI has sufficient confidence
-      const updates: Record<string, any> = {};
-
-      // Update type if missing and AI is confident
-      if (!prospect.type && result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 70) {
-        updates.type = result.type;
-      }
-
-      // Update quartier if missing and AI is confident
-      if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
-        updates.quartier = result.quartier;
-      }
-
-      // Flag bad emails as dead
-      if (!result.email_valid || (result.email_flags && result.email_flags.length > 0)) {
-        const hasCriticalFlag = result.email_flags?.some(f =>
-          ['disposable_domain', 'bad_format'].includes(f)
-        );
-
-        if (!result.email_valid || hasCriticalFlag) {
-          updates.temperature = 'dead';
-          updates.status = 'perdu';
-          flaggedDeadCount++;
-          console.log(`[CommercialAgent] Flagged prospect ${prospect.id} as dead (email: ${prospect.email}, flags: ${result.email_flags?.join(', ')})`);
-        }
-      }
-
-      // Agent commercial gives the GO/NO-GO for contact
-      if (result.ready_to_contact && prospect.email && result.email_valid) {
-        if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
-          updates.status = 'contacte';
-          updates.email_sequence_status = 'not_started';
-          updates.email_sequence_step = 0;
-          if (result.priority_score) {
-            updates.score = result.priority_score;
-          }
-          advancedToContactCount++;
-        }
-      } else if (result.ready_to_contact === false && result.disqualification_reason) {
-        // Disqualified by commercial audit — use 'perdu' (valid DB status)
-        updates.status = 'perdu';
-        updates.temperature = 'dead';
-        flaggedDeadCount++;
-        console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
-      }
-
-      // Always update updated_at if we have any changes
-      if (Object.keys(updates).length > 0) {
-        updates.updated_at = nowISO;
-
-        const { error: updateError } = await supabase
-          .from('crm_prospects')
-          .update(updates)
-          .eq('id', prospect.id);
-
-        if (updateError) {
-          console.error(`[CommercialAgent] Error updating prospect ${prospect.id}:`, updateError);
+        if (!result) {
           skippedCount++;
           continue;
         }
 
-        enrichedCount++;
-        enrichmentDetails.push({
-          prospect_id: prospect.id,
-          company: prospect.company,
-          updates,
-          reasoning: result.reasoning,
-        });
-      } else {
-        skippedCount++;
+        const updates: Record<string, any> = {};
+
+        if (!prospect.type && result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 70) {
+          updates.type = result.type;
+        }
+
+        if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
+          updates.quartier = result.quartier;
+        }
+
+        // Flag bad emails as dead
+        if (!result.email_valid || (result.email_flags && result.email_flags.length > 0)) {
+          const hasCriticalFlag = result.email_flags?.some(f =>
+            ['disposable_domain', 'bad_format'].includes(f)
+          );
+
+          if (!result.email_valid || hasCriticalFlag) {
+            updates.temperature = 'dead';
+            updates.status = 'perdu';
+            flaggedDeadCount++;
+            console.log(`[CommercialAgent] Flagged ${prospect.id} as dead (email: ${prospect.email})`);
+          }
+        }
+
+        // GO/NO-GO for contact
+        if (result.ready_to_contact && prospect.email && result.email_valid) {
+          if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
+            updates.status = 'contacte';
+            updates.email_sequence_status = 'not_started';
+            updates.email_sequence_step = 0;
+            if (result.priority_score) {
+              updates.score = result.priority_score;
+            }
+            advancedToContactCount++;
+          }
+        } else if (result.ready_to_contact === false && result.disqualification_reason) {
+          updates.status = 'perdu';
+          updates.temperature = 'dead';
+          flaggedDeadCount++;
+          console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updates.updated_at = nowISO;
+
+          const { error: updateError } = await supabase
+            .from('crm_prospects')
+            .update(updates)
+            .eq('id', prospect.id);
+
+          if (updateError) {
+            console.error(`[CommercialAgent] Error updating ${prospect.id}:`, updateError);
+            skippedCount++;
+            continue;
+          }
+
+          enrichedCount++;
+          enrichmentDetails.push({
+            prospect_id: prospect.id,
+            company: prospect.company,
+            updates,
+            reasoning: result.reasoning,
+          });
+        } else {
+          skippedCount++;
+        }
       }
     }
 
-    // Get total CRM count for reporting
+    // === PHASE 2: Social media enrichment via Google Search ===
+    // Find prospects with company name but missing social data
+    const { data: socialProspects } = await supabase
+      .from('crm_prospects')
+      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews')
+      .not('company', 'is', null)
+      .or('temperature.is.null,temperature.neq.dead')
+      .or('status.is.null,status.not.in.("perdu","client","sprint")')
+      .or('instagram.is.null,tiktok_handle.is.null,website.is.null,google_rating.is.null')
+      .order('score', { ascending: false })
+      .limit(MAX_SEARCH_ENRICHMENT);
+
+    if (socialProspects && socialProspects.length > 0) {
+      console.log(`[CommercialAgent] Phase 2: ${socialProspects.length} prospects for social search`);
+
+      for (const prospect of socialProspects) {
+        // Skip if already has all social data
+        if (prospect.instagram && prospect.tiktok_handle && prospect.website && prospect.google_rating) {
+          continue;
+        }
+
+        const searchResult = await searchSocialProfiles(prospect);
+        if (!searchResult || searchResult.confidence < 50) continue;
+
+        const socialUpdates: Record<string, any> = {};
+
+        // Only update fields that are currently missing
+        if (!prospect.instagram && searchResult.instagram) {
+          socialUpdates.instagram = searchResult.instagram;
+        }
+        if (!prospect.tiktok_handle && searchResult.tiktok) {
+          socialUpdates.tiktok_handle = searchResult.tiktok;
+        }
+        if (!prospect.website && searchResult.website) {
+          socialUpdates.website = searchResult.website;
+        }
+        if (!prospect.google_rating && searchResult.google_rating) {
+          socialUpdates.google_rating = searchResult.google_rating;
+          socialUpdates.note_google = searchResult.google_rating;
+        }
+        if (!prospect.google_reviews && searchResult.google_reviews) {
+          socialUpdates.google_reviews = searchResult.google_reviews;
+        }
+        if (searchResult.phone) {
+          socialUpdates.phone = searchResult.phone;
+        }
+        if (searchResult.address) {
+          socialUpdates.address = searchResult.address;
+        }
+
+        if (Object.keys(socialUpdates).length > 0) {
+          socialUpdates.updated_at = nowISO;
+
+          const { error: socialError } = await supabase
+            .from('crm_prospects')
+            .update(socialUpdates)
+            .eq('id', prospect.id);
+
+          if (!socialError) {
+            socialEnrichedCount++;
+            console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at').join(', ')}`);
+          }
+        }
+
+        // Rate limit: wait 500ms between searches
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    // === Reporting ===
     const { count: totalProspects } = await supabase
       .from('crm_prospects')
       .select('id', { count: 'exact', head: true });
@@ -313,15 +464,34 @@ async function runEnrichment(): Promise<NextResponse> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'contacte');
 
-    // Log the enrichment run
+    const { count: withInstagram } = await supabase
+      .from('crm_prospects')
+      .select('id', { count: 'exact', head: true })
+      .not('instagram', 'is', null);
+
+    const { count: withTiktok } = await supabase
+      .from('crm_prospects')
+      .select('id', { count: 'exact', head: true })
+      .not('tiktok_handle', 'is', null);
+
     const runReport = {
-      prospects_found: prospects.length,
-      enriched: enrichedCount,
-      advanced_to_contact: advancedToContactCount,
-      flagged_dead: flaggedDeadCount,
-      skipped: skippedCount,
-      crm_total: totalProspects || 0,
-      crm_ready_to_contact: readyToContact || 0,
+      phase1_enrichment: {
+        prospects_found: prospects?.length || 0,
+        enriched: enrichedCount,
+        advanced_to_contact: advancedToContactCount,
+        flagged_dead: flaggedDeadCount,
+        skipped: skippedCount,
+      },
+      phase2_social_search: {
+        searched: socialProspects?.length || 0,
+        enriched: socialEnrichedCount,
+      },
+      crm_stats: {
+        total: totalProspects || 0,
+        ready_to_contact: readyToContact || 0,
+        with_instagram: withInstagram || 0,
+        with_tiktok: withTiktok || 0,
+      },
       details: enrichmentDetails,
       timestamp: nowISO,
     };
@@ -333,16 +503,29 @@ async function runEnrichment(): Promise<NextResponse> {
       created_at: nowISO,
     });
 
-    console.log(`[CommercialAgent] Enrichment complete: ${enrichedCount} enriched, ${advancedToContactCount} → contacté, ${flaggedDeadCount} flagged dead, ${skippedCount} skipped | CRM total: ${totalProspects}`);
+    // Report to CEO
+    await supabase.from('agent_logs').insert({
+      agent: 'commercial',
+      action: 'report_to_ceo',
+      data: {
+        phase: 'completed',
+        message: `Commercial: ${enrichedCount} enrichis, ${socialEnrichedCount} réseaux sociaux trouvés, ${advancedToContactCount} → contacté, ${flaggedDeadCount} disqualifiés | CRM: ${totalProspects} total, ${withInstagram} IG, ${withTiktok} TikTok`,
+      },
+      created_at: nowISO,
+    });
+
+    console.log(`[CommercialAgent] Done: ${enrichedCount} enriched, ${socialEnrichedCount} social, ${advancedToContactCount} → contacté, ${flaggedDeadCount} dead | CRM: ${totalProspects} total`);
 
     return NextResponse.json({
       ok: true,
       enriched: enrichedCount,
+      social_enriched: socialEnrichedCount,
       advanced_to_contact: advancedToContactCount,
       flagged_dead: flaggedDeadCount,
       skipped: skippedCount,
-      total: prospects.length,
       crm_total: totalProspects || 0,
+      crm_instagram: withInstagram || 0,
+      crm_tiktok: withTiktok || 0,
     });
   } catch (error: any) {
     console.error('[CommercialAgent] Error:', error);

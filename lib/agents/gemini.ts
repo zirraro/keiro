@@ -1,5 +1,5 @@
 /**
- * Gemini 2.0 Flash helper for all agents.
+ * Gemini 2.5 Flash helper for all agents.
  * Replaces Anthropic Claude Haiku to avoid credit issues.
  * Uses REST API directly — no SDK needed.
  */
@@ -13,7 +13,7 @@ interface GeminiOptions {
 }
 
 /**
- * Call Gemini 2.0 Flash with a system prompt and user message.
+ * Call Gemini 2.5 Flash with a system prompt and user message.
  * Returns the text response or throws on error.
  */
 export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
@@ -53,7 +53,7 @@ export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOp
 }
 
 /**
- * Call Gemini with conversation history (for CEO chat).
+ * Call Gemini with conversation history (for agent chat).
  */
 export async function callGeminiChat({
   system,
@@ -100,10 +100,55 @@ export async function callGeminiChat({
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+    throw new Error(`Gemini Chat API error ${response.status}: ${errText}`);
   }
 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return text;
+}
+
+/**
+ * Call Gemini with Google Search grounding enabled.
+ * Uses Gemini's built-in web search to find real-time data (social profiles, websites, Google Maps, etc.).
+ */
+export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY non configurée');
+  }
+
+  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: {
+        parts: [{ text: system }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: message }],
+        },
+      ],
+      tools: [{ google_search: {} }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.3,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini Search API error ${response.status}: ${errText}`);
+  }
+
+  const data = await response.json();
+  // Google Search grounding may return multiple parts
+  const text = data.candidates?.[0]?.content?.parts
+    ?.filter((p: any) => p.text)
+    .map((p: any) => p.text)
+    .join('\n') || '';
   return text;
 }
