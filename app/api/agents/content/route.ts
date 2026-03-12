@@ -212,6 +212,10 @@ export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
+  }
+
   const supabase = getSupabaseAdmin();
 
   try {
@@ -409,11 +413,22 @@ async function generateWeeklyPlan(supabase: any) {
   // The elite system prompt already contains all visual rules, timing, and brand guidelines
   const enhancedSystemPrompt = getContentSystemPrompt();
 
-  const rawText = await callGemini({
-    system: enhancedSystemPrompt,
-    message: prompt,
-    maxTokens: 4000,
-  });
+  let rawText: string;
+  try {
+    rawText = await callGemini({
+      system: enhancedSystemPrompt,
+      message: prompt,
+      maxTokens: 4000,
+    });
+  } catch (geminiError: any) {
+    console.error('[Content] Gemini API error for weekly plan:', geminiError.message);
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'weekly_plan_failed',
+      data: { error: geminiError.message, phase: 'gemini_call' },
+      status: 'error', error_message: geminiError.message, created_at: nowISO,
+    });
+    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+  }
 
   let weekPlan: any[];
   try {
@@ -554,11 +569,32 @@ IMPORTANT — COHÉRENCE VISUELLE :
 
 Retourne UN SEUL objet JSON (pas de markdown).`;
 
-  const rawText = await callGemini({
-    system: getContentSystemPrompt(),
-    message: enhancedPrompt,
-    maxTokens: 2000,
-  });
+  let rawText: string;
+  try {
+    rawText = await callGemini({
+      system: getContentSystemPrompt(),
+      message: enhancedPrompt,
+      maxTokens: 2000,
+    });
+  } catch (geminiError: any) {
+    console.error('[Content] Gemini API error for daily post:', geminiError.message);
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'daily_post_failed',
+      data: { error: geminiError.message, phase: 'gemini_call' },
+      status: 'error', error_message: geminiError.message, created_at: nowISO,
+    });
+    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+  }
+
+  if (!rawText || rawText.trim().length === 0) {
+    console.error('[Content] Gemini returned empty response');
+    await supabase.from('agent_logs').insert({
+      agent: 'content', action: 'daily_post_failed',
+      data: { error: 'Empty Gemini response', phase: 'gemini_empty' },
+      status: 'error', error_message: 'Empty Gemini response', created_at: nowISO,
+    });
+    return NextResponse.json({ ok: false, error: 'Gemini returned empty response' }, { status: 502 });
+  }
 
   let post: any;
   try {
