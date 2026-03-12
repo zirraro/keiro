@@ -139,27 +139,35 @@ async function runDMPreparation(): Promise<NextResponse> {
 
   console.log('[DMAgent] Preparing and sending daily DMs...');
 
-  // Select top prospects with Instagram that haven't been DMed yet
-  // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
-  const { data: prospects, error } = await supabase
+  // Select prospects with Instagram that haven't been DMed yet
+  const { data: allWithIG, error } = await supabase
     .from('crm_prospects')
     .select('*')
     .not('instagram', 'is', null)
+    .neq('instagram', '')
     .neq('instagram', 'A_VERIFIER')
-    .or('dm_status.is.null,dm_status.eq.none')
-    .or('temperature.is.null,temperature.neq.dead')
-    .or('status.is.null,status.not.in.("client_pro","client_fondateurs","lost","perdu","client","sprint")')
     .order('score', { ascending: false })
-    .limit(MAX_DM_PER_DAY * 3);
+    .limit(200);
 
   if (error) {
     console.error('[DMAgent] Fetch error:', error.message);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
+  // Filter in JS for reliability
+  const prospects = (allWithIG || []).filter(p => {
+    const dmOk = !p.dm_status || p.dm_status === 'none';
+    const tempOk = !p.temperature || p.temperature !== 'dead';
+    const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);
+    return dmOk && tempOk && statusOk;
+  }).slice(0, MAX_DM_PER_DAY * 3);
+
   if (!prospects || prospects.length === 0) {
-    console.log('[DMAgent] No eligible prospects for DM');
-    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: 'Aucun prospect éligible' });
+    // Diagnostic
+    const { count: totalIG } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null).neq('instagram', '').neq('instagram', 'A_VERIFIER');
+    const { count: totalCRM } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
+    console.log(`[DMAgent] No eligible prospects. CRM: ${totalCRM} total, ${totalIG} with Instagram, all filtered by dm_status/temperature/status`);
+    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: `Aucun prospect éligible. ${totalIG} avec Instagram sur ${totalCRM} total.` });
   }
 
   console.log(`[DMAgent] Found ${prospects.length} eligible prospects`);

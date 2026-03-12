@@ -17,8 +17,8 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 15;
-const MAX_SEARCH_ENRICHMENT = 10;
+const MAX_PROSPECTS_PER_RUN = 30;
+const MAX_SEARCH_ENRICHMENT = 15;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -289,13 +289,25 @@ async function runEnrichment(): Promise<NextResponse> {
     console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG`);
 
     // === PHASE 1: Data enrichment (type, quartier, email validation) ===
-    const { data: prospects, error: fetchError } = await supabase
+    // Fetch prospects that need enrichment — broad fetch, filter in JS for reliability
+    const { data: rawProspects, error: fetchError } = await supabase
       .from('crm_prospects')
       .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
-      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie,status.is.null')
-      .or('temperature.is.null,temperature.neq.dead')
+      .not('temperature', 'eq', 'dead')
       .order('created_at', { ascending: true })
-      .limit(MAX_PROSPECTS_PER_RUN);
+      .limit(500);
+
+    // Filter: prospects that need enrichment (missing type/quartier, or never processed, or old ones to re-verify)
+    const prospects = (rawProspects || []).filter(p => {
+      // Skip dead/perdu
+      if (p.temperature === 'dead' || p.status === 'perdu') return false;
+      // Needs enrichment if missing type, quartier, or hasn't been processed
+      const needsType = !p.type;
+      const needsQuartier = !p.quartier;
+      const isNew = !p.status || p.status === 'new' || p.status === 'identifie';
+      const neverProcessed = !p.email_sequence_status;
+      return needsType || needsQuartier || isNew || neverProcessed;
+    }).slice(0, MAX_PROSPECTS_PER_RUN);
 
     if (fetchError) {
       console.error('[CommercialAgent] Error fetching prospects:', fetchError);
@@ -315,7 +327,13 @@ async function runEnrichment(): Promise<NextResponse> {
     }> = [];
 
     if (!prospects || prospects.length === 0) {
-      console.log('[CommercialAgent] No prospects to enrich in phase 1');
+      // Diagnostic: why no prospects?
+      const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
+      const { count: withEmail } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null);
+      const { count: withType } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('type', 'is', null);
+      const { count: deadCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead');
+      const { count: contacteCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'contacte');
+      console.log(`[CommercialAgent] No prospects for phase 1. CRM: ${totalCount} total, ${withEmail} with email, ${withType} with type, ${deadCount} dead, ${contacteCount} contacté`);
     } else {
       console.log(`[CommercialAgent] Phase 1: ${prospects.length} prospects to enrich`);
 
@@ -405,15 +423,19 @@ async function runEnrichment(): Promise<NextResponse> {
 
     // === PHASE 2: Social media enrichment via Google Search ===
     // Find prospects with company name but missing social data
-    const { data: socialProspects } = await supabase
+    const { data: rawSocialProspects } = await supabase
       .from('crm_prospects')
-      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature')
+      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature, status')
       .not('company', 'is', null)
-      .or('temperature.is.null,temperature.neq.dead')
-      .or('status.is.null,status.not.in.("perdu","client","sprint")')
-      .or('instagram.is.null,tiktok_handle.is.null,website.is.null,google_rating.is.null')
-      .order('score', { ascending: false })
-      .limit(MAX_SEARCH_ENRICHMENT);
+      .order('score', { ascending: false, nullsFirst: false })
+      .limit(200);
+
+    // Filter in JS: not dead/perdu/client + missing at least one social field
+    const socialProspects = (rawSocialProspects || []).filter(p => {
+      if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
+      // Must be missing at least one social field
+      return !p.instagram || !p.tiktok_handle || !p.website || !p.google_rating;
+    }).slice(0, MAX_SEARCH_ENRICHMENT);
 
     if (socialProspects && socialProspects.length > 0) {
       console.log(`[CommercialAgent] Phase 2: ${socialProspects.length} prospects for social search`);

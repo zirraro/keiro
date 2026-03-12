@@ -526,15 +526,18 @@ export async function GET(request: NextRequest) {
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
       const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
-      const { data: warmProspects } = await supabase
+      const { data: rawWarmProspects } = await supabase
         .from('crm_prospects')
         .select('*')
         .eq('source', 'chatbot')
         .not('email', 'is', null)
         .eq('email_sequence_step', 0)
         .lte('created_at', twentyFourHoursAgo)
-        .gte('created_at', fortyEightHoursAgo)
-        .or('status.is.null,status.not.in.("sprint","client","perdu")');
+        .gte('created_at', fortyEightHoursAgo);
+
+      const warmProspects = (rawWarmProspects || []).filter(p =>
+        !p.status || !['sprint', 'client', 'perdu', 'lost', 'client_pro', 'client_fondateurs'].includes(p.status)
+      );
 
       console.log(`[EmailDaily] Warm prospects: ${warmProspects?.length ?? 0}`);
 
@@ -574,13 +577,23 @@ export async function GET(request: NextRequest) {
       // --- Default: cold sequences ---
       console.log(`[EmailDaily] Running cold sequence (manual=${isManualTrigger})...`);
 
-      const { data: prospects, error: queryError } = await supabase
+      // Query eligible prospects: have email, not completed sequence, not dead/lost/client
+      // Use separate filters to avoid PostgREST .or() parsing issues
+      const { data: allWithEmail, error: queryError } = await supabase
         .from('crm_prospects')
         .select('*')
-        .not('email', 'is', null)
-        .or('email_sequence_status.is.null,email_sequence_status.eq.not_started,email_sequence_status.eq.in_progress')
-        .or('temperature.is.null,temperature.neq.dead')
-        .or('status.is.null,status.not.in.("client","perdu","sprint")');
+        .not('email', 'is', null);
+
+      // Filter in JS for reliability (PostgREST .or() with .not.in. can be tricky)
+      const prospects = (allWithEmail || []).filter(p => {
+        // email_sequence_status must be null, not_started, or in_progress
+        const seqOk = !p.email_sequence_status || p.email_sequence_status === 'not_started' || p.email_sequence_status === 'in_progress';
+        // temperature must not be dead
+        const tempOk = !p.temperature || p.temperature !== 'dead';
+        // status must not be client, perdu, sprint
+        const statusOk = !p.status || !['client', 'perdu', 'sprint', 'client_pro', 'client_fondateurs', 'lost'].includes(p.status);
+        return seqOk && tempOk && statusOk;
+      });
 
       if (queryError) {
         console.error('[EmailDaily] Query error:', queryError.message);
@@ -592,19 +605,33 @@ export async function GET(request: NextRequest) {
       if (!prospects || prospects.length === 0) {
         const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
         const { count: withEmail } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null);
+        const { count: withCompany } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('company', 'is', null);
         const { count: deadCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead');
         const { count: perduCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'perdu');
         const { count: completedCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'completed');
+        const { count: inProgressCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'in_progress');
+        const { count: notStartedCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'not_started');
+        const { count: nullSeqCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).is('email_sequence_status', null);
         const { count: clientCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'client');
+        const { count: sprintCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'sprint');
+
+        // Get sample of status values to understand distribution
+        const { data: statusSample } = await supabase.from('crm_prospects').select('status, email_sequence_status, temperature').not('email', 'is', null).limit(10);
 
         const diagnostic = {
           total_crm: totalCount || 0,
           with_email: withEmail || 0,
+          with_company: withCompany || 0,
           dead: deadCount || 0,
           perdu: perduCount || 0,
-          sequence_completed: completedCount || 0,
           clients: clientCount || 0,
-          reason: 'Aucun prospect éligible trouvé. Vérifiez que des prospects ont un email, ne sont pas dead/perdu/client, et n\'ont pas terminé la séquence.',
+          sprint: sprintCount || 0,
+          email_seq_completed: completedCount || 0,
+          email_seq_in_progress: inProgressCount || 0,
+          email_seq_not_started: notStartedCount || 0,
+          email_seq_null: nullSeqCount || 0,
+          sample_statuses: statusSample?.map(s => ({ status: s.status, seq: s.email_sequence_status, temp: s.temperature })),
+          reason: 'Aucun prospect éligible. Breakdown: email_sequence_status doit être null/not_started/in_progress, temperature != dead, status != client/perdu/sprint.',
         };
         console.log(`[EmailDaily] Diagnostic:`, JSON.stringify(diagnostic));
 
@@ -663,6 +690,8 @@ export async function GET(request: NextRequest) {
           skippedWaitingNextStep++;
         }
       }
+
+      console.log(`[EmailDaily] Pipeline: ${prospects.length} eligible → ${skippedVerification} failed verification, ${skippedTooRecent} too recent, ${skippedWaitingNextStep} waiting next step, ${skippedMaxDaily} max daily → ${batchForAI.length} to send`);
 
       // AI batch generation (one Gemini call for all emails)
       let aiEmails = new Map<string, { subject: string; textBody: string; htmlBody: string }>();

@@ -120,18 +120,23 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
 
   // Select prospects with TikTok handles
   // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
-  const { data: prospects } = await supabase
+  const { data: rawTikTok } = await supabase
     .from('crm_prospects')
     .select('*')
     .not('tiktok_handle', 'is', null)
-    .or('temperature.is.null,temperature.neq.dead')
-    .or('status.is.null,status.not.in.("client","perdu","sprint")')
-    .order('score', { ascending: false })
-    .limit(15);
+    .neq('tiktok_handle', '')
+    .order('score', { ascending: false, nullsFirst: false })
+    .limit(100);
+
+  const prospects = (rawTikTok || []).filter(p => {
+    if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
+    return true;
+  }).slice(0, 15);
 
   if (!prospects || prospects.length === 0) {
-    console.log('[TikTokAgent] No TikTok prospects found');
-    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: 'Aucun prospect TikTok' });
+    const { count: totalTT } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null).neq('tiktok_handle', '');
+    console.log(`[TikTokAgent] No eligible TikTok prospects. ${totalTT} with TikTok handle in CRM.`);
+    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: `Aucun prospect TikTok éligible. ${totalTT} avec TikTok dans le CRM.` });
   }
 
   let prepared = 0;

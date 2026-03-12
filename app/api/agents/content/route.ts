@@ -81,14 +81,15 @@ async function generateVisual(visualDescription: string, format: string): Promis
     const imagePrompt = rawPrompt.length > 2000 ? rawPrompt.substring(0, 2000) : rawPrompt;
 
     // Determine aspect ratio based on format
-    let width = 1024;
-    let height = 1024;
+    // Seedream requires minimum 3,686,400 pixels (≈1920x1920)
+    let width = 1920;
+    let height = 1920;
     if (format === 'story' || format === 'reel' || format === 'video') {
-      width = 720; height = 1280; // 9:16
+      width = 1080; height = 1920; // 9:16 mobile
     } else if (format === 'text') {
-      width = 1280; height = 720; // 16:9 for LinkedIn
+      width = 1920; height = 1080; // 16:9 for LinkedIn
     }
-    // carrousel, post = 1:1 (1024x1024)
+    // carrousel, post = 1:1 (1920x1920)
 
     console.log(`[Content] Generating visual with Seedream (${width}x${height})...`);
 
