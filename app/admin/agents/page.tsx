@@ -719,8 +719,9 @@ export default function AdminAgentsPage() {
       const data = await res.json();
       if (data.ok) {
         const stats = data.stats || {};
+        const emailDiag = data.diagnostic ? ` (CRM: ${data.diagnostic.total_crm}, avec email: ${data.diagnostic.with_email}, dead: ${data.diagnostic.dead}, perdu: ${data.diagnostic.perdu}, terminés: ${data.diagnostic.sequence_completed})` : '';
         const msg = agentType.startsWith('email')
-          ? `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués`
+          ? `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués${emailDiag}${data.message ? ' — ' + data.message : ''}`
           : agentType === 'dm_instagram'
           ? `${data.prepared || data.count || 0} DMs préparés`
           : agentType === 'tiktok_comments'
