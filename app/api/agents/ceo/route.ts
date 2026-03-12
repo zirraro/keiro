@@ -599,7 +599,7 @@ async function generateBrief(): Promise<NextResponse> {
 
 /**
  * Extract structured orders from the CEO brief text and insert them into agent_orders.
- * Uses a second Claude call to parse the natural language brief into actionable orders.
+ * Uses direct regex parsing — no second AI call needed.
  */
 async function extractAndInsertOrders(
   supabase: ReturnType<typeof getSupabaseAdmin>,
@@ -611,69 +611,86 @@ async function extractAndInsertOrders(
     'commercial', 'seo', 'onboarding', 'retention', 'content',
   ];
 
+  // Mapping from bracket names to agent IDs
+  const AGENT_MAPPING: Record<string, string> = {
+    'commercial': 'commercial',
+    'enrichissement': 'commercial',
+    'email': 'email',
+    'dm instagram': 'dm_instagram',
+    'dm': 'dm_instagram',
+    'instagram': 'dm_instagram',
+    'tiktok comments': 'tiktok_comments',
+    'tiktok': 'tiktok_comments',
+    'google maps': 'gmaps',
+    'gmaps': 'gmaps',
+    'seo': 'seo',
+    'onboarding': 'onboarding',
+    'retention': 'retention',
+    'rétention': 'retention',
+    'content': 'content',
+    'contenu': 'content',
+    'chatbot': 'chatbot',
+  };
+
   try {
-    console.log('[CEOAgent] Extracting structured orders from brief...');
+    console.log('[CEOAgent] Extracting orders from brief (regex)...');
 
-    const rawOrders = (await callGemini({
-      system: `Tu es un parseur d'ordres. Tu recois un brief CEO et tu dois extraire TOUS les ordres donnés aux agents sous forme JSON.
-
-Agents valides: ${VALID_AGENTS.join(', ')}
-
-Mapping des noms vers les identifiants:
-- "Email" / "email agent" → "email"
-- "Chatbot" / "chat" → "chatbot"
-- "Commercial" / "enrichissement" → "commercial"
-- "DM" / "DM Instagram" / "Instagram" → "dm_instagram"
-- "Google Maps" / "GMaps" / "prospection" → "gmaps"
-- "TikTok" / "TikTok Comments" → "tiktok_comments"
-- "SEO" / "blog" / "articles" → "seo"
-- "Onboarding" → "onboarding"
-- "Retention" / "rétention" → "retention"
-- "Content" / "contenu" / "réseaux sociaux" → "content"
-
-Priorité: "haute" si urgent/critique/🔴, "basse" si optionnel/info/🟢, "moyenne" sinon.
-
-Réponds UNIQUEMENT avec un tableau JSON valide. Si aucun ordre, réponds [].
-Chaque ordre: {"to_agent": "...", "order_type": "...", "priority": "haute|moyenne|basse", "description": "..."}`,
-      message: `Extrait les ordres de ce brief CEO:\n\n${briefText}`,
-      maxTokens: 2000,
-    })).trim();
-
-    // Parse JSON — handle markdown code blocks if present
-    let cleanJson = rawOrders;
-    const jsonMatch = rawOrders.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      cleanJson = jsonMatch[0];
-    }
-
-    let orders: Array<{
-      to_agent: string;
-      order_type: string;
-      priority: string;
-      description: string;
-    }>;
-
-    try {
-      orders = JSON.parse(cleanJson);
-    } catch {
-      console.warn('[CEOAgent] Failed to parse orders JSON:', cleanJson.substring(0, 200));
-      return 0;
-    }
-
-    if (!Array.isArray(orders) || orders.length === 0) {
-      console.log('[CEOAgent] No orders extracted from brief');
-      return 0;
-    }
-
-    // Filter and validate orders
-    const validOrders = orders.filter(
-      (o) => o.to_agent && VALID_AGENTS.includes(o.to_agent) && o.order_type
+    // Find all lines with [AgentName] pattern (with or without bold/markdown)
+    // Matches: **[Commercial] blah**, [Email] blah, *[DM Instagram]* blah, etc.
+    const orderLines = briefText.split('\n').filter(line =>
+      /\*{0,2}\[.+?\]\*{0,2}/.test(line)
     );
 
+    console.log(`[CEOAgent] Found ${orderLines.length} order lines in brief`);
+
+    const orders: Array<{ to_agent: string; order_type: string; priority: string; description: string }> = [];
+
+    for (const line of orderLines) {
+      // Extract agent name from brackets
+      const bracketMatch = line.match(/\[([^\]]+)\]/);
+      if (!bracketMatch) continue;
+
+      const agentName = bracketMatch[1].toLowerCase().trim();
+      const toAgent = AGENT_MAPPING[agentName];
+      if (!toAgent || !VALID_AGENTS.includes(toAgent)) continue;
+
+      // Extract description (everything after the bracket)
+      const description = line
+        .replace(/\*{0,2}\[[^\]]+\]\*{0,2}/, '')  // Remove [Agent] with optional bold
+        .replace(/^[\s\-—:]+/, '')                  // Remove leading dashes/colons
+        .replace(/\*{1,2}/g, '')                    // Remove remaining markdown bold
+        .trim();
+
+      if (!description) continue;
+
+      // Determine priority from keywords
+      let priority = 'haute';
+      if (/optionnel|info|🟢|basse/i.test(line)) priority = 'basse';
+      else if (/moyenne|normal/i.test(line)) priority = 'moyenne';
+
+      // Avoid duplicates (same agent + similar description)
+      const isDuplicate = orders.some(o => o.to_agent === toAgent && o.order_type === description.substring(0, 50));
+      if (isDuplicate) continue;
+
+      // Skip DIRECTIVE lines (those are instructions, not orders to execute)
+      if (/DIRECTIVE/i.test(line)) continue;
+
+      orders.push({
+        to_agent: toAgent,
+        order_type: description.substring(0, 200),
+        priority,
+        description,
+      });
+    }
+
+    const validOrders = orders;
+
     if (validOrders.length === 0) {
-      console.log('[CEOAgent] No valid orders after filtering');
+      console.log('[CEOAgent] No valid orders found in brief');
       return 0;
     }
+
+    console.log(`[CEOAgent] Parsed ${validOrders.length} orders: ${validOrders.map(o => `${o.to_agent}:${o.order_type.substring(0, 40)}`).join(', ')}`);
 
     // Insert orders into agent_orders table
     const rows = validOrders.map((o) => ({
