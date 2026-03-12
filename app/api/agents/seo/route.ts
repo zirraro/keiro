@@ -204,7 +204,7 @@ Genere le JSON complet comme specifie dans tes instructions.`,
     // Parse JSON
     let article: any;
     try {
-      const cleanArticleText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+      const cleanArticleText = rawText.replace(/```[\w]*\s*/g, '');
       const jsonMatch = cleanArticleText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         article = JSON.parse(jsonMatch[0]);
@@ -339,7 +339,7 @@ Genere le JSON comme specifie.`,
 
     let calendar: any;
     try {
-      const cleanCalText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+      const cleanCalText = rawText.replace(/```[\w]*\s*/g, '');
       const jsonMatch = cleanCalText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         calendar = JSON.parse(jsonMatch[0]);

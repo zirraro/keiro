@@ -150,7 +150,7 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
     });
 
     // Parse JSON array (strip markdown fences if present)
-    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       console.warn('[EmailDaily] AI batch: no JSON array found');

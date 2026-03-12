@@ -138,13 +138,16 @@ Réponds UNIQUEMENT en JSON valide :
 - Email : ${prospect.email || '(inconnu)'}
 
 Cherche sur Google Maps, Instagram, TikTok, et le web en général.`,
-      maxTokens: 600,
+      maxTokens: 1000,
     });
 
-    // Strip markdown code fences if present
-    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    // Strip ALL markdown code fences
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.error('[CommercialAgent] No JSON from Google search:', rawText.substring(0, 300));
+      return null;
+    }
 
     const result: SocialSearchResult = JSON.parse(jsonMatch[0]);
 
@@ -205,14 +208,24 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
     const rawText = await callGemini({
       system: getCommercialSystemPrompt(),
       message: prospectAnalysisPrompt,
-      maxTokens: 500,
+      maxTokens: 1000,
     });
 
-    // Strip markdown code fences if present
-    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    // Strip ALL markdown code fences
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 200));
+      // Try to salvage truncated JSON by adding closing brace
+      const partialMatch = cleanText.match(/\{[\s\S]*/);
+      if (partialMatch) {
+        try {
+          const fixed = partialMatch[0].replace(/,?\s*$/, '') + '}';
+          const result: EnrichmentResult = JSON.parse(fixed);
+          console.log('[CommercialAgent] Salvaged truncated JSON for prospect');
+          return result;
+        } catch { /* couldn't salvage */ }
+      }
+      console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 300));
       return null;
     }
 

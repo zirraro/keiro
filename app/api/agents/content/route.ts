@@ -81,15 +81,15 @@ async function generateVisual(visualDescription: string, format: string): Promis
     const imagePrompt = rawPrompt.length > 2000 ? rawPrompt.substring(0, 2000) : rawPrompt;
 
     // Determine aspect ratio based on format
-    // Seedream requires minimum 3,686,400 pixels (≈1920x1920)
+    // Seedream requires minimum 3,686,400 pixels — ALL sizes must meet this
     let width = 1920;
-    let height = 1920;
+    let height = 1920; // 1920x1920 = 3,686,400 ✓
     if (format === 'story' || format === 'reel' || format === 'video') {
-      width = 1080; height = 1920; // 9:16 mobile
+      width = 1440; height = 2560; // 9:16 mobile = 3,686,400 ✓
     } else if (format === 'text') {
-      width = 1920; height = 1080; // 16:9 for LinkedIn
+      width = 2560; height = 1440; // 16:9 LinkedIn = 3,686,400 ✓
     }
-    // carrousel, post = 1:1 (1920x1920)
+    // carrousel, post = 1:1 (1920x1920 = 3,686,400)
 
     console.log(`[Content] Generating visual with Seedream (${width}x${height})...`);
 
@@ -448,7 +448,7 @@ async function generateWeeklyPlan(supabase: any) {
 
   let weekPlan: any[];
   try {
-    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       weekPlan = JSON.parse(jsonMatch[0]);
@@ -615,7 +615,7 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
 
   let post: any;
   try {
-    const cleanText2 = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const cleanText2 = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText2.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       post = JSON.parse(jsonMatch[0]);

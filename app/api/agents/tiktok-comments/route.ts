@@ -58,7 +58,7 @@ async function generateComment(prospect: any): Promise<{ comment: string; dm_tex
       message: context,
       maxTokens: 200,
     });
-    const cleanText = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
