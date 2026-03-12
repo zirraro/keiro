@@ -93,6 +93,7 @@ export default function AdminAgentsPage() {
     { id: 'tiktok_comments', name: 'TikTok', icon: '🎵' },
     { id: 'onboarding', name: 'Onboarding', icon: '🚀' },
     { id: 'retention', name: 'Rétention', icon: '🔄' },
+    { id: 'marketing', name: 'Marketing', icon: '📊' },
   ];
   const [selectedAgent, setSelectedAgent] = useState('ceo');
   const [agentMessages, setAgentMessages] = useState<Record<string, Array<{ role: 'user' | 'assistant'; content: string }>>>({});
@@ -110,6 +111,8 @@ export default function AdminAgentsPage() {
     total: number;
     success: number;
     failed: number;
+    message?: string;
+    diagnostic?: Record<string, any>;
     byBusinessType: Record<string, { sent?: number; count?: number; failed?: number; steps?: number[]; handles?: string[] }>;
     dmExamples?: Array<{ name: string; type?: string; comment?: string }>;
     results?: Array<{ prospect_id: string; step: number; success: boolean; error?: string }>;
@@ -128,7 +131,6 @@ export default function AdminAgentsPage() {
     handle: string;
     message: string;
     personalization: string;
-    business_type: string;
     created_at: string;
     prospect_name?: string;
   };
@@ -636,7 +638,7 @@ export default function AdminAgentsPage() {
       let query = supabase
         .from('agent_logs')
         .select('*')
-        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared', 'enrichment_run', 'daily_post_generated', 'weekly_plan_generated', 'execute_publication'])
+        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared', 'enrichment_run', 'daily_post_generated', 'weekly_plan_generated', 'execute_publication', 'article_generated', 'article_published', 'calendar_planned', 'queue_processed', 'sequence_scheduled', 'daily_check', 'daily_brief', 'report_to_ceo'])
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -649,24 +651,46 @@ export default function AdminAgentsPage() {
       const { data, error } = await query;
       if (error) throw error;
 
-      const entries: CampaignEntry[] = (data || []).map((log: any) => ({
-        id: log.id,
-        date: log.created_at,
-        agent: log.agent,
-        action: log.action,
-        total: log.data?.total || log.data?.prepared || 0,
-        success: log.data?.success || log.data?.prepared || 0,
-        failed: log.data?.failed || 0,
-        byBusinessType: log.data?.by_business_type || {},
-        dmExamples: log.data?.comments || log.data?.prepared_names?.map((n: string) => ({ name: n })) || [],
-        results: log.data?.results || [],
-      }));
+      const entries: CampaignEntry[] = (data || []).map((log: any) => {
+        const d = log.data || {};
+        // Handle different agent data structures
+        let total = d.total || d.prepared || 0;
+        let success = d.success || d.prepared || 0;
+        let failed = d.failed || 0;
+
+        // Commercial agent: phase1 + phase2 structure
+        if (d.phase1_enrichment) {
+          total = (d.phase1_enrichment.prospects_found || 0) + (d.phase2_social_search?.searched || 0);
+          success = (d.phase1_enrichment.enriched || 0) + (d.phase2_social_search?.enriched || 0);
+          failed = d.phase1_enrichment.flagged_dead || 0;
+        }
+        // Content agent: single post
+        if (d.platform || d.format) {
+          total = 1;
+          success = 1;
+        }
+
+        return {
+          id: log.id,
+          date: log.created_at,
+          agent: log.agent,
+          action: log.action,
+          total,
+          success,
+          failed,
+          message: d.message || undefined,
+          diagnostic: d.diagnostic || d.skipped || undefined,
+          byBusinessType: d.by_business_type || {},
+          dmExamples: d.comments || d.prepared_names?.map((n: string) => ({ name: n })) || [],
+          results: d.results || d.details || [],
+        };
+      });
       setCampaigns(entries);
 
       // Load DM queue + content calendar for preview
       const { data: queueData } = await supabase
         .from('dm_queue')
-        .select('id, channel, handle, message, personalization, business_type, created_at, prospect_id')
+        .select('id, channel, handle, message, personalization, created_at, prospect_id')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -1424,7 +1448,7 @@ export default function AdminAgentsPage() {
                           'bg-blue-100 text-blue-700'
                         }`}>{dm.channel}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-neutral-100 text-neutral-600">
-                          {dm.business_type || 'N/A'}
+                          {dm.channel}
                         </span>
                         <span className="text-xs font-medium text-neutral-800">{dm.prospect_name}</span>
                         <span className="text-xs text-neutral-400 ml-auto">@{dm.handle}</span>
@@ -1491,17 +1515,17 @@ export default function AdminAgentsPage() {
             ) : (
               filteredCampaigns.map((campaign) => {
                 const isExpanded = expandedCampaign === campaign.id;
-                const channelLabel = campaign.agent === 'email'
-                  ? (campaign.action === 'daily_warm' ? 'Email chatbot' : 'Email (cold)')
-                  : campaign.agent === 'dm_instagram'
-                  ? 'DM Instagram'
-                  : campaign.agent === 'content'
-                  ? 'Contenu'
-                  : campaign.agent === 'commercial'
-                  ? 'Commercial'
-                  : campaign.agent === 'tiktok_comments'
-                  ? 'TikTok'
-                  : campaign.agent;
+                const actionLabels: Record<string, string> = {
+                  daily_cold: 'Email (cold)', daily_warm: 'Email chatbot',
+                  daily_preparation: 'DM Instagram', comments_prepared: 'TikTok',
+                  enrichment_run: 'Enrichissement', daily_post_generated: 'Post contenu',
+                  weekly_plan_generated: 'Plan contenu', execute_publication: 'Publication',
+                  article_generated: 'Article SEO', article_published: 'Article publié',
+                  calendar_planned: 'Calendrier SEO', queue_processed: 'Onboarding',
+                  sequence_scheduled: 'Séquence onboarding', daily_check: 'Rétention',
+                  daily_brief: 'Brief CEO', report_to_ceo: `Rapport ${campaign.agent}`,
+                };
+                const channelLabel = actionLabels[campaign.action] || campaign.agent;
                 const channelColor = campaign.agent === 'email'
                   ? 'bg-green-100 text-green-700'
                   : campaign.agent === 'content'
@@ -1531,8 +1555,8 @@ export default function AdminAgentsPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <span className="text-lg font-bold text-neutral-900">{campaign.success}</span>
-                            <span className="text-xs text-neutral-400 ml-1">envoy{campaign.agent === 'email' ? 'es' : 'es'}</span>
+                            <span className="text-lg font-bold text-neutral-900">{campaign.total > 0 ? campaign.success : '-'}</span>
+                            {campaign.total > 0 && <span className="text-xs text-neutral-400 ml-1">/{campaign.total}</span>}
                           </div>
                           {campaign.failed > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
@@ -1560,6 +1584,28 @@ export default function AdminAgentsPage() {
 
                     {isExpanded && (
                       <div className="border-t border-neutral-100 p-5 bg-neutral-50 space-y-4">
+                        {/* Agent message / report */}
+                        {campaign.message && (
+                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                            <p className="text-sm text-blue-800">{campaign.message}</p>
+                          </div>
+                        )}
+                        {/* Diagnostic info */}
+                        {campaign.diagnostic && (
+                          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
+                            <h4 className="text-xs font-semibold text-amber-700 uppercase mb-1">Diagnostic</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(campaign.diagnostic).filter(([k]) => k !== 'reason').map(([k, v]) => (
+                                <span key={k} className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                                  {k}: {typeof v === 'number' ? v : JSON.stringify(v)}
+                                </span>
+                              ))}
+                            </div>
+                            {campaign.diagnostic.reason && (
+                              <p className="text-xs text-amber-600 mt-2">{campaign.diagnostic.reason as string}</p>
+                            )}
+                          </div>
+                        )}
                         {/* Business type breakdown */}
                         {Object.keys(campaign.byBusinessType).length > 0 && (
                           <div>

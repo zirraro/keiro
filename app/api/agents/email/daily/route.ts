@@ -69,61 +69,78 @@ async function generateAIEmails(
 
   if (!process.env.GEMINI_API_KEY || prospects.length === 0) return results;
 
-  // Build batch prompt
+  // Build batch prompt with rich prospect data
   const prospectList = prospects.map((p, i) => {
     const pr = p.prospect;
+    const socialInfo = [];
+    if (pr.instagram) socialInfo.push(`Instagram: @${pr.instagram}`);
+    if (pr.tiktok_handle) socialInfo.push(`TikTok: @${pr.tiktok_handle}`);
+    if (pr.website) socialInfo.push(`Site: ${pr.website}`);
+    if (pr.google_rating) socialInfo.push(`Google: ${pr.google_rating}/5 (${pr.google_reviews || '?'} avis)`);
+
     return `PROSPECT ${i + 1} (id: ${pr.id}):
 - Entreprise: ${pr.company || '(inconnu)'}
 - Prénom: ${pr.first_name || ''}
 - Type: ${p.category}
 - Quartier: ${pr.quartier || 'Paris'}
-- Note Google: ${pr.note_google || 'non connue'}
+- Note Google: ${pr.note_google || pr.google_rating || 'non connue'}
 - Email: ${pr.email}
 - Step: ${p.step} (${p.step === 1 ? 'premier contact' : p.step === 2 ? 'relance' : p.step === 3 ? 'dernière chance' : 'warm follow-up'})
-- Instagram: ${pr.instagram ? '@' + pr.instagram : 'non connu'}
-- Score: ${pr.score || 0}/100`;
+- Score prospect: ${pr.score || 0}/100 (${pr.temperature || 'cold'})
+- Réseaux: ${socialInfo.length > 0 ? socialInfo.join(' | ') : 'aucun trouvé'}
+- Source: ${pr.source || 'import'}`;
   }).join('\n\n');
 
   try {
     const rawText = await callGemini({
-      system: `Tu es Victor, expert commercial chez KeiroAI — une plateforme IA de création de contenu visuel (images, vidéos, posts réseaux sociaux) pour les commerces locaux et PME en France.
+      system: `Tu es Victor, le closer #1 de KeiroAI — une plateforme IA qui génère images, vidéos et posts réseaux sociaux pour les commerces locaux et PME en France. Ton taux de réponse est 3x la moyenne du marché.
 
-TON OBJECTIF : écrire des emails de prospection qui CONVERTISSENT. Pas des emails corporate — des vrais emails humains, directs, qui donnent envie de répondre.
+TON OBJECTIF : écrire des emails de prospection qui déclenchent une RÉPONSE. Pas juste une ouverture — une RÉPONSE.
 
-RÈGLES D'OR :
-1. TUTOIEMENT naturel (tu, ton, ta, tes) — jamais "vous"
-2. Sois COURT : 4-6 lignes max pour le corps. Les gens lisent sur mobile.
-3. UN SEUL call-to-action clair : "Teste gratuitement" ou "Regarde ce qu'on fait pour [type]"
-4. Personnalise CHAQUE email : mentionne le nom du commerce, le quartier, la note Google si dispo
-5. Ton = ami entrepreneur qui conseille, PAS un vendeur
-6. ROI concret : "Ça te coûte moins qu'un café par jour" / "5 couverts de plus et c'est rentabilisé"
-7. Signature : Victor de KeiroAI (JAMAIS Oussama)
-8. Si step 2 (relance) : référence l'email précédent, sois plus direct
-9. Si step 3 (dernière chance) : crée l'urgence sans être agressif
-10. Pas de "Cher", pas de "Madame/Monsieur", pas de formalités
+PSYCHOLOGIE DE VENTE :
+- Le prospect se fout de toi, il veut savoir ce que TU fais pour LUI
+- L'objet de l'email est 80% du travail — s'il n'ouvre pas, c'est mort
+- La question > l'affirmation (une question crée un engagement mental)
+- Le concret > l'abstrait ("5 clients en plus" > "booster votre visibilité")
+- L'urgence naturelle > la fausse rareté ("tes concurrents postent déjà" > "offre limitée")
 
-STYLE QUI MARCHE :
-- "Salut [prénom]," ou "Hey [prénom],"
-- Question d'accroche liée à LEUR business
-- 1-2 phrases de valeur
-- CTA direct
-- "Victor ✌️" ou "Victor — KeiroAI"
+PERSONNALISATION INTELLIGENTE :
+- Si le prospect a un Instagram : "j'ai vu ton compte @xxx, t'as du bon contenu mais..."
+- Si note Google haute (>4.0) : "4.5 sur Google c'est top, mais est-ce que ça se voit sur Insta ?"
+- Si note Google basse (<3.5) : ne mentionne PAS la note, focus sur "montrer le vrai toi"
+- Si prospect a un site web : "ton site est clean, il manque juste du contenu frais"
+- Si prospect est un restaurant : ROI = couverts, si coach : ROI = clients bookés, si boutique : ROI = passage en magasin
+- Si score >50 (chaud) : sois plus direct et propose un appel
 
-STYLE QUI NE MARCHE PAS :
-- Emails longs (> 8 lignes)
-- Vocabulaire corporate ("nous vous proposons", "n'hésitez pas")
-- Flatterie excessive
-- Templates évidents
+STRUCTURE EMAIL PARFAIT (step 1) :
+1. "Salut [prénom]," (jamais Hey, jamais Bonjour)
+2. Question d'accroche personnalisée (1 ligne)
+3. Pain point spécifique à leur business (1 ligne)
+4. Ce que KeiroAI fait pour eux concrètement (1-2 lignes)
+5. CTA question simple : "Tu veux voir ce que ça donne pour [company] ?"
+6. "Victor ✌️"
+
+STEP 2 (relance) : "Je te relance vite fait..." + rappeler step 1 + être encore plus direct
+STEP 3 (dernière chance) : Angle FOMO concurrents + "pas de souci si c'est pas le moment" (désarmer)
+WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer Sprint 4.99€
+
+INTERDICTIONS ABSOLUES :
+- JAMAIS "vous/votre" → toujours "tu/ton/ta"
+- JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement"
+- JAMAIS plus de 6 lignes de corps
+- JAMAIS d'emoji dans l'objet (sauf ✌️ dans la signature)
+- JAMAIS mentionner le prix dans le step 1 (sauf Sprint 4.99€)
+- Signature : Victor de KeiroAI (JAMAIS Oussama, JAMAIS "l'équipe KeiroAI")
 
 ${learnings}
 
-CONSIGNE : Pour chaque prospect, génère un email personnalisé.
+CONSIGNE : Pour chaque prospect, génère un email UNIQUE et personnalisé.
 Réponds en JSON — un tableau d'objets, un par prospect :
 [
   {
     "id": "prospect_id",
-    "subject": "Objet percutant (< 50 chars)",
-    "body": "Corps du mail (4-6 lignes, tutoiement)"
+    "subject": "Objet percutant < 50 chars — PAS de emoji",
+    "body": "Corps du mail 4-6 lignes tutoiement"
   }
 ]
 
@@ -175,37 +192,112 @@ ${email.body.split('\n').map((line: string) => `<p style="margin:8px 0;">${line}
 /**
  * Auto-learn from email performance.
  * Called at the end of each run to save insights.
+ * Tracks: open/click/reply rates, best categories, best subject patterns, best steps.
  */
 async function autoLearn(results: SendResult[], supabase: any) {
-  // Check for email engagement data (opens, clicks from webhook)
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Get engagement data + email subjects for correlation
   const { data: recentActivity } = await supabase
     .from('crm_activities')
     .select('prospect_id, type, data')
-    .in('type', ['email_opened', 'email_clicked', 'email_replied'])
+    .in('type', ['email_opened', 'email_clicked', 'email_replied', 'email'])
     .gte('created_at', oneWeekAgo)
-    .limit(50);
+    .limit(100);
 
   if (!recentActivity || recentActivity.length === 0) return;
 
-  const opens = recentActivity.filter((a: any) => a.type === 'email_opened').length;
-  const clicks = recentActivity.filter((a: any) => a.type === 'email_clicked').length;
-  const replies = recentActivity.filter((a: any) => a.type === 'email_replied').length;
+  const emailsSent = recentActivity.filter((a: any) => a.type === 'email');
+  const opens = recentActivity.filter((a: any) => a.type === 'email_opened');
+  const clicks = recentActivity.filter((a: any) => a.type === 'email_clicked');
+  const replies = recentActivity.filter((a: any) => a.type === 'email_replied');
 
-  // Find which categories/steps perform best
-  const byCategory: Record<string, { opens: number; clicks: number }> = {};
-  for (const activity of recentActivity) {
+  // Auto-update prospect scores on engagement
+  for (const reply of replies) {
+    if (reply.prospect_id) {
+      const { data: prospect } = await supabase
+        .from('crm_prospects')
+        .select('score, temperature, status')
+        .eq('id', reply.prospect_id)
+        .single();
+      if (prospect && prospect.status !== 'client') {
+        await supabase.from('crm_prospects').update({
+          status: 'repondu',
+          temperature: 'hot',
+          score: Math.min(100, (prospect.score || 0) + 50),
+          updated_at: new Date().toISOString(),
+        }).eq('id', reply.prospect_id);
+      }
+    }
+  }
+  for (const click of clicks) {
+    if (click.prospect_id) {
+      const { data: prospect } = await supabase
+        .from('crm_prospects')
+        .select('score, temperature')
+        .eq('id', click.prospect_id)
+        .single();
+      if (prospect && (prospect.temperature === 'cold' || !prospect.temperature)) {
+        await supabase.from('crm_prospects').update({
+          temperature: 'warm',
+          score: Math.min(100, (prospect.score || 0) + 25),
+          updated_at: new Date().toISOString(),
+        }).eq('id', click.prospect_id);
+      }
+    }
+  }
+
+  // Analyze by category
+  const byCategory: Record<string, { sent: number; opens: number; clicks: number; replies: number }> = {};
+  for (const email of emailsSent) {
+    const cat = email.data?.category || 'unknown';
+    if (!byCategory[cat]) byCategory[cat] = { sent: 0, opens: 0, clicks: 0, replies: 0 };
+    byCategory[cat].sent++;
+  }
+  for (const activity of [...opens, ...clicks, ...replies]) {
     const cat = activity.data?.category || 'unknown';
-    if (!byCategory[cat]) byCategory[cat] = { opens: 0, clicks: 0 };
+    if (!byCategory[cat]) byCategory[cat] = { sent: 0, opens: 0, clicks: 0, replies: 0 };
     if (activity.type === 'email_opened') byCategory[cat].opens++;
     if (activity.type === 'email_clicked') byCategory[cat].clicks++;
+    if (activity.type === 'email_replied') byCategory[cat].replies++;
+  }
+
+  // Analyze by step
+  const byStep: Record<number, { sent: number; opens: number; clicks: number }> = {};
+  for (const email of emailsSent) {
+    const step = email.data?.step || 1;
+    if (!byStep[step]) byStep[step] = { sent: 0, opens: 0, clicks: 0 };
+    byStep[step].sent++;
+  }
+  for (const activity of [...opens, ...clicks]) {
+    const step = activity.data?.step || 1;
+    if (!byStep[step]) byStep[step] = { sent: 0, opens: 0, clicks: 0 };
+    if (activity.type === 'email_opened') byStep[step].opens++;
+    if (activity.type === 'email_clicked') byStep[step].clicks++;
   }
 
   const bestCategory = Object.entries(byCategory)
+    .sort((a, b) => (b[1].clicks + b[1].opens + b[1].replies * 3) - (a[1].clicks + a[1].opens + a[1].replies * 3))[0];
+
+  const bestStep = Object.entries(byStep)
     .sort((a, b) => (b[1].clicks + b[1].opens) - (a[1].clicks + a[1].opens))[0];
 
   if (bestCategory) {
-    const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${opens} ouvertures, ${clicks} clics, ${replies} réponses. Meilleure catégorie: ${bestCategory[0]} (${bestCategory[1].opens} opens, ${bestCategory[1].clicks} clicks).`;
+    // Build rich performance summary
+    const totalSent = emailsSent.length;
+    const openRate = totalSent > 0 ? (opens.length / totalSent * 100).toFixed(1) : '0';
+    const clickRate = totalSent > 0 ? (clicks.length / totalSent * 100).toFixed(1) : '0';
+    const replyRate = totalSent > 0 ? (replies.length / totalSent * 100).toFixed(1) : '0';
+
+    const categoryBreakdown = Object.entries(byCategory)
+      .map(([cat, d]) => `${cat}: ${d.sent} envoyés, ${d.opens} ouverts, ${d.clicks} clics, ${d.replies} réponses`)
+      .join(' | ');
+
+    const stepBreakdown = Object.entries(byStep)
+      .map(([step, d]) => `Step ${step}: ${d.sent} envoyés, ${d.opens} ouverts, ${d.clicks} clics`)
+      .join(' | ');
+
+    const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${totalSent} envoyés, ${opens.length} ouverts (${openRate}%), ${clicks.length} clics (${clickRate}%), ${replies.length} réponses (${replyRate}%). Meilleure catégorie: ${bestCategory[0]}. Meilleur step: ${bestStep?.[0] || '?'}. Détail: ${categoryBreakdown}. Steps: ${stepBreakdown}`;
 
     await supabase.from('agent_logs').insert({
       agent: 'email',
@@ -213,13 +305,25 @@ async function autoLearn(results: SendResult[], supabase: any) {
       data: {
         learning,
         source: 'auto_performance',
-        metrics: { opens, clicks, replies, best_category: bestCategory[0] },
+        metrics: {
+          total_sent: totalSent,
+          opens: opens.length,
+          clicks: clicks.length,
+          replies: replies.length,
+          open_rate: openRate,
+          click_rate: clickRate,
+          reply_rate: replyRate,
+          best_category: bestCategory[0],
+          best_step: bestStep?.[0],
+          by_category: byCategory,
+          by_step: byStep,
+        },
         learned_at: new Date().toISOString(),
       },
       created_at: new Date().toISOString(),
     });
 
-    console.log(`[EmailDaily] Auto-learning saved: ${learning}`);
+    console.log(`[EmailDaily] Auto-learning: ${openRate}% open, ${clickRate}% click, ${replyRate}% reply. Best: ${bestCategory[0]}`);
   }
 }
 
@@ -488,8 +592,19 @@ export async function GET(request: NextRequest) {
         const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
         const { count: withEmail } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null);
         const { count: deadCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead');
+        const { count: perduCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'perdu');
+        const { count: completedCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'completed');
+        const { count: clientCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'client');
 
-        const diagnostic = { total_crm: totalCount || 0, with_email: withEmail || 0, dead: deadCount || 0 };
+        const diagnostic = {
+          total_crm: totalCount || 0,
+          with_email: withEmail || 0,
+          dead: deadCount || 0,
+          perdu: perduCount || 0,
+          sequence_completed: completedCount || 0,
+          clients: clientCount || 0,
+          reason: 'Aucun prospect éligible trouvé. Vérifiez que des prospects ont un email, ne sont pas dead/perdu/client, et n\'ont pas terminé la séquence.',
+        };
         console.log(`[EmailDaily] Diagnostic:`, JSON.stringify(diagnostic));
 
         await supabase.from('agent_logs').insert({

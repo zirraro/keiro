@@ -5,16 +5,20 @@
  * Final score is capped between 0 and 100.
  */
 const SCORING_RULES: Record<string, number> = {
+  // Source scoring
   source_website_chatbot: 20,
   source_chatbot_lead: 30,
   source_crm_import: 5,
+  // Email engagement (highest value = replied)
   email_opened: 10,
   email_opened_step2: 15,
   email_clicked: 25,
   email_replied: 50,
+  // Website behavior
   visited_pricing: 15,
   visited_generate: 20,
   started_free_trial: 40,
+  // Business type scoring (higher = more likely to convert + higher LTV)
   type_boutique: 10,
   type_coach: 10,
   type_barbershop: 8,
@@ -29,6 +33,12 @@ const SCORING_RULES: Record<string, number> = {
   type_professionnel: 10,
   type_services: 8,
   type_pme: 10,
+  // Social media presence (prospects with social = better fit for KeiroAI)
+  has_instagram: 8,
+  has_tiktok: 5,
+  has_website: 3,
+  has_google_rating: 3,
+  high_google_rating: 5, // >4.0
 };
 
 /**
@@ -214,8 +224,17 @@ export function calculateScore(prospect: any): number {
     score += SCORING_RULES.type_professionnel;
   } else if (bizType.includes('plombier') || bizType.includes('\u00E9lectricien') || bizType.includes('artisan') || bizType.includes('menuisier')) {
     score += SCORING_RULES.type_services;
-  } else if (bizType.includes('entreprise') || bizType.includes('pme') || bizType.includes('startup') || bizType.includes('soci\u00E9t\u00E9')) {
+  } else if (bizType.includes('entreprise') || bizType.includes('pme') || bizType.includes('startup') || bizType.includes('société')) {
     score += SCORING_RULES.type_pme;
+  }
+
+  // Social media presence scoring (prospects with social = ideal KeiroAI customers)
+  if (prospect.instagram) score += SCORING_RULES.has_instagram;
+  if (prospect.tiktok_handle) score += SCORING_RULES.has_tiktok;
+  if (prospect.website) score += SCORING_RULES.has_website;
+  if (prospect.google_rating) {
+    score += SCORING_RULES.has_google_rating;
+    if (prospect.google_rating >= 4.0) score += SCORING_RULES.high_google_rating;
   }
 
   // Clamp to 0-100

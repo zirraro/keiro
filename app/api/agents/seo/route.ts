@@ -4,9 +4,10 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-prompt';
 import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
 import { callGemini } from '@/lib/agents/gemini';
+import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -175,19 +176,28 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
 
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
-    // Call Gemini 2.0 Flash
+    // Load shared CRM context for data-driven content
+    const sharedCtx = await loadSharedContext(supabase, 'seo');
+    const crmContext = formatContextForPrompt(sharedCtx);
+
+    // Call Gemini 2.0 Flash with elite prompt + CRM data
     const rawText = await callGemini({
       system: getSeoWriterPrompt(),
       message: `Ecris un article de blog SEO optimise pour le mot-cle principal : "${targetKeyword}"
 
+DONNÉES BUSINESS EN TEMPS RÉEL (utilise-les pour rendre l'article crédible et data-driven) :
+${crmContext}
+
 Contexte supplementaire :
 - KeiroAI permet de generer des visuels marketing en quelques secondes grace a l'IA
-- La plateforme cible les commerces locaux et entrepreneurs
+- La plateforme cible les commerces locaux et entrepreneurs (restaurants, boutiques, coaches, coiffeurs, freelances, artisans, pros, agences, PME)
 - URL du site : https://www.keiroai.com
+- Plans : Sprint 4.99€/3j, Pro 89€/mois, Fondateurs 149€/mois (offre limitée), Business 349€, Elite 999€
 - L'article sera publie sur le blog de KeiroAI
+- Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 
 Genere le JSON complet comme specifie dans tes instructions.`,
-      maxTokens: 4000,
+      maxTokens: 6000,
     });
     console.log('[SEOAgent] Raw response length:', rawText.length);
 

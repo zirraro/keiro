@@ -62,8 +62,14 @@ Points forts, points faibles, ou est le blocage dans le funnel, tendance 7 jours
 ## ORDRES DU JOUR
 (Liste des actions concretes pour chaque agent, avec priorite et impact attendu)
 Format: **[Agent] Action** — Raison — Impact attendu
-Agents disponibles: Email, Chatbot, Commercial, DM Instagram, Google Maps, TikTok Comments, SEO, Onboarding, Retention, Content
+Agents disponibles: Email, Commercial, DM Instagram, TikTok Comments, SEO, Onboarding, Retention, Content
 IMPORTANT: Chaque ordre DOIT specifier clairement l'agent cible entre crochets et une action precise. Ces ordres seront automatiquement transmis aux agents pour execution.
+EXEMPLES D'ORDRES EFFICACES:
+- **[Commercial] Enrichir les 20 prospects sans type ni quartier** — données manquantes bloquent la personnalisation email
+- **[Email] Lancer cold sequence step 1 pour les 15 prospects scorés >30** — pipeline stagne, faut activer
+- **[Content] Publier un post témoignage client** — social proof booste la conversion chatbot
+- **[DM Instagram] Préparer DMs pour les prospects restaurant avec IG** — canal le plus direct
+- **[Retention] Vérifier les clients inactifs >7j** — prévenir le churn avant qu'il soit trop tard
 
 ## RECOMMANDATION FONDATEUR
 La chose a faire aujourd'hui + opportunite terrain

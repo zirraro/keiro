@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -346,20 +347,27 @@ async function runEnrichment(): Promise<NextResponse> {
           }
         }
 
+        // Auto-score calculation based on all data
+        const prospectWithUpdates = { ...prospect, ...updates };
+        const autoScore = calculateScore(prospectWithUpdates);
+        const autoTemp = calculateTemperature(autoScore);
+        if (autoScore > 0) {
+          updates.score = Math.max(autoScore, result.priority_score || 0);
+          updates.temperature = autoTemp;
+        }
+
         // GO/NO-GO for contact
         if (result.ready_to_contact && prospect.email && result.email_valid) {
           if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
             updates.status = 'contacte';
             updates.email_sequence_status = 'not_started';
             updates.email_sequence_step = 0;
-            if (result.priority_score) {
-              updates.score = result.priority_score;
-            }
             advancedToContactCount++;
           }
         } else if (result.ready_to_contact === false && result.disqualification_reason) {
           updates.status = 'perdu';
           updates.temperature = 'dead';
+          updates.score = 0;
           flaggedDeadCount++;
           console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
         }
@@ -395,7 +403,7 @@ async function runEnrichment(): Promise<NextResponse> {
     // Find prospects with company name but missing social data
     const { data: socialProspects } = await supabase
       .from('crm_prospects')
-      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews')
+      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature')
       .not('company', 'is', null)
       .or('temperature.is.null,temperature.neq.dead')
       .or('status.is.null,status.not.in.("perdu","client","sprint")')
@@ -444,6 +452,15 @@ async function runEnrichment(): Promise<NextResponse> {
         if (Object.keys(socialUpdates).length > 0) {
           socialUpdates.updated_at = nowISO;
 
+          // Recalculate score with new social data (having Instagram/TikTok/website boosts value)
+          const enrichedProspect = { ...prospect, ...socialUpdates };
+          const newScore = calculateScore(enrichedProspect);
+          const newTemp = calculateTemperature(newScore);
+          if (newScore > (prospect.score || 0)) {
+            socialUpdates.score = newScore;
+            socialUpdates.temperature = newTemp;
+          }
+
           const { error: socialError } = await supabase
             .from('crm_prospects')
             .update(socialUpdates)
@@ -451,7 +468,7 @@ async function runEnrichment(): Promise<NextResponse> {
 
           if (!socialError) {
             socialEnrichedCount++;
-            console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at').join(', ')}`);
+            console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at' && k !== 'score' && k !== 'temperature').join(', ')} (score: ${newScore})`);
           }
         }
 
