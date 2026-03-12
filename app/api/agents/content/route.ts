@@ -192,6 +192,47 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'execute_publication': {
+        // Publish all approved posts that are due today or earlier
+        const todayDate = new Date().toISOString().split('T')[0];
+        const { data: readyPosts } = await supabase
+          .from('content_calendar')
+          .select('*')
+          .eq('status', 'approved')
+          .lte('scheduled_date', todayDate);
+
+        let publishedCount = 0;
+        for (const post of readyPosts || []) {
+          const visualDesc = post.visual_description || post.hook || post.caption;
+          if (visualDesc) {
+            const visualUrl = await generateVisual(visualDesc, post.format || 'post');
+            if (visualUrl) {
+              await supabase.from('content_calendar')
+                .update({
+                  visual_url: visualUrl,
+                  status: 'published',
+                  published_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', post.id);
+              publishedCount++;
+            }
+          }
+        }
+
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'report_to_ceo',
+          data: {
+            phase: 'completed',
+            message: `Contenu: ${publishedCount} publications exécutées sur ${readyPosts?.length || 0} approuvées`,
+          },
+          created_at: new Date().toISOString(),
+        });
+
+        return NextResponse.json({ ok: true, published: publishedCount, total_approved: readyPosts?.length || 0 });
+      }
+
       case 'stats': {
         const { count: totalPosts } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true });
         const { count: published } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'published');

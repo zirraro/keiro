@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY && !process.env.BREVO_API_KEY) {
       return NextResponse.json(
-        { ok: false, error: 'RESEND_API_KEY non configurée' },
+        { ok: false, error: 'Aucun provider email configuré (RESEND_API_KEY ou BREVO_API_KEY requis)' },
         { status: 500 }
       );
     }
@@ -104,43 +104,93 @@ export async function POST(request: NextRequest) {
     };
     const template = getEmailTemplate(category, template_step, vars, selectedVariant);
 
-    // --- Send via Resend ---
-    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant}) via Resend`);
+    // --- Send via Resend (primary) or Brevo (fallback) ---
+    console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Victor de KeiroAI <contact@keiroai.com>',
-        to: [prospect.email],
-        subject: template.subject,
-        html: template.htmlBody,
-        text: template.textBody,
-        tags: [
-          { name: 'type', value: 'cold-sequence' },
-          { name: 'step', value: String(template_step) },
-          { name: 'category', value: category },
-          { name: 'prospect_id', value: prospect_id },
-        ],
-      }),
-    });
+    let messageId = 'unknown';
+    let provider = 'resend';
 
-    if (!resendResponse.ok) {
-      const errorText = await resendResponse.text();
-      console.error('[EmailAgent] Resend API error:', errorText);
+    // Try Resend first
+    let sendSuccess = false;
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Victor de KeiroAI <contact@keiroai.com>',
+            to: [prospect.email],
+            subject: template.subject,
+            html: template.htmlBody,
+            text: template.textBody,
+            tags: [
+              { name: 'type', value: 'cold-sequence' },
+              { name: 'step', value: String(template_step) },
+              { name: 'category', value: category },
+              { name: 'prospect_id', value: prospect_id },
+            ],
+          }),
+        });
+
+        if (resendResponse.ok) {
+          const resendData = await resendResponse.json();
+          messageId = resendData.id || 'unknown';
+          provider = 'resend';
+          sendSuccess = true;
+          console.log('[EmailAgent] Email sent via Resend, messageId:', messageId);
+        } else {
+          const errorText = await resendResponse.text();
+          console.warn('[EmailAgent] Resend failed, trying Brevo fallback:', errorText);
+        }
+      } catch (resendError: any) {
+        console.warn('[EmailAgent] Resend error, trying Brevo fallback:', resendError.message);
+      }
+    }
+
+    // Fallback to Brevo
+    if (!sendSuccess && process.env.BREVO_API_KEY) {
+      try {
+        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': process.env.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
+            to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
+            subject: template.subject,
+            htmlContent: template.htmlBody,
+            textContent: template.textBody,
+            headers: { 'X-Mailin-custom': prospect_id },
+            tags: ['cold-sequence', `step-${template_step}`, category],
+          }),
+        });
+
+        if (brevoResponse.ok) {
+          const brevoData = await brevoResponse.json();
+          messageId = brevoData.messageId || 'unknown';
+          provider = 'brevo';
+          sendSuccess = true;
+          console.log('[EmailAgent] Email sent via Brevo fallback, messageId:', messageId);
+        } else {
+          const errorText = await brevoResponse.text();
+          console.error('[EmailAgent] Brevo fallback also failed:', errorText);
+        }
+      } catch (brevoError: any) {
+        console.error('[EmailAgent] Brevo fallback error:', brevoError.message);
+      }
+    }
+
+    if (!sendSuccess) {
       return NextResponse.json(
-        { ok: false, error: 'Erreur envoi Resend', details: errorText },
+        { ok: false, error: 'Tous les providers email ont échoué (Resend + Brevo)' },
         { status: 502 }
       );
     }
-
-    const resendData = await resendResponse.json();
-    const messageId = resendData.id || 'unknown';
-
-    console.log('[EmailAgent] Email sent via Resend, messageId:', messageId);
 
     // --- Update prospect ---
     await supabase
@@ -190,7 +240,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       messageId,
-      provider: 'resend',
+      provider,
     });
   } catch (error: any) {
     console.error('[EmailAgent] Error:', error);

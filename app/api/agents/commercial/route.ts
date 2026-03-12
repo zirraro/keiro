@@ -250,7 +250,7 @@ async function runEnrichment(): Promise<NextResponse> {
 
         if (!result.email_valid || hasCriticalFlag) {
           updates.temperature = 'dead';
-          updates.status = 'disqualified';
+          updates.status = 'perdu';
           flaggedDeadCount++;
           console.log(`[CommercialAgent] Flagged prospect ${prospect.id} as dead (email: ${prospect.email}, flags: ${result.email_flags?.join(', ')})`);
         }
@@ -268,8 +268,8 @@ async function runEnrichment(): Promise<NextResponse> {
           advancedToContactCount++;
         }
       } else if (result.ready_to_contact === false && result.disqualification_reason) {
-        // Disqualified by commercial audit
-        updates.status = 'disqualified';
+        // Disqualified by commercial audit — use 'perdu' (valid DB status)
+        updates.status = 'perdu';
         updates.temperature = 'dead';
         flaggedDeadCount++;
         console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
