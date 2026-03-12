@@ -279,6 +279,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Detect if this is a manual trigger (admin user, no CRON_SECRET) vs cron
+  const isCronTrigger = !!(cronSecret && authHeader === `Bearer ${cronSecret}`);
+  const isManualTrigger = !isCronTrigger;
+
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const nowISO = now.toISOString();
@@ -321,11 +325,11 @@ export async function GET(request: NextRequest) {
     } else {
       // --- Default: cold sequences ---
       const slot = request.nextUrl.searchParams.get('slot') || 'all';
-      console.log(`[EmailDaily] Running cold sequence mode via Resend+Brevo (slot=${slot})...`);
+      console.log(`[EmailDaily] Running cold sequence mode via Resend+Brevo (slot=${slot}, manual=${isManualTrigger})...`);
 
       // Pull from ALL qualified prospects
       // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL NOT IN (...) = NULL (excluded)
-      const { data: prospects } = await supabase
+      const { data: prospects, error: queryError } = await supabase
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null)
@@ -333,17 +337,62 @@ export async function GET(request: NextRequest) {
         .or('temperature.is.null,temperature.neq.dead')
         .or('status.is.null,status.not.in.("client","perdu","sprint")');
 
-      console.log(`[EmailDaily] Eligible prospects (before timing filter): ${prospects?.length ?? 0}`);
+      if (queryError) {
+        console.error('[EmailDaily] Query error:', queryError.message);
+        return NextResponse.json({ ok: false, error: `Query error: ${queryError.message}` }, { status: 500 });
+      }
+
+      console.log(`[EmailDaily] Eligible prospects from DB: ${prospects?.length ?? 0}`);
+
+      // If no prospects at all, return diagnostic info
+      if (!prospects || prospects.length === 0) {
+        // Check total CRM count for diagnostic
+        const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
+        const { count: withEmail } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null);
+        const { count: deadCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead');
+        const { count: perduCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'perdu');
+        const { count: completedCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('email_sequence_status', 'completed');
+
+        const diagnostic = {
+          total_crm: totalCount || 0,
+          with_email: withEmail || 0,
+          dead: deadCount || 0,
+          perdu: perduCount || 0,
+          sequence_completed: completedCount || 0,
+        };
+
+        console.log(`[EmailDaily] 0 eligible prospects. Diagnostic:`, JSON.stringify(diagnostic));
+
+        await supabase.from('agent_logs').insert({
+          agent: 'email', action: 'daily_cold',
+          data: { total: 0, success: 0, failed: 0, diagnostic, message: 'Aucun prospect éligible' },
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true, mode: 'cold', stats: { total: 0, success: 0, failed: 0 },
+          diagnostic,
+          message: 'Aucun prospect éligible pour envoi email. Vérifiez le diagnostic.',
+          results: [],
+        });
+      }
 
       let step1Count = 0;
-      const MAX_STEP1_PER_DAY = 50;
+      const MAX_STEP1_PER_DAY = isManualTrigger ? 200 : 50;
+      // Manual trigger: no 24h delay, send immediately to step 0 prospects
+      // Cron trigger: wait 24h after import before first contact
+      const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 24;
+
       let skippedTiming = 0;
       let skippedVerification = 0;
+      let skippedTooRecent = 0;
+      let skippedWaitingNextStep = 0;
+      let skippedMaxDaily = 0;
 
-      for (const prospect of prospects || []) {
+      for (const prospect of prospects) {
         const category = getSequenceForProspect(prospect);
 
-        // Smart timing filter
+        // Smart timing filter (only for cron slots, not manual or 'all')
         if (slot !== 'all') {
           if (!isGoodTimeToContact(category, 'email')) {
             skippedTiming++;
@@ -366,8 +415,16 @@ export async function GET(request: NextRequest) {
         const created = new Date(prospect.created_at);
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
 
-        if (step === 0 && hoursSinceCreation >= 24) {
-          if (step1Count >= MAX_STEP1_PER_DAY) continue;
+        if (step === 0) {
+          // First email in sequence
+          if (hoursSinceCreation < MIN_HOURS_BEFORE_FIRST_EMAIL) {
+            skippedTooRecent++;
+            continue;
+          }
+          if (step1Count >= MAX_STEP1_PER_DAY) {
+            skippedMaxDaily++;
+            continue;
+          }
 
           const variant = Math.floor(Math.random() * 3);
           const result = await sendEmailDirect(prospect, 1, variant);
@@ -382,30 +439,28 @@ export async function GET(request: NextRequest) {
           if (result.success) step1Count++;
         } else if (step === 1 && lastSent) {
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSinceLastSent >= 4) {
-            const result = await sendEmailDirect(prospect, 2);
-            results.push({
-              prospect_id: prospect.id,
-              email: prospect.email,
-              step: 2,
-              success: result.success,
-              error: result.error,
-              messageId: result.messageId,
-            });
-          }
+          if (daysSinceLastSent < 4) { skippedWaitingNextStep++; continue; }
+          const result = await sendEmailDirect(prospect, 2);
+          results.push({
+            prospect_id: prospect.id,
+            email: prospect.email,
+            step: 2,
+            success: result.success,
+            error: result.error,
+            messageId: result.messageId,
+          });
         } else if (step === 2 && lastSent) {
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSinceLastSent >= 5) {
-            const result = await sendEmailDirect(prospect, 3);
-            results.push({
-              prospect_id: prospect.id,
-              email: prospect.email,
-              step: 3,
-              success: result.success,
-              error: result.error,
-              messageId: result.messageId,
-            });
-          }
+          if (daysSinceLastSent < 5) { skippedWaitingNextStep++; continue; }
+          const result = await sendEmailDirect(prospect, 3);
+          results.push({
+            prospect_id: prospect.id,
+            email: prospect.email,
+            step: 3,
+            success: result.success,
+            error: result.error,
+            messageId: result.messageId,
+          });
         } else if (step === 3) {
           await supabase
             .from('crm_prospects')
@@ -421,26 +476,47 @@ export async function GET(request: NextRequest) {
             step: 3,
             success: true,
           });
+        } else if (step === 1 && !lastSent) {
+          // Step 1 but no last_sent timestamp — resend or advance
+          skippedWaitingNextStep++;
         }
       }
 
-      console.log(`[EmailDaily] Skipped: ${skippedTiming} timing, ${skippedVerification} verification`);
+      const skipDiagnostic = {
+        timing: skippedTiming,
+        verification: skippedVerification,
+        too_recent: skippedTooRecent,
+        waiting_next_step: skippedWaitingNextStep,
+        max_daily_reached: skippedMaxDaily,
+      };
+      console.log(`[EmailDaily] Skipped:`, JSON.stringify(skipDiagnostic));
     }
 
     // --- Log summary ---
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
+    // Batch fetch prospect types (avoid N+1 queries)
     const byBusinessType: Record<string, { sent: number; failed: number; steps: number[] }> = {};
-    for (const r of results) {
-      const p = (type === 'warm')
-        ? null
-        : (await supabase.from('crm_prospects').select('type, company').eq('id', r.prospect_id).single()).data;
-      const bType = p?.type || 'unknown';
-      if (!byBusinessType[bType]) byBusinessType[bType] = { sent: 0, failed: 0, steps: [] };
-      if (r.success) byBusinessType[bType].sent++;
-      else byBusinessType[bType].failed++;
-      byBusinessType[bType].steps.push(r.step);
+    if (results.length > 0 && type !== 'warm') {
+      const prospectIds = [...new Set(results.map(r => r.prospect_id))];
+      const { data: prospectTypes } = await supabase
+        .from('crm_prospects')
+        .select('id, type, company')
+        .in('id', prospectIds);
+
+      const typeMap: Record<string, string> = {};
+      if (prospectTypes) {
+        for (const p of prospectTypes) typeMap[p.id] = p.type || 'unknown';
+      }
+
+      for (const r of results) {
+        const bType = typeMap[r.prospect_id] || 'unknown';
+        if (!byBusinessType[bType]) byBusinessType[bType] = { sent: 0, failed: 0, steps: [] };
+        if (r.success) byBusinessType[bType].sent++;
+        else byBusinessType[bType].failed++;
+        byBusinessType[bType].steps.push(r.step);
+      }
     }
 
     await supabase.from('agent_logs').insert({
@@ -451,6 +527,7 @@ export async function GET(request: NextRequest) {
         success: successCount,
         failed: failCount,
         provider: 'resend+brevo',
+        manual: isManualTrigger,
         by_business_type: byBusinessType,
         results: results.map((r) => ({
           prospect_id: r.prospect_id,
@@ -468,6 +545,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       mode: type === 'warm' ? 'warm' : 'cold',
       provider: 'resend+brevo',
+      manual: isManualTrigger,
       stats: {
         total: results.length,
         success: successCount,
