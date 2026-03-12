@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
-import { verifyProspectData } from '@/lib/agents/business-timing';
+import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 
@@ -436,16 +436,19 @@ async function sendEmail(
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
 
-    await supabase
-      .from('crm_prospects')
-      .update({
-        email_sequence_step: step,
-        last_email_sent_at: now,
-        email_sequence_status: step === 10 ? 'warm_sent' : 'in_progress',
-        email_provider: provider,
-        updated_at: now,
-      })
-      .eq('id', prospect.id);
+    // Update prospect CRM: sequence progress + status advancement
+    const prospectUpdate: Record<string, any> = {
+      email_sequence_step: step,
+      last_email_sent_at: now,
+      email_sequence_status: step === 10 ? 'warm_sent' : 'in_progress',
+      email_provider: provider,
+      updated_at: now,
+    };
+    // Advance status to 'contacte' on first email if not already progressed
+    if (step === 1 && (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie')) {
+      prospectUpdate.status = 'contacte';
+    }
+    await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
 
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
@@ -658,6 +661,19 @@ export async function GET(request: NextRequest) {
 
       for (const prospect of prospects) {
         const category = getSequenceForProspect(prospect);
+
+        // CRM coherence check — fix data issues before processing
+        const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);
+        if (Object.keys(fixes).length > 0) {
+          fixes.updated_at = nowISO;
+          await supabase.from('crm_prospects').update(fixes).eq('id', prospect.id);
+          Object.assign(prospect, fixes); // Apply fixes in-memory too
+          if (crmIssues.length > 0) {
+            console.log(`[EmailDaily] CRM fix ${prospect.company}: ${crmIssues.join(', ')}`);
+          }
+        }
+        // Skip if dead/invalid after fixes
+        if (fixes.temperature === 'dead' || fixes.status === 'perdu') { skippedVerification++; continue; }
 
         const verification = verifyProspectData(prospect);
         if (!verification.valid) { skippedVerification++; continue; }

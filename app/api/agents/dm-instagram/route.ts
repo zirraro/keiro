@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
+import { verifyCRMCoherence } from '@/lib/agents/business-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -182,6 +183,18 @@ async function runDMPreparation(): Promise<NextResponse> {
   for (const prospect of prospects) {
     if (prepared >= MAX_DM_PER_DAY) break;
 
+    // CRM coherence check — fix data issues before processing
+    const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);
+    if (Object.keys(fixes).length > 0) {
+      fixes.updated_at = now;
+      await supabase.from('crm_prospects').update(fixes).eq('id', prospect.id);
+      Object.assign(prospect, fixes);
+      if (crmIssues.length > 0) {
+        console.log(`[DMAgent] CRM fix ${prospect.company}: ${crmIssues.join(', ')}`);
+      }
+    }
+    if (fixes.temperature === 'dead' || fixes.status === 'perdu') { skippedVerification++; continue; }
+
     const category = getSequenceForProspect(prospect);
 
     // DM-specific verification (no email requirement, no timing gate)
@@ -221,16 +234,21 @@ async function runDMPreparation(): Promise<NextResponse> {
       continue;
     }
 
-    // Update prospect dm_status to 'queued' — will be set to 'sent' when founder confirms
+    // Update prospect: dm_status + advance CRM status
     const followupDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    await supabase.from('crm_prospects').update({
+    const dmUpdate: Record<string, any> = {
       dm_status: 'queued',
       dm_queued_at: now,
       dm_message: dm.dm_text,
       dm_followup_message: dm.follow_up_3d,
       dm_followup_date: followupDate,
       updated_at: now,
-    }).eq('id', prospect.id);
+    };
+    // Advance status if not already progressed
+    if (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie') {
+      dmUpdate.status = 'contacte';
+    }
+    await supabase.from('crm_prospects').update(dmUpdate).eq('id', prospect.id);
 
     // Log CRM activity
     await supabase.from('crm_activities').insert({

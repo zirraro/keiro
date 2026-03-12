@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getTikTokCommentPrompt } from '@/lib/agents/tiktok-comment-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
+import { verifyCRMCoherence } from '@/lib/agents/business-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -148,6 +149,18 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
   for (const prospect of prospects) {
     if (prepared >= 5) break;
 
+    // CRM coherence check — fix data issues before processing
+    const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);
+    if (Object.keys(fixes).length > 0) {
+      fixes.updated_at = now;
+      await supabase.from('crm_prospects').update(fixes).eq('id', prospect.id);
+      Object.assign(prospect, fixes);
+      if (crmIssues.length > 0) {
+        console.log(`[TikTokAgent] CRM fix ${prospect.company}: ${crmIssues.join(', ')}`);
+      }
+    }
+    if (fixes.temperature === 'dead' || fixes.status === 'perdu') { skippedVerification++; continue; }
+
     const category = getSequenceForProspect(prospect);
 
     // TikTok-specific verification (no email/timing gate)
@@ -177,6 +190,13 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
       status: 'pending',
       created_at: now,
     });
+
+    // Update CRM prospect status
+    const ttUpdate: Record<string, any> = { updated_at: now };
+    if (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie') {
+      ttUpdate.status = 'contacte';
+    }
+    await supabase.from('crm_prospects').update(ttUpdate).eq('id', prospect.id);
 
     // Log CRM activity
     await supabase.from('crm_activities').insert({

@@ -239,3 +239,108 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues,
   };
 }
+
+/**
+ * Verify CRM data coherence for a prospect and return fixes to apply.
+ * Each agent calls this before executing to ensure data quality.
+ * Returns an object of fields to update (empty if everything is coherent).
+ */
+export function verifyCRMCoherence(prospect: any): { fixes: Record<string, any>; issues: string[] } {
+  const fixes: Record<string, any> = {};
+  const issues: string[] = [];
+
+  // 1. Email format validation
+  if (prospect.email) {
+    const email = prospect.email.trim().toLowerCase();
+    if (email !== prospect.email) {
+      fixes.email = email;
+      issues.push('email_normalized');
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      fixes.temperature = 'dead';
+      fixes.status = 'perdu';
+      issues.push('email_invalid_format');
+    }
+    // Detect disposable domains
+    const disposableDomains = ['yopmail', 'guerrillamail', 'tempmail', 'throwaway', 'mailinator', 'trashmail'];
+    const domain = email.split('@')[1] || '';
+    if (disposableDomains.some(d => domain.includes(d))) {
+      fixes.temperature = 'dead';
+      fixes.status = 'perdu';
+      issues.push('disposable_email');
+    }
+  }
+
+  // 2. Company name coherence
+  if (prospect.company) {
+    const company = prospect.company.trim();
+    if (company !== prospect.company) {
+      fixes.company = company;
+      issues.push('company_trimmed');
+    }
+    // Detect non-business entries
+    if (company.length < 2 || company.match(/^(test|xxx|aaa|zzz|123)/i)) {
+      issues.push('company_suspicious');
+    }
+  }
+
+  // 3. Type coherence with company name
+  if (prospect.type && prospect.company) {
+    const type = prospect.type.toLowerCase();
+    const name = prospect.company.toLowerCase();
+    // Auto-detect type if obviously wrong
+    if (type === 'restaurant' && (name.includes('coiffure') || name.includes('salon') || name.includes('beauty'))) {
+      fixes.type = 'coiffeur';
+      issues.push('type_auto_corrected');
+    }
+    if (type === 'boutique' && (name.includes('restaurant') || name.includes('brasserie') || name.includes('bistrot'))) {
+      fixes.type = 'restaurant';
+      issues.push('type_auto_corrected');
+    }
+  }
+
+  // 4. Instagram handle cleanup
+  if (prospect.instagram) {
+    let ig = prospect.instagram.trim();
+    // Remove URL prefix
+    ig = ig.replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '').replace(/^@/, '');
+    if (ig !== prospect.instagram) {
+      fixes.instagram = ig;
+      issues.push('instagram_cleaned');
+    }
+    if (ig === '' || ig === 'A_VERIFIER') {
+      issues.push('instagram_invalid');
+    }
+  }
+
+  // 5. TikTok handle cleanup
+  if (prospect.tiktok_handle) {
+    let tt = prospect.tiktok_handle.trim();
+    tt = tt.replace(/^https?:\/\/(www\.)?tiktok\.com\/@?/, '').replace(/\/$/, '').replace(/^@/, '');
+    if (tt !== prospect.tiktok_handle) {
+      fixes.tiktok_handle = tt;
+      issues.push('tiktok_cleaned');
+    }
+  }
+
+  // 6. Score/temperature coherence
+  if (prospect.score !== undefined && prospect.temperature) {
+    const expectedTemp = prospect.score >= 51 ? 'hot' : prospect.score >= 26 ? 'warm' : 'cold';
+    if (prospect.temperature !== 'dead' && prospect.temperature !== expectedTemp) {
+      fixes.temperature = expectedTemp;
+      issues.push('temperature_recalculated');
+    }
+  }
+
+  // 7. Status coherence
+  if (prospect.status === 'perdu' && prospect.temperature !== 'dead') {
+    fixes.temperature = 'dead';
+    issues.push('status_temp_mismatch_fixed');
+  }
+  if (prospect.temperature === 'dead' && prospect.status !== 'perdu') {
+    fixes.status = 'perdu';
+    issues.push('temp_status_mismatch_fixed');
+  }
+
+  return { fixes, issues };
+}
