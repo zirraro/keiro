@@ -229,7 +229,9 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues.push('already_client');
   }
 
-  const blockingIssues = ['email_missing', 'company_missing', 'type_missing', 'prospect_dead', 'already_client'];
+  // type_missing is NOT blocking — getSequenceForProspect() defaults to 'pme' when type is null
+  // location_missing and generic_email are warnings only
+  const blockingIssues = ['email_missing', 'company_missing', 'prospect_dead', 'already_client'];
   const hasBlockingIssue = issues.some(i => blockingIssues.includes(i));
 
   return {
