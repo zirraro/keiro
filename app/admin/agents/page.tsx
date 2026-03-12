@@ -703,11 +703,18 @@ export default function AdminAgentsPage() {
       const endpoint = endpointMap[agentType];
       if (!endpoint) throw new Error(`Agent inconnu: ${agentType}`);
 
+      // Content agent needs specific action in body
+      const bodyPayload = agentType === 'content'
+        ? JSON.stringify({ action: 'execute_publication' })
+        : agentType === 'seo'
+        ? JSON.stringify({ action: 'generate_article' })
+        : endpoint.method === 'POST' ? JSON.stringify({}) : undefined;
+
       const res = await fetch(endpoint.path, {
         method: endpoint.method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: endpoint.method === 'POST' ? JSON.stringify({}) : undefined,
+        body: bodyPayload,
       });
       const data = await res.json();
       if (data.ok) {
@@ -722,6 +729,8 @@ export default function AdminAgentsPage() {
           ? `${data.new_prospects || data.found || 0} prospects trouvés`
           : agentType === 'commercial'
           ? `${data.enriched || 0} prospects enrichis`
+          : agentType === 'content'
+          ? `${data.postsPlanned || data.post ? 1 : 0} post(s) généré(s)`
           : 'Tâche exécutée avec succès';
         setCampaignLaunchResult({ ok: true, message: msg });
         // Reload campaigns to show new entry
@@ -1354,6 +1363,7 @@ export default function AdminAgentsPage() {
                   { key: 'email_warm', label: 'Email Warm', icon: '🔥', color: 'from-orange-500 to-orange-600' },
                   { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
                   { key: 'tiktok_comments', label: 'TikTok Comments', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
+                  { key: 'content', label: 'Contenu', icon: '📱', color: 'from-indigo-500 to-indigo-600' },
                   { key: 'gmaps', label: 'Google Maps', icon: '📍', color: 'from-blue-500 to-blue-600' },
                   { key: 'commercial', label: 'Enrichissement', icon: '🔍', color: 'from-purple-500 to-purple-600' },
                 ].map((btn) => (

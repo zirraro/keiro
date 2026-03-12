@@ -36,13 +36,45 @@ const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 const NO_TEXT_SUFFIX = '\nAbsolutely no text, letters, words, numbers, writing, signs, labels, watermarks, logos in the image. Pure visual only.';
 
+const SEEDREAM_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (text-to-image AI).
+Your goal: create premium, brand-consistent visuals for KeiroAI (AI marketing tool for local businesses).
+
+BRAND VISUAL IDENTITY:
+- Primary color: deep violet (#7C3AED) — innovation, premium tech
+- Secondary: soft purple (#A78BFA), deep black (#0F0F0F), warm white (#FAFAF9)
+- Accent: amber (#F59E0B) for energy and CTAs
+- Style: clean flat design, subtle 3D elements, modern tech aesthetic
+- Mood: professional yet approachable, innovative yet simple
+
+QUALITY STANDARDS:
+- Studio-quality lighting (soft, directional, no harsh shadows)
+- Clean compositions with clear focal point
+- Negative space for breathing room
+- Modern color grading (slightly desaturated, filmic)
+- 4K detail level, sharp focus on subject
+- Depth of field when appropriate
+
+FOR SOCIAL MEDIA THUMBNAILS:
+- The image must be READABLE at 100x100px thumbnail size
+- Strong contrast between subject and background
+- Single clear focal point (not cluttered)
+- Bold color blocks rather than detailed textures
+
+ABSOLUTELY FORBIDDEN:
+- Any text, letters, numbers, writing, signs, watermarks, logos
+- Cluttered compositions with too many elements
+- Stock photo aesthetic (generic, lifeless)
+- Low contrast or muddy colors
+
+Output ONLY the optimized English prompt. Nothing else.`;
+
 async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
   try {
-    // Optimize the visual description into a Seedream-friendly prompt
+    // Optimize the visual description into an elite Seedream prompt
     const optimizedText = await callGemini({
-      system: 'Tu es un expert en prompt engineering pour la génération d\'images IA. Transforme la description en un prompt visuel détaillé en anglais pour Seedream (text-to-image). Décris précisément : composition, couleurs, style, éclairage, ambiance. Pas de texte dans l\'image. Réponse = juste le prompt, rien d\'autre.',
-      message: `Description du visuel pour un post ${format} de KeiroAI (app de création de contenu IA pour commerces) :\n\n${visualDescription}`,
-      maxTokens: 300,
+      system: SEEDREAM_STYLE_GUIDE,
+      message: `Create a premium visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square 1:1, must look great as Instagram grid thumbnail' : format === 'reel' || format === 'video' || format === 'story' ? 'Vertical 9:16, mobile-first, bold and eye-catching' : 'Horizontal 16:9, professional LinkedIn style'}`,
+      maxTokens: 400,
     });
 
     const imagePrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
@@ -192,6 +224,77 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      case 'execute_publication': {
+        // Publish all approved OR draft posts that are due today or earlier (direct publish, no manual approval needed)
+        const todayDate = new Date().toISOString().split('T')[0];
+        const { data: readyPosts } = await supabase
+          .from('content_calendar')
+          .select('*')
+          .in('status', ['approved', 'draft'])
+          .lte('scheduled_date', todayDate)
+          .is('visual_url', null);
+
+        // Also get approved posts with visuals that aren't published yet
+        const { data: approvedWithVisuals } = await supabase
+          .from('content_calendar')
+          .select('*')
+          .in('status', ['approved', 'draft'])
+          .lte('scheduled_date', todayDate)
+          .not('visual_url', 'is', null);
+
+        let publishedCount = 0;
+        const publishedPosts: Array<{ platform: string; format: string; hook: string }> = [];
+
+        // Publish posts that already have visuals
+        for (const post of approvedWithVisuals || []) {
+          await supabase.from('content_calendar')
+            .update({ status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+            .eq('id', post.id);
+          publishedCount++;
+          publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '' });
+        }
+
+        // Generate visuals and publish for posts without visuals
+        for (const post of readyPosts || []) {
+          const visualDesc = post.visual_description || post.hook || post.caption;
+          if (visualDesc) {
+            const visualUrl = await generateVisual(visualDesc, post.format || 'post');
+            if (visualUrl) {
+              await supabase.from('content_calendar')
+                .update({
+                  visual_url: visualUrl,
+                  status: 'published',
+                  published_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', post.id);
+              publishedCount++;
+              publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '' });
+            }
+          }
+        }
+
+        // If no posts existed at all, generate + publish one on the fly
+        if (publishedCount === 0 && (!readyPosts || readyPosts.length === 0) && (!approvedWithVisuals || approvedWithVisuals.length === 0)) {
+          console.log('[Content] No posts to publish — generating a fresh one now');
+          const dayOfWeek = new Date().getDay();
+          return generateDailyPost(supabase, todayDate, dayOfWeek);
+        }
+
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'report_to_ceo',
+          data: {
+            phase: 'completed',
+            message: `Contenu: ${publishedCount} publications exécutées directement`,
+            published: publishedPosts,
+          },
+          created_at: new Date().toISOString(),
+        });
+
+        return NextResponse.json({ ok: true, published: publishedCount, posts: publishedPosts });
+      }
+
       case 'stats': {
         const { count: totalPosts } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true });
         const { count: published } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'published');
@@ -270,27 +373,8 @@ async function generateWeeklyPlan(supabase: any) {
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned });
 
-  const enhancedSystemPrompt = getContentSystemPrompt() + `
-
-RÈGLES VISUELLES CRITIQUES — COHÉRENCE DU FEED :
-
-Tu dois penser à l'APPARENCE GLOBALE du feed Instagram quand quelqu'un visite le profil @keiroai :
-1. HARMONIE DES COULEURS : Alterne les dominantes (violet KeiroAI, blanc épuré, fond sombre, tons chauds). Le feed doit avoir un rythme visuel.
-2. MINIATURES GRID : Chaque post sera vu en miniature carrée dans la grille. Le visuel doit être LISIBLE même en petit :
-   - Carrousels : la slide de couverture doit avoir un GROS TITRE lisible + couleur de fond forte
-   - Reels/Vidéos : décris la miniature idéale (frame d'accroche, texte overlay visible en petit)
-   - Posts image : composition centrée, pas trop de détails, message clair en miniature
-3. PATTERN DE GRILLE : Pense en lignes de 3 (grille Instagram). Propose une alternance :
-   - Ligne : [Carrousel fond violet] [Reel miniature sombre] [Post fond blanc]
-   - Évite 3 posts similaires côte à côte
-4. Pour chaque post, ajoute un champ "thumbnail_description" qui décrit EXACTEMENT ce que la miniature montrera dans la grille
-5. Pour TikTok : la miniature vidéo doit avoir un texte overlay accrocheur visible en petit dans le feed TikTok
-
-HEURES DE PUBLICATION OPTIMALES :
-- Instagram : Mardi 11h, Mercredi 18h, Jeudi 12h, Vendredi 17h, Samedi 10h
-- TikTok : Mardi 20h, Samedi 21h
-- LinkedIn : Jeudi 8h30
-Adapte les heures au jour prévu.`;
+  // The elite system prompt already contains all visual rules, timing, and brand guidelines
+  const enhancedSystemPrompt = getContentSystemPrompt();
 
   const rawText = await callGemini({
     system: enhancedSystemPrompt,
@@ -438,9 +522,9 @@ IMPORTANT — COHÉRENCE VISUELLE :
 Retourne UN SEUL objet JSON (pas de markdown).`;
 
   const rawText = await callGemini({
-    system: getContentSystemPrompt() + `\n\nRÈGLE VISUELLE : Pour chaque post, ajoute "thumbnail_description" décrivant exactement la miniature dans la grille (couleur de fond, texte visible, composition). Pense TOUJOURS à comment ça s'intègre visuellement dans le feed.`,
+    system: getContentSystemPrompt(),
     message: enhancedPrompt,
-    maxTokens: 1500,
+    maxTokens: 2000,
   });
 
   let post: any;

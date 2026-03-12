@@ -186,7 +186,10 @@ async function executeOrder(
       return callAgentEndpoint(baseUrl, '/api/agents/retention', 'GET', cronSecret);
 
     case 'content':
-      if (orderType.includes('generat') || orderType.includes('creer') || orderType.includes('créer') || orderType.includes('post')) {
+      if (orderType.includes('publi') || orderType.includes('execut') || orderType.includes('exécut') || orderType.includes('lancer')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/content', 'POST', cronSecret, { action: 'execute_publication' });
+      }
+      if (orderType.includes('generat') || orderType.includes('creer') || orderType.includes('créer') || orderType.includes('post') || orderType.includes('plan')) {
         return callAgentEndpoint(baseUrl, '/api/agents/content', 'POST', cronSecret, { action: 'generate_weekly' });
       }
       return callAgentEndpoint(baseUrl, '/api/agents/content', 'GET', cronSecret);

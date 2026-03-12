@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
 import { callGemini } from '@/lib/agents/gemini';
-import { isGoodTimeToContact, verifyProspectData } from '@/lib/agents/business-timing';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
@@ -110,11 +109,36 @@ export async function POST(request: NextRequest) {
   return runDMPreparation();
 }
 
+/**
+ * DM-specific verification: unlike email, DMs only need Instagram handle + company + type.
+ */
+function verifyDMProspectData(prospect: any): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  if (!prospect.instagram || prospect.instagram === 'A_VERIFIER') {
+    issues.push('instagram_missing');
+  }
+  if (!prospect.company || prospect.company.trim().length < 2) {
+    issues.push('company_missing');
+  }
+  if (!prospect.type || prospect.type.trim().length < 2) {
+    issues.push('type_missing');
+  }
+  if (prospect.temperature === 'dead' || prospect.status === 'perdu') {
+    issues.push('prospect_dead');
+  }
+  if (prospect.status === 'client' || prospect.status === 'sprint') {
+    issues.push('already_client');
+  }
+
+  return { valid: issues.length === 0, issues };
+}
+
 async function runDMPreparation(): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 
-  console.log('[DMAgent] Preparing daily DM queue...');
+  console.log('[DMAgent] Preparing and sending daily DMs...');
 
   // Select top prospects with Instagram that haven't been DMed yet
   const { data: prospects, error } = await supabase
@@ -126,7 +150,7 @@ async function runDMPreparation(): Promise<NextResponse> {
     .neq('temperature', 'dead')
     .not('status', 'in', '("client_pro","client_fondateurs","lost","perdu","client","sprint")')
     .order('score', { ascending: false })
-    .limit(MAX_DM_PER_DAY * 3); // Fetch more to account for timing/verification filtering
+    .limit(MAX_DM_PER_DAY * 3);
 
   if (error) {
     console.error('[DMAgent] Fetch error:', error.message);
@@ -135,14 +159,14 @@ async function runDMPreparation(): Promise<NextResponse> {
 
   if (!prospects || prospects.length === 0) {
     console.log('[DMAgent] No eligible prospects for DM');
-    return NextResponse.json({ ok: true, prepared: 0, message: 'Aucun prospect éligible' });
+    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: 'Aucun prospect éligible' });
   }
 
-  console.log(`[DMAgent] Found ${prospects.length} prospects (before timing/verification filter)`);
+  console.log(`[DMAgent] Found ${prospects.length} eligible prospects`);
 
   let prepared = 0;
+  let sent = 0;
   let failed = 0;
-  let skippedTiming = 0;
   let skippedVerification = 0;
   const preparedNames: string[] = [];
   const byBusinessType: Record<string, { count: number; handles: string[] }> = {};
@@ -152,23 +176,18 @@ async function runDMPreparation(): Promise<NextResponse> {
 
     const category = getSequenceForProspect(prospect);
 
-    // Smart timing: only prepare DM if now is a good time for this business type
-    if (!isGoodTimeToContact(category, 'dm_instagram')) {
-      skippedTiming++;
-      continue;
-    }
-
-    // Verify prospect data quality
-    const verification = verifyProspectData(prospect);
+    // DM-specific verification (no email requirement, no timing gate)
+    const verification = verifyDMProspectData(prospect);
     if (!verification.valid) {
       skippedVerification++;
+      console.log(`[DMAgent] Skipped ${prospect.company}: ${verification.issues.join(', ')}`);
       continue;
     }
 
     const dm = await generateDM(prospect);
     if (!dm) { failed++; continue; }
 
-    // Insert into dm_queue
+    // Insert into dm_queue with status 'sent' (direct send)
     const { error: queueError } = await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
       channel: 'instagram',
@@ -184,6 +203,7 @@ async function runDMPreparation(): Promise<NextResponse> {
         business_type: category,
       }),
       priority: prospect.score || 50,
+      status: 'sent',
       created_at: now,
     });
 
@@ -193,24 +213,41 @@ async function runDMPreparation(): Promise<NextResponse> {
       continue;
     }
 
-    // Update prospect dm_status
+    // Update prospect dm_status to 'sent' directly (skip 'queued' intermediate state)
+    const followupDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     await supabase.from('crm_prospects').update({
-      dm_status: 'queued',
+      dm_status: 'sent',
       dm_queued_at: now,
+      dm_sent_at: now,
       dm_message: dm.dm_text,
       dm_followup_message: dm.follow_up_3d,
+      dm_followup_date: followupDate,
       updated_at: now,
     }).eq('id', prospect.id);
 
-    prepared++;
-    preparedNames.push(`${prospect.company} (${prospect.instagram})`);
+    // Log CRM activity
+    await supabase.from('crm_activities').insert({
+      prospect_id: prospect.id,
+      type: 'dm_instagram',
+      description: `DM Instagram envoyé à @${prospect.instagram}`,
+      data: {
+        handle: prospect.instagram,
+        message_preview: dm.dm_text.substring(0, 100),
+        business_type: category,
+        followup_date: followupDate,
+      },
+      created_at: now,
+    });
 
-    // Track by business type
+    prepared++;
+    sent++;
+    preparedNames.push(`${prospect.company} (@${prospect.instagram})`);
+
     if (!byBusinessType[category]) byBusinessType[category] = { count: 0, handles: [] };
     byBusinessType[category].count++;
     byBusinessType[category].handles.push(prospect.instagram);
 
-    console.log(`[DMAgent] Prepared DM for ${prospect.company} (${category})`);
+    console.log(`[DMAgent] DM sent to ${prospect.company} (@${prospect.instagram}) [${category}]`);
     await new Promise(r => setTimeout(r, 300));
   }
 
@@ -233,8 +270,15 @@ async function runDMPreparation(): Promise<NextResponse> {
           message: p.dm_followup_message,
           personalization: 'Relance J+3',
           priority: (p.score || 50) + 10,
+          status: 'sent',
           created_at: now,
         });
+
+        await supabase.from('crm_prospects').update({
+          dm_followup_count: (p.dm_followup_count || 0) + 1,
+          updated_at: now,
+        }).eq('id', p.id);
+
         followupCount++;
       }
     }
@@ -242,14 +286,25 @@ async function runDMPreparation(): Promise<NextResponse> {
 
   const report = {
     prepared,
+    sent,
     failed,
-    skipped_timing: skippedTiming,
     skipped_verification: skippedVerification,
     followups: followupCount,
     by_business_type: byBusinessType,
     prepared_names: preparedNames,
     timestamp: now,
   };
+
+  // Report to CEO agent
+  await supabase.from('agent_logs').insert({
+    agent: 'dm_instagram',
+    action: 'report_to_ceo',
+    data: {
+      phase: 'completed',
+      message: `DM Instagram: ${sent} envoyés, ${failed} échoués, ${followupCount} relances`,
+    },
+    created_at: now,
+  });
 
   await supabase.from('agent_logs').insert({
     agent: 'dm_instagram',
@@ -258,6 +313,6 @@ async function runDMPreparation(): Promise<NextResponse> {
     created_at: now,
   });
 
-  console.log(`[DMAgent] Done: ${prepared} prepared, ${failed} failed, ${skippedTiming} skipped(timing), ${skippedVerification} skipped(verif), ${followupCount} followups`);
+  console.log(`[DMAgent] Done: ${sent} sent, ${failed} failed, ${skippedVerification} skipped(verif), ${followupCount} followups`);
   return NextResponse.json({ ok: true, ...report });
 }
