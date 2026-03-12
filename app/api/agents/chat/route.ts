@@ -18,35 +18,59 @@ function getSupabaseAdmin() {
 const AGENT_CHAT_PROMPTS: Record<string, { name: string; systemPrompt: string }> = {
   commercial: {
     name: 'Agent Commercial',
-    systemPrompt: `Tu es l'agent commercial de KeiroAI. Tu gères la prospection, la qualification et l'enrichissement des prospects dans le CRM.
+    systemPrompt: `Tu es l'agent commercial de KeiroAI — le chasseur de prospects le plus efficace du marché SaaS français.
 
 TES CAPACITÉS :
-- Scanner de nouveaux prospects via Google Maps
-- Enrichir et qualifier les prospects existants
-- Donner le GO/NO-GO pour le contact
-- Analyser la qualité du CRM
+- **Phase 1 — Enrichissement données** : type de commerce, quartier, validation email, GO/NO-GO via Gemini
+- **Phase 2 — Recherche Google** : trouver Instagram, TikTok, site web, note Google Maps, avis, téléphone, adresse via Google Search grounding
+- Scanner de nouvelles zones via Google Maps
+- Qualifier et scorer chaque prospect (0-100)
+- Disqualifier les prospects non-pertinents (chaînes, administrations, emails jetables)
 
-Quand le fondateur te demande une action, inclus une section ## ORDRES à exécuter.
-Ordres possibles :
+TU APPRENDS EN CONTINU :
+- Tu tracks quels types de prospects convertissent le mieux
+- Tu retiens quelles zones géographiques sont les plus rentables
+- Utilise "J'ai appris: [insight]" pour sauvegarder tes découvertes
+
+MÉTRIQUES QUE TU SURVEILLES :
+- Taux de prospects enrichis vs skippés
+- Nombre de réseaux sociaux trouvés (IG, TikTok)
+- Taux de qualification (GO vs NO-GO)
+- Complétude des données CRM
+
+Quand le fondateur te demande une action, inclus ## ORDRES.
 - [Commercial] Enrichir les prospects
+- [Commercial] Recherche sociale
 - [Google Maps] Scanner de nouvelles zones
 - Réponds en français, sois direct et actionnable.`,
   },
   email: {
     name: 'Agent Email',
-    systemPrompt: `Tu es l'agent email de KeiroAI. Tu gères les séquences d'emails cold et warm pour convertir les prospects.
+    systemPrompt: `Tu es l'agent email de KeiroAI — le meilleur closer par email du game. Tu génères des emails personnalisés via IA qui convertissent les prospects en clients.
 
 TES CAPACITÉS :
-- Envoyer des campagnes cold email (séquence de 3 emails)
-- Suivre les prospects chauds (warm follow-up)
-- Vérifier la qualité des données avant envoi
-- Analyser les taux d'ouverture et de conversion
+- Générer des emails personnalisés par IA (pas des templates morts)
+- Séquence cold en 3 étapes : accroche → relance → dernière chance
+- Warm follow-up pour les leads chatbot
+- Analyser les taux d'ouverture/clic/réponse et APPRENDRE de tes résultats
+- Double provider Resend + Brevo (failover automatique)
 
-Quand le fondateur te demande une action, inclus une section ## ORDRES à exécuter.
-Ordres possibles :
+TU APPRENDS EN CONTINU :
+- Tes résultats (opens, clicks, replies) sont trackés via webhook Brevo
+- À chaque run, tu charges tes apprentissages passés et tu adaptes tes emails
+- Si un type de prospect répond mieux avec tel angle, tu le retiens
+- Utilise "J'ai appris: [insight]" pour sauvegarder tes découvertes
+
+STYLE D'EMAIL QUI MARCHE :
+- Tutoiement, 4-6 lignes, mobile-first
+- Question d'accroche liée au business du prospect
+- ROI concret ("5 couverts de plus = rentabilisé")
+- CTA unique et clair
+- Signature Victor (JAMAIS Oussama)
+
+Quand le fondateur te demande une action, inclus ## ORDRES.
 - [Email] Lancer campagne cold
 - [Email] Lancer warm follow-up
-- [Email] Pause séquences
 - Réponds en français, sois direct et actionnable.`,
   },
   content: {
@@ -235,8 +259,20 @@ export async function POST(request: NextRequest) {
       .from('crm_prospects').select('id', { count: 'exact', head: true });
     const { count: hotProspects } = await supabase
       .from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'hot');
+    const { count: withInstagram } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null);
+    const { count: withTiktok } = await supabase
+      .from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null);
+    const { count: emailsSent7d } = await supabase
+      .from('crm_activities').select('id', { count: 'exact', head: true })
+      .eq('type', 'email')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
-    const statsContext = `\n\nCRM : ${totalProspects ?? 0} prospects total, ${hotProspects ?? 0} chauds.`;
+    const statsContext = `\n\nSTATS CRM :
+- ${totalProspects ?? 0} prospects total, ${hotProspects ?? 0} chauds
+- ${withInstagram ?? 0} avec Instagram, ${withTiktok ?? 0} avec TikTok
+- ${emailsSent7d ?? 0} emails envoyés (7 derniers jours)
+- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 
     const systemPrompt = agentConfig.systemPrompt + activityContext + memoryContext + statsContext;
 
@@ -319,14 +355,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if agent learned something (save to memory)
-    const learningMatch = reply.match(/(?:j'ai appris|je retiens|note pour moi|apprentissage)\s*:\s*(.+)/i);
-    if (learningMatch) {
-      await supabase.from('agent_logs').insert({
-        agent,
-        action: 'memory',
-        data: { learning: learningMatch[1].trim(), source: 'chat', learned_at: now.toISOString() },
-        created_at: now.toISOString(),
-      });
+    // Supports multiple patterns in French
+    const learningPatterns = [
+      /(?:j'ai appris|je retiens|note pour moi|apprentissage|insight|observation|conclusion)\s*:\s*(.+)/gi,
+      /(?:à retenir|leçon|découverte)\s*:\s*(.+)/gi,
+      /🧠\s*(.+)/g,
+    ];
+
+    for (const pattern of learningPatterns) {
+      let match;
+      while ((match = pattern.exec(reply)) !== null) {
+        const learning = match[1].trim();
+        if (learning.length > 10) {
+          await supabase.from('agent_logs').insert({
+            agent,
+            action: 'memory',
+            data: { learning, source: 'chat', learned_at: now.toISOString() },
+            created_at: now.toISOString(),
+          });
+          console.log(`[AgentChat] ${agent} learned: ${learning.substring(0, 80)}`);
+        }
+      }
     }
 
     return NextResponse.json({
