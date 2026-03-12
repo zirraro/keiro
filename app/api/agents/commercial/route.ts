@@ -175,11 +175,12 @@ async function runEnrichment(): Promise<NextResponse> {
 
     // Fetch prospects that need enrichment OR need to be advanced to 'contacte'
     // Includes: missing data, status 'new'/'identifie' not yet in email sequence
+    // IMPORTANT: Use .or() for NULL-safe filtering — in SQL, NULL <> 'dead' = NULL (excluded)
     const { data: prospects, error: fetchError } = await supabase
       .from('crm_prospects')
       .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status')
-      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie')
-      .neq('temperature', 'dead')
+      .or('type.is.null,quartier.is.null,email_sequence_status.is.null,email_sequence_status.eq.not_started,status.eq.new,status.eq.identifie,status.is.null')
+      .or('temperature.is.null,temperature.neq.dead')
       .order('created_at', { ascending: true })
       .limit(MAX_PROSPECTS_PER_RUN);
 

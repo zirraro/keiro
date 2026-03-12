@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant: selectedVariant,
         category,
-        provider: 'resend',
+        provider,
       },
       created_at: now,
     });
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         subject: template.subject,
         variant: selectedVariant,
         message_id: messageId,
-        provider: 'resend',
+        provider,
       },
       created_at: now,
     });
