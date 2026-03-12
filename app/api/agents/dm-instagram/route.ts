@@ -121,15 +121,13 @@ function verifyDMProspectData(prospect: any): { valid: boolean; issues: string[]
   if (!prospect.company || prospect.company.trim().length < 2) {
     issues.push('company_missing');
   }
-  if (!prospect.type || prospect.type.trim().length < 2) {
-    issues.push('type_missing');
-  }
   if (prospect.temperature === 'dead' || prospect.status === 'perdu') {
     issues.push('prospect_dead');
   }
   if (prospect.status === 'client' || prospect.status === 'sprint') {
     issues.push('already_client');
   }
+  // type is NOT required for DMs — getSequenceForProspect() defaults to 'pme'
 
   return { valid: issues.length === 0, issues };
 }

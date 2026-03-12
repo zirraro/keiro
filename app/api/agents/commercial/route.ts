@@ -15,7 +15,7 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 200;
+const MAX_PROSPECTS_PER_RUN = 15;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.

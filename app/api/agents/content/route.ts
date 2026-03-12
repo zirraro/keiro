@@ -157,14 +157,47 @@ export async function GET(request: NextRequest) {
 
     // If no post for today, generate one on the fly
     if (!todayPosts || todayPosts.length === 0) {
+      console.log('[Content] No posts for today — generating one now');
       return generateDailyPost(supabase, todayStr, dayOfWeek);
+    }
+
+    // If posts exist but none are published yet, auto-publish them
+    const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
+    if (unpublished.length > 0 && isCron) {
+      console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing`);
+      let published = 0;
+      for (const post of unpublished) {
+        // Fetch full post data for visual generation
+        const { data: fullPost } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
+        if (!fullPost) continue;
+
+        if (!fullPost.visual_url) {
+          const visualDesc = fullPost.visual_description || fullPost.hook || fullPost.caption;
+          if (visualDesc) {
+            const visualUrl = await generateVisual(visualDesc, fullPost.format || 'post');
+            if (visualUrl) {
+              await supabase.from('content_calendar').update({
+                visual_url: visualUrl, status: 'published',
+                published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+              published++;
+            }
+          }
+        } else {
+          await supabase.from('content_calendar').update({
+            status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          }).eq('id', post.id);
+          published++;
+        }
+      }
+      console.log(`[Content] Auto-published ${published} posts`);
     }
 
     // Return today's content
     return NextResponse.json({
       ok: true,
       today: todayPosts,
-      message: `${todayPosts.length} post(s) planned for today`,
+      message: `${todayPosts.length} post(s) for today`,
     });
   } catch (error: any) {
     console.error('[Content] GET error:', error);
