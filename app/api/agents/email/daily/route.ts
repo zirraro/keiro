@@ -512,6 +512,7 @@ export async function GET(request: NextRequest) {
 
   const isCronTrigger = !!(cronSecret && authHeader === `Bearer ${cronSecret}`);
   const isManualTrigger = !isCronTrigger;
+  const forceMode = request.nextUrl.searchParams.get('force') === 'true';
 
   const supabase = getSupabaseAdmin();
   const now = new Date();
@@ -659,6 +660,11 @@ export async function GET(request: NextRequest) {
       let recycledCount = 0;
       const MAX_STEP1_PER_DAY = isManualTrigger ? 200 : 50;
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 1;
+      // For manual triggers: send immediately (no multi-day gaps)
+      // For cron: respect normal spacing between steps
+      const STEP_GAP_DAYS = forceMode ? { 1: 0, 2: 0, 3: 0, 4: 0 } :
+        isManualTrigger ? { 1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5 } :
+        { 1: 3, 2: 2, 3: 3, 4: 4 };
       prospectCount = prospects.length;
 
       // Collect prospects for AI batch generation
@@ -701,20 +707,20 @@ export async function GET(request: NextRequest) {
           batchForAI.push({ prospect, category, step: 1 });
           step1Count++;
         } else if (step === 1 && lastSent) {
-          // Step 1 → step 2 (relance douce) after 3 days
-          if (daysSinceLastSent < 3) { skippedWaitingNextStep++; continue; }
+          // Step 1 → step 2 (relance douce)
+          if (daysSinceLastSent < STEP_GAP_DAYS[1]) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 2 });
         } else if (step === 2 && lastSent) {
-          // Step 2 → step 3 (valeur gratuite) after 2 days (shorter gap — pure value)
-          if (daysSinceLastSent < 2) { skippedWaitingNextStep++; continue; }
+          // Step 2 → step 3 (valeur gratuite)
+          if (daysSinceLastSent < STEP_GAP_DAYS[2]) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 3 });
         } else if (step === 3 && lastSent) {
-          // Step 3 → step 4 (FOMO concurrents) after 3 days
-          if (daysSinceLastSent < 3) { skippedWaitingNextStep++; continue; }
+          // Step 3 → step 4 (FOMO concurrents)
+          if (daysSinceLastSent < STEP_GAP_DAYS[3]) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 4 });
         } else if (step === 4 && lastSent) {
-          // Step 4 → step 5 (derniere chance) after 4 days
-          if (daysSinceLastSent < 4) { skippedWaitingNextStep++; continue; }
+          // Step 4 → step 5 (derniere chance)
+          if (daysSinceLastSent < STEP_GAP_DAYS[4]) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 5 });
         } else if (step === 5) {
           // Step 5 completed → mark sequence as completed
@@ -754,6 +760,15 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Step distribution for diagnostics
+      const stepDistribution: Record<string, number> = {};
+      for (const p of prospects) {
+        const s = p.email_sequence_step ?? 0;
+        const hasLastSent = !!p.last_email_sent_at;
+        const key = `step_${s}${hasLastSent ? '_sent' : '_nosent'}`;
+        stepDistribution[key] = (stepDistribution[key] || 0) + 1;
+      }
+
       const skipDiag = {
         total_eligible: prospects.length,
         to_send: batchForAI.length,
@@ -763,6 +778,9 @@ export async function GET(request: NextRequest) {
         skipped_max_daily: skippedMaxDaily,
         skipped_completed: skippedCompleted,
         recycled: recycledCount,
+        step_distribution: stepDistribution,
+        mode: forceMode ? 'force' : isManualTrigger ? 'manual' : 'cron',
+        step_gaps: STEP_GAP_DAYS,
       };
       console.log(`[EmailDaily] Pipeline:`, JSON.stringify(skipDiag));
 

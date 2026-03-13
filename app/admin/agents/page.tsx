@@ -905,8 +905,8 @@ function AdminAgentsContent() {
     setCampaignLaunchResult(null);
     try {
       const endpointMap: Record<string, { path: string; method: string }> = {
-        'email_cold': { path: '/api/agents/email/daily', method: 'GET' },
-        'email_warm': { path: '/api/agents/email/daily?type=warm', method: 'GET' },
+        'email_cold': { path: '/api/agents/email/daily?force=true', method: 'GET' },
+        'email_warm': { path: '/api/agents/email/daily?type=warm&force=true', method: 'GET' },
         'dm_instagram': { path: '/api/agents/dm-instagram', method: 'POST' },
         'dm_tiktok': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
