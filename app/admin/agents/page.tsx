@@ -135,7 +135,9 @@ function AdminAgentsContent() {
   // Content campaign options
   const [showContentOptions, setShowContentOptions] = useState(false);
   const [contentPlatform, setContentPlatform] = useState<string>('instagram');
-  const [contentMode, setContentMode] = useState<'draft' | 'publish'>('draft');
+  const [contentMode, setContentMode] = useState<'draft' | 'publish' | 'week'>('draft');
+  const [contentCalendar, setContentCalendar] = useState<any[]>([]);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
 
   // DM queue preview
   type DMQueueItem = {
@@ -921,8 +923,10 @@ function AdminAgentsContent() {
 
       // Content agent needs specific action + options in body
       const bodyPayload = agentType === 'content'
-        ? JSON.stringify(contentMode === 'publish'
-          ? { action: 'execute_publication' }
+        ? JSON.stringify(contentMode === 'week'
+          ? { action: 'generate_week', platform: contentPlatform, publishAll: false }
+          : contentMode === 'publish'
+          ? { action: 'generate_post', platform: contentPlatform, draftOnly: false }
           : { action: 'generate_post', platform: contentPlatform, draftOnly: true })
         : agentType === 'seo'
         ? JSON.stringify({ action: 'generate_article' })
@@ -958,6 +962,7 @@ function AdminAgentsContent() {
           ? `${data.postsPlanned || data.published || (data.post ? 1 : 0)} post(s) généré(s)`
           : 'Tâche exécutée avec succès';
         setCampaignLaunchResult({ ok: true, message: msg });
+        if (agentType === 'content') loadContentCalendar();
         // Reload campaigns to show new entry
         loadCampaigns(campaignFilter);
       } else {
@@ -968,6 +973,21 @@ function AdminAgentsContent() {
     } finally {
       setLaunchingCampaign(null);
     }
+  };
+
+  const loadContentCalendar = async () => {
+    setLoadingCalendar(true);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'calendar', startDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0], endDate: new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0] }),
+      });
+      const data = await res.json();
+      if (data.ok) setContentCalendar(data.posts || []);
+    } catch (e) { console.error(e); }
+    setLoadingCalendar(false);
   };
 
   // ─── Tab change handler ────────────────────────────────
@@ -1676,6 +1696,10 @@ function AdminAgentsContent() {
                             className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'publish' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
                             Publication directe
                           </button>
+                          <button onClick={() => setContentMode('week')}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            📅 Plan semaine
+                          </button>
                         </div>
                       </div>
                       <button
@@ -1696,6 +1720,67 @@ function AdminAgentsContent() {
                   {campaignLaunchResult.ok ? '✓' : '✗'} {campaignLaunchResult.message}
                 </div>
               )}
+              {/* Content Calendar */}
+              <div className="mt-4 border-t border-neutral-100 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-neutral-700">📅 Planning contenu</h4>
+                  <button onClick={loadContentCalendar} disabled={loadingCalendar}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                    {loadingCalendar ? 'Chargement...' : 'Actualiser'}
+                  </button>
+                </div>
+                {contentCalendar.length > 0 ? (
+                  <div className="grid grid-cols-7 gap-1">
+                    {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
+                      <div key={d} className="text-[10px] font-semibold text-neutral-400 text-center py-1">{d}</div>
+                    ))}
+                    {(() => {
+                      const today = new Date();
+                      const monday = new Date(today);
+                      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+                      const days = Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date(monday);
+                        d.setDate(d.getDate() + i);
+                        return d.toISOString().split('T')[0];
+                      });
+                      return days.map(dateStr => {
+                        const dayPosts = contentCalendar.filter((p: any) => p.scheduled_date === dateStr);
+                        const isToday = dateStr === today.toISOString().split('T')[0];
+                        return (
+                          <div key={dateStr} className={`min-h-[80px] rounded-lg p-1.5 ${isToday ? 'bg-indigo-50 border border-indigo-200' : 'bg-neutral-50 border border-neutral-100'}`}>
+                            <div className={`text-[10px] font-medium mb-1 ${isToday ? 'text-indigo-600' : 'text-neutral-400'}`}>
+                              {new Date(dateStr + 'T12:00:00').getDate()}
+                            </div>
+                            {dayPosts.map((post: any) => (
+                              <div key={post.id} className="mb-1 p-1 bg-white rounded border border-neutral-100 shadow-sm">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px]">{post.platform === 'instagram' ? '📸' : post.platform === 'tiktok' ? '🎵' : '💼'}</span>
+                                  <span className={`text-[8px] px-1 py-0.5 rounded-full font-medium ${
+                                    post.status === 'published' ? 'bg-green-100 text-green-700' :
+                                    post.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>{post.status}</span>
+                                </div>
+                                {post.visual_url && (
+                                  <img src={post.visual_url} alt="" className="w-full h-10 object-cover rounded mt-1" />
+                                )}
+                                <div className="text-[9px] text-neutral-600 mt-0.5 line-clamp-2">{post.hook || post.caption?.substring(0, 40)}</div>
+                              </div>
+                            ))}
+                            {dayPosts.length === 0 && (
+                              <div className="text-[9px] text-neutral-300 text-center mt-4">—</div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-xs text-neutral-400 text-center py-4">
+                    Cliquez &quot;Actualiser&quot; pour voir le planning
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Status Filter Pills */}

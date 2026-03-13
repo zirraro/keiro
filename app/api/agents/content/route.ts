@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 import { callGemini } from '@/lib/agents/gemini';
+import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
+import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -119,7 +121,7 @@ async function generateVisual(visualDescription: string, format: string): Promis
     const imageUrl = seedreamData.data?.[0]?.url || null;
 
     if (imageUrl) {
-      console.log('[Content] ✓ Visual generated successfully');
+      console.log('[Content] Visual generated successfully');
     } else {
       console.warn('[Content] Seedream returned no image URL');
     }
@@ -128,6 +130,70 @@ async function generateVisual(visualDescription: string, format: string): Promis
   } catch (e: any) {
     console.error('[Content] Visual generation error:', e.message);
     return null;
+  }
+}
+
+// ──────────────────────────────────────
+// Publish to Instagram via Graph API
+// ──────────────────────────────────────
+async function publishToInstagram(
+  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string },
+  supabase: any
+): Promise<{ success: boolean; permalink?: string; error?: string }> {
+  try {
+    // Find admin user's Instagram tokens
+    const { data: adminProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+      .eq('is_admin', true)
+      .single();
+
+    if (profileError || !adminProfile) {
+      console.error('[Content] No admin profile found for Instagram publishing');
+      return { success: false, error: 'No admin profile found' };
+    }
+
+    const igUserId = adminProfile.instagram_business_account_id;
+    const pageAccessToken = adminProfile.facebook_page_access_token;
+
+    if (!igUserId || !pageAccessToken) {
+      console.error('[Content] Admin has no Instagram tokens configured');
+      return { success: false, error: 'Instagram tokens not configured for admin user' };
+    }
+
+    if (!post.visual_url) {
+      return { success: false, error: 'No visual_url available for publishing' };
+    }
+
+    // Build caption with hashtags
+    const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
+    const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
+
+    const format = (post.format || 'post').toLowerCase();
+
+    console.log(`[Content] Publishing to Instagram as ${format} (ig_user: ${igUserId})...`);
+
+    let result: { id: string; permalink?: string };
+
+    if (format === 'story') {
+      // Stories don't have captions via Graph API
+      const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url);
+      result = { id: storyResult.id };
+    } else if (format === 'carrousel') {
+      // For now, treat carousel as single image publish (carousel needs multiple images)
+      console.log('[Content] Carousel detected — publishing as single image (multi-image carousel not yet supported)');
+      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+    } else {
+      // post, reel, or any other format → single image publish
+      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+    }
+
+    console.log(`[Content] Instagram publish success — media id: ${result.id}${result.permalink ? `, permalink: ${result.permalink}` : ''}`);
+
+    return { success: true, permalink: result.permalink };
+  } catch (error: any) {
+    console.error('[Content] Instagram publish error:', error.message || error);
+    return { success: false, error: error.message || 'Unknown Instagram publishing error' };
   }
 }
 
@@ -184,13 +250,36 @@ export async function GET(request: NextRequest) {
                 visual_url: visualUrl, status: 'published',
                 published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
               }).eq('id', post.id);
+
+              // Publish to Instagram if applicable
+              if (fullPost.platform === 'instagram') {
+                const igResult = await publishToInstagram({ ...fullPost, visual_url: visualUrl }, supabase);
+                if (igResult.success && igResult.permalink) {
+                  await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
+                } else if (igResult.error) {
+                  console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                }
+              }
+
               published++;
             }
           }
         } else {
+          // Already has visual, just publish
           await supabase.from('content_calendar').update({
             status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
           }).eq('id', post.id);
+
+          // Publish to Instagram if applicable
+          if (fullPost.platform === 'instagram') {
+            const igResult = await publishToInstagram(fullPost, supabase);
+            if (igResult.success && igResult.permalink) {
+              await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
+            } else if (igResult.error) {
+              console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+            }
+          }
+
           published++;
         }
       }
@@ -233,6 +322,10 @@ export async function POST(request: NextRequest) {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
         return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly);
+      }
+
+      case 'generate_week': {
+        return generateWeekWithVisuals(supabase, body.publishAll === true);
       }
 
       case 'approve': {
@@ -284,15 +377,41 @@ export async function POST(request: NextRequest) {
           .not('visual_url', 'is', null);
 
         let publishedCount = 0;
-        const publishedPosts: Array<{ platform: string; format: string; hook: string }> = [];
+        const publishedPosts: Array<{ platform: string; format: string; hook: string; instagram_permalink?: string; publication_error?: string }> = [];
 
         // Publish posts that already have visuals
         for (const post of approvedWithVisuals || []) {
-          await supabase.from('content_calendar')
-            .update({ status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-            .eq('id', post.id);
+          const updateData: Record<string, any> = {
+            status: 'published',
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          // Publish to Instagram if applicable
+          let igPermalink: string | undefined;
+          let pubError: string | undefined;
+          if (post.platform === 'instagram' && post.visual_url) {
+            const igResult = await publishToInstagram(post, supabase);
+            if (igResult.success) {
+              igPermalink = igResult.permalink;
+              if (igResult.permalink) {
+                updateData.instagram_permalink = igResult.permalink;
+              }
+            } else {
+              pubError = igResult.error;
+              console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+            }
+          }
+
+          await supabase.from('content_calendar').update(updateData).eq('id', post.id);
           publishedCount++;
-          publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '' });
+          publishedPosts.push({
+            platform: post.platform,
+            format: post.format,
+            hook: post.hook || '',
+            instagram_permalink: igPermalink,
+            publication_error: pubError,
+          });
         }
 
         // Generate visuals and publish for posts without visuals
@@ -301,16 +420,38 @@ export async function POST(request: NextRequest) {
           if (visualDesc) {
             const visualUrl = await generateVisual(visualDesc, post.format || 'post');
             if (visualUrl) {
-              await supabase.from('content_calendar')
-                .update({
-                  visual_url: visualUrl,
-                  status: 'published',
-                  published_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', post.id);
+              const updateData: Record<string, any> = {
+                visual_url: visualUrl,
+                status: 'published',
+                published_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+
+              // Publish to Instagram if applicable
+              let igPermalink: string | undefined;
+              let pubError: string | undefined;
+              if (post.platform === 'instagram') {
+                const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
+                if (igResult.success) {
+                  igPermalink = igResult.permalink;
+                  if (igResult.permalink) {
+                    updateData.instagram_permalink = igResult.permalink;
+                  }
+                } else {
+                  pubError = igResult.error;
+                  console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                }
+              }
+
+              await supabase.from('content_calendar').update(updateData).eq('id', post.id);
               publishedCount++;
-              publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '' });
+              publishedPosts.push({
+                platform: post.platform,
+                format: post.format,
+                hook: post.hook || '',
+                instagram_permalink: igPermalink,
+                publication_error: pubError,
+              });
             }
           }
         }
@@ -625,10 +766,222 @@ async function generateWeeklyPlan(supabase: any) {
 }
 
 // ──────────────────────────────────────
+// Generate week with visuals + optional Instagram publishing
+// ──────────────────────────────────────
+async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
+  const now = new Date();
+  const nowISO = now.toISOString();
+
+  console.log(`[Content] generate_week: starting (publishAll=${publishAll})`);
+
+  // Get last 10 published posts for context
+  const { data: recentPosts } = await supabase
+    .from('content_calendar')
+    .select('platform, format, pillar, hook, caption, scheduled_date')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(10);
+
+  const existingPlanned = recentPosts?.map((p: any) => `${p.scheduled_date} ${p.platform} ${p.pillar}: ${p.hook || p.caption?.substring(0, 50)}`).join('\n') || '';
+
+  // Calculate next Monday
+  const mondayDate = new Date(now);
+  const currentDay = mondayDate.getDay();
+  const daysUntilMonday = currentDay === 0 ? 1 : (8 - currentDay);
+  mondayDate.setDate(mondayDate.getDate() + daysUntilMonday);
+
+  const prompt = getWeeklyPlanPrompt({ existingPlanned });
+  const systemPrompt = getContentSystemPrompt();
+
+  let rawText: string;
+  try {
+    rawText = await callGemini({
+      system: systemPrompt,
+      message: prompt,
+      maxTokens: 4000,
+    });
+  } catch (geminiError: any) {
+    console.error('[Content] generate_week Gemini error:', geminiError.message);
+    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+  }
+
+  let weekPlan: any[];
+  try {
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      weekPlan = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error('No JSON array found in response');
+    }
+  } catch (parseError) {
+    console.error('[Content] generate_week parse error:', parseError);
+    return NextResponse.json({ ok: false, error: 'Failed to parse weekly plan' }, { status: 500 });
+  }
+
+  const dayMap: Record<string, number> = { lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6, dimanche: 0 };
+
+  const results: Array<{
+    day: string;
+    platform: string;
+    format: string;
+    hook: string;
+    visual_url: string | null;
+    status: string;
+    instagram_permalink?: string;
+    publication_error?: string;
+  }> = [];
+
+  // Process posts sequentially (Seedream rate limits)
+  for (const post of weekPlan) {
+    const dayNum = dayMap[(post.day || '').toLowerCase()] ?? null;
+    let scheduledDate = mondayDate.toISOString().split('T')[0];
+
+    if (dayNum !== null) {
+      const postDate = new Date(mondayDate);
+      const offset = dayNum === 0 ? 6 : dayNum - 1;
+      postDate.setDate(postDate.getDate() + offset);
+      scheduledDate = postDate.toISOString().split('T')[0];
+    }
+
+    let scheduledTime = '12:00';
+    if (post.best_time) {
+      const timeMatch = post.best_time.match(/(\d{1,2})[h:](\d{2})?/);
+      if (timeMatch) scheduledTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
+    }
+
+    const platform = post.platform || 'instagram';
+    const format = post.format || 'post';
+
+    // Insert into content_calendar
+    const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
+      platform,
+      format,
+      pillar: post.pillar || 'tips',
+      hook: post.hook || null,
+      caption: post.caption || '',
+      hashtags: post.hashtags || [],
+      visual_description: post.visual_description || post.thumbnail_description || null,
+      slides: post.slides || null,
+      script: post.script || null,
+      scheduled_date: scheduledDate,
+      scheduled_time: scheduledTime,
+      status: 'draft',
+      ai_generated: true,
+    }).select().single();
+
+    if (insertError) {
+      console.error(`[Content] generate_week insert error for ${post.day}:`, insertError.message);
+      results.push({
+        day: post.day || '?',
+        platform,
+        format,
+        hook: post.hook || '',
+        visual_url: null,
+        status: 'insert_failed',
+        publication_error: insertError.message,
+      });
+      continue;
+    }
+
+    // Generate visual with Seedream
+    const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
+    let visualUrl: string | null = null;
+    if (visualDesc) {
+      visualUrl = await generateVisual(visualDesc, format);
+    }
+
+    const postResult: typeof results[number] = {
+      day: post.day || '?',
+      platform,
+      format,
+      hook: post.hook || '',
+      visual_url: visualUrl,
+      status: visualUrl ? 'visual_ready' : 'no_visual',
+    };
+
+    if (visualUrl && inserted?.id) {
+      const updateData: Record<string, any> = {
+        visual_url: visualUrl,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Publish to Instagram if requested and platform is instagram
+      if (publishAll && platform === 'instagram') {
+        const igResult = await publishToInstagram(
+          { format, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl },
+          supabase
+        );
+
+        if (igResult.success) {
+          updateData.status = 'published';
+          updateData.published_at = new Date().toISOString();
+          if (igResult.permalink) {
+            updateData.instagram_permalink = igResult.permalink;
+            postResult.instagram_permalink = igResult.permalink;
+          }
+          postResult.status = 'published';
+          console.log(`[Content] generate_week: published ${post.day} to Instagram`);
+        } else {
+          updateData.status = 'approved';
+          postResult.status = 'publish_failed';
+          postResult.publication_error = igResult.error;
+          console.warn(`[Content] generate_week: Instagram publish failed for ${post.day}: ${igResult.error}`);
+        }
+      } else {
+        updateData.status = 'approved';
+        postResult.status = 'approved';
+      }
+
+      await supabase.from('content_calendar').update(updateData).eq('id', inserted.id);
+    }
+
+    results.push(postResult);
+  }
+
+  const publishedCount = results.filter(r => r.status === 'published').length;
+  const totalGenerated = results.filter(r => r.visual_url).length;
+
+  // Log
+  await supabase.from('agent_logs').insert({
+    agent: 'content',
+    action: 'generate_week',
+    data: {
+      total: results.length,
+      visuals_generated: totalGenerated,
+      published_to_instagram: publishedCount,
+      publishAll,
+      posts: results,
+    },
+    status: 'success',
+    created_at: nowISO,
+  });
+
+  console.log(`[Content] generate_week complete: ${results.length} posts, ${totalGenerated} visuals, ${publishedCount} published to Instagram`);
+
+  return NextResponse.json({
+    ok: true,
+    total: results.length,
+    visuals_generated: totalGenerated,
+    published_to_instagram: publishedCount,
+    posts: results,
+  });
+}
+
+// ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
 async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean) {
   const nowISO = new Date().toISOString();
+
+  // Load shared intelligence pool (all agents' data + active directives)
+  let sharedIntelligence = '';
+  try {
+    const ctx = await loadSharedContext(supabase, 'content');
+    sharedIntelligence = formatContextForPrompt(ctx);
+  } catch (e: any) {
+    console.warn('[Content] Failed to load shared context:', e.message);
+  }
 
   // Default schedule by day of week (Instagram + TikTok only, no LinkedIn)
   const defaultSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
@@ -676,6 +1029,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
 Plateforme : ${platform}
 Format suggéré : ${schedule.format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}
@@ -691,16 +1045,16 @@ STRATÉGIE GLOBALE :
 - Le visuel doit être HARMONIEUX avec les posts précédents (alternance couleurs, pas de répétition).
 - Le CTA doit être NATUREL, intégré au contenu, pas forcé. Il guide vers KeiroAI sans être publicitaire.
 - Pense conversion INDIRECTE : le prospect voit le post → comprend la valeur → visite le profil → essaie KeiroAI.
+- UTILISE les données du pool partagé : si l'email marche bien sur une catégorie, fais un post ciblé pour cette catégorie. Si les DMs ont du succès, renforce la visibilité Instagram.
 
 RÈGLES :
 - Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)
-- Tu DOIS fournir un champ "visual_description" détaillé (prompt Seedream complet, EN ANGLAIS)
-- La description visuelle doit être un PROMPT IMAGE complet, pas une simple description textuelle
+- Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
+- Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet (#7C3AED) gradient background, clean minimalist composition, studio lighting, 4K quality, no text no letters no words"
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
+- Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier
+- Le champ "caption" DOIT être complet avec emojis, sauts de ligne, et CTA final
 - Pense à la MINIATURE dans la grille (carrée, lisible en petit)
-- Pour un carrousel : la COVER SLIDE = fond coloré vibrant + élément graphique central
-- Pour un reel/vidéo : frame d'accroche visuelle forte
-- Pour un post image : composition épurée, focal point clair
 - Alterne les couleurs de fond par rapport aux posts précédents
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
@@ -794,6 +1148,9 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   // Generate visual using KeiroAI's own Seedream (proof of product!)
   const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
   let visualUrl: string | null = null;
+  let igPermalink: string | undefined;
+  let publicationError: string | undefined;
+
   if (visualDesc && inserted?.id) {
     visualUrl = await generateVisual(visualDesc, post.format || schedule.format);
     if (visualUrl) {
@@ -804,6 +1161,25 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       if (!draftOnly) {
         visualUpdate.status = 'published';
         visualUpdate.published_at = new Date().toISOString();
+
+        // Publish to Instagram if platform is instagram
+        const postPlatform = post.platform || platform;
+        if (postPlatform === 'instagram') {
+          const igResult = await publishToInstagram(
+            { format: post.format || schedule.format, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl },
+            supabase
+          );
+          if (igResult.success) {
+            igPermalink = igResult.permalink;
+            if (igResult.permalink) {
+              visualUpdate.instagram_permalink = igResult.permalink;
+            }
+            console.log(`[Content] Daily post published to Instagram${igResult.permalink ? `: ${igResult.permalink}` : ''}`);
+          } else {
+            publicationError = igResult.error;
+            console.warn(`[Content] Instagram publish failed for daily post ${inserted.id}: ${igResult.error}`);
+          }
+        }
       }
       await supabase.from('content_calendar').update(visualUpdate).eq('id', inserted.id);
       console.log(`[Content] Visual generated${draftOnly ? ' (draft)' : ' + auto-published'} for post ${inserted.id}`);
@@ -812,7 +1188,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
 
   // Send notification to founder (post is ready/published)
   if (process.env.RESEND_API_KEY) {
-    const isPublished = !!visualUrl;
+    const isPublished = !!visualUrl && !draftOnly;
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -825,6 +1201,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           <p><strong>Pilier :</strong> ${post.pillar} | <strong>Heure :</strong> ${post.best_time || scheduledTime}</p>
           <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
           <p>${post.caption || ''}</p>
+          ${igPermalink ? `<p><strong>Instagram :</strong> <a href="${igPermalink}">${igPermalink}</a></p>` : ''}
+          ${publicationError ? `<p style="color:#dc2626;"><strong>Erreur publication :</strong> ${publicationError}</p>` : ''}
           ${visualUrl ? `<img src="${visualUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Visuel généré par KeiroAI"/>
           <p style="color:#6b7280;font-size:12px;">Visuel généré et publié automatiquement par KeiroAI</p>` : ''}
           <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Voir dans l'admin</a></p>
@@ -835,11 +1213,23 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
 
   await supabase.from('agent_logs').insert({
     agent: 'content', action: 'daily_post_generated',
-    data: { platform: post.platform, format: post.format, pillar: post.pillar, hook: post.hook },
+    data: {
+      platform: post.platform,
+      format: post.format,
+      pillar: post.pillar,
+      hook: post.hook,
+      instagram_permalink: igPermalink,
+      publication_error: publicationError,
+    },
     status: 'success', created_at: nowISO,
   });
 
   console.log(`[Content] Daily post: ${post.platform} ${post.format} — ${post.hook}`);
 
-  return NextResponse.json({ ok: true, post: inserted });
+  return NextResponse.json({
+    ok: true,
+    post: inserted,
+    instagram_permalink: igPermalink,
+    publication_error: publicationError,
+  });
 }

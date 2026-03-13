@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
 import { callGemini, callGeminiChat } from '@/lib/agents/gemini';
+import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -483,13 +484,17 @@ async function generateBrief(): Promise<NextResponse> {
       agentReportsText = `\n\nRAPPORTS DES AGENTS (dernières 24h):\n${reportLines.join('\n')}`;
     }
 
-    console.log('[CEOAgent] Metrics collected, calling Gemini...');
+    console.log('[CEOAgent] Metrics collected, loading shared context...');
+
+    // Load the full shared data pool (all agents' performance)
+    const sharedCtx = await loadSharedContext(supabase, 'ceo');
+    const sharedDataPool = formatContextForPrompt(sharedCtx);
 
     // --- Call Gemini 2.0 Flash ---
     const rawText = await callGemini({
       system: getCeoSystemPrompt(),
-      message: `Voici les metriques des dernieres 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.`,
-      maxTokens: 2000,
+      message: `${sharedDataPool}\n\nMETRIQUES DÉTAILLÉES 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.\n\nIMPORTANT: Inclus une section "## DIRECTIVES STRATEGIQUES" avec des directives claires pour chaque agent. Format:\n- [DIRECTIVE email] Directive pour l'agent email\n- [DIRECTIVE content] Directive pour l'agent contenu\n- [DIRECTIVE dm_instagram] Directive pour les DMs\nCes directives seront automatiquement transmises et chaque agent devra les suivre.`,
+      maxTokens: 3000,
     });
     console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
 
@@ -510,6 +515,9 @@ async function generateBrief(): Promise<NextResponse> {
 
     // --- Extract structured orders from brief and insert into agent_orders ---
     await extractAndInsertOrders(supabase, brief, nowISO);
+
+    // --- Extract strategic DIRECTIVES and write them to agent_orders ---
+    await extractAndWriteDirectives(supabase, brief);
 
     // --- Send email brief to founder via Resend ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -708,6 +716,57 @@ async function extractAndInsertOrders(
   } catch (error: any) {
     // Non-blocking: order extraction failure should not break the brief flow
     console.error('[CEOAgent] Order extraction error (non-blocking):', error.message);
+    return 0;
+  }
+}
+
+/**
+ * Extract DIRECTIVE lines from CEO brief and write them as strategic directives.
+ * Format: [DIRECTIVE agent_name] Strategic direction message
+ * These are long-lived instructions that agents read before each action.
+ */
+async function extractAndWriteDirectives(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  briefText: string,
+): Promise<number> {
+  const AGENT_MAPPING: Record<string, string> = {
+    'email': 'email', 'dm_instagram': 'dm_instagram', 'dm': 'dm_instagram',
+    'tiktok': 'tiktok_comments', 'content': 'content', 'contenu': 'content',
+    'seo': 'seo', 'onboarding': 'onboarding', 'retention': 'retention',
+    'marketing': 'marketing', 'commercial': 'commercial', 'chatbot': 'chatbot',
+  };
+
+  try {
+    const directiveLines = briefText.split('\n').filter(line =>
+      /\[DIRECTIVE\s+/i.test(line)
+    );
+
+    if (directiveLines.length === 0) return 0;
+
+    let count = 0;
+    for (const line of directiveLines) {
+      const match = line.match(/\[DIRECTIVE\s+([^\]]+)\]\s*(.*)/i);
+      if (!match) continue;
+
+      const agentKey = match[1].toLowerCase().trim();
+      const toAgent = AGENT_MAPPING[agentKey];
+      if (!toAgent) continue;
+
+      const message = match[2]
+        .replace(/\*{1,2}/g, '')
+        .replace(/^[\s\-—:]+/, '')
+        .trim();
+      if (!message) continue;
+
+      await writeDirective(supabase, 'ceo', toAgent, 'strategic_direction', message, 'haute');
+      count++;
+      console.log(`[CEOAgent] Directive → ${toAgent}: ${message.substring(0, 60)}`);
+    }
+
+    console.log(`[CEOAgent] ${count} strategic directives written`);
+    return count;
+  } catch (error: any) {
+    console.error('[CEOAgent] Directive extraction error:', error.message);
     return 0;
   }
 }

@@ -1,7 +1,15 @@
 /**
- * Shared CRM context loader for all agents.
- * Each agent is independent but uses the work of others to contextualise.
- * All agents read from crm_prospects + agent_logs as their shared knowledge base.
+ * Shared intelligence pool for all agents.
+ *
+ * ARCHITECTURE:
+ * - Every agent reads the SAME shared context before acting
+ * - Every agent writes results back to agent_logs (shared data pool)
+ * - CEO + Marketing emit DIRECTIVES via agent_orders that other agents obey
+ * - Each agent learns from ALL agents' performance data (cross-pollination)
+ *
+ * Data flow:
+ *   agent_logs (results) → shared-context → AI prompt → agent action → agent_logs
+ *   agent_orders (directives) → shared-context → AI prompt → agent obeys directive
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -33,14 +41,30 @@ interface AgentContext {
     replyRate: string;
     bestCategory: string;
   };
+  contentPerformance: {
+    postsThisWeek: number;
+    publishedThisWeek: number;
+    draftsReady: number;
+    platformBreakdown: Record<string, number>;
+    lastPublishedDate: string;
+    instagramPublished: number;
+  };
+  dmPerformance: {
+    dmsSent7d: number;
+    dmsQueued: number;
+    responseRate: string;
+    bestChannel: string;
+  };
   conversionFunnel: {
     visiteursToLeads: string;
     leadsToContacted: string;
     contactedToReplied: string;
     repliedToClient: string;
   };
+  activeDirectives: Array<{ from: string; type: string; message: string; priority: string; created_at: string }>;
   recentAgentWork: string;
   learnings: string[];
+  allAgentLearnings: string[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
 }
 
@@ -136,6 +160,59 @@ export async function loadSharedContext(
     .order('score', { ascending: false })
     .limit(5);
 
+  // ── CONTENT PERFORMANCE ──
+  const { data: contentPosts } = await supabase
+    .from('content_calendar')
+    .select('platform, status, scheduled_date, published_at')
+    .gte('scheduled_date', sevenDaysAgo.split('T')[0])
+    .order('scheduled_date', { ascending: false });
+
+  const platformBreakdown: Record<string, number> = {};
+  let publishedThisWeek = 0;
+  let instagramPublished = 0;
+  let lastPublishedDate = '';
+  for (const p of contentPosts || []) {
+    platformBreakdown[p.platform] = (platformBreakdown[p.platform] || 0) + 1;
+    if (p.status === 'published') {
+      publishedThisWeek++;
+      if (p.platform === 'instagram') instagramPublished++;
+      if (!lastPublishedDate && p.published_at) lastPublishedDate = p.published_at;
+    }
+  }
+  const { count: draftsReady } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft');
+
+  // ── DM PERFORMANCE ──
+  const { data: dmEvents } = await supabase
+    .from('crm_activities')
+    .select('type, data')
+    .in('type', ['dm_instagram', 'tiktok_comment', 'dm_replied'])
+    .gte('created_at', sevenDaysAgo);
+
+  const dmsSent7d = dmEvents?.filter((e: any) => e.type === 'dm_instagram' || e.type === 'tiktok_comment')?.length || 0;
+  const dmsReplied7d = dmEvents?.filter((e: any) => e.type === 'dm_replied')?.length || 0;
+  const { count: dmsQueued } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+
+  const igDMs = dmEvents?.filter((e: any) => e.type === 'dm_instagram')?.length || 0;
+  const ttDMs = dmEvents?.filter((e: any) => e.type === 'tiktok_comment')?.length || 0;
+  const bestDMChannel = igDMs >= ttDMs ? 'instagram' : 'tiktok';
+
+  // ── ACTIVE DIRECTIVES from CEO/Marketing ──
+  const { data: directives } = await supabase
+    .from('agent_orders')
+    .select('from_agent, order_type, payload, priority, created_at')
+    .in('to_agent', [agentName, 'all'])
+    .in('status', ['pending', 'in_progress'])
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const activeDirectives = (directives || []).map((d: any) => ({
+    from: d.from_agent,
+    type: d.order_type,
+    message: d.payload?.directive || d.payload?.message || JSON.stringify(d.payload),
+    priority: d.priority,
+    created_at: d.created_at,
+  }));
+
   // Conversion funnel rates
   const totalNum = total || 1;
   const conversionFunnel = {
@@ -175,6 +252,19 @@ export async function loadSharedContext(
     .map((m: any) => m.data?.learning)
     .filter(Boolean);
 
+  // Load ALL agents' learnings (cross-pollination)
+  const { data: allMemories } = await supabase
+    .from('agent_logs')
+    .select('agent, data')
+    .eq('action', 'memory')
+    .neq('agent', agentName)
+    .order('created_at', { ascending: false })
+    .limit(15);
+
+  const allAgentLearnings = (allMemories || [])
+    .map((m: any) => `[${m.agent}] ${m.data?.learning}`)
+    .filter((l: string) => l && !l.endsWith('undefined'));
+
   return {
     crmStats: {
       total: total || 0,
@@ -202,9 +292,25 @@ export async function loadSharedContext(
       replyRate: sent24h > 0 ? `${(replied24h / sent24h * 100).toFixed(1)}%` : 'N/A',
       bestCategory,
     },
+    contentPerformance: {
+      postsThisWeek: contentPosts?.length || 0,
+      publishedThisWeek,
+      draftsReady: draftsReady || 0,
+      platformBreakdown,
+      lastPublishedDate,
+      instagramPublished,
+    },
+    dmPerformance: {
+      dmsSent7d,
+      dmsQueued: dmsQueued || 0,
+      responseRate: dmsSent7d > 0 ? `${(dmsReplied7d / dmsSent7d * 100).toFixed(1)}%` : 'N/A',
+      bestChannel: bestDMChannel,
+    },
     conversionFunnel,
+    activeDirectives,
     recentAgentWork,
     learnings,
+    allAgentLearnings,
     topProspects: (topProspectsData || []).map((p: any) => ({
       company: p.company || 'Inconnu',
       score: p.score || 0,
@@ -215,24 +321,88 @@ export async function loadSharedContext(
 }
 
 /**
+ * Write a directive from one agent to another via agent_orders.
+ * Used by CEO and Marketing to steer other agents.
+ */
+export async function writeDirective(
+  supabase: SupabaseClient,
+  fromAgent: string,
+  toAgent: string,
+  orderType: string,
+  directive: string,
+  priority: 'haute' | 'moyenne' | 'basse' = 'moyenne',
+) {
+  // Complete any previous directives of the same type to avoid stacking
+  await supabase.from('agent_orders')
+    .update({ status: 'completed' })
+    .eq('from_agent', fromAgent)
+    .eq('to_agent', toAgent)
+    .eq('order_type', orderType)
+    .eq('status', 'pending');
+
+  await supabase.from('agent_orders').insert({
+    from_agent: fromAgent,
+    to_agent: toAgent,
+    order_type: orderType,
+    priority,
+    payload: { directive, issued_at: new Date().toISOString() },
+    status: 'pending',
+    created_at: new Date().toISOString(),
+  });
+}
+
+/**
+ * Mark a directive as completed after an agent has acted on it.
+ */
+export async function completeDirective(supabase: SupabaseClient, agentName: string, orderType: string) {
+  await supabase.from('agent_orders')
+    .update({ status: 'completed', result: { completed_at: new Date().toISOString() } })
+    .eq('to_agent', agentName)
+    .eq('order_type', orderType)
+    .eq('status', 'pending');
+}
+
+/**
  * Format shared context as a string for injection into AI prompts.
+ * This is the SHARED DATA POOL — every agent sees the same intelligence.
  */
 export function formatContextForPrompt(ctx: AgentContext): string {
   const s = ctx.crmStats;
   const e = ctx.emailPerformance;
+  const c = ctx.contentPerformance;
+  const d = ctx.dmPerformance;
   const f = ctx.conversionFunnel;
 
-  let text = `CRM KEIROAI (base de données partagée):
-- ${s.total} prospects total | ${s.withEmail} avec email | ${s.withInstagram} Instagram | ${s.withTiktok} TikTok | ${s.withWebsite} site web
+  let text = `━━━ POOL DE DONNÉES PARTAGÉ KEIROAI ━━━
+
+CRM (${new Date().toLocaleDateString('fr-FR')}):
+- ${s.total} prospects total | ${s.withEmail} avec email | ${s.withInstagram} Instagram | ${s.withTiktok} TikTok
 - Pipeline: ${s.cold} cold → ${s.warm} warm → ${s.hot} hot | ${s.contacted} contactés | ${s.replied} répondu | ${s.clients} clients | ${s.dead} dead
 - Nouveaux: ${s.newLast24h} (24h) | ${s.newLast7d} (7j)
 
-PERFORMANCE EMAIL (7 derniers jours):
+PERFORMANCE EMAIL (7j):
 - Envoyés: ${e.sent24h} | Ouverts: ${e.opened24h} (${e.openRate}) | Clics: ${e.clicked24h} (${e.clickRate}) | Réponses: ${e.replied24h} (${e.replyRate})
 - Meilleure catégorie: ${e.bestCategory}
 
+PERFORMANCE CONTENU (7j):
+- ${c.postsThisWeek} posts planifiés | ${c.publishedThisWeek} publiés | ${c.draftsReady} brouillons prêts
+- Instagram: ${c.instagramPublished} publiés | Dernière publication: ${c.lastPublishedDate || 'jamais'}
+- Plateformes: ${Object.entries(c.platformBreakdown).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'aucune'}
+
+PERFORMANCE DM (7j):
+- ${d.dmsSent7d} DMs envoyés | ${d.dmsQueued} en file d'attente | Taux réponse: ${d.responseRate}
+- Meilleur canal: ${d.bestChannel}
+
 FUNNEL DE CONVERSION:
-- Visiteurs → Leads: ${f.visiteursToLeads} | Leads → Contactés: ${f.leadsToContacted} | Contactés → Répondu: ${f.contactedToReplied} | Répondu → Client: ${f.repliedToClient}`;
+- Visiteurs → Leads: ${f.visiteursToLeads} | Leads → Contactés: ${f.leadsToContacted}
+- Contactés → Répondu: ${f.contactedToReplied} | Répondu → Client: ${f.repliedToClient}`;
+
+  if (ctx.activeDirectives.length > 0) {
+    text += `\n\n⚡ DIRECTIVES ACTIVES (tu DOIS les suivre) :`;
+    for (const dir of ctx.activeDirectives) {
+      text += `\n- [${dir.from.toUpperCase()} → toi | Priorité ${dir.priority}] ${dir.message}`;
+    }
+  }
 
   if (ctx.topProspects.length > 0) {
     text += `\n\nTOP PROSPECTS CHAUDS:`;
@@ -247,6 +417,10 @@ FUNNEL DE CONVERSION:
 
   if (ctx.learnings.length > 0) {
     text += `\n\nTES APPRENTISSAGES:\n${ctx.learnings.map(l => `- ${l}`).join('\n')}`;
+  }
+
+  if (ctx.allAgentLearnings.length > 0) {
+    text += `\n\nAPPRENTISSAGES DES AUTRES AGENTS (cross-learning):\n${ctx.allAgentLearnings.map(l => `- ${l}`).join('\n')}`;
   }
 
   return text;
