@@ -17,8 +17,8 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 20;
-const MAX_SEARCH_ENRICHMENT = 10;
+const MAX_PROSPECTS_PER_RUN = 50;
+const MAX_SEARCH_ENRICHMENT = 25;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -366,8 +366,8 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     } else {
       console.log(`[CommercialAgent] Phase 1: ${prospects.length} prospects to enrich`);
 
-      // Process in parallel batches of 5 for speed
-      const BATCH_SIZE = 5;
+      // Process in parallel batches of 10 for speed
+      const BATCH_SIZE = 10;
       const enrichResults: Array<{ prospect: any; result: any }> = [];
       for (let b = 0; b < prospects.length; b += BATCH_SIZE) {
         const batch = prospects.slice(b, b + BATCH_SIZE);

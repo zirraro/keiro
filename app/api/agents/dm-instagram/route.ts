@@ -8,7 +8,7 @@ import { verifyCRMCoherence } from '@/lib/agents/business-timing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -32,7 +32,7 @@ async function verifyAuth(request: NextRequest) {
   return { authorized: false };
 }
 
-const MAX_DM_PER_DAY = 10;
+const MAX_DM_PER_DAY = 50;
 
 /**
  * Generate personalized DM via Claude Haiku
@@ -184,10 +184,11 @@ async function runDMPreparation(): Promise<NextResponse> {
   const preparedNames: string[] = [];
   const byBusinessType: Record<string, { count: number; handles: string[] }> = {};
 
+  // Pre-filter and verify all prospects first, then batch AI calls
+  const eligibleProspects: Array<{ prospect: any; category: string }> = [];
   for (const prospect of prospects) {
-    if (prepared >= MAX_DM_PER_DAY) break;
+    if (eligibleProspects.length >= MAX_DM_PER_DAY) break;
 
-    // CRM coherence check — fix data issues before processing
     const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);
     if (Object.keys(fixes).length > 0) {
       fixes.updated_at = now;
@@ -200,16 +201,31 @@ async function runDMPreparation(): Promise<NextResponse> {
     if (fixes.temperature === 'dead' || fixes.status === 'perdu') { skippedVerification++; continue; }
 
     const category = getSequenceForProspect(prospect);
-
-    // DM-specific verification (no email requirement, no timing gate)
     const verification = verifyDMProspectData(prospect);
     if (!verification.valid) {
       skippedVerification++;
       console.log(`[DMAgent] Skipped ${prospect.company}: ${verification.issues.join(', ')}`);
       continue;
     }
+    eligibleProspects.push({ prospect, category });
+  }
 
-    let dm = await generateDM(prospect);
+  console.log(`[DMAgent] ${eligibleProspects.length} prospects eligible, generating DMs in parallel batches...`);
+
+  // Generate DMs in parallel batches of 5
+  const DM_BATCH_SIZE = 5;
+  const dmResults: Array<{ prospect: any; category: string; dm: any }> = [];
+  for (let b = 0; b < eligibleProspects.length; b += DM_BATCH_SIZE) {
+    const batch = eligibleProspects.slice(b, b + DM_BATCH_SIZE);
+    const batchDms = await Promise.all(batch.map(async ({ prospect, category }) => {
+      const dm = await generateDM(prospect);
+      return { prospect, category, dm };
+    }));
+    dmResults.push(...batchDms);
+  }
+
+  for (const { prospect, category, dm: rawDm } of dmResults) {
+    let dm = rawDm;
     if (!dm) {
       // Fallback template when AI fails — still send a DM
       const name = prospect.company || prospect.instagram || 'ton commerce';

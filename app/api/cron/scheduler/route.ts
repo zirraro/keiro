@@ -88,10 +88,32 @@ export async function GET(request: NextRequest) {
       await callEndpoint('Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
       break;
 
+    case 'discovery_4':
+      // 08:30 UTC — Commercial: verify CRM batch 3
+      await callEndpoint('Commercial Verify CRM #3', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
+      break;
+
+    case 'discovery_5':
+      // 13:00 UTC — Commercial: prospect external batch 3
+      await callEndpoint('Commercial Prospect External #3', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      break;
+
+    case 'discovery_6':
+      // 16:30 UTC — Commercial: full run (end of day cleanup)
+      await callEndpoint('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      break;
+
+    case 'community_2':
+      // 15:30 UTC — Community Manager afternoon: more comments + follow targets
+      await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 50 });
+      await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 40 });
+      break;
+
     case 'community':
-      // 09:30 UTC — Community Manager: prepare comments on real posts
-      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
-      await callEndpoint('Community Follow Targets', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets
+      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 50 });
+      await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 40 });
+      await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 35 });
       break;
 
     case 'ceo':

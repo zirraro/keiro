@@ -25,6 +25,10 @@
       "schedule": "0 8 * * 1,2,3,4"
     },
     {
+      "path": "/api/cron/scheduler?slot=discovery_4",
+      "schedule": "30 8 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=retention",
       "schedule": "0 9 * * *"
     },
@@ -45,6 +49,10 @@
       "schedule": "0 12 * * 1,2,3,4"
     },
     {
+      "path": "/api/cron/scheduler?slot=discovery_5",
+      "schedule": "0 13 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=discovery_3",
       "schedule": "0 14 * * *"
     },
@@ -53,8 +61,16 @@
       "schedule": "0 15 * * 1,2,3,4"
     },
     {
+      "path": "/api/cron/scheduler?slot=community_2",
+      "schedule": "30 15 * * 1,2,3,4,5"
+    },
+    {
       "path": "/api/cron/scheduler?slot=evening",
       "schedule": "0 16 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=discovery_6",
+      "schedule": "30 16 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=evening_prep",

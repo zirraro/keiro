@@ -663,7 +663,7 @@ export async function GET(request: NextRequest) {
       let step1Count = 0;
       let skippedCompleted = 0;
       let recycledCount = 0;
-      const MAX_STEP1_PER_DAY = isManualTrigger ? 200 : 50;
+      const MAX_STEP1_PER_DAY = isManualTrigger ? 500 : 250;
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 1;
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps
