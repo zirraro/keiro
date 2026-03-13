@@ -67,6 +67,10 @@ function AdminAgentsContent() {
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Reset dead prospects state
+  const [resettingDead, setResettingDead] = useState(false);
+  const [resetResult, setResetResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [expandedBrief, setExpandedBrief] = useState<string | null>(null);
@@ -525,6 +529,34 @@ function AdminAgentsContent() {
       setTestResult({ ok: false, message: err.message || 'Erreur r\u00E9seau' });
     } finally {
       setTestSending(false);
+    }
+  };
+
+  // ─── Reset dead prospects ────────────────────────────────
+  const resetDeadProspects = async () => {
+    if (!confirm('Remettre tous les prospects dead/perdu en identifié + cold pour relancer les séquences email ?')) return;
+    setResettingDead(true);
+    setResetResult(null);
+    try {
+      const res = await fetch('/api/agents/email/daily', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reset_dead_prospects' }),
+      });
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) throw new Error(await res.text().then(t => t.substring(0, 200)));
+      const data = await res.json();
+      if (data.ok) {
+        setResetResult({ ok: true, message: `${data.reset} prospects remis en circulation (sur ${data.total_dead} dead).` });
+        loadDashboard();
+      } else {
+        setResetResult({ ok: false, message: data.error || 'Erreur' });
+      }
+    } catch (err: any) {
+      setResetResult({ ok: false, message: err.message || 'Erreur réseau' });
+    } finally {
+      setResettingDead(false);
     }
   };
 
@@ -1466,6 +1498,41 @@ function AdminAgentsContent() {
                   }`}
                 >
                   {testResult.message}
+                </div>
+              )}
+            </div>
+            )}
+
+            {/* Reset dead prospects */}
+            {dashboardAgent === 'global' && (
+            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">Pipeline bloqué ?</h3>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Remet les prospects dead/perdu en circulation pour relancer les séquences email et DM.
+                  </p>
+                </div>
+                <button
+                  onClick={resetDeadProspects}
+                  disabled={resettingDead}
+                  className="px-4 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-2"
+                >
+                  {resettingDead ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Reset...
+                    </>
+                  ) : (
+                    'Reset prospects dead'
+                  )}
+                </button>
+              </div>
+              {resetResult && (
+                <div className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
+                  resetResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {resetResult.message}
                 </div>
               )}
             </div>
