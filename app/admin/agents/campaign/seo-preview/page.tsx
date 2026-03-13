@@ -1,9 +1,18 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
+
+type ArticleVersion = {
+  title: string;
+  meta_description: string;
+  content_html: string;
+  excerpt?: string;
+  timestamp: string;
+  label: string;
+};
 
 function SeoPreviewContent() {
   const router = useRouter();
@@ -13,10 +22,14 @@ function SeoPreviewContent() {
 
   const [loading, setLoading] = useState(true);
   const [article, setArticle] = useState<any>(null);
-  const [editingSeo, setEditingSeo] = useState(false);
-  const [seoEditFields, setSeoEditFields] = useState<any>({});
-  const [seoReviseInstructions, setSeoReviseInstructions] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editFields, setEditFields] = useState<any>({});
+  const [reviseInstructions, setReviseInstructions] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [versions, setVersions] = useState<ArticleVersion[]>([]);
+  const [showVersions, setShowVersions] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'blog' | 'google'>('blog');
+  const reviseRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -27,10 +40,56 @@ function SeoPreviewContent() {
 
       if (!articleId) { setLoading(false); return; }
       const { data } = await supabase.from('blog_posts').select('*').eq('id', articleId).single();
-      if (data) setArticle(data);
+      if (data) {
+        setArticle(data);
+        // Save initial version
+        setVersions([{
+          title: data.title,
+          meta_description: data.meta_description || '',
+          content_html: data.content_html || '',
+          excerpt: data.excerpt || '',
+          timestamp: data.updated_at || data.created_at,
+          label: 'Version originale',
+        }]);
+      }
       setLoading(false);
     })();
   }, [articleId]);
+
+  const saveVersion = (art: any, label: string) => {
+    setVersions(prev => [...prev, {
+      title: art.title,
+      meta_description: art.meta_description || '',
+      content_html: art.content_html || '',
+      excerpt: art.excerpt || '',
+      timestamp: new Date().toISOString(),
+      label,
+    }]);
+  };
+
+  const restoreVersion = async (version: ArticleVersion) => {
+    const updates = {
+      title: version.title,
+      meta_description: version.meta_description,
+      content_html: version.content_html,
+      excerpt: version.excerpt,
+    };
+    setActionLoading('restore');
+    try {
+      const res = await fetch('/api/agents/seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'update_article', article_id: article.id, updates }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.article) {
+        setArticle(data.article);
+        saveVersion(data.article, 'Restauration');
+      }
+    } finally { setActionLoading(null); }
+    setShowVersions(false);
+  };
 
   const doAction = async (url: string, body: any, key: string) => {
     setActionLoading(key);
@@ -48,24 +107,46 @@ function SeoPreviewContent() {
   };
 
   const handleUpdate = async () => {
-    const data = await doAction('/api/agents/seo', { action: 'update_article', article_id: article.id, updates: seoEditFields }, 'update');
-    if (data?.ok && data.article) { setArticle(data.article); setEditingSeo(false); setSeoEditFields({}); }
+    saveVersion(article, 'Avant édition manuelle');
+    const data = await doAction('/api/agents/seo', { action: 'update_article', article_id: article.id, updates: editFields }, 'update');
+    if (data?.ok && data.article) {
+      setArticle(data.article);
+      saveVersion(data.article, 'Édition manuelle');
+      setEditMode(false);
+      setEditFields({});
+    }
   };
 
   const handleRevise = async () => {
-    if (!seoReviseInstructions.trim()) return;
-    const data = await doAction('/api/agents/seo', { action: 'revise_article', article_id: article.id, instructions: seoReviseInstructions }, 'revise');
-    if (data?.ok && data.article) { setArticle(data.article); setSeoReviseInstructions(''); }
+    if (!reviseInstructions.trim()) return;
+    saveVersion(article, `Avant IA: "${reviseInstructions.substring(0, 40)}..."`);
+    const data = await doAction('/api/agents/seo', { action: 'revise_article', article_id: article.id, instructions: reviseInstructions }, 'revise');
+    if (data?.ok && data.article) {
+      setArticle(data.article);
+      saveVersion(data.article, `IA: "${reviseInstructions.substring(0, 40)}..."`);
+      setReviseInstructions('');
+    }
+  };
+
+  // Strip any <img> tags with broken src from content_html for clean preview
+  const cleanHtml = (html: string) => {
+    if (!html) return '';
+    // Remove img tags with placeholder/broken URLs
+    return html.replace(/<img[^>]*src=["'](?:https?:\/\/(?:placeholder|via\.placeholder|placehold|example\.com|image\.))[^"']*["'][^>]*\/?>/gi, '');
   };
 
   if (loading) return <div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>;
 
   if (!article) return (
     <div className="min-h-screen bg-neutral-50 p-6">
-      <Link href="/admin/agents?tab=seo" className="text-sm text-purple-600 hover:underline">Retour au SEO</Link>
+      <Link href="/admin/dm-queue" className="text-sm text-purple-600 hover:underline">Retour</Link>
       <div className="mt-4 bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Article introuvable</div>
     </div>
   );
+
+  const publishedDate = article.published_at
+    ? new Date(article.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : new Date(article.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const LoadingBtn = ({ loading: l, onClick, children, className = '' }: any) => (
     <button onClick={onClick} disabled={l || actionLoading !== null} className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${className}`}>
@@ -74,76 +155,216 @@ function SeoPreviewContent() {
   );
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Link href="/admin/agents?tab=seo" className="text-sm text-purple-600 hover:text-purple-800 hover:underline flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            SEO Blog
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-4 border-b border-neutral-100 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${article.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{article.status === 'published' ? 'Publié' : 'Brouillon'}</span>
-              {article.keywords_primary && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{article.keywords_primary}</span>}
-              {article.slug && article.status === 'published' && (
-                <a href={`/blog/${article.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">/blog/{article.slug}</a>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {article.status === 'draft' && <LoadingBtn loading={actionLoading === 'publish'} onClick={handlePublish} className="bg-green-600 text-white hover:bg-green-700">Publier</LoadingBtn>}
-              <button onClick={() => { setEditingSeo(!editingSeo); setSeoEditFields({}); }} className="text-xs text-neutral-600 hover:underline">{editingSeo ? 'Annuler' : 'Editer'}</button>
-            </div>
+    <div className="min-h-screen bg-neutral-100">
+      {/* Admin toolbar - sticky */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-neutral-200 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Link href="/admin/dm-queue" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              Retour
+            </Link>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${article.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+              {article.status === 'published' ? 'Publié' : 'Brouillon'}
+            </span>
+            {article.slug && article.status === 'published' && (
+              <a href={`/blog/${article.slug}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-purple-600 hover:underline">/blog/{article.slug}</a>
+            )}
           </div>
 
-          <div className="p-5 space-y-4">
-            {editingSeo ? (
-              <div className="space-y-3 bg-neutral-50 rounded-lg p-4 border">
-                <div>
-                  <label className="text-xs font-medium text-neutral-600">Titre</label>
-                  <input type="text" defaultValue={article.title} onChange={e => setSeoEditFields((f: any) => ({ ...f, title: e.target.value }))} className="w-full mt-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-neutral-600">Meta description</label>
-                  <textarea defaultValue={article.meta_description} onChange={e => setSeoEditFields((f: any) => ({ ...f, meta_description: e.target.value }))} rows={2} className="w-full mt-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-neutral-600">Contenu HTML</label>
-                  <textarea defaultValue={article.content_html} onChange={e => setSeoEditFields((f: any) => ({ ...f, content_html: e.target.value }))} rows={15} className="w-full mt-1 px-3 py-2 text-xs font-mono border rounded-lg focus:ring-2 focus:ring-purple-500" />
-                </div>
-                <LoadingBtn loading={actionLoading === 'update'} onClick={handleUpdate} className="bg-purple-600 text-white hover:bg-purple-700">Sauvegarder</LoadingBtn>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-xl font-bold text-neutral-900">{article.title}</h2>
-                {article.meta_description && <p className="text-sm text-neutral-500 italic">{article.meta_description}</p>}
-                <div className="prose prose-sm max-w-none border rounded-lg p-5 bg-white" dangerouslySetInnerHTML={{ __html: article.content_html || '' }} />
-              </>
-            )}
-
-            <div className="flex gap-2 pt-3 border-t border-neutral-100">
-              <input type="text" placeholder="Demander une modification à l'IA..." value={seoReviseInstructions} onChange={e => setSeoReviseInstructions(e.target.value)} className="flex-1 px-3 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-purple-500" />
-              <LoadingBtn loading={actionLoading === 'revise'} onClick={handleRevise} className="bg-blue-100 text-blue-700 hover:bg-blue-200">Modifier via IA</LoadingBtn>
+          <div className="flex items-center gap-2">
+            {/* Preview mode toggle */}
+            <div className="flex bg-neutral-100 rounded-lg p-0.5">
+              <button onClick={() => setPreviewMode('blog')} className={`text-[10px] px-2 py-1 rounded-md transition ${previewMode === 'blog' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}>Blog</button>
+              <button onClick={() => setPreviewMode('google')} className={`text-[10px] px-2 py-1 rounded-md transition ${previewMode === 'google' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}>Google</button>
             </div>
 
-            {article.schema_faq && article.schema_faq.length > 0 && (
-              <details className="pt-3 border-t border-neutral-100">
-                <summary className="text-xs font-semibold text-neutral-500 cursor-pointer">FAQ Schema ({article.schema_faq.length})</summary>
-                <div className="mt-2 space-y-2">
-                  {article.schema_faq.map((faq: any, i: number) => (
-                    <div key={i} className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-sm font-medium text-neutral-800">{faq.question}</p>
-                      <p className="text-xs text-neutral-600 mt-1">{faq.answer}</p>
-                    </div>
-                  ))}
-                </div>
-              </details>
+            {/* Version history */}
+            <div className="relative">
+              <button
+                onClick={() => setShowVersions(!showVersions)}
+                className="text-[10px] px-2 py-1 rounded-lg bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition"
+              >
+                Versions ({versions.length})
+              </button>
+              {showVersions && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowVersions(false)} />
+                  <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border z-20 py-2 max-h-64 overflow-y-auto">
+                    {versions.map((v, i) => (
+                      <div key={i} className="px-3 py-2 hover:bg-neutral-50 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-neutral-800 truncate">{v.label}</p>
+                          <p className="text-[10px] text-neutral-400">{new Date(v.timestamp).toLocaleString('fr-FR')}</p>
+                        </div>
+                        {i < versions.length - 1 && (
+                          <button
+                            onClick={() => restoreVersion(v)}
+                            disabled={actionLoading !== null}
+                            className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 shrink-0 disabled:opacity-50"
+                          >
+                            Restaurer
+                          </button>
+                        )}
+                        {i === versions.length - 1 && (
+                          <span className="text-[10px] text-green-600 font-medium shrink-0">Actuel</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button onClick={() => { setEditMode(!editMode); setEditFields({}); }} className={`text-[10px] px-2 py-1 rounded-lg transition ${editMode ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+              {editMode ? 'Annuler' : 'Editer HTML'}
+            </button>
+            {article.status === 'draft' && (
+              <LoadingBtn loading={actionLoading === 'publish'} onClick={handlePublish} className="bg-green-600 text-white hover:bg-green-700">
+                Publier
+              </LoadingBtn>
             )}
+          </div>
+        </div>
+
+        {/* AI revision bar */}
+        <div className="max-w-4xl mx-auto px-4 pb-2.5">
+          <div className="flex gap-2">
+            <input
+              ref={reviseRef}
+              type="text"
+              placeholder="Demander une modification a l'IA (ex: ajoute plus de données chiffrées, raccourcis l'intro...)"
+              value={reviseInstructions}
+              onChange={e => setReviseInstructions(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleRevise(); }}
+              className="flex-1 px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-300 bg-neutral-50"
+            />
+            <LoadingBtn loading={actionLoading === 'revise'} onClick={handleRevise} className="bg-purple-600 text-white hover:bg-purple-700">
+              Modifier via IA
+            </LoadingBtn>
           </div>
         </div>
       </div>
+
+      {/* Edit mode */}
+      {editMode && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+          <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
+            <div>
+              <label className="text-xs font-medium text-neutral-600">Titre</label>
+              <input type="text" defaultValue={article.title} onChange={e => setEditFields((f: any) => ({ ...f, title: e.target.value }))} className="w-full mt-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-600">Meta description</label>
+              <textarea defaultValue={article.meta_description} onChange={e => setEditFields((f: any) => ({ ...f, meta_description: e.target.value }))} rows={2} className="w-full mt-1 px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-600">Contenu HTML</label>
+              <textarea defaultValue={article.content_html} onChange={e => setEditFields((f: any) => ({ ...f, content_html: e.target.value }))} rows={20} className="w-full mt-1 px-3 py-2 text-xs font-mono border rounded-lg focus:ring-2 focus:ring-purple-500 leading-relaxed" />
+            </div>
+            <LoadingBtn loading={actionLoading === 'update'} onClick={handleUpdate} className="bg-purple-600 text-white hover:bg-purple-700">
+              Sauvegarder
+            </LoadingBtn>
+          </div>
+        </div>
+      )}
+
+      {/* Google SERP Preview */}
+      {previewMode === 'google' && !editMode && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+          <p className="text-xs text-neutral-400 mb-4 font-medium">Apercu Google (SERP)</p>
+          <div className="bg-white rounded-xl shadow-sm border p-6 space-y-1">
+            <p className="text-xs text-green-700">keiroai.com/blog/{article.slug}</p>
+            <h3 className="text-xl text-blue-800 font-normal leading-snug cursor-pointer hover:underline">{article.meta_title || article.title}</h3>
+            <p className="text-sm text-neutral-600 leading-relaxed">{article.meta_description}</p>
+          </div>
+
+          {/* Meta info */}
+          <div className="mt-6 bg-white rounded-xl shadow-sm border p-5 space-y-3">
+            <p className="text-xs font-semibold text-neutral-500">Infos SEO</p>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div><span className="text-neutral-400">Mot-clé principal :</span> <span className="font-medium text-neutral-800">{article.keywords_primary}</span></div>
+              <div><span className="text-neutral-400">Slug :</span> <span className="font-mono text-neutral-800">{article.slug}</span></div>
+              <div><span className="text-neutral-400">Meta title :</span> <span className="text-neutral-800">{(article.meta_title || '').length} car.</span></div>
+              <div><span className="text-neutral-400">Meta desc :</span> <span className="text-neutral-800">{(article.meta_description || '').length} car.</span></div>
+            </div>
+            {article.keywords_secondary && article.keywords_secondary.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap">
+                <span className="text-[10px] text-neutral-400">Secondaires :</span>
+                {article.keywords_secondary.map((kw: string, i: number) => (
+                  <span key={i} className="text-[10px] bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">{kw}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Blog Preview - exact same layout as /blog/[slug] */}
+      {previewMode === 'blog' && !editMode && (
+        <div className="bg-white min-h-screen">
+          {/* Header gradient - same as blog */}
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6">
+              <div className="flex items-center gap-3 mb-4">
+                {article.keywords_primary && (
+                  <span className="bg-white/20 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    {article.keywords_primary}
+                  </span>
+                )}
+                <time className="text-white/70 text-sm">{publishedDate}</time>
+                {article.status === 'draft' && (
+                  <span className="bg-amber-400/30 text-amber-100 text-xs font-medium px-3 py-1 rounded-full">BROUILLON</span>
+                )}
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-bold leading-tight">{article.title}</h1>
+            </div>
+          </div>
+
+          {/* Content - same prose as blog */}
+          <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+            <div
+              className="prose prose-lg prose-neutral max-w-none
+                prose-headings:text-neutral-900 prose-headings:font-bold
+                prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+                prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+                prose-p:text-neutral-700 prose-p:leading-relaxed prose-p:mb-4
+                prose-a:text-purple-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                prose-ul:my-4 prose-li:text-neutral-700
+                prose-strong:text-neutral-900
+                prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+                prose-img:rounded-lg prose-img:shadow-md"
+              dangerouslySetInnerHTML={{ __html: cleanHtml(article.content_html || '') }}
+            />
+
+            {/* FAQ section - same as blog */}
+            {article.schema_faq && article.schema_faq.length > 0 && (
+              <section className="mt-12 border-t border-neutral-200 pt-8">
+                <h2 className="text-2xl font-bold text-neutral-900 mb-6">Questions frequentes</h2>
+                <div className="space-y-6">
+                  {article.schema_faq.map((faq: any, i: number) => (
+                    <div key={i} className="bg-neutral-50 rounded-lg p-5">
+                      <h3 className="font-semibold text-neutral-900 mb-2">{faq.question}</h3>
+                      <p className="text-neutral-700 text-sm leading-relaxed">{faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* CTA section - same as blog */}
+            <section className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-center text-white">
+              <h2 className="text-2xl font-bold mb-3">Pret a booster ton marketing ?</h2>
+              <p className="text-white/90 mb-6 max-w-lg mx-auto">
+                Genere des visuels marketing professionnels en quelques secondes grace a l&apos;IA. Essai gratuit, sans carte bancaire.
+              </p>
+              <span className="inline-block bg-white text-purple-700 font-bold px-8 py-3 rounded-lg">
+                Essayer gratuitement
+              </span>
+            </section>
+          </article>
+        </div>
+      )}
     </div>
   );
 }
