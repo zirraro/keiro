@@ -616,7 +616,8 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
       const PROSPECTION_SYSTEM_PROMPT = `Tu es un agent commercial ELITE de KeiroAI. Ta mission : trouver des commerces locaux RÉELS en France pour les aider avec leur marketing digital.
 
-TON OBJECTIF : retourner 8-12 prospects QUALIFIÉS avec EMAIL OBLIGATOIRE.
+TON OBJECTIF : retourner 5-8 prospects QUALIFIÉS avec EMAIL OBLIGATOIRE.
+IMPORTANT : limite les champs texte (description, qualification_reason) à 50 caractères MAX pour ne pas dépasser la taille de réponse.
 
 MÉTHODE DE RECHERCHE (utilise Google Search grounding) :
 1. Cherche "${'{type} {location}'}" sur Google → trouve les sites web
@@ -676,9 +677,9 @@ RÈGLES ABSOLUES :
               message: `Recherche Google : "${s.searchQuery}"
 
 Trouve des ${s.type}s à ${s.location} qui sont actifs en ligne.
-Cherche leur Instagram, site web, note Google, email, téléphone.
-Retourne 8-12 prospects qualifiés en JSON.`,
-              maxTokens: 4000,
+Cherche leur email (OBLIGATOIRE), Instagram, site web, note Google, téléphone.
+Retourne 5-8 prospects qualifiés AVEC EMAIL en JSON. Sois concis dans les champs description/qualification_reason.`,
+              maxTokens: 6000,
             });
             return { search: s, result };
           } catch (e: any) {
@@ -690,42 +691,69 @@ Retourne 8-12 prospects qualifiés en JSON.`,
 
         for (const br of batchResults) {
           if (!br) continue;
+          const tag = `${br.search.type}@${br.search.location}`;
           try {
             const cleanText = br.result.replace(/```[\w]*\s*/g, '').trim();
-            let jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+            let parsed: any[] = [];
 
-            // Salvage truncated JSON arrays (missing closing bracket)
-            if (!jsonMatch) {
-              const partialMatch = cleanText.match(/\[[\s\S]*/);
-              if (partialMatch) {
-                let salvaged = partialMatch[0].replace(/,?\s*$/, '');
-                // Try closing the last object if truncated
-                const openBraces = (salvaged.match(/\{/g) || []).length;
-                const closeBraces = (salvaged.match(/\}/g) || []).length;
-                if (openBraces > closeBraces) {
-                  salvaged += '}';
-                }
-                salvaged += ']';
-                try {
-                  const prospects = JSON.parse(salvaged);
-                  console.log(`[CommercialAgent] Phase 3: SALVAGED ${prospects.length} prospects for ${br.search.type}@${br.search.location}`);
-                  searchLogs.push(`SALVAGED ${br.search.type}@${br.search.location}: ${prospects.length} prospects`);
-                  allNewProspects.push(...prospects);
-                  continue;
-                } catch { /* couldn't salvage */ }
-              }
-              searchLogs.push(`NO_JSON ${br.search.type}@${br.search.location}: ${cleanText.substring(0, 200)}`);
-              console.warn(`[CommercialAgent] Phase 3: No JSON found for ${br.search.type}@${br.search.location}: ${cleanText.substring(0, 200)}`);
-              continue;
+            // Method 1: try full JSON array
+            const fullMatch = cleanText.match(/\[[\s\S]*\]/);
+            if (fullMatch) {
+              try { parsed = JSON.parse(fullMatch[0]); } catch { /* truncated */ }
             }
 
-            const prospects = JSON.parse(jsonMatch[0]);
-            console.log(`[CommercialAgent] Phase 3: ${prospects.length} prospects found for ${br.search.type}@${br.search.location}`);
-            searchLogs.push(`OK ${br.search.type}@${br.search.location}: ${prospects.length} prospects`);
-            allNewProspects.push(...prospects);
+            // Method 2: extract each complete JSON object individually
+            // This handles truncated arrays where some objects are complete
+            if (parsed.length === 0) {
+              // Match complete objects: find balanced { ... } blocks
+              const objects: any[] = [];
+              let depth = 0;
+              let start = -1;
+              let inString = false;
+              let escaped = false;
+
+              for (let i = 0; i < cleanText.length; i++) {
+                const ch = cleanText[i];
+                if (escaped) { escaped = false; continue; }
+                if (ch === '\\') { escaped = true; continue; }
+                if (ch === '"') { inString = !inString; continue; }
+                if (inString) continue;
+                if (ch === '{') {
+                  if (depth === 0) start = i;
+                  depth++;
+                } else if (ch === '}') {
+                  depth--;
+                  if (depth === 0 && start >= 0) {
+                    const objStr = cleanText.substring(start, i + 1);
+                    try {
+                      const obj = JSON.parse(objStr);
+                      if (obj.company) objects.push(obj); // Must have company to be valid
+                    } catch { /* malformed object, skip */ }
+                    start = -1;
+                  }
+                }
+              }
+
+              if (objects.length > 0) {
+                parsed = objects;
+                console.log(`[CommercialAgent] Phase 3: EXTRACTED ${parsed.length} complete objects for ${tag}`);
+                searchLogs.push(`EXTRACTED ${tag}: ${parsed.length} prospects`);
+              }
+            }
+
+            if (parsed.length > 0) {
+              if (!searchLogs.some(l => l.includes(tag))) {
+                searchLogs.push(`OK ${tag}: ${parsed.length} prospects`);
+              }
+              console.log(`[CommercialAgent] Phase 3: ${parsed.length} prospects found for ${tag}`);
+              allNewProspects.push(...parsed);
+            } else {
+              searchLogs.push(`NO_JSON ${tag}`);
+              console.warn(`[CommercialAgent] Phase 3: No parseable JSON for ${tag}: ${cleanText.substring(0, 150)}`);
+            }
           } catch (e: any) {
-            searchLogs.push(`PARSE_FAIL ${br.search.type}@${br.search.location}: ${e.message}`);
-            console.error('[CommercialAgent] Phase 3: Failed to parse:', e.message);
+            searchLogs.push(`PARSE_FAIL ${tag}: ${e.message}`);
+            console.error(`[CommercialAgent] Phase 3: Failed to parse ${tag}:`, e.message);
           }
         }
 
