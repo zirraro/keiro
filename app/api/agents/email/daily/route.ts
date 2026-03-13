@@ -646,9 +646,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ok: false, error: queryError.message }, { status: 500 });
       }
 
-      // Sort: follow-ups first (in_progress with pending steps), then new prospects (null/not_started)
+      // Sort: 1) verified follow-ups, 2) verified new, 3) unverified follow-ups, 4) unverified new
       // Within each group, sort by score descending (best prospects first)
       prospects.sort((a, b) => {
+        const aVerified = a.verified ? 1 : 0;
+        const bVerified = b.verified ? 1 : 0;
+        if (aVerified !== bVerified) return bVerified - aVerified;
         const aInProgress = a.email_sequence_status === 'in_progress' && (a.email_sequence_step ?? 0) > 0;
         const bInProgress = b.email_sequence_status === 'in_progress' && (b.email_sequence_step ?? 0) > 0;
         if (aInProgress && !bInProgress) return -1;
@@ -656,9 +659,10 @@ export async function GET(request: NextRequest) {
         return (b.score || 0) - (a.score || 0);
       });
 
+      const verifiedCount = prospects.filter(p => p.verified).length;
       const newCount = prospects.filter(p => !p.email_sequence_status || p.email_sequence_status === 'not_started').length;
       const followUpCount = prospects.filter(p => p.email_sequence_status === 'in_progress').length;
-      console.log(`[EmailDaily] Eligible prospects: ${prospects?.length ?? 0} (${newCount} new, ${followUpCount} follow-ups)`);
+      console.log(`[EmailDaily] Eligible prospects: ${prospects?.length ?? 0} (${verifiedCount} verified, ${newCount} new, ${followUpCount} follow-ups)`);
 
       if (!prospects || prospects.length === 0) {
         const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
@@ -705,8 +709,9 @@ export async function GET(request: NextRequest) {
       let step1Count = 0;
       let skippedCompleted = 0;
       let recycledCount = 0;
-      const MAX_STEP1_PER_DAY = isManualTrigger ? 500 : 250;
-      const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 1;
+      let selfVerifiedCount = 0;
+      const MAX_STEP1_PER_DAY = isManualTrigger ? 500 : 500; // Max emails per run — send as many as possible
+      const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps
       const STEP_GAP_DAYS = forceMode ? { 1: 0, 2: 0, 3: 0, 4: 0 } :
@@ -717,7 +722,16 @@ export async function GET(request: NextRequest) {
       // Collect prospects for AI batch generation
       const batchForAI: Array<{ prospect: any; category: string; step: number }> = [];
 
+      const RUN_TIME_LIMIT_MS = 240_000; // 240s hard limit (leave 60s for reporting)
+      const runStart = Date.now();
+
       for (const prospect of prospects) {
+        // Time guard — stop if approaching timeout
+        if (Date.now() - runStart > RUN_TIME_LIMIT_MS) {
+          console.warn(`[EmailDaily] Time guard: stopping after ${batchForAI.length} emails queued (${Math.round((Date.now() - runStart) / 1000)}s)`);
+          break;
+        }
+
         const category = getSequenceForProspect(prospect);
 
         // CRM coherence check — fix data issues before processing
@@ -735,6 +749,16 @@ export async function GET(request: NextRequest) {
 
         const verification = verifyProspectData(prospect);
         if (!verification.valid) { skippedVerification++; continue; }
+
+        // Self-verify: if commercial agent hasn't verified, email agent does it
+        if (!prospect.verified && prospect.email && prospect.company) {
+          await supabase.from('crm_prospects').update({
+            verified: true,
+            verified_at: nowISO,
+            verified_by: 'email',
+          }).eq('id', prospect.id);
+          selfVerifiedCount++;
+        }
 
         const step = prospect.email_sequence_step ?? 0;
         const lastSent = prospect.last_email_sent_at ? new Date(prospect.last_email_sent_at) : null;
@@ -821,6 +845,8 @@ export async function GET(request: NextRequest) {
 
       const skipDiag = {
         total_eligible: prospects.length,
+        verified_count: verifiedCount,
+        self_verified: selfVerifiedCount,
         to_send: batchForAI.length,
         skipped_verification: skippedVerification,
         skipped_too_recent: skippedTooRecent,
@@ -871,6 +897,11 @@ export async function GET(request: NextRequest) {
       const drafts: Array<{ prospect_id: string; email: string; company: string; step: number; category: string; subject: string; body: string; ai_generated: boolean }> = [];
 
       for (const { prospect, category, step } of batchForAI) {
+        // Time guard for sending phase
+        if (Date.now() - runStart > 270_000) {
+          console.warn(`[EmailDaily] Send time guard: stopping after ${results.length} emails sent (${Math.round((Date.now() - runStart) / 1000)}s)`);
+          break;
+        }
         const aiEmail = aiEmails.get(prospect.id);
 
         // Fallback to template if AI failed

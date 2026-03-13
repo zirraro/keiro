@@ -425,6 +425,13 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           updates.temperature = autoTemp;
         }
 
+        // Mark as verified by commercial agent (email agent will prioritize these)
+        if (result.data_completeness_score >= 50 || (result.ready_to_contact && result.email_valid)) {
+          updates.verified = true;
+          updates.verified_at = nowISO;
+          updates.verified_by = 'commercial';
+        }
+
         // GO/NO-GO for contact
         if (result.ready_to_contact && prospect.email && result.email_valid) {
           if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
@@ -866,6 +873,9 @@ Retourne 8-12 prospects qualifiés en JSON.`,
           });
           const newTemp = calculateTemperature(newScore);
 
+          // Mark as verified if has enough data (email or instagram + company + type)
+          const hasEnoughData = !!(np.email || igHandle) && !!np.company;
+
           const { error: insertError } = await supabase.from('crm_prospects').insert({
             company: np.company,
             type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
@@ -885,6 +895,9 @@ Retourne 8-12 prospects qualifiés en JSON.`,
             source: 'prospection_commerciale',
             source_agent: 'commercial',
             notes: np.qualification_reason ? `${np.description || ''} — ${np.qualification_reason}`.trim() : np.description || null,
+            verified: hasEnoughData,
+            verified_at: hasEnoughData ? nowISO : null,
+            verified_by: hasEnoughData ? 'commercial' : null,
             created_at: nowISO,
             updated_at: nowISO,
           });
