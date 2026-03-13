@@ -362,12 +362,28 @@ export async function POST(request: NextRequest) {
 
       case 'publish': {
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
-        const { error } = await supabase
-          .from('content_calendar')
-          .update({ status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq('id', body.postId);
+        const { data: pubPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!pubPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        const pubUpdate: Record<string, any> = {
+          status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        };
+
+        // Actually publish to Instagram via Graph API
+        let pubPermalink: string | undefined;
+        if (pubPost.platform === 'instagram' && pubPost.visual_url) {
+          const igResult = await publishToInstagram(pubPost, supabase);
+          if (igResult.success && igResult.permalink) {
+            pubUpdate.instagram_permalink = igResult.permalink;
+            pubPermalink = igResult.permalink;
+          } else if (igResult.error) {
+            console.warn(`[Content] Instagram publish failed for post ${body.postId}: ${igResult.error}`);
+          }
+        }
+
+        const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-        return NextResponse.json({ ok: true });
+        return NextResponse.json({ ok: true, instagram_permalink: pubPermalink });
       }
 
       case 'skip': {

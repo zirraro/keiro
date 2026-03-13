@@ -1720,66 +1720,11 @@ function AdminAgentsContent() {
                   {campaignLaunchResult.ok ? '✓' : '✗'} {campaignLaunchResult.message}
                 </div>
               )}
-              {/* Content Calendar */}
+              {/* Planning moved to Suivi & Publications page */}
               <div className="mt-4 border-t border-neutral-100 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-neutral-700">📅 Planning contenu</h4>
-                  <button onClick={loadContentCalendar} disabled={loadingCalendar}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                    {loadingCalendar ? 'Chargement...' : 'Actualiser'}
-                  </button>
-                </div>
-                {contentCalendar.length > 0 ? (
-                  <div className="grid grid-cols-7 gap-1">
-                    {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(d => (
-                      <div key={d} className="text-[10px] font-semibold text-neutral-400 text-center py-1">{d}</div>
-                    ))}
-                    {(() => {
-                      const today = new Date();
-                      const monday = new Date(today);
-                      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-                      const days = Array.from({ length: 7 }, (_, i) => {
-                        const d = new Date(monday);
-                        d.setDate(d.getDate() + i);
-                        return d.toISOString().split('T')[0];
-                      });
-                      return days.map(dateStr => {
-                        const dayPosts = contentCalendar.filter((p: any) => p.scheduled_date === dateStr);
-                        const isToday = dateStr === today.toISOString().split('T')[0];
-                        return (
-                          <div key={dateStr} className={`min-h-[80px] rounded-lg p-1.5 ${isToday ? 'bg-indigo-50 border border-indigo-200' : 'bg-neutral-50 border border-neutral-100'}`}>
-                            <div className={`text-[10px] font-medium mb-1 ${isToday ? 'text-indigo-600' : 'text-neutral-400'}`}>
-                              {new Date(dateStr + 'T12:00:00').getDate()}
-                            </div>
-                            {dayPosts.map((post: any) => (
-                              <div key={post.id} className="mb-1 p-1 bg-white rounded border border-neutral-100 shadow-sm">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[10px]">{post.platform === 'instagram' ? '📸' : post.platform === 'tiktok' ? '🎵' : '💼'}</span>
-                                  <span className={`text-[8px] px-1 py-0.5 rounded-full font-medium ${
-                                    post.status === 'published' ? 'bg-green-100 text-green-700' :
-                                    post.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                  }`}>{post.status}</span>
-                                </div>
-                                {post.visual_url && (
-                                  <img src={post.visual_url} alt="" className="w-full h-10 object-cover rounded mt-1" />
-                                )}
-                                <div className="text-[9px] text-neutral-600 mt-0.5 line-clamp-2">{post.hook || post.caption?.substring(0, 40)}</div>
-                              </div>
-                            ))}
-                            {dayPosts.length === 0 && (
-                              <div className="text-[9px] text-neutral-300 text-center mt-4">—</div>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                ) : (
-                  <div className="text-xs text-neutral-400 text-center py-4">
-                    Cliquez &quot;Actualiser&quot; pour voir le planning
-                  </div>
-                )}
+                <Link href="/admin/dm-queue?tab=planning" className="flex items-center gap-2 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                  <span>📅</span> Voir le planning contenu
+                </Link>
               </div>
             </div>
 

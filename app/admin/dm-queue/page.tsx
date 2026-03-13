@@ -76,7 +76,25 @@ function parsePersonalization(raw: string | null): PersonalizationData | null {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo';
+type CalendarPost = {
+  id: string;
+  platform: string;
+  format: string;
+  pillar: string | null;
+  hook: string | null;
+  caption: string | null;
+  hashtags: string[] | null;
+  visual_description: string | null;
+  visual_url: string | null;
+  scheduled_date: string;
+  scheduled_time: string | null;
+  status: string;
+  instagram_permalink: string | null;
+  published_at: string | null;
+  created_at: string;
+};
+
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type PubSubTab = 'draft' | 'published';
 
@@ -92,7 +110,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'pub_instagram', 'pub_tiktok', 'seo'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -107,6 +125,10 @@ function SuiviPublicationsPage() {
   const [dmItems, setDmItems] = useState<DMItem[]>([]);
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [calendarPosts, setCalendarPosts] = useState<CalendarPost[]>([]);
+  const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
+  const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
+  const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
 
   // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -117,6 +139,7 @@ function SuiviPublicationsPage() {
   const isDmTab = mainTab === 'dm_instagram' || mainTab === 'dm_tiktok';
   const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok';
   const isSeoTab = mainTab === 'seo';
+  const isPlanningTab = mainTab === 'planning';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -182,10 +205,27 @@ function SuiviPublicationsPage() {
 
       const { data } = await query.limit(50);
       setBlogPosts((data as any) || []);
+    } else if (isPlanningTab) {
+      // Load 3 weeks of content calendar (prev, current, next)
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + (calendarWeekOffset * 7));
+      const sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+
+      const { data } = await supabase
+        .from('content_calendar')
+        .select('*')
+        .gte('scheduled_date', monday.toISOString().split('T')[0])
+        .lte('scheduled_date', sunday.toISOString().split('T')[0])
+        .order('scheduled_date', { ascending: true })
+        .order('scheduled_time', { ascending: true });
+
+      setCalendarPosts((data as any) || []);
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, calendarWeekOffset]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -227,6 +267,28 @@ function SuiviPublicationsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const publishPost = async (postId: string) => {
+    setPublishingPostId(postId);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'publish', postId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSelectedPost(null);
+        fetchData();
+      } else {
+        alert(`Erreur publication: ${data.error || 'Erreur inconnue'}`);
+      }
+    } catch (e: any) {
+      alert(`Erreur: ${e.message}`);
+    } finally {
+      setPublishingPostId(null);
+    }
+  };
+
   if (!isAdmin) return null;
 
   const MAIN_TABS: { key: MainTab; label: string; icon: string }[] = [
@@ -235,6 +297,7 @@ function SuiviPublicationsPage() {
     { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
     { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
+    { key: 'planning', label: 'Planning', icon: '📅' },
   ];
 
   return (
@@ -599,6 +662,185 @@ function SuiviPublicationsPage() {
                   ))}
                 </div>
               )
+            )}
+
+            {/* Planning Calendar */}
+            {isPlanningTab && (
+              <>
+                {/* Week navigation */}
+                <div className="flex items-center justify-between mb-4">
+                  <button onClick={() => setCalendarWeekOffset(w => w - 1)} className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">Semaine prec.</button>
+                  <span className="text-sm font-medium text-neutral-700">
+                    {(() => {
+                      const today = new Date();
+                      const monday = new Date(today);
+                      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + (calendarWeekOffset * 7));
+                      const sunday = new Date(monday);
+                      sunday.setDate(sunday.getDate() + 6);
+                      return `${monday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+                    })()}
+                    {calendarWeekOffset !== 0 && (
+                      <button onClick={() => setCalendarWeekOffset(0)} className="ml-2 text-[10px] text-purple-600 hover:underline">Aujourd&apos;hui</button>
+                    )}
+                  </span>
+                  <button onClick={() => setCalendarWeekOffset(w => w + 1)} className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">Semaine suiv.</button>
+                </div>
+
+                {/* 7-day grid */}
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from({ length: 7 }).map((_, dayIdx) => {
+                    const today = new Date();
+                    const monday = new Date(today);
+                    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + (calendarWeekOffset * 7));
+                    const dayDate = new Date(monday);
+                    dayDate.setDate(dayDate.getDate() + dayIdx);
+                    const dateStr = dayDate.toISOString().split('T')[0];
+                    const dayPosts = calendarPosts.filter(p => p.scheduled_date === dateStr);
+                    const isToday = dateStr === new Date().toISOString().split('T')[0];
+                    const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+                    return (
+                      <div key={dateStr} className={`min-h-[160px] bg-white rounded-xl border ${isToday ? 'border-purple-400 ring-1 ring-purple-200' : 'border-neutral-200'} p-2`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-[10px] font-bold ${isToday ? 'text-purple-600' : 'text-neutral-400'}`}>{dayNames[dayIdx]}</span>
+                          <span className={`text-xs font-medium ${isToday ? 'text-purple-600' : 'text-neutral-600'}`}>{dayDate.getDate()}</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {dayPosts.map(post => (
+                            <button
+                              key={post.id}
+                              onClick={() => setSelectedPost(post)}
+                              className="w-full text-left rounded-lg overflow-hidden border border-neutral-100 hover:border-purple-300 hover:shadow-sm transition group"
+                            >
+                              {post.visual_url ? (
+                                <div className="aspect-square bg-neutral-100 relative">
+                                  <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+                                  <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                    post.status === 'published' ? 'bg-green-500 text-white' :
+                                    post.status === 'scheduled' ? 'bg-blue-500 text-white' :
+                                    'bg-amber-500 text-white'
+                                  }`}>
+                                    {post.status === 'published' ? 'Publie' : post.status === 'scheduled' ? 'Planifie' : 'Draft'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="aspect-square bg-neutral-50 flex items-center justify-center">
+                                  <span className="text-2xl opacity-30">{post.platform === 'instagram' ? '📷' : '🎬'}</span>
+                                  <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                    post.status === 'published' ? 'bg-green-500 text-white' :
+                                    'bg-amber-500 text-white'
+                                  }`}>
+                                    {post.status === 'published' ? 'Publie' : 'Draft'}
+                                  </span>
+                                </div>
+                              )}
+                              <p className="text-[9px] text-neutral-600 p-1 line-clamp-2 leading-tight">{post.caption || post.hook || 'Sans caption'}</p>
+                            </button>
+                          ))}
+                          {dayPosts.length === 0 && (
+                            <p className="text-[10px] text-neutral-300 text-center py-4">—</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Post detail modal */}
+                {selectedPost && (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
+                    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+                      {/* Visual */}
+                      {selectedPost.visual_url && (
+                        <div className="aspect-square bg-neutral-100 relative rounded-t-2xl overflow-hidden">
+                          <img src={selectedPost.visual_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <div className="p-5 space-y-3">
+                        {/* Status & meta */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                            selectedPost.status === 'published' ? 'bg-green-100 text-green-700' :
+                            selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {selectedPost.status === 'published' ? 'Publie' : selectedPost.status === 'scheduled' ? 'Planifie' : 'Brouillon'}
+                          </span>
+                          <span className="text-[10px] text-neutral-400">{selectedPost.platform}</span>
+                          {selectedPost.format && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{selectedPost.format}</span>}
+                          {selectedPost.pillar && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 rounded text-purple-600">{selectedPost.pillar}</span>}
+                          <span className="text-[10px] text-neutral-400">{selectedPost.scheduled_date}{selectedPost.scheduled_time ? ` ${selectedPost.scheduled_time}` : ''}</span>
+                        </div>
+
+                        {/* Hook */}
+                        {selectedPost.hook && (
+                          <div>
+                            <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Hook</p>
+                            <p className="text-sm font-semibold text-neutral-800">{selectedPost.hook}</p>
+                          </div>
+                        )}
+
+                        {/* Caption */}
+                        {selectedPost.caption && (
+                          <div>
+                            <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Caption</p>
+                            <p className="text-sm text-neutral-800 whitespace-pre-wrap">{selectedPost.caption}</p>
+                          </div>
+                        )}
+
+                        {/* Hashtags */}
+                        {selectedPost.hashtags && selectedPost.hashtags.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Hashtags</p>
+                            <p className="text-xs text-blue-500">{selectedPost.hashtags.join(' ')}</p>
+                          </div>
+                        )}
+
+                        {/* Visual description */}
+                        {selectedPost.visual_description && !selectedPost.visual_url && (
+                          <div>
+                            <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Description visuelle</p>
+                            <p className="text-xs text-neutral-500 italic">{selectedPost.visual_description}</p>
+                          </div>
+                        )}
+
+                        {/* Instagram permalink */}
+                        {selectedPost.instagram_permalink && (
+                          <a href={selectedPost.instagram_permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-purple-600 hover:underline">
+                            Voir sur Instagram
+                          </a>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2 border-t">
+                          {selectedPost.status !== 'published' && (
+                            <button
+                              onClick={() => publishPost(selectedPost.id)}
+                              disabled={publishingPostId === selectedPost.id}
+                              className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {publishingPostId === selectedPost.id ? 'Publication...' : 'Publier maintenant'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              const text = (selectedPost.caption || '') + (selectedPost.hashtags?.length ? '\n\n' + selectedPost.hashtags.join(' ') : '');
+                              navigator.clipboard.writeText(text);
+                            }}
+                            className="flex-1 py-2 text-xs font-medium bg-neutral-100 text-neutral-700 rounded-lg hover:bg-neutral-200"
+                          >
+                            Copier
+                          </button>
+                          <button onClick={() => setSelectedPost(null)} className="px-4 py-2 text-xs font-medium border rounded-lg hover:bg-neutral-50">
+                            Fermer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
