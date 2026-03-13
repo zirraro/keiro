@@ -17,8 +17,8 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const MAX_PROSPECTS_PER_RUN = 30;
-const MAX_SEARCH_ENRICHMENT = 15;
+const MAX_PROSPECTS_PER_RUN = 8;
+const MAX_SEARCH_ENRICHMENT = 5;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -277,17 +277,28 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/agents/commercial — manual trigger
+ * Accepts optional body: { action: 'verify_crm' | 'prospect_external' | 'full' }
+ * - verify_crm: Phase 1 only (audit/enrich existing prospects)
+ * - prospect_external: Phase 2 only (Google Search for social data)
+ * - full (default): Both phases
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  return runEnrichment();
+
+  let action = 'full';
+  try {
+    const body = await request.json();
+    if (body?.action) action = body.action;
+  } catch {}
+
+  return runEnrichment(action as 'verify_crm' | 'prospect_external' | 'full');
 }
 
 /**
  * Core: fetch incomplete prospects, enrich via Gemini + Google Search, update DB.
  */
-async function runEnrichment(): Promise<NextResponse> {
+async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full'): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin();
     const nowISO = new Date().toISOString();
@@ -299,16 +310,21 @@ async function runEnrichment(): Promise<NextResponse> {
     // Load shared context from all agents (see what email/DM/content agents have done)
     const sharedCtx = await loadSharedContext(supabase, 'commercial');
     const ctxText = formatContextForPrompt(sharedCtx);
-    console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG`);
+    console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG — mode: ${mode}`);
+
+    const runPhase1 = mode === 'verify_crm' || mode === 'full';
+    const runPhase2 = mode === 'prospect_external' || mode === 'full';
 
     // === PHASE 1: Data enrichment (type, quartier, email validation) ===
     // Fetch prospects that need enrichment — broad fetch, filter in JS for reliability
-    const { data: rawProspects, error: fetchError } = await supabase
-      .from('crm_prospects')
-      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
-      .not('temperature', 'eq', 'dead')
-      .order('created_at', { ascending: true })
-      .limit(500);
+    const { data: rawProspects, error: fetchError } = runPhase1
+      ? await supabase
+          .from('crm_prospects')
+          .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
+          .not('temperature', 'eq', 'dead')
+          .order('created_at', { ascending: true })
+          .limit(500)
+      : { data: [] as any[], error: null };
 
     // Filter: prospects that need enrichment (missing type/quartier, or never processed, or old ones to re-verify)
     const prospects = (rawProspects || []).filter(p => {
@@ -350,9 +366,19 @@ async function runEnrichment(): Promise<NextResponse> {
     } else {
       console.log(`[CommercialAgent] Phase 1: ${prospects.length} prospects to enrich`);
 
-      for (const prospect of prospects) {
-        const result = await enrichProspect(prospect);
+      // Process in parallel batches of 3 for speed
+      const BATCH_SIZE = 3;
+      const enrichResults: Array<{ prospect: any; result: any }> = [];
+      for (let b = 0; b < prospects.length; b += BATCH_SIZE) {
+        const batch = prospects.slice(b, b + BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(async (p) => {
+          const r = await enrichProspect(p);
+          return { prospect: p, result: r };
+        }));
+        enrichResults.push(...batchResults);
+      }
 
+      for (const { prospect, result } of enrichResults) {
         if (!result) {
           skippedCount++;
           continue;
@@ -433,12 +459,14 @@ async function runEnrichment(): Promise<NextResponse> {
 
     // === PHASE 2: Social media enrichment via Google Search ===
     // Find prospects with company name but missing social data
-    const { data: rawSocialProspects } = await supabase
-      .from('crm_prospects')
-      .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature, status')
-      .not('company', 'is', null)
-      .order('score', { ascending: false, nullsFirst: false })
-      .limit(200);
+    const { data: rawSocialProspects } = runPhase2
+      ? await supabase
+          .from('crm_prospects')
+          .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature, status')
+          .not('company', 'is', null)
+          .order('score', { ascending: false, nullsFirst: false })
+          .limit(200)
+      : { data: [] as any[] };
 
     // Filter in JS: not dead/perdu/client + missing at least one social field
     const socialProspects = (rawSocialProspects || []).filter(p => {

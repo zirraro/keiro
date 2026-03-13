@@ -46,6 +46,15 @@ STRUCTURE SEO ELITE :
   - Conclusion avec CTA naturel vers KeiroAI (pas force)
   - Derniere phrase = question ouverte ou projection future
 
+IMAGES — OBLIGATOIRE :
+- Insere 3-5 images illustratives dans l'article avec des balises <img>
+- Utilise des images libres de droits depuis Unsplash : format <img src="https://images.unsplash.com/photo-{id}?w=800&q=80" alt="description precise et SEO" />
+- Choisis des photos pertinentes au sujet (restaurants, boutiques, marketing digital, reseaux sociaux, commerce local)
+- Place une image hero apres l'intro, puis 1 image toutes les 2-3 sections pour aerer le contenu
+- JAMAIS d'images placeholder ou generiques. Chaque image doit illustrer le propos
+- Alt text descriptif et optimise SEO (pas "image 1" mais "restaurateur utilisant son telephone pour publier sur Instagram")
+- Images variees : photos de commerces, screenshots d'interfaces, illustrations de concepts marketing
+
 LIENS INTERNES STRATÉGIQUES :
 - /generate : "generer tes visuels", "creer tes posts marketing"
 - /pricing : "voir les tarifs", "decouvrir les offres"
@@ -90,7 +99,7 @@ REGLES ABSOLUES :
 2. Mentionner KeiroAI naturellement comme solution (2-3 fois max, toujours avec un benefice concret).
 3. Le contenu DOIT etre utile meme sans KeiroAI — valeur pure, pas publi-redactionnel.
 4. Pas de promesses irrealistes. Chiffres honnetes et sourcables.
-5. HTML propre : <p>, <h2>, <h3>, <ul>, <ol>, <li>, <table>, <strong>, <a>. Pas de <div>, pas de classes.
+5. HTML propre : <p>, <h2>, <h3>, <ul>, <ol>, <li>, <table>, <strong>, <a>, <img>. Pas de <div>, pas de classes.
 6. Pas d'emoji dans le contenu.
 7. Si des donnees CRM sont fournies, utilise-les pour rendre l'article credible (ex: "nos utilisateurs generent en moyenne X visuels/mois").`;
 }

@@ -346,7 +346,7 @@ function SuiviPublicationsPage() {
         </div>
 
         {/* Main Tabs */}
-        <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl mb-4 overflow-x-auto">
+        <div className="flex flex-wrap gap-1 bg-neutral-100 p-1.5 rounded-xl mb-4">
           {MAIN_TABS.map(t => (
             <button
               key={t.key}

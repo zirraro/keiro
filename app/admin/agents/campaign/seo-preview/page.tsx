@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -23,13 +23,17 @@ function SeoPreviewContent() {
   const [loading, setLoading] = useState(true);
   const [article, setArticle] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
+  const [inlineEditing, setInlineEditing] = useState<'title' | 'content' | 'meta' | null>(null);
   const [editFields, setEditFields] = useState<any>({});
   const [reviseInstructions, setReviseInstructions] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [versions, setVersions] = useState<ArticleVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
   const [previewMode, setPreviewMode] = useState<'blog' | 'google'>('blog');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const reviseRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -42,7 +46,6 @@ function SeoPreviewContent() {
       const { data } = await supabase.from('blog_posts').select('*').eq('id', articleId).single();
       if (data) {
         setArticle(data);
-        // Save initial version
         setVersions([{
           title: data.title,
           meta_description: data.meta_description || '',
@@ -106,12 +109,30 @@ function SeoPreviewContent() {
     if (data?.ok) setArticle((a: any) => ({ ...a, status: 'published', published_at: new Date().toISOString() }));
   };
 
-  const handleUpdate = async () => {
-    saveVersion(article, 'Avant édition manuelle');
+  // Save inline edits (title or content)
+  const handleInlineSave = useCallback(async () => {
+    if (!hasUnsavedChanges || Object.keys(editFields).length === 0) {
+      setInlineEditing(null);
+      setHasUnsavedChanges(false);
+      return;
+    }
+    saveVersion(article, 'Avant edition inline');
     const data = await doAction('/api/agents/seo', { action: 'update_article', article_id: article.id, updates: editFields }, 'update');
     if (data?.ok && data.article) {
       setArticle(data.article);
-      saveVersion(data.article, 'Édition manuelle');
+      saveVersion(data.article, 'Edition inline');
+    }
+    setInlineEditing(null);
+    setEditFields({});
+    setHasUnsavedChanges(false);
+  }, [article, editFields, hasUnsavedChanges]);
+
+  const handleUpdate = async () => {
+    saveVersion(article, 'Avant edition manuelle');
+    const data = await doAction('/api/agents/seo', { action: 'update_article', article_id: article.id, updates: editFields }, 'update');
+    if (data?.ok && data.article) {
+      setArticle(data.article);
+      saveVersion(data.article, 'Edition manuelle');
       setEditMode(false);
       setEditFields({});
     }
@@ -128,10 +149,9 @@ function SeoPreviewContent() {
     }
   };
 
-  // Strip any <img> tags with broken src from content_html for clean preview
   const cleanHtml = (html: string) => {
     if (!html) return '';
-    // Remove img tags with placeholder/broken URLs
+    // Remove img tags with broken/placeholder URLs but keep Unsplash images
     return html.replace(/<img[^>]*src=["'](?:https?:\/\/(?:placeholder|via\.placeholder|placehold|example\.com|image\.))[^"']*["'][^>]*\/?>/gi, '');
   };
 
@@ -160,12 +180,12 @@ function SeoPreviewContent() {
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-neutral-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link href="/admin/dm-queue" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
+            <Link href="/admin/dm-queue?tab=seo" className="text-xs text-purple-600 hover:text-purple-800 flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               Retour
             </Link>
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${article.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-              {article.status === 'published' ? 'Publié' : 'Brouillon'}
+              {article.status === 'published' ? 'Publie' : 'Brouillon'}
             </span>
             {article.slug && article.status === 'published' && (
               <a href={`/blog/${article.slug}`} target="_blank" rel="noopener noreferrer" className="text-[10px] text-purple-600 hover:underline">/blog/{article.slug}</a>
@@ -173,6 +193,11 @@ function SeoPreviewContent() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Unsaved indicator */}
+            {hasUnsavedChanges && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium animate-pulse">Non sauvegarde</span>
+            )}
+
             {/* Preview mode toggle */}
             <div className="flex bg-neutral-100 rounded-lg p-0.5">
               <button onClick={() => setPreviewMode('blog')} className={`text-[10px] px-2 py-1 rounded-md transition ${previewMode === 'blog' ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500'}`}>Blog</button>
@@ -216,9 +241,14 @@ function SeoPreviewContent() {
               )}
             </div>
 
-            <button onClick={() => { setEditMode(!editMode); setEditFields({}); }} className={`text-[10px] px-2 py-1 rounded-lg transition ${editMode ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
-              {editMode ? 'Annuler' : 'Editer HTML'}
+            <button onClick={() => { setEditMode(!editMode); setEditFields({}); setInlineEditing(null); setHasUnsavedChanges(false); }} className={`text-[10px] px-2 py-1 rounded-lg transition ${editMode ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+              {editMode ? 'Annuler HTML' : 'Editer HTML'}
             </button>
+            {hasUnsavedChanges && (
+              <LoadingBtn loading={actionLoading === 'update'} onClick={handleInlineSave} className="bg-green-600 text-white hover:bg-green-700">
+                Sauvegarder
+              </LoadingBtn>
+            )}
             {article.status === 'draft' && (
               <LoadingBtn loading={actionLoading === 'publish'} onClick={handlePublish} className="bg-green-600 text-white hover:bg-green-700">
                 Publier
@@ -233,7 +263,7 @@ function SeoPreviewContent() {
             <input
               ref={reviseRef}
               type="text"
-              placeholder="Demander une modification a l'IA (ex: ajoute plus de données chiffrées, raccourcis l'intro...)"
+              placeholder="Demander une modification a l'IA (ex: ajoute plus d'images, raccourcis l'intro, plus de donnees chiffrees...)"
               value={reviseInstructions}
               onChange={e => setReviseInstructions(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRevise(); }}
@@ -246,7 +276,14 @@ function SeoPreviewContent() {
         </div>
       </div>
 
-      {/* Edit mode */}
+      {/* Inline editing hint */}
+      {!editMode && previewMode === 'blog' && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-2">
+          <p className="text-[10px] text-neutral-400 text-center">Cliquez sur le titre ou le contenu pour modifier directement</p>
+        </div>
+      )}
+
+      {/* Edit HTML mode */}
       {editMode && (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
           <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
@@ -283,7 +320,7 @@ function SeoPreviewContent() {
           <div className="mt-6 bg-white rounded-xl shadow-sm border p-5 space-y-3">
             <p className="text-xs font-semibold text-neutral-500">Infos SEO</p>
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div><span className="text-neutral-400">Mot-clé principal :</span> <span className="font-medium text-neutral-800">{article.keywords_primary}</span></div>
+              <div><span className="text-neutral-400">Mot-cle principal :</span> <span className="font-medium text-neutral-800">{article.keywords_primary}</span></div>
               <div><span className="text-neutral-400">Slug :</span> <span className="font-mono text-neutral-800">{article.slug}</span></div>
               <div><span className="text-neutral-400">Meta title :</span> <span className="text-neutral-800">{(article.meta_title || '').length} car.</span></div>
               <div><span className="text-neutral-400">Meta desc :</span> <span className="text-neutral-800">{(article.meta_description || '').length} car.</span></div>
@@ -300,10 +337,10 @@ function SeoPreviewContent() {
         </div>
       )}
 
-      {/* Blog Preview - exact same layout as /blog/[slug] */}
+      {/* Blog Preview with inline editing */}
       {previewMode === 'blog' && !editMode && (
         <div className="bg-white min-h-screen">
-          {/* Header gradient - same as blog */}
+          {/* Header gradient */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-4">
@@ -317,14 +354,43 @@ function SeoPreviewContent() {
                   <span className="bg-amber-400/30 text-amber-100 text-xs font-medium px-3 py-1 rounded-full">BROUILLON</span>
                 )}
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold leading-tight">{article.title}</h1>
+              {/* Inline editable title */}
+              <h1
+                ref={titleRef}
+                contentEditable
+                suppressContentEditableWarning
+                onFocus={() => setInlineEditing('title')}
+                onBlur={(e) => {
+                  const newTitle = e.currentTarget.textContent || '';
+                  if (newTitle !== article.title) {
+                    setEditFields((f: any) => ({ ...f, title: newTitle }));
+                    setHasUnsavedChanges(true);
+                  }
+                }}
+                className={`text-3xl sm:text-4xl font-bold leading-tight outline-none ${
+                  inlineEditing === 'title' ? 'ring-2 ring-white/50 rounded-lg px-2 -mx-2 bg-white/10' : 'hover:ring-2 hover:ring-white/30 hover:rounded-lg hover:px-2 hover:-mx-2 cursor-text'
+                }`}
+              >
+                {article.title}
+              </h1>
             </div>
           </div>
 
-          {/* Content - same prose as blog */}
+          {/* Content - inline editable */}
           <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
             <div
-              className="prose prose-lg prose-neutral max-w-none
+              ref={contentRef}
+              contentEditable
+              suppressContentEditableWarning
+              onFocus={() => setInlineEditing('content')}
+              onBlur={(e) => {
+                const newHtml = e.currentTarget.innerHTML;
+                if (newHtml !== cleanHtml(article.content_html || '')) {
+                  setEditFields((f: any) => ({ ...f, content_html: newHtml }));
+                  setHasUnsavedChanges(true);
+                }
+              }}
+              className={`prose prose-lg prose-neutral max-w-none
                 prose-headings:text-neutral-900 prose-headings:font-bold
                 prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
                 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
@@ -333,11 +399,35 @@ function SeoPreviewContent() {
                 prose-ul:my-4 prose-li:text-neutral-700
                 prose-strong:text-neutral-900
                 prose-blockquote:border-purple-500 prose-blockquote:bg-purple-50 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
-                prose-img:rounded-lg prose-img:shadow-md"
+                prose-img:rounded-lg prose-img:shadow-md
+                outline-none ${inlineEditing === 'content' ? 'ring-2 ring-purple-200 rounded-xl p-4 -m-4' : 'hover:ring-1 hover:ring-purple-100 hover:rounded-xl hover:p-4 hover:-m-4 cursor-text'}`}
               dangerouslySetInnerHTML={{ __html: cleanHtml(article.content_html || '') }}
             />
 
-            {/* FAQ section - same as blog */}
+            {/* Meta description - inline editable */}
+            <div className="mt-8 bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+              <p className="text-[10px] font-bold text-neutral-400 uppercase mb-2">Meta description</p>
+              <p
+                contentEditable
+                suppressContentEditableWarning
+                onFocus={() => setInlineEditing('meta')}
+                onBlur={(e) => {
+                  const newMeta = e.currentTarget.textContent || '';
+                  if (newMeta !== (article.meta_description || '')) {
+                    setEditFields((f: any) => ({ ...f, meta_description: newMeta }));
+                    setHasUnsavedChanges(true);
+                  }
+                }}
+                className={`text-sm text-neutral-600 leading-relaxed outline-none ${
+                  inlineEditing === 'meta' ? 'ring-2 ring-purple-200 rounded-lg p-2 -m-2 bg-white' : 'hover:ring-1 hover:ring-purple-100 hover:rounded-lg hover:p-2 hover:-m-2 cursor-text'
+                }`}
+              >
+                {article.meta_description}
+              </p>
+              <p className="text-[10px] text-neutral-400 mt-1">{(article.meta_description || '').length} caracteres</p>
+            </div>
+
+            {/* FAQ section */}
             {article.schema_faq && article.schema_faq.length > 0 && (
               <section className="mt-12 border-t border-neutral-200 pt-8">
                 <h2 className="text-2xl font-bold text-neutral-900 mb-6">Questions frequentes</h2>
@@ -352,7 +442,7 @@ function SeoPreviewContent() {
               </section>
             )}
 
-            {/* CTA section - same as blog */}
+            {/* CTA section */}
             <section className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-center text-white">
               <h2 className="text-2xl font-bold mb-3">Pret a booster ton marketing ?</h2>
               <p className="text-white/90 mb-6 max-w-lg mx-auto">

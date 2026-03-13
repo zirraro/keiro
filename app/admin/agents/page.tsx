@@ -139,6 +139,7 @@ function AdminAgentsContent() {
   const [emailMode, setEmailMode] = useState<'draft' | 'send'>('draft');
   const [showEmailOptions, setShowEmailOptions] = useState(false);
   const [showCommunityOptions, setShowCommunityOptions] = useState(false);
+  const [showCommercialOptions, setShowCommercialOptions] = useState(false);
   const [communityPlatform, setCommunityPlatform] = useState<string>('instagram');
   const [contentCalendar, setContentCalendar] = useState<any[]>([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
@@ -917,6 +918,8 @@ function AdminAgentsContent() {
         'dm_tiktok': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'commercial': { path: '/api/agents/commercial', method: 'POST' },
+        'commercial_verify': { path: '/api/agents/commercial', method: 'POST' },
+        'commercial_prospect': { path: '/api/agents/commercial', method: 'POST' },
         'seo': { path: '/api/agents/seo', method: 'POST' },
         'onboarding': { path: '/api/agents/onboarding', method: 'GET' },
         'retention': { path: '/api/agents/retention', method: 'GET' },
@@ -944,6 +947,10 @@ function AdminAgentsContent() {
         ? JSON.stringify({ action: 'prepare_comments', count: 10 })
         : agentType === 'community_engage'
         ? JSON.stringify({ action: 'engagement_plan' })
+        : agentType === 'commercial_verify'
+        ? JSON.stringify({ action: 'verify_crm' })
+        : agentType === 'commercial_prospect'
+        ? JSON.stringify({ action: 'prospect_external' })
         : endpoint.method === 'POST' ? JSON.stringify({}) : undefined;
 
       const res = await fetch(endpoint.path, {
@@ -972,8 +979,8 @@ function AdminAgentsContent() {
           ? `${data.prepared || data.count || 0} DMs/commentaires préparés`
           : agentType === 'gmaps'
           ? `${data.new_prospects || data.found || 0} prospects trouvés`
-          : agentType === 'commercial'
-          ? `${data.enriched || 0} prospects enrichis`
+          : agentType === 'commercial' || agentType === 'commercial_verify' || agentType === 'commercial_prospect'
+          ? `${data.enriched || 0} prospects enrichis${data.social_enriched ? `, ${data.social_enriched} social` : ''}`
           : agentType === 'content'
           ? `${data.postsPlanned || data.published || (data.post ? 1 : 0)} post(s) généré(s)`
           : agentType === 'community_follow'
@@ -1713,7 +1720,6 @@ function AdminAgentsContent() {
                 {[
                   { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
                   { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
-                  { key: 'commercial', label: 'Commercial + Google', icon: '🔍', color: 'from-purple-500 to-purple-600' },
                 ].map((btn) => (
                   <button
                     key={btn.key}
@@ -1729,6 +1735,49 @@ function AdminAgentsContent() {
                     {btn.label}
                   </button>
                 ))}
+                {/* Commercial agent with split options */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCommercialOptions(!showCommercialOptions)}
+                    disabled={launchingCampaign !== null}
+                    className="px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {(launchingCampaign === 'commercial_verify' || launchingCampaign === 'commercial_prospect' || launchingCampaign === 'commercial') ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>🎯</span>
+                    )}
+                    Commercial
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showCommercialOptions && (
+                    <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-neutral-200 p-3 z-50 w-64">
+                      <div className="space-y-1.5">
+                        <button
+                          onClick={() => { setShowCommercialOptions(false); launchCampaign('commercial_verify'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-purple-600 text-white text-[11px] font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 text-left"
+                        >
+                          🔍 Verification CRM (audit fiches)
+                        </button>
+                        <button
+                          onClick={() => { setShowCommercialOptions(false); launchCampaign('commercial_prospect'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-indigo-600 text-white text-[11px] font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-left"
+                        >
+                          🌐 Prospection externe (Google Search)
+                        </button>
+                        <button
+                          onClick={() => { setShowCommercialOptions(false); launchCampaign('commercial'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-neutral-600 text-white text-[11px] font-medium rounded-lg hover:bg-neutral-700 disabled:opacity-50 text-left"
+                        >
+                          ⚡ Les deux (complet)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* Community Manager button with options */}
                 <div className="relative">
                   <button
