@@ -56,6 +56,9 @@ function AdminAgentsContent() {
 
   // Dashboard state
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
+  const [dashboardAgent, setDashboardAgent] = useState<string>('global');
+  const [agentMetrics, setAgentMetrics] = useState<MetricCard[]>([]);
+  const [agentMetricsLoading, setAgentMetricsLoading] = useState(false);
 
   // Test email state
   const [testEmail, setTestEmail] = useState('');
@@ -121,6 +124,7 @@ function AdminAgentsContent() {
   const [campaigns, setCampaigns] = useState<CampaignEntry[]>([]);
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
   const [campaignDateFilter, setCampaignDateFilter] = useState<string>('7d');
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<string>('all');
   const [launchingCampaign, setLaunchingCampaign] = useState<string | null>(null);
   const [campaignLaunchResult, setCampaignLaunchResult] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -367,6 +371,131 @@ function AdminAgentsContent() {
       ]);
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
+    }
+  };
+
+  // ─── Per-agent dashboard metrics ─────────────────────
+  const loadAgentMetrics = async (agent: string) => {
+    if (agent === 'global') { setAgentMetrics([]); return; }
+    setAgentMetricsLoading(true);
+    try {
+      const now = new Date();
+      const yesterdayISO = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+      const countLogs = async (agentName: string, action?: string, since?: string) => {
+        let q = supabase.from('agent_logs').select('*', { count: 'exact', head: true }).eq('agent', agentName);
+        if (action) q = q.eq('action', action);
+        if (since) q = q.gte('created_at', since);
+        const { count } = await q;
+        return count ?? 0;
+      };
+
+      let cards: MetricCard[] = [];
+
+      if (agent === 'email') {
+        const sent24h = await countLogs('email', 'send_email', yesterdayISO);
+        const totalSent = await countLogs('email', 'send_email');
+        const totalOpened = await countLogs('email', 'webhook_opened');
+        const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+        const bounces = await countLogs('email', 'webhook_bounced');
+        const cold = await countLogs('email', 'daily_cold');
+        const warm = await countLogs('email', 'daily_warm');
+        cards = [
+          { label: 'Emails envoyes 24h', value: sent24h, icon: '✉️' },
+          { label: "Taux d'ouverture", value: `${openRate}%`, icon: '📨', trend: openRate > 25 ? 'Bon' : 'A ameliorer', trendUp: openRate > 25 },
+          { label: 'Bounces total', value: bounces, icon: '⚠️' },
+          { label: 'Campagnes cold', value: cold, icon: '❄️' },
+          { label: 'Campagnes warm', value: warm, icon: '🔥' },
+          { label: 'Total envoyes', value: totalSent, icon: '📧' },
+        ];
+      } else if (agent === 'commercial') {
+        const enriched = await countLogs('commercial', 'enrichment_run');
+        const { count: deadCount } = await supabase.from('crm_prospects').select('*', { count: 'exact', head: true }).eq('temperature', 'dead');
+        const searches = await countLogs('commercial', 'google_search');
+        const total = await countLogs('commercial');
+        cards = [
+          { label: 'Enrichissements lances', value: enriched, icon: '🔍' },
+          { label: 'Prospects dead flagges', value: deadCount ?? 0, icon: '💀' },
+          { label: 'Recherches Google', value: searches, icon: '🌐' },
+          { label: 'Actions total', value: total, icon: '🎯' },
+        ];
+      } else if (agent === 'dm_instagram') {
+        const prepared = await countLogs('dm_instagram', 'daily_preparation');
+        const sent = await countLogs('dm_instagram', 'dm_sent');
+        const responded = await countLogs('dm_instagram', 'dm_responded');
+        const responseRate = sent > 0 ? Math.round((responded / sent) * 100) : 0;
+        cards = [
+          { label: 'DMs prepares', value: prepared, icon: '📩' },
+          { label: 'DMs envoyes', value: sent, icon: '✅' },
+          { label: 'Reponses recues', value: responded, icon: '💬' },
+          { label: 'Taux de reponse', value: `${responseRate}%`, icon: '📊', trend: responseRate > 10 ? 'Bon' : 'A ameliorer', trendUp: responseRate > 10 },
+        ];
+      } else if (agent === 'tiktok_comments') {
+        const prepared = await countLogs('tiktok_comments', 'comments_prepared');
+        const posted = await countLogs('tiktok_comments', 'comment_posted');
+        cards = [
+          { label: 'Commentaires prepares', value: prepared, icon: '🎵' },
+          { label: 'Commentaires postes', value: posted, icon: '✅' },
+        ];
+      } else if (agent === 'content') {
+        const generated = await countLogs('content', 'daily_post_generated');
+        const published = await countLogs('content', 'execute_publication');
+        const planned = await countLogs('content', 'weekly_plan_generated');
+        cards = [
+          { label: 'Posts generes', value: generated, icon: '📱' },
+          { label: 'Publications', value: published, icon: '✅' },
+          { label: 'Plans semaine', value: planned, icon: '📅' },
+        ];
+      } else if (agent === 'seo') {
+        const { count: totalArticles } = await supabase.from('blog_posts').select('*', { count: 'exact', head: true });
+        const { count: publishedArticles } = await supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'published');
+        const { count: draftArticles } = await supabase.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'draft');
+        const { data: viewsData } = await supabase.from('blog_posts').select('views');
+        const totalViews = (viewsData || []).reduce((sum: number, a: any) => sum + (a.views || 0), 0);
+        cards = [
+          { label: 'Articles total', value: totalArticles ?? 0, icon: '📝' },
+          { label: 'Publies', value: publishedArticles ?? 0, icon: '✅' },
+          { label: 'Brouillons', value: draftArticles ?? 0, icon: '📋' },
+          { label: 'Vues total', value: totalViews, icon: '👁️' },
+        ];
+      } else if (agent === 'onboarding') {
+        const scheduled = await countLogs('onboarding', 'sequence_scheduled');
+        const sent = await countLogs('onboarding', 'queue_processed');
+        const completionRate = scheduled > 0 ? Math.round((sent / scheduled) * 100) : 0;
+        cards = [
+          { label: 'Sequences planifiees', value: scheduled, icon: '🚀' },
+          { label: 'Envoyees', value: sent, icon: '✅' },
+          { label: 'Taux completion', value: `${completionRate}%`, icon: '📊', trend: completionRate > 50 ? 'Bon' : 'A ameliorer', trendUp: completionRate > 50 },
+        ];
+      } else if (agent === 'retention') {
+        const checks = await countLogs('retention', 'daily_check');
+        const { count: atRisk } = await supabase.from('crm_prospects').select('*', { count: 'exact', head: true }).eq('temperature', 'cold');
+        const winback = await countLogs('retention', 'winback_sent');
+        cards = [
+          { label: 'Checks effectues', value: checks, icon: '🔄' },
+          { label: 'Utilisateurs a risque', value: atRisk ?? 0, icon: '⚠️' },
+          { label: 'Win-back envoyes', value: winback, icon: '📧' },
+        ];
+      } else if (agent === 'ceo') {
+        const briefs = await countLogs('ceo', 'daily_brief');
+        cards = [
+          { label: 'Briefs generes', value: briefs, icon: '👔' },
+        ];
+      } else if (agent === 'marketing') {
+        const campaigns = await countLogs('marketing');
+        const reports = await countLogs('marketing', 'report_to_ceo');
+        cards = [
+          { label: 'Actions marketing', value: campaigns, icon: '📊' },
+          { label: 'Rapports envoyes', value: reports, icon: '📈' },
+        ];
+      }
+
+      setAgentMetrics(cards);
+    } catch (err) {
+      console.error('[Admin Agents] Agent metrics load error:', err);
+      setAgentMetrics([]);
+    } finally {
+      setAgentMetricsLoading(false);
     }
   };
 
@@ -647,6 +776,11 @@ function AdminAgentsContent() {
       else if (filter === 'tiktok') query = query.eq('agent', 'tiktok_comments');
       else if (filter === 'content') query = query.eq('agent', 'content');
       else if (filter === 'commercial') query = query.eq('agent', 'commercial');
+      else if (filter === 'seo') query = query.eq('agent', 'seo');
+      else if (filter === 'onboarding') query = query.eq('agent', 'onboarding');
+      else if (filter === 'retention') query = query.eq('agent', 'retention');
+      else if (filter === 'ceo') query = query.eq('agent', 'ceo');
+      else if (filter === 'marketing') query = query.eq('agent', 'marketing');
 
       const { data, error } = await query;
       if (error) throw error;
@@ -1152,33 +1286,113 @@ function AdminAgentsContent() {
         {/* ===== TAB DASHBOARD ===== */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {metrics.map((m, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+            {/* Agent selector pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'global', label: 'Global', icon: '🌐' },
+                { id: 'email', label: 'Email', icon: '📧' },
+                { id: 'commercial', label: 'Commercial', icon: '🎯' },
+                { id: 'dm_instagram', label: 'DM Instagram', icon: '📩' },
+                { id: 'tiktok_comments', label: 'TikTok', icon: '🎵' },
+                { id: 'content', label: 'Contenu', icon: '📱' },
+                { id: 'seo', label: 'SEO', icon: '🔍' },
+                { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
+                { id: 'retention', label: 'Retention', icon: '🔄' },
+                { id: 'ceo', label: 'CEO', icon: '👔' },
+                { id: 'marketing', label: 'Marketing', icon: '📊' },
+              ].map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => {
+                    setDashboardAgent(a.id);
+                    if (a.id === 'global') { setAgentMetrics([]); }
+                    else { loadAgentMetrics(a.id); }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                    dashboardAgent === a.id
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:text-purple-700'
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-2xl">{m.icon}</span>
-                    {m.trend && (
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          m.trendUp
-                            ? 'bg-green-50 text-green-600'
-                            : 'bg-red-50 text-red-600'
-                        }`}
-                      >
-                        {m.trend}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
-                </div>
+                  <span className="mr-1">{a.icon}</span>
+                  {a.label}
+                </button>
               ))}
             </div>
 
-            {/* Test email section */}
+            {/* Global metrics */}
+            {dashboardAgent === 'global' && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {metrics.map((m, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-2xl">{m.icon}</span>
+                      {m.trend && (
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            m.trendUp
+                              ? 'bg-green-50 text-green-600'
+                              : 'bg-red-50 text-red-600'
+                          }`}
+                        >
+                          {m.trend}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Per-agent metrics */}
+            {dashboardAgent !== 'global' && (
+              <div>
+                {agentMetricsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="ml-3 text-sm text-neutral-500">Chargement des metriques...</span>
+                  </div>
+                ) : agentMetrics.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
+                    Aucune metrique disponible pour cet agent.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {agentMetrics.map((m, i) => (
+                      <div
+                        key={i}
+                        className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-2xl">{m.icon}</span>
+                          {m.trend && (
+                            <span
+                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                m.trendUp
+                                  ? 'bg-green-50 text-green-600'
+                                  : 'bg-red-50 text-red-600'
+                              }`}
+                            >
+                              {m.trend}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
+                        <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Test email section - only in global view */}
+            {dashboardAgent === 'global' && (
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
               <h3 className="text-sm font-semibold text-neutral-900 mb-4">
                 Tester un email
@@ -1255,6 +1469,7 @@ function AdminAgentsContent() {
                 </div>
               )}
             </div>
+            )}
 
           </div>
         )}
@@ -1278,21 +1493,35 @@ function AdminAgentsContent() {
                   <option value="30d">30 derniers jours</option>
                   <option value="all">Tout</option>
                 </select>
-                <select
-                  value={campaignFilter}
-                  onChange={(e) => {
-                    setCampaignFilter(e.target.value);
-                    loadCampaigns(e.target.value);
-                  }}
-                  className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="all">Tous les canaux</option>
-                  <option value="email">Email</option>
-                  <option value="dm_instagram">DM Instagram</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="content">Contenu</option>
-                  <option value="commercial">Commercial</option>
-                </select>
+                {[
+                  { id: 'all', label: 'Tous', icon: '🌐' },
+                  { id: 'email', label: 'Email', icon: '📧' },
+                  { id: 'dm_instagram', label: 'DM Insta', icon: '📩' },
+                  { id: 'tiktok', label: 'TikTok', icon: '🎵' },
+                  { id: 'content', label: 'Contenu', icon: '📱' },
+                  { id: 'commercial', label: 'Commercial', icon: '🎯' },
+                  { id: 'seo', label: 'SEO', icon: '🔍' },
+                  { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
+                  { id: 'retention', label: 'Retention', icon: '🔄' },
+                  { id: 'ceo', label: 'CEO', icon: '👔' },
+                  { id: 'marketing', label: 'Marketing', icon: '📊' },
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => {
+                      setCampaignFilter(pill.id);
+                      loadCampaigns(pill.id);
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border ${
+                      campaignFilter === pill.id
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                        : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:text-purple-700'
+                    }`}
+                  >
+                    <span className="mr-0.5">{pill.icon}</span>
+                    {pill.label}
+                  </button>
+                ))}
                 <button
                   onClick={() => loadCampaigns(campaignFilter)}
                   className="text-xs text-purple-600 hover:underline"
@@ -1338,90 +1567,44 @@ function AdminAgentsContent() {
               )}
             </div>
 
-            {/* DM Queue Preview */}
-            {dmQueue.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50">
-                  <h3 className="text-sm font-semibold text-neutral-900">File d'attente DM ({dmQueue.length} derniers)</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">Messages en attente d'envoi par canal et business type</p>
-                </div>
-                <div className="divide-y divide-neutral-100">
-                  {dmQueue.slice(0, 10).map((dm) => (
-                    <div key={dm.id} className="p-4 hover:bg-neutral-50 transition-all">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          dm.channel === 'instagram' ? 'bg-pink-100 text-pink-700' :
-                          dm.channel === 'tiktok' ? 'bg-neutral-900 text-white' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>{dm.channel}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-neutral-100 text-neutral-600">
-                          {dm.channel}
-                        </span>
-                        <span className="text-xs font-medium text-neutral-800">{dm.prospect_name}</span>
-                        <span className="text-xs text-neutral-400 ml-auto">@{dm.handle}</span>
-                      </div>
-                      <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-100">
-                        <p className="text-sm text-neutral-700 whitespace-pre-wrap">{dm.message}</p>
-                      </div>
-                      {dm.personalization && (
-                        <p className="text-[10px] text-neutral-400 mt-1">Perso: {dm.personalization}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Content Calendar Preview */}
-            {contentPosts.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-orange-50 to-pink-50">
-                  <h3 className="text-sm font-semibold text-neutral-900">Posts planifiés ({contentPosts.length})</h3>
-                  <p className="text-xs text-neutral-500 mt-0.5">Contenu généré par l'agent — publications à venir</p>
-                </div>
-                <div className="divide-y divide-neutral-100">
-                  {contentPosts.slice(0, 10).map((post) => (
-                    <div key={post.id} className="p-4 hover:bg-neutral-50 transition-all">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          post.platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
-                          post.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-                          post.platform === 'linkedin' ? 'bg-blue-100 text-blue-700' :
-                          'bg-neutral-100 text-neutral-600'
-                        }`}>{post.platform}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-purple-100 text-purple-700">{post.format}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          post.status === 'published' ? 'bg-green-100 text-green-700' :
-                          post.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>{post.status}</span>
-                        <span className="text-xs text-neutral-400 ml-auto">{new Date(post.scheduled_date).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      {post.hook && <p className="text-sm font-medium text-neutral-800 mb-1">{post.hook}</p>}
-                      {post.caption && (
-                        <div className="bg-neutral-50 rounded-lg p-3 border border-neutral-100">
-                          <p className="text-sm text-neutral-700 whitespace-pre-wrap line-clamp-3">{post.caption}</p>
-                        </div>
-                      )}
-                      {(post as any).visual_url && (
-                        <div className="mt-2">
-                          <a href={(post as any).visual_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 hover:underline">
-                            Voir le visuel
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-500 font-medium">Statut :</span>
+              {[
+                { id: 'all', label: 'Tout' },
+                { id: 'en_cours', label: 'En cours' },
+                { id: 'termine', label: 'Termin\u00e9' },
+                { id: 'echoue', label: '\u00c9chou\u00e9' },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  onClick={() => setCampaignStatusFilter(pill.id)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all border ${
+                    campaignStatusFilter === pill.id
+                      ? pill.id === 'echoue' ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                        : pill.id === 'termine' ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                        : pill.id === 'en_cours' ? 'bg-yellow-500 text-white border-yellow-500 shadow-sm'
+                        : 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:text-purple-700'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
 
             {/* Campaign History */}
             {(() => {
               const dateMap: Record<string, number> = { '1d': 1, '3d': 3, '7d': 7, '30d': 30 };
               const days = dateMap[campaignDateFilter] || 0;
               const cutoff = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : '';
-              const filteredCampaigns = cutoff ? campaigns.filter(c => c.date >= cutoff) : campaigns;
+              const dateCampaigns = cutoff ? campaigns.filter(c => c.date >= cutoff) : campaigns;
+              const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+              const filteredCampaigns = campaignStatusFilter === 'all' ? dateCampaigns
+                : campaignStatusFilter === 'en_cours' ? dateCampaigns.filter(c => c.date >= oneHourAgo && c.total > 0 && c.success === 0 && c.failed === 0)
+                : campaignStatusFilter === 'termine' ? dateCampaigns.filter(c => c.success > 0 && c.failed === 0)
+                : campaignStatusFilter === 'echoue' ? dateCampaigns.filter(c => c.failed > 0)
+                : dateCampaigns;
               const actionLabels: Record<string, string> = {
                 daily_cold: 'Email (cold)', daily_warm: 'Email chatbot',
                 daily_preparation: 'DM Instagram', comments_prepared: 'TikTok',
@@ -1452,51 +1635,78 @@ function AdminAgentsContent() {
                     ? 'bg-blue-100 text-blue-700'
                     : 'bg-neutral-900 text-white';
 
+                  const suiviHref = campaign.agent === 'dm_instagram'
+                    ? '/admin/dm-queue?tab=dm_instagram'
+                    : campaign.agent === 'tiktok_comments'
+                    ? '/admin/dm-queue?tab=dm_tiktok'
+                    : campaign.agent === 'content'
+                    ? '/admin/dm-queue?tab=pub_instagram'
+                    : campaign.agent === 'seo'
+                    ? '/admin/dm-queue?tab=seo'
+                    : campaign.agent === 'email'
+                    ? '/admin/dm-queue'
+                    : null;
+
                   return (
-                    <Link
+                    <div
                       key={campaign.id}
-                      href={`/admin/agents/campaign/${campaign.id}`}
                       className="block bg-white rounded-xl shadow-sm border border-neutral-200 p-4 hover:bg-neutral-50 hover:border-purple-200 transition-all"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${channelColor}`}>
-                            {channelLabel}
-                          </span>
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {new Date(campaign.date).toLocaleDateString('fr-FR', {
-                              weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-                            })}
-                          </span>
-                          {campaign.message && (
-                            <span className="text-xs text-neutral-400 truncate max-w-[250px] hidden sm:inline">{campaign.message}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <span className="text-lg font-bold text-neutral-900">{campaign.total > 0 ? campaign.success : '-'}</span>
-                            {campaign.total > 0 && <span className="text-xs text-neutral-400 ml-1">/{campaign.total}</span>}
+                      <Link href={`/admin/agents/campaign/${campaign.id}`} className="block">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${channelColor}`}>
+                              {channelLabel}
+                            </span>
+                            <span className="text-sm font-semibold text-neutral-900">
+                              {new Date(campaign.date).toLocaleDateString('fr-FR', {
+                                weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </span>
+                            {campaign.message && (
+                              <span className="text-xs text-neutral-400 truncate max-w-[250px] hidden sm:inline">{campaign.message}</span>
+                            )}
                           </div>
-                          {campaign.failed > 0 && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
-                              {campaign.failed} echec
-                            </span>
-                          )}
-                          <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <span className="text-lg font-bold text-neutral-900">{campaign.total > 0 ? campaign.success : '-'}</span>
+                              {campaign.total > 0 && <span className="text-xs text-neutral-400 ml-1">/{campaign.total}</span>}
+                            </div>
+                            {campaign.failed > 0 && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
+                                {campaign.failed} echec
+                              </span>
+                            )}
+                            <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
                         </div>
+                      </Link>
+                      <div className="flex items-center justify-between mt-2">
+                        {Object.keys(campaign.byBusinessType).length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(campaign.byBusinessType).map(([type, data]) => (
+                              <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
+                                {type}: {data.sent || data.count || 0}
+                              </span>
+                            ))}
+                          </div>
+                        ) : <div />}
+                        {suiviHref && (
+                          <Link
+                            href={suiviHref}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 hover:bg-purple-200 transition shrink-0"
+                          >
+                            Voir le contenu
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </Link>
+                        )}
                       </div>
-                      {Object.keys(campaign.byBusinessType).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {Object.entries(campaign.byBusinessType).map(([type, data]) => (
-                            <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
-                              {type}: {data.sent || data.count || 0}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

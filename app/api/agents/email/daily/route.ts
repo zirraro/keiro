@@ -353,11 +353,45 @@ async function sendEmail(
     }
 
     let messageId = 'unknown';
-    let provider = 'resend';
+    let provider = 'brevo';
     let sendSuccess = false;
 
-    // Try Resend first
-    if (process.env.RESEND_API_KEY) {
+    // Try Brevo first (primary)
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': process.env.BREVO_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
+            to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
+            subject: template.subject,
+            htmlContent: template.htmlBody,
+            textContent: template.textBody,
+            headers: { 'X-Mailin-custom': prospect.id },
+            tags: ['cold-sequence', `step-${step}`, category],
+          }),
+        });
+
+        if (brevoResponse.ok) {
+          const brevoData = await brevoResponse.json();
+          messageId = brevoData.messageId || 'unknown';
+          provider = 'brevo';
+          sendSuccess = true;
+        } else {
+          const errorText = await brevoResponse.text();
+          console.warn(`[EmailDaily] Brevo failed for ${prospect.email}, trying Resend:`, errorText);
+        }
+      } catch (brevoError: any) {
+        console.warn(`[EmailDaily] Brevo error, trying Resend:`, brevoError.message);
+      }
+    }
+
+    // Fallback to Resend
+    if (!sendSuccess && process.env.RESEND_API_KEY) {
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -387,49 +421,15 @@ async function sendEmail(
           sendSuccess = true;
         } else {
           const errorText = await resendResponse.text();
-          console.warn(`[EmailDaily] Resend failed for ${prospect.email}, trying Brevo:`, errorText);
+          console.error(`[EmailDaily] Resend also failed:`, errorText);
         }
       } catch (resendError: any) {
-        console.warn(`[EmailDaily] Resend error, trying Brevo:`, resendError.message);
-      }
-    }
-
-    // Fallback to Brevo
-    if (!sendSuccess && process.env.BREVO_API_KEY) {
-      try {
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': process.env.BREVO_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
-            to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
-            subject: template.subject,
-            htmlContent: template.htmlBody,
-            textContent: template.textBody,
-            headers: { 'X-Mailin-custom': prospect.id },
-            tags: ['cold-sequence', `step-${step}`, category],
-          }),
-        });
-
-        if (brevoResponse.ok) {
-          const brevoData = await brevoResponse.json();
-          messageId = brevoData.messageId || 'unknown';
-          provider = 'brevo';
-          sendSuccess = true;
-        } else {
-          const errorText = await brevoResponse.text();
-          console.error(`[EmailDaily] Brevo also failed:`, errorText);
-        }
-      } catch (brevoError: any) {
-        console.error(`[EmailDaily] Brevo error:`, brevoError.message);
+        console.error(`[EmailDaily] Resend error:`, resendError.message);
       }
     }
 
     if (!sendSuccess) {
-      return { success: false, error: 'Resend + Brevo both failed' };
+      return { success: false, error: 'Brevo + Resend both failed' };
     }
 
     // Update prospect in DB
@@ -790,7 +790,7 @@ export async function GET(request: NextRequest) {
         success: successCount,
         failed: failCount,
         ai_generated: aiCount,
-        provider: 'resend+brevo',
+        provider: 'brevo+resend',
         manual: isManualTrigger,
         by_business_type: byBusinessType,
         results: results.map(r => ({
@@ -823,13 +823,111 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       mode: type === 'warm' ? 'warm' : 'cold',
-      provider: 'resend+brevo',
+      provider: 'brevo+resend',
       manual: isManualTrigger,
       stats: { total: results.length, success: successCount, failed: failCount, ai_generated: aiCount },
       results,
     });
   } catch (error: any) {
     console.error('[EmailDaily] Error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/agents/email/daily
+ * Actions: reset_dead_prospects
+ */
+export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  let isAuthorized = false;
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    try {
+      const { getAuthUser } = await import('@/lib/auth-server');
+      const { user } = await getAuthUser();
+      if (user) {
+        const supabaseAuth = getSupabaseAdmin();
+        const { data: profile } = await supabaseAuth.from('profiles').select('is_admin').eq('id', user.id).single();
+        if (profile?.is_admin) isAuthorized = true;
+      }
+    } catch {}
+  }
+
+  if (!isAuthorized) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === 'reset_dead_prospects') {
+      const supabase = getSupabaseAdmin();
+      const nowISO = new Date().toISOString();
+
+      // Find all dead + perdu prospects with a valid email
+      const { data: deadProspects, error: queryError } = await supabase
+        .from('crm_prospects')
+        .select('id, email, company')
+        .eq('temperature', 'dead')
+        .eq('status', 'perdu')
+        .not('email', 'is', null);
+
+      if (queryError) {
+        return NextResponse.json({ ok: false, error: queryError.message }, { status: 500 });
+      }
+
+      if (!deadProspects || deadProspects.length === 0) {
+        return NextResponse.json({ ok: true, reset_count: 0, message: 'Aucun prospect dead/perdu à réinitialiser' });
+      }
+
+      const ids = deadProspects.map(p => p.id);
+
+      const { error: updateError } = await supabase
+        .from('crm_prospects')
+        .update({
+          temperature: 'cold',
+          status: 'identifie',
+          email_sequence_status: 'not_started',
+          email_sequence_step: 0,
+          updated_at: nowISO,
+        })
+        .in('id', ids);
+
+      if (updateError) {
+        return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+      }
+
+      // Log the action
+      await supabase.from('agent_logs').insert({
+        agent: 'email',
+        action: 'reset_dead_prospects',
+        data: {
+          reset_count: ids.length,
+          prospect_ids: ids,
+          prospects: deadProspects.map(p => ({ id: p.id, email: p.email, company: p.company })),
+        },
+        created_at: nowISO,
+      });
+
+      console.log(`[EmailDaily] Reset ${ids.length} dead prospects to cold/identifie`);
+
+      return NextResponse.json({
+        ok: true,
+        reset_count: ids.length,
+        message: `${ids.length} prospects réinitialisés (dead→cold, perdu→identifie, séquence remise à 0)`,
+      });
+    }
+
+    return NextResponse.json({ ok: false, error: `Action inconnue: ${action}` }, { status: 400 });
+  } catch (error: any) {
+    console.error('[EmailDaily] POST Error:', error);
     return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
   }
 }

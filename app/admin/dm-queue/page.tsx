@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 const supabaseBrowser = () =>
@@ -80,10 +80,26 @@ type MainTab = 'dm_instagram' | 'dm_tiktok' | 'pub_instagram' | 'pub_tiktok' | '
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type PubSubTab = 'draft' | 'published';
 
-export default function SuiviPublicationsPage() {
+export default function SuiviPublicationsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <SuiviPublicationsPage />
+    </Suspense>
+  );
+}
+
+function SuiviPublicationsPage() {
+  const searchParams = useSearchParams();
+  const initialTab = (() => {
+    const t = searchParams.get('tab');
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'pub_instagram', 'pub_tiktok', 'seo'];
+    if (t && validTabs.includes(t as MainTab)) return t as MainTab;
+    return 'dm_instagram' as MainTab;
+  })();
+
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [mainTab, setMainTab] = useState<MainTab>('dm_instagram');
+  const [mainTab, setMainTab] = useState<MainTab>(initialTab);
   const [dmSubTab, setDmSubTab] = useState<DMSubTab>('pending');
   const [pubSubTab, setPubSubTab] = useState<PubSubTab>('draft');
 
