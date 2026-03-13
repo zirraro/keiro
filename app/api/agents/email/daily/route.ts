@@ -154,33 +154,52 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
 
     // Parse JSON array (strip markdown fences if present)
     const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
-    let jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+    let emails: any[] = [];
 
-    // Salvage truncated JSON arrays
-    if (!jsonMatch) {
-      const partialMatch = cleanText.match(/\[[\s\S]*/);
-      if (partialMatch) {
-        let salvaged = partialMatch[0].replace(/,?\s*$/, '');
-        // Close any open objects
-        const openBraces = (salvaged.match(/\{/g) || []).length;
-        const closeBraces = (salvaged.match(/\}/g) || []).length;
-        for (let i = 0; i < openBraces - closeBraces; i++) salvaged += '}';
-        salvaged += ']';
-        try {
-          JSON.parse(salvaged);
-          jsonMatch = [salvaged];
-          console.log('[EmailDaily] AI batch: salvaged truncated JSON');
-        } catch {
-          console.warn('[EmailDaily] AI batch: no JSON array found, raw:', cleanText.substring(0, 300));
-          return results;
-        }
-      } else {
-        console.warn('[EmailDaily] AI batch: no JSON array found, raw:', cleanText.substring(0, 300));
-        return results;
+    // Try full array match first
+    const fullMatch = cleanText.match(/\[[\s\S]*\]/);
+    if (fullMatch) {
+      try {
+        emails = JSON.parse(fullMatch[0]);
+      } catch {
+        // Full match failed, try extracting individual objects
       }
     }
 
-    const emails = JSON.parse(jsonMatch[0]);
+    // Salvage: extract all complete JSON objects from truncated array
+    if (emails.length === 0) {
+      const objectRegex = /\{\s*"id"\s*:\s*"[^"]+"\s*,\s*"subject"\s*:\s*"[^"]*"\s*,\s*"body"\s*:\s*"[^"]*"\s*\}/g;
+      const objects = cleanText.match(objectRegex);
+      if (objects && objects.length > 0) {
+        for (const obj of objects) {
+          try {
+            emails.push(JSON.parse(obj));
+          } catch { /* skip malformed */ }
+        }
+        console.log(`[EmailDaily] AI batch: salvaged ${emails.length} complete emails from truncated JSON`);
+      }
+    }
+
+    // Last resort: try to extract objects with newlines in body (common with Gemini)
+    if (emails.length === 0) {
+      try {
+        // Find all id+subject pairs and extract what we can
+        const idSubjectRegex = /"id"\s*:\s*"([^"]+)"\s*,\s*"subject"\s*:\s*"([^"]*)"\s*,\s*"body"\s*:\s*"([\s\S]*?)(?:"\s*\}|$)/g;
+        let m;
+        while ((m = idSubjectRegex.exec(cleanText)) !== null) {
+          const body = m[3].replace(/\n/g, '\\n').replace(/"/g, '\\"');
+          emails.push({ id: m[1], subject: m[2], body: m[3].replace(/\\n/g, '\n') });
+        }
+        if (emails.length > 0) {
+          console.log(`[EmailDaily] AI batch: regex-extracted ${emails.length} emails`);
+        }
+      } catch { /* regex extraction failed */ }
+    }
+
+    if (emails.length === 0) {
+      console.warn('[EmailDaily] AI batch: no emails extracted, raw:', cleanText.substring(0, 400));
+      return results;
+    }
     for (const email of emails) {
       if (!email.id || !email.subject || !email.body) continue;
 
@@ -772,12 +791,13 @@ export async function GET(request: NextRequest) {
 
         // Self-verify: if commercial agent hasn't verified, email agent does it
         if (!prospect.verified && prospect.email && prospect.company) {
-          await supabase.from('crm_prospects').update({
+          // Safe: ignore error if verified column doesn't exist yet
+          const { error: verifyErr } = await supabase.from('crm_prospects').update({
             verified: true,
             verified_at: nowISO,
             verified_by: 'email',
           }).eq('id', prospect.id);
-          selfVerifiedCount++;
+          if (!verifyErr) selfVerifiedCount++;
         }
 
         const step = prospect.email_sequence_step ?? 0;

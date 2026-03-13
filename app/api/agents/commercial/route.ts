@@ -425,7 +425,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           updates.temperature = autoTemp;
         }
 
-        // Mark as verified by commercial agent (email agent will prioritize these)
+        // Mark as verified (safe — column may not exist yet)
         if (result.data_completeness_score >= 50 || (result.ready_to_contact && result.email_valid)) {
           updates.verified = true;
           updates.verified_at = nowISO;
@@ -577,6 +577,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     const MAX_NEW_PROSPECTS = 30;
     let allNewProspects: any[] = [];
     let dedupSkipped = 0;
+    let skippedNoEmail = 0;
     let searchLogs: string[] = [];
 
     if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
@@ -601,10 +602,10 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         const location = city === 'Paris' ? `Paris ${parisQuartiers[(runIdx + s) % parisQuartiers.length]}` : city;
 
         const searchVariants = [
-          `${type} instagram ${location} 2024 2025`,
-          `meilleur ${type} ${location} avis google`,
-          `nouveau ${type} ${location} ouverture`,
-          `${type} ${location} site web`,
+          `${type} ${location} contact email site web`,
+          `${type} ${location} pagesjaunes email telephone`,
+          `meilleur ${type} ${location} avis google instagram`,
+          `${type} ${location} contact@ info@ reserv`,
         ];
         searches.push({
           type,
@@ -615,32 +616,37 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
       const PROSPECTION_SYSTEM_PROMPT = `Tu es un agent commercial ELITE de KeiroAI. Ta mission : trouver des commerces locaux RÉELS en France pour les aider avec leur marketing digital.
 
-TON OBJECTIF : retourner 8-12 prospects QUALIFIÉS et VÉRIFIÉS par recherche.
+TON OBJECTIF : retourner 8-12 prospects QUALIFIÉS avec EMAIL OBLIGATOIRE.
 
 MÉTHODE DE RECHERCHE (utilise Google Search grounding) :
-1. Cherche sur Google Maps "${'{type} {location}'}" → noms, notes, avis
-2. Cherche sur Instagram les comptes de commerces locaux
-3. Cherche sur PagesJaunes / annuaires pro
-4. Vérifie les sites web trouvés
+1. Cherche "${'{type} {location}'}" sur Google → trouve les sites web
+2. Sur chaque site web, cherche la page Contact pour trouver l'EMAIL
+3. Cherche sur PagesJaunes "${'{type} {location}'}" → email + téléphone
+4. Cherche sur Google Maps pour note + avis
+5. Cherche sur Instagram pour le handle
 
-CRITÈRES DE QUALIFICATION (MINIMUM 2 sur 4) :
-✅ A un compte Instagram (même petit, 50+ abonnés)
-✅ A une note Google > 3.5 (business qui marche)
-✅ A un site web (même basique)
-✅ A un email visible (contact@, info@)
+CRITÈRE OBLIGATOIRE :
+🔴 CHAQUE prospect DOIT avoir un EMAIL (contact@, info@, hello@, etc.)
+🔴 Si tu ne trouves pas l'email d'un commerce, NE L'INCLUS PAS dans la liste
+🔴 Construis l'email à partir du site web si nécessaire (ex: site=boulangerie-paris.fr → contact@boulangerie-paris.fr)
 
-CE QUE TU DOIS REMPLIR pour chaque prospect (le MAXIMUM d'info) :
-- company : nom EXACT du commerce (tel qu'affiché sur Google/Instagram)
+CRITÈRES DE QUALIFICATION SUPPLÉMENTAIRES (au moins 1) :
+✅ A un compte Instagram
+✅ A une note Google > 3.5
+✅ A un site web
+
+CE QUE TU DOIS REMPLIR pour chaque prospect (MAXIMUM d'info) :
+- company : nom EXACT du commerce
 - type : restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services|boulangerie|photographe|agence
 - quartier : ville + quartier si possible
-- instagram : handle Instagram SANS @ (vérifié)
+- email : OBLIGATOIRE — adresse email trouvée ou construite depuis le site
+- instagram : handle Instagram SANS @ (si trouvé)
 - website : URL complète
-- email : adresse email trouvée
 - phone : numéro de téléphone
 - google_rating : note Google (ex: 4.5)
 - google_reviews : nombre d'avis Google
 - description : ce que fait ce commerce (1 ligne)
-- specialty : spécialité (ex: "cuisine japonaise", "coiffure homme", "coaching fitness")
+- specialty : spécialité (ex: "cuisine japonaise", "coiffure homme")
 - address : adresse physique complète
 - qualification_reason : pourquoi ce prospect a besoin de KeiroAI
 
@@ -738,6 +744,12 @@ Retourne 8-12 prospects qualifiés en JSON.`,
         for (const np of allNewProspects) {
           if (!np.company || np.company.length < 2) continue;
           if (newProspectsCreated >= MAX_NEW_PROSPECTS) break;
+
+          // PRIORITÉ: skip prospects sans email (l'email est essentiel pour la séquence)
+          if (!np.email || !np.email.includes('@')) {
+            skippedNoEmail++;
+            continue;
+          }
 
           // In-run dedup: skip if we already inserted this company name in this run
           const lowerName = np.company.toLowerCase().trim();
@@ -904,7 +916,37 @@ Retourne 8-12 prospects qualifiés en JSON.`,
           if (!insertError) {
             newProspectsCreated++;
             insertedNames.add(lowerName);
-            console.log(`[CommercialAgent] New prospect: ${np.company} (${np.type}, ${np.quartier}, score: ${newScore})`);
+            console.log(`[CommercialAgent] New prospect: ${np.company} (${np.type}, ${np.quartier}, score: ${newScore}, email: ${np.email})`);
+          } else if (insertError.message?.includes('verified') || insertError.message?.includes('schema cache')) {
+            // Retry without verified fields (column may not exist yet)
+            const { error: retryError } = await supabase.from('crm_prospects').insert({
+              company: np.company,
+              type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
+              quartier: np.quartier || null,
+              instagram: igHandle,
+              website: np.website || null,
+              email: np.email || null,
+              phone: np.phone || null,
+              google_rating: np.google_rating || null,
+              note_google: np.google_rating || null,
+              google_reviews: np.google_reviews || null,
+              status: 'identifie',
+              temperature: newTemp,
+              score: newScore,
+              address: np.address || null,
+              source: 'prospection_commerciale',
+              source_agent: 'commercial',
+              notes: [np.specialty, np.description, np.qualification_reason].filter(Boolean).join(' — ') || null,
+              created_at: nowISO,
+              updated_at: nowISO,
+            });
+            if (!retryError) {
+              newProspectsCreated++;
+              insertedNames.add(lowerName);
+              console.log(`[CommercialAgent] New prospect (retry): ${np.company} (${np.type}, score: ${newScore}, email: ${np.email})`);
+            } else {
+              console.warn(`[CommercialAgent] Insert retry error for ${np.company}:`, retryError.message);
+            }
           } else {
             console.warn(`[CommercialAgent] Insert error for ${np.company}:`, insertError.message);
           }
@@ -948,6 +990,7 @@ Retourne 8-12 prospects qualifiés en JSON.`,
       },
       phase3_external_prospection: {
         raw_found: allNewProspects.length,
+        skipped_no_email: skippedNoEmail,
         dedup_skipped: dedupSkipped,
         new_prospects_created: newProspectsCreated,
         search_logs: searchLogs,
