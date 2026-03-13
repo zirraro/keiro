@@ -214,7 +214,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'marketing_learn':
-      // 19:00 UTC — Marketing: full analysis + advise agents
+      // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
+      await callEndpoint('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
+      await callEndpoint('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
       await callEndpoint('Marketing Analysis', '/api/agents/marketing');
       await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
       break;

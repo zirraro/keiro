@@ -183,6 +183,64 @@ export async function publishCarouselToInstagram(
 }
 
 /**
+ * Fetch own Instagram media with engagement metrics.
+ * Uses IG Media endpoint — requires our own IG user ID + page token.
+ */
+export type IgOwnMedia = {
+  id: string;
+  caption?: string;
+  media_url?: string;
+  media_type?: string;
+  timestamp?: string;
+  like_count?: number;
+  comments_count?: number;
+  permalink?: string;
+  impressions?: number;
+  reach?: number;
+  saved?: number;
+};
+
+export async function getOwnInstagramMedia(
+  igUserId: string,
+  pageAccessToken: string,
+  limit: number = 25,
+): Promise<IgOwnMedia[]> {
+  try {
+    const fields = 'id,caption,media_url,media_type,timestamp,like_count,comments_count,permalink';
+    const data = await graphGET<{ data: IgOwnMedia[] }>(
+      `/${igUserId}/media`,
+      pageAccessToken,
+      { fields, limit },
+    );
+    const posts = data.data || [];
+
+    // Fetch insights for each post (impressions, reach, saved)
+    for (const post of posts) {
+      try {
+        const insights = await graphGET<{
+          data: Array<{ name: string; values: Array<{ value: number }> }>;
+        }>(`/${post.id}/insights`, pageAccessToken, {
+          metric: 'impressions,reach,saved',
+        });
+        for (const metric of insights.data || []) {
+          const val = metric.values?.[0]?.value || 0;
+          if (metric.name === 'impressions') post.impressions = val;
+          if (metric.name === 'reach') post.reach = val;
+          if (metric.name === 'saved') post.saved = val;
+        }
+      } catch {
+        // Insights not available for all media types (e.g., stories)
+      }
+    }
+
+    return posts;
+  } catch (e: any) {
+    console.error('[getOwnInstagramMedia] Error:', e.message?.substring(0, 200));
+    return [];
+  }
+}
+
+/**
  * Business Discovery: fetch recent posts from any public Instagram business/creator account.
  * Uses the IG Business Discovery API — requires our own IG user ID + page token.
  */

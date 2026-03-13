@@ -202,7 +202,7 @@ export async function getTikTokVideos(
   console.log('[TikTok] Fetching videos, max_count:', maxCount);
 
   const response = await fetch(
-    `${TIKTOK_API_BASE}/v2/video/list/?fields=id,title,video_description,duration,cover_image_url,share_url,embed_link,create_time&max_count=${maxCount}`,
+    `${TIKTOK_API_BASE}/v2/video/list/?fields=id,title,video_description,duration,cover_image_url,share_url,embed_link,create_time,view_count,like_count,comment_count,share_count&max_count=${maxCount}`,
     {
       method: 'POST',
       headers: {

@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
-import { getBusinessDiscoveryPosts, type IgDiscoveryPost } from '@/lib/meta';
+import { getBusinessDiscoveryPosts, getOwnInstagramMedia, type IgDiscoveryPost, type IgOwnMedia } from '@/lib/meta';
+import { getTikTokVideos, refreshTikTokToken, type TikTokVideo } from '@/lib/tiktok';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -100,6 +101,34 @@ export async function GET(request: NextRequest) {
       .filter((l: string) => l.length > 3)
       .join('\n');
 
+    // Load publication analytics (last 30 days)
+    const { data: recentPubs } = await supabase
+      .from('publication_analytics')
+      .select('platform, caption, media_type, posted_at, like_count, comment_count, view_count, share_count, reach, impressions, saved, engagement_rate, hashtags, content_category')
+      .gte('posted_at', new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .order('posted_at', { ascending: false })
+      .limit(50);
+
+    let pubContext = '';
+    if (recentPubs && recentPubs.length > 0) {
+      const igPubs = recentPubs.filter((p: any) => p.platform === 'instagram');
+      const tkPubs = recentPubs.filter((p: any) => p.platform === 'tiktok');
+
+      const avgIgEng = igPubs.length > 0 ? (igPubs.reduce((s: number, p: any) => s + (p.engagement_rate || 0), 0) / igPubs.length).toFixed(2) : 'N/A';
+      const avgTkViews = tkPubs.length > 0 ? Math.round(tkPubs.reduce((s: number, p: any) => s + (p.view_count || 0), 0) / tkPubs.length) : 'N/A';
+
+      const topPosts = [...recentPubs].sort((a: any, b: any) => (b.engagement_rate || 0) - (a.engagement_rate || 0)).slice(0, 5);
+      const topPostsSummary = topPosts.map((p: any) =>
+        `  - [${p.platform}] ${(p.caption || '').substring(0, 80)}... | Eng: ${p.engagement_rate}% | Likes: ${p.like_count} | ${p.media_type} | ${p.hashtags?.slice(0, 3).join(', ') || 'no tags'}`
+      ).join('\n');
+
+      pubContext = `\nPUBLICATIONS (30 jours) :
+- Instagram: ${igPubs.length} posts, engagement moyen: ${avgIgEng}%
+- TikTok: ${tkPubs.length} vidéos, vues moyennes: ${avgTkViews}
+- TOP 5 posts :
+${topPostsSummary}`;
+    }
+
     // Generate marketing analysis
     const analysis = await callGemini({
       system: `Tu es le CMO virtuel de KeiroAI. Tu gères TOUTE la stratégie marketing de manière quasi-autonome.
@@ -115,6 +144,9 @@ STRUCTURE TA RÉPONSE :
 ### Performance par canal
 (Email: taux ouverture/clic/réponse, tendance — Social: engagement, reach — SEO: articles publiés — Chatbot: leads générés — DM: taux réponse)
 
+### Performance des publications
+(Instagram: engagement rate, meilleurs types de contenu, meilleurs hashtags — TikTok: vues, likes, partages — Patterns qui marchent vs qui floppent — Meilleurs jours/heures de publication)
+
 ### Timing & Fréquences optimales
 (Meilleurs jours/heures par canal, fréquence recommandée cette semaine)
 
@@ -123,6 +155,9 @@ STRUCTURE TA RÉPONSE :
 
 ### Segments qui convertissent
 (Types de commerce, zones, angles qui marchent le mieux)
+
+### Contenu qui performe
+(Analyse des TOP posts — qu'est-ce qui les rend performants ? Caption style, hashtags, type de média, heure de publication. Recommandations concrètes pour les prochains posts.)
 
 ### A/B Tests en cours
 (Ce qu'on teste, résultats intermédiaires, conclusion si >3 jours de data)
@@ -148,6 +183,7 @@ ${crmContext}
 
 PERFORMANCE DES AGENTS (7 derniers jours) :
 ${perfSummary || 'Aucune donnée disponible'}
+${pubContext}
 
 MES APPRENTISSAGES PASSÉS :
 ${learningContext || 'Aucun apprentissage encore enregistré — c\'est le premier run.'}
@@ -809,6 +845,385 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
           ok: true,
           advice: advice || adviceRaw.substring(0, 2000),
           directives_issued: advice?.agent_directives ? Object.keys(advice.agent_directives).length : 0,
+        });
+      }
+
+      case 'sync_publication_analytics': {
+        // Sync engagement data from Instagram Graph API + TikTok API into publication_analytics
+        const startTime = Date.now();
+
+        // Get admin profile with Instagram + TikTok tokens
+        const { data: adminProf } = await supabase
+          .from('profiles')
+          .select('id, instagram_business_account_id, facebook_page_access_token, instagram_access_token, tiktok_access_token, tiktok_refresh_token, tiktok_user_id')
+          .eq('is_admin', true)
+          .single();
+
+        if (!adminProf) {
+          return NextResponse.json({ ok: false, error: 'Profil admin introuvable' }, { status: 404 });
+        }
+
+        let igSynced = 0;
+        let tkSynced = 0;
+        const errors: string[] = [];
+
+        // ── Instagram sync ──
+        if (adminProf.instagram_business_account_id && (adminProf.facebook_page_access_token || adminProf.instagram_access_token)) {
+          try {
+            const token = adminProf.facebook_page_access_token || adminProf.instagram_access_token!;
+            const igMedia = await getOwnInstagramMedia(adminProf.instagram_business_account_id, token, 25);
+
+            for (const post of igMedia) {
+              if (!post.id) continue;
+
+              // Extract hashtags from caption
+              const hashtags = (post.caption || '').match(/#\w+/g) || [];
+              const totalEngagement = (post.like_count || 0) + (post.comments_count || 0) + (post.saved || 0);
+              const engRate = post.reach && post.reach > 0 ? parseFloat(((totalEngagement / post.reach) * 100).toFixed(2)) : 0;
+
+              // Upsert into publication_analytics
+              await supabase.from('publication_analytics').upsert({
+                user_id: adminProf.id,
+                platform: 'instagram',
+                post_id: post.id,
+                caption: (post.caption || '').substring(0, 2000),
+                media_type: post.media_type || 'IMAGE',
+                posted_at: post.timestamp || nowISO,
+                like_count: post.like_count || 0,
+                comment_count: post.comments_count || 0,
+                view_count: 0,
+                share_count: 0,
+                reach: post.reach || 0,
+                impressions: post.impressions || 0,
+                saved: post.saved || 0,
+                engagement_rate: engRate,
+                hashtags,
+                synced_at: nowISO,
+              }, { onConflict: 'post_id' }).select('id').single();
+
+              // Also update instagram_posts table
+              await supabase.from('instagram_posts').update({
+                like_count: post.like_count || 0,
+                comments_count: post.comments_count || 0,
+                impressions: post.impressions || 0,
+                reach: post.reach || 0,
+                saved: post.saved || 0,
+                analytics_synced_at: nowISO,
+              }).eq('id', post.id);
+
+              igSynced++;
+            }
+          } catch (e: any) {
+            errors.push(`Instagram: ${e.message?.substring(0, 100)}`);
+            console.error('[Marketing] Instagram sync error:', e.message);
+          }
+        }
+
+        // ── TikTok sync ──
+        if (adminProf.tiktok_access_token) {
+          try {
+            let tkToken = adminProf.tiktok_access_token;
+
+            // Try refresh if needed
+            if (adminProf.tiktok_refresh_token && process.env.TIKTOK_CLIENT_KEY) {
+              try {
+                const refreshed = await refreshTikTokToken(adminProf.tiktok_refresh_token, process.env.TIKTOK_CLIENT_KEY);
+                tkToken = refreshed.access_token;
+                // Save refreshed token
+                await supabase.from('profiles').update({
+                  tiktok_access_token: refreshed.access_token,
+                  tiktok_refresh_token: refreshed.refresh_token || adminProf.tiktok_refresh_token,
+                }).eq('id', adminProf.id);
+              } catch {
+                // Use existing token if refresh fails
+              }
+            }
+
+            const tkVideos = await getTikTokVideos(tkToken, 20);
+
+            for (const video of tkVideos) {
+              if (!video.id) continue;
+
+              const hashtags = (video.video_description || video.title || '').match(/#\w+/g) || [];
+              const totalEngagement = (video.like_count || 0) + (video.comment_count || 0) + (video.share_count || 0);
+              const engRate = video.view_count && video.view_count > 0
+                ? parseFloat(((totalEngagement / video.view_count) * 100).toFixed(2))
+                : 0;
+
+              await supabase.from('publication_analytics').upsert({
+                user_id: adminProf.id,
+                platform: 'tiktok',
+                post_id: video.id,
+                caption: (video.video_description || video.title || '').substring(0, 2000),
+                media_type: 'VIDEO',
+                posted_at: video.create_time ? new Date(video.create_time * 1000).toISOString() : nowISO,
+                like_count: video.like_count || 0,
+                comment_count: video.comment_count || 0,
+                view_count: video.view_count || 0,
+                share_count: video.share_count || 0,
+                reach: 0,
+                impressions: 0,
+                saved: 0,
+                engagement_rate: engRate,
+                hashtags,
+                synced_at: nowISO,
+              }, { onConflict: 'post_id' }).select('id').single();
+
+              // Also update tiktok_posts table
+              await supabase.from('tiktok_posts').update({
+                view_count: video.view_count || 0,
+                like_count: video.like_count || 0,
+                comment_count: video.comment_count || 0,
+                share_count: video.share_count || 0,
+                analytics_synced_at: nowISO,
+              }).eq('id', video.id);
+
+              tkSynced++;
+            }
+          } catch (e: any) {
+            errors.push(`TikTok: ${e.message?.substring(0, 100)}`);
+            console.error('[Marketing] TikTok sync error:', e.message);
+          }
+        }
+
+        const duration = Date.now() - startTime;
+
+        await supabase.from('agent_logs').insert({
+          agent: 'marketing',
+          action: 'sync_publication_analytics',
+          data: {
+            instagram_synced: igSynced,
+            tiktok_synced: tkSynced,
+            errors: errors.length > 0 ? errors : undefined,
+            duration_ms: duration,
+          },
+          status: errors.length > 0 && igSynced === 0 && tkSynced === 0 ? 'error' : 'success',
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          instagram_synced: igSynced,
+          tiktok_synced: tkSynced,
+          errors: errors.length > 0 ? errors : undefined,
+          duration_ms: duration,
+        });
+      }
+
+      case 'analyze_publications': {
+        // AI-powered analysis of publication performance patterns
+        const daysBack = body.days || 30;
+        const since = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: pubs } = await supabase
+          .from('publication_analytics')
+          .select('*')
+          .gte('posted_at', since)
+          .order('posted_at', { ascending: false })
+          .limit(100);
+
+        if (!pubs || pubs.length === 0) {
+          return NextResponse.json({ ok: false, error: 'Aucune publication trouvée. Lancez sync_publication_analytics d\'abord.' }, { status: 404 });
+        }
+
+        // Prepare data summary for AI
+        const igPubs = pubs.filter((p: any) => p.platform === 'instagram');
+        const tkPubs = pubs.filter((p: any) => p.platform === 'tiktok');
+
+        // Aggregate hashtag performance
+        const hashtagStats: Record<string, { count: number; totalEng: number; totalReach: number }> = {};
+        for (const pub of pubs) {
+          for (const tag of (pub.hashtags || [])) {
+            if (!hashtagStats[tag]) hashtagStats[tag] = { count: 0, totalEng: 0, totalReach: 0 };
+            hashtagStats[tag].count++;
+            hashtagStats[tag].totalEng += pub.engagement_rate || 0;
+            hashtagStats[tag].totalReach += pub.reach || pub.view_count || 0;
+          }
+        }
+        const topHashtags = Object.entries(hashtagStats)
+          .map(([tag, s]) => ({ tag, count: s.count, avgEng: (s.totalEng / s.count).toFixed(2), totalReach: s.totalReach }))
+          .sort((a, b) => parseFloat(b.avgEng) - parseFloat(a.avgEng))
+          .slice(0, 15);
+
+        // Day/hour analysis
+        const dayPerf: Record<string, { count: number; totalEng: number }> = {};
+        const hourPerf: Record<number, { count: number; totalEng: number }> = {};
+        for (const pub of pubs) {
+          if (!pub.posted_at) continue;
+          const d = new Date(pub.posted_at);
+          const dayName = d.toLocaleDateString('fr-FR', { weekday: 'long' });
+          const hour = d.getHours();
+          if (!dayPerf[dayName]) dayPerf[dayName] = { count: 0, totalEng: 0 };
+          dayPerf[dayName].count++;
+          dayPerf[dayName].totalEng += pub.engagement_rate || 0;
+          if (!hourPerf[hour]) hourPerf[hour] = { count: 0, totalEng: 0 };
+          hourPerf[hour].count++;
+          hourPerf[hour].totalEng += pub.engagement_rate || 0;
+        }
+
+        const bestDays = Object.entries(dayPerf)
+          .map(([day, s]) => ({ day, avgEng: (s.totalEng / s.count).toFixed(2), count: s.count }))
+          .sort((a, b) => parseFloat(b.avgEng) - parseFloat(a.avgEng));
+
+        const bestHours = Object.entries(hourPerf)
+          .map(([hour, s]) => ({ hour: `${hour}h`, avgEng: (s.totalEng / s.count).toFixed(2), count: s.count }))
+          .sort((a, b) => parseFloat(b.avgEng) - parseFloat(a.avgEng));
+
+        // Top & flop posts
+        const sorted = [...pubs].sort((a: any, b: any) => (b.engagement_rate || 0) - (a.engagement_rate || 0));
+        const topPosts = sorted.slice(0, 5);
+        const flopPosts = sorted.slice(-3).reverse();
+
+        const pubDataForAI = `DONNÉES DE PUBLICATION (${daysBack} derniers jours) :
+
+INSTAGRAM (${igPubs.length} posts) :
+- Engagement moyen: ${igPubs.length > 0 ? (igPubs.reduce((s: number, p: any) => s + (p.engagement_rate || 0), 0) / igPubs.length).toFixed(2) : 0}%
+- Likes moyen: ${igPubs.length > 0 ? Math.round(igPubs.reduce((s: number, p: any) => s + (p.like_count || 0), 0) / igPubs.length) : 0}
+- Reach moyen: ${igPubs.length > 0 ? Math.round(igPubs.reduce((s: number, p: any) => s + (p.reach || 0), 0) / igPubs.length) : 0}
+
+TIKTOK (${tkPubs.length} vidéos) :
+- Vues moyennes: ${tkPubs.length > 0 ? Math.round(tkPubs.reduce((s: number, p: any) => s + (p.view_count || 0), 0) / tkPubs.length) : 0}
+- Engagement moyen: ${tkPubs.length > 0 ? (tkPubs.reduce((s: number, p: any) => s + (p.engagement_rate || 0), 0) / tkPubs.length).toFixed(2) : 0}%
+
+TOP 5 POSTS (meilleur engagement) :
+${topPosts.map((p: any, i: number) => `${i + 1}. [${p.platform}] Eng: ${p.engagement_rate}% | Likes: ${p.like_count} | ${p.media_type}
+   Caption: "${(p.caption || '').substring(0, 120)}..."
+   Hashtags: ${(p.hashtags || []).join(', ') || 'aucun'}
+   Posté: ${new Date(p.posted_at).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric' })}`).join('\n')}
+
+FLOP POSTS (pire engagement) :
+${flopPosts.map((p: any, i: number) => `${i + 1}. [${p.platform}] Eng: ${p.engagement_rate}% | Likes: ${p.like_count}
+   Caption: "${(p.caption || '').substring(0, 80)}..."
+   Hashtags: ${(p.hashtags || []).join(', ') || 'aucun'}`).join('\n')}
+
+TOP HASHTAGS (par engagement moyen) :
+${topHashtags.map(h => `${h.tag}: ${h.avgEng}% eng moy, utilisé ${h.count}x, reach total: ${h.totalReach}`).join('\n')}
+
+MEILLEURS JOURS :
+${bestDays.map(d => `${d.day}: ${d.avgEng}% eng moy (${d.count} posts)`).join('\n')}
+
+MEILLEURES HEURES :
+${bestHours.slice(0, 6).map(h => `${h.hour}: ${h.avgEng}% eng moy (${h.count} posts)`).join('\n')}`;
+
+        // Load past learnings
+        const { data: pastPubLearnings } = await supabase
+          .from('agent_logs')
+          .select('data')
+          .eq('agent', 'marketing')
+          .eq('action', 'memory')
+          .ilike('data->>source', '%publication%')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        const pastInsights = (pastPubLearnings || [])
+          .map((l: any) => `- ${l.data?.learning}`)
+          .filter((l: string) => l.length > 3)
+          .join('\n');
+
+        const analysisResult = await callGemini({
+          system: `Tu es le CMO de KeiroAI, expert en analyse de contenu social media pour commerces locaux.
+
+Tu analyses les performances des publications Instagram et TikTok pour identifier des PATTERNS ACTIONNABLES.
+
+STRUCTURE TA RÉPONSE EN JSON :
+{
+  "overall_performance": "Résumé en 2-3 phrases",
+  "instagram_insights": {
+    "best_content_type": "IMAGE|VIDEO|CAROUSEL — quel type performe le mieux",
+    "best_caption_style": "Description du style de caption qui marche",
+    "optimal_length": "Longueur de caption optimale",
+    "top_hashtags": ["#tag1", "#tag2", "#tag3"],
+    "avoid_hashtags": ["#tag_qui_marche_pas"],
+    "best_posting_time": "Jour + heure optimale",
+    "recommendations": ["Conseil actionnable 1", "Conseil 2"]
+  },
+  "tiktok_insights": {
+    "best_content_style": "Style de vidéo qui performe",
+    "optimal_duration": "Durée optimale",
+    "best_hooks": "Quels types d'accroches marchent",
+    "top_hashtags": ["#tag1"],
+    "best_posting_time": "Jour + heure optimale",
+    "recommendations": ["Conseil 1", "Conseil 2"]
+  },
+  "cross_platform_patterns": [
+    "Pattern 1 — ce qui marche sur les 2 plateformes",
+    "Pattern 2"
+  ],
+  "content_calendar_advice": {
+    "weekly_cadence": { "instagram": 3, "tiktok": 2 },
+    "best_days": { "instagram": ["mardi", "jeudi"], "tiktok": ["mercredi", "vendredi"] },
+    "content_mix": "Ex: 40% éducatif, 30% behind-scenes, 20% promo, 10% tendances"
+  },
+  "learnings": [
+    "J'ai appris: [insight basé sur les données]"
+  ],
+  "next_post_suggestions": [
+    { "platform": "instagram|tiktok", "type": "IMAGE|VIDEO|CAROUSEL", "angle": "Idée de contenu", "best_time": "jour + heure", "hashtags": ["#x"] }
+  ]
+}
+
+UNIQUEMENT du JSON valide, pas de markdown.`,
+          message: `Analyse approfondie des performances de publication.
+
+${pubDataForAI}
+
+MES APPRENTISSAGES PASSÉS SUR LES PUBLICATIONS :
+${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`,
+          maxTokens: 4000,
+        });
+
+        // Parse analysis
+        let pubAnalysis: any = null;
+        try {
+          const cleanText = analysisResult.replace(/```[\w]*\s*/g, '').trim();
+          const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) pubAnalysis = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('[Marketing] Failed to parse publication analysis:', e);
+        }
+
+        // Save learnings
+        if (pubAnalysis?.learnings) {
+          for (const learning of pubAnalysis.learnings) {
+            if (learning && learning.length > 10) {
+              await supabase.from('agent_logs').insert({
+                agent: 'marketing',
+                action: 'memory',
+                data: { learning, source: 'publication_analysis', learned_at: nowISO },
+                created_at: nowISO,
+              });
+            }
+          }
+        }
+
+        // Store full analysis
+        await supabase.from('agent_logs').insert({
+          agent: 'marketing',
+          action: 'analyze_publications',
+          data: {
+            analysis: pubAnalysis || { raw: analysisResult.substring(0, 3000) },
+            stats: {
+              total_posts: pubs.length,
+              instagram: igPubs.length,
+              tiktok: tkPubs.length,
+              top_hashtags: topHashtags.slice(0, 5),
+              best_days: bestDays.slice(0, 3),
+              best_hours: bestHours.slice(0, 3),
+            },
+            learnings_saved: pubAnalysis?.learnings?.length || 0,
+          },
+          status: 'success',
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          analysis: pubAnalysis || analysisResult.substring(0, 3000),
+          stats: {
+            total_posts: pubs.length,
+            instagram: igPubs.length,
+            tiktok: tkPubs.length,
+          },
         });
       }
 
