@@ -40,7 +40,7 @@ export interface GscReport {
 // Constants
 // ---------------------------------------------------------------------------
 
-const SITE_URL = "https://www.keiroai.com";
+const SITE_URL = "https://keiroai.com";
 const ENCODED_SITE_URL = encodeURIComponent(SITE_URL);
 const GSC_API = `https://www.googleapis.com/webmasters/v3/sites/${ENCODED_SITE_URL}/searchAnalytics/query`;
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
