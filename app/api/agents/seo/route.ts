@@ -247,6 +247,14 @@ export async function POST(request: NextRequest) {
       case 'execute_orders':
         return executeOrders();
 
+      case 'delete_article': {
+        if (!body.article_id) return NextResponse.json({ ok: false, error: 'article_id requis' }, { status: 400 });
+        const supabase = getSupabaseAdmin();
+        const { error } = await supabase.from('blog_posts').delete().eq('id', body.article_id);
+        if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ ok: true, deleted: true });
+      }
+
       default:
         return NextResponse.json({ ok: false, error: `Action inconnue: ${action}` }, { status: 400 });
     }

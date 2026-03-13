@@ -110,6 +110,12 @@ function SeoPreviewContent() {
     if (data?.ok) setArticle((a: any) => ({ ...a, status: 'published', published_at: new Date().toISOString() }));
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Supprimer cet article ? Cette action est irreversible.')) return;
+    const data = await doAction('/api/agents/seo', { action: 'delete_article', article_id: article.id }, 'delete');
+    if (data?.ok) router.push('/admin/dm-queue?tab=seo');
+  };
+
   // Save inline edits (title or content)
   const handleInlineSave = useCallback(async () => {
     if (!hasUnsavedChanges || Object.keys(editFields).length === 0) {
@@ -296,6 +302,9 @@ function SeoPreviewContent() {
                 Publier
               </LoadingBtn>
             )}
+            <LoadingBtn loading={actionLoading === 'delete'} onClick={handleDelete} className="bg-red-100 text-red-700 hover:bg-red-200">
+              Supprimer
+            </LoadingBtn>
           </div>
         </div>
 
