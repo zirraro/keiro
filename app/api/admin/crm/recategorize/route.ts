@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     while (true) {
       const { data: page, error: loadError } = await supabase
         .from('crm_prospects')
-        .select('id, source, status, notes, instagram, phone, email, matched_plan')
+        .select('id, source, status, notes, instagram, phone, email, matched_plan, email_sequence_step, last_email_sent_at, email_sequence_status, dm_status')
         .range(from, from + PAGE_SIZE - 1)
         .order('created_at', { ascending: true });
 
@@ -71,6 +71,21 @@ export async function POST(req: NextRequest) {
       prospects.push(...page);
       if (page.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
+    }
+
+    // Get all prospect IDs that received at least one email via the email agent
+    const { data: emailLogs } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'email')
+      .in('action', ['daily_cold', 'daily_warm']);
+
+    const emailedProspectIds = new Set<string>();
+    for (const log of emailLogs || []) {
+      const results = (log.data as any)?.results || [];
+      for (const r of results) {
+        if (r.success && r.prospect_id) emailedProspectIds.add(r.prospect_id);
+      }
     }
 
     let sourceFixed = 0;
@@ -131,8 +146,16 @@ export async function POST(req: NextRequest) {
           return POSITIVE_RESULTS.some(k => val.includes(normalize(k)));
         })();
 
+        // Check if prospect was actually contacted via email agent or has email/DM activity
+        const wasEmailed = emailedProspectIds.has(p.id);
+        const hasEmailSequence = (p.email_sequence_step || 0) > 0;
+        const hasEmailSent = !!p.last_email_sent_at;
+        const hasActiveEmailStatus = p.email_sequence_status === 'in_progress' || p.email_sequence_status === 'completed';
+        const hasDmActivity = p.dm_status === 'queued' || p.dm_status === 'sent';
+
         // Si aucune preuve réelle de contact → reset en identifié
-        if (!hasSprintVendu && !hasConverti && !hasPositiveVisite) {
+        if (!hasSprintVendu && !hasConverti && !hasPositiveVisite &&
+            !wasEmailed && !hasEmailSequence && !hasEmailSent && !hasActiveEmailStatus && !hasDmActivity) {
           changes.status = 'identifie';
           statusReset++;
         }

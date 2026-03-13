@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 
@@ -47,10 +47,12 @@ type AgentLog = {
 
 export default function AdminAgentsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const initialTab = (searchParams.get('tab') as Tab) || 'dashboard';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   // Dashboard state
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
@@ -89,8 +91,7 @@ export default function AdminAgentsPage() {
     { id: 'email', name: 'Email', icon: '📧' },
     { id: 'content', name: 'Contenu', icon: '📱' },
     { id: 'seo', name: 'SEO', icon: '🔍' },
-    { id: 'dm_instagram', name: 'DM Instagram', icon: '💬' },
-    { id: 'tiktok_comments', name: 'TikTok', icon: '🎵' },
+    { id: 'social', name: 'DM & Comments', icon: '💬' },
     { id: 'onboarding', name: 'Onboarding', icon: '🚀' },
     { id: 'retention', name: 'Rétention', icon: '🔄' },
     { id: 'marketing', name: 'Marketing', icon: '📊' },
@@ -118,7 +119,6 @@ export default function AdminAgentsPage() {
     results?: Array<{ prospect_id: string; step: number; success: boolean; error?: string }>;
   };
   const [campaigns, setCampaigns] = useState<CampaignEntry[]>([]);
-  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null);
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
   const [campaignDateFilter, setCampaignDateFilter] = useState<string>('7d');
   const [launchingCampaign, setLaunchingCampaign] = useState<string | null>(null);
@@ -156,7 +156,7 @@ export default function AdminAgentsPage() {
   const [retentionStats, setRetentionStats] = useState({ green: 0, yellow: 0, orange: 0, red: 0, mrrAtRisk: 0, totalClients: 0 });
 
   // Content state
-  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null };
+  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
@@ -754,6 +754,12 @@ export default function AdminAgentsPage() {
         credentials: 'include',
         body: bodyPayload,
       });
+      // Handle non-JSON error responses (e.g. Vercel timeout, Next.js error pages)
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(text.substring(0, 200) || `Erreur serveur (HTTP ${res.status})`);
+      }
       const data = await res.json();
       if (data.ok) {
         const stats = data.stats || {};
@@ -1250,105 +1256,6 @@ export default function AdminAgentsPage() {
               )}
             </div>
 
-            {/* CEO Chat */}
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-              <div className="p-4 border-b border-neutral-100 bg-gradient-to-r from-purple-50 to-blue-50">
-                <h3 className="text-sm font-semibold text-neutral-900">
-                  Discuter avec le CEO Agent
-                </h3>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  Pose des questions, demande des changements ou discute strategie
-                </p>
-              </div>
-
-              {/* Messages */}
-              <div className="max-h-[400px] overflow-y-auto p-4 space-y-3">
-                {ceoMessages.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-neutral-400">Aucun message. Demande au CEO ce que tu veux.</p>
-                    <div className="flex flex-wrap gap-2 justify-center mt-3">
-                      {[
-                        'Quel est le statut des campagnes ?',
-                        'On peut envoyer 200 emails/jour ?',
-                        'Quels business convertissent le mieux ?',
-                        'Augmente le niveau du commercial',
-                      ].map((q) => (
-                        <button
-                          key={q}
-                          onClick={() => { setCeoInput(q); }}
-                          className="text-xs px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full hover:bg-purple-100 transition-all"
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {ceoMessages.map((msg, i) => {
-                  // Detect [ACTION:xxx] patterns in assistant messages
-                  const actions = msg.role === 'assistant'
-                    ? (msg.content.match(/\[ACTION:([^\]]+)\]/g) || []).map(a => a.replace(/^\[ACTION:/, '').replace(/\]$/, ''))
-                    : [];
-                  const displayContent = msg.role === 'assistant'
-                    ? msg.content.replace(/\[ACTION:[^\]]+\]/g, '').trim()
-                    : msg.content;
-
-                  return (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm ${
-                        msg.role === 'user'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-neutral-100 text-neutral-800'
-                      }`}>
-                        <p className="whitespace-pre-wrap">{displayContent}</p>
-                        {actions.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-neutral-200 space-y-1">
-                            {actions.map((action, j) => (
-                              <div key={j} className="flex items-center gap-2 text-xs bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-lg">
-                                <span className="text-base">&#9889;</span>
-                                <span className="font-medium">Action proposee:</span>
-                                <span>{action}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                {ceoLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-neutral-100 rounded-xl px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={ceoMessagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-3 border-t border-neutral-100 flex gap-2">
-                <input
-                  type="text"
-                  value={ceoInput}
-                  onChange={(e) => setCeoInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCeoMessage(); } }}
-                  placeholder="Demande au CEO..."
-                  className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                />
-                <button
-                  onClick={sendCeoMessage}
-                  disabled={ceoLoading || !ceoInput.trim()}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
-                >
-                  Envoyer
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -1496,6 +1403,13 @@ export default function AdminAgentsPage() {
                           <p className="text-sm text-neutral-700 whitespace-pre-wrap line-clamp-3">{post.caption}</p>
                         </div>
                       )}
+                      {(post as any).visual_url && (
+                        <div className="mt-2">
+                          <a href={(post as any).visual_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 hover:underline">
+                            Voir le visuel
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1508,39 +1422,41 @@ export default function AdminAgentsPage() {
               const days = dateMap[campaignDateFilter] || 0;
               const cutoff = days > 0 ? new Date(Date.now() - days * 86400000).toISOString() : '';
               const filteredCampaigns = cutoff ? campaigns.filter(c => c.date >= cutoff) : campaigns;
+              const actionLabels: Record<string, string> = {
+                daily_cold: 'Email (cold)', daily_warm: 'Email chatbot',
+                daily_preparation: 'DM Instagram', comments_prepared: 'TikTok',
+                enrichment_run: 'Enrichissement', daily_post_generated: 'Post contenu',
+                weekly_plan_generated: 'Plan contenu', execute_publication: 'Publication',
+                article_generated: 'Article SEO', article_published: 'Article publié',
+                calendar_planned: 'Calendrier SEO', queue_processed: 'Onboarding',
+                sequence_scheduled: 'Séquence onboarding', daily_check: 'Rétention',
+                daily_brief: 'Brief CEO', report_to_ceo: 'Rapport',
+              };
               return filteredCampaigns.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
                 Aucune campagne pour le moment
               </div>
             ) : (
-              filteredCampaigns.map((campaign) => {
-                const isExpanded = expandedCampaign === campaign.id;
-                const actionLabels: Record<string, string> = {
-                  daily_cold: 'Email (cold)', daily_warm: 'Email chatbot',
-                  daily_preparation: 'DM Instagram', comments_prepared: 'TikTok',
-                  enrichment_run: 'Enrichissement', daily_post_generated: 'Post contenu',
-                  weekly_plan_generated: 'Plan contenu', execute_publication: 'Publication',
-                  article_generated: 'Article SEO', article_published: 'Article publié',
-                  calendar_planned: 'Calendrier SEO', queue_processed: 'Onboarding',
-                  sequence_scheduled: 'Séquence onboarding', daily_check: 'Rétention',
-                  daily_brief: 'Brief CEO', report_to_ceo: `Rapport ${campaign.agent}`,
-                };
-                const channelLabel = actionLabels[campaign.action] || campaign.agent;
-                const channelColor = campaign.agent === 'email'
-                  ? 'bg-green-100 text-green-700'
-                  : campaign.agent === 'content'
-                  ? 'bg-orange-100 text-orange-700'
-                  : campaign.agent === 'commercial'
-                  ? 'bg-purple-100 text-purple-700'
-                  : campaign.agent === 'dm_instagram'
-                  ? 'bg-pink-100 text-pink-700'
-                  : 'bg-neutral-900 text-white';
+              <div className="space-y-2">
+                {filteredCampaigns.map((campaign) => {
+                  const channelLabel = actionLabels[campaign.action] || campaign.agent;
+                  const channelColor = campaign.agent === 'email'
+                    ? 'bg-green-100 text-green-700'
+                    : campaign.agent === 'content'
+                    ? 'bg-orange-100 text-orange-700'
+                    : campaign.agent === 'commercial'
+                    ? 'bg-purple-100 text-purple-700'
+                    : campaign.agent === 'dm_instagram'
+                    ? 'bg-pink-100 text-pink-700'
+                    : campaign.agent === 'seo'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-neutral-900 text-white';
 
-                return (
-                  <div key={campaign.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                    <button
-                      onClick={() => setExpandedCampaign(isExpanded ? null : campaign.id)}
-                      className="w-full text-left p-5 hover:bg-neutral-50 transition-all"
+                  return (
+                    <Link
+                      key={campaign.id}
+                      href={`/admin/agents/campaign/${campaign.id}`}
+                      className="block bg-white rounded-xl shadow-sm border border-neutral-200 p-4 hover:bg-neutral-50 hover:border-purple-200 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -1552,8 +1468,11 @@ export default function AdminAgentsPage() {
                               weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                             })}
                           </span>
+                          {campaign.message && (
+                            <span className="text-xs text-neutral-400 truncate max-w-[250px] hidden sm:inline">{campaign.message}</span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           <div className="text-right">
                             <span className="text-lg font-bold text-neutral-900">{campaign.total > 0 ? campaign.success : '-'}</span>
                             {campaign.total > 0 && <span className="text-xs text-neutral-400 ml-1">/{campaign.total}</span>}
@@ -1563,16 +1482,13 @@ export default function AdminAgentsPage() {
                               {campaign.failed} echec
                             </span>
                           )}
-                          <svg className={`w-5 h-5 text-neutral-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
                       </div>
-
-                      {/* Business type summary */}
                       {Object.keys(campaign.byBusinessType).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
+                        <div className="flex flex-wrap gap-1.5 mt-2">
                           {Object.entries(campaign.byBusinessType).map(([type, data]) => (
                             <span key={type} className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-medium">
                               {type}: {data.sent || data.count || 0}
@@ -1580,105 +1496,10 @@ export default function AdminAgentsPage() {
                           ))}
                         </div>
                       )}
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-neutral-100 p-5 bg-neutral-50 space-y-4">
-                        {/* Agent message / report */}
-                        {campaign.message && (
-                          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-                            <p className="text-sm text-blue-800">{campaign.message}</p>
-                          </div>
-                        )}
-                        {/* Diagnostic info */}
-                        {campaign.diagnostic && (
-                          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-                            <h4 className="text-xs font-semibold text-amber-700 uppercase mb-1">Diagnostic</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(campaign.diagnostic).filter(([k]) => k !== 'reason').map(([k, v]) => (
-                                <span key={k} className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                                  {k}: {typeof v === 'number' ? v : JSON.stringify(v)}
-                                </span>
-                              ))}
-                            </div>
-                            {campaign.diagnostic.reason && (
-                              <p className="text-xs text-amber-600 mt-2">{campaign.diagnostic.reason as string}</p>
-                            )}
-                          </div>
-                        )}
-                        {/* Business type breakdown */}
-                        {Object.keys(campaign.byBusinessType).length > 0 && (
-                          <div>
-                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Par type de business</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                              {Object.entries(campaign.byBusinessType).map(([type, data]) => (
-                                <div key={type} className="bg-white rounded-lg border p-3">
-                                  <p className="text-sm font-bold text-neutral-900">{data.sent || data.count || 0}</p>
-                                  <p className="text-xs text-neutral-600 capitalize">{type}</p>
-                                  {data.steps && data.steps.length > 0 && (
-                                    <p className="text-[10px] text-neutral-400 mt-1">
-                                      Steps: {[...new Set(data.steps)].join(', ')}
-                                    </p>
-                                  )}
-                                  {data.handles && data.handles.length > 0 && (
-                                    <p className="text-[10px] text-neutral-400 mt-1">
-                                      {data.handles.slice(0, 3).map((h: string) => `@${h}`).join(', ')}
-                                      {data.handles.length > 3 && ` +${data.handles.length - 3}`}
-                                    </p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* DM/Comment examples */}
-                        {campaign.dmExamples && campaign.dmExamples.length > 0 && campaign.dmExamples[0]?.comment && (
-                          <div>
-                            <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">
-                              Exemples de messages ({campaign.agent === 'tiktok_comments' ? 'commentaires' : 'DMs'})
-                            </h4>
-                            <div className="space-y-2">
-                              {campaign.dmExamples.filter((d: any) => d.comment).slice(0, 5).map((dm: any, i: number) => (
-                                <div key={i} className="bg-white rounded-lg border p-3">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-medium text-neutral-800">{dm.name}</span>
-                                    {dm.type && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{dm.type}</span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-neutral-600 bg-neutral-50 rounded p-2 whitespace-pre-wrap">
-                                    {dm.comment}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Email results detail */}
-                        {campaign.agent === 'email' && campaign.results && campaign.results.length > 0 && (
-                          <details className="text-xs">
-                            <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">
-                              Details ({campaign.results.length} emails)
-                            </summary>
-                            <div className="mt-2 space-y-1">
-                              {campaign.results.slice(0, 20).map((r: any, i: number) => (
-                                <div key={i} className={`flex items-center gap-2 py-1 px-2 rounded ${r.success ? 'bg-green-50' : 'bg-red-50'}`}>
-                                  <span className={`w-2 h-2 rounded-full ${r.success ? 'bg-green-400' : 'bg-red-400'}`} />
-                                  <span className="text-neutral-600">Step {r.step}</span>
-                                  <span className="text-neutral-400 truncate">{r.prospect_id?.slice(0, 8)}...</span>
-                                  {r.error && <span className="text-red-500 truncate">{r.error}</span>}
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+                    </Link>
+                  );
+                })}
+              </div>
             );
             })()}
           </div>
@@ -1770,6 +1591,12 @@ export default function AdminAgentsPage() {
                       {new Date(article.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
                     </span>
                     <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/agents/campaign/seo-preview?article_id=${article.id}`}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Aperçu
+                      </Link>
                       {article.status === 'draft' && (
                         <button
                           onClick={() => handleSeoPublish(article.id)}
@@ -2073,11 +1900,16 @@ export default function AdminAgentsPage() {
                 >
                   <option value="all">Tous les agents</option>
                   <option value="ceo">CEO</option>
-                  <option value="email">Email</option>
-                  <option value="chatbot">Chatbot</option>
                   <option value="commercial">Commercial</option>
-                  <option value="dm_instagram">DM Instagram</option>
+                  <option value="email">Email</option>
+                  <option value="content">Contenu</option>
                   <option value="seo">SEO</option>
+                  <option value="dm_instagram">DM Instagram</option>
+                  <option value="tiktok_comments">TikTok</option>
+                  <option value="onboarding">Onboarding</option>
+                  <option value="retention">Rétention</option>
+                  <option value="chatbot">Chatbot</option>
+                  <option value="admin">Admin (moi)</option>
                 </select>
                 {selectedOrders.size > 0 && (
                   <button
@@ -2109,27 +1941,16 @@ export default function AdminAgentsPage() {
                 Aucun ordre pour le moment
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                {/* Table header */}
-                <div className="grid grid-cols-8 gap-2 px-4 py-3 bg-neutral-50 border-b border-neutral-200 text-[11px] font-semibold text-neutral-500 uppercase">
-                  <span className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedOrders.size > 0 && selectedOrders.size === orders.filter(o => o.status === 'pending').length}
-                      onChange={selectAllPendingOrders}
-                      className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
-                    />
-                  </span>
-                  <span>Date</span>
-                  <span>De \u2192 Vers</span>
-                  <span>Type</span>
-                  <span>Priorit\u00E9</span>
-                  <span>Action</span>
-                  <span>Statut</span>
-                  <span></span>
-                </div>
+              <div className="space-y-2">
+                {/* Select all pending */}
+                {orders.some(o => o.status === 'pending') && (
+                  <label className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
+                    <input type="checkbox" checked={selectedOrders.size > 0 && selectedOrders.size === orders.filter(o => o.status === 'pending').length}
+                      onChange={selectAllPendingOrders} className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500" />
+                    Tout sélectionner (en attente)
+                  </label>
+                )}
 
-                {/* Table body */}
                 {orders.filter(o =>
                   (orderFilterStatus === 'all' || o.status === orderFilterStatus) &&
                   (orderFilterAgent === 'all' || o.to_agent === orderFilterAgent || o.from_agent === orderFilterAgent)
@@ -2137,53 +1958,29 @@ export default function AdminAgentsPage() {
                   const isExpanded = expandedOrder === order.id;
                   const isPending = order.status === 'pending';
                   return (
-                    <div key={order.id}>
+                    <div key={order.id} className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
                       <div
-                        className="w-full grid grid-cols-8 gap-2 px-4 py-3 items-center text-left hover:bg-neutral-50 transition-all border-b border-neutral-100 last:border-0 cursor-pointer"
+                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                        className="flex items-center gap-3 p-4 hover:bg-neutral-50 transition-all cursor-pointer"
                       >
-                        <span className="flex items-center" onClick={(e) => e.stopPropagation()}>
-                          {isPending ? (
-                            <input
-                              type="checkbox"
-                              checked={selectedOrders.has(order.id)}
-                              onChange={() => toggleOrderSelection(order.id)}
-                              className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500"
-                            />
-                          ) : (
-                            <span className="w-3.5" />
-                          )}
-                        </span>
-                        <span className="text-xs text-neutral-600" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {new Date(order.created_at).toLocaleDateString('fr-FR')}
-                        </span>
-                        <span className="text-xs font-medium text-neutral-800" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.from_agent} \u2192 {order.to_agent}
-                        </span>
-                        <span className="text-xs text-neutral-600" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.order_type}
-                        </span>
-                        <span onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>{priorityBadge(order.priority)}</span>
-                        <span className="text-xs text-neutral-700 truncate" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          {order.order_type}
-                        </span>
-                        <span onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>{statusBadge(order.status)}</span>
-                        <span className="text-right" onClick={() => setExpandedOrder(isExpanded ? null : order.id)}>
-                          <svg
-                            className={`w-4 h-4 text-neutral-400 inline-block transition-transform ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </span>
+                        {isPending && (
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" checked={selectedOrders.has(order.id)} onChange={() => toggleOrderSelection(order.id)}
+                              className="w-3.5 h-3.5 rounded border-neutral-300 text-purple-600 focus:ring-purple-500" />
+                          </span>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 font-medium">{order.from_agent}</span>
+                            <svg className="w-3 h-3 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">{order.to_agent}</span>
+                            {priorityBadge(order.priority)}
+                            {statusBadge(order.status)}
+                          </div>
+                          <p className="text-sm text-neutral-800 mt-1 truncate">{(order.payload as any)?.description || order.order_type}</p>
+                        </div>
+                        <span className="text-[10px] text-neutral-400 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                        <svg className={`w-4 h-4 text-neutral-400 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </div>
 
                       {isExpanded && (
@@ -2467,6 +2264,13 @@ export default function AdminAgentsPage() {
                     </div>
                     {post.hook && <div className="text-sm font-semibold text-neutral-900 mb-1">{post.hook}</div>}
                     <div className="text-xs text-neutral-600 whitespace-pre-line mb-2">{post.caption?.substring(0, 200)}{(post.caption?.length || 0) > 200 ? '...' : ''}</div>
+                    {post.visual_url && (
+                      <div className="mb-2">
+                        <a href={post.visual_url} target="_blank" rel="noopener noreferrer">
+                          <img src={post.visual_url} alt="Visuel du post" className="w-full max-w-xs rounded-lg border border-neutral-200 hover:opacity-90 transition-opacity" />
+                        </a>
+                      </div>
+                    )}
                     {post.visual_description && (
                       <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
                     )}

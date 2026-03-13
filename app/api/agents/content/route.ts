@@ -368,6 +368,70 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      case 'update_post': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const updates: Record<string, any> = {};
+        if (body.hook !== undefined) updates.hook = body.hook;
+        if (body.caption !== undefined) updates.caption = body.caption;
+        if (body.visual_description !== undefined) updates.visual_description = body.visual_description;
+        if (body.platform !== undefined) updates.platform = body.platform;
+        if (body.format !== undefined) updates.format = body.format;
+        if (body.hashtags !== undefined) updates.hashtags = body.hashtags;
+        if (Object.keys(updates).length === 0) return NextResponse.json({ ok: false, error: 'No fields to update' }, { status: 400 });
+        updates.updated_at = new Date().toISOString();
+        const { error } = await supabase.from('content_calendar').update(updates).eq('id', body.postId);
+        if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        const { data: updated } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        return NextResponse.json({ ok: true, post: updated });
+      }
+
+      case 'revise_post': {
+        if (!body.postId || !body.instructions) return NextResponse.json({ ok: false, error: 'postId and instructions required' }, { status: 400 });
+        const { data: currentPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!currentPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        const reviseRaw = await callGemini({
+          system: `Tu es un expert en contenu social media pour KeiroAI. L'utilisateur veut modifier un post existant.
+Applique ses instructions et retourne le JSON complet mis à jour.
+Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description
+Retourne UNIQUEMENT du JSON valide, sans markdown.`,
+          message: `Post actuel :
+${JSON.stringify({ platform: currentPost.platform, format: currentPost.format, pillar: currentPost.pillar, hook: currentPost.hook, caption: currentPost.caption, hashtags: currentPost.hashtags, visual_description: currentPost.visual_description }, null, 2)}
+
+Instructions de modification : ${body.instructions}`,
+          maxTokens: 2000,
+        });
+
+        const cleanRevise = reviseRaw.replace(/```[\w]*\s*/g, '').trim();
+        const reviseMatch = cleanRevise.match(/\{[\s\S]*\}/);
+        if (!reviseMatch) return NextResponse.json({ ok: false, error: 'Failed to parse revision' }, { status: 500 });
+        const revised = JSON.parse(reviseMatch[0]);
+
+        const reviseUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (revised.hook) reviseUpdates.hook = revised.hook;
+        if (revised.caption) reviseUpdates.caption = revised.caption;
+        if (revised.visual_description) reviseUpdates.visual_description = revised.visual_description;
+        if (revised.platform) reviseUpdates.platform = revised.platform;
+        if (revised.format) reviseUpdates.format = revised.format;
+        if (revised.hashtags) reviseUpdates.hashtags = revised.hashtags;
+
+        await supabase.from('content_calendar').update(reviseUpdates).eq('id', body.postId);
+        const { data: updatedPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        return NextResponse.json({ ok: true, post: updatedPost });
+      }
+
+      case 'generate_visual': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: postForVisual } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!postForVisual) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+        const desc = postForVisual.visual_description || postForVisual.hook || postForVisual.caption;
+        if (!desc) return NextResponse.json({ ok: false, error: 'No visual description' }, { status: 400 });
+        const url = await generateVisual(desc, postForVisual.format || 'post');
+        if (!url) return NextResponse.json({ ok: false, error: 'Visual generation failed' }, { status: 500 });
+        await supabase.from('content_calendar').update({ visual_url: url, updated_at: new Date().toISOString() }).eq('id', body.postId);
+        return NextResponse.json({ ok: true, visual_url: url });
+      }
+
       case 'calendar': {
         const startDate = body.startDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
         const endDate = body.endDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
@@ -540,12 +604,12 @@ async function generateWeeklyPlan(supabase: any) {
 async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string) {
   const nowISO = new Date().toISOString();
 
-  // Default schedule by day of week
+  // Default schedule by day of week (Instagram + TikTok only, no LinkedIn)
   const defaultSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
     1: { platform: 'instagram', format: 'carrousel', pillar: 'tips' },       // Monday
     2: { platform: 'tiktok', format: 'video', pillar: 'tips' },              // Tuesday
     3: { platform: 'instagram', format: 'reel', pillar: 'demo' },            // Wednesday
-    4: { platform: 'linkedin', format: 'text', pillar: 'tips' },             // Thursday
+    4: { platform: 'instagram', format: 'post', pillar: 'tips' },            // Thursday
     5: { platform: 'instagram', format: 'post', pillar: 'social_proof' },    // Friday
     6: { platform: 'tiktok', format: 'video', pillar: 'trends' },            // Saturday
     0: { platform: 'instagram', format: 'story', pillar: 'social_proof' },   // Sunday
@@ -575,16 +639,19 @@ Pilier : ${pillar}
 CONTEXTE GRILLE INSTAGRAM (les 6 derniers posts, du plus récent) :
 ${gridContext}
 
-IMPORTANT — COHÉRENCE VISUELLE :
-- Pense à ce que la MINIATURE va donner dans la grille Instagram (carrée, petite)
-- Pour un carrousel : la COVER SLIDE doit être un gros titre lisible + fond coloré distinct des posts précédents
-- Pour un reel/vidéo : décris la frame d'accroche (miniature) avec texte overlay bien visible
-- Pour un post image : composition épurée, message central lisible en miniature
-- Pour TikTok : miniature avec texte overlay accrocheur, contrasté
-- Vérifie que ça ne ressemble PAS aux posts juste avant dans la grille
+IMPORTANT — RÈGLES :
+- Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)
+- Tu DOIS fournir un champ "visual_description" détaillé pour la génération d'image IA (Seedream)
+- La description visuelle doit être un PROMPT IMAGE complet, pas une simple description textuelle
+- Pense à la MINIATURE dans la grille Instagram (carrée, lisible en petit)
+- Pour un carrousel : la COVER SLIDE = gros titre lisible + fond coloré
+- Pour un reel/vidéo : frame d'accroche avec texte overlay bien visible
+- Pour un post image : composition épurée, message central lisible
+- Pour TikTok : miniature accrocheuse, contrastée
 - Alterne les couleurs de fond : violet, blanc, noir, tons chauds
 
-Retourne UN SEUL objet JSON (pas de markdown).`;
+Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
+Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time`;
 
   let rawText: string;
   try {
@@ -615,18 +682,30 @@ Retourne UN SEUL objet JSON (pas de markdown).`;
 
   let post: any;
   try {
-    const cleanText2 = rawText.replace(/```[\w]*\s*/g, '');
+    const cleanText2 = rawText.replace(/```[\w]*\s*/g, '').trim();
     const jsonMatch = cleanText2.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       post = JSON.parse(jsonMatch[0]);
     } else {
-      throw new Error('No JSON found');
+      // Try to salvage truncated JSON
+      const partialMatch = cleanText2.match(/\{[\s\S]*/);
+      if (partialMatch) {
+        // Remove trailing incomplete fields and close the object
+        let salvaged = partialMatch[0]
+          .replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '') // remove last incomplete key:value
+          .replace(/,\s*$/, ''); // remove trailing comma
+        if (!salvaged.endsWith('}')) salvaged += '}';
+        post = JSON.parse(salvaged);
+        console.log('[Content] Salvaged truncated JSON for daily post');
+      } else {
+        throw new Error('No JSON found in response');
+      }
     }
   } catch (parseError) {
-    console.error('[Content] Parse error:', parseError);
+    console.error('[Content] Parse error:', parseError, 'Raw:', rawText.substring(0, 300));
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'daily_post_failed',
-      data: { raw: rawText.substring(0, 500), error: String(parseError) },
+      data: { raw: rawText.substring(0, 800), error: String(parseError) },
       status: 'error', error_message: String(parseError), created_at: nowISO,
     });
     return NextResponse.json({ ok: false, error: 'Failed to parse post' }, { status: 500 });

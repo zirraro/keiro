@@ -112,6 +112,8 @@ export async function GET(request: NextRequest) {
  * - action=generate_article: generate a blog post
  * - action=calendar: generate weekly editorial calendar
  * - action=publish: publish a draft article
+ * - action=update_article: manually update article fields
+ * - action=revise_article: ask Gemini to revise an article based on instructions
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
@@ -136,6 +138,12 @@ export async function POST(request: NextRequest) {
 
       case 'publish':
         return publishArticle(body.article_id);
+
+      case 'update_article':
+        return updateArticle(body.article_id, body.updates);
+
+      case 'revise_article':
+        return reviseArticle(body.article_id, body.instructions);
 
       default:
         return NextResponse.json({ ok: false, error: `Action inconnue: ${action}` }, { status: 400 });
@@ -481,5 +489,203 @@ async function publishArticle(articleId: string): Promise<NextResponse> {
   } catch (error: any) {
     console.error('[SEOAgent] publishArticle error:', error);
     return NextResponse.json({ ok: false, error: error.message || 'Erreur publication' }, { status: 500 });
+  }
+}
+
+/**
+ * Manually update article fields (title, content_html, meta_description, etc.)
+ */
+async function updateArticle(articleId: string, updates: Record<string, any>): Promise<NextResponse> {
+  if (!articleId) {
+    return NextResponse.json({ ok: false, error: 'article_id requis' }, { status: 400 });
+  }
+
+  if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+    return NextResponse.json({ ok: false, error: 'updates requis (objet non vide)' }, { status: 400 });
+  }
+
+  // Only allow safe fields
+  const allowedFields = ['title', 'content_html', 'meta_title', 'meta_description', 'excerpt'];
+  const sanitized: Record<string, any> = {};
+  for (const key of Object.keys(updates)) {
+    if (allowedFields.includes(key)) {
+      sanitized[key] = updates[key];
+    }
+  }
+
+  if (Object.keys(sanitized).length === 0) {
+    return NextResponse.json({ ok: false, error: `Champs autorises: ${allowedFields.join(', ')}` }, { status: 400 });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date().toISOString();
+
+    // Verify article exists
+    const { data: article, error: fetchError } = await supabase
+      .from('blog_posts')
+      .select('id, slug, title')
+      .eq('id', articleId)
+      .single();
+
+    if (fetchError || !article) {
+      return NextResponse.json({ ok: false, error: 'Article non trouve' }, { status: 404 });
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('blog_posts')
+      .update({ ...sanitized, updated_at: now })
+      .eq('id', articleId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+    }
+
+    // Log
+    await supabase.from('agent_logs').insert({
+      agent: 'seo',
+      action: 'article_updated',
+      data: {
+        article_id: articleId,
+        slug: article.slug,
+        fields_updated: Object.keys(sanitized),
+      },
+      status: 'success',
+      created_at: now,
+    });
+
+    console.log(`[SEOAgent] Article updated: "${article.slug}" — fields: ${Object.keys(sanitized).join(', ')}`);
+
+    return NextResponse.json({ ok: true, article: updated });
+  } catch (error: any) {
+    console.error('[SEOAgent] updateArticle error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur mise a jour' }, { status: 500 });
+  }
+}
+
+/**
+ * Ask Gemini to revise an article based on user instructions.
+ */
+async function reviseArticle(articleId: string, instructions: string): Promise<NextResponse> {
+  if (!articleId) {
+    return NextResponse.json({ ok: false, error: 'article_id requis' }, { status: 400 });
+  }
+
+  if (!instructions || typeof instructions !== 'string' || instructions.trim().length === 0) {
+    return NextResponse.json({ ok: false, error: 'instructions requises' }, { status: 400 });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date().toISOString();
+
+    // Fetch current article
+    const { data: article, error: fetchError } = await supabase
+      .from('blog_posts')
+      .select('*')
+      .eq('id', articleId)
+      .single();
+
+    if (fetchError || !article) {
+      return NextResponse.json({ ok: false, error: 'Article non trouve' }, { status: 404 });
+    }
+
+    // Call Gemini to revise
+    const rawText = await callGemini({
+      system: `Tu es un rédacteur SEO expert. L'utilisateur veut modifier un article existant. Applique ses instructions et retourne le JSON complet mis à jour avec les mêmes champs.
+
+Les champs attendus dans le JSON de sortie :
+- title (string)
+- content_html (string, HTML complet de l'article)
+- meta_title (string)
+- meta_description (string)
+- excerpt (string)
+
+Retourne UNIQUEMENT le JSON, sans texte avant ou après.`,
+      message: `Voici l'article actuel :
+
+Titre : ${article.title}
+Meta title : ${article.meta_title}
+Meta description : ${article.meta_description}
+Excerpt : ${article.excerpt}
+
+Contenu HTML :
+${article.content_html}
+
+---
+
+Instructions de modification :
+${instructions}
+
+Retourne le JSON complet mis à jour.`,
+      maxTokens: 6000,
+    });
+
+    // Parse revised JSON
+    let revised: any;
+    try {
+      const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        revised = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in Gemini response');
+      }
+    } catch (parseError) {
+      console.error('[SEOAgent] Revise parse error:', parseError);
+
+      await supabase.from('agent_logs').insert({
+        agent: 'seo',
+        action: 'article_revise_failed',
+        data: { article_id: articleId, raw: rawText.substring(0, 500), error: String(parseError) },
+        status: 'error',
+        error_message: String(parseError),
+        created_at: now,
+      });
+
+      return NextResponse.json({ ok: false, error: 'Echec du parsing JSON de la revision' }, { status: 500 });
+    }
+
+    // Update article with revised content
+    const updateFields: Record<string, any> = { updated_at: now };
+    if (revised.title) updateFields.title = revised.title;
+    if (revised.content_html) updateFields.content_html = revised.content_html;
+    if (revised.meta_title) updateFields.meta_title = revised.meta_title;
+    if (revised.meta_description) updateFields.meta_description = revised.meta_description;
+    if (revised.excerpt) updateFields.excerpt = revised.excerpt;
+
+    const { data: updated, error: updateError } = await supabase
+      .from('blog_posts')
+      .update(updateFields)
+      .eq('id', articleId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+    }
+
+    // Log
+    await supabase.from('agent_logs').insert({
+      agent: 'seo',
+      action: 'article_revised',
+      data: {
+        article_id: articleId,
+        slug: article.slug,
+        instructions: instructions.substring(0, 200),
+        fields_updated: Object.keys(updateFields).filter((k) => k !== 'updated_at'),
+      },
+      status: 'success',
+      created_at: now,
+    });
+
+    console.log(`[SEOAgent] Article revised: "${article.slug}" — instructions: "${instructions.substring(0, 80)}"`);
+
+    return NextResponse.json({ ok: true, article: updated });
+  } catch (error: any) {
+    console.error('[SEOAgent] reviseArticle error:', error);
+    return NextResponse.json({ ok: false, error: error.message || 'Erreur revision article' }, { status: 500 });
   }
 }

@@ -368,17 +368,17 @@ async function runEnrichment(): Promise<NextResponse> {
           updates.quartier = result.quartier;
         }
 
-        // Flag bad emails as dead
-        if (!result.email_valid || (result.email_flags && result.email_flags.length > 0)) {
-          const hasCriticalFlag = result.email_flags?.some(f =>
-            ['disposable_domain', 'bad_format'].includes(f)
+        // Flag bad emails — only mark dead for truly invalid formats, NOT for AI guesses
+        if (result.email_flags && result.email_flags.length > 0) {
+          const hasCriticalFlag = result.email_flags.some((f: string) =>
+            ['bad_format'].includes(f)
           );
-
-          if (!result.email_valid || hasCriticalFlag) {
+          // Only mark dead for objectively bad email format, not disposable/AI guesses
+          if (hasCriticalFlag) {
             updates.temperature = 'dead';
             updates.status = 'perdu';
             flaggedDeadCount++;
-            console.log(`[CommercialAgent] Flagged ${prospect.id} as dead (email: ${prospect.email})`);
+            console.log(`[CommercialAgent] Flagged ${prospect.id} as dead (bad email format: ${prospect.email})`);
           }
         }
 
@@ -400,11 +400,8 @@ async function runEnrichment(): Promise<NextResponse> {
             advancedToContactCount++;
           }
         } else if (result.ready_to_contact === false && result.disqualification_reason) {
-          updates.status = 'perdu';
-          updates.temperature = 'dead';
-          updates.score = 0;
-          flaggedDeadCount++;
-          console.log(`[CommercialAgent] Disqualified ${prospect.id}: ${result.disqualification_reason}`);
+          // Don't mark as dead — just log the reason, keep prospect in pipeline for manual review
+          console.log(`[CommercialAgent] Not ready to contact ${prospect.id}: ${result.disqualification_reason}`);
         }
 
         if (Object.keys(updates).length > 0) {

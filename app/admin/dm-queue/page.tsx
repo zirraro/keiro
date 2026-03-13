@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const supabaseBrowser = () =>
   createBrowserClient(
@@ -45,24 +46,66 @@ type DMItem = {
   };
 };
 
+type ContentPost = {
+  id: string;
+  network: string;
+  scheduled_date: string;
+  scheduled_time: string | null;
+  caption: string;
+  hashtags: string[];
+  visual_description: string | null;
+  visual_url: string | null;
+  status: string;
+  created_at: string;
+};
+
+type BlogPost = {
+  id: string;
+  slug: string;
+  title: string;
+  meta_description: string | null;
+  content_html: string | null;
+  keywords_primary: string | null;
+  status: string;
+  published_at: string | null;
+  created_at: string;
+};
+
 function parsePersonalization(raw: string | null): PersonalizationData | null {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-export default function DMQueuePage() {
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo';
+type DMSubTab = 'pending' | 'sent' | 'responded';
+type PubSubTab = 'draft' | 'published';
+
+export default function SuiviPublicationsPage() {
   const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState<DMItem[]>([]);
-  const [tab, setTab] = useState<'pending' | 'sent' | 'responded'>('pending');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mainTab, setMainTab] = useState<MainTab>('dm_instagram');
+  const [dmSubTab, setDmSubTab] = useState<DMSubTab>('pending');
+  const [pubSubTab, setPubSubTab] = useState<PubSubTab>('draft');
+
+  // Data
+  const [dmItems, setDmItems] = useState<DMItem[]>([]);
+  const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+
+  // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const router = useRouter();
 
-  const fetchQueue = useCallback(async () => {
+  const isDmTab = mainTab === 'dm_instagram' || mainTab === 'dm_tiktok';
+  const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok';
+  const isSeoTab = mainTab === 'seo';
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
     const supabase = supabaseBrowser();
 
-    // Check admin
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
 
@@ -75,62 +118,91 @@ export default function DMQueuePage() {
     if (!profile?.is_admin) { router.push('/'); return; }
     setIsAdmin(true);
 
-    // Fetch DM queue
-    let query = supabase
-      .from('dm_queue')
-      .select('*, prospect:crm_prospects(company, type, quartier, google_rating, google_reviews, score)')
-      .order('priority', { ascending: false });
+    if (isDmTab) {
+      const channel = mainTab === 'dm_instagram' ? 'instagram' : 'tiktok';
+      let query = supabase
+        .from('dm_queue')
+        .select('*, prospect:crm_prospects(company, type, quartier, google_rating, google_reviews, score)')
+        .eq('channel', channel)
+        .order('priority', { ascending: false });
 
-    if (tab === 'pending') {
-      query = query.eq('status', 'pending');
-    } else if (tab === 'sent') {
-      query = query.in('status', ['sent', 'no_response']);
-    } else {
-      query = query.eq('status', 'responded');
+      if (dmSubTab === 'pending') {
+        query = query.eq('status', 'pending');
+      } else if (dmSubTab === 'sent') {
+        query = query.in('status', ['sent', 'no_response']);
+      } else {
+        query = query.eq('status', 'responded');
+      }
+
+      const { data } = await query.limit(50);
+      setDmItems((data as any) || []);
+    } else if (isPubTab) {
+      const network = mainTab === 'pub_instagram' ? 'instagram' : 'tiktok';
+      let query = supabase
+        .from('content_calendar')
+        .select('*')
+        .eq('network', network)
+        .order('scheduled_date', { ascending: false });
+
+      if (pubSubTab === 'draft') {
+        query = query.in('status', ['draft', 'pending', 'scheduled']);
+      } else {
+        query = query.eq('status', 'published');
+      }
+
+      const { data } = await query.limit(50);
+      setContentPosts((data as any) || []);
+    } else if (isSeoTab) {
+      let query = supabase
+        .from('blog_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (pubSubTab === 'draft') {
+        query = query.eq('status', 'draft');
+      } else {
+        query = query.eq('status', 'published');
+      }
+
+      const { data } = await query.limit(50);
+      setBlogPosts((data as any) || []);
     }
 
-    const { data } = await query.limit(50);
-    setItems((data as any) || []);
     setLoading(false);
-  }, [tab, router]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab]);
 
-  useEffect(() => { fetchQueue(); }, [fetchQueue]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const updateStatus = async (id: string, status: string, responseType?: string) => {
+  const updateDmStatus = async (id: string, status: string, responseType?: string) => {
     const supabase = supabaseBrowser();
     const updates: any = { status };
-    if (status === 'sent') {
-      updates.sent_at = new Date().toISOString();
-    }
-    if (responseType) {
-      updates.response_type = responseType;
-    }
+    if (status === 'sent') updates.sent_at = new Date().toISOString();
+    if (responseType) updates.response_type = responseType;
 
     await supabase.from('dm_queue').update(updates).eq('id', id);
 
-    // Also update prospect dm_status
-    const item = items.find(i => i.id === id);
+    const item = dmItems.find(i => i.id === id);
     if (item?.prospect_id) {
       const prospectUpdates: any = { updated_at: new Date().toISOString() };
-
       if (status === 'sent') {
         prospectUpdates.dm_status = 'sent';
         prospectUpdates.dm_sent_at = new Date().toISOString();
         prospectUpdates.dm_followup_date = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+        prospectUpdates.status = 'contacte';
       } else if (status === 'responded' && responseType === 'interested') {
         prospectUpdates.dm_status = 'responded_positive';
         prospectUpdates.temperature = 'hot';
+        prospectUpdates.status = 'repondu';
       } else if (status === 'responded' && responseType === 'not_interested') {
         prospectUpdates.dm_status = 'responded_negative';
-        prospectUpdates.status = 'lost';
+        prospectUpdates.status = 'perdu';
       } else if (status === 'skipped') {
         prospectUpdates.dm_status = 'none';
       }
-
       await supabase.from('crm_prospects').update(prospectUpdates).eq('id', item.prospect_id);
     }
 
-    fetchQueue();
+    fetchData();
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -141,101 +213,139 @@ export default function DMQueuePage() {
 
   if (!isAdmin) return null;
 
+  const MAIN_TABS: { key: MainTab; label: string; icon: string }[] = [
+    { key: 'dm_instagram', label: 'DM Instagram', icon: '📸' },
+    { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵' },
+    { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
+    { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
+    { key: 'seo', label: 'Articles SEO', icon: '📝' },
+  ];
+
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">File DM du jour</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Suivi & Publications</h1>
             <p className="text-sm text-neutral-500 mt-1">
-              Messages personnalisés prêts à envoyer
+              DMs, publications et articles SEO
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => fetchQueue()}
-              className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50"
-            >
+            <button onClick={() => fetchData()} className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">
               Actualiser
             </button>
-            <a href="/admin/agents" className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">
+            <Link href="/admin/agents" className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">
               Agents IA
-            </a>
+            </Link>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg mb-6 w-fit">
-          {([
-            { key: 'pending' as const, label: `En attente (${tab === 'pending' ? items.length : '...'})` },
-            { key: 'sent' as const, label: 'Envoyés' },
-            { key: 'responded' as const, label: 'Réponses' },
-          ]).map(t => (
+        {/* Main Tabs */}
+        <div className="flex gap-1 bg-neutral-100 p-1 rounded-xl mb-4 overflow-x-auto">
+          {MAIN_TABS.map(t => (
             <button
               key={t.key}
-              onClick={() => { setTab(t.key); setLoading(true); }}
-              className={`px-4 py-2 text-xs font-medium rounded-md transition ${
-                tab === t.key ? 'bg-white shadow text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
+              onClick={() => { setMainTab(t.key); setDmSubTab('pending'); setPubSubTab('draft'); }}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition whitespace-nowrap ${
+                mainTab === t.key ? 'bg-white shadow text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
               }`}
             >
-              {t.label}
+              <span>{t.icon}</span> {t.label}
             </button>
           ))}
         </div>
 
-        {loading ? (
-          <div className="text-center py-12 text-neutral-400">Chargement...</div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-12 text-neutral-400">
-            {tab === 'pending' ? 'Aucun DM en attente. Lancez l\'agent DM pour préparer la file.' : 'Aucun élément.'}
+        {/* Sub Tabs */}
+        {isDmTab && (
+          <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
+            {([
+              { key: 'pending' as const, label: 'En attente' },
+              { key: 'sent' as const, label: 'Envoyés' },
+              { key: 'responded' as const, label: 'Réponses' },
+            ]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setDmSubTab(t.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                  dmSubTab === t.key ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {items.map((item, i) => {
-              const prospect = Array.isArray(item.prospect) ? item.prospect[0] : item.prospect;
-              return (
-                <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-                  {/* Header */}
-                  <div className="px-4 py-3 bg-neutral-50 border-b flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-neutral-400">#{i + 1}</span>
-                      <div>
-                        <p className="text-sm font-semibold text-neutral-900">
-                          {prospect?.company || 'Inconnu'}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {item.channel === 'instagram' ? '📸' : '🎵'} {item.handle}
-                          {prospect?.quartier && ` · ${prospect.quartier}`}
-                          {prospect?.type && ` · ${prospect.type}`}
-                          {prospect?.google_rating && ` · ${prospect.google_rating}/5`}
-                          {prospect?.google_reviews && ` (${prospect.google_reviews} avis)`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {prospect?.score && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          prospect.score >= 50 ? 'bg-red-100 text-red-700' :
-                          prospect.score >= 25 ? 'bg-orange-100 text-orange-700' :
-                          'bg-neutral-100 text-neutral-600'
-                        }`}>
-                          Score {prospect.score}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+        )}
 
-                  {/* Message */}
-                  <div className="px-4 py-3">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed">
-                      {item.message}
-                    </div>
-                    {(() => {
-                      const perso = parsePersonalization(item.personalization);
-                      const persoText = perso?.detail || perso?.strategy || item.personalization;
-                      return (
-                        <>
+        {(isPubTab || isSeoTab) && (
+          <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
+            {([
+              { key: 'draft' as const, label: 'Brouillons' },
+              { key: 'published' as const, label: 'Publiés' },
+            ]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setPubSubTab(t.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                  pubSubTab === t.key ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="text-center py-12"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+        ) : (
+          <>
+            {/* DM Items */}
+            {isDmTab && (
+              dmItems.length === 0 ? (
+                <div className="text-center py-12 text-neutral-400">
+                  {dmSubTab === 'pending'
+                    ? `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente. Lancez l'agent DM.`
+                    : 'Aucun élément.'}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dmItems.map((item, i) => {
+                    const prospect = Array.isArray(item.prospect) ? item.prospect[0] : item.prospect;
+                    const perso = parsePersonalization(item.personalization);
+                    const persoText = perso?.detail || perso?.strategy || item.personalization;
+
+                    return (
+                      <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                        <div className="px-4 py-3 bg-neutral-50 border-b flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-neutral-400">#{i + 1}</span>
+                            <div>
+                              <p className="text-sm font-semibold text-neutral-900">{prospect?.company || 'Inconnu'}</p>
+                              <p className="text-xs text-neutral-500">
+                                {item.handle}
+                                {prospect?.quartier && ` · ${prospect.quartier}`}
+                                {prospect?.type && ` · ${prospect.type}`}
+                                {prospect?.google_rating && ` · ${prospect.google_rating}/5`}
+                                {prospect?.google_reviews && ` (${prospect.google_reviews} avis)`}
+                              </p>
+                            </div>
+                          </div>
+                          {prospect?.score && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                              prospect.score >= 50 ? 'bg-red-100 text-red-700' :
+                              prospect.score >= 25 ? 'bg-orange-100 text-orange-700' :
+                              'bg-neutral-100 text-neutral-600'
+                            }`}>Score {prospect.score}</span>
+                          )}
+                        </div>
+
+                        <div className="px-4 py-3">
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed">
+                            {item.message}
+                          </div>
                           {persoText && (
                             <p className="text-[10px] text-neutral-400 mt-1.5 italic">
                               Personnalisation : {persoText}
@@ -246,165 +356,234 @@ export default function DMQueuePage() {
                             onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                             className="text-[10px] text-blue-500 hover:underline mt-1"
                           >
-                            {expandedId === item.id ? '▲ Masquer les réponses types' : '▼ Voir relances & réponses types'}
+                            {expandedId === item.id ? 'Masquer' : 'Relances & réponses types'}
                           </button>
                           {expandedId === item.id && (
                             <div className="mt-3 space-y-2">
                               {item.followup_message && (
                                 <div className="relative">
                                   <p className="text-[10px] font-bold text-orange-600 mb-1">Relance J+3 :</p>
-                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
-                                    {item.followup_message}
-                                  </div>
+                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">{item.followup_message}</div>
                                   <button onClick={() => copyToClipboard(item.followup_message!, `${item.id}-f3`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-f3` ? 'bg-green-500 text-white' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`}>
-                                    {copiedId === `${item.id}-f3` ? '✓' : '📋'}
+                                    {copiedId === `${item.id}-f3` ? 'Copié' : 'Copier'}
                                   </button>
                                 </div>
                               )}
                               {perso?.follow_up_7d && (
                                 <div className="relative">
-                                  <p className="text-[10px] font-bold text-red-600 mb-1">Relance J+7 (dernier message + CTA) :</p>
-                                  <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
-                                    {perso.follow_up_7d}
-                                  </div>
+                                  <p className="text-[10px] font-bold text-red-600 mb-1">Relance J+7 :</p>
+                                  <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">{perso.follow_up_7d}</div>
                                   <button onClick={() => copyToClipboard(perso.follow_up_7d!, `${item.id}-f7`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-f7` ? 'bg-green-500 text-white' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
-                                    {copiedId === `${item.id}-f7` ? '✓' : '📋'}
+                                    {copiedId === `${item.id}-f7` ? 'Copié' : 'Copier'}
                                   </button>
                                 </div>
                               )}
                               {perso?.response_interested && (
                                 <div className="relative">
-                                  <p className="text-[10px] font-bold text-green-600 mb-1">Si intéressé → CTA Sprint/49€ :</p>
-                                  <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
-                                    {perso.response_interested}
-                                  </div>
+                                  <p className="text-[10px] font-bold text-green-600 mb-1">Si intéressé :</p>
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">{perso.response_interested}</div>
                                   <button onClick={() => copyToClipboard(perso.response_interested!, `${item.id}-ri`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-ri` ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
-                                    {copiedId === `${item.id}-ri` ? '✓' : '📋'}
+                                    {copiedId === `${item.id}-ri` ? 'Copié' : 'Copier'}
                                   </button>
                                 </div>
                               )}
                               {perso?.response_skeptical && (
                                 <div className="relative">
-                                  <p className="text-[10px] font-bold text-amber-600 mb-1">Si sceptique → Preuve sociale :</p>
-                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
-                                    {perso.response_skeptical}
-                                  </div>
+                                  <p className="text-[10px] font-bold text-amber-600 mb-1">Si sceptique :</p>
+                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">{perso.response_skeptical}</div>
                                   <button onClick={() => copyToClipboard(perso.response_skeptical!, `${item.id}-rs`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-rs` ? 'bg-green-500 text-white' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}>
-                                    {copiedId === `${item.id}-rs` ? '✓' : '📋'}
-                                  </button>
-                                </div>
-                              )}
-                              {perso?.dm_text && (
-                                <div className="relative">
-                                  <p className="text-[10px] font-bold text-purple-600 mb-1">DM TikTok à envoyer :</p>
-                                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-2.5 text-xs text-neutral-700 whitespace-pre-wrap">
-                                    {perso.dm_text}
-                                  </div>
-                                  <button onClick={() => copyToClipboard(perso.dm_text!, `${item.id}-dm`)} className={`absolute top-0 right-0 text-[10px] px-2 py-0.5 rounded ${copiedId === `${item.id}-dm` ? 'bg-green-500 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`}>
-                                    {copiedId === `${item.id}-dm` ? '✓' : '📋'}
+                                    {copiedId === `${item.id}-rs` ? 'Copié' : 'Copier'}
                                   </button>
                                 </div>
                               )}
                             </div>
                           )}
-                        </>
-                      );
-                    })()}
-                  </div>
+                        </div>
 
-                  {/* Actions */}
-                  <div className="px-4 py-3 border-t bg-neutral-50">
-                    {tab === 'pending' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => copyToClipboard(item.message, item.id)}
-                          className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
-                            copiedId === item.id
-                              ? 'bg-green-600 text-white'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                        >
-                          {copiedId === item.id ? '✓ Copié !' : '📋 Copier le texte'}
-                        </button>
-                        <a
-                          href={item.channel === 'tiktok'
-                            ? `https://tiktok.com/@${item.handle.replace('@', '')}`
-                            : `https://instagram.com/${item.handle.replace('@', '')}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
-                            item.channel === 'tiktok'
-                              ? 'bg-gradient-to-r from-cyan-600 to-blue-600'
-                              : 'bg-gradient-to-r from-purple-600 to-pink-600'
-                          }`}
-                        >
-                          {item.channel === 'tiktok' ? 'Ouvrir TikTok' : 'Ouvrir Instagram'}
-                        </a>
-                        <button
-                          onClick={() => updateStatus(item.id, 'sent')}
-                          className="px-4 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                        >
-                          Fait ✓
-                        </button>
-                        <button
-                          onClick={() => updateStatus(item.id, 'skipped')}
-                          className="px-3 py-2 text-xs text-neutral-500 border rounded-lg hover:bg-neutral-100 transition"
-                        >
-                          Passer
-                        </button>
+                        <div className="px-4 py-3 border-t bg-neutral-50">
+                          {dmSubTab === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => copyToClipboard(item.message, item.id)}
+                                className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
+                                  copiedId === item.id ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                              >
+                                {copiedId === item.id ? 'Copié !' : 'Copier le texte'}
+                              </button>
+                              <a
+                                href={item.channel === 'tiktok'
+                                  ? `https://tiktok.com/@${item.handle.replace('@', '')}`
+                                  : `https://instagram.com/${item.handle.replace('@', '')}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
+                                  item.channel === 'tiktok' ? 'bg-gradient-to-r from-cyan-600 to-blue-600' : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                                }`}
+                              >
+                                Ouvrir {item.channel === 'tiktok' ? 'TikTok' : 'Instagram'}
+                              </a>
+                              <button
+                                onClick={() => updateDmStatus(item.id, 'sent')}
+                                className="px-4 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                              >
+                                Envoyé
+                              </button>
+                              <button
+                                onClick={() => updateDmStatus(item.id, 'skipped')}
+                                className="px-3 py-2 text-xs text-neutral-500 border rounded-lg hover:bg-neutral-100 transition"
+                              >
+                                Passer
+                              </button>
+                            </div>
+                          )}
+                          {dmSubTab === 'sent' && (
+                            <div className="space-y-2">
+                              {item.followup_message && (
+                                <button
+                                  onClick={() => copyToClipboard(item.followup_message!, `${item.id}-followup`)}
+                                  className={`w-full py-2 text-xs font-medium rounded-lg transition ${
+                                    copiedId === `${item.id}-followup` ? 'bg-green-600 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                  }`}
+                                >
+                                  {copiedId === `${item.id}-followup` ? 'Copié !' : 'Copier la relance'}
+                                </button>
+                              )}
+                              <div className="flex gap-2">
+                                <button onClick={() => updateDmStatus(item.id, 'responded', 'interested')} className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">A répondu OUI</button>
+                                <button onClick={() => updateDmStatus(item.id, 'responded', 'not_interested')} className="flex-1 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600">Pas intéressé</button>
+                                <button onClick={() => updateDmStatus(item.id, 'no_response')} className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-100">Pas de réponse</button>
+                              </div>
+                            </div>
+                          )}
+                          {dmSubTab === 'responded' && item.response_type && (
+                            <p className={`text-xs font-medium ${item.response_type === 'interested' ? 'text-green-600' : 'text-red-500'}`}>
+                              {item.response_type === 'interested' ? 'Intéressé' : 'Pas intéressé'}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    );
+                  })}
+                </div>
+              )
+            )}
 
-                    {tab === 'sent' && (
-                      <div className="space-y-2">
-                        {item.followup_message && (
+            {/* Content Publications */}
+            {isPubTab && (
+              contentPosts.length === 0 ? (
+                <div className="text-center py-12 text-neutral-400">
+                  {pubSubTab === 'draft'
+                    ? `Aucun brouillon ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`
+                    : 'Aucune publication.'}
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {contentPosts.map(post => (
+                    <div key={post.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                      {/* Visual */}
+                      {post.visual_url && (
+                        <div className="aspect-square bg-neutral-100 relative">
+                          <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              post.status === 'published' ? 'bg-green-100 text-green-700' :
+                              post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>
+                              {post.status === 'published' ? 'Publié' : post.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
+                            </span>
+                            <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-neutral-800 line-clamp-4">{post.caption}</p>
+
+                        {post.hashtags && post.hashtags.length > 0 && (
+                          <p className="text-[10px] text-blue-500 line-clamp-1">{post.hashtags.join(' ')}</p>
+                        )}
+
+                        {post.visual_description && !post.visual_url && (
+                          <p className="text-[10px] text-neutral-400 italic">Visuel : {post.visual_description}</p>
+                        )}
+
+                        {/* Link to campaign detail if available */}
+                        <div className="pt-2 border-t flex gap-2">
                           <button
-                            onClick={() => copyToClipboard(item.followup_message!, `${item.id}-followup`)}
-                            className={`w-full py-2 text-xs font-medium rounded-lg transition ${
-                              copiedId === `${item.id}-followup`
-                                ? 'bg-green-600 text-white'
-                                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            onClick={() => copyToClipboard(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''), post.id)}
+                            className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
+                              copiedId === post.id ? 'bg-green-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                             }`}
                           >
-                            {copiedId === `${item.id}-followup` ? '✓ Copié !' : '📋 Copier la relance'}
-                          </button>
-                        )}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => updateStatus(item.id, 'responded', 'interested')}
-                            className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700"
-                          >
-                            A répondu OUI
-                          </button>
-                          <button
-                            onClick={() => updateStatus(item.id, 'responded', 'not_interested')}
-                            className="flex-1 py-2 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600"
-                          >
-                            Pas intéressé
-                          </button>
-                          <button
-                            onClick={() => updateStatus(item.id, 'no_response')}
-                            className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-100"
-                          >
-                            Pas de réponse
+                            {copiedId === post.id ? 'Copié !' : 'Copier'}
                           </button>
                         </div>
                       </div>
-                    )}
-
-                    {tab === 'responded' && item.response_type && (
-                      <p className={`text-xs font-medium ${
-                        item.response_type === 'interested' ? 'text-green-600' : 'text-red-500'
-                      }`}>
-                        {item.response_type === 'interested' ? '🔥 Intéressé — Créer un visuel perso !' : '❌ Pas intéressé'}
-                      </p>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
+              )
+            )}
+
+            {/* SEO Articles */}
+            {isSeoTab && (
+              blogPosts.length === 0 ? (
+                <div className="text-center py-12 text-neutral-400">
+                  {pubSubTab === 'draft'
+                    ? "Aucun brouillon SEO. Lancez l'agent SEO."
+                    : 'Aucun article publié.'}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {blogPosts.map(article => (
+                    <Link
+                      key={article.id}
+                      href={`/admin/agents/campaign/seo-preview?article_id=${article.id}`}
+                      className="block bg-white rounded-xl border border-neutral-200 shadow-sm p-4 hover:border-purple-200 hover:bg-neutral-50 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              article.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                            }`}>
+                              {article.status === 'published' ? 'Publié' : 'Brouillon'}
+                            </span>
+                            {article.keywords_primary && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{article.keywords_primary}</span>
+                            )}
+                          </div>
+                          <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">{article.title}</h3>
+                          {article.meta_description && (
+                            <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{article.meta_description}</p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-neutral-400">
+                            {new Date(article.created_at).toLocaleDateString('fr-FR')}
+                          </p>
+                          {article.published_at && (
+                            <p className="text-[10px] text-green-600">
+                              Publié {new Date(article.published_at).toLocaleDateString('fr-FR')}
+                            </p>
+                          )}
+                          {article.slug && article.status === 'published' && (
+                            <p className="text-[10px] text-purple-600 mt-0.5">/blog/{article.slug}</p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )
+            )}
+          </>
         )}
       </div>
     </div>
