@@ -181,3 +181,54 @@ export async function publishCarouselToInstagram(
     throw error;
   }
 }
+
+/**
+ * Business Discovery: fetch recent posts from any public Instagram business/creator account.
+ * Uses the IG Business Discovery API — requires our own IG user ID + page token.
+ */
+export type IgDiscoveryPost = {
+  id: string;
+  caption?: string;
+  media_url?: string;
+  media_type?: string;
+  timestamp?: string;
+  like_count?: number;
+  comments_count?: number;
+  permalink?: string;
+};
+
+export async function getBusinessDiscoveryPosts(
+  ourIgUserId: string,
+  pageAccessToken: string,
+  targetUsername: string,
+  limit: number = 5,
+): Promise<{ username: string; posts: IgDiscoveryPost[] }> {
+  const cleanUsername = targetUsername.replace(/^@/, '').trim();
+  return fetchBusinessDiscovery(ourIgUserId, pageAccessToken, cleanUsername, limit);
+}
+
+async function fetchBusinessDiscovery(
+  igUserId: string,
+  accessToken: string,
+  username: string,
+  limit: number,
+): Promise<{ username: string; posts: IgDiscoveryPost[] }> {
+  const mediaFields = `id,caption,media_url,media_type,timestamp,like_count,comments_count,permalink`;
+  const url = `https://graph.facebook.com/v20.0/${igUserId}?fields=business_discovery.fields(username,media.limit(${limit}){${mediaFields}})&access_token=${encodeURIComponent(accessToken)}`;
+
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('[BusinessDiscovery] API error:', err.substring(0, 300));
+    return { username, posts: [] };
+  }
+
+  const json = await res.json();
+  const bd = json.business_discovery;
+  if (!bd) return { username, posts: [] };
+
+  return {
+    username: bd.username || username,
+    posts: bd.media?.data || [],
+  };
+}

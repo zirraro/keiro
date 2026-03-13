@@ -923,6 +923,7 @@ function AdminAgentsContent() {
         'content': { path: '/api/agents/content', method: 'POST' },
         'marketing': { path: '/api/agents/marketing', method: 'GET' },
         'community_follow': { path: '/api/agents/marketing', method: 'POST' },
+        'community_comments': { path: '/api/agents/marketing', method: 'POST' },
         'community_engage': { path: '/api/agents/marketing', method: 'POST' },
       };
       const endpoint = endpointMap[agentType];
@@ -939,6 +940,8 @@ function AdminAgentsContent() {
         ? JSON.stringify({ action: 'generate_article' })
         : agentType === 'community_follow'
         ? JSON.stringify({ action: 'find_follow_targets', platform: communityPlatform, count: 20 })
+        : agentType === 'community_comments'
+        ? JSON.stringify({ action: 'prepare_comments', count: 10 })
         : agentType === 'community_engage'
         ? JSON.stringify({ action: 'engagement_plan' })
         : endpoint.method === 'POST' ? JSON.stringify({}) : undefined;
@@ -975,6 +978,8 @@ function AdminAgentsContent() {
           ? `${data.postsPlanned || data.published || (data.post ? 1 : 0)} post(s) généré(s)`
           : agentType === 'community_follow'
           ? `${data.targets_inserted || 0} comptes à suivre trouvés (${data.targets_found || 0} total)`
+          : agentType === 'community_comments'
+          ? `${data.comments_inserted || 0} commentaires préparés (${data.posts_found || 0} posts trouvés)`
           : agentType === 'community_engage'
           ? 'Plan d\'engagement généré — voir dans Logs'
           : agentType === 'marketing'
@@ -1731,7 +1736,7 @@ function AdminAgentsContent() {
                     disabled={launchingCampaign !== null}
                     className="px-3 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    {(launchingCampaign === 'community_follow' || launchingCampaign === 'community_engage' || launchingCampaign === 'marketing') ? (
+                    {(launchingCampaign === 'community_follow' || launchingCampaign === 'community_comments' || launchingCampaign === 'community_engage' || launchingCampaign === 'marketing') ? (
                       <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <span>👥</span>
@@ -1754,6 +1759,13 @@ function AdminAgentsContent() {
                       </div>
                       <div className="space-y-1.5 mt-2">
                         <button
+                          onClick={() => { setShowCommunityOptions(false); launchCampaign('community_comments'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-green-600 text-white text-[11px] font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 text-left"
+                        >
+                          💬 Preparer commentaires (posts reels)
+                        </button>
+                        <button
                           onClick={() => { setShowCommunityOptions(false); launchCampaign('community_follow'); }}
                           disabled={launchingCampaign !== null}
                           className="w-full px-2 py-1.5 bg-rose-600 text-white text-[11px] font-medium rounded-lg hover:bg-rose-700 disabled:opacity-50 text-left"
@@ -1765,7 +1777,7 @@ function AdminAgentsContent() {
                           disabled={launchingCampaign !== null}
                           className="w-full px-2 py-1.5 bg-amber-500 text-white text-[11px] font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 text-left"
                         >
-                          💬 Plan engagement du jour
+                          📊 Plan engagement du jour
                         </button>
                         <button
                           onClick={() => { setShowCommunityOptions(false); launchCampaign('marketing'); }}

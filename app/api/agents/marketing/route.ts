@@ -3,9 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { getBusinessDiscoveryPosts, type IgDiscoveryPost } from '@/lib/meta';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -418,6 +419,191 @@ Retourne en JSON :
         });
 
         return NextResponse.json({ ok: true, plan: engagementPlan || plan });
+      }
+
+      case 'prepare_comments': {
+        // Fetch real posts from prospects' Instagram accounts, generate contextual comments
+        const maxProspects = body.count || 10;
+
+        // Get admin's Instagram credentials for Business Discovery API
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('instagram_business_account_id, facebook_page_access_token')
+          .eq('is_admin', true)
+          .single();
+
+        if (!adminProfile?.instagram_business_account_id || !adminProfile?.facebook_page_access_token) {
+          return NextResponse.json({ ok: false, error: 'Instagram non connecte — connecte Instagram dans la Galerie' }, { status: 400 });
+        }
+
+        const igUserId = adminProfile.instagram_business_account_id;
+        const pageToken = adminProfile.facebook_page_access_token;
+
+        // Get prospects with Instagram handles, prioritize hot/warm
+        const { data: prospects } = await supabase
+          .from('crm_prospects')
+          .select('id, company, type, quartier, instagram, temperature, score')
+          .not('instagram', 'is', null)
+          .not('instagram', 'eq', '')
+          .not('temperature', 'eq', 'dead')
+          .order('score', { ascending: false })
+          .limit(maxProspects * 2); // fetch more to account for failures
+
+        if (!prospects || prospects.length === 0) {
+          return NextResponse.json({ ok: false, error: 'Aucun prospect avec Instagram' }, { status: 404 });
+        }
+
+        // Fetch recent posts for each prospect via Business Discovery
+        const allPostsWithContext: Array<{
+          prospect: typeof prospects[0];
+          post: IgDiscoveryPost;
+        }> = [];
+
+        let fetchErrors = 0;
+        for (const prospect of prospects.slice(0, maxProspects)) {
+          if (!prospect.instagram) continue;
+          try {
+            const { posts } = await getBusinessDiscoveryPosts(igUserId, pageToken, prospect.instagram, 3);
+            // Only take posts from the last 7 days
+            const recentPosts = posts.filter(p => {
+              if (!p.timestamp) return true;
+              const postDate = new Date(p.timestamp);
+              return (Date.now() - postDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
+            });
+            // Take the most recent post
+            if (recentPosts.length > 0) {
+              allPostsWithContext.push({ prospect, post: recentPosts[0] });
+            }
+          } catch (e: any) {
+            fetchErrors++;
+            console.warn(`[Marketing] Business Discovery failed for @${prospect.instagram}:`, e.message?.substring(0, 100));
+          }
+        }
+
+        if (allPostsWithContext.length === 0) {
+          return NextResponse.json({
+            ok: false,
+            error: `Aucun post recent trouve (${fetchErrors} erreurs API). Les comptes sont peut-etre prives.`,
+          }, { status: 404 });
+        }
+
+        // Generate comments via AI — batch all posts in one call
+        const postsForAI = allPostsWithContext.map((item, i) => {
+          const p = item.post;
+          return `POST ${i + 1}:
+- Compte: @${item.prospect.instagram} (${item.prospect.company || 'commerce'}, ${item.prospect.type || 'inconnu'}, ${item.prospect.quartier || ''})
+- Caption du post: "${(p.caption || '').substring(0, 300)}"
+- Type: ${p.media_type || 'IMAGE'}
+- Likes: ${p.like_count || '?'} | Commentaires: ${p.comments_count || '?'}
+- Lien: ${p.permalink || 'N/A'}
+- Temperature prospect: ${item.prospect.temperature || 'cold'} (score: ${item.prospect.score || 0})`;
+        }).join('\n\n');
+
+        const commentsRaw = await callGemini({
+          system: `Tu es Victor, community manager elite de KeiroAI (outil IA de creation de contenu pour commerces locaux).
+
+TON OBJECTIF : ecrire des commentaires Instagram qui :
+1. Sont 100% PERTINENTS au contenu du post (tu reagis a CE QUE TU VOIS/LIS)
+2. Sont authentiques et humains (pas de spam, pas de "super post!")
+3. Creent une connexion avec le commerce (ils doivent sentir qu'un vrai humain s'interesse)
+4. Subtilement positionnent KeiroAI sans etre commercial (juste si c'est naturel)
+
+REGLES STRICTES :
+- TUTOIEMENT toujours
+- 1-3 phrases max par commentaire
+- Reagis au CONTENU SPECIFIQUE du post (un plat, un produit, une deco, un service)
+- Sois precis : "ce risotto a l'air dingue" > "belle photo"
+- Ajoute de la valeur : un compliment precis, une question pertinente, ou un encouragement
+- Pour les prospects chauds (score > 40) : sois plus engageant, pose une question
+- Pour les prospects froids : reste casual et authentique
+- JAMAIS de lien, JAMAIS de pitch, JAMAIS "contactez-nous"
+- 1-2 emojis max, naturels
+- Varie le style : parfois question, parfois compliment, parfois observation
+
+Retourne un tableau JSON :
+[
+  { "index": 1, "comment": "Le commentaire contextuel", "strategy_note": "Pourquoi ce commentaire" }
+]
+
+UNIQUEMENT du JSON, pas de markdown.`,
+          message: `Genere un commentaire elite et contextuel pour chacun de ces ${allPostsWithContext.length} posts Instagram :\n\n${postsForAI}`,
+          maxTokens: 3000,
+        });
+
+        // Parse comments
+        let comments: Array<{ index: number; comment: string; strategy_note?: string }> = [];
+        try {
+          const cleanText = commentsRaw.replace(/```[\w]*\s*/g, '').trim();
+          const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) comments = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('[Marketing] Failed to parse comments:', e);
+        }
+
+        // Store each comment in dm_queue for the admin to review and post
+        let inserted = 0;
+        for (let i = 0; i < allPostsWithContext.length; i++) {
+          const item = allPostsWithContext[i];
+          const aiComment = comments.find(c => c.index === i + 1);
+          if (!aiComment?.comment) continue;
+
+          // Check if we already have a comment for this post
+          const postPermalink = item.post.permalink || '';
+          if (postPermalink) {
+            const { data: existing } = await supabase
+              .from('dm_queue')
+              .select('id')
+              .eq('channel', 'comment_instagram')
+              .eq('handle', item.prospect.instagram || '')
+              .ilike('message', `%${postPermalink}%`)
+              .limit(1);
+            if (existing && existing.length > 0) continue;
+          }
+
+          await supabase.from('dm_queue').insert({
+            channel: 'comment_instagram',
+            handle: item.prospect.instagram || '',
+            message: aiComment.comment,
+            followup_message: null,
+            personalization: JSON.stringify({
+              post_caption: (item.post.caption || '').substring(0, 200),
+              post_permalink: item.post.permalink,
+              post_media_url: item.post.media_url,
+              post_likes: item.post.like_count,
+              post_comments: item.post.comments_count,
+              strategy_note: aiComment.strategy_note,
+              prospect_company: item.prospect.company,
+              prospect_type: item.prospect.type,
+              prospect_temperature: item.prospect.temperature,
+            }),
+            status: 'pending',
+            priority: (item.prospect.score || 0) > 40 ? 3 : 2,
+            prospect_id: item.prospect.id,
+          });
+          inserted++;
+        }
+
+        await supabase.from('agent_logs').insert({
+          agent: 'marketing',
+          action: 'prepare_comments',
+          data: {
+            prospects_checked: Math.min(prospects.length, maxProspects),
+            posts_found: allPostsWithContext.length,
+            comments_generated: comments.length,
+            comments_inserted: inserted,
+            fetch_errors: fetchErrors,
+          },
+          status: 'success',
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          posts_found: allPostsWithContext.length,
+          comments_generated: comments.length,
+          comments_inserted: inserted,
+          fetch_errors: fetchErrors,
+        });
       }
 
       default:
