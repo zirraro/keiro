@@ -153,11 +153,31 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
     });
 
     // Parse JSON array (strip markdown fences if present)
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
-    const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
+    let jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+
+    // Salvage truncated JSON arrays
     if (!jsonMatch) {
-      console.warn('[EmailDaily] AI batch: no JSON array found');
-      return results;
+      const partialMatch = cleanText.match(/\[[\s\S]*/);
+      if (partialMatch) {
+        let salvaged = partialMatch[0].replace(/,?\s*$/, '');
+        // Close any open objects
+        const openBraces = (salvaged.match(/\{/g) || []).length;
+        const closeBraces = (salvaged.match(/\}/g) || []).length;
+        for (let i = 0; i < openBraces - closeBraces; i++) salvaged += '}';
+        salvaged += ']';
+        try {
+          JSON.parse(salvaged);
+          jsonMatch = [salvaged];
+          console.log('[EmailDaily] AI batch: salvaged truncated JSON');
+        } catch {
+          console.warn('[EmailDaily] AI batch: no JSON array found, raw:', cleanText.substring(0, 300));
+          return results;
+        }
+      } else {
+        console.warn('[EmailDaily] AI batch: no JSON array found, raw:', cleanText.substring(0, 300));
+        return results;
+      }
     }
 
     const emails = JSON.parse(jsonMatch[0]);
