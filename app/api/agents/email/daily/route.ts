@@ -434,7 +434,20 @@ async function sendEmail(
     }
 
     if (!sendSuccess) {
-      return { success: false, error: 'Brevo + Resend both failed' };
+      // Track send failures in DB to avoid infinite retry loop
+      const supabaseForFailure = getSupabaseAdmin();
+      const failCount = (prospect.email_send_failures || 0) + 1;
+      const failUpdate: Record<string, any> = {
+        email_send_failures: failCount,
+        updated_at: new Date().toISOString(),
+      };
+      // After 3 failures, mark as failed to stop retrying
+      if (failCount >= 3) {
+        failUpdate.email_sequence_status = 'send_failed';
+        console.warn(`[EmailDaily] ${prospect.email} failed 3x — marked as send_failed`);
+      }
+      await supabaseForFailure.from('crm_prospects').update(failUpdate).eq('id', prospect.id);
+      return { success: false, error: `Brevo + Resend both failed (attempt ${failCount})` };
     }
 
     // Update prospect in DB
@@ -614,15 +627,18 @@ export async function GET(request: NextRequest) {
 
       // Filter in JS for reliability (PostgREST .or() with .not.in. can be tricky)
       const prospects = (allWithEmail || []).filter(p => {
-        // email_sequence_status must be null, not_started, or in_progress
-        const seqOk = !p.email_sequence_status || p.email_sequence_status === 'not_started' || p.email_sequence_status === 'in_progress';
+        // email_sequence_status must be null, not_started, or in_progress (exclude completed, warm_sent, send_failed)
+        const seq = p.email_sequence_status;
+        const seqOk = !seq || seq === 'not_started' || seq === 'in_progress';
         // temperature must not be dead
         const tempOk = !p.temperature || p.temperature !== 'dead';
         // status must not be client, perdu, sprint
         const statusOk = !p.status || !['client', 'perdu', 'sprint', 'client_pro', 'client_fondateurs', 'lost'].includes(p.status);
         // Business type targeting: if types specified, only include matching prospects
         const typeOk = targetTypes.length === 0 || (p.type && targetTypes.includes(p.type));
-        return seqOk && tempOk && statusOk && typeOk;
+        // Skip prospects that have failed sending 3+ times (prevent infinite retry)
+        const failOk = !p.email_send_failures || p.email_send_failures < 3;
+        return seqOk && tempOk && statusOk && typeOk && failOk;
       });
 
       if (queryError) {
@@ -630,7 +646,19 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ok: false, error: queryError.message }, { status: 500 });
       }
 
-      console.log(`[EmailDaily] Eligible prospects: ${prospects?.length ?? 0}`);
+      // Sort: follow-ups first (in_progress with pending steps), then new prospects (null/not_started)
+      // Within each group, sort by score descending (best prospects first)
+      prospects.sort((a, b) => {
+        const aInProgress = a.email_sequence_status === 'in_progress' && (a.email_sequence_step ?? 0) > 0;
+        const bInProgress = b.email_sequence_status === 'in_progress' && (b.email_sequence_step ?? 0) > 0;
+        if (aInProgress && !bInProgress) return -1;
+        if (!aInProgress && bInProgress) return 1;
+        return (b.score || 0) - (a.score || 0);
+      });
+
+      const newCount = prospects.filter(p => !p.email_sequence_status || p.email_sequence_status === 'not_started').length;
+      const followUpCount = prospects.filter(p => p.email_sequence_status === 'in_progress').length;
+      console.log(`[EmailDaily] Eligible prospects: ${prospects?.length ?? 0} (${newCount} new, ${followUpCount} follow-ups)`);
 
       if (!prospects || prospects.length === 0) {
         const { count: totalCount } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });

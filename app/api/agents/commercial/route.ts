@@ -568,6 +568,9 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     // === PHASE 3: External prospection — find NEW businesses via Google Search ===
     let newProspectsCreated = 0;
     const MAX_NEW_PROSPECTS = 30;
+    let allNewProspects: any[] = [];
+    let dedupSkipped = 0;
+    let searchLogs: string[] = [];
 
     if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
       console.log('[CommercialAgent] Phase 3: Aggressive search for new qualified prospects...');
@@ -644,14 +647,17 @@ RÈGLES ABSOLUES :
 - JAMAIS d'inventions — si tu ne trouves pas l'info, mets null`;
 
       // Run searches in PARALLEL (2 at a time to respect rate limits)
-      let allNewProspects: any[] = [];
 
       for (let batch = 0; batch < searches.length; batch += 2) {
-        if (Date.now() - runStartTime > MAX_RUN_MS) break;
+        if (Date.now() - runStartTime > MAX_RUN_MS) {
+          searchLogs.push(`TIMEOUT after batch ${batch}`);
+          break;
+        }
 
         const batchSearches = searches.slice(batch, batch + 2);
         const batchResults = await Promise.all(batchSearches.map(async (s) => {
           try {
+            console.log(`[CommercialAgent] Phase 3: Searching "${s.searchQuery}"...`);
             const result = await callGeminiWithSearch({
               system: PROSPECTION_SYSTEM_PROMPT,
               message: `Recherche Google : "${s.searchQuery}"
@@ -663,6 +669,7 @@ Retourne 8-12 prospects qualifiés en JSON.`,
             });
             return { search: s, result };
           } catch (e: any) {
+            searchLogs.push(`FAIL ${s.type}@${s.location}: ${e.message}`);
             console.error(`[CommercialAgent] Search failed for ${s.type}@${s.location}:`, e.message);
             return null;
           }
@@ -672,14 +679,40 @@ Retourne 8-12 prospects qualifiés en JSON.`,
           if (!br) continue;
           try {
             const cleanText = br.result.replace(/```[\w]*\s*/g, '').trim();
-            const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              const prospects = JSON.parse(jsonMatch[0]);
-              console.log(`[CommercialAgent] Phase 3: ${prospects.length} prospects found for ${br.search.type}@${br.search.location}`);
-              allNewProspects.push(...prospects);
+            let jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+
+            // Salvage truncated JSON arrays (missing closing bracket)
+            if (!jsonMatch) {
+              const partialMatch = cleanText.match(/\[[\s\S]*/);
+              if (partialMatch) {
+                let salvaged = partialMatch[0].replace(/,?\s*$/, '');
+                // Try closing the last object if truncated
+                const openBraces = (salvaged.match(/\{/g) || []).length;
+                const closeBraces = (salvaged.match(/\}/g) || []).length;
+                if (openBraces > closeBraces) {
+                  salvaged += '}';
+                }
+                salvaged += ']';
+                try {
+                  const prospects = JSON.parse(salvaged);
+                  console.log(`[CommercialAgent] Phase 3: SALVAGED ${prospects.length} prospects for ${br.search.type}@${br.search.location}`);
+                  searchLogs.push(`SALVAGED ${br.search.type}@${br.search.location}: ${prospects.length} prospects`);
+                  allNewProspects.push(...prospects);
+                  continue;
+                } catch { /* couldn't salvage */ }
+              }
+              searchLogs.push(`NO_JSON ${br.search.type}@${br.search.location}: ${cleanText.substring(0, 200)}`);
+              console.warn(`[CommercialAgent] Phase 3: No JSON found for ${br.search.type}@${br.search.location}: ${cleanText.substring(0, 200)}`);
+              continue;
             }
-          } catch (e) {
-            console.error('[CommercialAgent] Phase 3: Failed to parse:', e);
+
+            const prospects = JSON.parse(jsonMatch[0]);
+            console.log(`[CommercialAgent] Phase 3: ${prospects.length} prospects found for ${br.search.type}@${br.search.location}`);
+            searchLogs.push(`OK ${br.search.type}@${br.search.location}: ${prospects.length} prospects`);
+            allNewProspects.push(...prospects);
+          } catch (e: any) {
+            searchLogs.push(`PARSE_FAIL ${br.search.type}@${br.search.location}: ${e.message}`);
+            console.error('[CommercialAgent] Phase 3: Failed to parse:', e.message);
           }
         }
 
@@ -689,13 +722,23 @@ Retourne 8-12 prospects qualifiés en JSON.`,
         }
       }
 
-      console.log(`[CommercialAgent] Phase 3: Total raw prospects found: ${allNewProspects.length}`);
+      console.log(`[CommercialAgent] Phase 3: Total raw prospects found: ${allNewProspects.length} | Searches: ${searchLogs.join(' | ')}`);
 
       // Insert new prospects into CRM (strict deduplication)
+      const insertedNames = new Set<string>(); // In-run dedup
+
       try {
         for (const np of allNewProspects) {
           if (!np.company || np.company.length < 2) continue;
           if (newProspectsCreated >= MAX_NEW_PROSPECTS) break;
+
+          // In-run dedup: skip if we already inserted this company name in this run
+          const lowerName = np.company.toLowerCase().trim();
+          if (insertedNames.has(lowerName)) {
+            console.log(`[CommercialAgent] Skip in-run dup: ${np.company}`);
+            dedupSkipped++;
+            continue;
+          }
 
           // Normalize for matching
           const igHandle = np.instagram ? np.instagram.replace(/^@/, '').toLowerCase().trim() : null;
@@ -807,6 +850,7 @@ Retourne 8-12 prospects qualifiés en JSON.`,
           }
 
           if (isDuplicate) {
+            dedupSkipped++;
             console.log(`[CommercialAgent] Skip duplicate: ${np.company} (${duplicateReason})`);
             continue;
           }
@@ -847,6 +891,7 @@ Retourne 8-12 prospects qualifiés en JSON.`,
 
           if (!insertError) {
             newProspectsCreated++;
+            insertedNames.add(lowerName);
             console.log(`[CommercialAgent] New prospect: ${np.company} (${np.type}, ${np.quartier}, score: ${newScore})`);
           } else {
             console.warn(`[CommercialAgent] Insert error for ${np.company}:`, insertError.message);
@@ -890,7 +935,10 @@ Retourne 8-12 prospects qualifiés en JSON.`,
         enriched: socialEnrichedCount,
       },
       phase3_external_prospection: {
+        raw_found: allNewProspects.length,
+        dedup_skipped: dedupSkipped,
         new_prospects_created: newProspectsCreated,
+        search_logs: searchLogs,
       },
       crm_stats: {
         total: totalProspects || 0,
