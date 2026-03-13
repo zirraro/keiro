@@ -574,7 +574,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
     // === PHASE 3: External prospection — find NEW businesses via Google Search ===
     let newProspectsCreated = 0;
-    const MAX_NEW_PROSPECTS = 30;
+    const MAX_NEW_PROSPECTS = 50;
     let allNewProspects: any[] = [];
     let dedupSkipped = 0;
     let skippedNoEmail = 0;
@@ -583,29 +583,32 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
       console.log('[CommercialAgent] Phase 3: Aggressive search for new qualified prospects...');
 
-      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach sportif', 'fleuriste', 'caviste', 'traiteur', 'freelance graphiste', 'salon esthetique', 'boulangerie', 'photographe', 'agence immobiliere'];
-      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes', 'Grenoble', 'Rouen', 'Toulon', 'Aix-en-Provence'];
-      const parisQuartiers = ['Marais', 'Montmartre', 'Saint-Germain', 'Bastille', 'Oberkampf', 'Batignolles', 'Belleville', 'Pigalle', 'République', 'Nation'];
+      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach sportif', 'fleuriste', 'caviste', 'traiteur', 'freelance graphiste', 'salon esthetique', 'boulangerie', 'photographe', 'agence immobiliere', 'pizzeria', 'bar a vin', 'institut de beaute', 'salle de sport', 'epicerie fine', 'fromagerie', 'chocolatier', 'bijouterie', 'opticien', 'veterinaire', 'cabinet dentaire', 'osteopathe'];
+      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes', 'Grenoble', 'Rouen', 'Toulon', 'Aix-en-Provence', 'Annecy', 'Clermont-Ferrand', 'Dijon', 'Metz', 'Tours', 'Reims', 'Le Mans', 'Brest', 'Perpignan', 'Cannes', 'Avignon', 'La Rochelle', 'Bayonne', 'Pau', 'Colmar'];
+      const parisQuartiers = ['Marais', 'Montmartre', 'Saint-Germain', 'Bastille', 'Oberkampf', 'Batignolles', 'Belleville', 'Pigalle', 'République', 'Nation', 'Châtelet', 'Opéra', 'Ménilmontant', 'Butte-aux-Cailles', 'Passy'];
 
       const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
       const hourOfDay = new Date().getUTCHours();
-      const runIdx = dayOfYear * 10 + hourOfDay; // Unique per run
+      const minuteOfHour = new Date().getUTCMinutes();
+      const runIdx = dayOfYear * 100 + hourOfDay * 10 + Math.floor(minuteOfHour / 10); // More unique per run
 
-      // Generate 4 different search combinations for maximum coverage
+      // Generate 6 different search combinations for maximum coverage
       const searches: Array<{ type: string; location: string; searchQuery: string }> = [];
-      for (let s = 0; s < 4; s++) {
-        const tIdx = (runIdx + s * 3) % businessTypes.length;
-        const cIdx = (runIdx + s * 5) % cities.length;
+      for (let s = 0; s < 6; s++) {
+        const tIdx = (runIdx + s * 7) % businessTypes.length;
+        const cIdx = (runIdx + s * 11) % cities.length;
         const city = cities[cIdx];
         const type = businessTypes[tIdx];
         // For Paris, also search by quartier
-        const location = city === 'Paris' ? `Paris ${parisQuartiers[(runIdx + s) % parisQuartiers.length]}` : city;
+        const location = city === 'Paris' ? `Paris ${parisQuartiers[(runIdx + s * 3) % parisQuartiers.length]}` : city;
 
         const searchVariants = [
-          `${type} ${location} contact email site web`,
+          `"${type}" "${location}" email contact site`,
           `${type} ${location} pagesjaunes email telephone`,
           `meilleur ${type} ${location} avis google instagram`,
-          `${type} ${location} contact@ info@ reserv`,
+          `${type} ${location} "contact@" OR "info@" OR "hello@"`,
+          `annuaire ${type} ${location} email adresse`,
+          `${type} independant ${location} site web contact`,
         ];
         searches.push({
           type,
@@ -616,8 +619,8 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
       const PROSPECTION_SYSTEM_PROMPT = `Tu es un agent commercial ELITE de KeiroAI. Ta mission : trouver des commerces locaux RÉELS en France pour les aider avec leur marketing digital.
 
-TON OBJECTIF : retourner 5-8 prospects QUALIFIÉS avec EMAIL OBLIGATOIRE.
-IMPORTANT : limite les champs texte (description, qualification_reason) à 50 caractères MAX pour ne pas dépasser la taille de réponse.
+TON OBJECTIF : retourner 8-12 prospects QUALIFIÉS avec EMAIL OBLIGATOIRE.
+IMPORTANT : limite les champs texte (description, qualification_reason) à 30 caractères MAX. Pas de longues phrases.
 
 MÉTHODE DE RECHERCHE (utilise Google Search grounding) :
 1. Cherche "${'{type} {location}'}" sur Google → trouve les sites web
@@ -678,7 +681,7 @@ RÈGLES ABSOLUES :
 
 Trouve des ${s.type}s à ${s.location} qui sont actifs en ligne.
 Cherche leur email (OBLIGATOIRE), Instagram, site web, note Google, téléphone.
-Retourne 5-8 prospects qualifiés AVEC EMAIL en JSON. Sois concis dans les champs description/qualification_reason.`,
+Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans description/qualification_reason (30 car max).`,
               maxTokens: 6000,
             });
             return { search: s, result };

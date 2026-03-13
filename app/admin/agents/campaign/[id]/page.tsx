@@ -657,6 +657,31 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             )}
+            {d.phase3_external_prospection && (
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <h3 className="text-xs font-semibold text-neutral-500 uppercase mb-3">Phase 3 — Prospection externe</h3>
+                <div className="space-y-2">
+                  {[
+                    ['Prospects trouvés (bruts)', d.phase3_external_prospection.raw_found, ''],
+                    ['Sans email (ignorés)', d.phase3_external_prospection.skipped_no_email, 'text-amber-600'],
+                    ['Doublons (ignorés)', d.phase3_external_prospection.dedup_skipped, 'text-neutral-400'],
+                    ['Nouveaux créés', d.phase3_external_prospection.new_prospects_created, 'text-green-600 font-bold text-lg'],
+                  ].map(([label, val, color]) => (
+                    <div key={label as string} className="flex justify-between"><span className="text-sm text-neutral-600">{label}</span><span className={`text-sm font-bold ${color}`}>{val as number}</span></div>
+                  ))}
+                </div>
+                {d.phase3_external_prospection.search_logs && d.phase3_external_prospection.search_logs.length > 0 && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-[10px] font-semibold text-neutral-400 uppercase mb-1">Recherches</p>
+                    <div className="space-y-0.5">
+                      {d.phase3_external_prospection.search_logs.map((log: string, i: number) => (
+                        <p key={i} className={`text-[11px] font-mono ${log.startsWith('OK') || log.startsWith('EXTRACTED') ? 'text-green-600' : log.startsWith('FAIL') || log.startsWith('NO_JSON') ? 'text-red-500' : 'text-neutral-500'}`}>{log}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {d.details && d.details.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                 <div className="p-4 border-b border-neutral-100">
