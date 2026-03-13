@@ -564,6 +564,169 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       }
     }
 
+    // === PHASE 3: External prospection — find NEW businesses via Google Search ===
+    let newProspectsCreated = 0;
+    const MAX_NEW_PROSPECTS = 15;
+
+    if (runPhase2 && (Date.now() - runStartTime < MAX_RUN_MS)) {
+      console.log('[CommercialAgent] Phase 3: Searching for new qualified prospects...');
+
+      // Rotate through business types and cities each run
+      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach', 'fleuriste', 'caviste', 'traiteur', 'freelance'];
+      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes'];
+
+      // Use day-of-year to rotate through combinations
+      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+      const hourOfDay = new Date().getUTCHours();
+      const typeIdx = (dayOfYear * 3 + hourOfDay) % businessTypes.length;
+      const cityIdx = (dayOfYear * 2 + hourOfDay) % cities.length;
+      const targetType = businessTypes[typeIdx];
+      const targetCity = cities[cityIdx];
+      const targetType2 = businessTypes[(typeIdx + 1) % businessTypes.length];
+      const targetCity2 = cities[(cityIdx + 1) % cities.length];
+
+      try {
+        const searchResult = await callGeminiWithSearch({
+          system: `Tu es un agent commercial expert en prospection B2B pour KeiroAI, un outil IA de création de contenu marketing pour commerces locaux français.
+
+TON OBJECTIF : trouver des VRAIS commerces locaux français qui existent réellement, avec leurs coordonnées vérifiées.
+
+CRITÈRES DE QUALIFICATION :
+- Commerces locaux ou PME en France (pas de grandes chaînes)
+- Actifs sur Instagram ou ayant un site web (présence en ligne)
+- De préférence entre 100 et 50K abonnés Instagram
+- Avec une adresse physique vérifiable
+- Secteurs : restaurants, boutiques, coachs, coiffeurs, fleuristes, cavistes, traiteurs, freelances
+
+CE QUE TU DOIS CHERCHER :
+- Comptes Instagram de commerces locaux dans la ville ciblée
+- Pages Google Maps avec bonnes notes
+- Sites web de commerces locaux
+- Annuaires professionnels (PagesJaunes, etc.)
+
+Retourne UNIQUEMENT un tableau JSON de prospects qualifiés :
+[
+  {
+    "company": "Nom exact du commerce",
+    "type": "restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services",
+    "quartier": "Ville ou quartier",
+    "instagram": "handle_sans_arobase" | null,
+    "website": "https://..." | null,
+    "email": "contact@..." | null,
+    "phone": "+33..." | null,
+    "google_rating": 4.5 | null,
+    "google_reviews": 123 | null,
+    "description": "Description courte de l'activité",
+    "qualification_reason": "Pourquoi ce prospect est qualifié pour KeiroAI"
+  }
+]
+
+RÈGLES STRICTES :
+- UNIQUEMENT des commerces RÉELS que tu as trouvés via la recherche
+- JAMAIS d'inventions — chaque commerce doit exister
+- Vérifie que le nom est correct et correspond au type
+- Si tu ne trouves pas assez de résultats, retourne ce que tu as (même 3-4 c'est OK)
+- UNIQUEMENT du JSON valide, pas de markdown`,
+          message: `Recherche des commerces locaux qualifiés pour KeiroAI :
+
+RECHERCHE 1 : ${targetType}s à ${targetCity} — trouve des ${targetType}s actifs sur Instagram ou ayant un site web
+RECHERCHE 2 : ${targetType2}s à ${targetCity2} — trouve des ${targetType2}s avec présence en ligne
+
+Cherche sur Google Maps, Instagram, PagesJaunes, et le web. Trouve ${MAX_NEW_PROSPECTS} commerces qualifiés au total.`,
+          maxTokens: 4000,
+        });
+
+        // Parse results
+        let newProspects: any[] = [];
+        try {
+          const cleanText = searchResult.replace(/```[\w]*\s*/g, '').trim();
+          const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            newProspects = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.error('[CommercialAgent] Phase 3: Failed to parse prospects:', e);
+        }
+
+        console.log(`[CommercialAgent] Phase 3: Found ${newProspects.length} new prospects (${targetType}@${targetCity} + ${targetType2}@${targetCity2})`);
+
+        // Insert new prospects into CRM (skip duplicates)
+        for (const np of newProspects) {
+          if (!np.company || np.company.length < 2) continue;
+          if (newProspectsCreated >= MAX_NEW_PROSPECTS) break;
+
+          // Check for duplicates by company name OR instagram handle
+          let isDuplicate = false;
+
+          if (np.instagram) {
+            const handle = np.instagram.replace(/^@/, '');
+            const { data: existingIG } = await supabase
+              .from('crm_prospects')
+              .select('id')
+              .eq('instagram', handle)
+              .limit(1);
+            if (existingIG && existingIG.length > 0) { isDuplicate = true; }
+          }
+
+          if (!isDuplicate) {
+            const { data: existingName } = await supabase
+              .from('crm_prospects')
+              .select('id')
+              .ilike('company', np.company)
+              .limit(1);
+            if (existingName && existingName.length > 0) { isDuplicate = true; }
+          }
+
+          if (isDuplicate) {
+            console.log(`[CommercialAgent] Skip duplicate: ${np.company}`);
+            continue;
+          }
+
+          // Create new prospect
+          const igHandle = np.instagram ? np.instagram.replace(/^@/, '') : null;
+          const newScore = calculateScore({
+            email: np.email,
+            instagram: igHandle,
+            website: np.website,
+            google_rating: np.google_rating,
+            google_reviews: np.google_reviews,
+            type: np.type,
+          });
+          const newTemp = calculateTemperature(newScore);
+
+          const { error: insertError } = await supabase.from('crm_prospects').insert({
+            company: np.company,
+            type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
+            quartier: np.quartier || targetCity,
+            instagram: igHandle,
+            website: np.website || null,
+            email: np.email || null,
+            phone: np.phone || null,
+            google_rating: np.google_rating || null,
+            note_google: np.google_rating || null,
+            google_reviews: np.google_reviews || null,
+            status: 'identifie',
+            temperature: newTemp,
+            score: newScore,
+            source: 'prospection_commerciale',
+            source_agent: 'commercial',
+            notes: np.qualification_reason || null,
+            created_at: nowISO,
+            updated_at: nowISO,
+          });
+
+          if (!insertError) {
+            newProspectsCreated++;
+            console.log(`[CommercialAgent] New prospect: ${np.company} (${np.type}, ${np.quartier}, score: ${newScore})`);
+          } else {
+            console.warn(`[CommercialAgent] Insert error for ${np.company}:`, insertError.message);
+          }
+        }
+      } catch (e: any) {
+        console.error('[CommercialAgent] Phase 3 error:', e.message);
+      }
+    }
+
     // === Reporting ===
     const { count: totalProspects } = await supabase
       .from('crm_prospects')
@@ -596,6 +759,9 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         searched: socialProspects?.length || 0,
         enriched: socialEnrichedCount,
       },
+      phase3_external_prospection: {
+        new_prospects_created: newProspectsCreated,
+      },
       crm_stats: {
         total: totalProspects || 0,
         ready_to_contact: readyToContact || 0,
@@ -619,17 +785,18 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       action: 'report_to_ceo',
       data: {
         phase: 'completed',
-        message: `Commercial: ${enrichedCount} enrichis, ${socialEnrichedCount} réseaux sociaux trouvés, ${advancedToContactCount} → contacté, ${flaggedDeadCount} disqualifiés | CRM: ${totalProspects} total, ${withInstagram} IG, ${withTiktok} TikTok`,
+        message: `Commercial: ${enrichedCount} enrichis, ${socialEnrichedCount} sociaux trouvés, ${newProspectsCreated} nouveaux prospects, ${advancedToContactCount} → contacté, ${flaggedDeadCount} disqualifiés | CRM: ${totalProspects} total, ${withInstagram} IG, ${withTiktok} TikTok`,
       },
       created_at: nowISO,
     });
 
-    console.log(`[CommercialAgent] Done: ${enrichedCount} enriched, ${socialEnrichedCount} social, ${advancedToContactCount} → contacté, ${flaggedDeadCount} dead | CRM: ${totalProspects} total`);
+    console.log(`[CommercialAgent] Done: ${enrichedCount} enriched, ${socialEnrichedCount} social, ${newProspectsCreated} NEW, ${advancedToContactCount} → contacté | CRM: ${totalProspects} total`);
 
     return NextResponse.json({
       ok: true,
       enriched: enrichedCount,
       social_enriched: socialEnrichedCount,
+      new_prospects: newProspectsCreated,
       advanced_to_contact: advancedToContactCount,
       flagged_dead: flaggedDeadCount,
       skipped: skippedCount,

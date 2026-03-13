@@ -467,6 +467,7 @@ export default function AdminCRMPage() {
       const data = await res.json();
       if (data.ok) {
         const parts: string[] = [];
+        if (data.new_prospects > 0) parts.push(`${data.new_prospects} nouveaux prospects`);
         if (data.enriched > 0) parts.push(`${data.enriched} enrichis`);
         if (data.social_enriched > 0) parts.push(`${data.social_enriched} sociaux trouvés`);
         if (data.advanced_to_contact > 0) parts.push(`${data.advanced_to_contact} → contacté`);
@@ -861,6 +862,13 @@ export default function AdminCRMPage() {
               </select>
             </div>
 
+            <button
+              onClick={() => router.push('/admin/agents')}
+              className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              🤖 Agents IA
+            </button>
+
             {/* ── Commercial Agent ─── */}
             <div className="relative inline-flex rounded-lg border border-orange-300 overflow-hidden">
               <button
@@ -973,8 +981,8 @@ export default function AdminCRMPage() {
         )}
 
         {/* ── KPI Bar ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-          {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map(stage => (
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+          {PIPELINE_STAGES.map(stage => (
             <div
               key={stage.id}
               className={`bg-white rounded-xl border-t-2 ${stage.borderColor} p-3 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm`}
@@ -1058,11 +1066,11 @@ export default function AdminCRMPage() {
             ) : view === 'pipeline' ? (
               /* ── Pipeline Kanban ──────────────────────────────────────── */
               <div className="overflow-x-auto pb-4">
-                <div className="flex gap-3" >
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2" >
                   {PIPELINE_STAGES.map(stage => {
                     const stageProspects = filtered.filter(p => p.status === stage.id);
                     return (
-                      <div key={stage.id} className="flex-shrink-0 w-64">
+                      <div key={stage.id} className="min-w-0">
                         <div className={`rounded-t-lg px-3 py-2 ${stage.color}`}>
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold text-white">{stage.icon} {stage.label}</span>
