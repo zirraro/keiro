@@ -20,6 +20,7 @@ function getSupabaseAdmin() {
 interface SendResult {
   prospect_id: string;
   email: string;
+  company?: string;
   step: number;
   success: boolean;
   error?: string;
@@ -579,6 +580,7 @@ export async function GET(request: NextRequest) {
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,
+            company: prospect.company || '',
             step: 10,
             success: result.success,
             error: result.error,
@@ -850,6 +852,7 @@ export async function GET(request: NextRequest) {
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,
+            company: prospect.company || '',
             step,
             success: true,
             ai_generated: !!aiEmail,
@@ -859,6 +862,7 @@ export async function GET(request: NextRequest) {
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,
+            company: prospect.company || '',
             step,
             success: result.success,
             error: result.error,
@@ -929,6 +933,8 @@ export async function GET(request: NextRequest) {
         }}),
         results: results.map(r => ({
           prospect_id: r.prospect_id,
+          email: r.email,
+          company: r.company,
           step: r.step,
           success: r.success,
           error: r.error,

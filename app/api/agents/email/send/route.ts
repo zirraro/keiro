@@ -193,6 +193,9 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Update prospect ---
+    const stepLabels: Record<number, string> = {
+      1: 'contacte', 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_finale', 10: 'contacte_warm',
+    };
     await supabase
       .from('crm_prospects')
       .update({
@@ -200,6 +203,7 @@ export async function POST(request: NextRequest) {
         last_email_sent_at: now,
         email_sequence_status: 'in_progress',
         email_subject_variant: selectedVariant,
+        status: stepLabels[template_step] || 'contacte',
         updated_at: now,
       })
       .eq('id', prospect_id);

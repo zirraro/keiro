@@ -288,18 +288,62 @@ export default function CampaignDetailPage() {
             )}
             {d.results && d.results.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="p-4 border-b border-neutral-100"><h3 className="text-sm font-semibold text-neutral-900">Emails envoyés ({d.results.length})</h3></div>
+                <div className="p-4 border-b border-neutral-100"><h3 className="text-sm font-semibold text-neutral-900">Emails envoyes ({d.results.length})</h3></div>
                 <div className="divide-y divide-neutral-100">
-                  {d.results.map((r: any, i: number) => (
-                    <div key={i} className={`flex items-center gap-3 px-4 py-3 ${r.success ? '' : 'bg-red-50'}`}>
-                      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${r.success ? 'bg-green-400' : 'bg-red-400'}`} />
-                      <span className="text-sm text-neutral-800 font-medium flex-1 min-w-0 truncate">{r.email || r.prospect_id?.slice(0, 12)}</span>
-                      {r.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{r.type}</span>}
-                      <span className="text-xs text-neutral-500">Step {r.step}</span>
-                      {r.ai_generated && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">IA</span>}
-                      {r.error && <span className="text-xs text-red-500 truncate max-w-[200px]">{r.error}</span>}
-                    </div>
-                  ))}
+                  {d.results.map((r: any, i: number) => {
+                    const stepLabels: Record<number, string> = { 1: '1er contact', 2: 'Relance douce', 3: 'Valeur gratuite', 4: 'FOMO', 5: 'Derniere chance', 10: 'Warm' };
+                    return (
+                      <div key={i} className={`px-4 py-3 ${r.success ? '' : 'bg-red-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${r.success ? 'bg-green-400' : 'bg-red-400'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-neutral-800 truncate">{r.company || r.email || r.prospect_id?.slice(0, 12)}</p>
+                            {r.company && r.email && <p className="text-[10px] text-neutral-400">{r.email}</p>}
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                            r.step === 1 ? 'bg-blue-100 text-blue-700' :
+                            r.step === 10 ? 'bg-orange-100 text-orange-700' :
+                            r.step >= 4 ? 'bg-red-100 text-red-700' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>{stepLabels[r.step] || `Step ${r.step}`}</span>
+                          {r.ai && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">IA</span>}
+                          {r.error && <span className="text-xs text-red-500 truncate max-w-[200px]">{r.error}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {/* Email drafts display */}
+            {d.drafts && d.drafts.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="p-4 border-b border-neutral-100"><h3 className="text-sm font-semibold text-neutral-900">Brouillons ({d.drafts.length})</h3></div>
+                <div className="divide-y divide-neutral-100">
+                  {d.drafts.map((draft: any, i: number) => {
+                    const stepLabels: Record<number, string> = { 1: '1er contact', 2: 'Relance douce', 3: 'Valeur gratuite', 4: 'FOMO', 5: 'Derniere chance', 10: 'Warm' };
+                    return (
+                      <details key={i} className="group">
+                        <summary className="px-4 py-3 cursor-pointer hover:bg-neutral-50 transition">
+                          <div className="flex items-center gap-3">
+                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-amber-400" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-neutral-800 truncate">{draft.company || draft.email}</p>
+                              {draft.company && draft.email && <p className="text-[10px] text-neutral-400">{draft.email}</p>}
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700`}>{stepLabels[draft.step] || `Step ${draft.step}`}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{draft.category}</span>
+                            {draft.ai_generated && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">IA</span>}
+                            <svg className="w-4 h-4 text-neutral-400 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </div>
+                        </summary>
+                        <div className="px-4 pb-4">
+                          <p className="text-xs font-semibold text-neutral-500 mb-1">Objet : {draft.subject}</p>
+                          <div className="bg-neutral-50 rounded-lg border border-neutral-100 p-3 text-xs text-neutral-700 max-h-48 overflow-y-auto" dangerouslySetInnerHTML={{ __html: draft.body }} />
+                        </div>
+                      </details>
+                    );
+                  })}
                 </div>
               </div>
             )}
