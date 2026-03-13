@@ -429,6 +429,8 @@ export default function AdminCRMPage() {
   };
 
   const [recategorizing, setRecategorizing] = useState(false);
+  const [commercialRunning, setCommercialRunning] = useState<string | null>(null);
+  const [commercialResult, setCommercialResult] = useState<{ ok: boolean; message: string } | null>(null);
   const handleRecategorize = async () => {
     if (!confirm('Recatégoriser automatiquement les sources et statuts de tous les prospects ?\n\nCette action analyse les notes et données pour :\n- Détecter le canal (terrain, DM Instagram, etc.)\n- Mettre à jour le statut (Sprint vendu → Sprint, Converti → Client)\n- Remonter les prospects contactés/visités dans le pipeline')) return;
     setRecategorizing(true);
@@ -443,6 +445,41 @@ export default function AdminCRMPage() {
       alert('Erreur lors de la recatégorisation.');
     } finally {
       setRecategorizing(false);
+    }
+  };
+
+  // ─── Commercial Agent Controls ──────────────────────────────────────────
+
+  const runCommercialAgent = async (action: 'verify_crm' | 'prospect_external' | 'full') => {
+    const labels: Record<string, string> = {
+      verify_crm: 'Audit CRM',
+      prospect_external: 'Prospection externe',
+      full: 'Audit + Prospection',
+    };
+    setCommercialRunning(action);
+    setCommercialResult(null);
+    try {
+      const res = await fetch('/api/agents/commercial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const parts: string[] = [];
+        if (data.enriched > 0) parts.push(`${data.enriched} enrichis`);
+        if (data.social_enriched > 0) parts.push(`${data.social_enriched} sociaux trouvés`);
+        if (data.advanced_to_contact > 0) parts.push(`${data.advanced_to_contact} → contacté`);
+        if (data.flagged_dead > 0) parts.push(`${data.flagged_dead} disqualifiés`);
+        setCommercialResult({ ok: true, message: `${labels[action]}: ${parts.join(', ') || 'terminé'}. CRM: ${data.crm_total} total, ${data.crm_instagram} IG` });
+        await loadProspects();
+      } else {
+        setCommercialResult({ ok: false, message: data.error || 'Erreur' });
+      }
+    } catch (e: any) {
+      setCommercialResult({ ok: false, message: e.message || 'Erreur réseau' });
+    } finally {
+      setCommercialRunning(null);
     }
   };
 
@@ -824,6 +861,26 @@ export default function AdminCRMPage() {
               </select>
             </div>
 
+            {/* ── Commercial Agent ─── */}
+            <div className="relative inline-flex rounded-lg border border-orange-300 overflow-hidden">
+              <button
+                onClick={() => runCommercialAgent('verify_crm')}
+                disabled={!!commercialRunning}
+                className="px-2.5 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors disabled:opacity-50 border-r border-orange-300"
+                title="Audit CRM: vérifier et enrichir les fiches existantes"
+              >
+                {commercialRunning === 'verify_crm' ? '⏳' : '🔍'} Audit
+              </button>
+              <button
+                onClick={() => runCommercialAgent('prospect_external')}
+                disabled={!!commercialRunning}
+                className="px-2.5 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                title="Prospection externe: trouver de nouveaux prospects qualifiés via Google et autres techniques"
+              >
+                {commercialRunning === 'prospect_external' ? '⏳' : '🎯'} Prospecter
+              </button>
+            </div>
+
             <button
               onClick={openNewModal}
               className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow"
@@ -833,6 +890,20 @@ export default function AdminCRMPage() {
           </div>
         </div>
       </header>
+
+      {/* ── Commercial Agent Result Banner ─────────────────────────────── */}
+      {commercialResult && (
+        <div className="max-w-[1600px] mx-auto px-4 pt-3">
+          <div className={`rounded-lg px-4 py-2.5 border ${commercialResult.ok ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'}`}>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${commercialResult.ok ? 'text-orange-700' : 'text-red-700'}`}>
+                {commercialResult.ok ? '🎯' : '❌'} {commercialResult.message}
+              </span>
+              <button onClick={() => setCommercialResult(null)} className="text-neutral-400 hover:text-neutral-700 transition-colors text-lg leading-none">&times;</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Import Result Banner ───────────────────────────────────────── */}
       {importResult && (

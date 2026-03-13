@@ -12,18 +12,27 @@ export const maxDuration = 300;
  *
  * Slots and what they trigger:
  *
- * 03:00 UTC  slot=discovery     → Commercial enrichment + Google Search social
- * 05:00 UTC  slot=ceo           → CEO brief (auto-triggers orders)
- * 05:30 UTC  slot=trends        → Refresh trends
- * 06:00 UTC  slot=early_morning → Email cold (weekdays)
- * 07:00 UTC  slot=morning_prep  → DM Instagram + SEO + Content
- * 08:00 UTC  slot=morning       → Email cold + Onboarding (weekdays)
- * 10:00 UTC  slot=midday        → Email cold + Email warm (weekdays)
- * 12:00 UTC  slot=afternoon     → Email cold (weekdays)
- * 15:00 UTC  slot=ceo_evening    → CEO brief #2 (suivi après-midi) + execute orders
- * 16:00 UTC  slot=evening       → Email cold (weekdays)
- * 17:00 UTC  slot=evening_prep  → DM Instagram evening + TikTok comments
- * 09:00 UTC  slot=retention     → Retention checks
+ * 03:00 UTC  slot=discovery       → Commercial: verify CRM
+ * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders)
+ * 05:30 UTC  slot=trends          → Refresh trends
+ * 06:00 UTC  slot=early_morning   → Email cold: restaurants/traiteurs (ouverture)
+ * 07:00 UTC  slot=morning_prep    → DM Instagram + SEO + Content
+ * 08:00 UTC  slot=morning         → Email cold: boutiques/coiffeurs/fleuristes + Onboarding
+ * 08:30 UTC  slot=discovery_4     → Commercial: verify CRM #3
+ * 09:00 UTC  slot=retention       → Retention checks
+ * 09:30 UTC  slot=community       → Community Manager: comments + follows
+ * 10:00 UTC  slot=midday          → Email cold: coachs/freelances/services + Email warm
+ * 11:00 UTC  slot=discovery_2     → Commercial: prospect external
+ * 12:00 UTC  slot=afternoon       → Email cold: restaurants (service midi) + PME/agences
+ * 13:00 UTC  slot=discovery_5     → Commercial: prospect external #3
+ * 14:00 UTC  slot=discovery_3     → Commercial: verify CRM #2 + prospect external #2
+ * 15:00 UTC  slot=ceo_evening     → CEO brief #2 + execute orders
+ * 15:30 UTC  slot=community_2     → Community Manager afternoon
+ * 16:00 UTC  slot=evening         → Email cold: restaurants/bars (soirée)
+ * 16:30 UTC  slot=discovery_6     → Commercial: full run (EOD)
+ * 17:00 UTC  slot=evening_prep    → DM Instagram evening + TikTok comments
+ * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
+ * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -105,15 +114,16 @@ export async function GET(request: NextRequest) {
 
     case 'community_2':
       // 15:30 UTC — Community Manager afternoon: more comments + follow targets
-      await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 50 });
-      await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 40 });
+      await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 });
+      await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 });
+      await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 });
       break;
 
     case 'community':
       // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets
-      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 50 });
-      await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 40 });
-      await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 35 });
+      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 });
+      await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 });
+      await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 });
       break;
 
     case 'ceo':
@@ -130,9 +140,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'early_morning':
-      // 06:00 UTC — Early morning emails (weekdays only)
+      // 06:00 UTC — Restaurants/traiteurs (ouverture cuisine, check emails avant service)
       if (isWeekday) {
-        await callEndpoint('Email Cold (early)', '/api/agents/email/daily?slot=early_morning');
+        await callEndpoint('Email Cold (restaurants)', '/api/agents/email/daily?slot=early_morning&types=restaurant,traiteur,caviste');
       }
       break;
 
@@ -148,25 +158,25 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning':
-      // 08:00 UTC — Morning emails + onboarding
+      // 08:00 UTC — Boutiques/coiffeurs/fleuristes (ouverture magasin) + onboarding
       if (isWeekday) {
-        await callEndpoint('Email Cold (morning)', '/api/agents/email/daily?slot=morning');
+        await callEndpoint('Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste');
       }
       await callEndpoint('Onboarding', '/api/agents/onboarding');
       break;
 
     case 'midday':
-      // 10:00 UTC — Midday emails + warm follow-up
+      // 10:00 UTC — Coachs/freelances/services (fin de séances matin) + warm
       if (isWeekday) {
-        await callEndpoint('Email Cold (midday)', '/api/agents/email/daily?slot=midday');
+        await callEndpoint('Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel');
       }
       await callEndpoint('Email Warm', '/api/agents/email/daily?type=warm');
       break;
 
     case 'afternoon':
-      // 12:00 UTC — Afternoon emails
+      // 12:00 UTC — Restaurants (entre services) + PME/agences (pause déjeuner)
       if (isWeekday) {
-        await callEndpoint('Email Cold (afternoon)', '/api/agents/email/daily?slot=afternoon');
+        await callEndpoint('Email Cold (midi)', '/api/agents/email/daily?slot=afternoon&types=restaurant,traiteur,pme,agence');
       }
       break;
 
@@ -182,9 +192,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening':
-      // 16:00 UTC — Evening emails
+      // 16:00 UTC — Restaurants/bars (avant service du soir) + tous les restants
       if (isWeekday) {
-        await callEndpoint('Email Cold (evening)', '/api/agents/email/daily?slot=evening');
+        await callEndpoint('Email Cold (soir)', '/api/agents/email/daily?slot=evening&types=restaurant,caviste,traiteur');
       }
       break;
 
@@ -196,6 +206,17 @@ export async function GET(request: NextRequest) {
       if (isTiktokDay) {
         await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
       }
+      break;
+
+    case 'discovery_7':
+      // 18:00 UTC — Commercial: prospect external #4 (evening batch)
+      await callEndpoint('Commercial Prospect External #4', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      break;
+
+    case 'marketing_learn':
+      // 19:00 UTC — Marketing: full analysis + advise agents
+      await callEndpoint('Marketing Analysis', '/api/agents/marketing');
+      await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
       break;
 
     default:

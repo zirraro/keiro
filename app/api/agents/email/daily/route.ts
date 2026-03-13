@@ -522,6 +522,8 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const nowISO = now.toISOString();
   const type = request.nextUrl.searchParams.get('type');
+  // Business type targeting: ?types=restaurant,boutique → only send to these types
+  const targetTypes = request.nextUrl.searchParams.get('types')?.split(',').map(t => t.trim()).filter(Boolean) || [];
 
   const results: SendResult[] = [];
   let skippedVerification = 0;
@@ -591,7 +593,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // --- Default: cold sequences ---
-      console.log(`[EmailDaily] Running cold sequence (manual=${isManualTrigger})...`);
+      console.log(`[EmailDaily] Running cold sequence (manual=${isManualTrigger}${targetTypes.length > 0 ? `, types=${targetTypes.join(',')}` : ''})...`);
 
       // Query eligible prospects: have email, not completed sequence, not dead/lost/client
       // Use separate filters to avoid PostgREST .or() parsing issues
@@ -608,7 +610,9 @@ export async function GET(request: NextRequest) {
         const tempOk = !p.temperature || p.temperature !== 'dead';
         // status must not be client, perdu, sprint
         const statusOk = !p.status || !['client', 'perdu', 'sprint', 'client_pro', 'client_fondateurs', 'lost'].includes(p.status);
-        return seqOk && tempOk && statusOk;
+        // Business type targeting: if types specified, only include matching prospects
+        const typeOk = targetTypes.length === 0 || (p.type && targetTypes.includes(p.type));
+        return seqOk && tempOk && statusOk && typeOk;
       });
 
       if (queryError) {

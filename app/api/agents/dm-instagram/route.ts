@@ -32,7 +32,7 @@ async function verifyAuth(request: NextRequest) {
   return { authorized: false };
 }
 
-const MAX_DM_PER_DAY = 50;
+const MAX_DM_PER_DAY = 60;
 
 /**
  * Generate personalized DM via Claude Haiku

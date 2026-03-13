@@ -18,7 +18,7 @@ function getSupabaseAdmin() {
 }
 
 const MAX_PROSPECTS_PER_RUN = 50;
-const MAX_SEARCH_ENRICHMENT = 25;
+const MAX_SEARCH_ENRICHMENT = 30;
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -299,6 +299,9 @@ export async function POST(request: NextRequest) {
  * Core: fetch incomplete prospects, enrich via Gemini + Google Search, update DB.
  */
 async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full'): Promise<NextResponse> {
+  const runStartTime = Date.now();
+  const MAX_RUN_MS = 250_000; // Hard limit: 250s to leave 50s margin for reporting
+
   try {
     const supabase = getSupabaseAdmin();
     const nowISO = new Date().toISOString();
@@ -370,6 +373,10 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       const BATCH_SIZE = 10;
       const enrichResults: Array<{ prospect: any; result: any }> = [];
       for (let b = 0; b < prospects.length; b += BATCH_SIZE) {
+        if (Date.now() - runStartTime > MAX_RUN_MS) {
+          console.warn(`[CommercialAgent] Phase 1 timeout guard: stopping after ${b} prospects`);
+          break;
+        }
         const batch = prospects.slice(b, b + BATCH_SIZE);
         const batchResults = await Promise.all(batch.map(async (p) => {
           const r = await enrichProspect(p);
@@ -478,66 +485,82 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     if (socialProspects && socialProspects.length > 0) {
       console.log(`[CommercialAgent] Phase 2: ${socialProspects.length} prospects for social search`);
 
-      for (const prospect of socialProspects) {
-        // Skip if already has all social data
-        if (prospect.instagram && prospect.tiktok_handle && prospect.website && prospect.google_rating) {
-          continue;
+      // Process in parallel batches of 5 for speed while respecting Gemini rate limits
+      const SEARCH_BATCH_SIZE = 5;
+      for (let b = 0; b < socialProspects.length; b += SEARCH_BATCH_SIZE) {
+        // Check timeout guard (shared with Phase 1)
+        if (Date.now() - runStartTime > MAX_RUN_MS) {
+          console.warn(`[CommercialAgent] Phase 2 timeout guard: stopping after ${b} prospects (${Math.round((Date.now() - runStartTime) / 1000)}s elapsed)`);
+          break;
         }
 
-        const searchResult = await searchSocialProfiles(prospect);
-        if (!searchResult || searchResult.confidence < 50) continue;
+        const batch = socialProspects.slice(b, b + SEARCH_BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(async (prospect) => {
+          // Skip if already has all social data
+          if (prospect.instagram && prospect.tiktok_handle && prospect.website && prospect.google_rating) {
+            return null;
+          }
+          const searchResult = await searchSocialProfiles(prospect);
+          return { prospect, searchResult };
+        }));
 
-        const socialUpdates: Record<string, any> = {};
+        // Process batch results and update DB
+        for (const item of batchResults) {
+          if (!item || !item.searchResult || item.searchResult.confidence < 50) continue;
+          const { prospect, searchResult } = item;
 
-        // Only update fields that are currently missing
-        if (!prospect.instagram && searchResult.instagram) {
-          socialUpdates.instagram = searchResult.instagram;
-        }
-        if (!prospect.tiktok_handle && searchResult.tiktok) {
-          socialUpdates.tiktok_handle = searchResult.tiktok;
-        }
-        if (!prospect.website && searchResult.website) {
-          socialUpdates.website = searchResult.website;
-        }
-        if (!prospect.google_rating && searchResult.google_rating) {
-          socialUpdates.google_rating = searchResult.google_rating;
-          socialUpdates.note_google = searchResult.google_rating;
-        }
-        if (!prospect.google_reviews && searchResult.google_reviews) {
-          socialUpdates.google_reviews = searchResult.google_reviews;
-        }
-        if (searchResult.phone) {
-          socialUpdates.phone = searchResult.phone;
-        }
-        if (searchResult.address) {
-          socialUpdates.address = searchResult.address;
-        }
+          const socialUpdates: Record<string, any> = {};
 
-        if (Object.keys(socialUpdates).length > 0) {
-          socialUpdates.updated_at = nowISO;
-
-          // Recalculate score with new social data (having Instagram/TikTok/website boosts value)
-          const enrichedProspect = { ...prospect, ...socialUpdates };
-          const newScore = calculateScore(enrichedProspect);
-          const newTemp = calculateTemperature(newScore);
-          if (newScore > (prospect.score || 0)) {
-            socialUpdates.score = newScore;
-            socialUpdates.temperature = newTemp;
+          if (!prospect.instagram && searchResult.instagram) {
+            socialUpdates.instagram = searchResult.instagram;
+          }
+          if (!prospect.tiktok_handle && searchResult.tiktok) {
+            socialUpdates.tiktok_handle = searchResult.tiktok;
+          }
+          if (!prospect.website && searchResult.website) {
+            socialUpdates.website = searchResult.website;
+          }
+          if (!prospect.google_rating && searchResult.google_rating) {
+            socialUpdates.google_rating = searchResult.google_rating;
+            socialUpdates.note_google = searchResult.google_rating;
+          }
+          if (!prospect.google_reviews && searchResult.google_reviews) {
+            socialUpdates.google_reviews = searchResult.google_reviews;
+          }
+          if (searchResult.phone) {
+            socialUpdates.phone = searchResult.phone;
+          }
+          if (searchResult.address) {
+            socialUpdates.address = searchResult.address;
           }
 
-          const { error: socialError } = await supabase
-            .from('crm_prospects')
-            .update(socialUpdates)
-            .eq('id', prospect.id);
+          if (Object.keys(socialUpdates).length > 0) {
+            socialUpdates.updated_at = nowISO;
 
-          if (!socialError) {
-            socialEnrichedCount++;
-            console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at' && k !== 'score' && k !== 'temperature').join(', ')} (score: ${newScore})`);
+            const enrichedProspect = { ...prospect, ...socialUpdates };
+            const newScore = calculateScore(enrichedProspect);
+            const newTemp = calculateTemperature(newScore);
+            if (newScore > (prospect.score || 0)) {
+              socialUpdates.score = newScore;
+              socialUpdates.temperature = newTemp;
+            }
+
+            const { error: socialError } = await supabase
+              .from('crm_prospects')
+              .update(socialUpdates)
+              .eq('id', prospect.id);
+
+            if (!socialError) {
+              socialEnrichedCount++;
+              console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at' && k !== 'score' && k !== 'temperature').join(', ')} (score: ${newScore})`);
+            }
           }
         }
 
-        // Rate limit: wait 500ms between searches
-        await new Promise(r => setTimeout(r, 500));
+        // Small delay between batches to be safe with Gemini rate limits (15 req/min)
+        if (b + SEARCH_BATCH_SIZE < socialProspects.length) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
       }
     }
 

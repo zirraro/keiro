@@ -628,6 +628,190 @@ UNIQUEMENT du JSON, pas de markdown.`,
         });
       }
 
+      case 'advise_agents': {
+        // Marketing advisor: analyze performance, generate strategic advice for each agent
+        const sharedCtx = await loadSharedContext(supabase, 'marketing');
+        const crmContext = formatContextForPrompt(sharedCtx);
+
+        // Load all agent learnings (deep history)
+        const { data: allLearnings } = await supabase
+          .from('agent_logs')
+          .select('agent, data, created_at')
+          .eq('action', 'memory')
+          .order('created_at', { ascending: false })
+          .limit(30);
+
+        const learningHistory = (allLearnings || [])
+          .map((l: any) => `[${l.agent}] ${l.data?.learning} (${new Date(l.created_at).toLocaleDateString('fr-FR')})`)
+          .join('\n');
+
+        // Load recent performance per agent (last 7 days)
+        const { data: recentPerf } = await supabase
+          .from('agent_logs')
+          .select('agent, action, data, created_at')
+          .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'enrichment_run', 'prepare_comments', 'find_follow_targets', 'weekly_analysis'])
+          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const perfByAgent: Record<string, string[]> = {};
+        for (const log of recentPerf || []) {
+          if (!perfByAgent[log.agent]) perfByAgent[log.agent] = [];
+          const d = log.data;
+          let summary = `${log.action}`;
+          if (d?.success !== undefined) summary += `: ${d.success} OK, ${d.failed || 0} fails`;
+          if (d?.enriched !== undefined) summary += `: ${d.enriched} enrichis`;
+          if (d?.prepared !== undefined) summary += `: ${d.prepared} préparés`;
+          if (d?.comments_inserted !== undefined) summary += `: ${d.comments_inserted} comments`;
+          if (d?.targets_inserted !== undefined) summary += `: ${d.targets_inserted} follows`;
+          perfByAgent[log.agent].push(summary);
+        }
+
+        const perfSummary = Object.entries(perfByAgent)
+          .map(([agent, logs]) => `${agent.toUpperCase()}:\n${logs.slice(0, 5).map(l => `  - ${l}`).join('\n')}`)
+          .join('\n\n');
+
+        const adviceRaw = await callGemini({
+          system: `Tu es le CMO/Directeur Marketing de KeiroAI. Tu as accumulé de l'expérience en analysant les performances de tous les agents.
+
+TON RÔLE : analyser les performances, identifier ce qui marche/ne marche pas, et émettre des DIRECTIVES STRATÉGIQUES pour chaque agent.
+
+TES DIRECTIVES sont exécutées automatiquement par les agents. Sois précis et actionnable.
+
+STRUCTURE DE RÉPONSE (JSON) :
+{
+  "overall_assessment": "Évaluation globale en 2-3 phrases",
+  "learnings": [
+    "J'ai appris: [insight stratégique basé sur les données]",
+    "J'ai appris: [deuxième insight]"
+  ],
+  "agent_directives": {
+    "email": {
+      "assessment": "Performance email en 1 phrase",
+      "directive": "Action concrète à prendre",
+      "priority": "haute|moyenne|basse"
+    },
+    "dm_instagram": {
+      "assessment": "Performance DM en 1 phrase",
+      "directive": "Action concrète",
+      "priority": "haute|moyenne|basse"
+    },
+    "commercial": {
+      "assessment": "Performance commercial en 1 phrase",
+      "directive": "Action concrète",
+      "priority": "haute|moyenne|basse"
+    },
+    "seo": {
+      "assessment": "Performance SEO en 1 phrase",
+      "directive": "Action concrète",
+      "priority": "haute|moyenne|basse"
+    },
+    "content": {
+      "assessment": "Performance contenu en 1 phrase",
+      "directive": "Action concrète",
+      "priority": "haute|moyenne|basse"
+    }
+  },
+  "admin_brief": "Brief pour l'admin en 5 lignes max — insights clés + recommandations produit",
+  "client_insights": [
+    "Conseil pour les clients basé sur ton expérience: [insight]"
+  ]
+}
+
+UNIQUEMENT du JSON valide, pas de markdown.`,
+          message: `Analyse les performances et émets tes directives stratégiques.
+
+DONNÉES CRM :
+${crmContext}
+
+HISTORIQUE DES APPRENTISSAGES :
+${learningHistory || 'Premier run — pas encore d\'apprentissages.'}
+
+PERFORMANCES RÉCENTES PAR AGENT (7 jours) :
+${perfSummary || 'Pas de données de performance disponibles.'}
+
+Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+          maxTokens: 4000,
+        });
+
+        // Parse advice
+        let advice: any = null;
+        try {
+          const cleanText = adviceRaw.replace(/```[\w]*\s*/g, '').trim();
+          const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) advice = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('[Marketing] Failed to parse advice:', e);
+        }
+
+        if (advice) {
+          // Save learnings
+          if (advice.learnings) {
+            for (const learning of advice.learnings) {
+              if (learning && learning.length > 10) {
+                await supabase.from('agent_logs').insert({
+                  agent: 'marketing',
+                  action: 'memory',
+                  data: { learning, source: 'advise_agents', learned_at: nowISO },
+                  created_at: nowISO,
+                });
+              }
+            }
+          }
+
+          // Issue directives to each agent
+          if (advice.agent_directives) {
+            const { writeDirective } = await import('@/lib/agents/shared-context');
+            for (const [agent, dir] of Object.entries(advice.agent_directives) as [string, any][]) {
+              if (dir?.directive) {
+                await writeDirective(supabase, 'marketing', agent, 'strategy', dir.directive, dir.priority || 'moyenne');
+                console.log(`[Marketing] Directive → ${agent}: ${dir.directive.substring(0, 80)}`);
+              }
+            }
+          }
+
+          // Save client insights for the marketing assistant chatbot
+          if (advice.client_insights && advice.client_insights.length > 0) {
+            await supabase.from('agent_logs').insert({
+              agent: 'marketing',
+              action: 'client_insights',
+              data: { insights: advice.client_insights, source: 'advise_agents' },
+              created_at: nowISO,
+            });
+          }
+        }
+
+        // Log
+        await supabase.from('agent_logs').insert({
+          agent: 'marketing',
+          action: 'advise_agents',
+          data: {
+            advice: advice || { raw: adviceRaw.substring(0, 2000) },
+            directives_issued: advice?.agent_directives ? Object.keys(advice.agent_directives).length : 0,
+            learnings_saved: advice?.learnings?.length || 0,
+          },
+          status: 'success',
+          created_at: nowISO,
+        });
+
+        // Report to CEO
+        await supabase.from('agent_logs').insert({
+          agent: 'marketing',
+          action: 'report_to_ceo',
+          data: {
+            phase: 'completed',
+            message: `Marketing Advisor: ${advice?.agent_directives ? Object.keys(advice.agent_directives).length : 0} directives émises, ${advice?.learnings?.length || 0} apprentissages. Brief: ${advice?.admin_brief?.substring(0, 200) || 'N/A'}`,
+          },
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          advice: advice || adviceRaw.substring(0, 2000),
+          directives_issued: advice?.agent_directives ? Object.keys(advice.agent_directives).length : 0,
+        });
+      }
+
       default:
         return NextResponse.json({ ok: false, error: `Action inconnue: ${body.action}` }, { status: 400 });
     }
