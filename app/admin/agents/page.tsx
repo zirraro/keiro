@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -45,7 +45,7 @@ type AgentLog = {
   data: any;
 };
 
-export default function AdminAgentsPage() {
+function AdminAgentsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = useMemo(() => supabaseBrowser(), []);
@@ -2402,5 +2402,13 @@ export default function AdminAgentsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AdminAgentsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <AdminAgentsContent />
+    </Suspense>
   );
 }
