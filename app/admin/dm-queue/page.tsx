@@ -48,7 +48,7 @@ type DMItem = {
 
 type ContentPost = {
   id: string;
-  network: string;
+  platform: string;
   scheduled_date: string;
   scheduled_time: string | null;
   caption: string;
@@ -157,11 +157,11 @@ function SuiviPublicationsPage() {
       let query = supabase
         .from('content_calendar')
         .select('*')
-        .eq('network', network)
+        .eq('platform', network)
         .order('scheduled_date', { ascending: false });
 
       if (pubSubTab === 'draft') {
-        query = query.in('status', ['draft', 'pending', 'scheduled']);
+        query = query.in('status', ['draft', 'pending', 'scheduled', 'approved']);
       } else {
         query = query.eq('status', 'published');
       }
@@ -511,9 +511,10 @@ function SuiviPublicationsPage() {
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                               post.status === 'published' ? 'bg-green-100 text-green-700' :
                               post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                              post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
-                              {post.status === 'published' ? 'Publié' : post.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
+                              {post.status === 'published' ? 'Publié' : post.status === 'scheduled' ? 'Planifié' : post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
                             </span>
                             <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
                           </div>
