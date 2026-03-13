@@ -322,6 +322,28 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
             .eq('instagram', handle)
             .limit(1);
 
+          // If not in CRM, create a prospect entry
+          let prospectId = existingProspect?.[0]?.id || null;
+          if (!prospectId && target.name) {
+            const { data: newProspect } = await supabase
+              .from('crm_prospects')
+              .insert({
+                company: target.name,
+                type: target.type || null,
+                quartier: target.city || null,
+                instagram: handle,
+                status: 'identifie',
+                temperature: 'cold',
+                source: platform === 'tiktok' ? 'tiktok' : 'dm_instagram',
+                source_agent: 'marketing',
+                created_at: nowISO,
+                updated_at: nowISO,
+              })
+              .select('id')
+              .single();
+            if (newProspect) prospectId = newProspect.id;
+          }
+
           await supabase.from('dm_queue').insert({
             channel,
             handle,
@@ -337,7 +359,7 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
             }),
             status: 'pending',
             priority: target.priority || 2,
-            prospect_id: existingProspect?.[0]?.id || null,
+            prospect_id: prospectId,
           });
           inserted++;
         }

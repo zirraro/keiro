@@ -29,12 +29,24 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=community",
+      "schedule": "30 9 * * 1,2,3,4,5"
+    },
+    {
       "path": "/api/cron/scheduler?slot=midday",
       "schedule": "0 10 * * 1,2,3,4"
     },
     {
+      "path": "/api/cron/scheduler?slot=discovery_2",
+      "schedule": "0 11 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=afternoon",
       "schedule": "0 12 * * 1,2,3,4"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=discovery_3",
+      "schedule": "0 14 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=ceo_evening",

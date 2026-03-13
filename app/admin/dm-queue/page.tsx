@@ -261,22 +261,66 @@ function SuiviPublicationsPage() {
     const item = dmItems.find(i => i.id === id);
     if (item?.prospect_id) {
       const prospectUpdates: any = { updated_at: new Date().toISOString() };
-      if (status === 'sent') {
-        prospectUpdates.dm_status = 'sent';
-        prospectUpdates.dm_sent_at = new Date().toISOString();
-        prospectUpdates.dm_followup_date = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
-        prospectUpdates.status = 'contacte';
-      } else if (status === 'responded' && responseType === 'interested') {
-        prospectUpdates.dm_status = 'responded_positive';
-        prospectUpdates.temperature = 'hot';
-        prospectUpdates.status = 'repondu';
-      } else if (status === 'responded' && responseType === 'not_interested') {
-        prospectUpdates.dm_status = 'responded_negative';
-        prospectUpdates.status = 'perdu';
-      } else if (status === 'skipped') {
-        prospectUpdates.dm_status = 'none';
+      const isFollow = item.channel?.startsWith('follow_');
+      const isComment = item.channel?.startsWith('comment_');
+
+      if (isFollow) {
+        // Follow: track follow status in CRM
+        if (status === 'sent') {
+          prospectUpdates.status = 'contacte';
+          prospectUpdates.temperature = 'warm';
+          prospectUpdates.last_contact_at = new Date().toISOString();
+        } else if (status === 'responded' && responseType === 'interested') {
+          // Follow back received
+          prospectUpdates.temperature = 'hot';
+          prospectUpdates.status = 'repondu';
+        }
+      } else if (isComment) {
+        // Comment: track comment engagement in CRM
+        if (status === 'sent') {
+          prospectUpdates.last_contact_at = new Date().toISOString();
+          // Increment comment count via raw SQL or set warm
+          prospectUpdates.temperature = prospectUpdates.temperature === 'hot' ? 'hot' : 'warm';
+          if (!['contacte', 'repondu', 'demo', 'sprint', 'client'].includes(item.prospect?.company ? 'contacte' : '')) {
+            prospectUpdates.status = 'contacte';
+          }
+        } else if (status === 'responded' && responseType === 'interested') {
+          prospectUpdates.temperature = 'hot';
+          prospectUpdates.status = 'repondu';
+        }
+      } else {
+        // DM: existing logic
+        if (status === 'sent') {
+          prospectUpdates.dm_status = 'sent';
+          prospectUpdates.dm_sent_at = new Date().toISOString();
+          prospectUpdates.dm_followup_date = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
+          prospectUpdates.status = 'contacte';
+        } else if (status === 'responded' && responseType === 'interested') {
+          prospectUpdates.dm_status = 'responded_positive';
+          prospectUpdates.temperature = 'hot';
+          prospectUpdates.status = 'repondu';
+        } else if (status === 'responded' && responseType === 'not_interested') {
+          prospectUpdates.dm_status = 'responded_negative';
+          prospectUpdates.status = 'perdu';
+        } else if (status === 'skipped') {
+          prospectUpdates.dm_status = 'none';
+        }
       }
       await supabase.from('crm_prospects').update(prospectUpdates).eq('id', item.prospect_id);
+
+      // Log activity in crm_activities
+      if (status === 'sent') {
+        await supabase.from('crm_activities').insert({
+          prospect_id: item.prospect_id,
+          type: isFollow ? 'follow' : isComment ? 'comment' : 'dm_instagram',
+          description: isFollow
+            ? `Follow ${item.channel?.includes('tiktok') ? 'TikTok' : 'Instagram'}: @${item.handle}`
+            : isComment
+            ? `Commentaire Instagram sur post de @${item.handle}`
+            : `DM ${item.channel?.includes('tiktok') ? 'TikTok' : 'Instagram'} envoye a @${item.handle}`,
+          created_at: new Date().toISOString(),
+        });
+      }
     }
 
     fetchData();

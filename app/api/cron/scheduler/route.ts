@@ -56,10 +56,12 @@ export async function GET(request: NextRequest) {
 
   const results: { task: string; ok: boolean; data?: any; error?: string }[] = [];
 
-  async function callEndpoint(name: string, path: string, method: 'GET' | 'POST' = 'GET') {
+  async function callEndpoint(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
     try {
       console.log(`[Scheduler/${slot}] → ${name}: ${method} ${path}`);
-      const res = await fetch(`${baseUrl}${path}`, { method, headers });
+      const opts: RequestInit = { method, headers };
+      if (body && method === 'POST') opts.body = JSON.stringify(body);
+      const res = await fetch(`${baseUrl}${path}`, opts);
       const data = await res.json().catch(() => ({ ok: false }));
       results.push({ task: name, ok: data.ok ?? res.ok, data });
       console.log(`[Scheduler/${slot}] ← ${name}: ${data.ok ? 'OK' : 'FAIL'}`);
@@ -71,8 +73,25 @@ export async function GET(request: NextRequest) {
 
   switch (slot) {
     case 'discovery':
-      // 03:00 UTC — Commercial enrichment + Google Search for social profiles
-      await callEndpoint('Commercial Enrichment + Google', '/api/agents/commercial');
+      // 03:00 UTC — Commercial: verify CRM (audit existing prospects)
+      await callEndpoint('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
+      break;
+
+    case 'discovery_2':
+      // 11:00 UTC — Commercial: external prospection (Google Search for social)
+      await callEndpoint('Commercial Prospect External', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      break;
+
+    case 'discovery_3':
+      // 14:00 UTC — Commercial: verify CRM batch 2 + prospect external batch 2
+      await callEndpoint('Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
+      await callEndpoint('Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      break;
+
+    case 'community':
+      // 09:30 UTC — Community Manager: prepare comments on real posts
+      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
+      await callEndpoint('Community Follow Targets', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
       break;
 
     case 'ceo':
