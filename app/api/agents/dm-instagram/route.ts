@@ -64,15 +64,18 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
     const rawText = await callGemini({
       system: getDMSystemPrompt(),
       message: prospectData,
-      maxTokens: 400,
+      maxTokens: 800,
     });
     const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.warn(`[DMAgent] No JSON found in AI response for ${prospect.company}:`, rawText.substring(0, 200));
+      return null;
+    }
 
     return JSON.parse(jsonMatch[0]);
   } catch (e: any) {
-    console.error(`[DMAgent] Claude error for ${prospect.company}:`, e.message);
+    console.error(`[DMAgent] AI error for ${prospect.company}:`, e.message);
     return null;
   }
 }
@@ -120,8 +123,9 @@ function verifyDMProspectData(prospect: any): { valid: boolean; issues: string[]
   if (!prospect.instagram || prospect.instagram === 'A_VERIFIER') {
     issues.push('instagram_missing');
   }
+  // company_missing is a warning, not blocking — we can still DM with just the handle
   if (!prospect.company || prospect.company.trim().length < 2) {
-    issues.push('company_missing');
+    // Non-blocking: continue without company name
   }
   if (prospect.temperature === 'dead' || prospect.status === 'perdu') {
     issues.push('prospect_dead');
@@ -205,8 +209,22 @@ async function runDMPreparation(): Promise<NextResponse> {
       continue;
     }
 
-    const dm = await generateDM(prospect);
-    if (!dm) { failed++; continue; }
+    let dm = await generateDM(prospect);
+    if (!dm) {
+      // Fallback template when AI fails — still send a DM
+      const name = prospect.company || prospect.instagram || 'ton commerce';
+      const quartier = prospect.quartier || 'ton quartier';
+      dm = {
+        dm_text: `Salut ! Je viens de tomber sur ${name}, franchement j'adore le concept. Je bosse dans le marketing digital pour les commerces du coin et honnêtement tu mérites plus de visibilité. Tu fais tes visuels toi-même ?`,
+        personalization_detail: 'fallback template — AI generation failed',
+        follow_up_3d: `Hey ! Je sais pas si t'as vu mon message, je voulais juste te montrer un truc sympa pour ${name}. J'ai fait un visuel gratos pour toi, tu veux que je te l'envoie ?`,
+        follow_up_7d: `Dernier message promis haha. Si jamais t'as 5 min pour voir ce que ça donne pour ${name}, y'a une offre à 4,99€ pour tester 3 jours. Zéro engagement 👊`,
+        response_interested: `Trop bien ! Regarde, je t'ai fait un truc vite fait. Ça m'a pris 30 sec. Si tu veux tester toi-même y'a un Sprint 3 jours à 4,99€. Tu veux que je t'envoie le lien ?`,
+        response_skeptical: `Je comprends haha. Regarde, des commerces comme toi dans ${quartier} postent déjà du contenu pro tous les jours. Le truc c'est que ça prend 2 min par visuel.`,
+        tone_notes: 'Template fallback — personnalisation manuelle recommandée',
+      };
+      console.log(`[DMAgent] Using fallback template for ${prospect.company || prospect.instagram}`);
+    }
 
     // Insert into dm_queue with status 'pending' — founder must manually send via Instagram
     const { error: queueError } = await supabase.from('dm_queue').insert({

@@ -56,14 +56,18 @@ async function generateComment(prospect: any): Promise<{ comment: string; dm_tex
     const rawText = await callGemini({
       system: getTikTokCommentPrompt(),
       message: context,
-      maxTokens: 200,
+      maxTokens: 600,
     });
     const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
+    if (!jsonMatch) {
+      console.warn(`[TikTokAgent] No JSON in AI response for ${prospect.company}:`, rawText.substring(0, 200));
+      return null;
+    }
 
     return JSON.parse(jsonMatch[0]);
-  } catch {
+  } catch (e: any) {
+    console.error(`[TikTokAgent] AI error for ${prospect.company}:`, e.message);
     return null;
   }
 }
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
 function verifyTikTokProspectData(prospect: any): { valid: boolean; issues: string[] } {
   const issues: string[] = [];
   if (!prospect.tiktok_handle) issues.push('tiktok_handle_missing');
-  if (!prospect.company || prospect.company.trim().length < 2) issues.push('company_missing');
+  // company_missing is non-blocking for DMs
   if (prospect.temperature === 'dead' || prospect.status === 'perdu') issues.push('prospect_dead');
   if (prospect.status === 'client' || prospect.status === 'sprint') issues.push('already_client');
   return { valid: issues.length === 0, issues };
@@ -170,8 +174,18 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
       continue;
     }
 
-    const result = await generateComment(prospect);
-    if (!result) continue;
+    let result = await generateComment(prospect);
+    if (!result) {
+      // Fallback template
+      const name = prospect.company || prospect.tiktok_handle || 'ton commerce';
+      result = {
+        comment: `Trop bien ce que tu fais ! J'adore le concept de ${name} 🔥`,
+        dm_text: `Salut ! Je viens de voir tes vidéos, franchement ${name} c'est le genre de commerce qui mérite plus de visibilité. Je bosse dans le marketing digital pour les commerces locaux, tu fais tes visuels toi-même ?`,
+        strategy: 'fallback template — AI generation failed',
+        follow_up: `Hey ! Je sais pas si t'as vu mon message, je voulais juste te montrer un truc sympa pour ${name}. J'ai fait un visuel gratos, tu veux que je te l'envoie ?`,
+      };
+      console.log(`[TikTokAgent] Using fallback template for ${prospect.company || prospect.tiktok_handle}`);
+    }
 
     // Insert into dm_queue with status 'pending' — founder must manually send
     await supabase.from('dm_queue').insert({
