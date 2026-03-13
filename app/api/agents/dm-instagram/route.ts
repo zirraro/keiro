@@ -33,6 +33,68 @@ async function verifyAuth(request: NextRequest) {
 }
 
 const MAX_DM_PER_DAY = 60;
+const MAX_VISUALS_PER_RUN = 10;
+
+const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
+const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+
+/**
+ * Generate a personalized marketing visual for a prospect's business via Seedream.
+ */
+async function generateProspectVisual(prospect: any): Promise<string | null> {
+  try {
+    const businessName = prospect.company || 'commerce local';
+    const businessType = prospect.type || 'commerce';
+    const quartier = prospect.quartier || '';
+
+    // Generate a visual prompt tailored to the prospect's business
+    const promptMap: Record<string, string> = {
+      restaurant: `Beautiful professional food photography for a French restaurant, elegant plating, warm ambient lighting, wooden table, appetizing gourmet dish, cozy restaurant interior blur background, premium quality`,
+      boutique: `Stylish fashion boutique storefront display, curated products on shelves, warm inviting lighting, modern retail interior design, high-end shopping experience`,
+      coiffeur: `Modern hair salon interior, professional styling station, warm lighting, sleek minimalist design, beauty and wellness atmosphere, clean aesthetic`,
+      coach: `Dynamic fitness coaching session, energetic personal trainer, modern gym equipment, motivational atmosphere, active lifestyle, professional quality`,
+      fleuriste: `Beautiful flower shop display, colorful fresh flower arrangements, vibrant bouquets, charming storefront, natural light, artisanal floral design`,
+      caviste: `Premium wine shop interior, elegant wine bottle display, wooden shelves, warm sophisticated lighting, French wine selection, artisanal feel`,
+      traiteur: `Catering service showcase, beautifully presented buffet, gourmet appetizers, professional food presentation, elegant event setting`,
+      freelance: `Creative professional workspace, modern laptop setup, inspiring desk arrangement, artistic tools, productive and stylish home office`,
+      boulangerie: `Fresh artisanal French bakery, golden croissants and baguettes, rustic wooden display, warm morning light, traditional craftsmanship`,
+    };
+
+    const basePrompt = promptMap[businessType] || `Professional marketing visual for a French local business, modern and inviting, warm lighting, premium quality`;
+    const prompt = `${basePrompt}. ${quartier ? `Located in ${quartier}, France.` : 'French style.'} No text, no watermark, no logos, clean composition, Instagram-ready, 1:1 square format.`;
+
+    const response = await fetch(SEEDREAM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'seedream-4-5-251128',
+        prompt,
+        size: '1024x1024',
+        response_format: 'url',
+        seed: -1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[DMAgent] Seedream error for ${businessName}:`, response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const url = data?.data?.[0]?.url;
+    if (url) {
+      console.log(`[DMAgent] Visual generated for ${businessName} (${businessType})`);
+      return url;
+    }
+    return null;
+  } catch (error: any) {
+    console.warn(`[DMAgent] Visual generation failed:`, error.message);
+    return null;
+  }
+}
 
 /**
  * Generate personalized DM via Claude Haiku
@@ -224,6 +286,26 @@ async function runDMPreparation(): Promise<NextResponse> {
     dmResults.push(...batchDms);
   }
 
+  // Generate personalized visuals for top-priority prospects (in parallel, max 10)
+  const topProspects = dmResults.filter(r => r.dm).slice(0, MAX_VISUALS_PER_RUN);
+  const visualUrls = new Map<string, string>();
+
+  if (topProspects.length > 0) {
+    console.log(`[DMAgent] Generating personalized visuals for ${topProspects.length} prospects...`);
+    const VISUAL_BATCH_SIZE = 3;
+    for (let vb = 0; vb < topProspects.length; vb += VISUAL_BATCH_SIZE) {
+      const vBatch = topProspects.slice(vb, vb + VISUAL_BATCH_SIZE);
+      const vResults = await Promise.all(vBatch.map(async ({ prospect }) => {
+        const url = await generateProspectVisual(prospect);
+        return { prospectId: prospect.id, url };
+      }));
+      for (const vr of vResults) {
+        if (vr.url) visualUrls.set(vr.prospectId, vr.url);
+      }
+    }
+    console.log(`[DMAgent] ${visualUrls.size}/${topProspects.length} visuals generated`);
+  }
+
   for (const { prospect, category, dm: rawDm } of dmResults) {
     let dm = rawDm;
     if (!dm) {
@@ -256,6 +338,7 @@ async function runDMPreparation(): Promise<NextResponse> {
         response_skeptical: dm.response_skeptical || null,
         tone_notes: dm.tone_notes || null,
         business_type: category,
+        visual_url: visualUrls.get(prospect.id) || null,
       }),
       priority: prospect.score || 50,
       status: 'pending',
@@ -278,10 +361,8 @@ async function runDMPreparation(): Promise<NextResponse> {
       dm_followup_date: followupDate,
       updated_at: now,
     };
-    // Advance status if not already progressed
-    if (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie') {
-      dmUpdate.status = 'contacte';
-    }
+    // NOTE: status 'contacte' is set only when the DM is actually SENT in Suivi & Publication
+    // Do NOT advance status here — the DM is only queued, not sent yet
     await supabase.from('crm_prospects').update(dmUpdate).eq('id', prospect.id);
 
     // Log CRM activity

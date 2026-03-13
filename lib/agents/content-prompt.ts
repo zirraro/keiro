@@ -100,7 +100,10 @@ STRUCTURE DE CAPTION INSTAGRAM :
 3. Utilise des sauts de ligne ↵ pour aérer
 4. Bullet points avec emojis pertinents (pas de spam d'emojis)
 5. CTA clair et spécifique : "Enregistre ce post" / "Tag un commerçant" / "Lien en bio"
-6. Maximum 2000 caractères
+6. Maximum 800 caractères pour Instagram, 500 pour TikTok
+7. CONCIS ET PERCUTANT : chaque mot doit avoir sa place, ZERO remplissage
+8. Pas de paragraphes. Des phrases-chocs. 1 idée = 1 ligne.
+9. Si tu peux le dire en 3 mots, ne le dis pas en 10
 
 STRUCTURE CARROUSEL (10 slides) :
 - Slide 1 (COVER) : Titre GROS (5 mots max) + fond coloré contrasté + logo KeiroAI discret
@@ -168,6 +171,8 @@ RÈGLES DE QUALITÉ NON-NÉGOCIABLES
 - Promesses non vérifiables
 - Texte dans les visuels générés (Seedream ne gère pas le texte)
 - Visuels trop chargés ou trop détaillés (lisibilité miniature !)
+- Captions longues et verbeuses (si c'est plus de 800 chars sur Insta, c'est TROP)
+- Paragraphes de 3+ lignes (aère, découpe, impacte)
 
 ✅ OBLIGATOIRE :
 - Chaque post mentionne ou implique KeiroAI naturellement
@@ -177,6 +182,8 @@ RÈGLES DE QUALITÉ NON-NÉGOCIABLES
 - Le contenu apporte une valeur RÉELLE (le commerçant apprend quelque chose)
 - Le ton est humain, jamais robotique
 - Les hashtags incluent toujours #keiroai + 4-8 hashtags de niche
+- Chaque caption est SOUS 800 caractères (Instagram) ou 500 (TikTok)
+- Style punchline : phrases courtes, percutantes, mémorables
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HEURES DE PUBLICATION OPTIMALES (heure Paris)
@@ -194,7 +201,7 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "format": "carrousel|reel|story|post|video|text",
   "pillar": "tips|demo|social_proof|trends",
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
-  "caption": "Le texte complet de la publication avec sauts de ligne, emojis pertinents (max 5), et CTA final. Instagram max 2200 caractères. Tutoiement sur Insta/TikTok, vouvoiement LinkedIn.",
+  "caption": "Texte COURT et PERCUTANT. Instagram max 800 chars, TikTok max 500 chars, LinkedIn max 1200 chars. Chaque ligne = un impact. Pas de remplissage. Tutoiement sur Insta/TikTok, vouvoiement LinkedIn. Max 3-5 emojis stratégiques.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
   "visual_description": "Description détaillée du visuel principal : composition, couleurs (utiliser la palette KeiroAI), style (flat design/3D soft/photo réaliste), éléments visuels, ambiance. AUCUN texte dans l'image.",
   "thumbnail_description": "Description EXACTE de ce que la miniature 100x100px montre dans la grille : couleur de fond dominante, forme centrale, contraste. Doit être LISIBLE en petit et DISTINCT des posts adjacents.",

@@ -21,6 +21,8 @@ type PersonalizationData = {
   strategy?: string;
   dm_text?: string;
   follow_up?: string;
+  // Visual for prospect
+  visual_url?: string;
   // Comment fields
   post_caption?: string;
   post_permalink?: string;
@@ -109,9 +111,34 @@ type CalendarPost = {
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'comment_instagram' | 'follow_instagram' | 'follow_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'comment_instagram' | 'follow_instagram' | 'follow_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
 type DMSubTab = 'pending' | 'sent' | 'responded';
+type EmailSubTab = 'all' | 'step1' | 'step2' | 'step3_plus' | 'sent' | 'draft';
 type PubSubTab = 'draft' | 'published';
+
+type EmailItem = {
+  id: string;
+  prospect_id: string;
+  type: string;
+  description: string;
+  data: {
+    subject?: string;
+    step?: number;
+    category?: string;
+    provider?: string;
+    message_id?: string;
+    ai_generated?: boolean;
+  } | null;
+  created_at: string;
+  prospect?: {
+    company: string;
+    email: string;
+    type: string | null;
+    status: string | null;
+    temperature: string | null;
+    email_sequence_step: number | null;
+  };
+};
 
 export default function SuiviPublicationsPageWrapper() {
   return (
@@ -125,7 +152,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'comment_instagram', 'follow_instagram', 'follow_tiktok', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'comment_instagram', 'follow_instagram', 'follow_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -140,6 +167,8 @@ function SuiviPublicationsPage() {
   const [dmItems, setDmItems] = useState<DMItem[]>([]);
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [emailSubTab, setEmailSubTab] = useState<EmailSubTab>('all');
+  const [emailItems, setEmailItems] = useState<EmailItem[]>([]);
   const [calendarPosts, setCalendarPosts] = useState<CalendarPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
@@ -148,6 +177,9 @@ function SuiviPublicationsPage() {
   // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const router = useRouter();
 
@@ -157,6 +189,7 @@ function SuiviPublicationsPage() {
   const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok';
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
+  const isEmailTab = mainTab === 'email';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -243,10 +276,39 @@ function SuiviPublicationsPage() {
         .order('scheduled_time', { ascending: true });
 
       setCalendarPosts((data as any) || []);
+    } else if (isEmailTab) {
+      // Load email activities from crm_activities
+      let query = supabase
+        .from('crm_activities')
+        .select('*, prospect:crm_prospects(company, email, type, status, temperature, email_sequence_step)')
+        .eq('type', 'email')
+        .order('created_at', { ascending: false });
+
+      if (emailSubTab === 'step1') {
+        // Filter step 1 emails only (in JS after fetch since data is JSONB)
+      } else if (emailSubTab === 'step2') {
+        // Filter step 2
+      } else if (emailSubTab === 'step3_plus') {
+        // Filter step 3+
+      }
+
+      const { data } = await query.limit(100);
+      let items = (data as any) || [];
+
+      // Filter by step in JS (data is JSONB, can't filter in PostgREST easily)
+      if (emailSubTab === 'step1') {
+        items = items.filter((e: any) => e.data?.step === 1);
+      } else if (emailSubTab === 'step2') {
+        items = items.filter((e: any) => e.data?.step === 2);
+      } else if (emailSubTab === 'step3_plus') {
+        items = items.filter((e: any) => (e.data?.step || 0) >= 3);
+      }
+
+      setEmailItems(items);
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isCommentTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, calendarWeekOffset]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isCommentTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -332,6 +394,25 @@ function SuiviPublicationsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const startEditDm = (id: string, message: string) => {
+    setEditingId(id);
+    setEditText(message);
+  };
+
+  const saveEditDm = async (id: string) => {
+    setSavingEdit(true);
+    const supabase = supabaseBrowser();
+    await supabase.from('dm_queue').update({ message: editText }).eq('id', id);
+    setDmItems(prev => prev.map(item => item.id === id ? { ...item, message: editText } : item));
+    setEditingId(null);
+    setSavingEdit(false);
+  };
+
+  const cancelEditDm = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
   const publishPost = async (postId: string) => {
     setPublishingPostId(postId);
     try {
@@ -362,6 +443,7 @@ function SuiviPublicationsPage() {
     { key: 'comment_instagram', label: 'Commentaires', icon: '💬' },
     { key: 'follow_instagram', label: 'Follow Insta', icon: '👥' },
     { key: 'follow_tiktok', label: 'Follow TikTok', icon: '👥' },
+    { key: 'email', label: 'Emails', icon: '📧' },
     { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
     { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
@@ -444,6 +526,27 @@ function SuiviPublicationsPage() {
           </div>
         )}
 
+        {isEmailTab && (
+          <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
+            {([
+              { key: 'all' as const, label: 'Tous' },
+              { key: 'step1' as const, label: '1er mail' },
+              { key: 'step2' as const, label: 'Relance' },
+              { key: 'step3_plus' as const, label: 'Step 3+' },
+            ]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setEmailSubTab(t.key)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+                  emailSubTab === t.key ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Content */}
         {loading ? (
           <div className="text-center py-12"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -514,9 +617,41 @@ function SuiviPublicationsPage() {
                             </div>
                           )}
 
-                          <div className={`${isCommentTab ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed`}>
-                            {item.message}
-                          </div>
+                          {/* Personalized visual for prospect */}
+                          {perso?.visual_url && (
+                            <div className="mb-3">
+                              <p className="text-[10px] font-bold text-purple-500 mb-1">Visuel personnalisé</p>
+                              <img src={perso.visual_url} alt={`Visuel pour ${prospect?.company || item.handle}`} className="w-full max-w-[300px] rounded-lg border border-purple-200 shadow-sm" />
+                            </div>
+                          )}
+
+                          {editingId === item.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                className="w-full border border-blue-300 rounded-lg p-3 text-sm text-neutral-800 leading-relaxed resize-none focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                rows={Math.max(3, editText.split('\n').length + 1)}
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={() => saveEditDm(item.id)} disabled={savingEdit} className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                  {savingEdit ? 'Sauvegarde...' : 'Sauvegarder'}
+                                </button>
+                                <button onClick={cancelEditDm} className="px-3 py-1 text-xs font-medium bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300">
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => dmSubTab === 'pending' ? startEditDm(item.id, item.message) : undefined}
+                              className={`${isCommentTab ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed ${dmSubTab === 'pending' ? 'cursor-pointer hover:ring-2 hover:ring-blue-300 transition' : ''}`}
+                              title={dmSubTab === 'pending' ? 'Cliquer pour modifier' : undefined}
+                            >
+                              {item.message}
+                            </div>
+                          )}
                           {isCommentTab && perso?.strategy_note && (
                             <p className="text-[10px] text-neutral-400 mt-1.5 italic">Strategie : {perso.strategy_note}</p>
                           )}
@@ -770,6 +905,73 @@ function SuiviPublicationsPage() {
                       </div>
                     </Link>
                   ))}
+                </div>
+              )
+            )}
+
+            {/* Email Items */}
+            {isEmailTab && (
+              emailItems.length === 0 ? (
+                <div className="text-center py-12 text-neutral-400">
+                  Aucun email trouvé pour ce filtre.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-neutral-500 mb-2">{emailItems.length} emails</p>
+                  {emailItems.map((item) => {
+                    const prospect = Array.isArray(item.prospect) ? item.prospect[0] : item.prospect;
+                    const step = item.data?.step || 0;
+                    const subject = item.data?.subject || '';
+                    const category = item.data?.category || '';
+                    const isAI = item.data?.ai_generated;
+
+                    const stepLabel = step === 1 ? '1er contact' : step === 2 ? 'Relance douce' : step === 3 ? 'Valeur gratuite' : step === 4 ? 'FOMO' : step === 5 ? 'Dernière chance' : step === 10 ? 'Warm' : `Step ${step}`;
+                    const stepColor = step === 1 ? 'bg-blue-100 text-blue-700' : step === 2 ? 'bg-orange-100 text-orange-700' : step === 3 ? 'bg-green-100 text-green-700' : step === 4 ? 'bg-red-100 text-red-700' : step === 5 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-700';
+
+                    return (
+                      <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${stepColor}`}>{stepLabel}</span>
+                            {isAI && <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-violet-100 text-violet-700">IA</span>}
+                            {category && <span className="text-[10px] text-neutral-400">{category}</span>}
+                          </div>
+                          <span className="text-[10px] text-neutral-400">{new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <p className="text-sm font-semibold text-neutral-900">{prospect?.company || 'Inconnu'}</p>
+                          <span className="text-xs text-neutral-400">{prospect?.email || ''}</span>
+                        </div>
+                        {subject && (
+                          <p className="text-xs text-neutral-600 mb-1">
+                            <span className="font-medium text-neutral-500">Objet :</span> {subject}
+                          </p>
+                        )}
+                        <p className="text-xs text-neutral-500 line-clamp-2">{item.description}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          {prospect?.status && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              prospect.status === 'contacte' ? 'bg-blue-50 text-blue-600' :
+                              prospect.status === 'repondu' ? 'bg-green-50 text-green-600' :
+                              prospect.status === 'client' ? 'bg-emerald-50 text-emerald-600' :
+                              'bg-neutral-50 text-neutral-500'
+                            }`}>
+                              {prospect.status}
+                            </span>
+                          )}
+                          {prospect?.temperature && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              prospect.temperature === 'hot' ? 'bg-red-50 text-red-600' :
+                              prospect.temperature === 'warm' ? 'bg-orange-50 text-orange-600' :
+                              'bg-neutral-50 text-neutral-500'
+                            }`}>
+                              {prospect.temperature}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )
             )}

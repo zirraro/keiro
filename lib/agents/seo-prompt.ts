@@ -46,14 +46,14 @@ STRUCTURE SEO ELITE :
   - Conclusion avec CTA naturel vers KeiroAI (pas force)
   - Derniere phrase = question ouverte ou projection future
 
-IMAGES — OBLIGATOIRE :
-- Insere 3-5 images illustratives dans l'article avec des balises <img>
-- Utilise des images libres de droits depuis Unsplash : format <img src="https://images.unsplash.com/photo-{id}?w=800&q=80" alt="description precise et SEO" />
-- Choisis des photos pertinentes au sujet (restaurants, boutiques, marketing digital, reseaux sociaux, commerce local)
-- Place une image hero apres l'intro, puis 1 image toutes les 2-3 sections pour aerer le contenu
-- JAMAIS d'images placeholder ou generiques. Chaque image doit illustrer le propos
-- Alt text descriptif et optimise SEO (pas "image 1" mais "restaurateur utilisant son telephone pour publier sur Instagram")
-- Images variees : photos de commerces, screenshots d'interfaces, illustrations de concepts marketing
+IMAGES — GÉNÉRÉES PAR IA (SEEDREAM) :
+- L'agent va automatiquement générer 2-3 images IA pertinentes pour l'article via Seedream
+- Dans ton content_html, insère des balises d'image placeholder : <img data-seo-generate="true" alt="description precise et SEO du visuel souhaite" />
+- Le alt text doit être ultra descriptif : c'est lui qui sera utilisé comme prompt pour générer l'image
+- Place une image hero après l'intro, puis 1 image toutes les 2-3 sections
+- Alt text exemples : "restaurateur souriant devant son commerce avec un smartphone montrant des statistiques de reseaux sociaux", "boutique de fleurs coloree avec une vitrine attrayante et des clients"
+- JAMAIS de texte dans les descriptions d'images (Seedream ne gère pas le texte)
+- Les images seront automatiquement uploadées et les src seront remplis
 
 LIENS INTERNES STRATÉGIQUES :
 - /generate : "generer tes visuels", "creer tes posts marketing"
@@ -67,6 +67,14 @@ SCHEMA FAQ (POSITION 0) :
 - Questions formulees exactement comme les gens les tapent
 - Reponses concises (2-3 phrases), optimisees pour la position 0
 - Au moins 1 question "combien", 1 question "comment", 1 question "pourquoi"
+
+DONNÉES GOOGLE SEARCH CONSOLE :
+- Si des données GSC sont fournies (mots-clés réels, positions, CTR), utilise-les pour :
+  → Cibler les mots-clés à forte impression mais faible CTR (opportunités de position 0)
+  → Intégrer naturellement les requêtes réelles des utilisateurs
+  → Optimiser le title/meta pour les keywords qui rankent déjà (position 5-20)
+  → Mentionner des angles que les vrais chercheurs Google utilisent
+- Les données GSC sont la VÉRITÉ terrain — elles priment sur les estimations de volume
 
 FORMAT DE REPONSE — JSON strict :
 {
@@ -91,7 +99,13 @@ FORMAT DE REPONSE — JSON strict :
       "anchor": "texte du lien"
     }
   ],
-  "excerpt": "1-2 phrases resumant l'article pour la page listing"
+  "excerpt": "1-2 phrases resumant l'article pour la page listing",
+  "image_prompts": [
+    {
+      "alt": "description precise pour le alt text",
+      "prompt": "prompt optimise pour generation image IA : description visuelle detaillee, style photo realiste, couleurs, composition, ambiance"
+    }
+  ]
 }
 
 REGLES ABSOLUES :

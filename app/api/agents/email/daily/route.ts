@@ -449,9 +449,19 @@ async function sendEmail(
       email_provider: provider,
       updated_at: now,
     };
-    // Advance status to 'contacte' on first email if not already progressed
-    if (step === 1 && (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie')) {
-      prospectUpdate.status = 'contacte';
+    // Advance CRM pipeline stage based on email step
+    // Only advance forward, never go backward
+    const protectedStatuses = ['repondu', 'demo', 'sprint', 'client'];
+    if (!prospect.status || !protectedStatuses.includes(prospect.status)) {
+      if (step === 1) {
+        prospectUpdate.status = 'contacte';
+      } else if (step === 2) {
+        prospectUpdate.status = 'relance_1';
+      } else if (step === 3) {
+        prospectUpdate.status = 'relance_2';
+      } else if (step === 4 || step === 5) {
+        prospectUpdate.status = 'relance_3';
+      }
     }
     await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
 
@@ -732,9 +742,12 @@ export async function GET(request: NextRequest) {
           if (daysSinceLastSent < STEP_GAP_DAYS[4]) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 5 });
         } else if (step === 5) {
-          // Step 5 completed → mark sequence as completed
+          // Step 5 completed → mark sequence as completed + perdu (3 relances, no response)
+          const isProtected = prospect.status && ['repondu', 'demo', 'sprint', 'client'].includes(prospect.status);
           await supabase.from('crm_prospects').update({
             email_sequence_status: 'completed',
+            status: isProtected ? prospect.status : 'perdu',
+            temperature: isProtected ? prospect.temperature : 'cold',
             updated_at: nowISO,
           }).eq('id', prospect.id);
           skippedCompleted++;

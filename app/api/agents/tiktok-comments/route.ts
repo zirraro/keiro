@@ -205,11 +205,9 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
       created_at: now,
     });
 
-    // Update CRM prospect status
+    // Update CRM prospect — only track queue, NOT status advancement
+    // Status 'contacte' is set only when comment/DM is actually SENT in Suivi & Publication
     const ttUpdate: Record<string, any> = { updated_at: now };
-    if (!prospect.status || prospect.status === 'new' || prospect.status === 'identifie') {
-      ttUpdate.status = 'contacte';
-    }
     await supabase.from('crm_prospects').update(ttUpdate).eq('id', prospect.id);
 
     // Log CRM activity

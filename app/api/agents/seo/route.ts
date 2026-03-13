@@ -5,15 +5,106 @@ import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-promp
 import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { getGscReport } from '@/lib/agents/gsc';
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
+const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+
+/**
+ * Generate an image using Seedream for SEO articles (internal, no credits).
+ */
+async function generateSeoImage(prompt: string): Promise<string | null> {
+  try {
+    const optimizedPrompt = `Professional photograph for blog article: ${prompt}. High quality, editorial style, clean composition, no text overlay, no watermark, 16:9 aspect ratio.`;
+
+    const response = await fetch(SEEDREAM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'seedream-4-5-251128',
+        prompt: optimizedPrompt,
+        size: '1792x1024',
+        response_format: 'url',
+        seed: -1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[SEOAgent] Seedream error:', response.status, await response.text().catch(() => ''));
+      return null;
+    }
+
+    const data = await response.json();
+    const url = data?.data?.[0]?.url;
+    if (url) {
+      console.log('[SEOAgent] Seedream image generated successfully');
+      return url;
+    }
+    return null;
+  } catch (error: any) {
+    console.error('[SEOAgent] Seedream generation failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Post-process article HTML: find <img data-seo-generate="true"> tags and generate real images.
+ */
+async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ alt: string; prompt: string }>): Promise<string> {
+  let html = contentHtml;
+
+  // If we have explicit image_prompts from the article JSON, use those
+  if (imagePrompts && imagePrompts.length > 0) {
+    // Find all placeholder img tags
+    const imgRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
+    let match;
+    let promptIndex = 0;
+
+    while ((match = imgRegex.exec(html)) !== null && promptIndex < imagePrompts.length) {
+      const fullTag = match[0];
+      const imgPrompt = imagePrompts[promptIndex];
+
+      console.log(`[SEOAgent] Generating image ${promptIndex + 1}/${imagePrompts.length}: "${imgPrompt.prompt.substring(0, 80)}..."`);
+      const imageUrl = await generateSeoImage(imgPrompt.prompt);
+
+      if (imageUrl) {
+        const newTag = `<img src="${imageUrl}" alt="${imgPrompt.alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
+        html = html.replace(fullTag, newTag);
+      }
+      promptIndex++;
+    }
+  }
+
+  // Also handle any remaining placeholder tags that don't have prompts yet (use alt as prompt)
+  const remainingRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
+  let remainingMatch;
+  while ((remainingMatch = remainingRegex.exec(html)) !== null) {
+    const fullTag = remainingMatch[0];
+    const altText = remainingMatch[1];
+
+    console.log(`[SEOAgent] Generating fallback image from alt: "${altText.substring(0, 80)}..."`);
+    const imageUrl = await generateSeoImage(altText);
+
+    if (imageUrl) {
+      const newTag = `<img src="${imageUrl}" alt="${altText}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
+      html = html.replace(fullTag, newTag);
+    }
+  }
+
+  return html;
 }
 
 /**
@@ -60,7 +151,15 @@ export async function GET(request: NextRequest) {
   // Cron trigger: auto-generate next article
   if (isCron) {
     console.log('[SEOAgent] Cron triggered — generating next article');
-    return generateArticle(null);
+    // Generate article first
+    const articleResult = await generateArticle(null);
+    // Then execute any pending orders
+    try {
+      await executeOrders();
+    } catch (e) {
+      console.warn('[SEOAgent] Order execution after cron failed:', e);
+    }
+    return articleResult;
   }
 
   // Admin UI: return latest SEO logs
@@ -145,6 +244,9 @@ export async function POST(request: NextRequest) {
       case 'revise_article':
         return reviseArticle(body.article_id, body.instructions);
 
+      case 'execute_orders':
+        return executeOrders();
+
       default:
         return NextResponse.json({ ok: false, error: `Action inconnue: ${action}` }, { status: 400 });
     }
@@ -188,6 +290,25 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
     const sharedCtx = await loadSharedContext(supabase, 'seo');
     const crmContext = formatContextForPrompt(sharedCtx);
 
+    // Fetch Google Search Console data for data-driven SEO
+    let gscContext = '';
+    try {
+      const gscReport = await getGscReport();
+      if (gscReport.topKeywords.length > 0) {
+        gscContext = `\n\nDONNÉES GOOGLE SEARCH CONSOLE (données réelles des 28 derniers jours) :
+TOP MOTS-CLÉS (par clics) :
+${gscReport.topKeywords.slice(0, 15).map(k => `- "${k.query}" → ${k.clicks} clics, ${k.impressions} impressions, CTR ${(k.ctr * 100).toFixed(1)}%, position ${k.position.toFixed(1)}`).join('\n')}
+
+OPPORTUNITÉS (haute impression, faible CTR — à cibler) :
+${gscReport.opportunities.slice(0, 10).map(k => `- "${k.query}" → position ${k.position.toFixed(1)}, ${k.impressions} impressions, CTR ${(k.ctr * 100).toFixed(1)}% (AMÉLIORER)`).join('\n')}
+
+PERFORMANCE GLOBALE : ${gscReport.summary.totalClicks} clics, ${gscReport.summary.totalImpressions} impressions, CTR moyen ${(gscReport.summary.avgCtr * 100).toFixed(1)}%, position moyenne ${gscReport.summary.avgPosition.toFixed(1)}`;
+        console.log(`[SEOAgent] GSC data loaded: ${gscReport.topKeywords.length} keywords, ${gscReport.opportunities.length} opportunities`);
+      }
+    } catch (gscError: any) {
+      console.warn('[SEOAgent] GSC data unavailable:', gscError.message);
+    }
+
     // Call Gemini 2.0 Flash with elite prompt + CRM data
     const rawText = await callGemini({
       system: getSeoWriterPrompt(),
@@ -195,6 +316,7 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
 
 DONNÉES BUSINESS EN TEMPS RÉEL (utilise-les pour rendre l'article crédible et data-driven) :
 ${crmContext}
+${gscContext}
 
 Contexte supplementaire :
 - KeiroAI permet de generer des visuels marketing en quelques secondes grace a l'IA
@@ -268,6 +390,23 @@ Genere le JSON complet comme specifie dans tes instructions.`,
       });
 
       return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+    }
+
+    // Generate Seedream images for the article
+    let finalHtml = article.content_html;
+    try {
+      console.log('[SEOAgent] Processing article images with Seedream...');
+      finalHtml = await processArticleImages(article.content_html, article.image_prompts);
+
+      if (finalHtml !== article.content_html) {
+        await supabase
+          .from('blog_posts')
+          .update({ content_html: finalHtml, updated_at: new Date().toISOString() })
+          .eq('id', inserted.id);
+        console.log('[SEOAgent] Article images generated and updated');
+      }
+    } catch (imgError: any) {
+      console.warn('[SEOAgent] Image generation failed (article saved without images):', imgError.message);
     }
 
     // Log success
@@ -687,5 +826,104 @@ Retourne le JSON complet mis à jour.`,
   } catch (error: any) {
     console.error('[SEOAgent] reviseArticle error:', error);
     return NextResponse.json({ ok: false, error: error.message || 'Erreur revision article' }, { status: 500 });
+  }
+}
+
+/**
+ * Execute pending orders directed at the SEO agent.
+ * Orders come from CEO/Marketing agents (e.g., "more visuals", "target keyword X").
+ */
+async function executeOrders(): Promise<NextResponse> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date().toISOString();
+
+    // Get pending orders for SEO agent
+    const { data: orders } = await supabase
+      .from('agent_orders')
+      .select('*')
+      .eq('target_agent', 'seo')
+      .eq('status', 'pending')
+      .order('priority', { ascending: true })
+      .limit(5);
+
+    if (!orders || orders.length === 0) {
+      return NextResponse.json({ ok: true, message: 'Aucun ordre en attente', executed: 0 });
+    }
+
+    const results: Array<{ order_id: string; action: string; ok: boolean; detail?: string }> = [];
+
+    for (const order of orders) {
+      const instruction = (order.instruction || order.description || '').toLowerCase();
+      console.log(`[SEOAgent] Executing order: "${instruction.substring(0, 100)}"`);
+
+      try {
+        if (instruction.includes('visuel') || instruction.includes('image') || instruction.includes('photo')) {
+          // Order: generate more visuals for existing articles
+          const { data: articlesWithoutImages } = await supabase
+            .from('blog_posts')
+            .select('id, slug, content_html, title')
+            .eq('status', 'published')
+            .order('updated_at', { ascending: true })
+            .limit(3);
+
+          let imagesGenerated = 0;
+          for (const art of (articlesWithoutImages || [])) {
+            if (!art.content_html) continue;
+            // Check if article has few images
+            const imgCount = (art.content_html.match(/<img/gi) || []).length;
+            if (imgCount < 2) {
+              const imageUrl = await generateSeoImage(`Professional editorial photo for blog article about: ${art.title}. Marketing, business, local commerce, modern and vibrant.`);
+              if (imageUrl) {
+                const imgTag = `<img src="${imageUrl}" alt="${art.title}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
+                // Insert image after first h2
+                const updatedHtml = art.content_html.replace(/<\/h2>/, `</h2>${imgTag}`);
+                await supabase.from('blog_posts').update({ content_html: updatedHtml, updated_at: now }).eq('id', art.id);
+                imagesGenerated++;
+              }
+            }
+          }
+          results.push({ order_id: order.id, action: 'add_visuals', ok: true, detail: `${imagesGenerated} images ajoutées` });
+        } else if (instruction.includes('article') || instruction.includes('keyword') || instruction.includes('mot-cl')) {
+          // Order: generate a new article (optionally with a specific keyword)
+          const keywordMatch = instruction.match(/(?:keyword|mot-cl[ée]s?)\s*:?\s*["']?([^"'\n,]+)/i);
+          const keyword = keywordMatch ? keywordMatch[1].trim() : null;
+          const articleResult = await generateArticle(keyword);
+          const articleData = await articleResult.json();
+          results.push({ order_id: order.id, action: 'generate_article', ok: articleData.ok, detail: articleData.article?.slug || articleData.error });
+        } else {
+          // Generic order: try to interpret as article revision
+          results.push({ order_id: order.id, action: 'unknown', ok: false, detail: `Instruction non reconnue: ${instruction.substring(0, 100)}` });
+        }
+
+        // Mark order as completed
+        await supabase.from('agent_orders').update({
+          status: 'completed',
+          completed_at: now,
+          result: results[results.length - 1],
+        }).eq('id', order.id);
+      } catch (orderError: any) {
+        results.push({ order_id: order.id, action: 'error', ok: false, detail: orderError.message });
+        await supabase.from('agent_orders').update({
+          status: 'failed',
+          completed_at: now,
+          result: { error: orderError.message },
+        }).eq('id', order.id);
+      }
+    }
+
+    // Log execution
+    await supabase.from('agent_logs').insert({
+      agent: 'seo',
+      action: 'orders_executed',
+      data: { total: orders.length, results },
+      status: results.every(r => r.ok) ? 'success' : 'partial',
+      created_at: now,
+    });
+
+    return NextResponse.json({ ok: true, executed: results.length, results });
+  } catch (error: any) {
+    console.error('[SEOAgent] executeOrders error:', error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }

@@ -316,7 +316,8 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG — mode: ${mode}`);
 
     const runPhase1 = mode === 'verify_crm' || mode === 'full';
-    const runPhase2 = mode === 'prospect_external' || mode === 'full';
+    const runPhase2Social = mode === 'full'; // Social enrichment only on full runs
+    const runPhase3Discovery = mode === 'prospect_external' || mode === 'full';
 
     // === PHASE 1: Data enrichment (type, quartier, email validation) ===
     // Fetch prospects that need enrichment — broad fetch, filter in JS for reliability
@@ -427,7 +428,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         // GO/NO-GO for contact
         if (result.ready_to_contact && prospect.email && result.email_valid) {
           if (!prospect.email_sequence_status || prospect.email_sequence_status === 'not_started') {
-            updates.status = 'contacte';
+            // Don't set 'contacte' here — email agent will set it when first email is actually sent
             updates.email_sequence_status = 'not_started';
             updates.email_sequence_step = 0;
             advancedToContactCount++;
@@ -466,7 +467,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
     // === PHASE 2: Social media enrichment via Google Search ===
     // Find prospects with company name but missing social data
-    const { data: rawSocialProspects } = runPhase2
+    const { data: rawSocialProspects } = runPhase2Social
       ? await supabase
           .from('crm_prospects')
           .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature, status')
@@ -566,92 +567,133 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
     // === PHASE 3: External prospection — find NEW businesses via Google Search ===
     let newProspectsCreated = 0;
-    const MAX_NEW_PROSPECTS = 15;
+    const MAX_NEW_PROSPECTS = 30;
 
-    if (runPhase2 && (Date.now() - runStartTime < MAX_RUN_MS)) {
-      console.log('[CommercialAgent] Phase 3: Searching for new qualified prospects...');
+    if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
+      console.log('[CommercialAgent] Phase 3: Aggressive search for new qualified prospects...');
 
-      // Rotate through business types and cities each run
-      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach', 'fleuriste', 'caviste', 'traiteur', 'freelance'];
-      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes'];
+      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach sportif', 'fleuriste', 'caviste', 'traiteur', 'freelance graphiste', 'salon esthetique', 'boulangerie', 'photographe', 'agence immobiliere'];
+      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes', 'Grenoble', 'Rouen', 'Toulon', 'Aix-en-Provence'];
+      const parisQuartiers = ['Marais', 'Montmartre', 'Saint-Germain', 'Bastille', 'Oberkampf', 'Batignolles', 'Belleville', 'Pigalle', 'République', 'Nation'];
 
-      // Use day-of-year to rotate through combinations
       const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
       const hourOfDay = new Date().getUTCHours();
-      const typeIdx = (dayOfYear * 3 + hourOfDay) % businessTypes.length;
-      const cityIdx = (dayOfYear * 2 + hourOfDay) % cities.length;
-      const targetType = businessTypes[typeIdx];
-      const targetCity = cities[cityIdx];
-      const targetType2 = businessTypes[(typeIdx + 1) % businessTypes.length];
-      const targetCity2 = cities[(cityIdx + 1) % cities.length];
+      const runIdx = dayOfYear * 10 + hourOfDay; // Unique per run
 
-      try {
-        const searchResult = await callGeminiWithSearch({
-          system: `Tu es un agent commercial expert en prospection B2B pour KeiroAI, un outil IA de création de contenu marketing pour commerces locaux français.
+      // Generate 4 different search combinations for maximum coverage
+      const searches: Array<{ type: string; location: string; searchQuery: string }> = [];
+      for (let s = 0; s < 4; s++) {
+        const tIdx = (runIdx + s * 3) % businessTypes.length;
+        const cIdx = (runIdx + s * 5) % cities.length;
+        const city = cities[cIdx];
+        const type = businessTypes[tIdx];
+        // For Paris, also search by quartier
+        const location = city === 'Paris' ? `Paris ${parisQuartiers[(runIdx + s) % parisQuartiers.length]}` : city;
 
-TON OBJECTIF : trouver des VRAIS commerces locaux français qui existent réellement, avec leurs coordonnées vérifiées.
-
-CRITÈRES DE QUALIFICATION :
-- Commerces locaux ou PME en France (pas de grandes chaînes)
-- Actifs sur Instagram ou ayant un site web (présence en ligne)
-- De préférence entre 100 et 50K abonnés Instagram
-- Avec une adresse physique vérifiable
-- Secteurs : restaurants, boutiques, coachs, coiffeurs, fleuristes, cavistes, traiteurs, freelances
-
-CE QUE TU DOIS CHERCHER :
-- Comptes Instagram de commerces locaux dans la ville ciblée
-- Pages Google Maps avec bonnes notes
-- Sites web de commerces locaux
-- Annuaires professionnels (PagesJaunes, etc.)
-
-Retourne UNIQUEMENT un tableau JSON de prospects qualifiés :
-[
-  {
-    "company": "Nom exact du commerce",
-    "type": "restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services",
-    "quartier": "Ville ou quartier",
-    "instagram": "handle_sans_arobase" | null,
-    "website": "https://..." | null,
-    "email": "contact@..." | null,
-    "phone": "+33..." | null,
-    "google_rating": 4.5 | null,
-    "google_reviews": 123 | null,
-    "description": "Description courte de l'activité",
-    "qualification_reason": "Pourquoi ce prospect est qualifié pour KeiroAI"
-  }
-]
-
-RÈGLES STRICTES :
-- UNIQUEMENT des commerces RÉELS que tu as trouvés via la recherche
-- JAMAIS d'inventions — chaque commerce doit exister
-- Vérifie que le nom est correct et correspond au type
-- Si tu ne trouves pas assez de résultats, retourne ce que tu as (même 3-4 c'est OK)
-- UNIQUEMENT du JSON valide, pas de markdown`,
-          message: `Recherche des commerces locaux qualifiés pour KeiroAI :
-
-RECHERCHE 1 : ${targetType}s à ${targetCity} — trouve des ${targetType}s actifs sur Instagram ou ayant un site web
-RECHERCHE 2 : ${targetType2}s à ${targetCity2} — trouve des ${targetType2}s avec présence en ligne
-
-Cherche sur Google Maps, Instagram, PagesJaunes, et le web. Trouve ${MAX_NEW_PROSPECTS} commerces qualifiés au total.`,
-          maxTokens: 4000,
+        const searchVariants = [
+          `${type} instagram ${location} 2024 2025`,
+          `meilleur ${type} ${location} avis google`,
+          `nouveau ${type} ${location} ouverture`,
+          `${type} ${location} site web`,
+        ];
+        searches.push({
+          type,
+          location,
+          searchQuery: searchVariants[s % searchVariants.length],
         });
+      }
 
-        // Parse results
-        let newProspects: any[] = [];
-        try {
-          const cleanText = searchResult.replace(/```[\w]*\s*/g, '').trim();
-          const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            newProspects = JSON.parse(jsonMatch[0]);
+      const PROSPECTION_SYSTEM_PROMPT = `Tu es un agent commercial ELITE de KeiroAI. Ta mission : trouver des commerces locaux RÉELS en France pour les aider avec leur marketing digital.
+
+TON OBJECTIF : retourner 8-12 prospects QUALIFIÉS et VÉRIFIÉS par recherche.
+
+MÉTHODE DE RECHERCHE (utilise Google Search grounding) :
+1. Cherche sur Google Maps "${'{type} {location}'}" → noms, notes, avis
+2. Cherche sur Instagram les comptes de commerces locaux
+3. Cherche sur PagesJaunes / annuaires pro
+4. Vérifie les sites web trouvés
+
+CRITÈRES DE QUALIFICATION (MINIMUM 2 sur 4) :
+✅ A un compte Instagram (même petit, 50+ abonnés)
+✅ A une note Google > 3.5 (business qui marche)
+✅ A un site web (même basique)
+✅ A un email visible (contact@, info@)
+
+CE QUE TU DOIS REMPLIR pour chaque prospect (le MAXIMUM d'info) :
+- company : nom EXACT du commerce (tel qu'affiché sur Google/Instagram)
+- type : restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services|boulangerie|photographe|agence
+- quartier : ville + quartier si possible
+- instagram : handle Instagram SANS @ (vérifié)
+- website : URL complète
+- email : adresse email trouvée
+- phone : numéro de téléphone
+- google_rating : note Google (ex: 4.5)
+- google_reviews : nombre d'avis Google
+- description : ce que fait ce commerce (1 ligne)
+- specialty : spécialité (ex: "cuisine japonaise", "coiffure homme", "coaching fitness")
+- address : adresse physique complète
+- qualification_reason : pourquoi ce prospect a besoin de KeiroAI
+
+RETOURNE UNIQUEMENT un tableau JSON, PAS de markdown :
+[{"company":"...","type":"...","quartier":"...","instagram":"...", ...}]
+
+RÈGLES ABSOLUES :
+- UNIQUEMENT des commerces RÉELS trouvés dans tes résultats de recherche
+- REMPLIS UN MAXIMUM DE CHAMPS — ne laisse pas de null si tu peux trouver l'info
+- Préfère les commerces indépendants (pas de chaînes type McDonald's, Starbucks)
+- JAMAIS d'inventions — si tu ne trouves pas l'info, mets null`;
+
+      // Run searches in PARALLEL (2 at a time to respect rate limits)
+      let allNewProspects: any[] = [];
+
+      for (let batch = 0; batch < searches.length; batch += 2) {
+        if (Date.now() - runStartTime > MAX_RUN_MS) break;
+
+        const batchSearches = searches.slice(batch, batch + 2);
+        const batchResults = await Promise.all(batchSearches.map(async (s) => {
+          try {
+            const result = await callGeminiWithSearch({
+              system: PROSPECTION_SYSTEM_PROMPT,
+              message: `Recherche Google : "${s.searchQuery}"
+
+Trouve des ${s.type}s à ${s.location} qui sont actifs en ligne.
+Cherche leur Instagram, site web, note Google, email, téléphone.
+Retourne 8-12 prospects qualifiés en JSON.`,
+              maxTokens: 4000,
+            });
+            return { search: s, result };
+          } catch (e: any) {
+            console.error(`[CommercialAgent] Search failed for ${s.type}@${s.location}:`, e.message);
+            return null;
           }
-        } catch (e) {
-          console.error('[CommercialAgent] Phase 3: Failed to parse prospects:', e);
+        }));
+
+        for (const br of batchResults) {
+          if (!br) continue;
+          try {
+            const cleanText = br.result.replace(/```[\w]*\s*/g, '').trim();
+            const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const prospects = JSON.parse(jsonMatch[0]);
+              console.log(`[CommercialAgent] Phase 3: ${prospects.length} prospects found for ${br.search.type}@${br.search.location}`);
+              allNewProspects.push(...prospects);
+            }
+          } catch (e) {
+            console.error('[CommercialAgent] Phase 3: Failed to parse:', e);
+          }
         }
 
-        console.log(`[CommercialAgent] Phase 3: Found ${newProspects.length} new prospects (${targetType}@${targetCity} + ${targetType2}@${targetCity2})`);
+        // Rate limit pause between batches
+        if (batch + 2 < searches.length) {
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
 
-        // Insert new prospects into CRM (strict deduplication)
-        for (const np of newProspects) {
+      console.log(`[CommercialAgent] Phase 3: Total raw prospects found: ${allNewProspects.length}`);
+
+      // Insert new prospects into CRM (strict deduplication)
+      try {
+        for (const np of allNewProspects) {
           if (!np.company || np.company.length < 2) continue;
           if (newProspectsCreated >= MAX_NEW_PROSPECTS) break;
 
@@ -783,7 +825,7 @@ Cherche sur Google Maps, Instagram, PagesJaunes, et le web. Trouve ${MAX_NEW_PRO
           const { error: insertError } = await supabase.from('crm_prospects').insert({
             company: np.company,
             type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
-            quartier: np.quartier || targetCity,
+            quartier: np.quartier || null,
             instagram: igHandle,
             website: np.website || null,
             email: np.email || null,
@@ -794,9 +836,11 @@ Cherche sur Google Maps, Instagram, PagesJaunes, et le web. Trouve ${MAX_NEW_PRO
             status: 'identifie',
             temperature: newTemp,
             score: newScore,
+            specialite: np.specialty || null,
+            address: np.address || null,
             source: 'prospection_commerciale',
             source_agent: 'commercial',
-            notes: np.qualification_reason || null,
+            notes: np.qualification_reason ? `${np.description || ''} — ${np.qualification_reason}`.trim() : np.description || null,
             created_at: nowISO,
             updated_at: nowISO,
           });

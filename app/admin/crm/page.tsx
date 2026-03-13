@@ -7,10 +7,13 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PIPELINE_STAGES = [
-  { id: 'identifie', label: 'Identifie', color: 'bg-slate-400', textColor: 'text-slate-700', borderColor: 'border-slate-400', hex: '#94A3B8', icon: '🔍' },
-  { id: 'contacte', label: 'Contacte', color: 'bg-blue-500', textColor: 'text-blue-700', borderColor: 'border-blue-500', hex: '#3B82F6', icon: '📨' },
-  { id: 'repondu', label: 'Repondu', color: 'bg-violet-500', textColor: 'text-violet-700', borderColor: 'border-violet-500', hex: '#8B5CF6', icon: '💬' },
-  { id: 'demo', label: 'Demo', color: 'bg-amber-500', textColor: 'text-amber-700', borderColor: 'border-amber-500', hex: '#F59E0B', icon: '🎯' },
+  { id: 'identifie', label: 'Identifié', color: 'bg-slate-400', textColor: 'text-slate-700', borderColor: 'border-slate-400', hex: '#94A3B8', icon: '🔍' },
+  { id: 'contacte', label: 'Contacté', color: 'bg-blue-500', textColor: 'text-blue-700', borderColor: 'border-blue-500', hex: '#3B82F6', icon: '📨' },
+  { id: 'relance_1', label: 'Relance 1', color: 'bg-sky-400', textColor: 'text-sky-700', borderColor: 'border-sky-400', hex: '#38BDF8', icon: '🔄' },
+  { id: 'relance_2', label: 'Relance 2', color: 'bg-indigo-400', textColor: 'text-indigo-700', borderColor: 'border-indigo-400', hex: '#818CF8', icon: '🔄' },
+  { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', textColor: 'text-purple-700', borderColor: 'border-purple-400', hex: '#C084FC', icon: '⏰' },
+  { id: 'repondu', label: 'Répondu', color: 'bg-violet-500', textColor: 'text-violet-700', borderColor: 'border-violet-500', hex: '#8B5CF6', icon: '💬' },
+  { id: 'demo', label: 'Démo', color: 'bg-amber-500', textColor: 'text-amber-700', borderColor: 'border-amber-500', hex: '#F59E0B', icon: '🎯' },
   { id: 'sprint', label: 'Sprint', color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-500', hex: '#F97316', icon: '⚡' },
   { id: 'client', label: 'Client', color: 'bg-emerald-500', textColor: 'text-emerald-700', borderColor: 'border-emerald-500', hex: '#10B981', icon: '✅' },
   { id: 'perdu', label: 'Perdu', color: 'bg-red-500', textColor: 'text-red-700', borderColor: 'border-red-500', hex: '#EF4444', icon: '✗' },
@@ -981,7 +984,7 @@ export default function AdminCRMPage() {
         )}
 
         {/* ── KPI Bar ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-10 gap-2 mb-4">
           {PIPELINE_STAGES.map(stage => (
             <div
               key={stage.id}
@@ -1066,7 +1069,7 @@ export default function AdminCRMPage() {
             ) : view === 'pipeline' ? (
               /* ── Pipeline Kanban ──────────────────────────────────────── */
               <div className="overflow-x-auto pb-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2" >
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-2" >
                   {PIPELINE_STAGES.map(stage => {
                     const stageProspects = filtered.filter(p => p.status === stage.id);
                     return (
@@ -1826,29 +1829,53 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
         </div>
       </div>
 
-      {/* Pipeline visual */}
+      {/* Pipeline visual + stage selector */}
       <div className="px-4 py-3 border-b border-neutral-200">
-        <div className="flex items-center gap-1">
-          {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map((s, idx) => {
+        <div className="flex items-center gap-0.5 overflow-x-auto">
+          {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map((s, idx, arr) => {
             const isActive = idx <= currentStageIdx && prospect.status !== 'perdu';
             const isCurrent = s.id === prospect.status;
             return (
-              <div key={s.id} className="flex items-center flex-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 transition-all ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-neutral-300' : isActive ? s.color + ' text-white' : 'bg-gray-100 text-neutral-400'}`}>
+              <div key={s.id} className="flex items-center flex-1 min-w-0">
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] flex-shrink-0 transition-all cursor-pointer hover:ring-2 hover:ring-purple-300 ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-neutral-300' : isActive ? s.color + ' text-white' : 'bg-gray-100 text-neutral-400'}`}
+                  title={s.label}
+                  onClick={async () => {
+                    const supabase = supabaseBrowser();
+                    await supabase.from('crm_prospects').update({ status: s.id, updated_at: new Date().toISOString() }).eq('id', prospect.id);
+                    prospect.status = s.id;
+                    onEdit(); // refresh
+                  }}
+                >
                   {s.icon}
                 </div>
-                {idx < 5 && (
-                  <div className={`flex-1 h-0.5 ${isActive && idx < currentStageIdx ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                {idx < arr.length - 1 && (
+                  <div className={`flex-1 h-0.5 min-w-[4px] ${isActive && idx < currentStageIdx ? 'bg-emerald-500' : 'bg-gray-200'}`} />
                 )}
               </div>
             );
           })}
         </div>
-        {prospect.status === 'perdu' && (
-          <div className="mt-2 text-center">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">✗ Perdu</span>
-          </div>
-        )}
+        <div className="flex items-center justify-between mt-1.5">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${prospect.status === 'perdu' ? 'bg-red-500 text-white' : PIPELINE_STAGES.find(s => s.id === prospect.status)?.color + ' text-white'}`}>
+            {PIPELINE_STAGES.find(s => s.id === prospect.status)?.icon} {PIPELINE_STAGES.find(s => s.id === prospect.status)?.label || prospect.status}
+          </span>
+          <select
+            value={prospect.status}
+            onChange={async (e) => {
+              const newStatus = e.target.value;
+              const supabase = supabaseBrowser();
+              await supabase.from('crm_prospects').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', prospect.id);
+              prospect.status = newStatus;
+              onEdit(); // refresh
+            }}
+            className="text-[10px] px-1 py-0.5 bg-white border border-neutral-200 rounded text-neutral-600"
+          >
+            {PIPELINE_STAGES.map(s => (
+              <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Info grid */}
