@@ -615,19 +615,76 @@ export default function CampaignDetailPage() {
             )}
             {d.details && d.details.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="p-4 border-b border-neutral-100"><h3 className="text-sm font-semibold text-neutral-900">Détails ({d.details.length})</h3></div>
+                <div className="p-4 border-b border-neutral-100">
+                  <h3 className="text-sm font-semibold text-neutral-900">Prospects enrichis ({d.details.length})</h3>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">Cliquez pour voir les details</p>
+                </div>
                 <div className="divide-y divide-neutral-100">
-                  {d.details.map((detail: any, i: number) => (
-                    <div key={i} className="p-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-neutral-800">{detail.company || detail.prospect_id?.slice(0, 12)}</span>
-                        {detail.updates?.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">{detail.updates.type}</span>}
-                        {detail.updates?.temperature === 'dead' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600">disqualifié</span>}
-                        {detail.updates?.status === 'contacte' && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600">contacté</span>}
-                      </div>
-                      {detail.reasoning && <p className="text-xs text-neutral-500 mt-1">{detail.reasoning}</p>}
-                    </div>
-                  ))}
+                  {d.details.map((detail: any, i: number) => {
+                    const u = detail.updates || {};
+                    const isDead = u.temperature === 'dead';
+                    const isPromoted = u.status === 'contacte';
+                    const hasScore = u.score !== undefined;
+                    const addedFields = Object.keys(u).filter(k => !['updated_at', 'score', 'temperature', 'status', 'email_sequence_status', 'email_sequence_step'].includes(k));
+
+                    return (
+                      <details key={i} className={`group ${isDead ? 'bg-red-50/50' : isPromoted ? 'bg-green-50/50' : ''}`}>
+                        <summary className="px-4 py-3 cursor-pointer hover:bg-neutral-50 transition">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-neutral-800">{detail.company || detail.prospect_id?.slice(0, 12)}</span>
+                              {u.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 font-medium">{u.type}</span>}
+                              {u.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 font-medium">{u.quartier}</span>}
+                              {isDead && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-bold">DISQUALIFIE</span>}
+                              {isPromoted && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold">PRET A CONTACTER</span>}
+                              {hasScore && <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                u.score >= 50 ? 'bg-red-100 text-red-700' : u.score >= 25 ? 'bg-orange-100 text-orange-700' : 'bg-neutral-100 text-neutral-600'
+                              }`}>Score {u.score}</span>}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              {addedFields.length > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">+{addedFields.length} champs</span>
+                              )}
+                              <svg className="w-4 h-4 text-neutral-400 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </div>
+                          </div>
+                        </summary>
+                        <div className="px-4 pb-4 pt-1">
+                          {/* Updates grid */}
+                          {addedFields.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                              {addedFields.map(key => (
+                                <div key={key} className="bg-white rounded-lg border border-neutral-100 p-2">
+                                  <p className="text-[10px] font-semibold text-neutral-400 uppercase">{key}</p>
+                                  <p className="text-xs text-neutral-800 mt-0.5 truncate">{String(u[key])}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Temperature & score */}
+                          {(u.temperature || u.score !== undefined) && (
+                            <div className="flex gap-2 mb-2">
+                              {u.temperature && (
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                  u.temperature === 'hot' ? 'bg-red-100 text-red-700' :
+                                  u.temperature === 'warm' ? 'bg-orange-100 text-orange-700' :
+                                  u.temperature === 'cold' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-neutral-100 text-neutral-600'
+                                }`}>{u.temperature}</span>
+                              )}
+                            </div>
+                          )}
+                          {/* AI reasoning */}
+                          {detail.reasoning && (
+                            <div className="bg-neutral-50 rounded-lg p-2.5 border border-neutral-100">
+                              <p className="text-[10px] font-semibold text-neutral-400 uppercase mb-1">Raisonnement IA</p>
+                              <p className="text-xs text-neutral-600 leading-relaxed">{detail.reasoning}</p>
+                            </div>
+                          )}
+                        </div>
+                      </details>
+                    );
+                  })}
                 </div>
               </div>
             )}
