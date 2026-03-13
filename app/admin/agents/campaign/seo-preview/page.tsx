@@ -29,6 +29,7 @@ function SeoPreviewContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [versions, setVersions] = useState<ArticleVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
+  const [previewingVersion, setPreviewingVersion] = useState<ArticleVersion | null>(null);
   const [previewMode, setPreviewMode] = useState<'blog' | 'google'>('blog');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const reviseRef = useRef<HTMLInputElement>(null);
@@ -214,28 +215,69 @@ function SeoPreviewContent() {
               </button>
               {showVersions && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowVersions(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-xl border z-20 py-2 max-h-64 overflow-y-auto">
-                    {versions.map((v, i) => (
-                      <div key={i} className="px-3 py-2 hover:bg-neutral-50 flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-neutral-800 truncate">{v.label}</p>
-                          <p className="text-[10px] text-neutral-400">{new Date(v.timestamp).toLocaleString('fr-FR')}</p>
-                        </div>
-                        {i < versions.length - 1 && (
+                  <div className="fixed inset-0 z-10" onClick={() => { setShowVersions(false); setPreviewingVersion(null); }} />
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border z-20 py-2 max-h-[70vh] overflow-y-auto" style={{ width: previewingVersion ? '700px' : '280px' }}>
+                    {previewingVersion ? (
+                      /* ── Version Preview ── */
+                      <div className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <button onClick={() => setPreviewingVersion(null)} className="text-xs text-neutral-500 hover:text-neutral-800 mr-2">&larr; Retour</button>
+                            <span className="text-xs font-semibold text-neutral-800">{previewingVersion.label}</span>
+                            <span className="text-[10px] text-neutral-400 ml-2">{new Date(previewingVersion.timestamp).toLocaleString('fr-FR')}</span>
+                          </div>
                           <button
-                            onClick={() => restoreVersion(v)}
+                            onClick={() => { restoreVersion(previewingVersion); setPreviewingVersion(null); }}
                             disabled={actionLoading !== null}
-                            className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 shrink-0 disabled:opacity-50"
+                            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                           >
-                            Restaurer
+                            {actionLoading === 'restore' ? '...' : 'Restaurer cette version'}
                           </button>
+                        </div>
+                        <h3 className="text-base font-bold text-neutral-900 mb-2">{previewingVersion.title}</h3>
+                        {previewingVersion.meta_description && (
+                          <p className="text-xs text-neutral-500 italic mb-3 pb-3 border-b">{previewingVersion.meta_description}</p>
                         )}
-                        {i === versions.length - 1 && (
-                          <span className="text-[10px] text-green-600 font-medium shrink-0">Actuel</span>
-                        )}
+                        <div
+                          className="prose prose-sm max-w-none text-neutral-800"
+                          style={{ fontSize: '13px', lineHeight: '1.6' }}
+                          dangerouslySetInnerHTML={{ __html: previewingVersion.content_html }}
+                        />
                       </div>
-                    ))}
+                    ) : (
+                      /* ── Version List ── */
+                      versions.map((v, i) => (
+                        <div key={i} className="px-3 py-2 hover:bg-neutral-50 flex items-center justify-between gap-2">
+                          <button
+                            onClick={() => setPreviewingVersion(v)}
+                            className="min-w-0 text-left flex-1"
+                          >
+                            <p className="text-xs font-medium text-neutral-800 truncate hover:text-purple-700">{v.label}</p>
+                            <p className="text-[10px] text-neutral-400">{new Date(v.timestamp).toLocaleString('fr-FR')}</p>
+                            <p className="text-[10px] text-neutral-500 truncate">{v.title}</p>
+                          </button>
+                          {i === versions.length - 1 ? (
+                            <span className="text-[10px] text-green-600 font-medium shrink-0">Actuel</span>
+                          ) : (
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                onClick={() => setPreviewingVersion(v)}
+                                className="text-[10px] px-2 py-0.5 bg-neutral-100 text-neutral-600 rounded hover:bg-neutral-200"
+                              >
+                                Voir
+                              </button>
+                              <button
+                                onClick={() => restoreVersion(v)}
+                                disabled={actionLoading !== null}
+                                className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                              >
+                                Restaurer
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </>
               )}

@@ -650,40 +650,126 @@ Cherche sur Google Maps, Instagram, PagesJaunes, et le web. Trouve ${MAX_NEW_PRO
 
         console.log(`[CommercialAgent] Phase 3: Found ${newProspects.length} new prospects (${targetType}@${targetCity} + ${targetType2}@${targetCity2})`);
 
-        // Insert new prospects into CRM (skip duplicates)
+        // Insert new prospects into CRM (strict deduplication)
         for (const np of newProspects) {
           if (!np.company || np.company.length < 2) continue;
           if (newProspectsCreated >= MAX_NEW_PROSPECTS) break;
 
-          // Check for duplicates by company name OR instagram handle
-          let isDuplicate = false;
+          // Normalize for matching
+          const igHandle = np.instagram ? np.instagram.replace(/^@/, '').toLowerCase().trim() : null;
+          const normalizedName = np.company.trim();
+          // Extract core words for fuzzy matching (drop "Le/La/Les/L'" prefix + "Restaurant/Boutique/Salon" generic prefix)
+          const coreName = normalizedName
+            .toLowerCase()
+            .replace(/^(le |la |les |l'|l')/i, '')
+            .replace(/^(restaurant |boutique |salon |café |cafe |bar |brasserie |atelier |studio |coach |coaching )/i, '')
+            .trim();
 
-          if (np.instagram) {
-            const handle = np.instagram.replace(/^@/, '');
-            const { data: existingIG } = await supabase
+          let isDuplicate = false;
+          let duplicateReason = '';
+
+          // 1. Check by Instagram handle (exact)
+          if (igHandle && !isDuplicate) {
+            const { data: existing } = await supabase
               .from('crm_prospects')
-              .select('id')
-              .eq('instagram', handle)
+              .select('id, company')
+              .eq('instagram', igHandle)
               .limit(1);
-            if (existingIG && existingIG.length > 0) { isDuplicate = true; }
+            if (existing && existing.length > 0) {
+              isDuplicate = true;
+              duplicateReason = `instagram @${igHandle} → ${existing[0].company}`;
+            }
           }
 
-          if (!isDuplicate) {
-            const { data: existingName } = await supabase
+          // 2. Check by email (exact)
+          if (np.email && !isDuplicate) {
+            const { data: existing } = await supabase
               .from('crm_prospects')
-              .select('id')
-              .ilike('company', np.company)
+              .select('id, company')
+              .ilike('email', np.email.trim())
               .limit(1);
-            if (existingName && existingName.length > 0) { isDuplicate = true; }
+            if (existing && existing.length > 0) {
+              isDuplicate = true;
+              duplicateReason = `email ${np.email} → ${existing[0].company}`;
+            }
+          }
+
+          // 3. Check by phone (exact, normalized)
+          if (np.phone && !isDuplicate) {
+            const normalizedPhone = np.phone.replace(/[\s\-\.]/g, '');
+            const { data: existing } = await supabase
+              .from('crm_prospects')
+              .select('id, company')
+              .eq('phone', normalizedPhone)
+              .limit(1);
+            if (existing && existing.length > 0) {
+              isDuplicate = true;
+              duplicateReason = `phone ${np.phone} → ${existing[0].company}`;
+            }
+          }
+
+          // 4. Check by website domain (exact)
+          if (np.website && !isDuplicate) {
+            try {
+              const domain = new URL(np.website).hostname.replace(/^www\./, '');
+              const { data: existing } = await supabase
+                .from('crm_prospects')
+                .select('id, company')
+                .ilike('website', `%${domain}%`)
+                .limit(1);
+              if (existing && existing.length > 0) {
+                isDuplicate = true;
+                duplicateReason = `website ${domain} → ${existing[0].company}`;
+              }
+            } catch { /* invalid URL, skip */ }
+          }
+
+          // 5. Check by company name (exact case-insensitive)
+          if (!isDuplicate) {
+            const { data: existing } = await supabase
+              .from('crm_prospects')
+              .select('id, company')
+              .ilike('company', normalizedName)
+              .limit(1);
+            if (existing && existing.length > 0) {
+              isDuplicate = true;
+              duplicateReason = `name exact "${normalizedName}" → ${existing[0].company}`;
+            }
+          }
+
+          // 6. Fuzzy name check: search for core name within existing companies
+          if (!isDuplicate && coreName.length >= 4) {
+            const { data: existing } = await supabase
+              .from('crm_prospects')
+              .select('id, company')
+              .ilike('company', `%${coreName}%`)
+              .limit(3);
+            if (existing && existing.length > 0) {
+              // Verify it's truly a match (not just a substring coincidence for short names)
+              const match = existing.find(e => {
+                const existingCore = (e.company || '')
+                  .toLowerCase()
+                  .replace(/^(le |la |les |l'|l')/i, '')
+                  .replace(/^(restaurant |boutique |salon |café |cafe |bar |brasserie |atelier |studio |coach |coaching )/i, '')
+                  .trim();
+                // Match if core names are very similar (one contains the other and length ratio > 0.6)
+                const longer = Math.max(coreName.length, existingCore.length);
+                const shorter = Math.min(coreName.length, existingCore.length);
+                return (existingCore.includes(coreName) || coreName.includes(existingCore)) && shorter / longer > 0.6;
+              });
+              if (match) {
+                isDuplicate = true;
+                duplicateReason = `fuzzy name "${coreName}" → ${match.company}`;
+              }
+            }
           }
 
           if (isDuplicate) {
-            console.log(`[CommercialAgent] Skip duplicate: ${np.company}`);
+            console.log(`[CommercialAgent] Skip duplicate: ${np.company} (${duplicateReason})`);
             continue;
           }
 
-          // Create new prospect
-          const igHandle = np.instagram ? np.instagram.replace(/^@/, '') : null;
+          // Create new prospect (igHandle already normalized above for dedup)
           const newScore = calculateScore({
             email: np.email,
             instagram: igHandle,
