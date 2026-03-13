@@ -1,10 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
-import { callGemini } from '@/lib/agents/gemini';
 import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
+
+// ──────────────────────────────────────
+// Claude Haiku for text generation (captions, hashtags, descriptions)
+// Seedream for image generation (visual_url)
+// ──────────────────────────────────────
+async function callClaude({ system, message, maxTokens = 2000 }: { system: string; message: string; maxTokens?: number }): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY non configurée');
+
+  const client = new Anthropic({ apiKey });
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: 'user', content: message }],
+  });
+
+  return response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map(b => b.text)
+    .join('');
+}
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -73,7 +95,7 @@ Output ONLY the optimized English prompt. Nothing else.`;
 async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
   try {
     // Optimize the visual description into an elite Seedream prompt
-    const optimizedText = await callGemini({
+    const optimizedText = await callClaude({
       system: SEEDREAM_STYLE_GUIDE,
       message: `Create a premium visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square 1:1, must look great as Instagram grid thumbnail' : format === 'reel' || format === 'video' || format === 'story' ? 'Vertical 9:16, mobile-first, bold and eye-catching' : 'Horizontal 16:9, professional LinkedIn style'}`,
       maxTokens: 400,
@@ -204,8 +226,8 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -305,8 +327,8 @@ export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -532,7 +554,7 @@ export async function POST(request: NextRequest) {
         const { data: currentPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
         if (!currentPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
 
-        const reviseRaw = await callGemini({
+        const reviseRaw = await callClaude({
           system: `Tu es un expert en contenu social media pour KeiroAI. L'utilisateur veut modifier un post existant.
 Applique ses instructions et retourne le JSON complet mis à jour.
 Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description
@@ -637,19 +659,19 @@ async function generateWeeklyPlan(supabase: any) {
 
   let rawText: string;
   try {
-    rawText = await callGemini({
+    rawText = await callClaude({
       system: enhancedSystemPrompt,
       message: prompt,
       maxTokens: 4000,
     });
-  } catch (geminiError: any) {
-    console.error('[Content] Gemini API error for weekly plan:', geminiError.message);
+  } catch (claudeError: any) {
+    console.error('[Content] Claude API error for weekly plan:', claudeError.message);
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'weekly_plan_failed',
-      data: { error: geminiError.message, phase: 'gemini_call' },
-      status: 'error', error_message: geminiError.message, created_at: nowISO,
+      data: { error: claudeError.message, phase: 'claude_call' },
+      status: 'error', error_message: claudeError.message, created_at: nowISO,
     });
-    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+    return NextResponse.json({ ok: false, error: `Claude error: ${claudeError.message}` }, { status: 502 });
   }
 
   let weekPlan: any[];
@@ -795,14 +817,14 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
 
   let rawText: string;
   try {
-    rawText = await callGemini({
+    rawText = await callClaude({
       system: systemPrompt,
       message: prompt,
       maxTokens: 4000,
     });
-  } catch (geminiError: any) {
-    console.error('[Content] generate_week Gemini error:', geminiError.message);
-    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+  } catch (claudeError: any) {
+    console.error('[Content] generate_week Claude error:', claudeError.message);
+    return NextResponse.json({ ok: false, error: `Claude error: ${claudeError.message}` }, { status: 502 });
   }
 
   let weekPlan: any[];
@@ -1062,29 +1084,29 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
 
   let rawText: string;
   try {
-    rawText = await callGemini({
+    rawText = await callClaude({
       system: getContentSystemPrompt(),
       message: enhancedPrompt,
       maxTokens: 2000,
     });
-  } catch (geminiError: any) {
-    console.error('[Content] Gemini API error for daily post:', geminiError.message);
+  } catch (claudeError: any) {
+    console.error('[Content] Claude API error for daily post:', claudeError.message);
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'daily_post_failed',
-      data: { error: geminiError.message, phase: 'gemini_call' },
-      status: 'error', error_message: geminiError.message, created_at: nowISO,
+      data: { error: claudeError.message, phase: 'claude_call' },
+      status: 'error', error_message: claudeError.message, created_at: nowISO,
     });
-    return NextResponse.json({ ok: false, error: `Gemini error: ${geminiError.message}` }, { status: 502 });
+    return NextResponse.json({ ok: false, error: `Claude error: ${claudeError.message}` }, { status: 502 });
   }
 
   if (!rawText || rawText.trim().length === 0) {
-    console.error('[Content] Gemini returned empty response');
+    console.error('[Content] Claude returned empty response');
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'daily_post_failed',
-      data: { error: 'Empty Gemini response', phase: 'gemini_empty' },
-      status: 'error', error_message: 'Empty Gemini response', created_at: nowISO,
+      data: { error: 'Empty Claude response', phase: 'claude_empty' },
+      status: 'error', error_message: 'Empty Claude response', created_at: nowISO,
     });
-    return NextResponse.json({ ok: false, error: 'Gemini returned empty response' }, { status: 502 });
+    return NextResponse.json({ ok: false, error: 'Claude returned empty response' }, { status: 502 });
   }
 
   let post: any;
