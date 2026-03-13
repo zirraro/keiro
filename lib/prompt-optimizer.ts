@@ -154,7 +154,7 @@ export async function optimizePromptForImage(rawPrompt: string, trendAnalysis?: 
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
       temperature: 0.85,
       messages: [{
