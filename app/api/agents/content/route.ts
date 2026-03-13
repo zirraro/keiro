@@ -105,6 +105,7 @@ async function generateVisual(visualDescription: string, format: string): Promis
         size: `${width}x${height}`,
         response_format: 'url',
         seed: -1,
+        watermark: false,
       }),
     });
 
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest) {
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar);
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly);
       }
 
       case 'approve': {
@@ -593,6 +594,31 @@ async function generateWeeklyPlan(supabase: any) {
     status: 'success', created_at: nowISO,
   });
 
+  // Report strategy to marketing agent for alignment
+  const platformBreakdown: Record<string, number> = {};
+  const pillarBreakdown: Record<string, number> = {};
+  for (const post of weekPlan) {
+    const p = post.platform || 'instagram';
+    const pi = post.pillar || 'tips';
+    platformBreakdown[p] = (platformBreakdown[p] || 0) + 1;
+    pillarBreakdown[pi] = (pillarBreakdown[pi] || 0) + 1;
+  }
+
+  await supabase.from('agent_logs').insert({
+    agent: 'content', action: 'report_to_ceo',
+    data: {
+      phase: 'weekly_plan',
+      message: `Contenu: ${inserted} posts planifies cette semaine`,
+      strategy: {
+        platforms: platformBreakdown,
+        pillars: pillarBreakdown,
+        grid_colors: weekPlan.map((p: any) => p.grid_color).filter(Boolean),
+        week_start: mondayDate.toISOString().split('T')[0],
+      },
+    },
+    created_at: nowISO,
+  });
+
   console.log(`[Content] Weekly plan: ${inserted} posts planned`);
 
   return NextResponse.json({ ok: true, postsPlanned: inserted });
@@ -601,7 +627,7 @@ async function generateWeeklyPlan(supabase: any) {
 // ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
-async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string) {
+async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean) {
   const nowISO = new Date().toISOString();
 
   // Default schedule by day of week (Instagram + TikTok only, no LinkedIn)
@@ -619,39 +645,66 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const platform = forcePlatform || schedule.platform;
   const pillar = forcePillar || schedule.pillar;
 
-  // Get recent posts for visual coherence context
+  // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
     .from('content_calendar')
-    .select('platform, format, visual_description, hook, pillar')
-    .eq('platform', 'instagram')
+    .select('platform, format, visual_description, hook, pillar, caption')
+    .eq('platform', platform)
     .in('status', ['draft', 'approved', 'published'])
     .order('scheduled_date', { ascending: false })
-    .limit(6);
+    .limit(9);
 
-  const gridContext = recentGrid?.map((p: any, i: number) => `Position ${i + 1}: ${p.format} — ${p.visual_description || p.hook || 'pas de description'}`).join('\n') || 'Grille vide';
+  const gridContext = recentGrid?.map((p: any, i: number) =>
+    `Position ${i + 1}: ${p.format} | Pilier: ${p.pillar} | Hook: ${p.hook || '?'} | Visuel: ${(p.visual_description || '').substring(0, 80)}`
+  ).join('\n') || 'Grille vide';
 
-  const enhancedPrompt = `Génère 1 post pour aujourd'hui (${todayStr}).
+  // Detect recently used pillars to enforce rotation
+  const recentPillars = recentGrid?.map((p: any) => p.pillar).filter(Boolean) || [];
+  const pillarCounts: Record<string, number> = {};
+  for (const rp of recentPillars) pillarCounts[rp] = (pillarCounts[rp] || 0) + 1;
+  const avoidPillar = Object.entries(pillarCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // Detect recent CTA types to rotate them
+  const recentCTAs = recentGrid?.map((p: any) => {
+    const cap = (p.caption || '').toLowerCase();
+    if (cap.includes('enregistre')) return 'save';
+    if (cap.includes('tag')) return 'tag';
+    if (cap.includes('lien en bio')) return 'link';
+    if (cap.includes('commente')) return 'comment';
+    return 'other';
+  }).filter(Boolean) || [];
+
+  const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 
 Plateforme : ${platform}
 Format suggéré : ${schedule.format}
-Pilier : ${pillar}
+Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}
 
-CONTEXTE GRILLE INSTAGRAM (les 6 derniers posts, du plus récent) :
+CONTEXTE FEED (les derniers posts, du plus récent) :
 ${gridContext}
 
-IMPORTANT — RÈGLES :
+CTA RÉCENTS UTILISÉS : ${[...new Set(recentCTAs)].join(', ') || 'aucun'}
+→ VARIE le CTA ! Si "save" a été fait, utilise "tag un ami" ou "commente" ou "lien en bio".
+
+STRATÉGIE GLOBALE :
+- Chaque post fait partie d'un ENSEMBLE cohérent. Pense au feed GLOBAL, pas juste ce post isolé.
+- Le visuel doit être HARMONIEUX avec les posts précédents (alternance couleurs, pas de répétition).
+- Le CTA doit être NATUREL, intégré au contenu, pas forcé. Il guide vers KeiroAI sans être publicitaire.
+- Pense conversion INDIRECTE : le prospect voit le post → comprend la valeur → visite le profil → essaie KeiroAI.
+
+RÈGLES :
 - Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)
-- Tu DOIS fournir un champ "visual_description" détaillé pour la génération d'image IA (Seedream)
+- Tu DOIS fournir un champ "visual_description" détaillé (prompt Seedream complet, EN ANGLAIS)
 - La description visuelle doit être un PROMPT IMAGE complet, pas une simple description textuelle
-- Pense à la MINIATURE dans la grille Instagram (carrée, lisible en petit)
-- Pour un carrousel : la COVER SLIDE = gros titre lisible + fond coloré
-- Pour un reel/vidéo : frame d'accroche avec texte overlay bien visible
-- Pour un post image : composition épurée, message central lisible
-- Pour TikTok : miniature accrocheuse, contrastée
-- Alterne les couleurs de fond : violet, blanc, noir, tons chauds
+- AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
+- Pense à la MINIATURE dans la grille (carrée, lisible en petit)
+- Pour un carrousel : la COVER SLIDE = fond coloré vibrant + élément graphique central
+- Pour un reel/vidéo : frame d'accroche visuelle forte
+- Pour un post image : composition épurée, focal point clair
+- Alterne les couleurs de fond par rapport aux posts précédents
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
-Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time`;
+Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time, grid_color, content_angle`;
 
   let rawText: string;
   try {
@@ -730,7 +783,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     script: post.script || null,
     scheduled_date: todayStr,
     scheduled_time: scheduledTime,
-    status: 'approved',
+    status: draftOnly ? 'draft' : 'approved',
     ai_generated: true,
   }).select().single();
 
@@ -744,11 +797,16 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   if (visualDesc && inserted?.id) {
     visualUrl = await generateVisual(visualDesc, post.format || schedule.format);
     if (visualUrl) {
-      await supabase
-        .from('content_calendar')
-        .update({ visual_url: visualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq('id', inserted.id);
-      console.log(`[Content] Visual generated + auto-published for post ${inserted.id}`);
+      const visualUpdate: Record<string, any> = {
+        visual_url: visualUrl,
+        updated_at: new Date().toISOString(),
+      };
+      if (!draftOnly) {
+        visualUpdate.status = 'published';
+        visualUpdate.published_at = new Date().toISOString();
+      }
+      await supabase.from('content_calendar').update(visualUpdate).eq('id', inserted.id);
+      console.log(`[Content] Visual generated${draftOnly ? ' (draft)' : ' + auto-published'} for post ${inserted.id}`);
     }
   }
 

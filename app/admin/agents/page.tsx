@@ -121,6 +121,7 @@ function AdminAgentsContent() {
     failed: number;
     message?: string;
     diagnostic?: Record<string, any>;
+    data?: Record<string, any>;
     byBusinessType: Record<string, { sent?: number; count?: number; failed?: number; steps?: number[]; handles?: string[] }>;
     dmExamples?: Array<{ name: string; type?: string; comment?: string }>;
     results?: Array<{ prospect_id: string; step: number; success: boolean; error?: string }>;
@@ -131,6 +132,10 @@ function AdminAgentsContent() {
   const [campaignStatusFilter, setCampaignStatusFilter] = useState<string>('all');
   const [launchingCampaign, setLaunchingCampaign] = useState<string | null>(null);
   const [campaignLaunchResult, setCampaignLaunchResult] = useState<{ ok: boolean; message: string } | null>(null);
+  // Content campaign options
+  const [showContentOptions, setShowContentOptions] = useState(false);
+  const [contentPlatform, setContentPlatform] = useState<string>('instagram');
+  const [contentMode, setContentMode] = useState<'draft' | 'publish'>('draft');
 
   // DM queue preview
   type DMQueueItem = {
@@ -473,11 +478,16 @@ function AdminAgentsContent() {
         ];
       } else if (agent === 'retention') {
         const checks = await countLogs('retention', 'daily_check');
-        const { count: atRisk } = await supabase.from('crm_prospects').select('*', { count: 'exact', head: true }).eq('temperature', 'cold');
+        // Count actual users at risk (orange + red health level from profiles, NOT crm_prospects)
+        const { count: orangeUsers } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('health_level', 'orange');
+        const { count: redUsers } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('health_level', 'red');
+        const { count: totalUsers } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).not('plan', 'is', null).not('plan', 'eq', 'gratuit').not('plan', 'eq', 'free');
+        const atRisk = (orangeUsers ?? 0) + (redUsers ?? 0);
         const winback = await countLogs('retention', 'winback_sent');
         cards = [
           { label: 'Checks effectues', value: checks, icon: '🔄' },
-          { label: 'Utilisateurs a risque', value: atRisk ?? 0, icon: '⚠️' },
+          { label: 'Utilisateurs payants', value: totalUsers ?? 0, icon: '👥' },
+          { label: 'A risque (orange+red)', value: atRisk, icon: '⚠️' },
           { label: 'Win-back envoyes', value: winback, icon: '📧' },
         ];
       } else if (agent === 'ceo') {
@@ -799,7 +809,7 @@ function AdminAgentsContent() {
       let query = supabase
         .from('agent_logs')
         .select('*')
-        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared', 'enrichment_run', 'daily_post_generated', 'weekly_plan_generated', 'execute_publication', 'article_generated', 'article_published', 'calendar_planned', 'queue_processed', 'sequence_scheduled', 'daily_check', 'daily_brief', 'report_to_ceo'])
+        .in('action', ['daily_cold', 'daily_warm', 'daily_preparation', 'comments_prepared', 'enrichment_run', 'daily_post_generated', 'weekly_plan_generated', 'execute_publication', 'article_generated', 'article_published', 'calendar_planned', 'queue_processed', 'sequence_scheduled', 'daily_check', 'daily_brief', 'report_to_ceo', 'reset_dead_prospects'])
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -846,6 +856,7 @@ function AdminAgentsContent() {
           failed,
           message: d.message || undefined,
           diagnostic: d.diagnostic || d.skipped || undefined,
+          data: d,
           byBusinessType: d.by_business_type || {},
           dmExamples: d.comments || d.prepared_names?.map((n: string) => ({ name: n })) || [],
           results: d.results || d.details || [],
@@ -897,6 +908,7 @@ function AdminAgentsContent() {
         'email_cold': { path: '/api/agents/email/daily', method: 'GET' },
         'email_warm': { path: '/api/agents/email/daily?type=warm', method: 'GET' },
         'dm_instagram': { path: '/api/agents/dm-instagram', method: 'POST' },
+        'dm_tiktok': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'commercial': { path: '/api/agents/commercial', method: 'POST' },
         'seo': { path: '/api/agents/seo', method: 'POST' },
@@ -907,9 +919,11 @@ function AdminAgentsContent() {
       const endpoint = endpointMap[agentType];
       if (!endpoint) throw new Error(`Agent inconnu: ${agentType}`);
 
-      // Content agent needs specific action in body
+      // Content agent needs specific action + options in body
       const bodyPayload = agentType === 'content'
-        ? JSON.stringify({ action: 'execute_publication' })
+        ? JSON.stringify(contentMode === 'publish'
+          ? { action: 'execute_publication' }
+          : { action: 'generate_post', platform: contentPlatform, draftOnly: true })
         : agentType === 'seo'
         ? JSON.stringify({ action: 'generate_article' })
         : endpoint.method === 'POST' ? JSON.stringify({}) : undefined;
@@ -934,8 +948,8 @@ function AdminAgentsContent() {
           ? `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués${emailDiag}${data.message ? ' — ' + data.message : ''}`
           : agentType === 'dm_instagram'
           ? `${data.prepared || data.count || 0} DMs préparés`
-          : agentType === 'tiktok_comments'
-          ? `${data.prepared || data.count || 0} commentaires préparés`
+          : agentType === 'dm_tiktok' || agentType === 'tiktok_comments'
+          ? `${data.prepared || data.count || 0} DMs/commentaires préparés`
           : agentType === 'gmaps'
           ? `${data.new_prospects || data.found || 0} prospects trouvés`
           : agentType === 'commercial'
@@ -1606,8 +1620,7 @@ function AdminAgentsContent() {
                   { key: 'email_cold', label: 'Email Cold', icon: '✉️', color: 'from-green-500 to-green-600' },
                   { key: 'email_warm', label: 'Email Warm', icon: '🔥', color: 'from-orange-500 to-orange-600' },
                   { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
-                  { key: 'tiktok_comments', label: 'TikTok Comments', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
-                  { key: 'content', label: 'Contenu', icon: '📱', color: 'from-indigo-500 to-indigo-600' },
+                  { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
                   { key: 'commercial', label: 'Commercial + Google', icon: '🔍', color: 'from-purple-500 to-purple-600' },
                 ].map((btn) => (
                   <button
@@ -1624,6 +1637,57 @@ function AdminAgentsContent() {
                     {btn.label}
                   </button>
                 ))}
+                {/* Content button with options */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowContentOptions(!showContentOptions)}
+                    disabled={launchingCampaign !== null}
+                    className="px-3 py-2 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {launchingCampaign === 'content' ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>📱</span>
+                    )}
+                    Contenu
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showContentOptions && (
+                    <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-neutral-200 p-3 z-50 w-56">
+                      <div className="mb-2">
+                        <label className="text-[10px] font-semibold text-neutral-500 uppercase">Plateforme</label>
+                        <div className="flex gap-1 mt-1">
+                          {['instagram', 'tiktok'].map(p => (
+                            <button key={p} onClick={() => setContentPlatform(p)}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentPlatform === p ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                              {p === 'instagram' ? '📸 Instagram' : '🎵 TikTok'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mb-3">
+                        <label className="text-[10px] font-semibold text-neutral-500 uppercase">Mode</label>
+                        <div className="flex gap-1 mt-1">
+                          <button onClick={() => setContentMode('draft')}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'draft' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            Brouillon
+                          </button>
+                          <button onClick={() => setContentMode('publish')}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'publish' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            Publication directe
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setShowContentOptions(false); launchCampaign('content'); }}
+                        disabled={launchingCampaign !== null}
+                        className="w-full px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-all disabled:opacity-50"
+                      >
+                        Lancer
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               {campaignLaunchResult && (
                 <div className={`mt-3 text-sm px-3 py-2 rounded-lg ${
@@ -1674,13 +1738,14 @@ function AdminAgentsContent() {
                 : dateCampaigns;
               const actionLabels: Record<string, string> = {
                 daily_cold: 'Email (cold)', daily_warm: 'Email chatbot',
-                daily_preparation: 'DM Instagram', comments_prepared: 'TikTok',
+                daily_preparation: 'DM Instagram', comments_prepared: 'DM TikTok',
                 enrichment_run: 'Enrichissement', daily_post_generated: 'Post contenu',
                 weekly_plan_generated: 'Plan contenu', execute_publication: 'Publication',
-                article_generated: 'Article SEO', article_published: 'Article publié',
+                article_generated: 'Article SEO', article_published: 'Article publie',
                 calendar_planned: 'Calendrier SEO', queue_processed: 'Onboarding',
-                sequence_scheduled: 'Séquence onboarding', daily_check: 'Rétention',
+                sequence_scheduled: 'Sequence onboarding', daily_check: 'Retention',
                 daily_brief: 'Brief CEO', report_to_ceo: 'Rapport',
+                reset_dead_prospects: 'Reset prospects',
               };
               return filteredCampaigns.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
@@ -1702,12 +1767,13 @@ function AdminAgentsContent() {
                     ? 'bg-blue-100 text-blue-700'
                     : 'bg-neutral-900 text-white';
 
+                  const contentPlatformFromData = campaign.data?.platform || campaign.data?.post?.platform;
                   const suiviHref = campaign.agent === 'dm_instagram'
                     ? '/admin/dm-queue?tab=dm_instagram'
-                    : campaign.agent === 'tiktok_comments'
+                    : campaign.agent === 'tiktok_comments' || campaign.agent === 'dm_tiktok'
                     ? '/admin/dm-queue?tab=dm_tiktok'
                     : campaign.agent === 'content'
-                    ? '/admin/dm-queue?tab=pub_instagram'
+                    ? `/admin/dm-queue?tab=${contentPlatformFromData === 'tiktok' ? 'pub_tiktok' : 'pub_instagram'}`
                     : campaign.agent === 'seo'
                     ? '/admin/dm-queue?tab=seo'
                     : campaign.agent === 'email'
@@ -1758,6 +1824,28 @@ function AdminAgentsContent() {
                                 {type}: {data.sent || data.count || 0}
                               </span>
                             ))}
+                          </div>
+                        ) : campaign.data?.pipeline ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700 font-medium">
+                              Eligible: {campaign.data.pipeline.total_eligible || 0}
+                            </span>
+                            {campaign.data.pipeline.skipped_verification > 0 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">
+                                Verif: -{campaign.data.pipeline.skipped_verification}
+                              </span>
+                            )}
+                            {campaign.data.pipeline.skipped_waiting_next_step > 0 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                                Attente: -{campaign.data.pipeline.skipped_waiting_next_step}
+                              </span>
+                            )}
+                          </div>
+                        ) : campaign.data?.diagnostic ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">
+                              CRM: {campaign.data.diagnostic.with_email || 0} emails, {campaign.data.diagnostic.dead || 0} dead, {campaign.data.diagnostic.email_seq_completed || 0} termines
+                            </span>
                           </div>
                         ) : <div />}
                         {suiviHref && (

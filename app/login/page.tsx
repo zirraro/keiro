@@ -802,6 +802,8 @@ function LoginPageInner() {
               </label>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -816,6 +818,8 @@ function LoginPageInner() {
               </label>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -894,6 +898,8 @@ function LoginPageInner() {
               </label>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -908,6 +914,8 @@ function LoginPageInner() {
               </label>
               <input
                 type="password"
+                name="new-password"
+                autoComplete="new-password"
                 required
                 minLength={6}
                 value={password}

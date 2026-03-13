@@ -229,9 +229,9 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues.push('already_client');
   }
 
-  // type_missing is NOT blocking — getSequenceForProspect() defaults to 'pme' when type is null
+  // type_missing and company_missing are NOT blocking — we can still send emails without company name
   // location_missing and generic_email are warnings only
-  const blockingIssues = ['email_missing', 'company_missing', 'prospect_dead', 'already_client'];
+  const blockingIssues = ['email_missing', 'prospect_dead', 'already_client'];
   const hasBlockingIssue = issues.some(i => blockingIssues.includes(i));
 
   return {
@@ -332,15 +332,9 @@ export function verifyCRMCoherence(prospect: any): { fixes: Record<string, any>;
     }
   }
 
-  // 7. Status coherence
-  if (prospect.status === 'perdu' && prospect.temperature !== 'dead') {
-    fixes.temperature = 'dead';
-    issues.push('status_temp_mismatch_fixed');
-  }
-  if (prospect.temperature === 'dead' && prospect.status !== 'perdu') {
-    fixes.status = 'perdu';
-    issues.push('temp_status_mismatch_fixed');
-  }
+  // 7. Status coherence — REMOVED: dead/perdu sync was causing a death spiral.
+  // Dead/perdu should only be set by explicit actions (invalid email, disposable domain) in sections 1-2 above.
+  // Section 6 recalculating temperature could cascade into forcing perdu, killing prospects after reset.
 
   return { fixes, issues };
 }

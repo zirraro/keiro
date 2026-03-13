@@ -85,7 +85,7 @@ async function generateAIEmails(
 - Quartier: ${pr.quartier || 'Paris'}
 - Note Google: ${pr.note_google || pr.google_rating || 'non connue'}
 - Email: ${pr.email}
-- Step: ${p.step} (${p.step === 1 ? 'premier contact' : p.step === 2 ? 'relance' : p.step === 3 ? 'dernière chance' : 'warm follow-up'})
+- Step: ${p.step} (${p.step === 1 ? 'premier contact — question + valeur' : p.step === 2 ? 'relance douce — rappel + social proof' : p.step === 3 ? 'valeur gratuite — conseil concret sans rien demander' : p.step === 4 ? 'FOMO concurrents — tes concurrents postent deja' : p.step === 5 ? 'dernière chance — direct, désarmant' : 'warm follow-up'})
 - Score prospect: ${pr.score || 0}/100 (${pr.temperature || 'cold'})
 - Réseaux: ${socialInfo.length > 0 ? socialInfo.join(' | ') : 'aucun trouvé'}
 - Source: ${pr.source || 'import'}`;
@@ -120,8 +120,10 @@ STRUCTURE EMAIL PARFAIT (step 1) :
 5. CTA question simple : "Tu veux voir ce que ça donne pour [company] ?"
 6. "Victor ✌️"
 
-STEP 2 (relance) : "Je te relance vite fait..." + rappeler step 1 + être encore plus direct
-STEP 3 (dernière chance) : Angle FOMO concurrents + "pas de souci si c'est pas le moment" (désarmer)
+STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà...")
+STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
+STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
+STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
 WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer Sprint 4.99€
 
 INTERDICTIONS ABSOLUES :
@@ -517,6 +519,11 @@ export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get('type');
 
   const results: SendResult[] = [];
+  let skippedVerification = 0;
+  let skippedTooRecent = 0;
+  let skippedWaitingNextStep = 0;
+  let skippedMaxDaily = 0;
+  let prospectCount = 0;
 
   try {
     // Load agent learnings for AI generation
@@ -648,13 +655,11 @@ export async function GET(request: NextRequest) {
       }
 
       let step1Count = 0;
+      let skippedCompleted = 0;
+      let recycledCount = 0;
       const MAX_STEP1_PER_DAY = isManualTrigger ? 200 : 50;
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 1;
-
-      let skippedVerification = 0;
-      let skippedTooRecent = 0;
-      let skippedWaitingNextStep = 0;
-      let skippedMaxDaily = 0;
+      prospectCount = prospects.length;
 
       // Collect prospects for AI batch generation
       const batchForAI: Array<{ prospect: any; category: string; step: number }> = [];
@@ -682,32 +687,106 @@ export async function GET(request: NextRequest) {
         const lastSent = prospect.last_email_sent_at ? new Date(prospect.last_email_sent_at) : null;
         const created = new Date(prospect.created_at);
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+        const daysSinceLastSent = lastSent ? (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
 
         if (step === 0) {
+          // Step 0 → send step 1 (premier contact)
           if (hoursSinceCreation < MIN_HOURS_BEFORE_FIRST_EMAIL) { skippedTooRecent++; continue; }
           if (step1Count >= MAX_STEP1_PER_DAY) { skippedMaxDaily++; continue; }
           batchForAI.push({ prospect, category, step: 1 });
           step1Count++;
+        } else if (step === 1 && !lastSent) {
+          // Step 1 without lastSent = data inconsistency → RE-SEND step 1 (don't skip)
+          if (step1Count >= MAX_STEP1_PER_DAY) { skippedMaxDaily++; continue; }
+          batchForAI.push({ prospect, category, step: 1 });
+          step1Count++;
         } else if (step === 1 && lastSent) {
-          const days = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
-          if (days < 4) { skippedWaitingNextStep++; continue; }
+          // Step 1 → step 2 (relance douce) after 3 days
+          if (daysSinceLastSent < 3) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 2 });
         } else if (step === 2 && lastSent) {
-          const days = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
-          if (days < 5) { skippedWaitingNextStep++; continue; }
+          // Step 2 → step 3 (valeur gratuite) after 2 days (shorter gap — pure value)
+          if (daysSinceLastSent < 2) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 3 });
-        } else if (step === 3) {
+        } else if (step === 3 && lastSent) {
+          // Step 3 → step 4 (FOMO concurrents) after 3 days
+          if (daysSinceLastSent < 3) { skippedWaitingNextStep++; continue; }
+          batchForAI.push({ prospect, category, step: 4 });
+        } else if (step === 4 && lastSent) {
+          // Step 4 → step 5 (derniere chance) after 4 days
+          if (daysSinceLastSent < 4) { skippedWaitingNextStep++; continue; }
+          batchForAI.push({ prospect, category, step: 5 });
+        } else if (step === 5) {
+          // Step 5 completed → mark sequence as completed
           await supabase.from('crm_prospects').update({
             email_sequence_status: 'completed',
             updated_at: nowISO,
           }).eq('id', prospect.id);
-          results.push({ prospect_id: prospect.id, email: prospect.email, step: 3, success: true });
-        } else if (step === 1 && !lastSent) {
-          skippedWaitingNextStep++;
+          skippedCompleted++;
         }
       }
 
-      console.log(`[EmailDaily] Pipeline: ${prospects.length} eligible → ${skippedVerification} failed verification, ${skippedTooRecent} too recent, ${skippedWaitingNextStep} waiting next step, ${skippedMaxDaily} max daily → ${batchForAI.length} to send`);
+      // Auto-recycle: completed prospects after 21 days get a second cycle (max 2 cycles)
+      const { data: completedProspects } = await supabase
+        .from('crm_prospects')
+        .select('*')
+        .eq('email_sequence_status', 'completed')
+        .not('email', 'is', null);
+
+      if (completedProspects && completedProspects.length > 0) {
+        for (const prospect of completedProspects) {
+          const cycle = (prospect as any).email_cycle || 1;
+          if (cycle >= 2) continue; // Max 2 cycles
+          const lastSent = prospect.last_email_sent_at ? new Date(prospect.last_email_sent_at) : null;
+          if (!lastSent) continue;
+          const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysSinceLastSent < 21) continue;
+
+          // Recycle: reset to step 0, cycle 2
+          await supabase.from('crm_prospects').update({
+            email_sequence_step: 0,
+            email_sequence_status: 'in_progress',
+            email_cycle: cycle + 1,
+            updated_at: nowISO,
+          }).eq('id', prospect.id);
+          recycledCount++;
+          console.log(`[EmailDaily] Recycled ${prospect.company || prospect.email} → cycle ${cycle + 1}`);
+        }
+      }
+
+      const skipDiag = {
+        total_eligible: prospects.length,
+        to_send: batchForAI.length,
+        skipped_verification: skippedVerification,
+        skipped_too_recent: skippedTooRecent,
+        skipped_waiting_next_step: skippedWaitingNextStep,
+        skipped_max_daily: skippedMaxDaily,
+        skipped_completed: skippedCompleted,
+        recycled: recycledCount,
+      };
+      console.log(`[EmailDaily] Pipeline:`, JSON.stringify(skipDiag));
+
+      // Diagnostics: if nothing to send, log pipeline breakdown so admin can see why
+      if (batchForAI.length === 0) {
+        await supabase.from('agent_logs').insert({
+          agent: 'email',
+          action: 'daily_cold',
+          data: {
+            total: 0, success: 0, failed: 0,
+            pipeline: skipDiag,
+            reason: 'batchForAI empty after loop — all prospects filtered out by step timing, verification, or daily limits',
+          },
+          created_at: nowISO,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          mode: 'cold',
+          stats: { total: 0, success: 0, failed: 0 },
+          pipeline: skipDiag,
+          reason: 'Aucun email à envoyer — tous les prospects filtrés par timing, vérification ou limites quotidiennes',
+        });
+      }
 
       // AI batch generation (one Gemini call for all emails)
       let aiEmails = new Map<string, { subject: string; textBody: string; htmlBody: string }>();
@@ -745,13 +824,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const skipDiagnostic = {
-        verification: skippedVerification,
-        too_recent: skippedTooRecent,
-        waiting_next_step: skippedWaitingNextStep,
-        max_daily_reached: skippedMaxDaily,
-      };
-      console.log(`[EmailDaily] Skipped:`, JSON.stringify(skipDiagnostic));
+      // skipDiag already logged above
     }
 
     // --- Summary & Logging ---
@@ -793,6 +866,13 @@ export async function GET(request: NextRequest) {
         provider: 'brevo+resend',
         manual: isManualTrigger,
         by_business_type: byBusinessType,
+        ...(type !== 'warm' && { pipeline: {
+          total_eligible: prospectCount,
+          skipped_verification: skippedVerification,
+          skipped_too_recent: skippedTooRecent,
+          skipped_waiting_next_step: skippedWaitingNextStep,
+          skipped_max_daily: skippedMaxDaily,
+        }}),
         results: results.map(r => ({
           prospect_id: r.prospect_id,
           step: r.step,
@@ -871,37 +951,53 @@ export async function POST(request: NextRequest) {
       const supabase = getSupabaseAdmin();
       const nowISO = new Date().toISOString();
 
-      // Find all dead + perdu prospects with a valid email
-      const { data: deadProspects, error: queryError } = await supabase
+      // Find all dead/perdu prospects OR completed sequence prospects with valid email
+      const { data: allProspects, error: queryError } = await supabase
         .from('crm_prospects')
-        .select('id, email, company')
-        .eq('temperature', 'dead')
-        .eq('status', 'perdu')
+        .select('id, email, company, temperature, status, email_sequence_status')
         .not('email', 'is', null);
 
       if (queryError) {
         return NextResponse.json({ ok: false, error: queryError.message }, { status: 500 });
       }
 
-      if (!deadProspects || deadProspects.length === 0) {
-        return NextResponse.json({ ok: true, reset_count: 0, message: 'Aucun prospect dead/perdu à réinitialiser' });
+      // Filter: dead/perdu OR sequence completed (pipeline is dry)
+      const toReset = (allProspects || []).filter(p =>
+        (p.temperature === 'dead' || p.status === 'perdu') ||
+        p.email_sequence_status === 'completed'
+      );
+
+      if (toReset.length === 0) {
+        return NextResponse.json({ ok: true, reset_count: 0, message: 'Aucun prospect à réinitialiser' });
       }
 
-      const ids = deadProspects.map(p => p.id);
+      const deadIds = toReset.filter(p => p.temperature === 'dead' || p.status === 'perdu').map(p => p.id);
+      const completedIds = toReset.filter(p => p.email_sequence_status === 'completed' && p.temperature !== 'dead' && p.status !== 'perdu').map(p => p.id);
 
-      const { error: updateError } = await supabase
-        .from('crm_prospects')
-        .update({
-          temperature: 'cold',
-          status: 'identifie',
-          email_sequence_status: 'not_started',
-          email_sequence_step: 0,
-          updated_at: nowISO,
-        })
-        .in('id', ids);
+      // Reset dead/perdu prospects fully
+      if (deadIds.length > 0) {
+        await supabase
+          .from('crm_prospects')
+          .update({
+            temperature: 'cold',
+            status: 'identifie',
+            email_sequence_status: 'not_started',
+            email_sequence_step: 0,
+            updated_at: nowISO,
+          })
+          .in('id', deadIds);
+      }
 
-      if (updateError) {
-        return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+      // Reset completed sequence prospects (restart their email sequence only)
+      if (completedIds.length > 0) {
+        await supabase
+          .from('crm_prospects')
+          .update({
+            email_sequence_status: 'not_started',
+            email_sequence_step: 0,
+            updated_at: nowISO,
+          })
+          .in('id', completedIds);
       }
 
       // Log the action
@@ -909,19 +1005,19 @@ export async function POST(request: NextRequest) {
         agent: 'email',
         action: 'reset_dead_prospects',
         data: {
-          reset_count: ids.length,
-          prospect_ids: ids,
-          prospects: deadProspects.map(p => ({ id: p.id, email: p.email, company: p.company })),
+          dead_reset: deadIds.length,
+          completed_reset: completedIds.length,
+          total_reset: toReset.length,
         },
         created_at: nowISO,
       });
 
-      console.log(`[EmailDaily] Reset ${ids.length} dead prospects to cold/identifie`);
+      console.log(`[EmailDaily] Reset ${deadIds.length} dead + ${completedIds.length} completed prospects`);
 
       return NextResponse.json({
         ok: true,
-        reset_count: ids.length,
-        message: `${ids.length} prospects réinitialisés (dead→cold, perdu→identifie, séquence remise à 0)`,
+        reset_count: toReset.length,
+        message: `${deadIds.length} dead→cold + ${completedIds.length} séquences terminées relancées`,
       });
     }
 
