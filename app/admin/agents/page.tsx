@@ -136,6 +136,10 @@ function AdminAgentsContent() {
   const [showContentOptions, setShowContentOptions] = useState(false);
   const [contentPlatform, setContentPlatform] = useState<string>('instagram');
   const [contentMode, setContentMode] = useState<'draft' | 'publish' | 'week'>('draft');
+  const [emailMode, setEmailMode] = useState<'draft' | 'send'>('draft');
+  const [showEmailOptions, setShowEmailOptions] = useState(false);
+  const [showCommunityOptions, setShowCommunityOptions] = useState(false);
+  const [communityPlatform, setCommunityPlatform] = useState<string>('instagram');
   const [contentCalendar, setContentCalendar] = useState<any[]>([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
 
@@ -907,8 +911,8 @@ function AdminAgentsContent() {
     setCampaignLaunchResult(null);
     try {
       const endpointMap: Record<string, { path: string; method: string }> = {
-        'email_cold': { path: '/api/agents/email/daily?force=true', method: 'GET' },
-        'email_warm': { path: '/api/agents/email/daily?type=warm&force=true', method: 'GET' },
+        'email_cold': { path: `/api/agents/email/daily?force=true${emailMode === 'draft' ? '&draft=true' : ''}`, method: 'GET' },
+        'email_warm': { path: `/api/agents/email/daily?type=warm&force=true${emailMode === 'draft' ? '&draft=true' : ''}`, method: 'GET' },
         'dm_instagram': { path: '/api/agents/dm-instagram', method: 'POST' },
         'dm_tiktok': { path: '/api/agents/tiktok-comments', method: 'POST' },
         'tiktok_comments': { path: '/api/agents/tiktok-comments', method: 'POST' },
@@ -917,6 +921,9 @@ function AdminAgentsContent() {
         'onboarding': { path: '/api/agents/onboarding', method: 'GET' },
         'retention': { path: '/api/agents/retention', method: 'GET' },
         'content': { path: '/api/agents/content', method: 'POST' },
+        'marketing': { path: '/api/agents/marketing', method: 'GET' },
+        'community_follow': { path: '/api/agents/marketing', method: 'POST' },
+        'community_engage': { path: '/api/agents/marketing', method: 'POST' },
       };
       const endpoint = endpointMap[agentType];
       if (!endpoint) throw new Error(`Agent inconnu: ${agentType}`);
@@ -930,6 +937,10 @@ function AdminAgentsContent() {
           : { action: 'generate_post', platform: contentPlatform, draftOnly: true })
         : agentType === 'seo'
         ? JSON.stringify({ action: 'generate_article' })
+        : agentType === 'community_follow'
+        ? JSON.stringify({ action: 'find_follow_targets', platform: communityPlatform, count: 20 })
+        : agentType === 'community_engage'
+        ? JSON.stringify({ action: 'engagement_plan' })
         : endpoint.method === 'POST' ? JSON.stringify({}) : undefined;
 
       const res = await fetch(endpoint.path, {
@@ -949,7 +960,9 @@ function AdminAgentsContent() {
         const stats = data.stats || {};
         const emailDiag = data.diagnostic ? ` (CRM: ${data.diagnostic.total_crm}, avec email: ${data.diagnostic.with_email}, dead: ${data.diagnostic.dead}, perdu: ${data.diagnostic.perdu}, terminés: ${data.diagnostic.sequence_completed})` : '';
         const msg = agentType.startsWith('email')
-          ? `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués${emailDiag}${data.message ? ' — ' + data.message : ''}`
+          ? (data.draft
+            ? `${stats.total || 0} brouillons générés — voir dans Logs`
+            : `${stats.success || data.success || 0} emails envoyés, ${stats.failed || data.failed || 0} échoués${emailDiag}${data.message ? ' — ' + data.message : ''}`)
           : agentType === 'dm_instagram'
           ? `${data.prepared || data.count || 0} DMs préparés`
           : agentType === 'dm_tiktok' || agentType === 'tiktok_comments'
@@ -960,6 +973,12 @@ function AdminAgentsContent() {
           ? `${data.enriched || 0} prospects enrichis`
           : agentType === 'content'
           ? `${data.postsPlanned || data.published || (data.post ? 1 : 0)} post(s) généré(s)`
+          : agentType === 'community_follow'
+          ? `${data.targets_inserted || 0} comptes à suivre trouvés (${data.targets_found || 0} total)`
+          : agentType === 'community_engage'
+          ? 'Plan d\'engagement généré — voir dans Logs'
+          : agentType === 'marketing'
+          ? `Analyse marketing terminée (${data.learnings_extracted || 0} apprentissages)`
           : 'Tâche exécutée avec succès';
         setCampaignLaunchResult({ ok: true, message: msg });
         if (agentType === 'content') loadContentCalendar();
@@ -1636,9 +1655,57 @@ function AdminAgentsContent() {
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4">
               <h3 className="text-sm font-semibold text-neutral-900 mb-3">Lancer une campagne</h3>
               <div className="flex flex-wrap gap-2">
+                {/* Email with draft/send options */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowEmailOptions(!showEmailOptions)}
+                    disabled={launchingCampaign !== null}
+                    className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {(launchingCampaign === 'email_cold' || launchingCampaign === 'email_warm') ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>✉️</span>
+                    )}
+                    Email
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showEmailOptions && (
+                    <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-neutral-200 p-3 z-50 w-56">
+                      <div className="mb-2">
+                        <label className="text-[10px] font-semibold text-neutral-500 uppercase">Mode</label>
+                        <div className="flex gap-1 mt-1">
+                          <button onClick={() => setEmailMode('draft')}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${emailMode === 'draft' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            Brouillon
+                          </button>
+                          <button onClick={() => setEmailMode('send')}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${emailMode === 'send' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            Envoi direct
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 mt-2">
+                        <button
+                          onClick={() => { setShowEmailOptions(false); launchCampaign('email_cold'); }}
+                          disabled={launchingCampaign !== null}
+                          className="flex-1 px-2 py-1.5 bg-green-600 text-white text-[11px] font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        >
+                          Cold
+                        </button>
+                        <button
+                          onClick={() => { setShowEmailOptions(false); launchCampaign('email_warm'); }}
+                          disabled={launchingCampaign !== null}
+                          className="flex-1 px-2 py-1.5 bg-orange-500 text-white text-[11px] font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50"
+                        >
+                          Warm
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Other agents */}
                 {[
-                  { key: 'email_cold', label: 'Email Cold', icon: '✉️', color: 'from-green-500 to-green-600' },
-                  { key: 'email_warm', label: 'Email Warm', icon: '🔥', color: 'from-orange-500 to-orange-600' },
                   { key: 'dm_instagram', label: 'DM Instagram', icon: '📩', color: 'from-pink-500 to-pink-600' },
                   { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵', color: 'from-neutral-700 to-neutral-900' },
                   { key: 'commercial', label: 'Commercial + Google', icon: '🔍', color: 'from-purple-500 to-purple-600' },
@@ -1657,6 +1724,60 @@ function AdminAgentsContent() {
                     {btn.label}
                   </button>
                 ))}
+                {/* Community Manager button with options */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCommunityOptions(!showCommunityOptions)}
+                    disabled={launchingCampaign !== null}
+                    className="px-3 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white text-xs font-medium rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {(launchingCampaign === 'community_follow' || launchingCampaign === 'community_engage' || launchingCampaign === 'marketing') ? (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span>👥</span>
+                    )}
+                    Community
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {showCommunityOptions && (
+                    <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-neutral-200 p-3 z-50 w-60">
+                      <div className="mb-2">
+                        <label className="text-[10px] font-semibold text-neutral-500 uppercase">Plateforme</label>
+                        <div className="flex gap-1 mt-1">
+                          {['instagram', 'tiktok'].map(p => (
+                            <button key={p} onClick={() => setCommunityPlatform(p)}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${communityPlatform === p ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                              {p === 'instagram' ? '📸 Instagram' : '🎵 TikTok'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 mt-2">
+                        <button
+                          onClick={() => { setShowCommunityOptions(false); launchCampaign('community_follow'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-rose-600 text-white text-[11px] font-medium rounded-lg hover:bg-rose-700 disabled:opacity-50 text-left"
+                        >
+                          🎯 Trouver des comptes a follow
+                        </button>
+                        <button
+                          onClick={() => { setShowCommunityOptions(false); launchCampaign('community_engage'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-amber-500 text-white text-[11px] font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 text-left"
+                        >
+                          💬 Plan engagement du jour
+                        </button>
+                        <button
+                          onClick={() => { setShowCommunityOptions(false); launchCampaign('marketing'); }}
+                          disabled={launchingCampaign !== null}
+                          className="w-full px-2 py-1.5 bg-neutral-600 text-white text-[11px] font-medium rounded-lg hover:bg-neutral-700 disabled:opacity-50 text-left"
+                        >
+                          📊 Analyse marketing
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {/* Content button with options */}
                 <div className="relative">
                   <button

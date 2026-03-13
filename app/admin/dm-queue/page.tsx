@@ -94,7 +94,7 @@ type CalendarPost = {
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'follow_instagram' | 'follow_tiktok' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type PubSubTab = 'draft' | 'published';
 
@@ -110,7 +110,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'follow_instagram', 'follow_tiktok', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -137,6 +137,7 @@ function SuiviPublicationsPage() {
   const router = useRouter();
 
   const isDmTab = mainTab === 'dm_instagram' || mainTab === 'dm_tiktok';
+  const isFollowTab = mainTab === 'follow_instagram' || mainTab === 'follow_tiktok';
   const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok';
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
@@ -157,8 +158,11 @@ function SuiviPublicationsPage() {
     if (!profile?.is_admin) { router.push('/'); return; }
     setIsAdmin(true);
 
-    if (isDmTab) {
-      const channel = mainTab === 'dm_instagram' ? 'instagram' : 'tiktok';
+    if (isDmTab || isFollowTab) {
+      const channel = mainTab === 'dm_instagram' ? 'instagram'
+        : mainTab === 'dm_tiktok' ? 'tiktok'
+        : mainTab === 'follow_instagram' ? 'follow_instagram'
+        : 'follow_tiktok';
       let query = supabase
         .from('dm_queue')
         .select('*, prospect:crm_prospects(company, type, quartier, google_rating, google_reviews, score)')
@@ -225,7 +229,7 @@ function SuiviPublicationsPage() {
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, calendarWeekOffset]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, calendarWeekOffset]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -294,6 +298,8 @@ function SuiviPublicationsPage() {
   const MAIN_TABS: { key: MainTab; label: string; icon: string }[] = [
     { key: 'dm_instagram', label: 'DM Instagram', icon: '📸' },
     { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵' },
+    { key: 'follow_instagram', label: 'Follow Insta', icon: '👥' },
+    { key: 'follow_tiktok', label: 'Follow TikTok', icon: '👥' },
     { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
     { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
@@ -337,12 +343,12 @@ function SuiviPublicationsPage() {
         </div>
 
         {/* Sub Tabs */}
-        {isDmTab && (
+        {(isDmTab || isFollowTab) && (
           <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
             {([
-              { key: 'pending' as const, label: 'En attente' },
-              { key: 'sent' as const, label: 'Envoyés' },
-              { key: 'responded' as const, label: 'Réponses' },
+              { key: 'pending' as const, label: isFollowTab ? 'A suivre' : 'En attente' },
+              { key: 'sent' as const, label: isFollowTab ? 'Suivis' : 'Envoyés' },
+              { key: 'responded' as const, label: isFollowTab ? 'Follow back' : 'Réponses' },
             ]).map(t => (
               <button
                 key={t.key}
@@ -382,11 +388,13 @@ function SuiviPublicationsPage() {
         ) : (
           <>
             {/* DM Items */}
-            {isDmTab && (
+            {(isDmTab || isFollowTab) && (
               dmItems.length === 0 ? (
                 <div className="text-center py-12 text-neutral-400">
                   {dmSubTab === 'pending'
-                    ? `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente. Lancez l'agent DM.`
+                    ? (isFollowTab
+                      ? `Aucun compte a suivre. Lancez le Community Manager.`
+                      : `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente. Lancez l'agent DM.`)
                     : 'Aucun élément.'}
                 </div>
               ) : (
@@ -482,32 +490,34 @@ function SuiviPublicationsPage() {
                         <div className="px-4 py-3 border-t bg-neutral-50">
                           {dmSubTab === 'pending' && (
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => copyToClipboard(item.message, item.id)}
-                                className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
-                                  copiedId === item.id ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
-                              >
-                                {copiedId === item.id ? 'Copié !' : 'Copier le texte'}
-                              </button>
+                              {!isFollowTab && (
+                                <button
+                                  onClick={() => copyToClipboard(item.message, item.id)}
+                                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
+                                    copiedId === item.id ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                  }`}
+                                >
+                                  {copiedId === item.id ? 'Copié !' : 'Copier le texte'}
+                                </button>
+                              )}
                               <a
-                                href={item.channel === 'tiktok'
+                                href={item.channel.includes('tiktok')
                                   ? `https://tiktok.com/@${item.handle.replace('@', '')}`
                                   : `https://instagram.com/${item.handle.replace('@', '')}`
                                 }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
-                                  item.channel === 'tiktok' ? 'bg-gradient-to-r from-cyan-600 to-blue-600' : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                                  item.channel.includes('tiktok') ? 'bg-gradient-to-r from-cyan-600 to-blue-600' : 'bg-gradient-to-r from-purple-600 to-pink-600'
                                 }`}
                               >
-                                Ouvrir {item.channel === 'tiktok' ? 'TikTok' : 'Instagram'}
+                                Ouvrir {item.channel.includes('tiktok') ? 'TikTok' : 'Instagram'}
                               </a>
                               <button
                                 onClick={() => updateDmStatus(item.id, 'sent')}
                                 className="px-4 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                               >
-                                Envoyé
+                                {isFollowTab ? 'Suivi' : 'Envoyé'}
                               </button>
                               <button
                                 onClick={() => updateDmStatus(item.id, 'skipped')}

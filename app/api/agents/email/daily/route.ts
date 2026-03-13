@@ -370,6 +370,7 @@ async function sendEmail(
           body: JSON.stringify({
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
+            bcc: [{ email: 'mrzirraro@gmail.com', name: 'Admin KeiroAI' }],
             subject: template.subject,
             htmlContent: template.htmlBody,
             textContent: template.textBody,
@@ -404,6 +405,7 @@ async function sendEmail(
           body: JSON.stringify({
             from: 'Victor de KeiroAI <contact@keiroai.com>',
             to: [prospect.email],
+            bcc: ['mrzirraro@gmail.com'],
             subject: template.subject,
             html: template.htmlBody,
             text: template.textBody,
@@ -513,6 +515,7 @@ export async function GET(request: NextRequest) {
   const isCronTrigger = !!(cronSecret && authHeader === `Bearer ${cronSecret}`);
   const isManualTrigger = !isCronTrigger;
   const forceMode = request.nextUrl.searchParams.get('force') === 'true';
+  const draftMode = request.nextUrl.searchParams.get('draft') === 'true';
 
   const supabase = getSupabaseAdmin();
   const now = new Date();
@@ -817,7 +820,9 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Send all emails
+      // Send or draft all emails
+      const drafts: Array<{ prospect_id: string; email: string; company: string; step: number; category: string; subject: string; body: string; ai_generated: boolean }> = [];
+
       for (const { prospect, category, step } of batchForAI) {
         const aiEmail = aiEmails.get(prospect.id);
 
@@ -830,15 +835,46 @@ export async function GET(request: NextRequest) {
           note_google: prospect.note_google != null ? String(prospect.note_google) : '',
         }, Math.floor(Math.random() * 3));
 
-        const result = await sendEmail(prospect, step, template, category);
-        results.push({
-          prospect_id: prospect.id,
-          email: prospect.email,
-          step,
-          success: result.success,
-          error: result.error,
-          messageId: result.messageId,
-          ai_generated: !!aiEmail,
+        if (draftMode) {
+          // Save as draft for review — don't send
+          drafts.push({
+            prospect_id: prospect.id,
+            email: prospect.email,
+            company: prospect.company || '',
+            step,
+            category,
+            subject: template.subject,
+            body: template.htmlBody,
+            ai_generated: !!aiEmail,
+          });
+          results.push({
+            prospect_id: prospect.id,
+            email: prospect.email,
+            step,
+            success: true,
+            ai_generated: !!aiEmail,
+          });
+        } else {
+          const result = await sendEmail(prospect, step, template, category);
+          results.push({
+            prospect_id: prospect.id,
+            email: prospect.email,
+            step,
+            success: result.success,
+            error: result.error,
+            messageId: result.messageId,
+            ai_generated: !!aiEmail,
+          });
+        }
+      }
+
+      // Store drafts in agent_logs for admin review
+      if (draftMode && drafts.length > 0) {
+        await supabase.from('agent_logs').insert({
+          agent: 'email',
+          action: 'email_drafts',
+          data: { drafts, count: drafts.length },
+          created_at: nowISO,
         });
       }
 
@@ -921,9 +957,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       mode: type === 'warm' ? 'warm' : 'cold',
-      provider: 'brevo+resend',
+      draft: draftMode,
+      provider: draftMode ? 'draft' : 'brevo+resend',
       manual: isManualTrigger,
       stats: { total: results.length, success: successCount, failed: failCount, ai_generated: aiCount },
+      message: draftMode ? `${results.length} brouillons générés — voir dans Logs agent` : undefined,
       results,
     });
   } catch (error: any) {
