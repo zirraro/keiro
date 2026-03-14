@@ -70,6 +70,8 @@ interface EnrichmentResult {
   disqualification_reason: string | null;
   priority_score: number;
   reasoning: string;
+  business_exists?: boolean;
+  business_notes?: string;
 }
 
 interface SocialSearchResult {
@@ -199,8 +201,14 @@ Données actuelles :
 - Note Google : ${prospect.note_google ?? '(vide)'}
 
 ${!prospect.type ? 'PRIORITÉ : détermine le type de commerce à partir du nom de l\'entreprise et de l\'email.' : ''}
-${!prospect.quartier ? 'Si possible, déduis le quartier/ville à partir du nom ou de l\'email.' : ''}
+${!prospect.quartier ? 'Si possible, déduis le quartier/ville à partir du nom ou de l\'email. MAIS seulement si tu es SÛR — NE DEVINE PAS. Si tu n\'es pas certain, laisse vide (confidence: 0).' : ''}
 ${prospect.email ? 'Vérifie la validité de l\'email (format, domaine jetable, patterns suspects).' : 'ATTENTION : pas d\'email fourni, email_valid = false.'}
+
+VÉRIFICATION CRITIQUE DU NOM :
+- Le nom d'entreprise "${prospect.company || ''}" est-il un vrai commerce qui EXISTE ?
+- Si le nom semble inventé, trop générique, ou incohérent (ex: "Rôtisserie Antoine et Fils" qui n'existe pas sur internet), mets business_exists: false dans le JSON.
+- Si le quartier que tu déduis ne correspond PAS au commerce réel, mets quartier_confidence: 0.
+- Ajoute un champ "business_exists": true/false et "business_notes": "explication courte".
 
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON.`;
 
@@ -393,6 +401,19 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         }
 
         const updates: Record<string, any> = {};
+
+        // If AI says business doesn't exist, flag it and don't contact
+        if (result.business_exists === false) {
+          updates.notes = `[commercial] Business douteux: ${result.business_notes || 'introuvable'}`;
+          updates.temperature = 'dead';
+          updates.status = 'perdu';
+          flaggedDeadCount++;
+          console.log(`[CommercialAgent] Flagged ${prospect.id} as dead (business doesn't exist: ${prospect.company})`);
+          // Still apply update below, but skip contact readiness
+          updates.updated_at = nowISO;
+          await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
+          continue;
+        }
 
         if (!prospect.type && result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 70) {
           updates.type = result.type;

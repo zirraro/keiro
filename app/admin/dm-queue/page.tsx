@@ -796,6 +796,17 @@ function SuiviPublicationsPage() {
 
             {/* Content Publications */}
             {isPubTab && (
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-neutral-500">{contentPosts.length} post{contentPosts.length !== 1 ? 's' : ''}</p>
+                <button
+                  onClick={() => setMainTab('planning' as MainTab)}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                >
+                  📅 Voir le planning
+                </button>
+              </div>
+            )}
+            {isPubTab && (
               contentPosts.length === 0 ? (
                 <div className="text-center py-12 text-neutral-400">
                   {pubSubTab === 'draft'

@@ -92,6 +92,46 @@ ABSOLUTELY FORBIDDEN:
 
 Output ONLY the optimized English prompt. Nothing else.`;
 
+/**
+ * Cache a temporary Seedream URL to Supabase Storage for permanent access.
+ */
+async function cacheImageToStorage(tempUrl: string, postId: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const imgResponse = await fetch(tempUrl);
+    if (!imgResponse.ok) {
+      console.error('[Content] Failed to download image for caching:', imgResponse.status);
+      return null;
+    }
+    const buffer = await imgResponse.arrayBuffer();
+    if (buffer.byteLength === 0) return null;
+
+    const contentType = imgResponse.headers.get('content-type') || 'image/png';
+    const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+    const fileName = `content/${postId}-${Date.now()}.${ext}`;
+
+    const blob = new Blob([buffer], { type: contentType });
+    const { error: uploadError } = await supabase.storage
+      .from('generated-images')
+      .upload(fileName, blob, { contentType, upsert: false });
+
+    if (uploadError) {
+      console.error('[Content] Storage upload error:', uploadError.message);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('generated-images')
+      .getPublicUrl(fileName);
+
+    console.log('[Content] Image cached to storage:', publicUrl?.substring(0, 80));
+    return publicUrl || null;
+  } catch (error: any) {
+    console.error('[Content] Image caching failed:', error.message);
+    return null;
+  }
+}
+
 async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
   try {
     // Optimize the visual description into an elite Seedream prompt
@@ -140,15 +180,24 @@ async function generateVisual(visualDescription: string, format: string): Promis
     }
 
     const seedreamData = await seedreamRes.json();
-    const imageUrl = seedreamData.data?.[0]?.url || null;
+    const tempUrl = seedreamData.data?.[0]?.url || null;
 
-    if (imageUrl) {
-      console.log('[Content] Visual generated successfully');
-    } else {
+    if (!tempUrl) {
       console.warn('[Content] Seedream returned no image URL');
+      return null;
     }
 
-    return imageUrl;
+    // Cache to Supabase Storage for permanent URL (Seedream URLs expire in ~1h)
+    const postId = `post-${Date.now()}`;
+    const permanentUrl = await cacheImageToStorage(tempUrl, postId);
+    if (permanentUrl) {
+      console.log('[Content] Visual generated + cached to permanent storage');
+      return permanentUrl;
+    }
+
+    // Fallback to temp URL if caching fails
+    console.warn('[Content] Cache failed, using temporary Seedream URL');
+    return tempUrl;
   } catch (e: any) {
     console.error('[Content] Visual generation error:', e.message);
     return null;

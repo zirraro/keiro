@@ -431,12 +431,17 @@ async function sendEmail(
           },
           body: JSON.stringify({
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
+            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
             bcc: [{ email: 'mrzirraro@gmail.com', name: 'Admin KeiroAI' }],
             subject: template.subject,
             htmlContent: template.htmlBody,
             textContent: template.textBody,
-            headers: { 'X-Mailin-custom': prospect.id },
+            headers: {
+              'X-Mailin-custom': prospect.id,
+              'List-Unsubscribe': '<https://keiroai.com/unsubscribe>',
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
             tags: ['cold-sequence', `step-${step}`, category],
           }),
         });
