@@ -1164,22 +1164,37 @@ function SuiviPublicationsPage() {
                               {post.visual_url && !brokenImages.has(post.id) ? (
                                 <div className="aspect-square bg-neutral-100 relative">
                                   <img src={post.visual_url} alt="" className="w-full h-full object-cover" onError={() => setBrokenImages(prev => new Set(prev).add(post.id))} />
+                                  <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                    post.platform === 'instagram' ? 'bg-pink-500 text-white' :
+                                    post.platform === 'tiktok' ? 'bg-black text-white' :
+                                    'bg-blue-600 text-white'
+                                  }`}>
+                                    {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
+                                  </span>
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
-                                    post.status === 'published' ? 'bg-green-500 text-white' :
+                                    post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-500 text-white' :
+                                    post.status === 'published' ? 'bg-orange-500 text-white' :
                                     post.status === 'scheduled' ? 'bg-blue-500 text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
-                                    {post.status === 'published' ? 'Publie' : post.status === 'scheduled' ? 'Planifie' : 'Draft'}
+                                    {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'OK' : post.status === 'published' ? '!' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
                                   </span>
                                 </div>
                               ) : (
-                                <div className="aspect-square bg-neutral-50 flex items-center justify-center">
-                                  <span className="text-2xl opacity-30">{post.platform === 'instagram' ? '📷' : '🎬'}</span>
+                                <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center relative">
+                                  <span className="text-2xl opacity-30">{post.platform === 'instagram' ? '📷' : post.platform === 'tiktok' ? '🎵' : '💼'}</span>
+                                  <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                    post.platform === 'instagram' ? 'bg-pink-500 text-white' :
+                                    post.platform === 'tiktok' ? 'bg-black text-white' :
+                                    'bg-blue-600 text-white'
+                                  }`}>
+                                    {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
+                                  </span>
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' ? 'bg-green-500 text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
-                                    {post.status === 'published' ? 'Publie' : 'Draft'}
+                                    {post.status === 'published' ? 'OK' : 'Draft'}
                                   </span>
                                 </div>
                               )}
@@ -1239,7 +1254,13 @@ function SuiviPublicationsPage() {
                              selectedPost.status === 'published' ? 'Non publié' :
                              selectedPost.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
                           </span>
-                          <span className="text-[10px] text-neutral-400">{selectedPost.platform}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                            selectedPost.platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
+                            selectedPost.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
+                            {selectedPost.platform === 'instagram' ? 'Instagram' : selectedPost.platform === 'tiktok' ? 'TikTok' : 'LinkedIn'}
+                          </span>
                           {selectedPost.format && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{selectedPost.format}</span>}
                           {selectedPost.pillar && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 rounded text-purple-600">{selectedPost.pillar}</span>}
                           <span className="text-[10px] text-neutral-400">{selectedPost.scheduled_date}{selectedPost.scheduled_time ? ` ${selectedPost.scheduled_time}` : ''}</span>
