@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  from: 'KeiroAI Agents <noreply@keiroai.com>',
+                  from: 'KeiroAI Agents <contact@keiroai.com>',
                   to: ['contact@keiroai.com'],
                   subject: `\uD83D\uDD25 PROSPECT CHAUD \u2014 ${prospect.company || prospect.email} a r\u00E9pondu !`,
                   html: `<h2>\uD83D\uDD25 Prospect chaud !</h2><p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a r\u00E9pondu \u00E0 votre email !</p><p>Action : R\u00E9pondez dans l'heure avec un visuel personnalis\u00E9.</p><p>Email : ${prospect.email}<br>Note Google : ${prospect.note_google ?? 'N/A'}/5<br>Score : ${prospect.score ?? 0}/100</p>`,

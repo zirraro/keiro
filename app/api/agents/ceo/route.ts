@@ -16,8 +16,8 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// Founder email for briefs
-const FOUNDER_EMAIL = 'mrzirraro@gmail.com';
+// Founder emails for briefs
+const FOUNDER_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -558,7 +558,7 @@ async function generateBrief(): Promise<NextResponse> {
           },
           body: JSON.stringify({
             from: 'KeiroAI CEO Agent <contact@keiroai.com>',
-            to: [FOUNDER_EMAIL],
+            to: FOUNDER_EMAILS,
             subject: emailSubject,
             html: emailHtml,
           }),
@@ -566,7 +566,7 @@ async function generateBrief(): Promise<NextResponse> {
 
         if (resendRes.ok) {
           emailSent = true;
-          console.log(`[CEOAgent] Brief email sent via Resend to ${FOUNDER_EMAIL}`);
+          console.log(`[CEOAgent] Brief email sent via Resend to ${FOUNDER_EMAILS.join(', ')}`);
         } else {
           const errText = await resendRes.text();
           console.error('[CEOAgent] Resend email failed:', errText);
@@ -576,8 +576,32 @@ async function generateBrief(): Promise<NextResponse> {
       }
     }
 
+    // Fallback: Brevo
+    if (!emailSent && process.env.BREVO_API_KEY) {
+      try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sender: { name: 'KeiroAI CEO Agent', email: 'contact@keiroai.com' },
+            to: FOUNDER_EMAILS.map(e => ({ email: e })),
+            subject: emailSubject,
+            htmlContent: emailHtml,
+          }),
+        });
+        if (brevoRes.ok) {
+          emailSent = true;
+          console.log(`[CEOAgent] Brief email sent via Brevo to ${FOUNDER_EMAILS.join(', ')}`);
+        } else {
+          console.error('[CEOAgent] Brevo email failed:', await brevoRes.text().catch(() => ''));
+        }
+      } catch (e: any) {
+        console.error('[CEOAgent] Brevo email error:', e.message);
+      }
+    }
+
     if (!emailSent) {
-      console.warn('[CEOAgent] No email provider — need RESEND_API_KEY');
+      console.warn('[CEOAgent] No email sent — check RESEND_API_KEY and BREVO_API_KEY');
     }
 
     console.log('[CEOAgent] Brief generated successfully');

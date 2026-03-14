@@ -419,7 +419,7 @@ async function notifyFounderPayment(info: {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'KeiroAI <noreply@keiroai.com>',
+          from: 'KeiroAI <contact@keiroai.com>',
           to: FOUNDER_EMAILS,
           subject,
           html,
@@ -760,7 +760,7 @@ async function sendCancellationEmail(email: string, planName: string) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'KeiroAI <noreply@keiroai.com>',
+          from: 'KeiroAI <contact@keiroai.com>',
           to: [email],
           subject: 'Confirmation d\'annulation de votre abonnement KeiroAI',
           html,
