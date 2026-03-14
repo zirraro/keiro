@@ -155,43 +155,31 @@ export async function GET(request: NextRequest) {
 
     case 'early_morning':
       // 06:00 UTC — Restaurants/traiteurs (ouverture cuisine, check emails avant service)
-      if (isWeekday) {
-        await callEndpoint('Email Cold (restaurants)', '/api/agents/email/daily?slot=early_morning&types=restaurant,traiteur,caviste');
-      }
+      await callEndpoint('Email Cold (restaurants)', '/api/agents/email/daily?slot=early_morning&types=restaurant,traiteur,caviste');
       break;
 
     case 'morning_prep':
       // 07:00 UTC — DM prep + SEO + Content
-      if (isWeekday) {
-        await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
-      }
-      if (isSeoDay) {
-        await callEndpoint('SEO', '/api/agents/seo');
-      }
+      await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
+      await callEndpoint('SEO', '/api/agents/seo');
       await callEndpoint('Content', '/api/agents/content');
       break;
 
     case 'morning':
       // 08:00 UTC — Boutiques/coiffeurs/fleuristes (ouverture magasin) + onboarding
-      if (isWeekday) {
-        await callEndpoint('Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste');
-      }
+      await callEndpoint('Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste');
       await callEndpoint('Onboarding', '/api/agents/onboarding');
       break;
 
     case 'midday':
       // 10:00 UTC — Coachs/freelances/services (fin de séances matin) + warm
-      if (isWeekday) {
-        await callEndpoint('Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel');
-      }
+      await callEndpoint('Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel');
       await callEndpoint('Email Warm', '/api/agents/email/daily?type=warm');
       break;
 
     case 'afternoon':
       // 12:00 UTC — Restaurants (entre services) + PME/agences (pause déjeuner)
-      if (isWeekday) {
-        await callEndpoint('Email Cold (midi)', '/api/agents/email/daily?slot=afternoon&types=restaurant,traiteur,pme,agence');
-      }
+      await callEndpoint('Email Cold (midi)', '/api/agents/email/daily?slot=afternoon&types=restaurant,traiteur,pme,agence');
       break;
 
     case 'retention':
@@ -209,19 +197,13 @@ export async function GET(request: NextRequest) {
 
     case 'evening':
       // 16:00 UTC — Restaurants/bars (avant service du soir) + tous les restants
-      if (isWeekday) {
-        await callEndpoint('Email Cold (soir)', '/api/agents/email/daily?slot=evening&types=restaurant,caviste,traiteur');
-      }
+      await callEndpoint('Email Cold (soir)', '/api/agents/email/daily?slot=evening&types=restaurant,caviste,traiteur');
       break;
 
     case 'evening_prep':
       // 17:00 UTC — Evening DM + TikTok
-      if (isWeekday) {
-        await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
-      }
-      if (isTiktokDay) {
-        await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
-      }
+      await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
+      await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
       break;
 
     case 'discovery_7':
