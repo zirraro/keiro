@@ -301,18 +301,47 @@ export function verifyCRMCoherence(prospect: any): { fixes: Record<string, any>;
     }
   }
 
-  // 3. Type coherence with company name
+  // 3. Type coherence with company name — extended detection
   if (prospect.type && prospect.company) {
     const type = prospect.type.toLowerCase();
     const name = prospect.company.toLowerCase();
-    // Auto-detect type if obviously wrong
-    if (type === 'restaurant' && (name.includes('coiffure') || name.includes('salon') || name.includes('beauty'))) {
-      fixes.type = 'coiffeur';
-      issues.push('type_auto_corrected');
-    }
-    if (type === 'boutique' && (name.includes('restaurant') || name.includes('brasserie') || name.includes('bistrot'))) {
-      fixes.type = 'restaurant';
-      issues.push('type_auto_corrected');
+
+    // Restaurant keywords
+    const restoKeywords = ['restaurant', 'brasserie', 'bistrot', 'bistro', 'trattoria', 'pizzeria', 'sushi', 'ramen', 'burger', 'grill', 'rotisserie', 'rôtisserie', 'cantine', 'auberge', 'taverne', 'crêperie', 'kebab', 'wok', 'dim sum', 'pho', 'tacos'];
+    // Coiffeur/beauty keywords
+    const coiffeurKeywords = ['coiffure', 'coiffeur', 'salon', 'beauty', 'beauté', 'barbier', 'barber', 'esthétique', 'esthetique', 'onglerie', 'manucure', 'spa', 'bien-être'];
+    // Boutique keywords
+    const boutiqueKeywords = ['boutique', 'magasin', 'shop', 'store', 'prêt-à-porter', 'mode', 'vêtement', 'chaussure', 'bijou', 'accessoire'];
+    // Fleuriste keywords
+    const fleuristeKeywords = ['fleur', 'fleuriste', 'bouquet', 'florale'];
+    // Caviste keywords
+    const cavisteKeywords = ['cave', 'caviste', 'vin', 'vignoble', 'œnologie', 'oenologie'];
+    // Coach keywords
+    const coachKeywords = ['coach', 'coaching', 'fitness', 'personal trainer', 'yoga', 'pilates', 'cross', 'boxe', 'martial'];
+
+    // Auto-correct type if name strongly suggests a different type
+    const nameMatchesType = (keywords: string[]) => keywords.some(k => name.includes(k));
+
+    if (type === 'restaurant' && nameMatchesType(coiffeurKeywords)) {
+      fixes.type = 'coiffeur'; issues.push('type_auto_corrected');
+    } else if (type === 'restaurant' && nameMatchesType(boutiqueKeywords) && !nameMatchesType(restoKeywords)) {
+      fixes.type = 'boutique'; issues.push('type_auto_corrected');
+    } else if (type === 'restaurant' && nameMatchesType(fleuristeKeywords)) {
+      fixes.type = 'fleuriste'; issues.push('type_auto_corrected');
+    } else if (type === 'boutique' && nameMatchesType(restoKeywords)) {
+      fixes.type = 'restaurant'; issues.push('type_auto_corrected');
+    } else if (type === 'boutique' && nameMatchesType(coiffeurKeywords)) {
+      fixes.type = 'coiffeur'; issues.push('type_auto_corrected');
+    } else if (type === 'coiffeur' && nameMatchesType(restoKeywords)) {
+      fixes.type = 'restaurant'; issues.push('type_auto_corrected');
+    } else if (type === 'coach' && nameMatchesType(restoKeywords)) {
+      fixes.type = 'restaurant'; issues.push('type_auto_corrected');
+    } else if (type !== 'fleuriste' && nameMatchesType(fleuristeKeywords)) {
+      fixes.type = 'fleuriste'; issues.push('type_auto_corrected');
+    } else if (type !== 'caviste' && nameMatchesType(cavisteKeywords)) {
+      fixes.type = 'caviste'; issues.push('type_auto_corrected');
+    } else if (type !== 'coach' && nameMatchesType(coachKeywords) && !nameMatchesType(restoKeywords)) {
+      fixes.type = 'coach'; issues.push('type_auto_corrected');
     }
   }
 

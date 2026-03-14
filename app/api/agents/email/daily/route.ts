@@ -113,13 +113,19 @@ PERSONNALISATION INTELLIGENTE :
 - Si prospect est un restaurant : ROI = couverts, si coach : ROI = clients bookés, si boutique : ROI = passage en magasin
 - Si score >50 (chaud) : sois plus direct et propose un appel
 
-STRUCTURE EMAIL PARFAIT (step 1) :
-1. "Salut [prénom]," (jamais Hey, jamais Bonjour)
-2. Question d'accroche personnalisée (1 ligne)
-3. Pain point spécifique à leur business (1 ligne)
-4. Ce que KeiroAI fait pour eux concrètement (1-2 lignes)
-5. CTA question simple : "Tu veux voir ce que ça donne pour [company] ?"
-6. "Victor ✌️"
+STRUCTURE EMAIL PARFAIT (step 1) — DOIT ÊTRE NATUREL :
+Exemple de bon email :
+"Salut Marie,
+
+Je suis tombé sur ton resto l'autre jour, franchement la carte a l'air top. Par contre sur Insta c'est un peu vide et je me suis dit que ça pouvait te coûter des couverts.
+
+On a un outil qui génère des visuels pro de tes plats en 3 min, sans photographe. Quelques restaus dans ton coin l'utilisent déjà.
+
+Tu veux que je te montre ce que ça donne ?
+
+Victor ✌️"
+
+Pas de bullet points, pas de stats forcées, pas de "saviez-vous que 72%...", juste une conversation naturelle entre deux personnes.
 
 STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà...")
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
@@ -135,12 +141,23 @@ VÉRIFICATION BUSINESS OBLIGATOIRE :
 - JAMAIS dire "je suis tombé sur [company] en cherchant les meilleurs restos du [quartier]" si tu n'es pas SÛR que c'est le bon quartier.
 - Alternative sans quartier : "Salut [prénom], je suis tombé sur [company]" tout court, ça suffit.
 
+TON NATUREL — CRITÈRES ABSOLUS :
+- L'email doit ressembler à un message envoyé par un VRAI humain, pas un robot. Comme si Victor tapait le mail vite fait depuis son téléphone.
+- JAMAIS de "?" en début de ligne. Une question commence par un sujet, pas par "?".
+- JAMAIS de structure visible type "accroche / pain point / solution / CTA" — ça doit couler naturellement.
+- Le texte doit être FLUIDE, comme une conversation. Pas de bullet points, pas de listes, pas de formatage.
+- Commence par "Salut [prénom]," — JAMAIS "Bonjour" ni "Hey" ni "Cher".
+- Le nom du commerce doit être utilisé comme on en parlerait à l'oral : "je suis tombé sur ton resto" pas "je suis tombé sur Restaurant Le Soleil Paris 9ème".
+- Si le nom du commerce est trop long ou formel, utilise une version courte naturelle.
+
 INTERDICTIONS ABSOLUES :
 - JAMAIS "vous/votre" → toujours "tu/ton/ta"
-- JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement"
+- JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement" / "Bonjour"
 - JAMAIS plus de 6 lignes de corps
 - JAMAIS d'emoji dans l'objet (sauf ✌️ dans la signature)
 - JAMAIS mentionner le prix dans le step 1 (sauf Sprint 4.99€)
+- JAMAIS de "?" en tout début de ligne (la question doit commencer par des mots)
+- JAMAIS de nom de commerce qui sonne faux ou inventé — si le nom est bizarre, dis juste "ton commerce" ou "ton resto"
 - Signature : Victor de KeiroAI (JAMAIS Oussama, JAMAIS "l'équipe KeiroAI")
 
 ${learnings}
@@ -403,6 +420,12 @@ async function sendEmail(
       template.textBody = template.textBody.replace(/Oussama/g, 'Victor');
       template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Victor');
     }
+    // Fix "?" at beginning of line (unnatural formatting)
+    template.textBody = template.textBody.replace(/^\s*\?\s*/gm, '');
+    template.htmlBody = template.htmlBody.replace(/^\s*\?\s*/gm, '');
+    // Replace "Bonjour" with "Salut" for consistency
+    template.textBody = template.textBody.replace(/^Bonjour\s/gm, 'Salut ');
+    template.htmlBody = template.htmlBody.replace(/Bonjour\s/g, 'Salut ');
     // Business coherence: if quartier is empty but email mentions a specific quartier, strip it
     if (!prospect.quartier) {
       // Remove phrases like "du Opéra", "du 9ème", "du Marais" if quartier wasn't in CRM
