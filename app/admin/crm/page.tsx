@@ -248,6 +248,10 @@ export default function AdminCRMPage() {
   const [filterSuivi, setFilterSuivi] = useState<'none' | 'jour' | 'semaine'>('none');
   const [weeklyReminders, setWeeklyReminders] = useState<Activity[]>([]);
 
+  // Clients actifs KeiroAI
+  type PayingClient = { id: string; email: string; first_name: string | null; subscription_plan: string; credits_balance: number; credits_monthly_allowance: number; images_7d: number; videos_7d: number; total_generations: number; status: 'actif' | 'inactif' | 'nouveau' | 'dormant' };
+  const [payingClients, setPayingClients] = useState<PayingClient[]>([]);
+
   // ─── Auth Check ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -269,6 +273,7 @@ export default function AdminCRMPage() {
   useEffect(() => {
     if (!isAdmin) return;
     loadProspects();
+    loadPayingClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -291,6 +296,68 @@ export default function AdminCRMPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
+
+  // ─── Load paying clients activity ────────────────────────────────────
+  const loadPayingClients = async () => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: clients } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, subscription_plan, credits_balance, credits_monthly_allowance, created_at')
+        .neq('subscription_plan', 'free')
+        .not('subscription_plan', 'is', null);
+
+      if (!clients || clients.length === 0) { setPayingClients([]); return; }
+
+      const clientIds = clients.map((c: any) => c.id);
+
+      const { data: retScores } = await supabase
+        .from('retention_scores')
+        .select('user_id, days_since_login, weekly_generations')
+        .in('user_id', clientIds);
+      const retMap = new Map<string, any>((retScores || []).map((r: any) => [r.user_id, r]));
+
+      const { data: recentImages } = await supabase
+        .from('saved_images')
+        .select('user_id')
+        .gte('created_at', sevenDaysAgo)
+        .in('user_id', clientIds);
+      const imgCounts: Record<string, number> = {};
+      (recentImages || []).forEach((img: any) => { imgCounts[img.user_id] = (imgCounts[img.user_id] || 0) + 1; });
+
+      const { data: recentVideos } = await supabase
+        .from('my_videos')
+        .select('user_id')
+        .gte('created_at', sevenDaysAgo)
+        .in('user_id', clientIds);
+      const vidCounts: Record<string, number> = {};
+      (recentVideos || []).forEach((vid: any) => { vidCounts[vid.user_id] = (vidCounts[vid.user_id] || 0) + 1; });
+
+      const result: PayingClient[] = clients.map((c: any) => {
+        const ret = retMap.get(c.id);
+        const img7d = imgCounts[c.id] || 0;
+        const vid7d = vidCounts[c.id] || 0;
+        const total = img7d + vid7d;
+        const daysLogin = ret?.days_since_login ?? 999;
+        const accountAge = Math.floor((now.getTime() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24));
+
+        let status: PayingClient['status'] = 'actif';
+        if (accountAge <= 7) status = 'nouveau';
+        else if (daysLogin > 14 && total === 0) status = 'dormant';
+        else if (daysLogin > 5 || total === 0) status = 'inactif';
+
+        return { id: c.id, email: c.email || '', first_name: c.first_name, subscription_plan: c.subscription_plan, credits_balance: c.credits_balance || 0, credits_monthly_allowance: c.credits_monthly_allowance || 0, images_7d: img7d, videos_7d: vid7d, total_generations: total, status };
+      });
+
+      const statusOrder: Record<string, number> = { dormant: 0, inactif: 1, nouveau: 2, actif: 3 };
+      result.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+      setPayingClients(result);
+    } catch (err) {
+      console.error('[CRM] Paying clients load error:', err);
+    }
+  };
 
   // ─── API Calls ─────────────────────────────────────────────────────────
 
@@ -1399,6 +1466,50 @@ export default function AdminCRMPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Clients KeiroAI — Activite */}
+                {payingClients.length > 0 && (
+                  <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-neutral-900">Clients KeiroAI — Activite 7 jours</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{payingClients.filter(c => c.status === 'actif').length} actifs</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">{payingClients.filter(c => c.status === 'inactif').length} inactifs</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{payingClients.filter(c => c.status === 'dormant').length} dormants</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      {payingClients.map(c => (
+                        <div key={c.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                            c.status === 'actif' ? 'bg-green-500'
+                            : c.status === 'nouveau' ? 'bg-blue-500'
+                            : c.status === 'inactif' ? 'bg-orange-500'
+                            : 'bg-red-500'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-neutral-900 truncate">{c.first_name || c.email.split('@')[0]}</p>
+                            <p className="text-[10px] text-neutral-400 truncate">{c.email}</p>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium flex-shrink-0">{c.subscription_plan}</span>
+                          <div className="text-right flex-shrink-0 w-20">
+                            <p className="text-xs font-medium text-neutral-700">{c.credits_balance}/{c.credits_monthly_allowance} cr</p>
+                          </div>
+                          <div className="text-right flex-shrink-0 w-16">
+                            <p className={`text-xs font-bold ${c.total_generations > 5 ? 'text-green-600' : c.total_generations > 0 ? 'text-neutral-900' : 'text-red-500'}`}>{c.total_generations} gen</p>
+                            <p className="text-[10px] text-neutral-400">{c.images_7d} img, {c.videos_7d} vid</p>
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                            c.status === 'actif' ? 'bg-green-100 text-green-700'
+                            : c.status === 'nouveau' ? 'bg-blue-100 text-blue-700'
+                            : c.status === 'inactif' ? 'bg-orange-100 text-orange-700'
+                            : 'bg-red-100 text-red-700'
+                          }`}>{c.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               /* ── List View ──────────────────────────────────────────── */

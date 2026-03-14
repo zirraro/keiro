@@ -176,6 +176,11 @@ function AdminAgentsContent() {
   const [retentionClients, setRetentionClients] = useState<RetentionClient[]>([]);
   const [retentionStats, setRetentionStats] = useState({ green: 0, yellow: 0, orange: 0, red: 0, mrrAtRisk: 0, totalClients: 0 });
 
+  // Active clients state
+  type ActiveClient = { id: string; email: string; first_name: string | null; subscription_plan: string; credits_balance: number; credits_monthly_allowance: number; last_sign_in_at: string | null; images_7d: number; videos_7d: number; total_generations: number; status: 'actif' | 'inactif' | 'nouveau' | 'dormant' };
+  const [activeClients, setActiveClients] = useState<ActiveClient[]>([]);
+  const [clientActivityFilter, setClientActivityFilter] = useState<string>('all');
+
   // Content state
   type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
@@ -203,6 +208,7 @@ function AdminAgentsContent() {
       if (!profileData?.is_admin) { router.push('/'); return; }
       setLoading(false);
       loadDashboard();
+      loadClientActivity();
       loadCeoHistory();
     };
     init();
@@ -387,6 +393,89 @@ function AdminAgentsContent() {
       ]);
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
+    }
+  };
+
+  // ─── Client activity loader ─────────────────────────
+  const loadClientActivity = async () => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Get all paying clients
+      const { data: clients } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, subscription_plan, credits_balance, credits_monthly_allowance, created_at')
+        .neq('subscription_plan', 'free')
+        .not('subscription_plan', 'is', null);
+
+      if (!clients || clients.length === 0) { setActiveClients([]); return; }
+
+      const clientIds = clients.map((c: any) => c.id);
+
+      // Get retention scores for login tracking
+      const { data: retScores } = await supabase
+        .from('retention_scores')
+        .select('user_id, days_since_login, weekly_generations, prev_week_generations')
+        .in('user_id', clientIds);
+
+      const retMap = new Map<string, any>((retScores || []).map((r: any) => [r.user_id, r]));
+
+      // Get images count per user (last 7 days)
+      const { data: recentImages } = await supabase
+        .from('saved_images')
+        .select('user_id')
+        .gte('created_at', sevenDaysAgo)
+        .in('user_id', clientIds);
+
+      const imgCounts: Record<string, number> = {};
+      (recentImages || []).forEach((img: any) => { imgCounts[img.user_id] = (imgCounts[img.user_id] || 0) + 1; });
+
+      // Get videos count per user (last 7 days)
+      const { data: recentVideos } = await supabase
+        .from('my_videos')
+        .select('user_id')
+        .gte('created_at', sevenDaysAgo)
+        .in('user_id', clientIds);
+
+      const vidCounts: Record<string, number> = {};
+      (recentVideos || []).forEach((vid: any) => { vidCounts[vid.user_id] = (vidCounts[vid.user_id] || 0) + 1; });
+
+      const result: ActiveClient[] = clients.map((c: any) => {
+        const ret = retMap.get(c.id);
+        const img7d = imgCounts[c.id] || 0;
+        const vid7d = vidCounts[c.id] || 0;
+        const total = img7d + vid7d;
+        const daysLogin = ret?.days_since_login ?? 999;
+        const accountAge = Math.floor((now.getTime() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24));
+
+        let status: ActiveClient['status'] = 'actif';
+        if (accountAge <= 7) status = 'nouveau';
+        else if (daysLogin > 14 && total === 0) status = 'dormant';
+        else if (daysLogin > 5 || total === 0) status = 'inactif';
+
+        return {
+          id: c.id,
+          email: c.email || '',
+          first_name: c.first_name,
+          subscription_plan: c.subscription_plan,
+          credits_balance: c.credits_balance || 0,
+          credits_monthly_allowance: c.credits_monthly_allowance || 0,
+          last_sign_in_at: null,
+          images_7d: img7d,
+          videos_7d: vid7d,
+          total_generations: total,
+          status,
+        };
+      });
+
+      // Sort: dormant first, then inactif, then nouveau, then actif
+      const statusOrder = { dormant: 0, inactif: 1, nouveau: 2, actif: 3 };
+      result.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+
+      setActiveClients(result);
+    } catch (err) {
+      console.error('[Admin] Client activity load error:', err);
     }
   };
 
@@ -1485,6 +1574,88 @@ function AdminAgentsContent() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Client activity panel - only in global view */}
+            {dashboardAgent === 'global' && activeClients.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-neutral-900">Clients payants — Activite</h3>
+                  <div className="flex items-center gap-2">
+                    {[
+                      { id: 'all', label: 'Tous', count: activeClients.length },
+                      { id: 'actif', label: 'Actifs', count: activeClients.filter(c => c.status === 'actif').length, color: 'text-green-600' },
+                      { id: 'nouveau', label: 'Nouveaux', count: activeClients.filter(c => c.status === 'nouveau').length, color: 'text-blue-600' },
+                      { id: 'inactif', label: 'Inactifs', count: activeClients.filter(c => c.status === 'inactif').length, color: 'text-orange-600' },
+                      { id: 'dormant', label: 'Dormants', count: activeClients.filter(c => c.status === 'dormant').length, color: 'text-red-600' },
+                    ].filter(f => f.count > 0 || f.id === 'all').map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setClientActivityFilter(f.id)}
+                        className={`text-[10px] px-2 py-1 rounded-full font-medium transition ${
+                          clientActivityFilter === f.id
+                            ? 'bg-purple-600 text-white'
+                            : `bg-neutral-100 ${f.color || 'text-neutral-600'} hover:bg-neutral-200`
+                        }`}
+                      >
+                        {f.label} ({f.count})
+                      </button>
+                    ))}
+                    <button onClick={loadClientActivity} className="text-[10px] text-purple-600 hover:underline ml-2">Actualiser</button>
+                  </div>
+                </div>
+
+                {/* Summary badges */}
+                <div className="flex gap-3 mb-4">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <span className="text-xs font-medium text-green-700">{activeClients.filter(c => c.status === 'actif').length} actifs</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-xs font-medium text-blue-700">{activeClients.filter(c => c.status === 'nouveau').length} nouveaux</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-orange-500" />
+                    <span className="text-xs font-medium text-orange-700">{activeClients.filter(c => c.status === 'inactif').length} inactifs</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-xs font-medium text-red-700">{activeClients.filter(c => c.status === 'dormant').length} dormants</span>
+                  </div>
+                </div>
+
+                {/* Client table */}
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-8 gap-2 px-3 py-2 bg-neutral-50 rounded-t-lg text-[10px] font-semibold text-neutral-500 uppercase">
+                    <span>Statut</span><span className="col-span-2">Client</span><span>Plan</span><span>Credits</span><span>Images 7j</span><span>Videos 7j</span><span>Total</span>
+                  </div>
+                  {activeClients
+                    .filter(c => clientActivityFilter === 'all' || c.status === clientActivityFilter)
+                    .map(c => (
+                    <div key={c.id} className="grid grid-cols-8 gap-2 px-3 py-2.5 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium text-center ${
+                        c.status === 'actif' ? 'bg-green-100 text-green-700'
+                        : c.status === 'nouveau' ? 'bg-blue-100 text-blue-700'
+                        : c.status === 'inactif' ? 'bg-orange-100 text-orange-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}>{c.status}</span>
+                      <div className="col-span-2 min-w-0">
+                        <p className="text-xs font-medium text-neutral-900 truncate">{c.first_name || c.email.split('@')[0]}</p>
+                        <p className="text-[10px] text-neutral-400 truncate">{c.email}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium text-center">{c.subscription_plan}</span>
+                      <span className="text-xs text-neutral-600">{c.credits_balance}/{c.credits_monthly_allowance}</span>
+                      <span className={`text-xs font-medium ${c.images_7d > 0 ? 'text-neutral-900' : 'text-neutral-300'}`}>{c.images_7d}</span>
+                      <span className={`text-xs font-medium ${c.videos_7d > 0 ? 'text-neutral-900' : 'text-neutral-300'}`}>{c.videos_7d}</span>
+                      <span className={`text-xs font-bold ${c.total_generations > 5 ? 'text-green-600' : c.total_generations > 0 ? 'text-neutral-900' : 'text-red-500'}`}>{c.total_generations}</span>
+                    </div>
+                  ))}
+                  {activeClients.filter(c => clientActivityFilter === 'all' || c.status === clientActivityFilter).length === 0 && (
+                    <div className="px-3 py-6 text-center text-xs text-neutral-400">Aucun client dans cette categorie</div>
+                  )}
+                </div>
               </div>
             )}
 
