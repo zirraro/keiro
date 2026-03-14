@@ -247,10 +247,25 @@ export async function GET(request: NextRequest) {
       return generateWeeklyPlan(supabase);
     }
 
+    // Check slot param for midday/evening content
+    const slot = request.nextUrl.searchParams.get('slot');
+
     // If no post for today, generate one on the fly
     if (!todayPosts || todayPosts.length === 0) {
       console.log('[Content] No posts for today — generating one now');
       return generateDailyPost(supabase, todayStr, dayOfWeek);
+    }
+
+    // Midday slot: generate 2nd post if < 2 exist
+    if (slot === 'midday' && todayPosts.length < 2) {
+      console.log('[Content] Midday slot — generating 2nd post for today');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__');
+    }
+
+    // Evening slot: generate 3rd post if < 3 exist
+    if (slot === 'evening' && todayPosts.length < 3) {
+      console.log('[Content] Evening slot — generating 3rd post for today');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__');
     }
 
     // If posts exist but none are published yet, auto-publish them
@@ -1021,20 +1036,45 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
-  // Default schedule by day of week (Instagram + TikTok only, no LinkedIn)
-  const defaultSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'carrousel', pillar: 'tips' },       // Monday
-    2: { platform: 'tiktok', format: 'video', pillar: 'tips' },              // Tuesday
-    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },            // Wednesday
-    4: { platform: 'instagram', format: 'post', pillar: 'tips' },            // Thursday
-    5: { platform: 'instagram', format: 'post', pillar: 'social_proof' },    // Friday
-    6: { platform: 'tiktok', format: 'video', pillar: 'trends' },            // Saturday
-    0: { platform: 'instagram', format: 'story', pillar: 'social_proof' },   // Sunday
+  // 3x/day content strategy: morning + midday + evening
+  // Each slot has a different marketing pillar to maximize variety and engagement
+  // Pillars: giving_value (tips/how-to), cta (direct conversion), social_proof (testimonials/results),
+  //          educational (teach something), trends (news/tendances), behind_the_scenes (BTS/process),
+  //          pain_point (identify problem → solution), demo (product showcase)
+  const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'instagram', format: 'carrousel', pillar: 'giving_value' },    // Mon AM: tips carrousel
+    2: { platform: 'tiktok', format: 'video', pillar: 'educational' },            // Tue AM: tuto vidéo
+    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                 // Wed AM: démo produit
+    4: { platform: 'instagram', format: 'carrousel', pillar: 'pain_point' },       // Thu AM: problème → solution
+    5: { platform: 'tiktok', format: 'video', pillar: 'trends' },                 // Fri AM: tendances
+    6: { platform: 'instagram', format: 'post', pillar: 'behind_the_scenes' },    // Sat AM: coulisses
+    0: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Sun AM: résultats clients
+  };
+  const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },      // Mon MID: BTS vidéo
+    2: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Tue MID: témoignage
+    3: { platform: 'tiktok', format: 'video', pillar: 'giving_value' },            // Wed MID: tips vidéo
+    4: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Thu MID: CTA direct
+    5: { platform: 'instagram', format: 'post', pillar: 'giving_value' },          // Fri MID: valeur ajoutée
+    6: { platform: 'tiktok', format: 'video', pillar: 'demo' },                    // Sat MID: démo vidéo
+    0: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Sun MID: tuto vidéo
+  };
+  const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Mon EVE: démo reel
+    2: { platform: 'instagram', format: 'story', pillar: 'cta' },                  // Tue EVE: story CTA
+    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Wed EVE: témoignage
+    4: { platform: 'tiktok', format: 'video', pillar: 'trends' },                  // Thu EVE: tendances
+    5: { platform: 'instagram', format: 'story', pillar: 'behind_the_scenes' },    // Fri EVE: coulisses story
+    6: { platform: 'instagram', format: 'reel', pillar: 'pain_point' },             // Sat EVE: problème→solution
+    0: { platform: 'instagram', format: 'story', pillar: 'cta' },                  // Sun EVE: story CTA
   };
 
-  const schedule = defaultSchedule[dayOfWeek] || defaultSchedule[1];
+  // Determine which slot we're in (morning by default, midday or evening if specified)
+  const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : 'morning';
+  const activeSchedule = slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : morningSchedule;
+  const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
   const platform = forcePlatform || schedule.platform;
-  const pillar = forcePillar || schedule.pillar;
+  const pillar = (slotType !== 'morning' ? undefined : forcePillar) || schedule.pillar;
 
   // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
@@ -1078,12 +1118,23 @@ ${gridContext}
 CTA RÉCENTS UTILISÉS : ${[...new Set(recentCTAs)].join(', ') || 'aucun'}
 → VARIE le CTA ! Si "save" a été fait, utilise "tag un ami" ou "commente" ou "lien en bio".
 
+PILIER "${pillar}" — GUIDE :
+${pillar === 'giving_value' ? '- Donne un vrai conseil applicable IMMÉDIATEMENT. Pas de fluff. Le lecteur doit se dire "ah je vais tester ça tout de suite". Ex: "3 erreurs qui tuent ton engagement Instagram" avec les solutions.' : ''}
+${pillar === 'cta' ? '- CTA DIRECT mais pas agressif. Montre la transformation : avant/après. "Teste gratuitement", "Lien en bio", "15 crédits offerts". Le CTA est le point central du post.' : ''}
+${pillar === 'social_proof' ? '- Montre des RÉSULTATS concrets. Chiffres, avant/après, témoignages (même simulés de manière crédible pour des types de commerces). Ex: "Ce restaurant a multiplié x3 ses réservations via Instagram".' : ''}
+${pillar === 'educational' ? '- Enseigne quelque chose de NOUVEAU. Format tutoriel. "Comment...", "Pourquoi...", "Le guide pour...". Le lecteur apprend ET découvre que KeiroAI peut l\'aider.' : ''}
+${pillar === 'trends' ? '- Commente une TENDANCE actuelle (IA, réseaux sociaux, marketing digital). Positionne KeiroAI comme expert qui suit l\'actu. Donne ton avis pro.' : ''}
+${pillar === 'behind_the_scenes' ? '- Montre les COULISSES : comment KeiroAI fonctionne, le process de création, les updates. Humanise la marque. Crée de la proximité.' : ''}
+${pillar === 'pain_point' ? '- Identifie un PROBLÈME que la cible vit au quotidien, puis montre la solution. Ex: "Tu passes 3h/jour sur tes posts ? Voici comment passer à 10min".' : ''}
+${pillar === 'demo' ? '- DÉMONTRE le produit en action. Avant/après visuel. Montre la puissance de Seedream/KeiroAI. Le post EST la preuve.' : ''}
+
 STRATÉGIE GLOBALE :
 - Chaque post fait partie d'un ENSEMBLE cohérent. Pense au feed GLOBAL, pas juste ce post isolé.
 - Le visuel doit être HARMONIEUX avec les posts précédents (alternance couleurs, pas de répétition).
 - Le CTA doit être NATUREL, intégré au contenu, pas forcé. Il guide vers KeiroAI sans être publicitaire.
 - Pense conversion INDIRECTE : le prospect voit le post → comprend la valeur → visite le profil → essaie KeiroAI.
 - UTILISE les données du pool partagé : si l'email marche bien sur une catégorie, fais un post ciblé pour cette catégorie. Si les DMs ont du succès, renforce la visibilité Instagram.
+- Ce post est le ${ slotType === 'evening' ? 'POST SOIR (3e du jour)' : slotType === 'midday' ? 'POST MIDI (2e du jour)' : 'POST MATIN (1er du jour)' } — assure-toi qu'il soit DIFFÉRENT des posts des autres créneaux de la journée.
 
 RÈGLES :
 - Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)

@@ -53,16 +53,28 @@ Ecris le brief comme un memo interne entre CEO et fondateur. Structure :
 ## CHIFFRES CLES 24H
 (KPIs essentiels en bullet points : emails, ouvertures, clics, reponses, leads, conversations chatbot, pipeline)
 
+## ÉTAT DES AGENTS (24h)
+Pour CHAQUE agent, indique :
+- ✅ a bien tourné (X exécutions) — ou ❌ n'a PAS tourné / 0 résultat — ou ⚠️ problème détecté
+- Agents à vérifier : Email, Commercial, DM Instagram, TikTok, SEO, Content, Onboarding, Retention, Community, Marketing
+- Si un agent n'a pas tourné : hypothèse sur la cause (cron non déclenché ? API key manquante ? erreur ?)
+- Si un agent a tourné mais 0 résultat : pourquoi ? (pas de prospects qualifiés ? filtrage trop strict ?)
+
 ## ANALYSE
 Points forts, points faibles, ou est le blocage dans le funnel, tendance 7 jours
+— Intègre les LEARNINGS de l'agent Marketing (performances publications, meilleurs formats, recommandations)
+— Compare avec la semaine précédente : qu'est-ce qui s'améliore, qu'est-ce qui régresse ?
 
 ## ALERTES
 (Si critique: 🔴, si attention: 🟡, si info: 🟢 — avec action requise)
+🔴 = bloquant (agent en panne, 0 email envoyé, prospect chaud non contacté)
+🟡 = risque (taux d'ouverture en baisse, contenu pas publié, pipeline vide)
+🟢 = info (nouveau record, milestone atteint, tendance positive)
 
 ## ORDRES DU JOUR
 (Liste des actions concretes pour chaque agent, avec priorite et impact attendu)
 Format: **[Agent] Action** — Raison — Impact attendu
-Agents disponibles: Email, Commercial, DM Instagram, TikTok Comments, SEO, Onboarding, Retention, Content
+Agents disponibles: Email, Commercial, DM Instagram, TikTok Comments, SEO, Onboarding, Retention, Content, Marketing
 IMPORTANT: Chaque ordre DOIT specifier clairement l'agent cible entre crochets et une action precise. Ces ordres seront automatiquement transmis aux agents pour execution.
 EXEMPLES D'ORDRES EFFICACES:
 - **[Commercial] Enrichir les 20 prospects sans type ni quartier** — données manquantes bloquent la personnalisation email
@@ -70,9 +82,26 @@ EXEMPLES D'ORDRES EFFICACES:
 - **[Content] Publier un post témoignage client** — social proof booste la conversion chatbot
 - **[DM Instagram] Préparer DMs pour les prospects restaurant avec IG** — canal le plus direct
 - **[Retention] Vérifier les clients inactifs >7j** — prévenir le churn avant qu'il soit trop tard
+- **[Marketing] Analyser les 3 dernières publications et adapter la stratégie** — optimiser l'engagement
+
+## DIRECTIVES STRATÉGIQUES (transmises automatiquement aux agents)
+Pour CHAQUE agent, donne UNE directive claire basée sur l'analyse :
+- [DIRECTIVE email] Ce que l'agent email doit prioriser/changer
+- [DIRECTIVE content] Direction du contenu (pilier, format, angle)
+- [DIRECTIVE commercial] Focus prospection (type, zone, action)
+- [DIRECTIVE dm_instagram] Ton, cibles, volume
+- [DIRECTIVE marketing] Ce qu'il doit analyser/apprendre ensuite
+
+## CE QUI POURRAIT BLOQUER
+Liste les risques techniques et opérationnels détectés :
+- Crons qui n'ont pas tourné et pourquoi
+- API keys potentiellement manquantes
+- Prospects bloqués dans le pipeline
+- Emails en erreur / taux de bounce
+- Contenu non publié
 
 ## RECOMMANDATION FONDATEUR
-La chose a faire aujourd'hui + opportunite terrain
+La chose a faire aujourd'hui + opportunite terrain + suivi des ordres précédents (est-ce que les agents ont bien exécuté ce qu'on leur a demandé ?)
 
-IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure avec des titres ## et des bullet points. Le fondateur doit pouvoir le lire en 1 minute sur son telephone.`;
+IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure avec des titres ## et des bullet points. Le fondateur doit pouvoir le lire en 2 minutes sur son telephone.`;
 }

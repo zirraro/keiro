@@ -211,6 +211,23 @@ export function verifyProspectData(prospect: any): { valid: boolean; issues: str
     issues.push('location_missing');
   }
 
+  // Quartier coherence: detect suspicious AI-guessed quartiers
+  if (prospect.quartier) {
+    const q = prospect.quartier.trim().toLowerCase();
+    const name = (prospect.company || '').toLowerCase();
+    // Generic/vague quartiers that AI often hallucinates
+    const suspiciousQuartiers = ['paris', 'france', 'ile-de-france', 'île-de-france', 'idf', 'unknown', 'inconnu', 'n/a'];
+    if (suspiciousQuartiers.includes(q)) {
+      issues.push('quartier_too_generic');
+    }
+    // If quartier is a specific arrondissement but company name contains a different one
+    const arrMatch = q.match(/(\d{1,2})\s*(e|ème|eme|er)/);
+    const nameArrMatch = name.match(/(\d{1,2})\s*(e|ème|eme|er)/);
+    if (arrMatch && nameArrMatch && arrMatch[1] !== nameArrMatch[1]) {
+      issues.push('quartier_name_mismatch');
+    }
+  }
+
   // Email should not be generic (info@, contact@, etc.) — less likely to convert
   if (prospect.email) {
     const localPart = prospect.email.split('@')[0].toLowerCase();
@@ -296,6 +313,25 @@ export function verifyCRMCoherence(prospect: any): { fixes: Record<string, any>;
     if (type === 'boutique' && (name.includes('restaurant') || name.includes('brasserie') || name.includes('bistrot'))) {
       fixes.type = 'restaurant';
       issues.push('type_auto_corrected');
+    }
+  }
+
+  // 3b. Quartier coherence — clear suspicious/hallucinated quartiers
+  if (prospect.quartier) {
+    const q = prospect.quartier.trim().toLowerCase();
+    const suspiciousQuartiers = ['paris', 'france', 'ile-de-france', 'île-de-france', 'idf', 'unknown', 'inconnu', 'n/a', ''];
+    if (suspiciousQuartiers.includes(q)) {
+      fixes.quartier = null;
+      issues.push('quartier_cleared_too_generic');
+    }
+    // If quartier has an arrondissement number but company name contradicts it
+    if (prospect.company) {
+      const qArr = q.match(/(\d{1,2})\s*(e|ème|eme|er)/);
+      const nameArr = (prospect.company.toLowerCase()).match(/(\d{1,2})\s*(e|ème|eme|er)/);
+      if (qArr && nameArr && qArr[1] !== nameArr[1]) {
+        fixes.quartier = null;
+        issues.push('quartier_contradicts_name');
+      }
     }
   }
 

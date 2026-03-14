@@ -48,9 +48,30 @@ function replaceVars(template: string, v: Record<string, string>): string {
   for (const [key, value] of Object.entries(v)) {
     result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
   }
-  // Clean up sentences with empty variables (e.g., "du ." → remove entire phrase)
-  result = result.replace(/\s+du\s+\.\s*/g, '. ');
+  // Clean up sentences with empty quartier variable
+  // "du " → remove trailing "du" before punctuation/tags/end-of-line
+  result = result.replace(/\bdu\s*([.,<\n])/g, '$1');
+  result = result.replace(/\bdu\s*$/gm, '');
+  // "dans le " → remove "dans le" before punctuation/tags/spaces
+  result = result.replace(/\bdans le\s*([.,—<\n])/g, '$1');
+  result = result.replace(/\bdans le\s+—/g, '—');
+  result = result.replace(/\bdans le\s*$/gm, '');
+  // "en cherchant les meilleurs restos du [empty]" → "en ligne"
+  result = result.replace(/en cherchant les meilleurs restos du\s*([.,<\n])/g, 'en ligne$1');
+  // "vos concurrents dans le postent" → "vos concurrents postent"
+  result = result.replace(/concurrents dans le\s+(postent|montrent)/g, 'concurrents $1');
+  // "d'autres coachs/salons/fleuristes dans le attirent" → without "dans le"
+  result = result.replace(/dans le\s+(attirent|montrent|postent)/g, '$1');
+  // "[Company] dans le — ..." → "[Company] — ..."
+  result = result.replace(/(<\/strong>)\s*dans le\s*—/g, '$1 —');
+  result = result.replace(/(\w)\s+dans le\s*—/g, '$1 —');
+  // "de " before punctuation
+  result = result.replace(/\bde\s+un\s+de\b/g, 'de');
+  // Subject lines: "Restaurant  — " → "Restaurant — "
+  result = result.replace(/(\w)\s{2,}—/g, '$1 —');
+  // Empty Google note cleanup
   result = result.replace(/\s+sur Google, c'est top\.\s*/g, '. ');
+  result = result.replace(/,\s*sur Google\b/g, '');
   result = result.replace(/Restaurant\s+—/g, 'Votre restaurant —');
   result = result.replace(/Boutique\s+—/g, 'Votre boutique —');
   result = result.replace(/Coach\s+—/g, 'Coach —');

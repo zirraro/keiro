@@ -83,7 +83,7 @@ async function generateAIEmails(
 - Entreprise: ${pr.company || '(inconnu)'}
 - Prénom: ${pr.first_name || ''}
 - Type: ${p.category}
-- Quartier: ${pr.quartier || 'Paris'}
+- Quartier: ${pr.quartier ? pr.quartier : 'INCONNU — ne mentionne PAS de quartier dans l\'email'}
 - Note Google: ${pr.note_google || pr.google_rating || 'non connue'}
 - Email: ${pr.email}
 - Step: ${p.step} (${p.step === 1 ? 'premier contact — question + valeur' : p.step === 2 ? 'relance douce — rappel + social proof' : p.step === 3 ? 'valeur gratuite — conseil concret sans rien demander' : p.step === 4 ? 'FOMO concurrents — tes concurrents postent deja' : p.step === 5 ? 'dernière chance — direct, désarmant' : 'warm follow-up'})
@@ -127,6 +127,14 @@ STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer q
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
 WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer Sprint 4.99€
 
+VÉRIFICATION BUSINESS OBLIGATOIRE :
+- AVANT d'écrire l'email, vérifie que le nom du commerce EST CRÉDIBLE. Un nom inventé/hallucinated = INTERDIT.
+- Si le nom de l'entreprise ne semble pas être un vrai commerce (trop générique, incomplet, bizarre), mets "skip": true dans le JSON.
+- JAMAIS inventer un quartier ou arrondissement. Si le quartier est vide/null, n'en mentionne PAS dans l'email. Dis juste "ton resto" pas "ton resto du 9ème".
+- Si le quartier est fourni, utilise-le UNIQUEMENT s'il est cohérent avec le nom du commerce. En cas de doute, ne le mentionne pas.
+- JAMAIS dire "je suis tombé sur [company] en cherchant les meilleurs restos du [quartier]" si tu n'es pas SÛR que c'est le bon quartier.
+- Alternative sans quartier : "Salut [prénom], je suis tombé sur [company]" tout court, ça suffit.
+
 INTERDICTIONS ABSOLUES :
 - JAMAIS "vous/votre" → toujours "tu/ton/ta"
 - JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement"
@@ -143,9 +151,11 @@ Réponds en JSON — un tableau d'objets, un par prospect :
   {
     "id": "prospect_id",
     "subject": "Objet percutant < 50 chars — PAS de emoji",
-    "body": "Corps du mail 4-6 lignes tutoiement"
+    "body": "Corps du mail 4-6 lignes tutoiement",
+    "skip": false
   }
 ]
+Si le nom du commerce est douteux/introuvable/incohérent, mets "skip": true et "reason": "explication".
 
 UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
       message: prospectList,
@@ -202,6 +212,11 @@ UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
     }
     for (const email of emails) {
       if (!email.id || !email.subject || !email.body) continue;
+      // Skip emails flagged by AI as incoherent/suspicious business
+      if (email.skip) {
+        console.log(`[EmailDaily] AI skipped prospect ${email.id}: ${email.reason || 'business incoherent'}`);
+        continue;
+      }
 
       // Build HTML version
       const htmlBody = `<!DOCTYPE html>
@@ -387,6 +402,13 @@ async function sendEmail(
     if (template.textBody.includes('Oussama') || template.htmlBody.includes('Oussama')) {
       template.textBody = template.textBody.replace(/Oussama/g, 'Victor');
       template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Victor');
+    }
+    // Business coherence: if quartier is empty but email mentions a specific quartier, strip it
+    if (!prospect.quartier) {
+      // Remove phrases like "du Opéra", "du 9ème", "du Marais" if quartier wasn't in CRM
+      const quartierRegex = /\b(du|de|dans le|au|des)\s+(Opéra|Marais|Bastille|Montmartre|Belleville|Pigalle|Batignolles|Oberkampf|République|Nation|Châtelet|Saint-Germain|Latin|Sentier|\d{1,2}(?:e|ème|eme|er))\b/gi;
+      template.textBody = template.textBody.replace(quartierRegex, '');
+      template.htmlBody = template.htmlBody.replace(quartierRegex, '');
     }
     const disposableDomains = ['yopmail.com', 'guerrillamail.com', 'tempmail.com', 'mailinator.com', 'throwaway.email'];
     const emailDomain = (prospect.email || '').split('@')[1]?.toLowerCase();

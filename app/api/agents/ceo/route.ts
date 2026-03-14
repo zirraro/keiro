@@ -490,11 +490,71 @@ async function generateBrief(): Promise<NextResponse> {
     const sharedCtx = await loadSharedContext(supabase, 'ceo');
     const sharedDataPool = formatContextForPrompt(sharedCtx);
 
+    // --- Collect agent execution status (which agents ran in last 24h) ---
+    const TRACKED_AGENTS = ['email', 'commercial', 'dm_instagram', 'tiktok_comments', 'seo', 'content', 'onboarding', 'retention', 'marketing', 'community'];
+    const agentExecStatus: Record<string, { runs: number; errors: number; lastAction: string }> = {};
+    for (const agent of TRACKED_AGENTS) {
+      const { count: runs } = await supabase
+        .from('agent_logs').select('id', { count: 'exact', head: true })
+        .eq('agent', agent).gte('created_at', twentyFourHoursAgo);
+      const { count: errors } = await supabase
+        .from('agent_logs').select('id', { count: 'exact', head: true })
+        .eq('agent', agent).eq('status', 'error').gte('created_at', twentyFourHoursAgo);
+      const { data: lastLog } = await supabase
+        .from('agent_logs').select('action, created_at')
+        .eq('agent', agent).gte('created_at', twentyFourHoursAgo)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      agentExecStatus[agent] = {
+        runs: runs ?? 0,
+        errors: errors ?? 0,
+        lastAction: lastLog ? `${lastLog.action} (${new Date(lastLog.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})` : 'aucune exécution',
+      };
+    }
+
+    const agentStatusText = TRACKED_AGENTS.map(a => {
+      const s = agentExecStatus[a];
+      const icon = s.runs === 0 ? '❌' : s.errors > 0 ? '⚠️' : '✅';
+      return `${icon} ${a}: ${s.runs} exécutions, ${s.errors} erreurs — dernière: ${s.lastAction}`;
+    }).join('\n');
+
+    // --- Load marketing agent learnings ---
+    const { data: marketingLearnings } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', 'marketing')
+      .in('action', ['memory', 'analysis', 'advise_agents'])
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    let marketingInsights = '';
+    if (marketingLearnings && marketingLearnings.length > 0) {
+      marketingInsights = '\n\nINSIGHTS AGENT MARKETING:\n' + marketingLearnings.map((l: any) => {
+        const d = l.data;
+        return d?.learning || d?.summary || d?.advice || JSON.stringify(d).substring(0, 200);
+      }).join('\n');
+    }
+
+    // --- Load last brief's orders to check execution ---
+    const { data: lastBrief } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', 'ceo').eq('action', 'daily_brief')
+      .order('created_at', { ascending: false })
+      .limit(1).maybeSingle();
+
+    let previousOrdersText = '';
+    if (lastBrief?.data?.brief_text) {
+      const ordersSection = lastBrief.data.brief_text.match(/## ORDRES DU JOUR[\s\S]*?(?=##|$)/);
+      if (ordersSection) {
+        previousOrdersText = `\n\nORDRES DU BRIEF PRÉCÉDENT (à vérifier si exécutés):\n${ordersSection[0].substring(0, 500)}`;
+      }
+    }
+
     // --- Call Gemini 2.0 Flash ---
     const rawText = await callGemini({
       system: getCeoSystemPrompt(),
-      message: `${sharedDataPool}\n\nMETRIQUES DÉTAILLÉES 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents.\n\nIMPORTANT: Inclus une section "## DIRECTIVES STRATEGIQUES" avec des directives claires pour chaque agent. Format:\n- [DIRECTIVE email] Directive pour l'agent email\n- [DIRECTIVE content] Directive pour l'agent contenu\n- [DIRECTIVE dm_instagram] Directive pour les DMs\nCes directives seront automatiquement transmises et chaque agent devra les suivre.`,
-      maxTokens: 3000,
+      message: `${sharedDataPool}\n\nMETRIQUES DÉTAILLÉES 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nÉTAT DES AGENTS (dernières 24h):\n${agentStatusText}${marketingInsights}${previousOrdersText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Vérifie quels agents ont bien tourné et lesquels non.\n\nIMPORTANT: Inclus une section "## DIRECTIVES STRATEGIQUES" avec des directives claires pour chaque agent. Format:\n- [DIRECTIVE email] Directive pour l'agent email\n- [DIRECTIVE content] Directive pour l'agent contenu\n- [DIRECTIVE dm_instagram] Directive pour les DMs\nCes directives seront automatiquement transmises et chaque agent devra les suivre.`,
+      maxTokens: 4000,
     });
     console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
 

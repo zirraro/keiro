@@ -26,12 +26,16 @@ export const maxDuration = 300;
  * 12:00 UTC  slot=afternoon       → Email cold: restaurants (service midi) + PME/agences
  * 13:00 UTC  slot=discovery_5     → Commercial: prospect external #3
  * 14:00 UTC  slot=discovery_3     → Commercial: verify CRM #2 + prospect external #2
+ * 13:30 UTC  slot=content_2        → Content: 2nd post of the day (midday)
+ * 17:30 UTC  slot=content_3        → Content: 3rd post of the day (evening)
+ * 14:30 UTC  slot=email_warm_2    → Email warm: follow-up batch 2
  * 15:00 UTC  slot=ceo_evening     → CEO brief #2 + execute orders
  * 15:30 UTC  slot=community_2     → Community Manager afternoon
  * 16:00 UTC  slot=evening         → Email cold: restaurants/bars (soirée)
  * 16:30 UTC  slot=discovery_6     → Commercial: full run (EOD)
  * 17:00 UTC  slot=evening_prep    → DM Instagram evening + TikTok comments
  * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
+ * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
  */
 export async function GET(request: NextRequest) {
@@ -91,6 +95,11 @@ export async function GET(request: NextRequest) {
     results.push({ task: name, ok: true, data: { fired: true } });
   }
 
+  // Run multiple endpoints in parallel (all awaited but concurrently — much faster)
+  async function callParallel(...calls: [string, string, ('GET' | 'POST')?, any?][]) {
+    await Promise.all(calls.map(([name, path, method, body]) => callEndpoint(name, path, method || 'GET', body)));
+  }
+
   switch (slot) {
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM (audit existing prospects)
@@ -104,8 +113,10 @@ export async function GET(request: NextRequest) {
 
     case 'discovery_3':
       // 14:00 UTC — Commercial: verify CRM batch 2 + prospect external batch 2
-      await callEndpoint('Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
-      await callEndpoint('Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      await callParallel(
+        ['Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' }],
+        ['Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' }],
+      );
       break;
 
     case 'discovery_4':
@@ -118,23 +129,47 @@ export async function GET(request: NextRequest) {
       await callEndpoint('Commercial Prospect External #3', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
       break;
 
+    case 'content_2':
+      // 13:30 UTC — Content: 2nd post of the day (midday pillar)
+      fireAndForget('Content (midday)', '/api/agents/content?slot=midday');
+      break;
+
+    case 'content_3':
+      // 17:30 UTC — Content: 3rd post of the day (evening pillar)
+      fireAndForget('Content (evening)', '/api/agents/content?slot=evening');
+      break;
+
     case 'discovery_6':
-      // 16:30 UTC — Commercial: full run (end of day cleanup)
-      await callEndpoint('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      // 16:30 UTC — Commercial: full run (end of day cleanup) — can be long
+      fireAndForget('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      break;
+
+    case 'email_warm_2':
+      // 14:30 UTC — Email warm: follow-up batch 2
+      await callEndpoint('Email Warm #2', '/api/agents/email/daily?type=warm');
+      break;
+
+    case 'email_recap':
+      // 18:30 UTC — Email cold: rattrapage tous types restants
+      await callEndpoint('Email Cold (recap)', '/api/agents/email/daily?slot=recap&types=restaurant,boutique,coach,coiffeur,caviste,fleuriste,freelance,services,pme,agence,traiteur,professionnel');
       break;
 
     case 'community_2':
-      // 15:30 UTC — Community Manager afternoon: more comments + follow targets
-      await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 });
-      await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 });
-      await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 });
+      // 15:30 UTC — Community Manager afternoon: more comments + follow targets (parallel)
+      await callParallel(
+        ['Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 }],
+        ['Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 }],
+        ['Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 }],
+      );
       break;
 
     case 'community':
-      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets
-      await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 });
-      await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 });
-      await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 });
+      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets (parallel)
+      await callParallel(
+        ['Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 }],
+        ['Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 }],
+        ['Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 }],
+      );
       break;
 
     case 'ceo':
@@ -159,22 +194,26 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep + SEO + Content
-      await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
-      await callEndpoint('SEO', '/api/agents/seo');
-      await callEndpoint('Content', '/api/agents/content');
+      // 07:00 UTC — DM prep + SEO + Content (all fire-and-forget, each can be long)
+      fireAndForget('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
+      fireAndForget('SEO', '/api/agents/seo');
+      fireAndForget('Content', '/api/agents/content');
       break;
 
     case 'morning':
-      // 08:00 UTC — Boutiques/coiffeurs/fleuristes (ouverture magasin) + onboarding
-      await callEndpoint('Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste');
-      await callEndpoint('Onboarding', '/api/agents/onboarding');
+      // 08:00 UTC — Boutiques/coiffeurs/fleuristes (ouverture magasin) + onboarding (parallel)
+      await callParallel(
+        ['Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste'],
+        ['Onboarding', '/api/agents/onboarding'],
+      );
       break;
 
     case 'midday':
-      // 10:00 UTC — Coachs/freelances/services (fin de séances matin) + warm
-      await callEndpoint('Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel');
-      await callEndpoint('Email Warm', '/api/agents/email/daily?type=warm');
+      // 10:00 UTC — Coachs/freelances/services (fin de séances matin) + warm (parallel)
+      await callParallel(
+        ['Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel'],
+        ['Email Warm', '/api/agents/email/daily?type=warm'],
+      );
       break;
 
     case 'afternoon':
@@ -201,9 +240,11 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM + TikTok
-      await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
-      await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
+      // 17:00 UTC — Evening DM + TikTok (parallel)
+      await callParallel(
+        ['DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST'],
+        ['TikTok Comments', '/api/agents/tiktok-comments'],
+      );
       break;
 
     case 'discovery_7':
@@ -213,10 +254,11 @@ export async function GET(request: NextRequest) {
 
     case 'marketing_learn':
       // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
-      await callEndpoint('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
-      await callEndpoint('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
-      await callEndpoint('Marketing Analysis', '/api/agents/marketing');
-      await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
+      // All fire-and-forget: each can take 1-2 min, total would exceed 300s if sequential
+      fireAndForget('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
+      fireAndForget('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
+      fireAndForget('Marketing Analysis', '/api/agents/marketing');
+      fireAndForget('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
       break;
 
     default:
