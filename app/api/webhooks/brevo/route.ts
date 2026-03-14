@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateTemperature } from '@/lib/agents/scoring';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -246,10 +247,71 @@ export async function POST(request: NextRequest) {
     }
 
     // Always return 200 to prevent Brevo retries
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, processed: events.length });
   } catch (error: any) {
     console.error('[BrevoWebhook] Error:', error);
     // Still return 200 to prevent Brevo retries
     return NextResponse.json({ ok: true, error: error.message });
   }
+}
+
+/**
+ * GET /api/webhooks/brevo?test=open&email=xxx
+ * Test endpoint to simulate webhook events (admin only via CRON_SECRET).
+ */
+export async function GET(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get('authorization');
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const testType = request.nextUrl.searchParams.get('test') || 'opened';
+  const testEmail = request.nextUrl.searchParams.get('email');
+
+  if (!testEmail) {
+    return NextResponse.json({ ok: false, error: 'email param required' }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  // Find prospect by email
+  const { data: prospect } = await supabase
+    .from('crm_prospects')
+    .select('id, email, company, score, temperature, email_sequence_step')
+    .eq('email', testEmail)
+    .single();
+
+  // Simulate a Brevo webhook event
+  const fakeEvent = {
+    event: testType,
+    email: testEmail,
+    'X-Mailin-custom': prospect?.id || null,
+    ts_event: Date.now() / 1000,
+    link: testType === 'click' ? 'https://www.keiroai.com/generate' : undefined,
+  };
+
+  // Call our own POST handler internally
+  const fakeRequest = new Request(request.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fakeEvent),
+  });
+
+  const result = await POST(fakeRequest as NextRequest);
+  const resultData = await result.json();
+
+  return NextResponse.json({
+    ok: true,
+    test: {
+      event_type: testType,
+      email: testEmail,
+      prospect_found: !!prospect,
+      prospect_id: prospect?.id,
+      company: prospect?.company,
+      score_before: prospect?.score,
+      temperature_before: prospect?.temperature,
+    },
+    webhook_result: resultData,
+  });
 }
