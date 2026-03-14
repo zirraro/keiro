@@ -454,7 +454,11 @@ export async function initTikTokPhotoUpload(
     throw new Error('TikTok photo posts support max 35 images');
   }
 
-  const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/inbox/video/init/`, {
+  console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
+  console.log('[TikTok] Photo URLs:', photoUrls.map(u => u.substring(0, 80)));
+  console.log('[TikTok] Title:', (title || '').substring(0, 80));
+
+  const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/content/init/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -462,9 +466,8 @@ export async function initTikTokPhotoUpload(
     },
     body: JSON.stringify({
       post_info: {
-        title: title || '',
-        description: description || '',
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        title: (title || '').substring(0, 150),
+        privacy_level: 'SELF_ONLY',
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -473,18 +476,40 @@ export async function initTikTokPhotoUpload(
         source: 'PULL_FROM_URL',
         photo_images: photoUrls,
       },
-      post_mode: 'PHOTO_MODE',
+      post_mode: 'DIRECT_POST',
       media_type: 'PHOTO',
     }),
   });
 
+  console.log('[TikTok] Photo upload response status:', response.status);
   const data = await response.json();
+  console.log('[TikTok] Photo upload response:', {
+    hasError: !!data.error,
+    hasData: !!data.data,
+    errorCode: data.error?.code || data.error_code,
+    message: data.error?.message || data.message,
+  });
 
-  if (data.error) {
-    throw new Error(data.error.message || 'Failed to initialize TikTok photo upload');
+  // TikTok ALWAYS returns an error object, even on success
+  const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+  if (isRealError || (data.error_code && data.error_code !== 0)) {
+    const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok photo';
+    console.error('[TikTok] Photo upload error:', errorMsg);
+    throw new Error(errorMsg);
   }
 
-  return data.data;
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const publishId = data.data?.publish_id || data.publish_id;
+  if (!publishId) {
+    console.error('[TikTok] No publish_id in photo response:', data);
+    throw new Error('No publish_id returned from TikTok');
+  }
+
+  console.log('[TikTok] Photo published successfully:', publishId);
+  return { publish_id: publishId };
 }
 
 /**

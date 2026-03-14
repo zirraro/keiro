@@ -110,10 +110,10 @@ export function ArticleBody({ html }: { html: string }) {
       // Wrap in figure with caption if not already wrapped
       if (img.parentElement?.tagName !== 'FIGURE') {
         const figure = document.createElement('figure');
-        figure.className = 'my-8 sm:my-10 not-prose';
+        figure.className = 'my-10 sm:my-14 not-prose -mx-4 sm:-mx-8 md:-mx-12';
 
         const wrapper = document.createElement('div');
-        wrapper.className = 'relative overflow-hidden rounded-xl shadow-lg bg-neutral-100';
+        wrapper.className = 'relative overflow-hidden rounded-2xl shadow-xl bg-neutral-100 ring-1 ring-neutral-200/50';
 
         img.parentElement?.insertBefore(figure, img);
         wrapper.appendChild(img);
@@ -127,17 +127,20 @@ export function ArticleBody({ html }: { html: string }) {
         }
       }
 
-      // Broken image handler
+      // Broken image handler — elegant gradient placeholder
       img.onerror = () => {
         const parent = img.closest('figure') || img.parentElement;
         if (parent) {
           parent.innerHTML = `
-            <div class="w-full rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 flex items-center justify-center py-16 px-8">
-              <div class="text-center">
-                <svg class="w-10 h-10 text-purple-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p class="text-sm text-purple-400 font-medium">${alt || 'Image en cours de chargement'}</p>
+            <div class="w-full rounded-2xl bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100 border border-purple-200/50 flex items-center justify-center py-20 px-8 shadow-inner">
+              <div class="text-center max-w-md">
+                <div class="w-16 h-16 rounded-2xl bg-white/80 shadow-sm flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p class="text-sm text-purple-500 font-semibold mb-1">${alt || 'Illustration'}</p>
+                <p class="text-xs text-purple-400/70">Image en cours de regeneration...</p>
               </div>
             </div>
           `;

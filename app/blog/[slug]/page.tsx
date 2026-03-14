@@ -136,11 +136,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Article non trouve' };
   }
 
-  // Extract first image for OG
-  const firstImgMatch = post.content_html?.match(/<img[^>]*src=["']([^"']+)["']/);
-  const ogImage = firstImgMatch?.[1] && !firstImgMatch[1].includes('bytepluses.com')
-    ? firstImgMatch[1]
-    : undefined;
+  // Extract first image for OG + hero
+  const allImgMatches = [...(post.content_html?.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi) || [])];
+  const firstValidImg = allImgMatches.find(m => m[1] && !m[1].includes('bytepluses.com'));
+  const ogImage = firstValidImg?.[1] || undefined;
 
   return {
     title: post.meta_title,
@@ -182,6 +181,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const headings = extractHeadings(contentHtml);
   const processedHtml = injectHeadingIds(contentHtml, headings);
   const readingTime = getReadingTime(contentHtml);
+
+  // Extract hero image (first valid Supabase image)
+  const allImgs = [...(contentHtml.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi) || [])];
+  const heroImage = allImgs.find(m => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'))?.[1];
 
   const publishedDate = new Date(post.published_at).toLocaleDateString('fr-FR', {
     day: 'numeric',
@@ -236,13 +239,20 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   // Get related articles
   const supabase = getSupabase();
-  const { data: relatedPosts } = await supabase
+  const { data: relatedPostsRaw } = await supabase
     .from('blog_posts')
-    .select('slug, title, excerpt, keywords_primary, published_at')
+    .select('slug, title, excerpt, keywords_primary, published_at, content_html')
     .eq('status', 'published')
     .neq('slug', post.slug)
     .order('published_at', { ascending: false })
     .limit(3);
+
+  // Extract thumbnails for related posts
+  const relatedPosts = (relatedPostsRaw || []).map((rp: any) => {
+    const imgMatches = [...(rp.content_html || '').matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)];
+    const validImg = imgMatches.find((m: any) => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'));
+    return { ...rp, thumbnail: validImg?.[1] || null, content_html: undefined };
+  });
 
   return (
     <>
@@ -309,11 +319,27 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent" />
         </header>
 
+        {/* Hero Image — full-width, cinematic */}
+        {heroImage && (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-4 mb-8 relative z-10">
+            <div className="relative overflow-hidden rounded-2xl shadow-2xl bg-neutral-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImage}
+                alt={post.title}
+                className="w-full h-auto object-cover"
+                style={{ maxHeight: '480px', objectFit: 'cover' }}
+                loading="eager"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Table of Contents (desktop sidebar) */}
         <TableOfContents headings={headings} />
 
         {/* Article Content */}
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-10 sm:pt-14 pb-8">
+        <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8">
           <ArticleBody html={processedHtml} />
 
           {/* Share + tags divider */}
@@ -410,17 +436,36 @@ export default async function BlogPostPage({ params }: PageProps) {
                   <Link
                     key={related.slug}
                     href={`/blog/${related.slug}`}
-                    className="group block bg-neutral-50 rounded-xl p-5 hover:bg-purple-50 border border-neutral-100 hover:border-purple-200 transition-all duration-200"
+                    className="group block bg-neutral-50 rounded-xl overflow-hidden hover:bg-purple-50 border border-neutral-100 hover:border-purple-200 transition-all duration-200 hover:shadow-lg"
                   >
-                    <span className="text-[10px] font-medium text-purple-500 uppercase tracking-wider">
-                      {related.keywords_primary}
-                    </span>
-                    <h3 className="text-sm font-semibold text-neutral-900 mt-2 mb-2 leading-snug group-hover:text-purple-700 transition-colors line-clamp-3">
-                      {related.title}
-                    </h3>
-                    <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2">
-                      {related.excerpt}
-                    </p>
+                    {related.thumbnail ? (
+                      <div className="aspect-[16/9] overflow-hidden bg-neutral-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={related.thumbnail}
+                          alt={related.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-[16/9] bg-gradient-to-br from-purple-100 to-blue-50 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <span className="text-[10px] font-medium text-purple-500 uppercase tracking-wider">
+                        {related.keywords_primary}
+                      </span>
+                      <h3 className="text-sm font-semibold text-neutral-900 mt-1.5 mb-1.5 leading-snug group-hover:text-purple-700 transition-colors line-clamp-2">
+                        {related.title}
+                      </h3>
+                      <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2">
+                        {related.excerpt}
+                      </p>
+                    </div>
                   </Link>
                 ))}
               </div>

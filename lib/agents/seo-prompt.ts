@@ -46,12 +46,16 @@ STRUCTURE SEO ELITE :
   - Conclusion avec CTA naturel vers KeiroAI (pas force)
   - Derniere phrase = question ouverte ou projection future
 
-IMAGES — GÉNÉRÉES PAR IA (SEEDREAM) :
-- L'agent va automatiquement générer 2-3 images IA pertinentes pour l'article via Seedream
+IMAGES — GÉNÉRÉES PAR IA (SEEDREAM) — TRÈS IMPORTANT :
+- L'agent va automatiquement générer 5-7 images IA de qualité éditoriale pour l'article via Seedream
 - Dans ton content_html, insère des balises d'image placeholder : <img data-seo-generate="true" alt="description precise et SEO du visuel souhaite" />
-- Le alt text doit être ultra descriptif : c'est lui qui sera utilisé comme prompt pour générer l'image
-- Place une image hero après l'intro, puis 1 image toutes les 2-3 sections
-- Alt text exemples : "restaurateur souriant devant son commerce avec un smartphone montrant des statistiques de reseaux sociaux", "boutique de fleurs coloree avec une vitrine attrayante et des clients"
+- Le alt text doit être ultra descriptif (30+ mots) : c'est lui qui sera utilisé comme prompt pour générer l'image
+- PLACEMENT OBLIGATOIRE DES IMAGES :
+  1. Image HERO juste après le paragraphe d'intro (la plus spectaculaire, définit le ton de l'article)
+  2. 1 image après chaque section <h2> — l'article doit être TRÈS visuel, style Medium/Substack premium
+  3. Minimum 5 images, idéalement 6-7 pour un article complet
+- STYLE DES PROMPTS D'IMAGE : photos réalistes ultra haute qualité, style éditorial magazine, lumière naturelle, composition cinématique
+  - Exemples : "restaurateur souriant devant son commerce moderne avec un smartphone montrant des statistiques positives de reseaux sociaux, lumiere chaude du soir, style photo editorial magazine", "vue aerienne coloree d'un marche de fleurs en plein air avec des clients qui decouvrent les bouquets, ambiance joyeuse et lumineuse, style national geographic"
 - JAMAIS de texte dans les descriptions d'images (Seedream ne gère pas le texte)
 - Les images seront automatiquement uploadées et les src seront remplis
 

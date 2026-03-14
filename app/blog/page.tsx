@@ -33,13 +33,22 @@ interface BlogPost {
   excerpt: string;
   keywords_primary: string;
   published_at: string;
+  content_html: string;
+  thumbnail?: string;
+}
+
+function extractThumbnail(html: string | null): string | undefined {
+  if (!html) return undefined;
+  const matches = [...html.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)];
+  const valid = matches.find(m => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'));
+  return valid?.[1];
 }
 
 async function getPosts(): Promise<BlogPost[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('blog_posts')
-    .select('id, slug, title, meta_description, excerpt, keywords_primary, published_at')
+    .select('id, slug, title, meta_description, excerpt, keywords_primary, published_at, content_html')
     .eq('status', 'published')
     .order('published_at', { ascending: false });
 
@@ -48,7 +57,10 @@ async function getPosts(): Promise<BlogPost[]> {
     return [];
   }
 
-  return (data || []) as BlogPost[];
+  return ((data || []) as BlogPost[]).map(p => ({
+    ...p,
+    thumbnail: extractThumbnail(p.content_html),
+  }));
 }
 
 export default async function BlogListingPage() {
@@ -95,8 +107,24 @@ export default async function BlogListingPage() {
                   href={`/blog/${post.slug}`}
                   className="group bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg hover:border-purple-200 transition-all duration-200"
                 >
-                  {/* Card top accent */}
-                  <div className="h-1.5 bg-gradient-to-r from-purple-600 to-blue-600" />
+                  {/* Thumbnail image */}
+                  {post.thumbnail ? (
+                    <div className="aspect-[16/9] overflow-hidden bg-neutral-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.thumbnail}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
+                      <svg className="w-12 h-12 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
 
                   <div className="p-5">
                     {/* Keyword badge + date */}
