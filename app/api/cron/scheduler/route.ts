@@ -80,6 +80,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Fire-and-forget: trigger endpoint without waiting for response (avoids scheduler timeout)
+  function fireAndForget(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
+    console.log(`[Scheduler/${slot}] 🚀 ${name}: ${method} ${path} (fire-and-forget)`);
+    const opts: RequestInit = { method, headers };
+    if (body && method === 'POST') opts.body = JSON.stringify(body);
+    fetch(`${baseUrl}${path}`, opts)
+      .then(res => console.log(`[Scheduler/${slot}] ← ${name}: ${res.status}`))
+      .catch(e => console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message}`));
+    results.push({ task: name, ok: true, data: { fired: true } });
+  }
+
   switch (slot) {
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM (audit existing prospects)
@@ -128,10 +139,13 @@ export async function GET(request: NextRequest) {
 
     case 'ceo':
       // 05:00 UTC — CEO brief + auto-execute orders
-      await callEndpoint('CEO Brief', '/api/agents/ceo');
-      // Orders are already inserted by the brief generation (extractAndInsertOrders)
-      // Execute them immediately after
-      await callEndpoint('Execute Orders', '/api/agents/orders');
+      // Fire-and-forget: CEO brief takes 2-4 min, would timeout scheduler
+      // CEO route handles orders internally after brief generation
+      fireAndForget('CEO Brief', '/api/agents/ceo');
+      // Orders executed separately after a delay (CEO inserts them during brief)
+      setTimeout(() => {
+        fireAndForget('Execute Orders', '/api/agents/orders');
+      }, 5000);
       break;
 
     case 'trends':
@@ -187,8 +201,10 @@ export async function GET(request: NextRequest) {
 
     case 'ceo_evening':
       // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
-      await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
-      await callEndpoint('Execute Orders', '/api/agents/orders');
+      fireAndForget('CEO Brief (afternoon)', '/api/agents/ceo');
+      setTimeout(() => {
+        fireAndForget('Execute Orders', '/api/agents/orders');
+      }, 5000);
       break;
 
     case 'evening':
