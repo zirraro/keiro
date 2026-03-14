@@ -2555,6 +2555,23 @@ function AdminAgentsContent() {
 
                     {isExpanded && (
                       <div className="border-t border-neutral-100 p-5 bg-neutral-50">
+                        {/* Copy brief button */}
+                        <div className="flex justify-end mb-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const text = briefText || JSON.stringify(meta, null, 2);
+                              navigator.clipboard.writeText(text).then(() => {
+                                const btn = e.currentTarget;
+                                btn.textContent = '✅ Copié !';
+                                setTimeout(() => { btn.textContent = '📋 Copier le brief'; }, 2000);
+                              });
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                          >
+                            📋 Copier le brief
+                          </button>
+                        </div>
                         {isNaturalLanguage ? (
                           /* New natural language brief display */
                           <div className="prose prose-sm max-w-none">

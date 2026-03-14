@@ -416,8 +416,11 @@ async function generateBrief(): Promise<NextResponse> {
       logCountsPrev7d[key] = (logCountsPrev7d[key] || 0) + 1;
     }
 
-    // Build metrics
-    const emailsSent24h = logCounts24h['email_email_sent'] || 0;
+    // Build metrics — emails sent are tracked in crm_activities (type='email'), not agent_logs
+    const { count: emailsSentCount24h } = await supabase
+      .from('crm_activities').select('id', { count: 'exact', head: true })
+      .eq('type', 'email').gte('created_at', twentyFourHoursAgo);
+    const emailsSent24h = emailsSentCount24h ?? 0;
     const emailsOpened24h = logCounts24h['email_webhook_opened'] || 0;
     const emailsClicked24h = logCounts24h['email_webhook_click'] || 0;
     const emailsReplied24h = logCounts24h['email_webhook_replied'] || 0;
@@ -440,13 +443,19 @@ async function generateBrief(): Promise<NextResponse> {
       ab_test_data: abTestData,
     };
 
-    const emailsSent7d = logCounts7d['email_email_sent'] || 0;
+    const { count: emailsSentCount7d } = await supabase
+      .from('crm_activities').select('id', { count: 'exact', head: true })
+      .eq('type', 'email').gte('created_at', sevenDaysAgo);
+    const emailsSent7d = emailsSentCount7d ?? 0;
     const emailsOpened7d = logCounts7d['email_webhook_opened'] || 0;
     const emailsClicked7d = logCounts7d['email_webhook_click'] || 0;
     const emailsReplied7d = logCounts7d['email_webhook_replied'] || 0;
     const chatbotConversations7d = logCounts7d['chatbot_conversation'] || 0;
 
-    const prevEmailsSent = logCountsPrev7d['email_email_sent'] || 0;
+    const { count: prevEmailsSentCount } = await supabase
+      .from('crm_activities').select('id', { count: 'exact', head: true })
+      .eq('type', 'email').gte('created_at', fourteenDaysAgo).lt('created_at', sevenDaysAgo);
+    const prevEmailsSent = prevEmailsSentCount ?? 0;
     const prevEmailsOpened = logCountsPrev7d['email_webhook_opened'] || 0;
     const prevChatbot = logCountsPrev7d['chatbot_conversation'] || 0;
 
