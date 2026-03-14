@@ -301,47 +301,23 @@ export function verifyCRMCoherence(prospect: any): { fixes: Record<string, any>;
     }
   }
 
-  // 3. Type coherence with company name — extended detection
+  // 3. Type coherence with company name — only OBVIOUS contradictions
+  // NOTE: No aggressive keyword auto-correction — "salon" could be salon de thé, not coiffeur.
+  // Real business analysis is done by the commercial/email agents via AI, not here.
   if (prospect.type && prospect.company) {
     const type = prospect.type.toLowerCase();
     const name = prospect.company.toLowerCase();
-
-    // Restaurant keywords
-    const restoKeywords = ['restaurant', 'brasserie', 'bistrot', 'bistro', 'trattoria', 'pizzeria', 'sushi', 'ramen', 'burger', 'grill', 'rotisserie', 'rôtisserie', 'cantine', 'auberge', 'taverne', 'crêperie', 'kebab', 'wok', 'dim sum', 'pho', 'tacos'];
-    // Coiffeur/beauty keywords
-    const coiffeurKeywords = ['coiffure', 'coiffeur', 'salon', 'beauty', 'beauté', 'barbier', 'barber', 'esthétique', 'esthetique', 'onglerie', 'manucure', 'spa', 'bien-être'];
-    // Boutique keywords
-    const boutiqueKeywords = ['boutique', 'magasin', 'shop', 'store', 'prêt-à-porter', 'mode', 'vêtement', 'chaussure', 'bijou', 'accessoire'];
-    // Fleuriste keywords
-    const fleuristeKeywords = ['fleur', 'fleuriste', 'bouquet', 'florale'];
-    // Caviste keywords
-    const cavisteKeywords = ['cave', 'caviste', 'vin', 'vignoble', 'œnologie', 'oenologie'];
-    // Coach keywords
-    const coachKeywords = ['coach', 'coaching', 'fitness', 'personal trainer', 'yoga', 'pilates', 'cross', 'boxe', 'martial'];
-
-    // Auto-correct type if name strongly suggests a different type
-    const nameMatchesType = (keywords: string[]) => keywords.some(k => name.includes(k));
-
-    if (type === 'restaurant' && nameMatchesType(coiffeurKeywords)) {
+    // Only correct when the FULL phrase is unambiguous (not single words like "salon")
+    if (type === 'restaurant' && (name.includes('coiffure') || name.includes('barbershop') || name.includes('barber shop'))) {
       fixes.type = 'coiffeur'; issues.push('type_auto_corrected');
-    } else if (type === 'restaurant' && nameMatchesType(boutiqueKeywords) && !nameMatchesType(restoKeywords)) {
-      fixes.type = 'boutique'; issues.push('type_auto_corrected');
-    } else if (type === 'restaurant' && nameMatchesType(fleuristeKeywords)) {
-      fixes.type = 'fleuriste'; issues.push('type_auto_corrected');
-    } else if (type === 'boutique' && nameMatchesType(restoKeywords)) {
+    }
+    if (type === 'coiffeur' && (name.includes('restaurant') || name.includes('pizzeria') || name.includes('brasserie'))) {
       fixes.type = 'restaurant'; issues.push('type_auto_corrected');
-    } else if (type === 'boutique' && nameMatchesType(coiffeurKeywords)) {
-      fixes.type = 'coiffeur'; issues.push('type_auto_corrected');
-    } else if (type === 'coiffeur' && nameMatchesType(restoKeywords)) {
-      fixes.type = 'restaurant'; issues.push('type_auto_corrected');
-    } else if (type === 'coach' && nameMatchesType(restoKeywords)) {
-      fixes.type = 'restaurant'; issues.push('type_auto_corrected');
-    } else if (type !== 'fleuriste' && nameMatchesType(fleuristeKeywords)) {
-      fixes.type = 'fleuriste'; issues.push('type_auto_corrected');
-    } else if (type !== 'caviste' && nameMatchesType(cavisteKeywords)) {
-      fixes.type = 'caviste'; issues.push('type_auto_corrected');
-    } else if (type !== 'coach' && nameMatchesType(coachKeywords) && !nameMatchesType(restoKeywords)) {
-      fixes.type = 'coach'; issues.push('type_auto_corrected');
+    }
+    // Flag ambiguous names for AI verification (don't auto-correct)
+    const ambiguousWords = ['salon', 'atelier', 'maison', 'espace', 'studio', 'la table', 'le comptoir'];
+    if (ambiguousWords.some(w => name.includes(w))) {
+      issues.push('name_ambiguous_needs_ai_check');
     }
   }
 

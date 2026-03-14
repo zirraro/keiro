@@ -644,6 +644,29 @@ export async function GET(request: NextRequest) {
   let skippedMaxDaily = 0;
   let prospectCount = 0;
 
+  // ── BREVO FREE PLAN LIMITER: 300 emails/day max ──
+  // Count emails already sent today to stay under the limit
+  const DAILY_EMAIL_LIMIT = 280; // 280 safety margin (Brevo free = 300/day)
+  const todayStart = new Date(now);
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const { count: emailsSentToday } = await supabase
+    .from('crm_activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('type', 'email')
+    .gte('created_at', todayStart.toISOString());
+  const sentToday = emailsSentToday || 0;
+  let remainingQuota = Math.max(0, DAILY_EMAIL_LIMIT - sentToday);
+  console.log(`[EmailDaily] Daily quota: ${sentToday}/${DAILY_EMAIL_LIMIT} sent today, ${remainingQuota} remaining`);
+
+  if (remainingQuota === 0) {
+    console.log('[EmailDaily] Daily email limit reached (300/day Brevo free). Skipping this run.');
+    return NextResponse.json({
+      ok: true,
+      message: `Limite quotidienne atteinte (${sentToday}/${DAILY_EMAIL_LIMIT}). Les emails reprendront demain.`,
+      sent: 0, skipped_quota: true,
+    });
+  }
+
   try {
     // Load agent learnings for AI generation
     const learnings = await loadAgentLearnings();
@@ -681,6 +704,10 @@ export async function GET(request: NextRequest) {
         const aiEmails = await generateAIEmails(batchInput, learnings);
 
         for (const prospect of warmProspects) {
+          if (remainingQuota <= 0) {
+            console.log('[EmailDaily] Daily quota exhausted mid-warm-batch, stopping.');
+            break;
+          }
           const aiEmail = aiEmails.get(prospect.id);
           const template = aiEmail || getEmailTemplate(getSequenceForProspect(prospect), 10, {
             first_name: prospect.first_name || '',
@@ -691,6 +718,7 @@ export async function GET(request: NextRequest) {
           }, 0);
 
           const result = await sendEmail(prospect, 10, template, getSequenceForProspect(prospect));
+          if (result.success) remainingQuota--;
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,
@@ -814,7 +842,15 @@ export async function GET(request: NextRequest) {
       const RUN_TIME_LIMIT_MS = 240_000; // 240s hard limit (leave 60s for reporting)
       const runStart = Date.now();
 
+      // Cap batch to remaining daily quota (no point generating AI emails we can't send)
+      const maxBatchSize = Math.min(remainingQuota, 40); // Max 40 per cron slot to spread across the day
+
       for (const prospect of prospects) {
+        // Quota guard — stop when we've queued enough for this slot
+        if (batchForAI.length >= maxBatchSize) {
+          console.log(`[EmailDaily] Batch cap reached (${maxBatchSize} for this slot, ${remainingQuota} daily remaining).`);
+          break;
+        }
         // Time guard — stop if approaching timeout
         if (Date.now() - runStart > RUN_TIME_LIMIT_MS) {
           console.warn(`[EmailDaily] Time guard: stopping after ${batchForAI.length} emails queued (${Math.round((Date.now() - runStart) / 1000)}s)`);
@@ -987,6 +1023,11 @@ export async function GET(request: NextRequest) {
       const drafts: Array<{ prospect_id: string; email: string; company: string; step: number; category: string; subject: string; body: string; ai_generated: boolean }> = [];
 
       for (const { prospect, category, step } of batchForAI) {
+        // Quota guard: stop when daily Brevo limit reached
+        if (remainingQuota <= 0) {
+          console.log(`[EmailDaily] Daily quota exhausted (${DAILY_EMAIL_LIMIT}/day). Stopping cold batch.`);
+          break;
+        }
         // Time guard for sending phase
         if (Date.now() - runStart > 270_000) {
           console.warn(`[EmailDaily] Send time guard: stopping after ${results.length} emails sent (${Math.round((Date.now() - runStart) / 1000)}s)`);
@@ -1025,6 +1066,7 @@ export async function GET(request: NextRequest) {
           });
         } else {
           const result = await sendEmail(prospect, step, template, category);
+          if (result.success) remainingQuota--;
           results.push({
             prospect_id: prospect.id,
             email: prospect.email,

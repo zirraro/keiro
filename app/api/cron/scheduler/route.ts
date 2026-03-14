@@ -37,6 +37,7 @@ export const maxDuration = 300;
  * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
  * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
+ * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -259,6 +260,13 @@ export async function GET(request: NextRequest) {
       fireAndForget('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
       fireAndForget('Marketing Analysis', '/api/agents/marketing');
       fireAndForget('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
+      break;
+
+    case 'tiktok_publish':
+      // 19:30 UTC (21h30 Paris) — TikTok: publish any pending TikTok content
+      // Peak TikTok engagement: 19h-21h Paris for most business types
+      // Also catches TikTok posts generated earlier that weren't published yet
+      fireAndForget('TikTok Publish', '/api/agents/content', 'POST', { action: 'execute_publication' });
       break;
 
     default:

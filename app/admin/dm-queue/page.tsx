@@ -73,6 +73,9 @@ type ContentPost = {
   visual_description: string | null;
   visual_url: string | null;
   status: string;
+  instagram_permalink: string | null;
+  tiktok_publish_id: string | null;
+  tiktok_permalink: string | null;
   created_at: string;
 };
 
@@ -107,6 +110,8 @@ type CalendarPost = {
   scheduled_time: string | null;
   status: string;
   instagram_permalink: string | null;
+  tiktok_publish_id: string | null;
+  tiktok_permalink: string | null;
   published_at: string | null;
   created_at: string;
 };
@@ -114,7 +119,7 @@ type CalendarPost = {
 type MainTab = 'dm_instagram' | 'dm_tiktok' | 'comment_instagram' | 'follow_instagram' | 'follow_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type EmailSubTab = 'all' | 'step1' | 'step2' | 'step3_plus' | 'sent' | 'draft';
-type PubSubTab = 'draft' | 'published';
+type PubSubTab = 'all' | 'draft' | 'published';
 
 type EmailItem = {
   id: string;
@@ -161,7 +166,7 @@ function SuiviPublicationsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [mainTab, setMainTab] = useState<MainTab>(initialTab);
   const [dmSubTab, setDmSubTab] = useState<DMSubTab>('pending');
-  const [pubSubTab, setPubSubTab] = useState<PubSubTab>('draft');
+  const [pubSubTab, setPubSubTab] = useState<PubSubTab>('all');
 
   // Data
   const [dmItems, setDmItems] = useState<DMItem[]>([]);
@@ -239,9 +244,10 @@ function SuiviPublicationsPage() {
 
       if (pubSubTab === 'draft') {
         query = query.in('status', ['draft', 'pending', 'scheduled', 'approved']);
-      } else {
+      } else if (pubSubTab === 'published') {
         query = query.eq('status', 'published');
       }
+      // 'all' — no filter, show everything
 
       const { data } = await query.limit(50);
       setContentPosts((data as any) || []);
@@ -435,6 +441,54 @@ function SuiviPublicationsPage() {
     }
   };
 
+  const republishSinglePost = async (postId: string) => {
+    setPublishingPostId(postId);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'republish_single', postId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSelectedPost(null);
+        fetchData();
+      } else {
+        alert(`Erreur republication: ${data.error || 'Erreur inconnue'}`);
+      }
+    } catch (e: any) {
+      alert(`Erreur: ${e.message}`);
+    } finally {
+      setPublishingPostId(null);
+    }
+  };
+
+  const regenerateImage = async (postId: string) => {
+    setPublishingPostId(postId);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerate_image', postId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        fetchData();
+        if (selectedPost?.id === postId) {
+          setSelectedPost({ ...selectedPost, visual_url: data.visual_url });
+        }
+      } else {
+        alert(`Erreur régénération: ${data.error || 'Erreur inconnue'}`);
+      }
+    } catch (e: any) {
+      alert(`Erreur: ${e.message}`);
+    } finally {
+      setPublishingPostId(null);
+    }
+  };
+
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+
   if (!isAdmin) return null;
 
   const MAIN_TABS: { key: MainTab; label: string; icon: string }[] = [
@@ -476,7 +530,7 @@ function SuiviPublicationsPage() {
           {MAIN_TABS.map(t => (
             <button
               key={t.key}
-              onClick={() => { setMainTab(t.key); setDmSubTab('pending'); setPubSubTab('draft'); }}
+              onClick={() => { setMainTab(t.key); setDmSubTab('pending'); setPubSubTab('all'); }}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition whitespace-nowrap ${
                 mainTab === t.key ? 'bg-white shadow text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'
               }`}
@@ -510,6 +564,7 @@ function SuiviPublicationsPage() {
         {(isPubTab || isSeoTab) && (
           <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
             {([
+              { key: 'all' as const, label: 'Tout' },
               { key: 'draft' as const, label: 'Brouillons' },
               { key: 'published' as const, label: 'Publiés' },
             ]).map(t => (
@@ -837,16 +892,37 @@ function SuiviPublicationsPage() {
                 <div className="text-center py-12 text-neutral-400">
                   {pubSubTab === 'draft'
                     ? `Aucun brouillon ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`
-                    : 'Aucune publication.'}
+                    : pubSubTab === 'published'
+                    ? 'Aucune publication.'
+                    : `Aucun post ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`}
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {contentPosts.map(post => (
                     <div key={post.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
                       {/* Visual */}
-                      {post.visual_url && (
+                      {post.visual_url && !brokenImages.has(post.id) ? (
                         <div className="aspect-square bg-neutral-100 relative">
-                          <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={post.visual_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={() => setBrokenImages(prev => new Set(prev).add(post.id))}
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center gap-2">
+                          <span className="text-3xl opacity-30">{post.visual_url ? '🖼️' : '📷'}</span>
+                          <span className="text-[10px] text-neutral-400">{post.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
+                          {post.visual_description && (
+                            <button
+                              onClick={() => regenerateImage(post.id)}
+                              disabled={publishingPostId === post.id}
+                              className="px-2 py-1 text-[10px] bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
+                            >
+                              {publishingPostId === post.id ? '...' : 'Régénérer'}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -854,12 +930,16 @@ function SuiviPublicationsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                              post.status === 'published' ? 'bg-green-100 text-green-700' :
+                              post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
+                              post.status === 'published' ? 'bg-orange-100 text-orange-700' :
                               post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                               post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
-                              {post.status === 'published' ? 'Publié' : post.status === 'scheduled' ? 'Planifié' : post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
+                              {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'Publié' :
+                               post.status === 'published' ? 'Non publié' :
+                               post.status === 'scheduled' ? 'Planifié' :
+                               post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
                             </span>
                             <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
                           </div>
@@ -875,8 +955,28 @@ function SuiviPublicationsPage() {
                           <p className="text-[10px] text-neutral-400 italic">Visuel : {post.visual_description}</p>
                         )}
 
-                        {/* Link to campaign detail if available */}
+                        {/* Actions */}
                         <div className="pt-2 border-t flex gap-2">
+                          {/* Republish button: shown for posts marked published but not actually published */}
+                          {post.status === 'published' && !post.instagram_permalink && !post.tiktok_publish_id && (
+                            <button
+                              onClick={() => republishSinglePost(post.id)}
+                              disabled={publishingPostId === post.id}
+                              className="flex-1 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
+                            >
+                              {publishingPostId === post.id ? 'Publication...' : `Publier sur ${post.platform === 'tiktok' ? 'TikTok' : 'IG'}`}
+                            </button>
+                          )}
+                          {/* Publish button for drafts */}
+                          {post.status !== 'published' && (
+                            <button
+                              onClick={() => publishPost(post.id)}
+                              disabled={publishingPostId === post.id}
+                              className="flex-1 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                            >
+                              {publishingPostId === post.id ? 'Publication...' : 'Publier'}
+                            </button>
+                          )}
                           <button
                             onClick={() => copyToClipboard(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''), post.id)}
                             className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
@@ -1061,9 +1161,9 @@ function SuiviPublicationsPage() {
                               onClick={() => setSelectedPost(post)}
                               className="w-full text-left rounded-lg overflow-hidden border border-neutral-100 hover:border-purple-300 hover:shadow-sm transition group"
                             >
-                              {post.visual_url ? (
+                              {post.visual_url && !brokenImages.has(post.id) ? (
                                 <div className="aspect-square bg-neutral-100 relative">
-                                  <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+                                  <img src={post.visual_url} alt="" className="w-full h-full object-cover" onError={() => setBrokenImages(prev => new Set(prev).add(post.id))} />
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' ? 'bg-green-500 text-white' :
                                     post.status === 'scheduled' ? 'bg-blue-500 text-white' :
@@ -1100,9 +1200,28 @@ function SuiviPublicationsPage() {
                   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
                     <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
                       {/* Visual */}
-                      {selectedPost.visual_url && (
+                      {selectedPost.visual_url && !brokenImages.has(selectedPost.id) ? (
                         <div className="aspect-square bg-neutral-100 relative rounded-t-2xl overflow-hidden">
-                          <img src={selectedPost.visual_url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={selectedPost.visual_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={() => setBrokenImages(prev => new Set(prev).add(selectedPost.id))}
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center gap-3 rounded-t-2xl">
+                          <span className="text-4xl opacity-30">{selectedPost.visual_url ? '🖼️' : '📷'}</span>
+                          <span className="text-xs text-neutral-400">{selectedPost.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
+                          {selectedPost.visual_description && (
+                            <button
+                              onClick={() => regenerateImage(selectedPost.id)}
+                              disabled={publishingPostId === selectedPost.id}
+                              className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                            >
+                              {publishingPostId === selectedPost.id ? 'Régénération...' : 'Régénérer l\'image'}
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -1110,11 +1229,15 @@ function SuiviPublicationsPage() {
                         {/* Status & meta */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            selectedPost.status === 'published' ? 'bg-green-100 text-green-700' :
+                            selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
+                            selectedPost.status === 'published' ? 'bg-orange-100 text-orange-700' :
                             selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                             'bg-amber-100 text-amber-700'
                           }`}>
-                            {selectedPost.status === 'published' ? 'Publie' : selectedPost.status === 'scheduled' ? 'Planifie' : 'Brouillon'}
+                            {selectedPost.status === 'published' && selectedPost.instagram_permalink ? 'Publié sur IG' :
+                             selectedPost.status === 'published' && selectedPost.tiktok_publish_id ? 'Publié sur TikTok' :
+                             selectedPost.status === 'published' ? 'Non publié' :
+                             selectedPost.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
                           </span>
                           <span className="text-[10px] text-neutral-400">{selectedPost.platform}</span>
                           {selectedPost.format && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{selectedPost.format}</span>}
@@ -1162,7 +1285,18 @@ function SuiviPublicationsPage() {
                         )}
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-2 border-t">
+                        <div className="flex gap-2 pt-2 border-t flex-wrap">
+                          {/* Republish: published but NOT actually on the platform */}
+                          {selectedPost.status === 'published' && !selectedPost.instagram_permalink && !selectedPost.tiktok_publish_id && (
+                            <button
+                              onClick={() => republishSinglePost(selectedPost.id)}
+                              disabled={publishingPostId === selectedPost.id}
+                              className="flex-1 py-2 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                            >
+                              {publishingPostId === selectedPost.id ? 'Publication...' : `Publier sur ${selectedPost.platform === 'tiktok' ? 'TikTok' : 'Instagram'}`}
+                            </button>
+                          )}
+                          {/* Publish: drafts/scheduled */}
                           {selectedPost.status !== 'published' && (
                             <button
                               onClick={() => publishPost(selectedPost.id)}

@@ -4,6 +4,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
+import { initTikTokPhotoUpload, publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
+import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
 
 // ──────────────────────────────────────
@@ -269,6 +271,187 @@ async function publishToInstagram(
 }
 
 // ──────────────────────────────────────
+// Generate TikTok video via Kling T2V (5s, 9:16 vertical)
+// Returns permanent Supabase Storage URL or null
+// ──────────────────────────────────────
+async function generateTikTokVideo(visualDescription: string): Promise<string | null> {
+  try {
+    // Optimize prompt for video generation
+    const optimizedPrompt = await callClaude({
+      system: `You are an expert at writing video generation prompts for Kling AI.
+Convert the user's visual brief into a cinematic 5-second video prompt.
+Rules:
+- Max 200 characters
+- Describe MOTION and CAMERA movement (pan, zoom, dolly, tracking shot)
+- Focus on ONE dynamic visual scene
+- NO text, NO logos, NO UI elements
+- Professional quality, 4K cinematic look
+- Output ONLY the prompt, nothing else`,
+      message: `Create a 5s vertical video prompt from this brief: ${visualDescription}`,
+      maxTokens: 200,
+    });
+
+    const videoPrompt = (optimizedPrompt || visualDescription).substring(0, 250);
+    console.log(`[Content] Generating TikTok video via Kling T2V: "${videoPrompt.substring(0, 80)}..."`);
+
+    // Create Kling T2V task (5s, 9:16 vertical for TikTok)
+    const taskId = await createT2VTask({
+      prompt: videoPrompt,
+      duration: '5',
+      aspect_ratio: '9:16',
+    });
+
+    console.log(`[Content] Kling T2V task created: ${taskId}`);
+
+    // Poll for completion (max 3 minutes)
+    const maxWait = 180_000;
+    const pollInterval = 8_000;
+    const start = Date.now();
+
+    while (Date.now() - start < maxWait) {
+      await new Promise(r => setTimeout(r, pollInterval));
+
+      const result = await checkT2VTask(taskId);
+
+      if (result.status === 'completed' && result.videoUrl) {
+        console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
+
+        // Cache video to Supabase Storage for permanent URL
+        const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
+        return cachedUrl || result.videoUrl;
+      }
+
+      if (result.status === 'failed') {
+        console.error(`[Content] Kling T2V failed: ${result.error}`);
+        return null;
+      }
+
+      console.log(`[Content] Kling T2V polling... status: ${result.status}`);
+    }
+
+    console.error('[Content] Kling T2V timeout after 3 minutes');
+    return null;
+  } catch (e: any) {
+    console.error('[Content] Video generation error:', e.message);
+    return null;
+  }
+}
+
+/**
+ * Cache a video file to Supabase Storage for permanent URL.
+ */
+async function cacheVideoToStorage(tempUrl: string, videoId: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const videoResponse = await fetch(tempUrl);
+    if (!videoResponse.ok) return null;
+    const buffer = await videoResponse.arrayBuffer();
+    if (buffer.byteLength === 0) return null;
+    const contentType = videoResponse.headers.get('content-type') || 'video/mp4';
+    const fileName = `content/videos/${videoId}.mp4`;
+    const blob = new Blob([buffer], { type: contentType });
+    const { error: uploadError } = await supabase.storage
+      .from('generated-images').upload(fileName, blob, { contentType, upsert: false });
+    if (uploadError) {
+      console.error('[Content] Video cache upload error:', uploadError.message);
+      return null;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('generated-images').getPublicUrl(fileName);
+    console.log('[Content] Video cached to permanent storage');
+    return publicUrl || null;
+  } catch (e: any) {
+    console.error('[Content] Video caching failed:', e.message);
+    return null;
+  }
+}
+
+// ──────────────────────────────────────
+// Publish to TikTok (image or video)
+// ──────────────────────────────────────
+async function publishToTikTok(
+  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
+  supabase: any
+): Promise<{ success: boolean; publish_id?: string; error?: string }> {
+  try {
+    // Get admin's TikTok tokens
+    const { data: adminProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
+      .eq('is_admin', true)
+      .single();
+
+    if (profileError || !adminProfile) {
+      console.error('[Content] No admin profile for TikTok publishing');
+      return { success: false, error: 'No admin profile found' };
+    }
+
+    let accessToken = adminProfile.tiktok_access_token;
+    const refreshToken = adminProfile.tiktok_refresh_token;
+
+    if (!accessToken || !refreshToken) {
+      return { success: false, error: 'TikTok tokens not configured for admin' };
+    }
+
+    // Refresh token if expired
+    const tokenExpiry = adminProfile.tiktok_token_expiry ? new Date(adminProfile.tiktok_token_expiry) : null;
+    if (!tokenExpiry || tokenExpiry <= new Date()) {
+      console.log('[Content] TikTok token expired, refreshing...');
+      try {
+        const clientKey = process.env.TIKTOK_CLIENT_KEY || process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY;
+        if (!clientKey) return { success: false, error: 'TIKTOK_CLIENT_KEY not configured' };
+        const refreshed = await refreshTikTokToken(refreshToken, clientKey);
+        accessToken = refreshed.access_token;
+        // Update tokens in DB
+        await supabase.from('profiles').update({
+          tiktok_access_token: refreshed.access_token,
+          tiktok_refresh_token: refreshed.refresh_token,
+          tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
+        }).eq('is_admin', true);
+        console.log('[Content] TikTok token refreshed successfully');
+      } catch (refreshError: any) {
+        console.error('[Content] TikTok token refresh failed:', refreshError.message);
+        return { success: false, error: `Token refresh failed: ${refreshError.message}` };
+      }
+    }
+
+    const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
+    const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
+    const format = (post.format || 'post').toLowerCase();
+
+    // Video publishing (reel/video formats with video_url)
+    if ((format === 'video' || format === 'reel') && post.video_url) {
+      console.log(`[Content] Publishing TikTok VIDEO: ${post.video_url.substring(0, 60)}...`);
+      const result = await publishTikTokVideoViaFileUpload(
+        accessToken,
+        post.video_url,
+        fullCaption.substring(0, 150),
+        { privacy_level: 'SELF_ONLY' }
+      );
+      console.log(`[Content] TikTok video published: ${result.publish_id}`);
+      return { success: true, publish_id: result.publish_id };
+    }
+
+    // Image publishing (post/carrousel formats with visual_url)
+    if (post.visual_url) {
+      console.log(`[Content] Publishing TikTok PHOTO: ${post.visual_url.substring(0, 60)}...`);
+      const result = await initTikTokPhotoUpload(
+        accessToken,
+        [post.visual_url],
+        fullCaption.substring(0, 150),
+        fullCaption
+      );
+      console.log(`[Content] TikTok photo published: ${result.publish_id}`);
+      return { success: true, publish_id: result.publish_id };
+    }
+
+    return { success: false, error: 'No visual_url or video_url for TikTok publishing' };
+  } catch (error: any) {
+    console.error('[Content] TikTok publish error:', error.message || error);
+    return { success: false, error: error.message || 'Unknown TikTok publishing error' };
+  }
+}
+
+// ──────────────────────────────────────
 // GET: Cron — generate daily post OR weekly plan
 // ──────────────────────────────────────
 export async function GET(request: NextRequest) {
@@ -337,13 +520,20 @@ export async function GET(request: NextRequest) {
                 published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
               }).eq('id', post.id);
 
-              // Publish to Instagram if applicable
+              // Publish to platform
               if (fullPost.platform === 'instagram') {
                 const igResult = await publishToInstagram({ ...fullPost, visual_url: visualUrl }, supabase);
                 if (igResult.success && igResult.permalink) {
                   await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
                 } else if (igResult.error) {
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                }
+              } else if (fullPost.platform === 'tiktok') {
+                const ttResult = await publishToTikTok({ ...fullPost, visual_url: visualUrl }, supabase);
+                if (ttResult.success && ttResult.publish_id) {
+                  await supabase.from('content_calendar').update({ tiktok_publish_id: ttResult.publish_id }).eq('id', post.id);
+                } else if (ttResult.error) {
+                  console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
                 }
               }
 
@@ -356,13 +546,20 @@ export async function GET(request: NextRequest) {
             status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
           }).eq('id', post.id);
 
-          // Publish to Instagram if applicable
+          // Publish to platform
           if (fullPost.platform === 'instagram') {
             const igResult = await publishToInstagram(fullPost, supabase);
             if (igResult.success && igResult.permalink) {
               await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
             } else if (igResult.error) {
               console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+            }
+          } else if (fullPost.platform === 'tiktok') {
+            const ttResult = await publishToTikTok(fullPost, supabase);
+            if (ttResult.success && ttResult.publish_id) {
+              await supabase.from('content_calendar').update({ tiktok_publish_id: ttResult.publish_id }).eq('id', post.id);
+            } else if (ttResult.error) {
+              console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
             }
           }
 
@@ -448,6 +645,102 @@ export async function POST(request: NextRequest) {
         const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
         return NextResponse.json({ ok: true, instagram_permalink: pubPermalink });
+      }
+
+      case 'republish_single': {
+        // Re-publish a SINGLE post by ID — regenerate image if expired, then publish to Instagram
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: singlePost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!singlePost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        let singleVisualUrl = singlePost.visual_url;
+
+        // Check if image URL is still valid
+        if (singleVisualUrl) {
+          try {
+            const headRes = await fetch(singleVisualUrl, { method: 'HEAD' });
+            if (!headRes.ok) {
+              console.log(`[Content] Image expired for post ${singlePost.id}, regenerating...`);
+              singleVisualUrl = null;
+            }
+          } catch {
+            singleVisualUrl = null;
+          }
+        }
+
+        // Regenerate image if missing/expired
+        if (!singleVisualUrl && singlePost.visual_description) {
+          singleVisualUrl = await generateVisual(singlePost.visual_description, singlePost.format || 'post');
+          if (singleVisualUrl) {
+            await supabase.from('content_calendar').update({
+              visual_url: singleVisualUrl, updated_at: new Date().toISOString(),
+            }).eq('id', singlePost.id);
+          }
+        }
+
+        if (!singleVisualUrl) {
+          return NextResponse.json({ ok: false, error: 'Impossible de générer l\'image' }, { status: 500 });
+        }
+
+        // Publish to Instagram
+        if (singlePost.platform === 'instagram') {
+          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase);
+          if (igResult.success) {
+            await supabase.from('content_calendar').update({
+              instagram_permalink: igResult.permalink,
+              visual_url: singleVisualUrl,
+              status: 'published',
+              published_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq('id', singlePost.id);
+            return NextResponse.json({ ok: true, permalink: igResult.permalink, visual_url: singleVisualUrl });
+          } else {
+            return NextResponse.json({ ok: false, error: igResult.error || 'Publication Instagram échouée' }, { status: 500 });
+          }
+        }
+
+        // Publish to TikTok
+        if (singlePost.platform === 'tiktok') {
+          const ttResult = await publishToTikTok({ ...singlePost, visual_url: singleVisualUrl }, supabase);
+          if (ttResult.success) {
+            await supabase.from('content_calendar').update({
+              tiktok_publish_id: ttResult.publish_id,
+              visual_url: singleVisualUrl,
+              status: 'published',
+              published_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq('id', singlePost.id);
+            return NextResponse.json({ ok: true, tiktok_publish_id: ttResult.publish_id, visual_url: singleVisualUrl });
+          } else {
+            return NextResponse.json({ ok: false, error: ttResult.error || 'Publication TikTok échouée' }, { status: 500 });
+          }
+        }
+
+        // For other platforms, just update status
+        await supabase.from('content_calendar').update({
+          visual_url: singleVisualUrl,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', singlePost.id);
+        return NextResponse.json({ ok: true, visual_url: singleVisualUrl });
+      }
+
+      case 'regenerate_image': {
+        // Regenerate image only (no publishing) — used to fix broken images
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: regenPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!regenPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+        if (!regenPost.visual_description) return NextResponse.json({ ok: false, error: 'Pas de description visuelle' }, { status: 400 });
+
+        const newVisualUrl = await generateVisual(regenPost.visual_description, regenPost.format || 'post');
+        if (!newVisualUrl) return NextResponse.json({ ok: false, error: 'Échec génération image' }, { status: 500 });
+
+        await supabase.from('content_calendar').update({
+          visual_url: newVisualUrl, updated_at: new Date().toISOString(),
+        }).eq('id', regenPost.id);
+
+        return NextResponse.json({ ok: true, visual_url: newVisualUrl });
       }
 
       case 'republish': {
@@ -558,19 +851,27 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           };
 
-          // Publish to Instagram if applicable
+          // Publish to platform
           let igPermalink: string | undefined;
+          let ttPublishId: string | undefined;
           let pubError: string | undefined;
           if (post.platform === 'instagram' && post.visual_url) {
             const igResult = await publishToInstagram(post, supabase);
             if (igResult.success) {
               igPermalink = igResult.permalink;
-              if (igResult.permalink) {
-                updateData.instagram_permalink = igResult.permalink;
-              }
+              if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
             } else {
               pubError = igResult.error;
               console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+            }
+          } else if (post.platform === 'tiktok' && post.visual_url) {
+            const ttResult = await publishToTikTok(post, supabase);
+            if (ttResult.success) {
+              ttPublishId = ttResult.publish_id;
+              if (ttResult.publish_id) updateData.tiktok_publish_id = ttResult.publish_id;
+            } else {
+              pubError = ttResult.error;
+              console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
             }
           }
 
@@ -598,19 +899,25 @@ export async function POST(request: NextRequest) {
                 updated_at: new Date().toISOString(),
               };
 
-              // Publish to Instagram if applicable
-              let igPermalink: string | undefined;
-              let pubError: string | undefined;
+              // Publish to platform
+              let igPermalink2: string | undefined;
+              let pubError2: string | undefined;
               if (post.platform === 'instagram') {
                 const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
                 if (igResult.success) {
-                  igPermalink = igResult.permalink;
-                  if (igResult.permalink) {
-                    updateData.instagram_permalink = igResult.permalink;
-                  }
+                  igPermalink2 = igResult.permalink;
+                  if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
                 } else {
-                  pubError = igResult.error;
+                  pubError2 = igResult.error;
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                }
+              } else if (post.platform === 'tiktok') {
+                const ttResult = await publishToTikTok({ ...post, visual_url: visualUrl }, supabase);
+                if (ttResult.success && ttResult.publish_id) {
+                  updateData.tiktok_publish_id = ttResult.publish_id;
+                } else {
+                  pubError2 = ttResult.error;
+                  console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
                 }
               }
 
@@ -620,8 +927,8 @@ export async function POST(request: NextRequest) {
                 platform: post.platform,
                 format: post.format,
                 hook: post.hook || '',
-                instagram_permalink: igPermalink,
-                publication_error: pubError,
+                instagram_permalink: igPermalink2,
+                publication_error: pubError2,
               });
             }
           }
@@ -1352,63 +1659,93 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
   }
 
-  // Generate visual using KeiroAI's own Seedream (proof of product!)
+  // Generate visual or video using KeiroAI's own tech (proof of product!)
   const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
+  const postPlatform = post.platform || platform;
+  const postFormat = post.format || schedule.format;
+  const isTikTokVideo = postPlatform === 'tiktok' && (postFormat === 'video' || postFormat === 'reel');
+
   let visualUrl: string | null = null;
+  let videoUrl: string | null = null;
   let igPermalink: string | undefined;
+  let tiktokPublishId: string | undefined;
   let publicationError: string | undefined;
 
   if (visualDesc && inserted?.id) {
-    visualUrl = await generateVisual(visualDesc, post.format || schedule.format);
-    if (visualUrl) {
+    // For TikTok video posts: generate a 5s video via Kling T2V
+    if (isTikTokVideo) {
+      console.log(`[Content] TikTok video post — generating video via Kling T2V`);
+      videoUrl = await generateTikTokVideo(visualDesc);
+      // Also generate a cover image for preview
+      visualUrl = await generateVisual(visualDesc, postFormat);
+    } else {
+      // Image-based post (Instagram or TikTok image)
+      visualUrl = await generateVisual(visualDesc, postFormat);
+    }
+
+    const hasMedia = visualUrl || videoUrl;
+    if (hasMedia) {
       const visualUpdate: Record<string, any> = {
-        visual_url: visualUrl,
+        visual_url: visualUrl || videoUrl,
         updated_at: new Date().toISOString(),
       };
       if (!draftOnly) {
         visualUpdate.status = 'published';
         visualUpdate.published_at = new Date().toISOString();
 
-        // Publish to Instagram if platform is instagram
-        const postPlatform = post.platform || platform;
         if (postPlatform === 'instagram') {
+          // Publish to Instagram
           const igResult = await publishToInstagram(
-            { format: post.format || schedule.format, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl },
+            { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl! },
             supabase
           );
           if (igResult.success) {
             igPermalink = igResult.permalink;
-            if (igResult.permalink) {
-              visualUpdate.instagram_permalink = igResult.permalink;
-            }
+            if (igResult.permalink) visualUpdate.instagram_permalink = igResult.permalink;
             console.log(`[Content] Daily post published to Instagram${igResult.permalink ? `: ${igResult.permalink}` : ''}`);
           } else {
             publicationError = igResult.error;
             console.warn(`[Content] Instagram publish failed for daily post ${inserted.id}: ${igResult.error}`);
           }
+        } else if (postPlatform === 'tiktok') {
+          // Publish to TikTok
+          const ttResult = await publishToTikTok(
+            { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
+            supabase
+          );
+          if (ttResult.success) {
+            tiktokPublishId = ttResult.publish_id;
+            if (ttResult.publish_id) visualUpdate.tiktok_publish_id = ttResult.publish_id;
+            console.log(`[Content] Daily post published to TikTok: ${ttResult.publish_id}`);
+          } else {
+            publicationError = ttResult.error;
+            console.warn(`[Content] TikTok publish failed for daily post ${inserted.id}: ${ttResult.error}`);
+          }
         }
       }
       await supabase.from('content_calendar').update(visualUpdate).eq('id', inserted.id);
-      console.log(`[Content] Visual generated${draftOnly ? ' (draft)' : ' + auto-published'} for post ${inserted.id}`);
+      console.log(`[Content] Media generated${draftOnly ? ' (draft)' : ' + auto-published'} for post ${inserted.id}`);
     }
   }
 
   // Send notification to founder (post is ready/published)
   if (process.env.RESEND_API_KEY) {
-    const isPublished = !!visualUrl && !draftOnly;
+    const isPublished = (!!visualUrl || !!videoUrl) && !draftOnly;
+    const publishLink = igPermalink || (tiktokPublishId ? `TikTok publish_id: ${tiktokPublishId}` : '');
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'KeiroAI Content <contact@keiroai.com>',
         to: ['mrzirraro@gmail.com'],
-        subject: `${isPublished ? '✅' : '📱'} Post ${isPublished ? 'publié' : 'prêt'} : ${post.platform} ${post.format} — ${post.hook || 'Nouveau contenu'}`,
+        subject: `${isPublished ? '✅' : '📱'} Post ${isPublished ? 'publié' : 'prêt'} : ${postPlatform} ${postFormat} — ${post.hook || 'Nouveau contenu'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
-          <h2 style="color:#9333ea;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${post.platform} ${post.format}</h2>
+          <h2 style="color:#9333ea;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${postPlatform} ${postFormat}</h2>
           <p><strong>Pilier :</strong> ${post.pillar} | <strong>Heure :</strong> ${post.best_time || scheduledTime}</p>
           <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
           <p>${post.caption || ''}</p>
           ${igPermalink ? `<p><strong>Instagram :</strong> <a href="${igPermalink}">${igPermalink}</a></p>` : ''}
+          ${tiktokPublishId ? `<p><strong>TikTok :</strong> publish_id: ${tiktokPublishId}</p>` : ''}
           ${publicationError ? `<p style="color:#dc2626;"><strong>Erreur publication :</strong> ${publicationError}</p>` : ''}
           ${visualUrl ? `<img src="${visualUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Visuel généré par KeiroAI"/>
           <p style="color:#6b7280;font-size:12px;">Visuel généré et publié automatiquement par KeiroAI</p>` : ''}
@@ -1421,22 +1758,25 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   await supabase.from('agent_logs').insert({
     agent: 'content', action: 'daily_post_generated',
     data: {
-      platform: post.platform,
-      format: post.format,
+      platform: postPlatform,
+      format: postFormat,
       pillar: post.pillar,
       hook: post.hook,
       instagram_permalink: igPermalink,
+      tiktok_publish_id: tiktokPublishId,
       publication_error: publicationError,
+      has_video: !!videoUrl,
     },
     status: 'success', created_at: nowISO,
   });
 
-  console.log(`[Content] Daily post: ${post.platform} ${post.format} — ${post.hook}`);
+  console.log(`[Content] Daily post: ${postPlatform} ${postFormat} — ${post.hook}`);
 
   return NextResponse.json({
     ok: true,
     post: inserted,
     instagram_permalink: igPermalink,
+    tiktok_publish_id: tiktokPublishId,
     publication_error: publicationError,
   });
 }
