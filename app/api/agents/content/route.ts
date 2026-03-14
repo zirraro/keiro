@@ -441,7 +441,7 @@ async function publishToTikTok(
         if (cachedUrl) {
           imageUrl = cachedUrl;
         } else {
-          console.warn('[Content] TikTok: could not cache image, using original URL');
+          return { success: false, error: 'Impossible de cacher l\'image pour TikTok. L\'URL temporaire a expiré.' };
         }
       }
       console.log(`[Content] Publishing TikTok PHOTO: ${imageUrl.substring(0, 60)}...`);
@@ -683,6 +683,9 @@ export async function POST(request: NextRequest) {
         if (!singleVisualUrl && singlePost.visual_description) {
           singleVisualUrl = await generateVisual(singlePost.visual_description, singlePost.format || 'post');
           if (singleVisualUrl) {
+            // Cache to permanent Supabase Storage immediately
+            const cachedUrl = await cacheImageToStorage(singleVisualUrl, singlePost.id);
+            if (cachedUrl) singleVisualUrl = cachedUrl;
             await supabase.from('content_calendar').update({
               visual_url: singleVisualUrl, updated_at: new Date().toISOString(),
             }).eq('id', singlePost.id);

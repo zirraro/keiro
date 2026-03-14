@@ -244,14 +244,28 @@ function SuiviPublicationsPage() {
         .order('created_at', { ascending: false });
 
       if (pubSubTab === 'draft') {
-        query = query.in('status', ['draft', 'pending', 'scheduled', 'approved']);
+        // Show all posts not actually published on platform
+        // We fetch all and filter client-side since we need to check permalink fields
       } else if (pubSubTab === 'published') {
+        // Only show posts actually published on platform
         query = query.eq('status', 'published');
+        if (network === 'instagram') {
+          query = query.not('instagram_permalink', 'is', null);
+        } else {
+          query = query.not('tiktok_publish_id', 'is', null);
+        }
       }
       // 'all' — no filter, show everything
 
-      const { data } = await query.limit(50);
-      setContentPosts((data as any) || []);
+      const { data } = await query.limit(100);
+      let filtered = (data as any) || [];
+      if (pubSubTab === 'draft') {
+        // Show posts that are NOT actually published on the platform
+        filtered = filtered.filter((p: any) =>
+          !(p.status === 'published' && (p.instagram_permalink || p.tiktok_publish_id))
+        );
+      }
+      setContentPosts(filtered);
     } else if (isSeoTab) {
       let query = supabase
         .from('blog_posts')
@@ -955,13 +969,11 @@ function SuiviPublicationsPage() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
-                              post.status === 'published' ? 'bg-orange-100 text-orange-700' :
                               post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                               post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
                               {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'Publié' :
-                               post.status === 'published' ? 'Non publié' :
                                post.status === 'scheduled' ? 'Planifié' :
                                post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
                             </span>
@@ -977,20 +989,11 @@ function SuiviPublicationsPage() {
 
                         {/* Compact actions */}
                         <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                          {post.status === 'published' && !post.instagram_permalink && !post.tiktok_publish_id && (
+                          {!(post.instagram_permalink || post.tiktok_publish_id) && (
                             <button
-                              onClick={() => republishSinglePost(post.id)}
+                              onClick={() => post.status === 'published' ? republishSinglePost(post.id) : publishPost(post.id)}
                               disabled={publishingPostId === post.id}
                               className="px-2 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
-                            >
-                              {publishingPostId === post.id ? '...' : 'Publier'}
-                            </button>
-                          )}
-                          {post.status !== 'published' && (
-                            <button
-                              onClick={() => publishPost(post.id)}
-                              disabled={publishingPostId === post.id}
-                              className="px-2 py-1 text-[10px] font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
                             >
                               {publishingPostId === post.id ? '...' : 'Publier'}
                             </button>
@@ -1200,11 +1203,10 @@ function SuiviPublicationsPage() {
                                   </span>
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-500 text-white' :
-                                    post.status === 'published' ? 'bg-orange-500 text-white' :
                                     post.status === 'scheduled' ? 'bg-blue-500 text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
-                                    {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'OK' : post.status === 'published' ? '!' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
+                                    {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'OK' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
                                   </span>
                                 </div>
                               ) : (
@@ -1272,13 +1274,11 @@ function SuiviPublicationsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                             selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
-                            selectedPost.status === 'published' ? 'bg-orange-100 text-orange-700' :
                             selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                             'bg-amber-100 text-amber-700'
                           }`}>
                             {selectedPost.status === 'published' && selectedPost.instagram_permalink ? 'Publié sur IG' :
                              selectedPost.status === 'published' && selectedPost.tiktok_publish_id ? 'Publié sur TikTok' :
-                             selectedPost.status === 'published' ? 'Non publié' :
                              selectedPost.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
@@ -1335,23 +1335,13 @@ function SuiviPublicationsPage() {
                         {/* Actions */}
                         <div className="flex gap-2 pt-2 border-t flex-wrap">
                           {/* Republish: published but NOT actually on the platform */}
-                          {selectedPost.status === 'published' && !selectedPost.instagram_permalink && !selectedPost.tiktok_publish_id && (
+                          {!(selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) && (
                             <button
-                              onClick={() => republishSinglePost(selectedPost.id)}
+                              onClick={() => selectedPost.status === 'published' ? republishSinglePost(selectedPost.id) : publishPost(selectedPost.id)}
                               disabled={publishingPostId === selectedPost.id}
                               className="flex-1 py-2 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                             >
-                              {publishingPostId === selectedPost.id ? 'Publication...' : `Publier sur ${selectedPost.platform === 'tiktok' ? 'TikTok' : 'Instagram'}`}
-                            </button>
-                          )}
-                          {/* Publish: drafts/scheduled */}
-                          {selectedPost.status !== 'published' && (
-                            <button
-                              onClick={() => publishPost(selectedPost.id)}
-                              disabled={publishingPostId === selectedPost.id}
-                              className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                            >
-                              {publishingPostId === selectedPost.id ? 'Publication...' : 'Publier maintenant'}
+                              {publishingPostId === selectedPost.id ? 'Publication...' : `Publier sur ${selectedPost.platform === 'tiktok' ? 'TikTok' : selectedPost.platform === 'linkedin' ? 'LinkedIn' : 'Instagram'}`}
                             </button>
                           )}
                           <button

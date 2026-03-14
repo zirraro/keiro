@@ -1553,7 +1553,8 @@ function AdminAgentsContent() {
                     {agentMetrics.map((m, i) => (
                       <div
                         key={i}
-                        className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+                        className={`bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow ${m.label === 'Clients payants' ? 'cursor-pointer ring-purple-200 hover:ring-2' : ''}`}
+                        onClick={() => { if (m.label === 'Clients payants') document.getElementById('client-activity-section')?.scrollIntoView({ behavior: 'smooth' }); }}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-2xl">{m.icon}</span>
@@ -1579,8 +1580,8 @@ function AdminAgentsContent() {
             )}
 
             {/* Client activity panel - only in global view */}
-            {dashboardAgent === 'global' && activeClients.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+            {dashboardAgent === 'global' && (
+              <div id="client-activity-section" className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-neutral-900">Clients payants — Activite</h3>
                   <div className="flex items-center gap-2">
@@ -1629,13 +1630,16 @@ function AdminAgentsContent() {
 
                 {/* Client table */}
                 <div className="overflow-x-auto">
-                  <div className="grid grid-cols-8 gap-2 px-3 py-2 bg-neutral-50 rounded-t-lg text-[10px] font-semibold text-neutral-500 uppercase">
-                    <span>Statut</span><span className="col-span-2">Client</span><span>Plan</span><span>Credits</span><span>Images 7j</span><span>Videos 7j</span><span>Total</span>
+                  <div className="grid grid-cols-9 gap-2 px-3 py-2 bg-neutral-50 rounded-t-lg text-[10px] font-semibold text-neutral-500 uppercase">
+                    <span>Statut</span><span className="col-span-2">Client</span><span>Plan</span><span>MRR</span><span>Credits</span><span>Images 7j</span><span>Videos 7j</span><span>Total</span>
                   </div>
                   {activeClients
                     .filter(c => clientActivityFilter === 'all' || c.status === clientActivityFilter)
-                    .map(c => (
-                    <div key={c.id} className="grid grid-cols-8 gap-2 px-3 py-2.5 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                    .map(c => {
+                    const planPrices: Record<string, number> = { sprint: 0, solo: 49, solo_promo: 0, fondateurs: 149, standard: 199, business: 349, elite: 999 };
+                    const mrr = planPrices[c.subscription_plan] ?? 0;
+                    return (
+                    <div key={c.id} className="grid grid-cols-9 gap-2 px-3 py-2.5 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium text-center ${
                         c.status === 'actif' ? 'bg-green-100 text-green-700'
                         : c.status === 'nouveau' ? 'bg-blue-100 text-blue-700'
@@ -1647,12 +1651,14 @@ function AdminAgentsContent() {
                         <p className="text-[10px] text-neutral-400 truncate">{c.email}</p>
                       </div>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium text-center">{c.subscription_plan}</span>
+                      <span className={`text-xs font-medium ${mrr > 0 ? 'text-green-600' : 'text-neutral-300'}`}>{mrr > 0 ? `${mrr}\u20AC` : '-'}</span>
                       <span className="text-xs text-neutral-600">{c.credits_balance}/{c.credits_monthly_allowance}</span>
                       <span className={`text-xs font-medium ${c.images_7d > 0 ? 'text-neutral-900' : 'text-neutral-300'}`}>{c.images_7d}</span>
                       <span className={`text-xs font-medium ${c.videos_7d > 0 ? 'text-neutral-900' : 'text-neutral-300'}`}>{c.videos_7d}</span>
                       <span className={`text-xs font-bold ${c.total_generations > 5 ? 'text-green-600' : c.total_generations > 0 ? 'text-neutral-900' : 'text-red-500'}`}>{c.total_generations}</span>
                     </div>
-                  ))}
+                    );
+                  })}
                   {activeClients.filter(c => clientActivityFilter === 'all' || c.status === clientActivityFilter).length === 0 && (
                     <div className="px-3 py-6 text-center text-xs text-neutral-400">Aucun client dans cette categorie</div>
                   )}

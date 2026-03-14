@@ -262,12 +262,17 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  const testType = request.nextUrl.searchParams.get('test');
+  const testEmail = request.nextUrl.searchParams.get('email');
+
+  // If no test params, return a simple health check (no auth needed)
+  if (!testType && !testEmail) {
+    return NextResponse.json({ ok: true, status: 'Webhook Brevo actif', endpoint: '/api/webhooks/brevo', methods: ['POST'] });
   }
 
-  const testType = request.nextUrl.searchParams.get('test') || 'opened';
-  const testEmail = request.nextUrl.searchParams.get('email');
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ ok: false, error: 'Unauthorized — ajoutez Authorization: Bearer CRON_SECRET' }, { status: 401 });
+  }
 
   if (!testEmail) {
     return NextResponse.json({ ok: false, error: 'email param required' }, { status: 400 });
