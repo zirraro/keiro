@@ -239,26 +239,23 @@ function AdminAgentsContent() {
         .eq('source', 'chatbot')
         .gte('created_at', yesterdayISO);
 
-      // Emails 24h
+      // Emails 24h (from crm_activities which tracks actual sends)
       const { count: emailsCount } = await supabase
-        .from('agent_logs')
+        .from('crm_activities')
         .select('*', { count: 'exact', head: true })
-        .eq('agent', 'email')
-        .eq('action', 'send_email')
+        .eq('type', 'email')
         .gte('created_at', yesterdayISO);
 
-      // Taux ouverture réel (from Brevo webhook logs)
+      // Taux ouverture réel (from crm_prospects.last_email_opened_at set by Brevo webhook)
       const { count: totalEmailsSent } = await supabase
-        .from('agent_logs')
+        .from('crm_activities')
         .select('*', { count: 'exact', head: true })
-        .eq('agent', 'email')
-        .in('action', ['email_sent', 'send_email']);
+        .eq('type', 'email');
 
       const { count: totalOpened } = await supabase
-        .from('agent_logs')
+        .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
-        .eq('agent', 'email')
-        .eq('action', 'webhook_opened');
+        .not('last_email_opened_at', 'is', null);
 
       const openRate = (totalEmailsSent && totalEmailsSent > 0)
         ? Math.round(((totalOpened ?? 0) / totalEmailsSent) * 100)
@@ -287,17 +284,17 @@ function AdminAgentsContent() {
       const convTrend = calcTrend(convCount ?? 0, convCountPrev ?? 0);
       const leadsTrend = calcTrend(leadsCount ?? 0, leadsCountPrev ?? 0);
 
-      // Prospects chauds
+      // Prospects chauds (hot + warm)
       const { count: hotProspects } = await supabase
         .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
-        .eq('temperature', 'hot');
+        .in('temperature', ['hot', 'warm']);
 
-      // Pipeline total
+      // Pipeline actif (statuts CRM réels — tous sauf perdu/client)
       const { count: pipelineCount } = await supabase
         .from('crm_prospects')
         .select('*', { count: 'exact', head: true })
-        .in('status', ['new', 'contacted', 'interested']);
+        .in('status', ['identifie', 'contacte', 'relance_1', 'relance_2', 'relance_3', 'repondu', 'demo', 'sprint']);
 
       // Clients actifs
       const { count: activeClients } = await supabase
@@ -314,7 +311,9 @@ function AdminAgentsContent() {
         .not('plan', 'is', null);
 
       const planPrices: Record<string, number> = {
-        pro: 89,
+        sprint: 4.99,
+        solo: 49,
+        solo_promo: 49,
         fondateurs: 149,
         standard: 199,
         business: 349,
@@ -358,14 +357,14 @@ function AdminAgentsContent() {
           trendUp: openRate > 25,
         },
         {
-          label: 'Prospects chauds',
+          label: 'Prospects chauds/warm',
           value: hotProspects ?? 0,
           icon: '\uD83D\uDD25',
           trend: '',
           trendUp: true,
         },
         {
-          label: 'Pipeline total',
+          label: 'Pipeline actif',
           value: pipelineCount ?? 0,
           icon: '\uD83D\uDCCA',
           trend: '',
