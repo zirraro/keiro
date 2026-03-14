@@ -152,6 +152,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     console.log('[Webhook] Subscription activated:', { userId: profileId, plan: resolvedPlanKey, credits });
 
+    // Notify founder
+    const customerEmail = session.customer_details?.email || session.customer_email || '';
+    await notifyFounderPayment({
+      email: customerEmail,
+      plan: resolvedPlanKey,
+      amount: session.amount_total || undefined,
+      type: 'new',
+      userId: profileId,
+    });
+
     // Trigger onboarding sequence for new subscribers
     try {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
@@ -262,6 +272,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
       console.log('[Webhook] Sprint activated with auto-upgrade:', { userId: profileId });
 
+      // Notify founder
+      const sprintEmail = session.customer_details?.email || session.customer_email || '';
+      await notifyFounderPayment({
+        email: sprintEmail,
+        plan: 'sprint',
+        amount: session.amount_total || undefined,
+        type: 'sprint',
+        userId: profileId,
+      });
+
       // Trigger onboarding sequence for Sprint
       try {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiro.ai';
@@ -311,6 +331,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         });
 
         console.log('[Webhook] Credit pack added:', { userId: profileId, credits });
+
+        // Notify founder
+        const packEmail = session.customer_details?.email || session.customer_email || '';
+        await notifyFounderPayment({
+          email: packEmail,
+          plan: planKey,
+          amount: session.amount_total || undefined,
+          type: 'pack',
+          userId: profileId,
+        });
       }
     } else {
       // Fallback: identifier par montant (ancien payment link)
@@ -323,6 +353,110 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       }
     }
   }
+}
+
+// ====================================================================
+// NOTIFICATION FONDATEUR — Alerte paiement reçu
+// ====================================================================
+async function notifyFounderPayment(info: {
+  email: string;
+  plan: string;
+  amount?: number;
+  type: 'new' | 'renewal' | 'pack' | 'sprint';
+  userId?: string;
+}) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const BREVO_API_KEY = process.env.BREVO_API_KEY;
+  const FOUNDER_EMAIL = process.env.FOUNDER_EMAIL || 'mrzirraro@gmail.com';
+
+  const planLabels: Record<string, string> = {
+    sprint: 'Sprint (4,99€/3j)',
+    pro: 'Pro (89€/mois)',
+    fondateurs: 'Fondateurs (149€/mois)',
+    standard: 'Standard (199€/mois)',
+    business: 'Business (349€/mois)',
+    elite: 'Elite (999€/mois)',
+    pack_starter: 'Pack Starter (14,99€)',
+    pack_pro: 'Pack Pro (39,99€)',
+    pack_expert: 'Pack Expert (69,99€)',
+  };
+
+  const typeLabels: Record<string, string> = {
+    new: 'NOUVEAU CLIENT',
+    renewal: 'RENOUVELLEMENT',
+    pack: 'ACHAT PACK',
+    sprint: 'SPRINT',
+  };
+
+  const label = planLabels[info.plan] || info.plan;
+  const typeLabel = typeLabels[info.type] || info.type.toUpperCase();
+  const amountStr = info.amount ? `${(info.amount / 100).toFixed(2)}€` : '';
+
+  const subject = `💰 ${typeLabel} — ${info.email} → ${label}`;
+  const html = `
+<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;color:#333;padding:20px;">
+<div style="max-width:500px;margin:0 auto;">
+  <div style="background:linear-gradient(135deg,#9333ea,#3b82f6);color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
+    <h2 style="margin:0;">💰 ${typeLabel}</h2>
+  </div>
+  <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+    <table style="width:100%;font-size:14px;">
+      <tr><td style="padding:8px 0;color:#6b7280;">Client</td><td style="padding:8px 0;font-weight:bold;">${info.email}</td></tr>
+      <tr><td style="padding:8px 0;color:#6b7280;">Plan</td><td style="padding:8px 0;font-weight:bold;">${label}</td></tr>
+      ${amountStr ? `<tr><td style="padding:8px 0;color:#6b7280;">Montant</td><td style="padding:8px 0;font-weight:bold;color:#16a34a;">${amountStr}</td></tr>` : ''}
+      ${info.userId ? `<tr><td style="padding:8px 0;color:#6b7280;">User ID</td><td style="padding:8px 0;font-size:11px;color:#9ca3af;">${info.userId}</td></tr>` : ''}
+      <tr><td style="padding:8px 0;color:#6b7280;">Date</td><td style="padding:8px 0;">${new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}</td></tr>
+    </table>
+  </div>
+</div>
+</body></html>`;
+
+  // Try Resend first (more reliable for transactional)
+  if (RESEND_API_KEY) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'KeiroAI <noreply@keiroai.com>',
+          to: [FOUNDER_EMAIL],
+          subject,
+          html,
+        }),
+      });
+      if (res.ok) {
+        console.log('[Webhook] Payment notification sent via Resend');
+        return;
+      }
+    } catch (e: any) {
+      console.error('[Webhook] Resend notification error:', e.message);
+    }
+  }
+
+  // Fallback Brevo
+  if (BREVO_API_KEY) {
+    try {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
+          to: [{ email: FOUNDER_EMAIL }],
+          subject,
+          htmlContent: html,
+        }),
+      });
+      if (res.ok) {
+        console.log('[Webhook] Payment notification sent via Brevo');
+        return;
+      }
+    } catch (e: any) {
+      console.error('[Webhook] Brevo notification error:', e.message);
+    }
+  }
+
+  console.warn('[Webhook] No email provider for payment notification');
 }
 
 // ====================================================================
@@ -391,6 +525,23 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   });
 
   console.log('[Webhook] Monthly renewal:', { userId: profile.id, planKey, newBalance, carryOver });
+
+  // Notify founder of renewal
+  const { data: renewProfile } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', profile.id)
+    .single();
+
+  if (renewProfile?.email) {
+    await notifyFounderPayment({
+      email: renewProfile.email,
+      plan: planKey,
+      amount: invoice.amount_paid || undefined,
+      type: 'renewal',
+      userId: profile.id,
+    });
+  }
 }
 
 // ====================================================================
