@@ -367,7 +367,7 @@ async function notifyFounderPayment(info: {
 }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const BREVO_API_KEY = process.env.BREVO_API_KEY;
-  const FOUNDER_EMAIL = process.env.FOUNDER_EMAIL || 'mrzirraro@gmail.com';
+  const FOUNDER_EMAILS = (process.env.FOUNDER_EMAIL || 'mrzirraro@gmail.com,contact@keiroai.com').split(',').map(e => e.trim());
 
   const planLabels: Record<string, string> = {
     sprint: 'Sprint (4,99€/3j)',
@@ -420,7 +420,7 @@ async function notifyFounderPayment(info: {
         headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'KeiroAI <noreply@keiroai.com>',
-          to: [FOUNDER_EMAIL],
+          to: FOUNDER_EMAILS,
           subject,
           html,
         }),
@@ -442,7 +442,7 @@ async function notifyFounderPayment(info: {
         headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
         body: JSON.stringify({
           sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
-          to: [{ email: FOUNDER_EMAIL }],
+          to: FOUNDER_EMAILS.map(email => ({ email })),
           subject,
           htmlContent: html,
         }),
