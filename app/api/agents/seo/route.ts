@@ -334,28 +334,95 @@ Contexte supplementaire :
 - L'article sera publie sur le blog de KeiroAI
 - Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 
+IMPORTANT: Le JSON doit etre COMPLET. Ne tronque pas content_html. Si tu manques de place, ecris un article plus court (1200 mots min) plutot que de tronquer le JSON.
+
 Genere le JSON complet comme specifie dans tes instructions.`,
-      maxTokens: 6000,
+      maxTokens: 8000,
     });
     console.log('[SEOAgent] Raw response length:', rawText.length);
 
-    // Parse JSON
+    // Parse JSON — robust parser that handles truncated responses
     let article: any;
     try {
-      const cleanArticleText = rawText.replace(/```[\w]*\s*/g, '');
+      const cleanArticleText = rawText.replace(/```[\w]*\s*/g, '').trim();
+
+      // Method 1: standard regex match
       const jsonMatch = cleanArticleText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        article = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+        try {
+          article = JSON.parse(jsonMatch[0]);
+        } catch {
+          // JSON is truncated — try to salvage
+          console.warn('[SEOAgent] JSON truncated, attempting salvage...');
+        }
+      }
+
+      // Method 2: balanced brace extraction (handles truncated content_html)
+      if (!article) {
+        let depth = 0, start = -1, inString = false, escaped = false;
+        let lastComplete = -1;
+
+        for (let i = 0; i < cleanArticleText.length; i++) {
+          const ch = cleanArticleText[i];
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\') { escaped = true; continue; }
+          if (ch === '"') { inString = !inString; continue; }
+          if (inString) continue;
+          if (ch === '{') { if (depth === 0) start = i; depth++; }
+          else if (ch === '}') {
+            depth--;
+            if (depth === 0 && start >= 0) { lastComplete = i; break; }
+          }
+        }
+
+        if (lastComplete >= 0 && start >= 0) {
+          try {
+            article = JSON.parse(cleanArticleText.substring(start, lastComplete + 1));
+            console.log('[SEOAgent] Salvaged complete JSON object');
+          } catch { /* still broken */ }
+        }
+      }
+
+      // Method 3: truncation repair — close unclosed strings and braces
+      if (!article) {
+        const firstBrace = cleanArticleText.indexOf('{');
+        if (firstBrace >= 0) {
+          let partial = cleanArticleText.substring(firstBrace);
+
+          // If content_html is truncated mid-value, close the string
+          // Find last complete key-value pair
+          const fieldOrder = ['image_prompts', 'internal_links', 'schema_faq', 'keywords', 'excerpt', 'content_html', 'h1', 'slug', 'meta_description', 'meta_title'];
+          for (const field of fieldOrder) {
+            const fieldIdx = partial.lastIndexOf(`"${field}"`);
+            if (fieldIdx > 0) {
+              // Check if this field's value is complete
+              const colonIdx = partial.indexOf(':', fieldIdx);
+              if (colonIdx < 0) continue;
+
+              // Try truncating after this field and closing
+              const beforeField = partial.substring(0, fieldIdx).replace(/,\s*$/, '');
+              try {
+                const repaired = beforeField + '}';
+                article = JSON.parse(repaired);
+                console.log(`[SEOAgent] Repaired JSON by truncating at "${field}"`);
+                break;
+              } catch { /* try next field */ }
+            }
+          }
+        }
+      }
+
+      if (!article) {
+        throw new Error('Could not parse article JSON after all salvage attempts');
       }
     } catch (parseError) {
       console.error('[SEOAgent] Failed to parse article JSON:', parseError);
+      console.error('[SEOAgent] Raw text preview:', rawText.substring(0, 300), '...', rawText.substring(rawText.length - 300));
 
       await supabase.from('agent_logs').insert({
         agent: 'seo',
         action: 'article_generation_failed',
-        data: { keyword: targetKeyword, raw: rawText.substring(0, 500), error: String(parseError) },
+        data: { keyword: targetKeyword, raw_start: rawText.substring(0, 500), raw_end: rawText.substring(rawText.length - 500), error: String(parseError) },
         status: 'error',
         error_message: String(parseError),
         created_at: now,

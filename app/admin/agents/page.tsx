@@ -300,15 +300,15 @@ function AdminAgentsContent() {
       const { count: activeClients } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
-        .neq('plan', 'free')
-        .not('plan', 'is', null);
+        .neq('subscription_plan', 'free')
+        .not('subscription_plan', 'is', null);
 
-      // MRR (from profiles with plan)
+      // MRR (from profiles with subscription_plan)
       const { data: paidProfiles } = await supabase
         .from('profiles')
-        .select('plan')
-        .neq('plan', 'free')
-        .not('plan', 'is', null);
+        .select('subscription_plan')
+        .neq('subscription_plan', 'free')
+        .not('subscription_plan', 'is', null);
 
       const planPrices: Record<string, number> = {
         sprint: 4.99,
@@ -323,7 +323,7 @@ function AdminAgentsContent() {
       let mrr = 0;
       if (paidProfiles) {
         for (const p of paidProfiles) {
-          mrr += planPrices[p.plan as string] || 0;
+          mrr += planPrices[p.subscription_plan as string] || 0;
         }
       }
 
