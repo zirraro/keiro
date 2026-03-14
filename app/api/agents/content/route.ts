@@ -450,6 +450,75 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, instagram_permalink: pubPermalink });
       }
 
+      case 'republish': {
+        // Re-publish posts marked "published" but not actually on Instagram (no permalink)
+        // Also regenerates image if the URL is expired/broken
+        const { data: fakePubs } = await supabase
+          .from('content_calendar')
+          .select('*')
+          .eq('status', 'published')
+          .is('instagram_permalink', null)
+          .eq('platform', 'instagram')
+          .order('scheduled_date', { ascending: false })
+          .limit(body.limit || 10);
+
+        if (!fakePubs || fakePubs.length === 0) {
+          return NextResponse.json({ ok: true, message: 'Aucun post à republier', republished: 0 });
+        }
+
+        let republished = 0;
+        const republishResults: Array<{ id: string; hook: string; success: boolean; error?: string; permalink?: string }> = [];
+
+        for (const post of fakePubs) {
+          let visualUrl = post.visual_url;
+
+          // Check if image URL is still valid (Seedream URLs expire)
+          if (visualUrl) {
+            try {
+              const headRes = await fetch(visualUrl, { method: 'HEAD' });
+              if (!headRes.ok) {
+                console.log(`[Content] Image expired for post ${post.id}, regenerating...`);
+                visualUrl = null;
+              }
+            } catch {
+              visualUrl = null;
+            }
+          }
+
+          // Regenerate image if missing/expired
+          if (!visualUrl && post.visual_description) {
+            visualUrl = await generateVisual(post.visual_description, post.format || 'post');
+            if (visualUrl) {
+              await supabase.from('content_calendar').update({
+                visual_url: visualUrl, updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+            }
+          }
+
+          if (!visualUrl) {
+            republishResults.push({ id: post.id, hook: post.hook || '?', success: false, error: 'No image available' });
+            continue;
+          }
+
+          // Publish to Instagram
+          const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
+          if (igResult.success) {
+            await supabase.from('content_calendar').update({
+              instagram_permalink: igResult.permalink,
+              visual_url: visualUrl,
+              published_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq('id', post.id);
+            republished++;
+            republishResults.push({ id: post.id, hook: post.hook || '?', success: true, permalink: igResult.permalink });
+          } else {
+            republishResults.push({ id: post.id, hook: post.hook || '?', success: false, error: igResult.error });
+          }
+        }
+
+        return NextResponse.json({ ok: true, republished, total: fakePubs.length, results: republishResults });
+      }
+
       case 'skip': {
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
         const { error } = await supabase

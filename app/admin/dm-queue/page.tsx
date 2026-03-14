@@ -798,12 +798,38 @@ function SuiviPublicationsPage() {
             {isPubTab && (
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs text-neutral-500">{contentPosts.length} post{contentPosts.length !== 1 ? 's' : ''}</p>
-                <button
-                  onClick={() => setMainTab('planning' as MainTab)}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                >
-                  📅 Voir le planning
-                </button>
+                <div className="flex items-center gap-3">
+                  {mainTab === 'pub_instagram' && pubSubTab === 'published' && (
+                    <button
+                      onClick={async () => {
+                        const btn = document.getElementById('republish-btn');
+                        if (btn) { btn.textContent = '⏳ Republication...'; (btn as HTMLButtonElement).disabled = true; }
+                        try {
+                          const res = await fetch('/api/agents/content', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'republish', limit: 10 }),
+                          });
+                          const data = await res.json();
+                          if (btn) btn.textContent = data.ok ? `✅ ${data.republished}/${data.total} republiés` : `❌ ${data.error}`;
+                          setTimeout(() => { if (btn) { btn.textContent = '🔄 Republier sur Instagram'; (btn as HTMLButtonElement).disabled = false; } fetchData(); }, 3000);
+                        } catch (e: any) {
+                          if (btn) { btn.textContent = `❌ Erreur`; (btn as HTMLButtonElement).disabled = false; }
+                        }
+                      }}
+                      id="republish-btn"
+                      className="px-3 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    >
+                      🔄 Republier sur Instagram
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setMainTab('planning' as MainTab)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                  >
+                    📅 Voir le planning
+                  </button>
+                </div>
               </div>
             )}
             {isPubTab && (
