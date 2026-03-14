@@ -289,6 +289,19 @@ function SeoPreviewContent() {
               )}
             </div>
 
+            <LoadingBtn loading={actionLoading === 'regen_images'} onClick={async () => {
+              const data = await doAction('/api/agents/seo', { action: 'regenerate_images', article_id: article.id }, 'regen_images');
+              if (data?.ok) {
+                // Reload article
+                const { data: refreshed } = await supabase.from('blog_posts').select('*').eq('id', article.id).single();
+                if (refreshed) setArticle(refreshed);
+                alert(`Images: ${data.fixed} corrigees, ${data.failed} echouees`);
+              } else {
+                alert(`Erreur: ${data?.error || 'inconnue'}`);
+              }
+            }} className="bg-amber-100 text-amber-700 hover:bg-amber-200">
+              Regenerer images
+            </LoadingBtn>
             <button onClick={() => { setEditMode(!editMode); setEditFields({}); setInlineEditing(null); setHasUnsavedChanges(false); }} className={`text-[10px] px-2 py-1 rounded-lg transition ${editMode ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
               {editMode ? 'Annuler HTML' : 'Editer HTML'}
             </button>

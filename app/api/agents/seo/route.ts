@@ -21,9 +21,57 @@ const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 
 /**
- * Generate an image using Seedream for SEO articles (internal, no credits).
+ * Cache a temporary image URL to Supabase Storage for a permanent public URL.
  */
-async function generateSeoImage(prompt: string): Promise<string | null> {
+async function cacheImageToStorage(tempUrl: string, slug: string, index: number): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // Download the temporary image
+    const imgResponse = await fetch(tempUrl);
+    if (!imgResponse.ok) {
+      console.error('[SEOAgent] Failed to download image for caching:', imgResponse.status);
+      return null;
+    }
+
+    const buffer = await imgResponse.arrayBuffer();
+    if (buffer.byteLength === 0) {
+      console.error('[SEOAgent] Empty image buffer');
+      return null;
+    }
+
+    const contentType = imgResponse.headers.get('content-type') || 'image/png';
+    const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+    const fileName = `seo/${slug || 'article'}/${Date.now()}-${index}.${ext}`;
+
+    const blob = new Blob([buffer], { type: contentType });
+
+    const { error: uploadError } = await supabase.storage
+      .from('generated-images')
+      .upload(fileName, blob, { contentType, upsert: false });
+
+    if (uploadError) {
+      console.error('[SEOAgent] Storage upload error:', uploadError.message);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('generated-images')
+      .getPublicUrl(fileName);
+
+    console.log('[SEOAgent] Image cached to storage:', publicUrl?.substring(0, 80));
+    return publicUrl || null;
+  } catch (error: any) {
+    console.error('[SEOAgent] Image caching failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Generate an image using Seedream for SEO articles (internal, no credits).
+ * Returns a permanent Supabase Storage URL (not the temporary Seedream CDN URL).
+ */
+async function generateSeoImage(prompt: string, slug?: string, index: number = 0): Promise<string | null> {
   try {
     const optimizedPrompt = `Professional photograph for blog article: ${prompt}. High quality, editorial style, clean composition, no text overlay, no watermark, 16:9 aspect ratio.`;
 
@@ -48,12 +96,18 @@ async function generateSeoImage(prompt: string): Promise<string | null> {
     }
 
     const data = await response.json();
-    const url = data?.data?.[0]?.url;
-    if (url) {
-      console.log('[SEOAgent] Seedream image generated successfully');
-      return url;
-    }
-    return null;
+    const tempUrl = data?.data?.[0]?.url;
+    if (!tempUrl) return null;
+
+    console.log('[SEOAgent] Seedream image generated, caching to storage...');
+
+    // Cache to Supabase Storage for permanent URL
+    const permanentUrl = await cacheImageToStorage(tempUrl, slug || 'article', index);
+    if (permanentUrl) return permanentUrl;
+
+    // Fallback to temporary URL if caching fails
+    console.warn('[SEOAgent] Caching failed, using temporary URL (will expire)');
+    return tempUrl;
   } catch (error: any) {
     console.error('[SEOAgent] Seedream generation failed:', error.message);
     return null;
@@ -63,7 +117,7 @@ async function generateSeoImage(prompt: string): Promise<string | null> {
 /**
  * Post-process article HTML: find <img data-seo-generate="true"> tags and generate real images.
  */
-async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ alt: string; prompt: string }>): Promise<string> {
+async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ alt: string; prompt: string }>, slug?: string): Promise<string> {
   let html = contentHtml;
 
   // If we have explicit image_prompts from the article JSON, use those
@@ -78,7 +132,7 @@ async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ 
       const imgPrompt = imagePrompts[promptIndex];
 
       console.log(`[SEOAgent] Generating image ${promptIndex + 1}/${imagePrompts.length}: "${imgPrompt.prompt.substring(0, 80)}..."`);
-      const imageUrl = await generateSeoImage(imgPrompt.prompt);
+      const imageUrl = await generateSeoImage(imgPrompt.prompt, slug, promptIndex);
 
       if (imageUrl) {
         const newTag = `<img src="${imageUrl}" alt="${imgPrompt.alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
@@ -91,12 +145,13 @@ async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ 
   // Also handle any remaining placeholder tags that don't have prompts yet (use alt as prompt)
   const remainingRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
   let remainingMatch;
+  let fallbackIndex = 10;
   while ((remainingMatch = remainingRegex.exec(html)) !== null) {
     const fullTag = remainingMatch[0];
     const altText = remainingMatch[1];
 
     console.log(`[SEOAgent] Generating fallback image from alt: "${altText.substring(0, 80)}..."`);
-    const imageUrl = await generateSeoImage(altText);
+    const imageUrl = await generateSeoImage(altText, slug, fallbackIndex++);
 
     if (imageUrl) {
       const newTag = `<img src="${imageUrl}" alt="${altText}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
@@ -246,6 +301,9 @@ export async function POST(request: NextRequest) {
 
       case 'execute_orders':
         return executeOrders();
+
+      case 'regenerate_images':
+        return regenerateArticleImages(body.article_id);
 
       case 'delete_article': {
         if (!body.article_id) return NextResponse.json({ ok: false, error: 'article_id requis' }, { status: 400 });
@@ -471,7 +529,7 @@ Genere le JSON complet comme specifie dans tes instructions.`,
     let finalHtml = article.content_html;
     try {
       console.log('[SEOAgent] Processing article images with Seedream...');
-      finalHtml = await processArticleImages(article.content_html, article.image_prompts);
+      finalHtml = await processArticleImages(article.content_html, article.image_prompts, article.slug);
 
       if (finalHtml !== article.content_html) {
         await supabase
@@ -905,6 +963,106 @@ Retourne le JSON complet mis à jour.`,
 }
 
 /**
+ * Regenerate broken/expired images in an article.
+ * Finds images with temporary Seedream CDN URLs and replaces them with permanent Supabase Storage URLs.
+ */
+async function regenerateArticleImages(articleId: string): Promise<NextResponse> {
+  if (!articleId) {
+    return NextResponse.json({ ok: false, error: 'article_id requis' }, { status: 400 });
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const now = new Date().toISOString();
+
+    const { data: article, error: fetchError } = await supabase
+      .from('blog_posts')
+      .select('*')
+      .eq('id', articleId)
+      .single();
+
+    if (fetchError || !article) {
+      return NextResponse.json({ ok: false, error: 'Article non trouve' }, { status: 404 });
+    }
+
+    let html = article.content_html || '';
+    let fixed = 0;
+    let failed = 0;
+
+    // Find all img tags with temporary Seedream/BytePlus URLs
+    const tempImgRegex = /<img\s+[^>]*src=["'](https:\/\/ark\.ap-southeast\.bytepluses\.com[^"']+)["'][^>]*\/?>/gi;
+    let match;
+    const replacements: Array<{ fullTag: string; newTag: string }> = [];
+
+    while ((match = tempImgRegex.exec(html)) !== null) {
+      const fullTag = match[0];
+      const tempUrl = match[1];
+      const altMatch = fullTag.match(/alt=["']([^"']*)["']/);
+      const alt = altMatch ? altMatch[1] : article.title;
+
+      console.log(`[SEOAgent] Re-caching expired image: ${tempUrl.substring(0, 80)}...`);
+
+      // Try to re-cache the existing URL first (in case it hasn't expired yet)
+      let permanentUrl = await cacheImageToStorage(tempUrl, article.slug, fixed);
+
+      if (!permanentUrl) {
+        // URL expired — regenerate from alt text
+        console.log(`[SEOAgent] URL expired, regenerating from alt: "${alt.substring(0, 60)}"`);
+        permanentUrl = await generateSeoImage(alt, article.slug, fixed + 100);
+      }
+
+      if (permanentUrl) {
+        const newTag = fullTag.replace(tempUrl, permanentUrl);
+        replacements.push({ fullTag, newTag });
+        fixed++;
+      } else {
+        failed++;
+      }
+    }
+
+    // Also handle placeholder tags that were never replaced
+    const placeholderRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
+    while ((match = placeholderRegex.exec(html)) !== null) {
+      const fullTag = match[0];
+      const alt = match[1];
+      console.log(`[SEOAgent] Generating missing image: "${alt.substring(0, 60)}"`);
+      const imageUrl = await generateSeoImage(alt, article.slug, fixed + 200);
+      if (imageUrl) {
+        const newTag = `<img src="${imageUrl}" alt="${alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
+        replacements.push({ fullTag, newTag });
+        fixed++;
+      } else {
+        failed++;
+      }
+    }
+
+    // Apply replacements
+    for (const r of replacements) {
+      html = html.replace(r.fullTag, r.newTag);
+    }
+
+    if (fixed > 0) {
+      await supabase.from('blog_posts').update({ content_html: html, updated_at: now }).eq('id', articleId);
+    }
+
+    await supabase.from('agent_logs').insert({
+      agent: 'seo',
+      action: 'images_regenerated',
+      data: { article_id: articleId, slug: article.slug, fixed, failed },
+      status: fixed > 0 ? 'success' : 'error',
+      created_at: now,
+    });
+
+    console.log(`[SEOAgent] Images regenerated for "${article.slug}": ${fixed} fixed, ${failed} failed`);
+
+    return NextResponse.json({ ok: true, fixed, failed, article_id: articleId });
+  } catch (error: any) {
+    console.error('[SEOAgent] regenerateArticleImages error:', error);
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+}
+
+/**
  * Execute pending orders directed at the SEO agent.
  * Orders come from CEO/Marketing agents (e.g., "more visuals", "target keyword X").
  */
@@ -948,7 +1106,7 @@ async function executeOrders(): Promise<NextResponse> {
             // Check if article has few images
             const imgCount = (art.content_html.match(/<img/gi) || []).length;
             if (imgCount < 2) {
-              const imageUrl = await generateSeoImage(`Professional editorial photo for blog article about: ${art.title}. Marketing, business, local commerce, modern and vibrant.`);
+              const imageUrl = await generateSeoImage(`Professional editorial photo for blog article about: ${art.title}. Marketing, business, local commerce, modern and vibrant.`, art.slug, imagesGenerated);
               if (imageUrl) {
                 const imgTag = `<img src="${imageUrl}" alt="${art.title}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
                 // Insert image after first h2
