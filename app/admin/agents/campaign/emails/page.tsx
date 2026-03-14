@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -52,7 +52,7 @@ const TEMP_COLORS: Record<string, string> = {
   dead: 'bg-neutral-200 text-neutral-500',
 };
 
-export default function EmailsTrackingPage() {
+function EmailsTrackingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromLogId = searchParams.get('from');
@@ -353,5 +353,13 @@ export default function EmailsTrackingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function EmailsTrackingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <EmailsTrackingContent />
+    </Suspense>
   );
 }
