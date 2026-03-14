@@ -316,8 +316,9 @@ function AdminAgentsContent() {
         .neq('subscription_plan', 'free')
         .not('subscription_plan', 'is', null);
 
+      // Monthly recurring revenue per plan (sprint is 3-day trial, not recurring)
       const planPrices: Record<string, number> = {
-        sprint: 4.99,
+        sprint: 0,
         solo: 49,
         solo_promo: 49,
         fondateurs: 149,
@@ -377,14 +378,14 @@ function AdminAgentsContent() {
           trendUp: true,
         },
         {
-          label: 'Clients actifs',
+          label: 'Clients payants',
           value: activeClients ?? 0,
           icon: '\u2705',
           trend: '',
           trendUp: true,
         },
         {
-          label: 'MRR estim\u00E9',
+          label: 'MRR effectif',
           value: `${mrr.toLocaleString('fr-FR')}\u20AC`,
           icon: '\uD83D\uDCB0',
           trend: '',

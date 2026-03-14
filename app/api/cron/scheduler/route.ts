@@ -178,10 +178,9 @@ export async function GET(request: NextRequest) {
       // Fire-and-forget: CEO brief takes 2-4 min, would timeout scheduler
       // CEO route handles orders internally after brief generation
       fireAndForget('CEO Brief', '/api/agents/ceo');
-      // Orders executed separately after a delay (CEO inserts them during brief)
-      setTimeout(() => {
-        fireAndForget('Execute Orders', '/api/agents/orders');
-      }, 5000);
+      // Also fire orders execution — will pick up any existing pending orders
+      // (new ones from this CEO brief will be caught by ceo_evening or next ceo slot)
+      fireAndForget('Execute Orders', '/api/agents/orders');
       break;
 
     case 'trends':
@@ -230,9 +229,8 @@ export async function GET(request: NextRequest) {
     case 'ceo_evening':
       // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
       fireAndForget('CEO Brief (afternoon)', '/api/agents/ceo');
-      setTimeout(() => {
-        fireAndForget('Execute Orders', '/api/agents/orders');
-      }, 5000);
+      // Execute any pending orders from morning + new ones
+      fireAndForget('Execute Orders', '/api/agents/orders');
       break;
 
     case 'evening':

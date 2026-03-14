@@ -489,16 +489,40 @@ Genere le JSON complet comme specifie dans tes instructions.`,
       return NextResponse.json({ ok: false, error: 'Echec du parsing JSON de l\'article' }, { status: 500 });
     }
 
+    // Validate required fields before insert
+    if (!article.content_html || article.content_html.length < 100) {
+      console.error('[SEOAgent] Article content_html is missing or too short:', article.content_html?.length || 0);
+      await supabase.from('agent_logs').insert({
+        agent: 'seo',
+        action: 'article_generation_failed',
+        data: { keyword: targetKeyword, error: 'content_html missing or too short', parsed_keys: Object.keys(article) },
+        status: 'error',
+        error_message: 'content_html is null or too short',
+        created_at: now,
+      });
+      return NextResponse.json({ ok: false, error: 'L\'article genere n\'a pas de contenu HTML valide. Reessayez.' }, { status: 500 });
+    }
+
+    if (!article.slug) {
+      article.slug = (targetKeyword || 'article')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 60);
+    }
+
     // Store in blog_posts
     const { data: inserted, error: insertError } = await supabase
       .from('blog_posts')
       .insert({
         slug: article.slug,
-        title: article.h1 || article.meta_title,
-        meta_title: article.meta_title,
-        meta_description: article.meta_description,
+        title: article.h1 || article.meta_title || targetKeyword,
+        meta_title: article.meta_title || article.h1 || targetKeyword,
+        meta_description: article.meta_description || article.excerpt || '',
         content_html: article.content_html,
-        excerpt: article.excerpt || article.meta_description,
+        excerpt: article.excerpt || article.meta_description || '',
         keywords_primary: article.keywords?.primary || targetKeyword,
         keywords_secondary: article.keywords?.secondary || [],
         schema_faq: article.schema_faq || [],

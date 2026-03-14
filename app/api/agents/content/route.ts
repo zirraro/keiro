@@ -433,10 +433,21 @@ async function publishToTikTok(
 
     // Image publishing (post/carrousel formats with visual_url)
     if (post.visual_url) {
-      console.log(`[Content] Publishing TikTok PHOTO: ${post.visual_url.substring(0, 60)}...`);
+      // Ensure the image is a permanent Supabase Storage URL (TikTok needs publicly accessible URLs)
+      let imageUrl = post.visual_url;
+      if (!imageUrl.includes('supabase.co/storage')) {
+        console.log('[Content] TikTok: image is not in permanent storage, caching first...');
+        const cachedUrl = await cacheImageToStorage(imageUrl, `tiktok-${Date.now()}`);
+        if (cachedUrl) {
+          imageUrl = cachedUrl;
+        } else {
+          console.warn('[Content] TikTok: could not cache image, using original URL');
+        }
+      }
+      console.log(`[Content] Publishing TikTok PHOTO: ${imageUrl.substring(0, 60)}...`);
       const result = await initTikTokPhotoUpload(
         accessToken,
-        [post.visual_url],
+        [imageUrl],
         fullCaption.substring(0, 150),
         fullCaption
       );
@@ -741,6 +752,61 @@ export async function POST(request: NextRequest) {
         }).eq('id', regenPost.id);
 
         return NextResponse.json({ ok: true, visual_url: newVisualUrl });
+      }
+
+      case 'fix_broken_images': {
+        // Batch fix broken images — check all recent posts with visual_url containing bytepluses.com (temp URLs)
+        // and regenerate/re-cache them to Supabase Storage
+        const { data: allPosts } = await supabase
+          .from('content_calendar')
+          .select('id, visual_url, visual_description, format')
+          .not('visual_url', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        let fixedCount = 0;
+        let failedCount = 0;
+        const fixResults: Array<{ id: string; status: string }> = [];
+
+        for (const p of (allPosts || [])) {
+          if (!p.visual_url) continue;
+
+          // Check if URL is a Supabase Storage URL (already permanent) — skip
+          if (p.visual_url.includes('supabase.co/storage')) continue;
+
+          // Check if URL is accessible
+          try {
+            const headRes = await fetch(p.visual_url, { method: 'HEAD' });
+            if (headRes.ok) {
+              // URL works — try to cache to permanent storage
+              const permanentUrl = await cacheImageToStorage(p.visual_url, `fix-${p.id}`);
+              if (permanentUrl) {
+                await supabase.from('content_calendar').update({ visual_url: permanentUrl, updated_at: new Date().toISOString() }).eq('id', p.id);
+                fixResults.push({ id: p.id, status: 'cached' });
+                fixedCount++;
+                continue;
+              }
+            }
+          } catch { /* URL broken */ }
+
+          // URL expired — regenerate from description
+          if (p.visual_description) {
+            const newUrl = await generateVisual(p.visual_description, p.format || 'post');
+            if (newUrl) {
+              await supabase.from('content_calendar').update({ visual_url: newUrl, updated_at: new Date().toISOString() }).eq('id', p.id);
+              fixResults.push({ id: p.id, status: 'regenerated' });
+              fixedCount++;
+            } else {
+              fixResults.push({ id: p.id, status: 'failed' });
+              failedCount++;
+            }
+          } else {
+            fixResults.push({ id: p.id, status: 'no_description' });
+            failedCount++;
+          }
+        }
+
+        return NextResponse.json({ ok: true, fixed: fixedCount, failed: failedCount, results: fixResults });
       }
 
       case 'republish': {

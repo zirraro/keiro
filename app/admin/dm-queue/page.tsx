@@ -240,7 +240,8 @@ function SuiviPublicationsPage() {
         .from('content_calendar')
         .select('*')
         .eq('platform', network)
-        .order('scheduled_date', { ascending: false });
+        .order('scheduled_date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (pubSubTab === 'draft') {
         query = query.in('status', ['draft', 'pending', 'scheduled', 'approved']);
@@ -488,6 +489,30 @@ function SuiviPublicationsPage() {
   };
 
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const [fixingImages, setFixingImages] = useState(false);
+
+  const fixAllBrokenImages = async () => {
+    setFixingImages(true);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fix_broken_images' }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert(`Images reparees: ${data.fixed} corrigees, ${data.failed} echouees`);
+        setBrokenImages(new Set());
+        fetchData();
+      } else {
+        alert(`Erreur: ${data.error || 'Erreur inconnue'}`);
+      }
+    } catch (e: any) {
+      alert(`Erreur: ${e.message}`);
+    } finally {
+      setFixingImages(false);
+    }
+  };
 
   if (!isAdmin) return null;
 
@@ -516,6 +541,15 @@ function SuiviPublicationsPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            {brokenImages.size > 0 && (
+              <button
+                onClick={fixAllBrokenImages}
+                disabled={fixingImages}
+                className="px-3 py-1.5 text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-200 disabled:opacity-50"
+              >
+                {fixingImages ? 'Reparation...' : `Reparer ${brokenImages.size} image(s)`}
+              </button>
+            )}
             <button onClick={() => fetchData()} className="px-3 py-1.5 text-xs bg-white border rounded-lg hover:bg-neutral-50">
               Actualiser
             </button>
@@ -897,39 +931,29 @@ function SuiviPublicationsPage() {
                     : `Aucun post ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`}
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
                   {contentPosts.map(post => (
-                    <div key={post.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-                      {/* Visual */}
-                      {post.visual_url && !brokenImages.has(post.id) ? (
-                        <div className="aspect-square bg-neutral-100 relative">
+                    <div key={post.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden flex cursor-pointer hover:border-purple-200 transition" onClick={() => setSelectedPost(post as any)}>
+                      {/* Thumbnail */}
+                      <div className="w-20 h-20 shrink-0 bg-neutral-100 relative">
+                        {post.visual_url && !brokenImages.has(post.id) ? (
                           <img
                             src={post.visual_url}
                             alt=""
                             className="w-full h-full object-cover"
                             onError={() => setBrokenImages(prev => new Set(prev).add(post.id))}
                           />
-                        </div>
-                      ) : (
-                        <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center gap-2">
-                          <span className="text-3xl opacity-30">{post.visual_url ? '🖼️' : '📷'}</span>
-                          <span className="text-[10px] text-neutral-400">{post.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
-                          {post.visual_description && (
-                            <button
-                              onClick={() => regenerateImage(post.id)}
-                              disabled={publishingPostId === post.id}
-                              className="px-2 py-1 text-[10px] bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50"
-                            >
-                              {publishingPostId === post.id ? '...' : 'Régénérer'}
-                            </button>
-                          )}
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-lg opacity-30">{post.visual_url ? '🖼️' : '📷'}</span>
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      <div className="flex-1 min-w-0 px-3 py-2 flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
                               post.status === 'published' ? 'bg-orange-100 text-orange-700' :
                               post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
@@ -942,48 +966,51 @@ function SuiviPublicationsPage() {
                                post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
                             </span>
                             <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              post.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
+                              post.platform === 'linkedin' ? 'bg-blue-100 text-blue-700' :
+                              'bg-pink-100 text-pink-700'
+                            }`}>{post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}</span>
                           </div>
+                          <p className="text-xs text-neutral-800 line-clamp-2 leading-snug">{post.caption}</p>
                         </div>
 
-                        <p className="text-sm text-neutral-800 line-clamp-4">{post.caption}</p>
-
-                        {post.hashtags && post.hashtags.length > 0 && (
-                          <p className="text-[10px] text-blue-500 line-clamp-1">{post.hashtags.join(' ')}</p>
-                        )}
-
-                        {post.visual_description && !post.visual_url && (
-                          <p className="text-[10px] text-neutral-400 italic">Visuel : {post.visual_description}</p>
-                        )}
-
-                        {/* Actions */}
-                        <div className="pt-2 border-t flex gap-2">
-                          {/* Republish button: shown for posts marked published but not actually published */}
+                        {/* Compact actions */}
+                        <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                           {post.status === 'published' && !post.instagram_permalink && !post.tiktok_publish_id && (
                             <button
                               onClick={() => republishSinglePost(post.id)}
                               disabled={publishingPostId === post.id}
-                              className="flex-1 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
+                              className="px-2 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
                             >
-                              {publishingPostId === post.id ? 'Publication...' : `Publier sur ${post.platform === 'tiktok' ? 'TikTok' : 'IG'}`}
+                              {publishingPostId === post.id ? '...' : 'Publier'}
                             </button>
                           )}
-                          {/* Publish button for drafts */}
                           {post.status !== 'published' && (
                             <button
                               onClick={() => publishPost(post.id)}
                               disabled={publishingPostId === post.id}
-                              className="flex-1 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                              className="px-2 py-1 text-[10px] font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
                             >
-                              {publishingPostId === post.id ? 'Publication...' : 'Publier'}
+                              {publishingPostId === post.id ? '...' : 'Publier'}
+                            </button>
+                          )}
+                          {brokenImages.has(post.id) && post.visual_description && (
+                            <button
+                              onClick={() => regenerateImage(post.id)}
+                              disabled={publishingPostId === post.id}
+                              className="px-2 py-1 text-[10px] bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 disabled:opacity-50"
+                            >
+                              {publishingPostId === post.id ? '...' : 'Regen'}
                             </button>
                           )}
                           <button
                             onClick={() => copyToClipboard(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''), post.id)}
-                            className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition ${
+                            className={`px-2 py-1 text-[10px] font-medium rounded-lg transition ${
                               copiedId === post.id ? 'bg-green-600 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                             }`}
                           >
-                            {copiedId === post.id ? 'Copié !' : 'Copier'}
+                            {copiedId === post.id ? '✓' : 'Copier'}
                           </button>
                         </div>
                       </div>
@@ -1214,9 +1241,9 @@ function SuiviPublicationsPage() {
                 {selectedPost && (
                   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
                     <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-                      {/* Visual */}
+                      {/* Visual — compact */}
                       {selectedPost.visual_url && !brokenImages.has(selectedPost.id) ? (
-                        <div className="aspect-square bg-neutral-100 relative rounded-t-2xl overflow-hidden">
+                        <div className="h-48 bg-neutral-100 relative rounded-t-2xl overflow-hidden">
                           <img
                             src={selectedPost.visual_url}
                             alt=""
@@ -1225,8 +1252,8 @@ function SuiviPublicationsPage() {
                           />
                         </div>
                       ) : (
-                        <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center gap-3 rounded-t-2xl">
-                          <span className="text-4xl opacity-30">{selectedPost.visual_url ? '🖼️' : '📷'}</span>
+                        <div className="h-32 bg-neutral-50 flex items-center justify-center gap-3 rounded-t-2xl">
+                          <span className="text-2xl opacity-30">{selectedPost.visual_url ? '🖼️' : '📷'}</span>
                           <span className="text-xs text-neutral-400">{selectedPost.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
                           {selectedPost.visual_description && (
                             <button
@@ -1234,7 +1261,7 @@ function SuiviPublicationsPage() {
                               disabled={publishingPostId === selectedPost.id}
                               className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
                             >
-                              {publishingPostId === selectedPost.id ? 'Régénération...' : 'Régénérer l\'image'}
+                              {publishingPostId === selectedPost.id ? '...' : 'Régénérer'}
                             </button>
                           )}
                         </div>

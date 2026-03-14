@@ -1642,12 +1642,11 @@ export default function AdminCRMPage() {
             )}
           </div>
 
-          {/* Right: Detail Panel (desktop: side panel, mobile: full overlay) */}
+          {/* Detail Panel — Full-screen centered modal */}
           {selected && (
-            <>
-              {/* Mobile overlay backdrop */}
-              <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setSelected(null)} />
-              <div className="lg:contents fixed inset-x-0 bottom-0 top-0 z-50 lg:static lg:z-auto">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+              <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <DetailPanel
                   prospect={selected}
                   onClose={() => setSelected(null)}
@@ -1659,7 +1658,7 @@ export default function AdminCRMPage() {
                   onMarkReminder={markReminderDone}
                 />
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>
@@ -1912,36 +1911,38 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
   const currentStageIdx = PIPELINE_STAGES.findIndex(s => s.id === prospect.status);
 
   return (
-    <div className="w-full h-full lg:h-auto lg:w-[400px] flex-shrink-0 bg-white lg:rounded-xl border-0 lg:border border-neutral-200 shadow-sm self-start lg:sticky lg:top-20 overflow-y-auto max-h-full lg:max-h-[calc(100vh-96px)]">
+    <div className="w-full bg-white rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-neutral-200">
+      <div className="px-6 py-5 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-white">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0 shadow-md">
               {prospectInitials(prospect)}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-neutral-900">{prospectName(prospect)}</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                {prospect.type && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-neutral-500 rounded">{prospect.type}</span>}
-                {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-neutral-500 rounded">{prospect.quartier}</span>}
+              <h3 className="text-lg font-bold text-neutral-900">{prospectName(prospect)}</h3>
+              <div className="flex items-center gap-2 mt-1">
+                {prospect.type && <span className="text-xs px-2 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.type}</span>}
+                {prospect.quartier && <span className="text-xs px-2 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.quartier}</span>}
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-900 transition-colors text-lg leading-none">&times;</button>
-        </div>
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-xl font-bold text-neutral-900">{prospect.score}</span>
-          <span className="text-xs text-neutral-400">pts</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ml-auto ${prioBadge.classes}`}>{prioBadge.label}</span>
-          {prospect.matched_plan && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPlanBadge(prospect.matched_plan)?.classes}`}>{prospect.matched_plan}</span>
-          )}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-neutral-900">{prospect.score}</span>
+              <span className="text-xs text-neutral-400">pts</span>
+            </div>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
+            {prospect.matched_plan && (
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getPlanBadge(prospect.matched_plan)?.classes}`}>{prospect.matched_plan}</span>
+            )}
+            <button onClick={onClose} className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors text-xl leading-none">&times;</button>
+          </div>
         </div>
       </div>
 
       {/* Pipeline visual + stage selector */}
-      <div className="px-4 py-3 border-b border-neutral-200">
+      <div className="px-6 py-4 border-b border-neutral-200">
         <div className="flex items-center gap-0.5 overflow-x-auto">
           {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map((s, idx, arr) => {
             const isActive = idx <= currentStageIdx && prospect.status !== 'perdu';
@@ -1990,8 +1991,8 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       </div>
 
       {/* Info grid */}
-      <div className="px-4 py-3 border-b border-neutral-200 space-y-2.5">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+      <div className="px-6 py-4 border-b border-neutral-200 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
           {/* Left column */}
           <div className="space-y-2">
             {prospect.instagram && (
@@ -2071,8 +2072,8 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
 
       {/* Notes */}
       {prospect.notes && (
-        <div className="px-4 py-3 border-b border-neutral-200">
-          <p className="text-[10px] text-neutral-400 uppercase mb-1">Notes</p>
+        <div className="px-6 py-4 border-b border-neutral-200">
+          <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-1.5">Notes</p>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5">
             <p className="text-xs text-yellow-800 whitespace-pre-wrap">{prospect.notes}</p>
           </div>
@@ -2081,7 +2082,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
 
       {/* Tags */}
       {prospect.tags && prospect.tags.length > 0 && (
-        <div className="px-4 py-3 border-b border-neutral-200">
+        <div className="px-6 py-4 border-b border-neutral-200">
           <div className="flex flex-wrap gap-1">
             {prospect.tags.map(tag => (
               <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">{tag}</span>
@@ -2091,14 +2092,14 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       )}
 
       {/* Activity History */}
-      <div className="px-4 py-3 border-b border-neutral-200">
-        <p className="text-[10px] text-neutral-500 uppercase mb-2">Historique</p>
+      <div className="px-6 py-4 border-b border-neutral-200">
+        <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Historique</p>
         {loadingActivities ? (
           <p className="text-xs text-neutral-400 py-2">Chargement...</p>
         ) : activities.length === 0 ? (
           <p className="text-xs text-neutral-400 py-2">Aucune activité</p>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {activities.slice(0, 10).map(a => {
               const actType = ACTIVITY_TYPES.find(t => t.id === a.type);
               const resultLabel = QUICK_RESULTS.find(r => r.id === a.resultat)?.label || a.resultat;
@@ -2136,7 +2137,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       </div>
 
       {/* Action buttons */}
-      <div className="px-4 py-3 space-y-2">
+      <div className="px-6 py-4 space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <button className="px-2 py-2 text-[10px] font-semibold text-white bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all text-center">
             Envoyer DM
@@ -2155,7 +2156,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       </div>
 
       {/* Quick Add Activity */}
-      <div className="px-4 py-3 border-t border-neutral-200">
+      <div className="px-6 py-4 border-t border-neutral-200">
         <QuickActivityForm prospectId={prospect.id} onAdd={onAddActivity} />
       </div>
     </div>
