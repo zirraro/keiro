@@ -60,7 +60,7 @@ async function verifyAuth(request: NextRequest) {
 // ──────────────────────────────────────
 const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-const NO_TEXT_SUFFIX = '\nAbsolutely no text, letters, words, numbers, writing, signs, labels, watermarks, logos in the image. Pure visual only.';
+const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only. If there would be a sign or screen in the scene, make it blank or blurred.';
 
 const SEEDREAM_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (text-to-image AI).
 Your goal: create premium, brand-consistent visuals for KeiroAI (AI marketing tool for local businesses).
@@ -168,6 +168,7 @@ async function generateVisual(visualDescription: string, format: string): Promis
       body: JSON.stringify({
         model: 'seedream-4-5-251128',
         prompt: imagePrompt,
+        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits',
         size: `${width}x${height}`,
         response_format: 'url',
         seed: -1,
