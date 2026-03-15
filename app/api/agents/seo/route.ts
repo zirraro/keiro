@@ -73,7 +73,7 @@ async function cacheImageToStorage(tempUrl: string, slug: string, index: number)
  */
 async function generateSeoImage(prompt: string, slug?: string, index: number = 0): Promise<string | null> {
   try {
-    const optimizedPrompt = `Professional photograph for blog article: ${prompt}. High quality, editorial style, clean composition, no text overlay, no watermark, 16:9 aspect ratio.`;
+    const optimizedPrompt = `Ultra high quality professional photograph for a premium blog article. ${prompt}. Shot on Canon EOS R5, 85mm f/1.4 lens, natural lighting, cinematic color grading. Editorial magazine style, clean composition, rich colors, sharp details. Absolutely no text, no letters, no words, no numbers, no writing, no signs, no labels, no watermarks, no logos in the image. Pure visual only. 16:9 aspect ratio.`;
 
     const response = await fetch(SEEDREAM_API_URL, {
       method: 'POST',
@@ -87,6 +87,7 @@ async function generateSeoImage(prompt: string, slug?: string, index: number = 0
         size: '1792x1024',
         response_format: 'url',
         seed: -1,
+        watermark: false,
       }),
     });
 
@@ -904,6 +905,16 @@ Les champs attendus dans le JSON de sortie :
 - meta_title (string)
 - meta_description (string)
 - excerpt (string)
+- image_prompts (array, optionnel) : si tu ajoutes de NOUVELLES images, fournis un array [{alt: "description SEO", prompt: "prompt visuel détaillé pour Seedream"}]
+
+IMAGES — TRÈS IMPORTANT :
+- Si les instructions demandent plus d'images, AJOUTE des balises <img data-seo-generate="true" alt="description visuelle détaillée de 30+ mots pour Seedream" /> dans le content_html
+- Place les images APRÈS chaque section <h2> et après l'intro pour un rendu très visuel style Medium/Substack
+- Le alt doit être ultra descriptif (30+ mots) car il sert de prompt pour la génération d'image IA
+- JAMAIS de texte dans les descriptions d'images (le générateur ne gère pas le texte)
+- Style : photos réalistes, éditorial magazine, lumière naturelle, composition cinématique
+- Les images existantes (avec src=) doivent être CONSERVÉES telles quelles
+- Minimum 5-7 images pour un article complet et visuellement riche
 
 Retourne UNIQUEMENT le JSON, sans texte avant ou après.`,
       message: `Voici l'article actuel :
@@ -922,7 +933,7 @@ Instructions de modification :
 ${instructions}
 
 Retourne le JSON complet mis à jour.`,
-      maxTokens: 6000,
+      maxTokens: 12000,
     });
 
     // Parse revised JSON
@@ -953,10 +964,25 @@ Retourne le JSON complet mis à jour.`,
     // Update article with revised content
     const updateFields: Record<string, any> = { updated_at: now };
     if (revised.title) updateFields.title = revised.title;
-    if (revised.content_html) updateFields.content_html = revised.content_html;
     if (revised.meta_title) updateFields.meta_title = revised.meta_title;
     if (revised.meta_description) updateFields.meta_description = revised.meta_description;
     if (revised.excerpt) updateFields.excerpt = revised.excerpt;
+
+    // Process images in revised content — generate Seedream images for new placeholders
+    if (revised.content_html) {
+      let finalHtml = revised.content_html;
+      const hasPlaceholders = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/i.test(finalHtml);
+      if (hasPlaceholders) {
+        console.log('[SEOAgent] Revision contains image placeholders, generating Seedream images...');
+        try {
+          finalHtml = await processArticleImages(finalHtml, revised.image_prompts, article.slug);
+          console.log('[SEOAgent] Revision images generated successfully');
+        } catch (imgError: any) {
+          console.warn('[SEOAgent] Revision image generation failed:', imgError.message);
+        }
+      }
+      updateFields.content_html = finalHtml;
+    }
 
     const { data: updated, error: updateError } = await supabase
       .from('blog_posts')

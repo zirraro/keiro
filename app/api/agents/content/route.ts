@@ -517,67 +517,70 @@ export async function GET(request: NextRequest) {
       console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing`);
       let published = 0;
       for (const post of unpublished) {
-        // Fetch full post data for visual generation
         const { data: fullPost } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
         if (!fullPost) continue;
 
-        if (!fullPost.visual_url) {
+        let visualUrl = fullPost.visual_url;
+
+        // Generate visual if missing
+        if (!visualUrl) {
           const visualDesc = fullPost.visual_description || fullPost.hook || fullPost.caption;
-          if (visualDesc) {
-            const visualUrl = await generateVisual(visualDesc, fullPost.format || 'post');
-            if (visualUrl) {
-              await supabase.from('content_calendar').update({
-                visual_url: visualUrl, status: 'published',
-                published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-              }).eq('id', post.id);
+          if (!visualDesc) {
+            console.warn(`[Content] Post ${post.id} has no visual and no description — skipping`);
+            continue;
+          }
+          visualUrl = await generateVisual(visualDesc, fullPost.format || 'post');
+          if (!visualUrl) {
+            console.warn(`[Content] Visual generation failed for post ${post.id} — skipping`);
+            continue;
+          }
+          // Cache to permanent storage
+          const cachedUrl = await cacheImageToStorage(visualUrl, post.id);
+          if (cachedUrl) visualUrl = cachedUrl;
+          await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
+        }
 
-              // Publish to platform
-              if (fullPost.platform === 'instagram') {
-                const igResult = await publishToInstagram({ ...fullPost, visual_url: visualUrl }, supabase);
-                if (igResult.success && igResult.permalink) {
-                  await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
-                } else if (igResult.error) {
-                  console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                }
-              } else if (fullPost.platform === 'tiktok') {
-                const ttResult = await publishToTikTok({ ...fullPost, visual_url: visualUrl }, supabase);
-                if (ttResult.success && ttResult.publish_id) {
-                  await supabase.from('content_calendar').update({ tiktok_publish_id: ttResult.publish_id }).eq('id', post.id);
-                } else if (ttResult.error) {
-                  console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-                }
-              }
+        // Publish to platform FIRST, then mark as published
+        const postWithVisual = { ...fullPost, visual_url: visualUrl };
+        const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
+        let platformSuccess = false;
 
-              published++;
-            }
+        if (fullPost.platform === 'instagram') {
+          const igResult = await publishToInstagram(postWithVisual, supabase);
+          if (igResult.success && igResult.permalink) {
+            updateFields.instagram_permalink = igResult.permalink;
+            platformSuccess = true;
+            console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink}`);
+          } else {
+            console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
+          }
+        } else if (fullPost.platform === 'tiktok') {
+          const ttResult = await publishToTikTok(postWithVisual, supabase);
+          if (ttResult.success && ttResult.publish_id) {
+            updateFields.tiktok_publish_id = ttResult.publish_id;
+            platformSuccess = true;
+            console.log(`[Content] TikTok published for post ${post.id}: ${ttResult.publish_id}`);
+          } else {
+            console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
           }
         } else {
-          // Already has visual, just publish
-          await supabase.from('content_calendar').update({
-            status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-          }).eq('id', post.id);
-
-          // Publish to platform
-          if (fullPost.platform === 'instagram') {
-            const igResult = await publishToInstagram(fullPost, supabase);
-            if (igResult.success && igResult.permalink) {
-              await supabase.from('content_calendar').update({ instagram_permalink: igResult.permalink }).eq('id', post.id);
-            } else if (igResult.error) {
-              console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-            }
-          } else if (fullPost.platform === 'tiktok') {
-            const ttResult = await publishToTikTok(fullPost, supabase);
-            if (ttResult.success && ttResult.publish_id) {
-              await supabase.from('content_calendar').update({ tiktok_publish_id: ttResult.publish_id }).eq('id', post.id);
-            } else if (ttResult.error) {
-              console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-            }
-          }
-
-          published++;
+          // LinkedIn or other — mark published without external API
+          platformSuccess = true;
         }
+
+        // ONLY mark as published if platform publish succeeded
+        if (platformSuccess) {
+          updateFields.status = 'published';
+          updateFields.published_at = new Date().toISOString();
+          published++;
+        } else {
+          // Leave as approved so it can be retried
+          updateFields.status = 'approved';
+        }
+
+        await supabase.from('content_calendar').update(updateFields).eq('id', post.id);
       }
-      console.log(`[Content] Auto-published ${published} posts`);
+      console.log(`[Content] Auto-published ${published}/${unpublished.length} posts`);
     }
 
     // Return today's content
@@ -1216,7 +1219,7 @@ async function generateWeeklyPlan(supabase: any) {
     rawText = await callClaude({
       system: enhancedSystemPrompt,
       message: prompt,
-      maxTokens: 4000,
+      maxTokens: 8000,
     });
   } catch (claudeError: any) {
     console.error('[Content] Claude API error for weekly plan:', claudeError.message);
@@ -1374,7 +1377,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
     rawText = await callClaude({
       system: systemPrompt,
       message: prompt,
-      maxTokens: 4000,
+      maxTokens: 8000,
     });
   } catch (claudeError: any) {
     console.error('[Content] generate_week Claude error:', claudeError.message);

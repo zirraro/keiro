@@ -181,6 +181,23 @@ function SuiviPublicationsPage() {
   const [tabStats, setTabStats] = useState<{ pending: number; sent: number; responded: number }>({ pending: 0, sent: 0, responded: 0 });
   const [emailTypeStats, setEmailTypeStats] = useState<Record<string, number>>({});
 
+  // Date filter
+  type DatePreset = '24h' | '7d' | '14d' | 'custom';
+  const [datePreset, setDatePreset] = useState<DatePreset>('7d');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
+
+  const getDateRange = useCallback((): { from: string; to: string } => {
+    const now = new Date();
+    const to = now.toISOString();
+    if (datePreset === 'custom' && customDateFrom && customDateTo) {
+      return { from: new Date(customDateFrom).toISOString(), to: new Date(customDateTo + 'T23:59:59').toISOString() };
+    }
+    const days = datePreset === '24h' ? 1 : datePreset === '14d' ? 14 : 7;
+    const from = new Date(now.getTime() - days * 86400000).toISOString();
+    return { from, to };
+  }, [datePreset, customDateFrom, customDateTo]);
+
   // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -221,11 +238,13 @@ function SuiviPublicationsPage() {
         : mainTab === 'follow_instagram' ? 'follow_instagram'
         : 'follow_tiktok';
 
-      // Fetch counts for mini dashboard
+      const { from: dateFrom, to: dateTo } = getDateRange();
+
+      // Fetch counts for mini dashboard (filtered by date)
       const [{ count: pendingCount }, { count: sentCount }, { count: respondedCount }] = await Promise.all([
-        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'pending'),
-        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).in('status', ['sent', 'no_response']),
-        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'responded'),
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'pending').gte('created_at', dateFrom).lte('created_at', dateTo),
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).in('status', ['sent', 'no_response']).gte('created_at', dateFrom).lte('created_at', dateTo),
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'responded').gte('created_at', dateFrom).lte('created_at', dateTo),
       ]);
       setTabStats({ pending: pendingCount ?? 0, sent: sentCount ?? 0, responded: respondedCount ?? 0 });
 
@@ -233,6 +252,8 @@ function SuiviPublicationsPage() {
         .from('dm_queue')
         .select('*, prospect:crm_prospects(company, type, quartier, google_rating, google_reviews, score)')
         .eq('channel', channel)
+        .gte('created_at', dateFrom)
+        .lte('created_at', dateTo)
         .order('priority', { ascending: false });
 
       if (dmSubTab === 'pending') {
@@ -309,11 +330,13 @@ function SuiviPublicationsPage() {
 
       setCalendarPosts((data as any) || []);
     } else if (isEmailTab) {
-      // Load email stats for mini dashboard
+      const { from: dateFrom, to: dateTo } = getDateRange();
+
+      // Load email stats for mini dashboard (filtered by date)
       const [{ count: totalEmails }, { count: openedEmails }, { count: repliedEmails }] = await Promise.all([
-        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email'),
-        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_opened'),
-        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_replied'),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email').gte('created_at', dateFrom).lte('created_at', dateTo),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_opened').gte('created_at', dateFrom).lte('created_at', dateTo),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_replied').gte('created_at', dateFrom).lte('created_at', dateTo),
       ]);
 
       // Try crm_activities first
@@ -321,6 +344,8 @@ function SuiviPublicationsPage() {
         .from('crm_activities')
         .select('*, prospect:crm_prospects(company, email, type, status, temperature, email_sequence_step)')
         .eq('type', 'email')
+        .gte('created_at', dateFrom)
+        .lte('created_at', dateTo)
         .order('created_at', { ascending: false });
 
       const { data } = await query.limit(200);
@@ -333,6 +358,8 @@ function SuiviPublicationsPage() {
           .select('*')
           .eq('agent', 'email')
           .eq('action', 'email_sent')
+          .gte('created_at', dateFrom)
+          .lte('created_at', dateTo)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -380,7 +407,7 @@ function SuiviPublicationsPage() {
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isCommentTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isCommentTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset, getDateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -638,6 +665,40 @@ function SuiviPublicationsPage() {
             </button>
           ))}
         </div>
+
+        {/* Date Filter */}
+        {(isDmTab || isCommentTab || isFollowTab || isEmailTab) && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {(['24h', '7d', '14d', 'custom'] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setDatePreset(p)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition ${
+                  datePreset === p ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                }`}
+              >
+                {p === '24h' ? '24h' : p === '7d' ? '7 jours' : p === '14d' ? '2 semaines' : 'Personnalise'}
+              </button>
+            ))}
+            {datePreset === 'custom' && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={e => setCustomDateFrom(e.target.value)}
+                  className="px-2 py-1 text-xs border rounded-lg bg-white"
+                />
+                <span className="text-xs text-neutral-400">a</span>
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={e => setCustomDateTo(e.target.value)}
+                  className="px-2 py-1 text-xs border rounded-lg bg-white"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Mini Dashboard */}
         {(isDmTab || isCommentTab || isFollowTab || isEmailTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (

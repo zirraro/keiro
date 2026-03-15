@@ -476,32 +476,38 @@ export async function initTikTokPhotoUpload(
   console.log('[TikTok] Title:', (title || '').substring(0, 80));
   console.log('[TikTok] Privacy level:', privacyLevel);
 
-  // Build clean title — TikTok PHOTO posts reject:
-  // - Newlines (\n) in title
-  // - Special characters that aren't simple text
-  // - 'description' field (video-only, causes "post info is empty or incorrect" for PHOTO)
+  // Build clean title — TikTok PHOTO posts are VERY strict:
+  // - No newlines, no special unicode, no emojis
+  // - ASCII + basic French accents only
+  // - Max 150 chars
   const cleanTitle = (title || 'Photo')
-    .replace(/\n+/g, ' ')           // Remove all newlines
-    .replace(/\s+/g, ' ')           // Collapse multiple spaces
-    .replace(/[^\w\s.,!?'éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ#@\-:]/g, '') // Only safe chars
-    .substring(0, 150)
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\s.,!?éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ]/g, '') // Strip everything except letters, digits, basic punct, accents
+    .substring(0, 100)
     .trim() || 'Photo';
 
-  // IMPORTANT: For PHOTO posts, only 'title' and 'privacy_level' in post_info
-  // 'description' is a VIDEO-ONLY field and causes "invalid_params" error for photos
-  const requestBody = {
+  // TikTok PHOTO post via Content Posting API v2
+  // Required fields: title, privacy_level, disable_comment, auto_add_music
+  const requestBody: Record<string, any> = {
     post_info: {
       title: cleanTitle,
       privacy_level: privacyLevel,
+      disable_comment: false,
+      auto_add_music: true,
     },
     source_info: {
       source: 'PULL_FROM_URL',
       photo_images: photoUrls,
-      photo_cover_index: 0,
-    },
+    } as Record<string, any>,
     post_mode: 'DIRECT_POST',
     media_type: 'PHOTO',
   };
+
+  // Only add photo_cover_index for multi-image posts
+  if (photoUrls.length > 1) {
+    (requestBody.source_info as any).photo_cover_index = 0;
+  }
 
   console.log('[TikTok] Photo request body:', JSON.stringify(requestBody));
 
