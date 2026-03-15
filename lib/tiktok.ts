@@ -454,33 +454,61 @@ export async function initTikTokPhotoUpload(
     throw new Error('TikTok photo posts support max 35 images');
   }
 
+  // Step 1: Get creator info to determine available privacy levels
+  let privacyLevel = 'SELF_ONLY';
+  try {
+    const creatorInfo = await getCreatorInfo(accessToken);
+    console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
+    if (creatorInfo.privacy_level_options?.length > 0) {
+      // Prefer SELF_ONLY, fallback to first available
+      if (creatorInfo.privacy_level_options.includes('SELF_ONLY')) {
+        privacyLevel = 'SELF_ONLY';
+      } else {
+        privacyLevel = creatorInfo.privacy_level_options[0];
+      }
+    }
+  } catch (e: any) {
+    console.warn('[TikTok] Could not get creator info, using SELF_ONLY:', e.message);
+  }
+
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
   console.log('[TikTok] Photo URLs:', photoUrls.map(u => u.substring(0, 80)));
   console.log('[TikTok] Title:', (title || '').substring(0, 80));
+  console.log('[TikTok] Privacy level:', privacyLevel);
+
+  const requestBody = {
+    post_info: {
+      title: (title || 'Photo').substring(0, 150),
+      privacy_level: privacyLevel,
+    },
+    source_info: {
+      source: 'PULL_FROM_URL',
+      photo_images: photoUrls,
+      photo_cover_index: 0,
+    },
+    post_mode: 'DIRECT_POST',
+    media_type: 'PHOTO',
+  };
+
+  console.log('[TikTok] Photo request body:', JSON.stringify(requestBody));
 
   const response = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/content/init/`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=UTF-8',
     },
-    body: JSON.stringify({
-      post_info: {
-        title: (title || 'Photo').substring(0, 150),
-        privacy_level: 'SELF_ONLY',
-      },
-      source_info: {
-        source: 'PULL_FROM_URL',
-        photo_images: photoUrls,
-      },
-      post_mode: 'DIRECT_POST',
-      media_type: 'PHOTO',
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   console.log('[TikTok] Photo upload response status:', response.status);
-  const data = await response.json();
-  console.log('[TikTok] Photo upload response:', {
+  const responseText = await response.text();
+  console.log('[TikTok] Photo upload raw response:', responseText.substring(0, 500));
+
+  let data: any;
+  try { data = JSON.parse(responseText); } catch { data = { error: { message: responseText } }; }
+
+  console.log('[TikTok] Photo upload parsed:', {
     hasError: !!data.error,
     hasData: !!data.data,
     errorCode: data.error?.code || data.error_code,
@@ -491,12 +519,12 @@ export async function initTikTokPhotoUpload(
   const isRealError = data.error && data.error.code && data.error.code !== 'ok';
   if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok photo';
-    console.error('[TikTok] Photo upload error:', errorMsg);
+    console.error('[TikTok] Photo upload error:', errorMsg, '| Full:', JSON.stringify(data));
     throw new Error(errorMsg);
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    throw new Error(`HTTP ${response.status}: ${responseText.substring(0, 200)}`);
   }
 
   const publishId = data.data?.publish_id || data.publish_id;

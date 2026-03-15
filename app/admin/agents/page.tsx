@@ -1513,7 +1513,8 @@ function AdminAgentsContent() {
                 {metrics.map((m, i) => (
                   <div
                     key={i}
-                    className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
+                    className={`bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow ${m.label === 'Clients payants' ? 'cursor-pointer ring-purple-200 hover:ring-2' : ''}`}
+                    onClick={() => { if (m.label === 'Clients payants') document.getElementById('client-activity-section')?.scrollIntoView({ behavior: 'smooth' }); }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-2xl">{m.icon}</span>
