@@ -9,7 +9,7 @@ interface FeedbackPopupProps {
 export default function FeedbackPopup({ show, onAccept, onDismiss }: FeedbackPopupProps) {
   return (
     <div
-      className={`fixed bottom-24 right-6 z-[60] max-w-sm transition-all duration-500 ease-out ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}`}
+      className={`fixed bottom-20 sm:bottom-24 left-3 sm:left-6 right-auto z-40 max-w-[calc(100vw-6rem)] sm:max-w-xs transition-all duration-500 ease-out ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}`}
     >
       <div className="bg-white border border-neutral-200 rounded-2xl shadow-2xl p-5">
         {/* Content */}

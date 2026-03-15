@@ -4,8 +4,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
-import { initTikTokPhotoUpload, publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
+import { publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
+import { publishReelToInstagram } from '@/lib/meta';
+import { convertImageToVideoKenBurns, mergeVideoWithAudio } from '@/lib/video-converter';
+import { generateNarrationSuggestions } from '@/lib/audio/condense-text';
+import { generateAudioWithElevenLabs, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
 
 // ──────────────────────────────────────
@@ -31,7 +35,7 @@ async function callClaude({ system, message, maxTokens = 2000 }: { system: strin
 }
 
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -66,9 +70,9 @@ const SEEDREAM_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (tex
 Your goal: create premium, brand-consistent visuals for KeiroAI (AI marketing tool for local businesses).
 
 BRAND VISUAL IDENTITY:
-- Primary color: deep violet (#7C3AED) — innovation, premium tech
-- Secondary: soft purple (#A78BFA), deep black (#0F0F0F), warm white (#FAFAF9)
-- Accent: amber (#F59E0B) for energy and CTAs
+- Primary color: deep violet — innovation, premium tech
+- Secondary: soft purple, deep black, warm white
+- Accent: amber for energy
 - Style: clean flat design, subtle 3D elements, modern tech aesthetic
 - Mood: professional yet approachable, innovative yet simple
 
@@ -88,11 +92,13 @@ FOR SOCIAL MEDIA THUMBNAILS:
 
 ABSOLUTELY FORBIDDEN:
 - Any text, letters, numbers, writing, signs, watermarks, logos
+- Hex color codes (like #7C3AED) — use color names instead (deep violet, soft purple, amber)
+- Aspect ratios or technical specs (like 9:16, 1:1, 4K) — describe the feeling not the format
 - Cluttered compositions with too many elements
 - Stock photo aesthetic (generic, lifeless)
 - Low contrast or muddy colors
 
-Output ONLY the optimized English prompt. Nothing else.`;
+Output ONLY the optimized English prompt — pure visual description, no technical jargon. Nothing else.`;
 
 /**
  * Cache a temporary Seedream URL to Supabase Storage for permanent access.
@@ -139,7 +145,7 @@ async function generateVisual(visualDescription: string, format: string): Promis
     // Optimize the visual description into an elite Seedream prompt
     const optimizedText = await callClaude({
       system: SEEDREAM_STYLE_GUIDE,
-      message: `Create a premium visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square 1:1, must look great as Instagram grid thumbnail' : format === 'reel' || format === 'video' || format === 'story' ? 'Vertical 9:16, mobile-first, bold and eye-catching' : 'Horizontal 16:9, professional LinkedIn style'}`,
+      message: `Create a premium visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square format, must look great as Instagram grid thumbnail' : format === 'reel' || format === 'video' || format === 'story' ? 'Vertical mobile format, bold and eye-catching' : 'Horizontal wide format, professional LinkedIn style'}\n\nIMPORTANT: Do NOT include any hex color codes, aspect ratios, numbers, or technical specifications in the prompt. Describe colors by name only (e.g. "deep violet" not "#7C3AED"). The output must be a PURE VISUAL DESCRIPTION with zero technical jargon.`,
       maxTokens: 400,
     });
 
@@ -211,7 +217,7 @@ async function generateVisual(visualDescription: string, format: string): Promis
 // Publish to Instagram via Graph API
 // ──────────────────────────────────────
 async function publishToInstagram(
-  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string },
+  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
   try {
@@ -235,8 +241,8 @@ async function publishToInstagram(
       return { success: false, error: 'Instagram tokens not configured for admin user' };
     }
 
-    if (!post.visual_url) {
-      return { success: false, error: 'No visual_url available for publishing' };
+    if (!post.visual_url && !post.video_url) {
+      return { success: false, error: 'No visual_url or video_url available for publishing' };
     }
 
     // Build caption with hashtags
@@ -249,17 +255,28 @@ async function publishToInstagram(
 
     let result: { id: string; permalink?: string };
 
-    if (format === 'story') {
+    if (format === 'reel' || format === 'video') {
+      // Reels/video: publish as Instagram Reel (video required)
+      if (post.video_url) {
+        console.log('[Content] Publishing Instagram REEL with video');
+        result = await publishReelToInstagram(igUserId, pageAccessToken, post.video_url, fullCaption);
+      } else if (post.visual_url) {
+        // No video available — fallback to image post
+        console.log('[Content] Reel requested but no video — falling back to image post');
+        result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+      } else {
+        return { success: false, error: 'No video_url for Reel publishing' };
+      }
+    } else if (format === 'story') {
       // Stories don't have captions via Graph API
-      const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url);
+      const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url!);
       result = { id: storyResult.id };
     } else if (format === 'carrousel') {
-      // For now, treat carousel as single image publish (carousel needs multiple images)
       console.log('[Content] Carousel detected — publishing as single image (multi-image carousel not yet supported)');
-      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url!, fullCaption);
     } else {
-      // post, reel, or any other format → single image publish
-      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
+      // post or any other format → single image publish
+      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url!, fullCaption);
     }
 
     console.log(`[Content] Instagram publish success — media id: ${result.id}${result.permalink ? `, permalink: ${result.permalink}` : ''}`);
@@ -367,7 +384,135 @@ async function cacheVideoToStorage(tempUrl: string, videoId: string): Promise<st
 }
 
 // ──────────────────────────────────────
-// Publish to TikTok (image or video)
+// Generate a 30s video with Ken Burns + narration (for Reels & TikTok)
+// Pipeline: image → Ken Burns video → narration text → TTS → merge audio+video
+// ──────────────────────────────────────
+async function generateVideoWithNarration(
+  visualDescription: string,
+  caption: string,
+  format: string = 'reel',
+  duration: number = 30
+): Promise<{ videoUrl: string | null; coverUrl: string | null }> {
+  try {
+    console.log(`[Content] === VIDEO+NARRATION PIPELINE (${duration}s) ===`);
+
+    // Step 1: Generate the cover image via Seedream
+    console.log('[Content] Step 1: Generating Seedream image...');
+    const imageUrl = await generateVisual(visualDescription, format);
+    if (!imageUrl) {
+      console.error('[Content] Image generation failed — aborting video pipeline');
+      return { videoUrl: null, coverUrl: null };
+    }
+    console.log('[Content] Image generated:', imageUrl.substring(0, 80));
+
+    // Step 2: Download image and create Ken Burns video
+    console.log(`[Content] Step 2: Creating ${duration}s Ken Burns video...`);
+    const imgResponse = await fetch(imageUrl);
+    if (!imgResponse.ok) {
+      console.error('[Content] Failed to download image for Ken Burns');
+      return { videoUrl: null, coverUrl: imageUrl };
+    }
+    const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
+
+    const videoBuffer = await convertImageToVideoKenBurns(imgBuffer, {
+      width: 1080,
+      height: 1920,
+      duration,
+      fps: 30,
+    });
+    console.log(`[Content] Ken Burns video: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
+
+    // Step 3: Generate narration text
+    console.log('[Content] Step 3: Generating narration text...');
+    const targetWords = Math.floor(duration * 2.5); // ~2.5 words/sec for natural speech
+    const narrationContext = `${caption}\n\nVisuel: ${visualDescription}`;
+    let narrationText: string;
+
+    try {
+      const suggestions = await generateNarrationSuggestions(narrationContext, targetWords);
+      // Pick catchy style for social media
+      narrationText = suggestions.catchy || suggestions.informative || suggestions.storytelling;
+      console.log('[Content] Narration text:', narrationText.substring(0, 100));
+    } catch (narErr: any) {
+      console.warn('[Content] Narration generation failed:', narErr.message);
+      // Fallback: use the caption as narration
+      narrationText = caption.replace(/#\w+/g, '').replace(/\n+/g, '. ').trim().substring(0, 300);
+      console.log('[Content] Using caption as fallback narration');
+    }
+
+    // Step 4: Generate TTS audio
+    console.log('[Content] Step 4: Generating TTS audio...');
+    let audioUrl: string;
+    try {
+      // Use Daniel voice (posé, professional) — good for all content types
+      audioUrl = await generateAudioWithElevenLabs(narrationText, DEFAULT_VOICE_ID);
+      console.log('[Content] Audio generated:', audioUrl.substring(0, 80));
+    } catch (ttsErr: any) {
+      console.warn('[Content] TTS failed:', ttsErr.message);
+      // If TTS fails, still return the silent video — it's better than nothing
+      const videoId = `reel-silent-${Date.now()}`;
+      const cachedUrl = await cacheVideoBufferToStorage(videoBuffer, videoId);
+      return { videoUrl: cachedUrl, coverUrl: imageUrl };
+    }
+
+    // Step 5: Merge audio + video
+    console.log('[Content] Step 5: Merging audio + video...');
+    let mergedBuffer: Buffer;
+    try {
+      // Download the audio file
+      const audioResponse = await fetch(audioUrl);
+      if (!audioResponse.ok) throw new Error('Failed to download audio');
+      const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+      mergedBuffer = await mergeVideoWithAudio(videoBuffer, audioBuffer);
+      console.log(`[Content] Merged video: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
+    } catch (mergeErr: any) {
+      console.warn('[Content] Audio merge failed:', mergeErr.message, '— using silent video');
+      mergedBuffer = videoBuffer;
+    }
+
+    // Step 6: Upload final video to Supabase Storage
+    console.log('[Content] Step 6: Uploading to Supabase Storage...');
+    const videoId = `reel-${Date.now()}`;
+    const finalUrl = await cacheVideoBufferToStorage(mergedBuffer, videoId);
+
+    if (!finalUrl) {
+      console.error('[Content] Failed to cache video to storage');
+      return { videoUrl: null, coverUrl: imageUrl };
+    }
+
+    console.log(`[Content] === VIDEO PIPELINE COMPLETE: ${finalUrl.substring(0, 80)} ===`);
+    return { videoUrl: finalUrl, coverUrl: imageUrl };
+  } catch (e: any) {
+    console.error('[Content] Video+narration pipeline error:', e.message);
+    return { videoUrl: null, coverUrl: null };
+  }
+}
+
+/**
+ * Cache a video Buffer directly to Supabase Storage.
+ */
+async function cacheVideoBufferToStorage(buffer: Buffer, videoId: string): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const fileName = `content/videos/${videoId}.mp4`;
+    const blob = new Blob([new Uint8Array(buffer)], { type: 'video/mp4' });
+    const { error: uploadError } = await supabase.storage
+      .from('generated-images').upload(fileName, blob, { contentType: 'video/mp4', upsert: false });
+    if (uploadError) {
+      console.error('[Content] Video buffer cache error:', uploadError.message);
+      return null;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('generated-images').getPublicUrl(fileName);
+    console.log('[Content] Video buffer cached to storage');
+    return publicUrl || null;
+  } catch (e: any) {
+    console.error('[Content] Video buffer caching failed:', e.message);
+    return null;
+  }
+}
+
+// ──────────────────────────────────────
+// Publish to TikTok (ALWAYS as video — photo API not supported)
 // ──────────────────────────────────────
 async function publishToTikTok(
   post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
@@ -417,46 +562,35 @@ async function publishToTikTok(
 
     const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
     const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
-    const format = (post.format || 'post').toLowerCase();
 
-    // Video publishing (reel/video formats with video_url)
-    if ((format === 'video' || format === 'reel') && post.video_url) {
-      console.log(`[Content] Publishing TikTok VIDEO: ${post.video_url.substring(0, 60)}...`);
-      const result = await publishTikTokVideoViaFileUpload(
-        accessToken,
-        post.video_url,
-        fullCaption.substring(0, 150),
-        { privacy_level: 'SELF_ONLY' }
+    // TikTok: ALWAYS publish as video (photo API not supported/audited)
+    // If we have a video_url, use it directly. Otherwise generate video from image.
+    let videoUrl = post.video_url;
+
+    if (!videoUrl && post.visual_url) {
+      console.log('[Content] TikTok: no video_url — generating video from image...');
+      const result = await generateVideoWithNarration(
+        post.visual_url,
+        post.caption || 'Découvrez KeiroAI',
+        'video',
+        30
       );
-      console.log(`[Content] TikTok video published: ${result.publish_id}`);
-      return { success: true, publish_id: result.publish_id };
+      videoUrl = result.videoUrl || undefined;
     }
 
-    // Image publishing (post/carrousel formats with visual_url)
-    if (post.visual_url) {
-      // Ensure the image is a permanent Supabase Storage URL (TikTok needs publicly accessible URLs)
-      let imageUrl = post.visual_url;
-      if (!imageUrl.includes('supabase.co/storage')) {
-        console.log('[Content] TikTok: image is not in permanent storage, caching first...');
-        const cachedUrl = await cacheImageToStorage(imageUrl, `tiktok-${Date.now()}`);
-        if (cachedUrl) {
-          imageUrl = cachedUrl;
-        } else {
-          return { success: false, error: 'Impossible de cacher l\'image pour TikTok. L\'URL temporaire a expiré.' };
-        }
-      }
-      console.log(`[Content] Publishing TikTok PHOTO: ${imageUrl.substring(0, 60)}...`);
-      const result = await initTikTokPhotoUpload(
-        accessToken,
-        [imageUrl],
-        fullCaption.substring(0, 150),
-        fullCaption
-      );
-      console.log(`[Content] TikTok photo published: ${result.publish_id}`);
-      return { success: true, publish_id: result.publish_id };
+    if (!videoUrl) {
+      return { success: false, error: 'No video available for TikTok publishing' };
     }
 
-    return { success: false, error: 'No visual_url or video_url for TikTok publishing' };
+    console.log(`[Content] Publishing TikTok VIDEO: ${videoUrl.substring(0, 60)}...`);
+    const result = await publishTikTokVideoViaFileUpload(
+      accessToken,
+      videoUrl,
+      fullCaption.substring(0, 150),
+      { privacy_level: 'SELF_ONLY' }
+    );
+    console.log(`[Content] TikTok video published: ${result.publish_id}`);
+    return { success: true, publish_id: result.publish_id };
   } catch (error: any) {
     console.error('[Content] TikTok publish error:', error.message || error);
     return { success: false, error: error.message || 'Unknown TikTok publishing error' };
@@ -541,13 +675,27 @@ export async function GET(request: NextRequest) {
           await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
         }
 
+        // For reel/video formats: generate video+narration if not already done
+        const postFormat = (fullPost.format || 'post').toLowerCase();
+        let videoUrl = fullPost.video_url || null;
+        if ((postFormat === 'reel' || postFormat === 'video') && !videoUrl) {
+          console.log(`[Content] Auto-publish: ${postFormat} needs video — generating...`);
+          const desc = fullPost.visual_description || fullPost.hook || fullPost.caption;
+          if (desc) {
+            const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 30);
+            videoUrl = vidResult.videoUrl;
+            if (vidResult.coverUrl && !visualUrl) visualUrl = vidResult.coverUrl;
+          }
+        }
+
         // Publish to platform FIRST, then mark as published
-        const postWithVisual = { ...fullPost, visual_url: visualUrl };
+        const postWithMedia = { ...fullPost, visual_url: visualUrl, video_url: videoUrl };
         const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (videoUrl) updateFields.video_url = videoUrl;
         let platformSuccess = false;
 
         if (fullPost.platform === 'instagram') {
-          const igResult = await publishToInstagram(postWithVisual, supabase);
+          const igResult = await publishToInstagram(postWithMedia, supabase);
           if (igResult.success && igResult.permalink) {
             updateFields.instagram_permalink = igResult.permalink;
             platformSuccess = true;
@@ -556,7 +704,7 @@ export async function GET(request: NextRequest) {
             console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
           }
         } else if (fullPost.platform === 'tiktok') {
-          const ttResult = await publishToTikTok(postWithVisual, supabase);
+          const ttResult = await publishToTikTok(postWithMedia, supabase);
           if (ttResult.success && ttResult.publish_id) {
             updateFields.tiktok_publish_id = ttResult.publish_id;
             platformSuccess = true;
@@ -614,7 +762,7 @@ export async function POST(request: NextRequest) {
 
     switch (body.action) {
       case 'generate_weekly':
-        return generateWeeklyPlan(supabase);
+        return generateWeeklyPlan(supabase, body.platform, body.draftOnly);
 
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -953,12 +1101,27 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           };
 
+          // For reel/video formats: generate video with narration if not already done
+          const pFormat = (post.format || 'post').toLowerCase();
+          let videoUrl = post.video_url || null;
+          if ((pFormat === 'reel' || pFormat === 'video') && !videoUrl) {
+            console.log(`[Content] execute_pub: ${pFormat} needs video — generating...`);
+            const desc = post.visual_description || post.hook || post.caption;
+            if (desc) {
+              const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 30);
+              videoUrl = vr.videoUrl;
+              if (videoUrl) updateData.video_url = videoUrl;
+            }
+          }
+
           // Publish to platform
           let igPermalink: string | undefined;
           let ttPublishId: string | undefined;
           let pubError: string | undefined;
-          if (post.platform === 'instagram' && post.visual_url) {
-            const igResult = await publishToInstagram(post, supabase);
+          const postWithVideo = { ...post, video_url: videoUrl };
+
+          if (post.platform === 'instagram' && (post.visual_url || videoUrl)) {
+            const igResult = await publishToInstagram(postWithVideo, supabase);
             if (igResult.success) {
               igPermalink = igResult.permalink;
               if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
@@ -966,8 +1129,8 @@ export async function POST(request: NextRequest) {
               pubError = igResult.error;
               console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
             }
-          } else if (post.platform === 'tiktok' && post.visual_url) {
-            const ttResult = await publishToTikTok(post, supabase);
+          } else if (post.platform === 'tiktok' && (post.visual_url || videoUrl)) {
+            const ttResult = await publishToTikTok(postWithVideo, supabase);
             if (ttResult.success) {
               ttPublishId = ttResult.publish_id;
               if (ttResult.publish_id) updateData.tiktok_publish_id = ttResult.publish_id;
@@ -1180,7 +1343,7 @@ Instructions de modification : ${body.instructions}`,
 // ──────────────────────────────────────
 // Generate weekly content plan
 // ──────────────────────────────────────
-async function generateWeeklyPlan(supabase: any) {
+async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -1275,8 +1438,9 @@ async function generateWeeklyPlan(supabase: any) {
       }
     }
 
+    const postPlatform = filterPlatform || post.platform || 'instagram';
     const { error: insertError } = await supabase.from('content_calendar').insert({
-      platform: post.platform || 'instagram',
+      platform: postPlatform,
       format: post.format || 'post',
       pillar: post.pillar || 'tips',
       hook: post.hook || null,
@@ -1287,23 +1451,25 @@ async function generateWeeklyPlan(supabase: any) {
       script: post.script || null,
       scheduled_date: scheduledDate,
       scheduled_time: scheduledTime,
-      status: 'approved',
+      status: draftOnly ? 'draft' : 'approved',
       ai_generated: true,
     });
 
     if (!insertError) {
       inserted++;
-      // Generate visual using KeiroAI Seedream (proof of product) + auto-publish
-      const postVisualDesc = post.thumbnail_description || post.visual_description || post.hook;
-      if (postVisualDesc) {
-        const postVisualUrl = await generateVisual(postVisualDesc, post.format || 'post');
-        if (postVisualUrl) {
-          await supabase.from('content_calendar')
-            .update({ visual_url: postVisualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-            .eq('scheduled_date', scheduledDate)
-            .eq('platform', post.platform || 'instagram')
-            .eq('status', 'approved')
-            .is('visual_url', null);
+      // Generate visual using KeiroAI Seedream (proof of product) + auto-publish if not draft
+      if (!draftOnly) {
+        const postVisualDesc = post.thumbnail_description || post.visual_description || post.hook;
+        if (postVisualDesc) {
+          const postVisualUrl = await generateVisual(postVisualDesc, post.format || 'post');
+          if (postVisualUrl) {
+            await supabase.from('content_calendar')
+              .update({ visual_url: postVisualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .eq('scheduled_date', scheduledDate)
+              .eq('platform', postPlatform)
+              .eq('status', 'approved')
+              .is('visual_url', null);
+          }
         }
       }
     }
@@ -1568,32 +1734,34 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Pillars: giving_value (tips/how-to), cta (direct conversion), social_proof (testimonials/results),
   //          educational (teach something), trends (news/tendances), behind_the_scenes (BTS/process),
   //          pain_point (identify problem → solution), demo (product showcase)
+  // Content strategy: alternates Instagram (Reels + posts) and TikTok (videos)
+  // Reels & TikTok videos get full video+narration pipeline (30s Ken Burns + voiceover)
   const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'carrousel', pillar: 'giving_value' },    // Mon AM: tips carrousel
-    2: { platform: 'tiktok', format: 'video', pillar: 'educational' },            // Tue AM: tuto vidéo
-    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                 // Wed AM: démo produit
-    4: { platform: 'instagram', format: 'carrousel', pillar: 'pain_point' },       // Thu AM: problème → solution
-    5: { platform: 'tiktok', format: 'video', pillar: 'trends' },                 // Fri AM: tendances
-    6: { platform: 'instagram', format: 'post', pillar: 'behind_the_scenes' },    // Sat AM: coulisses
-    0: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Sun AM: résultats clients
+    1: { platform: 'instagram', format: 'reel', pillar: 'giving_value' },          // Mon AM: tips reel
+    2: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Tue AM: tuto vidéo
+    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Wed AM: démo reel
+    4: { platform: 'tiktok', format: 'video', pillar: 'pain_point' },              // Thu AM: problème→solution
+    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri AM: tendances reel
+    6: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },       // Sat AM: BTS vidéo
+    0: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Sun AM: résultats reel
   };
   const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },      // Mon MID: BTS vidéo
-    2: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Tue MID: témoignage
+    1: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },       // Mon MID: BTS vidéo
+    2: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Tue MID: témoignage reel
     3: { platform: 'tiktok', format: 'video', pillar: 'giving_value' },            // Wed MID: tips vidéo
-    4: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Thu MID: CTA direct
-    5: { platform: 'instagram', format: 'post', pillar: 'giving_value' },          // Fri MID: valeur ajoutée
-    6: { platform: 'tiktok', format: 'video', pillar: 'demo' },                    // Sat MID: démo vidéo
+    4: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Thu MID: CTA reel
+    5: { platform: 'tiktok', format: 'video', pillar: 'giving_value' },            // Fri MID: tips vidéo
+    6: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sat MID: démo reel
     0: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Sun MID: tuto vidéo
   };
   const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
     1: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Mon EVE: démo reel
-    2: { platform: 'instagram', format: 'story', pillar: 'cta' },                  // Tue EVE: story CTA
-    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Wed EVE: témoignage
+    2: { platform: 'tiktok', format: 'video', pillar: 'cta' },                     // Tue EVE: CTA vidéo
+    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Wed EVE: témoignage post
     4: { platform: 'tiktok', format: 'video', pillar: 'trends' },                  // Thu EVE: tendances
     5: { platform: 'instagram', format: 'story', pillar: 'behind_the_scenes' },    // Fri EVE: coulisses story
     6: { platform: 'instagram', format: 'reel', pillar: 'pain_point' },             // Sat EVE: problème→solution
-    0: { platform: 'instagram', format: 'story', pillar: 'cta' },                  // Sun EVE: story CTA
+    0: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Sun EVE: CTA reel
   };
 
   // Determine which slot we're in (morning by default, midday or evening if specified)
@@ -1666,7 +1834,7 @@ STRATÉGIE GLOBALE :
 RÈGLES :
 - Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
-- Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet (#7C3AED) gradient background, clean minimalist composition, studio lighting, 4K quality, no text no letters no words"
+- Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet gradient background, clean minimalist composition, studio lighting, sharp details, no text no letters no words"
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
 - Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier
 - Le champ "caption" DOIT être complet avec emojis, sauts de ligne, et CTA final
@@ -1765,7 +1933,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
   const postPlatform = post.platform || platform;
   const postFormat = post.format || schedule.format;
-  const isTikTokVideo = postPlatform === 'tiktok' && (postFormat === 'video' || postFormat === 'reel');
+  // Any reel/video format (TikTok or Instagram) gets the full video+narration pipeline
+  const needsVideo = postFormat === 'video' || postFormat === 'reel';
 
   let visualUrl: string | null = null;
   let videoUrl: string | null = null;
@@ -1774,14 +1943,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   let publicationError: string | undefined;
 
   if (visualDesc && inserted?.id) {
-    // For TikTok video posts: generate a 5s video via Kling T2V
-    if (isTikTokVideo) {
-      console.log(`[Content] TikTok video post — generating video via Kling T2V`);
-      videoUrl = await generateTikTokVideo(visualDesc);
-      // Also generate a cover image for preview
-      visualUrl = await generateVisual(visualDesc, postFormat);
+    if (needsVideo) {
+      // Full video pipeline: image → Ken Burns → narration → TTS → merge
+      console.log(`[Content] ${postPlatform} ${postFormat} — generating video with narration (30s)`);
+      const videoResult = await generateVideoWithNarration(
+        visualDesc,
+        post.caption || visualDesc,
+        postFormat,
+        30
+      );
+      videoUrl = videoResult.videoUrl;
+      visualUrl = videoResult.coverUrl; // Cover image for preview
     } else {
-      // Image-based post (Instagram or TikTok image)
+      // Image-based post (Instagram post, carousel, story)
       visualUrl = await generateVisual(visualDesc, postFormat);
     }
 
@@ -1791,14 +1965,16 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         visual_url: visualUrl || videoUrl,
         updated_at: new Date().toISOString(),
       };
+      if (videoUrl) {
+        visualUpdate.video_url = videoUrl;
+      }
       if (!draftOnly) {
         visualUpdate.status = 'published';
         visualUpdate.published_at = new Date().toISOString();
 
         if (postPlatform === 'instagram') {
-          // Publish to Instagram
           const igResult = await publishToInstagram(
-            { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl! },
+            { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
             supabase
           );
           if (igResult.success) {
@@ -1810,7 +1986,6 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             console.warn(`[Content] Instagram publish failed for daily post ${inserted.id}: ${igResult.error}`);
           }
         } else if (postPlatform === 'tiktok') {
-          // Publish to TikTok
           const ttResult = await publishToTikTok(
             { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
             supabase

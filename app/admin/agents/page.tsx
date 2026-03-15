@@ -134,7 +134,7 @@ function AdminAgentsContent() {
   const [campaignLaunchResult, setCampaignLaunchResult] = useState<{ ok: boolean; message: string } | null>(null);
   // Content campaign options
   const [showContentOptions, setShowContentOptions] = useState(false);
-  const [contentPlatform, setContentPlatform] = useState<string>('instagram');
+  const [contentPlatform, setContentPlatform] = useState<'all' | 'instagram' | 'tiktok' | 'linkedin'>('all');
   const [contentMode, setContentMode] = useState<'draft' | 'publish' | 'week'>('draft');
   const [emailMode, setEmailMode] = useState<'draft' | 'send'>('draft');
   const [showEmailOptions, setShowEmailOptions] = useState(false);
@@ -186,6 +186,7 @@ function AdminAgentsContent() {
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
+  const [contentDraftOnly, setContentDraftOnly] = useState(true);
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -1301,7 +1302,11 @@ function AdminAgentsContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: type }),
+        body: JSON.stringify({
+          action: type,
+          ...(contentPlatform !== 'all' && { platform: contentPlatform }),
+          draftOnly: contentDraftOnly,
+        }),
       });
       const data = await res.json();
       if (data.ok) loadContentData();
@@ -2067,7 +2072,7 @@ function AdminAgentsContent() {
                       <div className="mb-2">
                         <label className="text-[10px] font-semibold text-neutral-500 uppercase">Plateforme</label>
                         <div className="flex gap-1 mt-1">
-                          {['instagram', 'tiktok'].map(p => (
+                          {(['instagram', 'tiktok'] as const).map(p => (
                             <button key={p} onClick={() => setContentPlatform(p)}
                               className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentPlatform === p ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
                               {p === 'instagram' ? '📸 Instagram' : '🎵 TikTok'}
@@ -3020,6 +3025,27 @@ function AdminAgentsContent() {
               <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700">IG: {contentStats.byPlatform?.instagram || 0}</span>
               <span className="px-2 py-0.5 rounded bg-neutral-800 text-white">TK: {contentStats.byPlatform?.tiktok || 0}</span>
               <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">LI: {contentStats.byPlatform?.linkedin || 0}</span>
+            </div>
+
+            {/* Platform & mode selectors */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-0.5">
+                {([['all', 'Tous', '📱'], ['instagram', 'Insta', '📸'], ['tiktok', 'TikTok', '🎵'], ['linkedin', 'LinkedIn', '💼']] as const).map(([val, label, icon]) => (
+                  <button
+                    key={val}
+                    onClick={() => setContentPlatform(val)}
+                    className={`text-xs px-2.5 py-1 rounded-md transition-all ${contentPlatform === val ? 'bg-white shadow text-neutral-900 font-medium' : 'text-neutral-500 hover:text-neutral-700'}`}
+                  >
+                    {icon} {label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setContentDraftOnly(!contentDraftOnly)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${contentDraftOnly ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-green-300 bg-green-50 text-green-700'}`}
+              >
+                {contentDraftOnly ? '📝 Brouillon' : '🚀 Publication directe'}
+              </button>
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">

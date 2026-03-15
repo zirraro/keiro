@@ -13,13 +13,13 @@ POSITIONNEMENT :
 - French touch + innovation IA
 - L'allié intelligent du commerçant débordé
 
-PALETTE VISUELLE :
-- Violet principal : #7C3AED (énergie, innovation, premium)
-- Violet clair : #A78BFA (accessibilité, douceur)
-- Noir profond : #0F0F0F (élégance, autorité)
-- Blanc cassé : #FAFAF9 (clarté, respiration)
-- Accent chaud : #F59E0B (énergie, action, CTA)
-- Gradient signature : du #7C3AED au #4F46E5 (identité forte)
+PALETTE VISUELLE (utilise les NOMS de couleurs, JAMAIS les codes hex dans les visual_description) :
+- Violet principal (énergie, innovation, premium)
+- Violet clair (accessibilité, douceur)
+- Noir profond (élégance, autorité)
+- Blanc cassé (clarté, respiration)
+- Accent ambre chaud (énergie, action, CTA)
+- Gradient violet signature (identité forte)
 
 TYPOGRAPHIE MENTALE :
 - Titres : bold, impactants, courts (5-8 mots max)
@@ -60,7 +60,7 @@ PILIER P1 — AVANT/APRÈS (45% du contenu)
     Hook : "Ce coiffeur postait des selfies flous. Regarde ce qu'on a fait en 60 secondes."
     Structure : 0-3s hook choc (le mauvais post original) → 3-15s démo live dans KeiroAI → 15-25s résultat final (visuel propre, caption, hashtags) → 25-35s CTA vocal + texte + lien en bio
     Tips : Commence TOUJOURS par le problème, pas la solution. Son original activé = +23% watch time. Overlay texte en gros dès la 1ère seconde.
-  Instagram : Reel 9:16 + carrousel comparatif, 20-30s
+  Instagram : Reel vertical + carrousel comparatif, 20-30s
     Hook : Slide 1 carrousel = le mauvais post avec emoji 😬
     Structure : Reel identique à TikTok (recyclé) + Carrousel 5 slides (Avant → Process → Résultat → Stats → CTA) + Caption longue avec storytelling
     Tips : Caption > 300 mots = boost algorithme. Sauvegarde = KPI clé. Tag le commerce local.

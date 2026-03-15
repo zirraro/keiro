@@ -182,7 +182,26 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ ok: true, stats, comments, total });
+    // Build per-question voter details: who voted what
+    const voters: Record<string, Array<{ user_email: string; rating: string; created_at: string }>> = {};
+    for (const key of VALID_RATING_KEYS) {
+      voters[key] = [];
+    }
+    for (const response of allResponses) {
+      const ratings = response.ratings as Record<string, string> | null;
+      if (!ratings) continue;
+      for (const [key, value] of Object.entries(ratings)) {
+        if (voters[key] && VALID_RATING_VALUES.includes(value as any)) {
+          voters[key].push({
+            user_email: response.user_email,
+            rating: value,
+            created_at: response.created_at,
+          });
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true, stats, comments, voters, total });
   } catch (error: any) {
     console.error('[Feedback] Unexpected error:', error);
     return NextResponse.json(

@@ -57,6 +57,14 @@ type Prospect = {
   angle_approche: string | null;
   created_at: string;
   updated_at: string;
+  // Email tracking
+  email_sequence_status: string | null;
+  email_sequence_step: number | null;
+  last_email_sent_at: string | null;
+  last_email_opened_at: string | null;
+  last_email_clicked_at: string | null;
+  brevo_contact_id: string | null;
+  tiktok: string | null;
 };
 
 type ProspectForm = {
@@ -215,6 +223,7 @@ export default function AdminCRMPage() {
   const [filterPrio, setFilterPrio] = useState<'all' | 'A' | 'B' | 'C'>('all');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSource, setFilterSource] = useState('');
+  const [collapsedCols, setCollapsedCols] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState('');
   const [filterQuartier, setFilterQuartier] = useState('');
 
@@ -784,11 +793,31 @@ export default function AdminCRMPage() {
   const channelStats = useMemo(() => {
     const stats: Record<string, { total: number; clients: number }> = {};
     CHANNELS.forEach(c => { stats[c.id] = { total: 0, clients: 0 }; });
-    prospects.forEach(p => {
-      if (p.source && stats[p.source]) {
-        stats[p.source].total += 1;
-        if (p.status === 'client') stats[p.source].clients += 1;
-      }
+    prospects.forEach((p: any) => {
+      // Determine channel(s) from multiple signals
+      const channels = new Set<string>();
+
+      // 1. Direct source match
+      if (p.source && stats[p.source]) channels.add(p.source);
+
+      // 2. Email: count if prospect has been emailed (email_sequence_status, last_email_sent_at, or brevo_contact_id)
+      if (p.email_sequence_status && p.email_sequence_status !== 'not_started') channels.add('email');
+      if (p.last_email_sent_at) channels.add('email');
+      if (p.brevo_contact_id) channels.add('email');
+
+      // 3. Instagram: if has instagram handle or was contacted via DM
+      if (p.instagram && (p.status !== 'identifie')) channels.add('dm_instagram');
+
+      // 4. TikTok: if has tiktok handle
+      if (p.tiktok) channels.add('tiktok');
+
+      // Count each channel
+      channels.forEach(ch => {
+        if (stats[ch]) {
+          stats[ch].total += 1;
+          if (p.status === 'client') stats[ch].clients += 1;
+        }
+      });
     });
     return stats;
   }, [prospects]);
@@ -1140,14 +1169,33 @@ export default function AdminCRMPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-2" >
                   {PIPELINE_STAGES.map(stage => {
                     const stageProspects = filtered.filter(p => p.status === stage.id);
+                    const isCollapsed = collapsedCols.has(stage.id);
                     return (
-                      <div key={stage.id} className="min-w-0">
-                        <div className={`rounded-t-lg px-3 py-2 ${stage.color}`}>
+                      <div key={stage.id} className={`min-w-0 transition-all ${isCollapsed ? 'max-w-[48px]' : ''}`}>
+                        <div
+                          className={`rounded-t-lg px-3 py-2 ${stage.color} cursor-pointer`}
+                          onClick={() => {
+                            const next = new Set(collapsedCols);
+                            if (isCollapsed) next.delete(stage.id); else next.add(stage.id);
+                            setCollapsedCols(next);
+                          }}
+                        >
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-white">{stage.icon} {stage.label}</span>
-                            <span className="text-xs font-bold text-white/80 bg-white/20 px-2 py-0.5 rounded-full">{stageProspects.length}</span>
+                            {isCollapsed ? (
+                              <span className="text-xs font-bold text-white mx-auto" title={stage.label}>{stage.icon}</span>
+                            ) : (
+                              <>
+                                <span className="text-sm font-semibold text-white">{stage.icon} {stage.label}</span>
+                                <span className="text-xs font-bold text-white/80 bg-white/20 px-2 py-0.5 rounded-full">{stageProspects.length}</span>
+                              </>
+                            )}
                           </div>
                         </div>
+                        {isCollapsed ? (
+                          <div className="bg-white rounded-b-lg border border-neutral-200 border-t-0 min-h-[200px] flex items-center justify-center">
+                            <span className="text-xs font-bold text-neutral-400 [writing-mode:vertical-lr] rotate-180">{stageProspects.length}</span>
+                          </div>
+                        ) : (
                         <div className="bg-white rounded-b-lg border border-neutral-200 border-t-0 min-h-[200px] max-h-[calc(100vh-350px)] overflow-y-auto p-2 space-y-2">
                           {stageProspects.length === 0 ? (
                             <p className="text-xs text-neutral-400 text-center py-8">Aucun prospect</p>
@@ -1169,6 +1217,9 @@ export default function AdminCRMPage() {
                                 {p.instagram && (
                                   <p className="text-xs text-purple-600 mt-1 truncate">@{p.instagram.replace('@', '')}</p>
                                 )}
+                                {(p as any).last_email_opened_at && (
+                                  <span className="text-[10px] text-emerald-600 mt-0.5 block">✉ Email ouvert</span>
+                                )}
                                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
                                   {p.matched_plan && (
@@ -1182,6 +1233,7 @@ export default function AdminCRMPage() {
                             );
                           })}
                         </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1645,9 +1697,9 @@ export default function AdminCRMPage() {
 
           {/* Detail Panel — Full-screen centered modal */}
           {selected && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={() => setSelected(null)}>
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-              <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="relative z-10 w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl" onClick={e => e.stopPropagation()}>
                 <DetailPanel
                   prospect={selected}
                   onClose={() => setSelected(null)}
@@ -1914,36 +1966,36 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
   return (
     <div className="w-full bg-white rounded-2xl border border-neutral-200 shadow-2xl overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-white">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-lg font-bold text-white flex-shrink-0 shadow-md">
+      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-white">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-sm sm:text-lg font-bold text-white flex-shrink-0 shadow-md">
               {prospectInitials(prospect)}
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-neutral-900">{prospectName(prospect)}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                {prospect.type && <span className="text-xs px-2 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.type}</span>}
-                {prospect.quartier && <span className="text-xs px-2 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.quartier}</span>}
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-neutral-900 truncate">{prospectName(prospect)}</h3>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {prospect.type && <span className="text-[10px] sm:text-xs px-1.5 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.type}</span>}
+                {prospect.quartier && <span className="text-[10px] sm:text-xs px-1.5 py-0.5 bg-gray-100 text-neutral-600 rounded-full">{prospect.quartier}</span>}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-neutral-900">{prospect.score}</span>
-              <span className="text-xs text-neutral-400">pts</span>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 flex-wrap justify-end">
+            <div className="flex items-center gap-1">
+              <span className="text-lg sm:text-2xl font-bold text-neutral-900">{prospect.score}</span>
+              <span className="text-[10px] sm:text-xs text-neutral-400">pts</span>
             </div>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
+            <span className={`text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full font-semibold ${prioBadge.classes}`}>{prioBadge.label}</span>
             {prospect.matched_plan && (
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${getPlanBadge(prospect.matched_plan)?.classes}`}>{prospect.matched_plan}</span>
+              <span className={`text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium ${getPlanBadge(prospect.matched_plan)?.classes}`}>{prospect.matched_plan}</span>
             )}
-            <button onClick={onClose} className="ml-2 w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors text-xl leading-none">&times;</button>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors text-xl leading-none">&times;</button>
           </div>
         </div>
       </div>
 
       {/* Pipeline visual + stage selector */}
-      <div className="px-6 py-4 border-b border-neutral-200">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200">
         <div className="flex items-center gap-0.5 overflow-x-auto">
           {PIPELINE_STAGES.filter(s => s.id !== 'perdu').map((s, idx, arr) => {
             const isActive = idx <= currentStageIdx && prospect.status !== 'perdu';
@@ -1992,8 +2044,8 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       </div>
 
       {/* Info grid */}
-      <div className="px-6 py-4 border-b border-neutral-200 space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 space-y-3">
+        <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-2 sm:gap-y-3">
           {/* Left column */}
           <div className="space-y-2">
             {prospect.instagram && (
@@ -2057,7 +2109,9 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
           <p className="text-[10px] text-neutral-400 uppercase mb-1.5">Canal</p>
           <div className="flex flex-wrap gap-1.5">
             {CHANNELS.map(c => {
-              const isActive = prospect.source === c.id;
+              const isActive = prospect.source === c.id ||
+                (c.id === 'email' && (prospect.email_sequence_status && prospect.email_sequence_status !== 'not_started')) ||
+                (c.id === 'dm_instagram' && prospect.instagram && prospect.status !== 'identifie');
               return (
                 <span
                   key={c.id}
@@ -2069,11 +2123,41 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
             })}
           </div>
         </div>
+
+        {/* Email engagement tracking */}
+        {(prospect.email_sequence_status && prospect.email_sequence_status !== 'not_started') && (
+          <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-[10px] text-blue-600 uppercase font-semibold mb-1">Suivi Email</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="text-blue-700">Etape {prospect.email_sequence_step || 0} — {prospect.email_sequence_status}</span>
+              {prospect.last_email_sent_at && (
+                <span className="text-neutral-500">Envoyé: {formatDate(prospect.last_email_sent_at)}</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {prospect.last_email_opened_at && (
+                <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                  ✓ Ouvert {formatDateRelative(prospect.last_email_opened_at)}
+                </span>
+              )}
+              {prospect.last_email_clicked_at && (
+                <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+                  ✓ Cliqué {formatDateRelative(prospect.last_email_clicked_at)}
+                </span>
+              )}
+              {prospect.last_email_opened_at && !prospect.last_email_clicked_at && (
+                <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
+                  📞 Susceptible de répondre au tel
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Notes */}
       {prospect.notes && (
-        <div className="px-6 py-4 border-b border-neutral-200">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200">
           <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-1.5">Notes</p>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2.5">
             <p className="text-xs text-yellow-800 whitespace-pre-wrap">{prospect.notes}</p>
@@ -2083,7 +2167,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
 
       {/* Tags */}
       {prospect.tags && prospect.tags.length > 0 && (
-        <div className="px-6 py-4 border-b border-neutral-200">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200">
           <div className="flex flex-wrap gap-1">
             {prospect.tags.map(tag => (
               <span key={tag} className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">{tag}</span>
@@ -2093,7 +2177,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       )}
 
       {/* Activity History */}
-      <div className="px-6 py-4 border-b border-neutral-200">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200">
         <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-2">Historique</p>
         {loadingActivities ? (
           <p className="text-xs text-neutral-400 py-2">Chargement...</p>
@@ -2138,15 +2222,15 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       </div>
 
       {/* Action buttons */}
-      <div className="px-6 py-4 space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          <button className="px-2 py-2 text-[10px] font-semibold text-white bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all text-center">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all text-center">
             Envoyer DM
           </button>
-          <button className="px-2 py-2 text-[10px] font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all text-center">
+          <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all text-center">
             Generer visuel
           </button>
-          <button className="px-2 py-2 text-[10px] font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all text-center">
+          <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all text-center">
             Proposer Sprint
           </button>
         </div>

@@ -23,7 +23,9 @@ export default function AdminRetoursClientsPage() {
   // Questionnaires state
   const [feedbackStats, setFeedbackStats] = useState<any>(null);
   const [feedbackComments, setFeedbackComments] = useState<any[]>([]);
+  const [feedbackVoters, setFeedbackVoters] = useState<Record<string, any[]>>({});
   const [feedbackTotal, setFeedbackTotal] = useState(0);
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
 
   // Demandes state
   const [contactRequests, setContactRequests] = useState<any[]>([]);
@@ -71,6 +73,7 @@ export default function AdminRetoursClientsPage() {
         const data = await res.json();
         setFeedbackStats(data.stats);
         setFeedbackComments(data.comments || []);
+        setFeedbackVoters(data.voters || {});
         setFeedbackTotal(data.total || 0);
       }
     } catch (e) { console.error('[Admin] Feedback load error:', e); }
@@ -363,15 +366,30 @@ export default function AdminRetoursClientsPage() {
                       const good = counts.bien || 0;
                       const avg = counts.moyen || 0;
                       const bad = counts.pas_du_tout || 0;
-                      // Note moyenne sur 4
                       const score = total > 0 ? ((best * 4 + good * 3 + avg * 2 + bad * 1) / total) : 0;
                       const emoji = score >= 3.5 ? '😍' : score >= 2.5 ? '😊' : score >= 1.5 ? '😐' : '😟';
+                      const isExpanded = expandedQuestion === key;
+                      const questionVoters = feedbackVoters[key] || [];
+                      const RATING_LABELS: Record<string, string> = { tres_bien: 'Tres bien', bien: 'Bien', moyen: 'Moyen', pas_du_tout: 'Pas du tout' };
+                      const RATING_COLORS: Record<string, string> = { tres_bien: 'text-green-600', bien: 'text-blue-600', moyen: 'text-amber-600', pas_du_tout: 'text-red-600' };
                       return (
-                        <div key={key} className="border border-neutral-100 rounded-xl p-3 text-center">
-                          <span className="text-2xl block mb-1">{emoji}</span>
-                          <p className="text-xs font-semibold text-neutral-800 mb-1">{LABELS[key] || key}</p>
-                          <p className="text-lg font-bold text-neutral-900">{score.toFixed(1)}<span className="text-xs text-neutral-400 font-normal">/4</span></p>
-                          <p className="text-[10px] text-neutral-400 mt-1">{total} avis</p>
+                        <div key={key} className="border border-neutral-100 rounded-xl overflow-hidden">
+                          <button onClick={() => setExpandedQuestion(isExpanded ? null : key)} className="w-full p-3 text-center hover:bg-neutral-50 transition-all">
+                            <span className="text-2xl block mb-1">{emoji}</span>
+                            <p className="text-xs font-semibold text-neutral-800 mb-1">{LABELS[key] || key}</p>
+                            <p className="text-lg font-bold text-neutral-900">{score.toFixed(1)}<span className="text-xs text-neutral-400 font-normal">/4</span></p>
+                            <p className="text-[10px] text-neutral-400 mt-1">{total} avis</p>
+                          </button>
+                          {isExpanded && questionVoters.length > 0 && (
+                            <div className="border-t border-neutral-100 bg-neutral-50 p-2 space-y-1 max-h-48 overflow-y-auto">
+                              {questionVoters.map((v: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between text-[11px] px-2 py-1 bg-white rounded">
+                                  <span className="text-neutral-600 truncate max-w-[120px]">{v.user_email}</span>
+                                  <span className={`font-medium ${RATING_COLORS[v.rating] || 'text-neutral-600'}`}>{RATING_LABELS[v.rating] || v.rating}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -183,6 +183,79 @@ export async function publishCarouselToInstagram(
 }
 
 /**
+ * Publish a Reel (video) to Instagram via Graph API
+ * Instagram Reels use media_type=REELS with a video_url
+ */
+export async function publishReelToInstagram(
+  igUserId: string,
+  pageAccessToken: string,
+  videoUrl: string,
+  caption?: string
+): Promise<{ id: string; permalink?: string }> {
+  try {
+    console.log('[publishReelToInstagram] Step 1: Creating REELS media container...');
+    console.log('[publishReelToInstagram] Video URL:', videoUrl.substring(0, 100));
+
+    // 1) Create a REELS container
+    const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
+      media_type: 'REELS',
+      video_url: videoUrl,
+      caption: caption || '',
+      share_to_feed: true,
+    });
+    console.log('[publishReelToInstagram] Container created:', container.id);
+
+    // 2) Wait for video processing (Instagram needs time to process video)
+    console.log('[publishReelToInstagram] Waiting for video processing...');
+    const maxWait = 120_000; // 2 minutes max
+    const pollInterval = 5_000;
+    const start = Date.now();
+
+    while (Date.now() - start < maxWait) {
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      try {
+        const status = await graphGET<{ status_code?: string; status?: string }>(
+          `/${container.id}`,
+          pageAccessToken,
+          { fields: 'status_code,status' }
+        );
+        console.log('[publishReelToInstagram] Container status:', status.status_code || status.status);
+        if (status.status_code === 'FINISHED') break;
+        if (status.status_code === 'ERROR') {
+          throw new Error(`Instagram video processing failed: ${status.status || 'unknown error'}`);
+        }
+      } catch (pollErr: any) {
+        // If status check fails, wait and retry
+        if (pollErr.message?.includes('processing failed')) throw pollErr;
+        console.warn('[publishReelToInstagram] Status check error (retrying):', pollErr.message?.substring(0, 100));
+      }
+    }
+
+    console.log('[publishReelToInstagram] Step 2: Publishing reel...');
+    // 3) Publish
+    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+      creation_id: container.id,
+    });
+    console.log('[publishReelToInstagram] Reel published:', publish.id);
+
+    // 4) Get permalink
+    try {
+      console.log('[publishReelToInstagram] Step 3: Fetching permalink...');
+      const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
+        fields: 'permalink'
+      });
+      return { id: publish.id, permalink: postInfo.permalink };
+    } catch (error) {
+      console.error('[publishReelToInstagram] Error fetching permalink:', error);
+      return { id: publish.id };
+    }
+  } catch (error: any) {
+    console.error('[publishReelToInstagram] Error during reel publication:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetch own Instagram media with engagement metrics.
  * Uses IG Media endpoint — requires our own IG user ID + page token.
  */

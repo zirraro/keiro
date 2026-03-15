@@ -263,10 +263,11 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'tiktok_publish':
-      // 19:30 UTC (21h30 Paris) — TikTok: publish any pending TikTok content
-      // Peak TikTok engagement: 19h-21h Paris for most business types
-      // Also catches TikTok posts generated earlier that weren't published yet
-      fireAndForget('TikTok Publish', '/api/agents/content', 'POST', { action: 'execute_publication' });
+      // 19:30 UTC (21h30 Paris) — Publish ALL pending content (Reels + TikTok videos)
+      // Peak engagement: 19h-21h Paris for most business types
+      // Catches any posts generated earlier that weren't published yet
+      // Both Instagram Reels and TikTok videos go through video+narration pipeline
+      fireAndForget('Publish Reels+TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' });
       break;
 
     default:

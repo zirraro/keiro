@@ -199,6 +199,33 @@ export async function POST() {
       }
     }
 
+    // Delete posts from DB that no longer exist on Instagram (user deleted them)
+    const currentIgIds = posts.map((p: any) => p.id);
+    if (currentIgIds.length > 0) {
+      const { data: dbPosts } = await supabase
+        .from('instagram_posts')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const dbIds = (dbPosts || []).map((p: any) => p.id);
+      const deletedIds = dbIds.filter((id: string) => !currentIgIds.includes(id));
+
+      if (deletedIds.length > 0) {
+        console.log(`[SyncMedia] Removing ${deletedIds.length} deleted posts from DB:`, deletedIds);
+        await supabase.from('instagram_posts').delete().in('id', deletedIds);
+        // Also clean up cached images in storage
+        for (const delId of deletedIds) {
+          try {
+            const extensions = ['jpg', 'png', 'webp'];
+            for (const ext of extensions) {
+              await supabase.storage.from('instagram-media').remove([`${user.id}/${delId}.${ext}`]);
+            }
+          } catch { /* ignore cleanup errors */ }
+        }
+        console.log(`[SyncMedia] ✓ Cleaned up ${deletedIds.length} deleted posts`);
+      }
+    }
+
     console.log(`[SyncMedia] Completed: ${cachedPosts.length}/${posts.length} images cached`);
 
     return NextResponse.json({
