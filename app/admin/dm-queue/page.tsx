@@ -178,6 +178,7 @@ function SuiviPublicationsPage() {
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
+  const [tabStats, setTabStats] = useState<{ pending: number; sent: number; responded: number }>({ pending: 0, sent: 0, responded: 0 });
 
   // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -218,6 +219,15 @@ function SuiviPublicationsPage() {
         : mainTab === 'comment_instagram' ? 'comment_instagram'
         : mainTab === 'follow_instagram' ? 'follow_instagram'
         : 'follow_tiktok';
+
+      // Fetch counts for mini dashboard
+      const [{ count: pendingCount }, { count: sentCount }, { count: respondedCount }] = await Promise.all([
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'pending'),
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).in('status', ['sent', 'no_response']),
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', channel).eq('status', 'responded'),
+      ]);
+      setTabStats({ pending: pendingCount ?? 0, sent: sentCount ?? 0, responded: respondedCount ?? 0 });
+
       let query = supabase
         .from('dm_queue')
         .select('*, prospect:crm_prospects(company, type, quartier, google_rating, google_reviews, score)')
@@ -587,6 +597,24 @@ function SuiviPublicationsPage() {
             </button>
           ))}
         </div>
+
+        {/* Mini Dashboard */}
+        {(isDmTab || isCommentTab || isFollowTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-100">
+              <p className="text-2xl font-bold text-amber-700">{tabStats.pending}</p>
+              <p className="text-[10px] text-amber-600 font-medium">{isFollowTab ? 'A suivre' : isCommentTab ? 'A poster' : 'En attente'}</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+              <p className="text-2xl font-bold text-green-700">{tabStats.sent}</p>
+              <p className="text-[10px] text-green-600 font-medium">{isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyes'}</p>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+              <p className="text-2xl font-bold text-blue-700">{tabStats.responded}</p>
+              <p className="text-[10px] text-blue-600 font-medium">{isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
+            </div>
+          </div>
+        )}
 
         {/* Sub Tabs */}
         {(isDmTab || isCommentTab || isFollowTab) && (

@@ -476,9 +476,13 @@ export async function initTikTokPhotoUpload(
   console.log('[TikTok] Title:', (title || '').substring(0, 80));
   console.log('[TikTok] Privacy level:', privacyLevel);
 
+  // Build clean title — TikTok rejects special chars and empty titles
+  const cleanTitle = (title || 'Photo').replace(/[^\w\s.,!?éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ#@\-]/g, ' ').substring(0, 150).trim() || 'Photo';
+
   const requestBody = {
     post_info: {
-      title: (title || 'Photo').substring(0, 150),
+      title: cleanTitle,
+      description: (description || cleanTitle).substring(0, 150),
       privacy_level: privacyLevel,
     },
     source_info: {
@@ -496,7 +500,7 @@ export async function initTikTokPhotoUpload(
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json; charset=UTF-8',
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
   });

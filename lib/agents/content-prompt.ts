@@ -49,38 +49,80 @@ CE QUI LES REPOUSSE :
 - L'impression que c'est un gadget inutile
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STRATÉGIE DE CONTENU ÉLITE
+STRATÉGIE DE CONTENU ÉLITE — PLAYBOOK V2
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PILIERS (rotation stricte pour diversité) :
+3 PILIERS STRATÉGIQUES (rotation stricte selon ratio) :
 
-1. TIPS MARKETING ACTIONNABLES (40%)
-   Objectif : Devenir la source #1 de conseils marketing pour commerçants
-   → "Les 5 mots magiques pour ta bio Instagram"
-   → "Pourquoi ton menu en Story fait fuir tes clients"
-   → Toujours terminer par : "Et KeiroAI peut faire ça pour toi en automatique"
-   Ton : professeur cool qui donne des hacks
+PILIER P1 — AVANT/APRÈS (45% du contenu)
+  Objectif : Preuve tangible. Montrer un vrai résultat KeiroAI vs la situation initiale du commerçant.
+  TikTok : Split-screen ou cut rapide, 30-45s
+    Hook : "Ce coiffeur postait des selfies flous. Regarde ce qu'on a fait en 60 secondes."
+    Structure : 0-3s hook choc (le mauvais post original) → 3-15s démo live dans KeiroAI → 15-25s résultat final (visuel propre, caption, hashtags) → 25-35s CTA vocal + texte + lien en bio
+    Tips : Commence TOUJOURS par le problème, pas la solution. Son original activé = +23% watch time. Overlay texte en gros dès la 1ère seconde.
+  Instagram : Reel 9:16 + carrousel comparatif, 20-30s
+    Hook : Slide 1 carrousel = le mauvais post avec emoji 😬
+    Structure : Reel identique à TikTok (recyclé) + Carrousel 5 slides (Avant → Process → Résultat → Stats → CTA) + Caption longue avec storytelling
+    Tips : Caption > 300 mots = boost algorithme. Sauvegarde = KPI clé. Tag le commerce local.
 
-2. DÉMONSTRATION PRODUIT (25%)
-   Objectif : Montrer KeiroAI en action, résultats réels
-   → Screen recording de l'app qui génère un post en 10 secondes
-   → Avant/Après : le feed Instagram d'un restaurant avec vs sans KeiroAI
-   → Focus sur la magie de l'automatisation ("pendant que tu dormais, KeiroAI a...")
-   Ton : "regarde ce que ça fait, c'est dingue"
+PILIER P2 — ÉDUCATION/CONSEIL (35% du contenu)
+  Objectif : Autorité & confiance. Enseigner pourquoi leur com ne marche pas et comment l'IA change la donne.
+  TikTok : Face cam ou screen record, 45-60s
+    Hook : "3 erreurs que font 90% des restaurants sur Instagram" ou "Pourquoi ton concurrent a 10x plus d'abonnés"
+    Structure : 0-3s hook chiffré ou provoc → 3-10s agitation du problème (empathie) → 10-40s 3 conseils actionnables numérotés → 40-55s comment KeiroAI résout ça automatiquement → 55-60s CTA
+    Tips : Listes chiffrées = rétention maximale. Commente toi-même en 1er. Réponds à TOUS les commentaires dans la 1ère heure.
+  Instagram : Carrousel 7-10 slides
+    Structure : Slide 1 promesse choc → Slides 2-6 une erreur par slide → Slide 7 solution KeiroAI → Slide 8 témoignage/résultat chiffré → Slide 9 CTA
+    Tips : Carrousels = 3x plus de portée que les posts image. Slide 1 = couverture à A/B tester.
 
-3. SOCIAL PROOF & RÉSULTATS (20%)
-   Objectif : Crédibilité et FOMO (Fear Of Missing Out)
-   → "+47% de visibilité en 30 jours pour ce boulanger"
-   → "Ce que nos 150 premiers utilisateurs disent"
-   → Statistiques visuelles, graphiques de croissance
-   Ton : factuel, inspirant, "toi aussi tu peux"
+PILIER P3 — SOCIAL PROOF (20% du contenu)
+  Objectif : Conversion directe. Témoignages, résultats chiffrés, montée en puissance visible.
+  TikTok : Interview client ou screen résultats, 30-45s
+    Hook : "Ce restaurant a gagné 200 abonnés en 3 semaines. Voilà comment."
+    Structure : 0-3s résultat chiffré en overlay → 3-20s témoignage client → 20-35s les publications qui ont généré ça → 35-45s CTA fort
+    Tips : Chiffres concrets = crédibilité maximale. Ce format se recycle en pub payante directement.
+  Instagram : Post + Stories highlight
+    Structure : Post image résultat en visuel propre (template) + Caption histoire client avant/après + Stories screenshots stats + Highlight "Résultats" en continu
+    Tips : Template visuel réutilisable. Tag le client = portée étendue à leur audience. Épingle ce type de post.
 
-4. TENDANCES & ACTU (15%)
-   Objectif : Surfer sur l'algorithme + montrer notre veille
-   → Commenter les updates Instagram/TikTok pour les commerçants
-   → "Instagram vient de changer X, voici ce que ça veut dire pour ta boutique"
-   → Trend-jacking intelligent (lier une tendance virale au marketing local)
-   Ton : insider qui te file les infos avant les autres
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CALENDRIER ÉDITORIAL 7j/7
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Lundi : TikTok P2 Éducation (carrousel repurposé en vidéo) + Reel P2 recyclé TikTok + Story conseil du jour
+Mardi : TikTok P1 Avant/Après client + Carrousel P1 (5 slides) + Story behind the scenes
+Mercredi : TikTok réponse commentaire (stitch/duet) + Post P3 Social Proof + Story Poll "Quel secteur ?"
+Jeudi : TikTok P2 Éducation face cam + Reel P2 + carrousel éducatif + Story témoignage client
+Vendredi : TikTok P1 Avant/Après + teaser weekend + Reel P1 + caption longue + Story teaser
+Samedi : TikTok P3 terrain live (publié le soir) + Stories live toute la journée + LIVE prospection + Q&A
+Dimanche : OFF ou republication best performer + Reel best-of samedi + Story recap semaine
+
+RÈGLE D'OR : TikTok poste d'abord → si la vidéo dépasse 500 vues en 4h, elle est recyclée en Reel Instagram le lendemain. Les vidéos sous 200 vues sont retravaillées (hook différent, même contenu).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMULES DE HOOKS (les 3 premières secondes = TOUT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Types :
+- Chiffre choc : "90% des restaurants perdent des clients à cause de ça", "Ce barbier a 3 fois plus d'abonnés que toi avec 10x moins d'efforts"
+- Provocation : "Ton Instagram fait fuir tes clients. Voilà pourquoi.", "Arrête de poster des photos de ton plat. Ça ne marche plus."
+- Curiosité : "Ce que j'ai vu dans ce restaurant du 11e m'a choqué.", "L'IA a créé ce post en 8 secondes. Tu peux pas faire la différence."
+- Identification : "T'es coiffeur et t'as pas le temps de faire ta com ? Ce post est pour toi.", "Si tu gères un restaurant à Paris, regarde jusqu'à la fin."
+
+FORMULE UNIVERSELLE : [Cible] + [Problème chiffré] + [Promesse ou révélation]
+Ex: "Si tu as un restaurant" + "et 0 réservation via Insta" + "regarde ça"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KPIs À SURVEILLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TikTok : Watch time > 60% (sinon raccourcir le début), Profil visit rate > 5% (sinon hook+CTA plus fort), Follower/view ratio > 1% (sinon contenu plus niche)
+Instagram : Sauvegarde/portée > 3% (sinon contenu plus éducatif), Taux de clic bio > 2% (sinon CTA plus direct), DM entrants 5+/semaine (sinon stories plus engageantes + polls)
+
+CTAs DE CONVERSION :
+1. "Lien en bio → essai gratuit KeiroAI"
+2. "Envoie-moi 'CONTENU' en DM, je t'envoie un exemple gratuit pour ton commerce"
+3. "Commente le type de ton commerce 👇 je crée un post pour toi en live"
+4. "Sauvegarde ce post — tu en auras besoin"
+
+FUNNEL COMPLET : Vidéo hook → Watch time 60%+ → Visite profil → Clic bio → Essai gratuit → Appel/Demo → Client
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TECHNIQUES DE COPYWRITING ÉLITE
@@ -227,14 +269,17 @@ export function getWeeklyPlanPrompt(context: {
 
 OBJECTIF STRATÉGIQUE : Chaque post doit faire progresser vers les 1000 abonnés Instagram. Priorité = engagement (saves + partages > likes).
 
-CALENDRIER ÉDITORIAL :
-Lundi : Instagram carrousel tip marketing (pilier tips) → Le carrousel est LE format qui génère le plus de saves. 10 slides, valeur maximale.
-Mardi : TikTok vidéo courte (pilier tips ou demo) → Hook en 1 seconde, rythme rapide, tendance si possible.
-Mercredi : Instagram Reel démo produit (pilier demo) → Montrer KeiroAI en action, "wow effect".
-Jeudi : LinkedIn post texte long (pilier tips ou trends) → Storytelling + insight business, vouvoiement.
-Vendredi : Instagram post image social proof (pilier social_proof) → Résultat client, chiffre marquant.
-Samedi : TikTok tendance (pilier trends) → Trend-jacking intelligent lié au marketing local.
-Dimanche : Instagram Story récap semaine (pilier social_proof) → Engagement via sondage/question.
+CALENDRIER ÉDITORIAL (PLAYBOOK V2) :
+Lundi : TikTok P2 Éducation (carrousel repurposé en vidéo) + Reel P2 recyclé TikTok + Story conseil du jour
+Mardi : TikTok P1 Avant/Après client + Carrousel Instagram P1 (5 slides) + Story behind the scenes
+Mercredi : TikTok réponse commentaire (stitch/duet) + Post Instagram P3 Social Proof + Story Poll
+Jeudi : TikTok P2 Éducation face cam + Reel P2 + carrousel éducatif + Story témoignage client
+Vendredi : TikTok P1 Avant/Après + teaser weekend + Reel P1 + caption longue + Story teaser
+Samedi : TikTok P3 terrain live (publié le soir) + Stories live toute la journée
+Dimanche : OFF ou republication best performer + Reel best-of samedi + Story recap semaine
+
+RATIO PILIERS : P1 Avant/Après 45% · P2 Éducation 35% · P3 Social Proof 20%
+RÈGLE : TikTok poste d'abord → si 500+ vues en 4h → recyclé en Reel Instagram le lendemain. Sous 200 vues → retravaillé (hook différent).
 
 CONTRAINTE GRILLE : Les posts Instagram (Lundi, Mercredi, Vendredi, Dimanche) doivent alterner les couleurs dominantes dans cet ordre : violet → sombre → clair → coloré. Vérifie que 2 posts consécutifs dans la grille ne se ressemblent JAMAIS.
 

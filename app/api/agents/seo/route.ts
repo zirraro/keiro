@@ -120,14 +120,15 @@ async function generateSeoImage(prompt: string, slug?: string, index: number = 0
 async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ alt: string; prompt: string }>, slug?: string): Promise<string> {
   let html = contentHtml;
 
+  // Flexible regex: matches <img> with data-seo-generate="true" regardless of attribute order
+  const seoImgRegex = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/gi;
+
   // If we have explicit image_prompts from the article JSON, use those
   if (imagePrompts && imagePrompts.length > 0) {
-    // Find all placeholder img tags
-    const imgRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
     let match;
     let promptIndex = 0;
 
-    while ((match = imgRegex.exec(html)) !== null && promptIndex < imagePrompts.length) {
+    while ((match = seoImgRegex.exec(html)) !== null && promptIndex < imagePrompts.length) {
       const fullTag = match[0];
       const imgPrompt = imagePrompts[promptIndex];
 
@@ -137,18 +138,22 @@ async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ 
       if (imageUrl) {
         const newTag = `<img src="${imageUrl}" alt="${imgPrompt.alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
         html = html.replace(fullTag, newTag);
+        // Reset regex since we modified the string
+        seoImgRegex.lastIndex = 0;
       }
       promptIndex++;
     }
   }
 
   // Also handle any remaining placeholder tags that don't have prompts yet (use alt as prompt)
-  const remainingRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
+  const remainingRegex = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/gi;
   let remainingMatch;
   let fallbackIndex = 10;
   while ((remainingMatch = remainingRegex.exec(html)) !== null) {
     const fullTag = remainingMatch[0];
-    const altText = remainingMatch[1];
+    // Extract alt text regardless of position
+    const altMatch = fullTag.match(/alt\s*=\s*"([^"]*)"/i);
+    const altText = altMatch ? altMatch[1] : 'professional commercial photo for blog article';
 
     console.log(`[SEOAgent] Generating fallback image from alt: "${altText.substring(0, 80)}..."`);
     const imageUrl = await generateSeoImage(altText, slug, fallbackIndex++);
@@ -156,6 +161,7 @@ async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ 
     if (imageUrl) {
       const newTag = `<img src="${imageUrl}" alt="${altText}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
       html = html.replace(fullTag, newTag);
+      remainingRegex.lastIndex = 0;
     }
   }
 
@@ -395,7 +401,7 @@ Contexte supplementaire :
 IMPORTANT: Le JSON doit etre COMPLET. Ne tronque pas content_html. Si tu manques de place, ecris un article plus court (1200 mots min) plutot que de tronquer le JSON.
 
 Genere le JSON complet comme specifie dans tes instructions.`,
-      maxTokens: 8000,
+      maxTokens: 12000,
     });
     console.log('[SEOAgent] Raw response length:', rawText.length);
 
@@ -1044,11 +1050,12 @@ async function regenerateArticleImages(articleId: string): Promise<NextResponse>
       }
     }
 
-    // Also handle placeholder tags that were never replaced
-    const placeholderRegex = /<img\s+data-seo-generate="true"\s+alt="([^"]*)"[^>]*\/?>/gi;
+    // Also handle placeholder tags that were never replaced (flexible attribute order)
+    const placeholderRegex = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/gi;
     while ((match = placeholderRegex.exec(html)) !== null) {
       const fullTag = match[0];
-      const alt = match[1];
+      const altMatch = fullTag.match(/alt\s*=\s*"([^"]*)"/i);
+      const alt = altMatch ? altMatch[1] : article.title;
       console.log(`[SEOAgent] Generating missing image: "${alt.substring(0, 60)}"`);
       const imageUrl = await generateSeoImage(alt, article.slug, fixed + 200);
       if (imageUrl) {
