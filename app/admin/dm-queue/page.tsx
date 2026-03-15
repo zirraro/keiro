@@ -658,21 +658,104 @@ function SuiviPublicationsPage() {
             {/* DM Items */}
             {(isDmTab || isCommentTab || isFollowTab) && (
               dmItems.length === 0 ? (
-                <div className="text-center py-12 text-neutral-400">
+                <div className="text-center py-12">
+                  <p className="text-neutral-400 mb-4">
                   {dmSubTab === 'pending'
                     ? (isCommentTab
-                      ? 'Aucun commentaire pret. Lancez le Community Manager > Commentaires.'
+                      ? 'Aucun commentaire pret.'
                       : isFollowTab
-                      ? 'Aucun compte a suivre. Lancez le Community Manager.'
-                      : `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente. Lancez l'agent DM.`)
+                      ? 'Aucun compte a suivre.'
+                      : `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente.`)
                     : 'Aucun élément.'}
+                  </p>
+                  {dmSubTab === 'pending' && (isFollowTab || isCommentTab) && (
+                    <button
+                      onClick={async () => {
+                        const platform = mainTab.includes('tiktok') ? 'tiktok' : 'instagram';
+                        const action = isFollowTab ? 'find_follow_targets' : 'prepare_comments';
+                        const btn = document.getElementById('launch-agent-btn');
+                        if (btn) btn.textContent = 'Lancement en cours...';
+                        try {
+                          const res = await fetch('/api/agents/marketing', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ action, platform, count: 15 }),
+                          });
+                          const data = await res.json();
+                          if (btn) btn.textContent = data.ok
+                            ? `${isFollowTab ? data.targets_inserted || 0 : data.comments_inserted || 0} ${isFollowTab ? 'comptes trouves' : 'commentaires prepares'}`
+                            : `Erreur: ${data.error}`;
+                          fetchData();
+                        } catch (e: any) {
+                          if (btn) btn.textContent = `Erreur: ${e.message}`;
+                        }
+                      }}
+                      id="launch-agent-btn"
+                      className="px-6 py-2.5 text-sm font-medium bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition shadow-sm"
+                    >
+                      {isFollowTab
+                        ? `Trouver des comptes ${mainTab.includes('tiktok') ? 'TikTok' : 'Instagram'} a suivre`
+                        : `Preparer des commentaires ${mainTab.includes('tiktok') ? 'TikTok' : 'Instagram'}`}
+                    </button>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className={isFollowTab ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-4'}>
                   {dmItems.map((item, i) => {
                     const prospect = Array.isArray(item.prospect) ? item.prospect[0] : item.prospect;
                     const perso = parsePersonalization(item.personalization);
                     const persoText = perso?.detail || perso?.strategy || item.personalization;
+
+                    // ─── Follow card: compact with big Follow button ───
+                    if (isFollowTab) {
+                      const platform = mainTab.includes('tiktok') ? 'tiktok' : 'instagram';
+                      const profileUrl = platform === 'tiktok'
+                        ? `https://tiktok.com/@${item.handle.replace('@', '')}`
+                        : `https://instagram.com/${item.handle.replace('@', '')}`;
+                      return (
+                        <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4 flex flex-col gap-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-neutral-900 truncate">{perso?.name || prospect?.company || item.handle}</p>
+                              <p className="text-xs text-neutral-500">@{item.handle.replace('@', '')}</p>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {perso?.type && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full">{perso.type}</span>}
+                                {perso?.city && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">{perso.city}</span>}
+                                {perso?.followers && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-600 rounded-full">{perso.followers}</span>}
+                              </div>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                              item.status === 'sent' ? 'bg-green-100 text-green-700' :
+                              item.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                              'bg-neutral-100 text-neutral-600'
+                            }`}>{item.status === 'sent' ? 'Suivi' : item.status === 'pending' ? 'A suivre' : item.status}</span>
+                          </div>
+                          {perso?.reason && <p className="text-xs text-neutral-500 italic line-clamp-2">{perso.reason}</p>}
+                          <div className="flex gap-2 mt-auto">
+                            <a
+                              href={profileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`flex-1 py-2.5 text-sm font-bold text-white text-center rounded-xl hover:opacity-90 transition shadow-sm ${
+                                platform === 'tiktok' ? 'bg-black' : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                              }`}
+                            >
+                              Follow @{item.handle.replace('@', '')}
+                            </a>
+                            {item.status === 'pending' && (
+                              <button
+                                onClick={() => updateDmStatus(item.id, 'sent')}
+                                className="px-3 py-2.5 text-xs font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 transition"
+                                title="Marquer comme suivi"
+                              >
+                                Done
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
