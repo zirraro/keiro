@@ -428,6 +428,56 @@ async function generateBrief(): Promise<NextResponse> {
     const leadsEmail24h = logCounts24h['chatbot_lead_captured_email'] || 0;
     const leadsPhone24h = logCounts24h['chatbot_lead_captured_phone'] || 0;
 
+    // Email performance by business type (from crm_activities + prospect type)
+    const { data: recentEmailActivities } = await supabase
+      .from('crm_activities')
+      .select('prospect_id, data, prospect:crm_prospects(type)')
+      .eq('type', 'email')
+      .gte('created_at', sevenDaysAgo)
+      .limit(500);
+
+    const emailByType: Record<string, { sent: number; opened: number; clicked: number }> = {};
+    if (recentEmailActivities) {
+      for (const act of recentEmailActivities) {
+        const bizType = (act.prospect as any)?.type || 'autre';
+        if (!emailByType[bizType]) emailByType[bizType] = { sent: 0, opened: 0, clicked: 0 };
+        emailByType[bizType].sent++;
+      }
+    }
+
+    // Count opens/clicks by type from webhook logs
+    const { data: openLogs } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'email')
+      .eq('action', 'webhook_opened')
+      .gte('created_at', sevenDaysAgo)
+      .limit(500);
+
+    if (openLogs) {
+      for (const log of openLogs) {
+        const bizType = log.data?.category || 'autre';
+        if (!emailByType[bizType]) emailByType[bizType] = { sent: 0, opened: 0, clicked: 0 };
+        emailByType[bizType].opened++;
+      }
+    }
+
+    const { data: clickLogs } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'email')
+      .eq('action', 'webhook_click')
+      .gte('created_at', sevenDaysAgo)
+      .limit(500);
+
+    if (clickLogs) {
+      for (const log of clickLogs) {
+        const bizType = log.data?.category || 'autre';
+        if (!emailByType[bizType]) emailByType[bizType] = { sent: 0, opened: 0, clicked: 0 };
+        emailByType[bizType].clicked++;
+      }
+    }
+
     const metrics24h = {
       leads: (newProspects24h ?? 0),
       leads_from_chatbot: leadsEmail24h + leadsPhone24h,
@@ -436,11 +486,13 @@ async function generateBrief(): Promise<NextResponse> {
       emails_clicked: emailsClicked24h,
       emails_replied: emailsReplied24h,
       chatbot_conversations: chatbotConversations24h,
-      open_rate: emailsSent24h > 0 ? Math.round((emailsOpened24h / emailsSent24h) * 100) : 0,
-      click_rate: emailsSent24h > 0 ? Math.round((emailsClicked24h / emailsSent24h) * 100) : 0,
+      open_rate_percent: emailsSent24h > 0 ? Math.round((emailsOpened24h / emailsSent24h) * 100) : 0,
+      click_through_rate_percent: emailsOpened24h > 0 ? Math.round((emailsClicked24h / emailsOpened24h) * 100) : 0,
+      note: 'OR = ouverts/envoyés, CTR = clics/OUVERTS (pas clics/envoyés)',
       prospects_by_temperature: tempCounts,
       prospects_by_status: statusCounts,
       ab_test_data: abTestData,
+      email_performance_by_business_type_7d: emailByType,
     };
 
     const { count: emailsSentCount7d } = await supabase
