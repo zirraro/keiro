@@ -267,13 +267,15 @@ export async function POST(req: NextRequest) {
       created_by: user.id,
     };
 
-    if (email) {
+    // Match prospect email to Keiro user (exclude admin emails)
+    const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+    if (email && !ADMIN_EMAILS.includes(email.toLowerCase())) {
       const { data: matchedProfile } = await supabase
         .from('profiles')
-        .select('id, subscription_plan')
+        .select('id, subscription_plan, is_admin')
         .eq('email', email)
         .single();
-      if (matchedProfile) {
+      if (matchedProfile && !matchedProfile.is_admin) {
         prospectData.matched_user_id = matchedProfile.id;
         prospectData.matched_plan = matchedProfile.subscription_plan;
       }

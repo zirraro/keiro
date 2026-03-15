@@ -62,13 +62,14 @@ export async function PUT(
     const updateData: any = { ...body, updated_at: new Date().toISOString() };
 
     if (body.email !== undefined) {
-      if (body.email) {
+      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      if (body.email && !ADMIN_EMAILS.includes(body.email.toLowerCase())) {
         const { data: matchedProfile } = await supabase
           .from('profiles')
-          .select('id, subscription_plan')
+          .select('id, subscription_plan, is_admin')
           .eq('email', body.email)
           .single();
-        if (matchedProfile) {
+        if (matchedProfile && !matchedProfile.is_admin) {
           updateData.matched_user_id = matchedProfile.id;
           updateData.matched_plan = matchedProfile.subscription_plan;
         } else {

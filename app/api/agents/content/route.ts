@@ -637,25 +637,54 @@ export async function POST(request: NextRequest) {
         const { data: pubPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
         if (!pubPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
 
+        // Allow targeting a specific platform (body.platform) or default to post's platform
+        const targetPlatform = body.platform || pubPost.platform || 'instagram';
+
         const pubUpdate: Record<string, any> = {
-          status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
 
-        // Actually publish to Instagram via Graph API
+        // Only mark as published if not already published (allows cross-posting)
+        if (pubPost.status !== 'published') {
+          pubUpdate.status = 'published';
+          pubUpdate.published_at = new Date().toISOString();
+        }
+
         let pubPermalink: string | undefined;
-        if (pubPost.platform === 'instagram' && pubPost.visual_url) {
+        let pubPublishId: string | undefined;
+        const errors: string[] = [];
+
+        // Publish to target platform
+        if ((targetPlatform === 'instagram' || targetPlatform === 'all') && pubPost.visual_url) {
           const igResult = await publishToInstagram(pubPost, supabase);
           if (igResult.success && igResult.permalink) {
             pubUpdate.instagram_permalink = igResult.permalink;
             pubPermalink = igResult.permalink;
           } else if (igResult.error) {
+            errors.push(`Instagram: ${igResult.error}`);
             console.warn(`[Content] Instagram publish failed for post ${body.postId}: ${igResult.error}`);
+          }
+        }
+
+        if ((targetPlatform === 'tiktok' || targetPlatform === 'all') && pubPost.visual_url) {
+          const ttResult = await publishToTikTok(pubPost, supabase);
+          if (ttResult.success && ttResult.publish_id) {
+            pubUpdate.tiktok_publish_id = ttResult.publish_id;
+            pubPublishId = ttResult.publish_id;
+          } else if (ttResult.error) {
+            errors.push(`TikTok: ${ttResult.error}`);
+            console.warn(`[Content] TikTok publish failed for post ${body.postId}: ${ttResult.error}`);
           }
         }
 
         const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-        return NextResponse.json({ ok: true, instagram_permalink: pubPermalink });
+        return NextResponse.json({
+          ok: errors.length === 0,
+          instagram_permalink: pubPermalink,
+          tiktok_publish_id: pubPublishId,
+          errors: errors.length > 0 ? errors : undefined,
+        });
       }
 
       case 'republish_single': {

@@ -182,7 +182,7 @@ function AdminAgentsContent() {
   const [clientActivityFilter, setClientActivityFilter] = useState<string>('all');
 
   // Content state
-  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null };
+  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
@@ -1313,17 +1313,21 @@ function AdminAgentsContent() {
     }
   };
 
-  const handleContentAction = async (postId: string, action: 'approve' | 'publish' | 'skip') => {
+  const handleContentAction = async (postId: string, action: 'approve' | 'publish' | 'skip', platform?: string) => {
     try {
+      const payload: any = { action, postId };
+      if (platform) payload.platform = platform;
       const res = await fetch('/api/agents/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action, postId }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data.ok) loadContentData();
-      else alert('Erreur: ' + data.error);
+      if (data.ok) {
+        loadContentData();
+        if (data.errors?.length) alert('Publié avec erreurs: ' + data.errors.join(', '));
+      } else alert('Erreur: ' + (data.errors?.join(', ') || data.error));
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     }
@@ -1445,12 +1449,20 @@ function AdminAgentsContent() {
               Supervision du syst\u00E8me multi-agents KeiroAI
             </p>
           </div>
-          <Link
-            href="/mon-compte"
-            className="text-sm text-neutral-600 hover:text-neutral-900 px-4 py-2 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-all"
-          >
-            Retour
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/admin/dm-queue"
+              className="text-sm text-purple-600 hover:text-purple-800 px-4 py-2 border border-purple-200 rounded-lg hover:bg-purple-50 transition-all font-medium"
+            >
+              Suivi & Publi
+            </Link>
+            <Link
+              href="/mon-compte"
+              className="text-sm text-neutral-600 hover:text-neutral-900 px-4 py-2 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-all"
+            >
+              Retour
+            </Link>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -3064,15 +3076,24 @@ function AdminAgentsContent() {
                     {post.visual_description && (
                       <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
                     )}
-                    {post.status === 'draft' && (
-                      <div className="flex gap-2">
-                        <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs text-blue-600 hover:underline">Approuver</button>
-                        <button onClick={() => handleContentAction(post.id, 'publish')} className="text-xs text-green-600 hover:underline">Publier</button>
-                        <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs text-neutral-400 hover:underline">Ignorer</button>
+                    {(post.status === 'draft' || post.status === 'approved') && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {post.status === 'draft' && (
+                          <>
+                            <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100">Approuver</button>
+                            <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs px-2 py-1 rounded bg-neutral-50 text-neutral-400 hover:bg-neutral-100">Ignorer</button>
+                          </>
+                        )}
+                        <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Publier Insta</button>
+                        <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Publier TikTok</button>
+                        <button onClick={() => handleContentAction(post.id, 'publish', 'all')} className="text-xs px-2 py-1 rounded bg-green-50 text-green-600 hover:bg-green-100">Publier Tous</button>
                       </div>
                     )}
-                    {post.status === 'approved' && (
-                      <button onClick={() => handleContentAction(post.id, 'publish')} className="text-xs text-green-600 hover:underline">Marquer publié</button>
+                    {post.status === 'published' && !post.instagram_permalink && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
+                        <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Republier TikTok</button>
+                      </div>
                     )}
                   </div>
                 ))}

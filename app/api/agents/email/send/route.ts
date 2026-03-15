@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             from: 'Victor de KeiroAI <contact@keiroai.com>',
             to: [prospect.email],
+            reply_to: 'contact@keiroai.com',
             subject: template.subject,
             html: template.htmlBody,
             text: template.textBody,
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
+            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
             subject: template.subject,
             htmlContent: template.htmlBody,
             textContent: template.textBody,

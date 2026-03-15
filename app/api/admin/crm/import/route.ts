@@ -390,13 +390,13 @@ export async function POST(req: NextRequest) {
     const allProfiles: any[] = [];
     let pfFrom = 0;
     while (true) {
-      const { data: pf } = await supabase.from('profiles').select('id, email, subscription_plan').range(pfFrom, pfFrom + PG_SIZE - 1);
+      const { data: pf } = await supabase.from('profiles').select('id, email, subscription_plan, is_admin').range(pfFrom, pfFrom + PG_SIZE - 1);
       if (!pf || pf.length === 0) break;
       allProfiles.push(...pf);
       if (pf.length < PG_SIZE) break;
       pfFrom += PG_SIZE;
     }
-    const profilesByEmail = new Map<string, { id: string; subscription_plan: string }>();
+    const profilesByEmail = new Map<string, { id: string; subscription_plan: string; is_admin?: boolean }>();
     for (const p of allProfiles || []) {
       if (p.email) profilesByEmail.set(p.email.toLowerCase().trim(), p);
     }
@@ -562,10 +562,11 @@ export async function POST(req: NextRequest) {
         created_by: user.id,
       };
 
-      // Auto-match email with profiles (in-memory)
-      if (record.email) {
+      // Auto-match email with profiles (in-memory, skip admin emails)
+      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      if (record.email && !ADMIN_EMAILS.includes(record.email.toLowerCase().trim())) {
         const matchedProfile = profilesByEmail.get(record.email.toLowerCase().trim());
-        if (matchedProfile) {
+        if (matchedProfile && !matchedProfile.is_admin) {
           prospectData.matched_user_id = matchedProfile.id;
           prospectData.matched_plan = matchedProfile.subscription_plan;
         }

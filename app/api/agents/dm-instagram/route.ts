@@ -99,9 +99,10 @@ async function generateProspectVisual(prospect: any): Promise<string | null> {
 /**
  * Generate personalized DM via Claude Haiku
  */
-async function generateDM(prospect: any): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string } | null> {
+async function generateDM(prospect: any, platform: 'instagram' | 'tiktok' = 'instagram'): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string; pre_comments?: string[] } | null> {
   if (!process.env.GEMINI_API_KEY) return null;
 
+  const isTikTok = platform === 'tiktok';
   const prospectData = JSON.stringify({
     business_name: prospect.company,
     business_type: prospect.type || 'commerce',
@@ -109,7 +110,8 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
     ville: prospect.ville || prospect.city || 'Paris',
     google_rating: prospect.google_rating || prospect.note_google,
     google_reviews: prospect.google_reviews,
-    instagram_handle: prospect.instagram || null,
+    instagram_handle: !isTikTok ? (prospect.instagram || null) : null,
+    tiktok_handle: isTikTok ? (prospect.tiktok_handle || null) : null,
     instagram_followers: prospect.instagram_followers || null,
     instagram_posts: prospect.instagram_posts || null,
     last_post_date: prospect.last_instagram_post || null,
@@ -120,13 +122,14 @@ async function generateDM(prospect: any): Promise<{ dm_text: string; personaliza
     temperature: prospect.temperature || 'cold',
     score: prospect.score || 0,
     previous_interactions: prospect.dm_followup_count || 0,
+    platform,
   });
 
   try {
     const rawText = await callGemini({
-      system: getDMSystemPrompt(),
+      system: getDMSystemPrompt(platform),
       message: prospectData,
-      maxTokens: 800,
+      maxTokens: 1000,
     });
     const cleanText = rawText.replace(/```[\w]*\s*/g, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
@@ -299,7 +302,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
   for (let b = 0; b < eligibleProspects.length; b += DM_BATCH_SIZE) {
     const batch = eligibleProspects.slice(b, b + DM_BATCH_SIZE);
     const batchDms = await Promise.all(batch.map(async ({ prospect, category }) => {
-      const dm = await generateDM(prospect);
+      const dm = await generateDM(prospect, platform);
       return { prospect, category, dm };
     }));
     dmResults.push(...batchDms);

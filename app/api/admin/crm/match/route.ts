@@ -51,13 +51,17 @@ export async function POST(req: NextRequest) {
     for (const prospect of prospects || []) {
       if (!prospect.email) continue;
 
+      // Skip admin emails
+      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      if (ADMIN_EMAILS.includes(prospect.email.toLowerCase())) continue;
+
       const { data: matchedProfile } = await supabase
         .from('profiles')
-        .select('id, subscription_plan')
+        .select('id, subscription_plan, is_admin')
         .eq('email', prospect.email)
         .single();
 
-      if (matchedProfile) {
+      if (matchedProfile && !matchedProfile.is_admin) {
         const { error: updateError } = await supabase
           .from('crm_prospects')
           .update({

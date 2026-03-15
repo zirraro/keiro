@@ -456,7 +456,7 @@ async function sendEmail(
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
             replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
-            bcc: [{ email: 'mrzirraro@gmail.com', name: 'Admin KeiroAI' }],
+            // No BCC — saves Brevo quota. Emails tracked via crm_activities.
             subject: template.subject,
             htmlContent: template.htmlBody,
             textContent: template.textBody,
@@ -495,7 +495,7 @@ async function sendEmail(
           body: JSON.stringify({
             from: 'Victor de KeiroAI <contact@keiroai.com>',
             to: [prospect.email],
-            bcc: ['mrzirraro@gmail.com'],
+            // No BCC — saves Resend quota. Emails tracked via crm_activities.
             subject: template.subject,
             html: template.htmlBody,
             text: template.textBody,

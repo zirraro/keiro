@@ -179,6 +179,7 @@ function SuiviPublicationsPage() {
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
   const [tabStats, setTabStats] = useState<{ pending: number; sent: number; responded: number }>({ pending: 0, sent: 0, responded: 0 });
+  const [emailTypeStats, setEmailTypeStats] = useState<Record<string, number>>({});
 
   // UI
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -314,9 +315,8 @@ function SuiviPublicationsPage() {
         supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_opened'),
         supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_replied'),
       ]);
-      setTabStats({ pending: totalEmails ?? 0, sent: openedEmails ?? 0, responded: repliedEmails ?? 0 });
 
-      // Load email activities from crm_activities
+      // Try crm_activities first
       let query = supabase
         .from('crm_activities')
         .select('*, prospect:crm_prospects(company, email, type, status, temperature, email_sequence_step)')
@@ -325,6 +325,47 @@ function SuiviPublicationsPage() {
 
       const { data } = await query.limit(200);
       let items = (data as any) || [];
+
+      // Fallback: if crm_activities has no emails, load from agent_logs
+      if (items.length === 0) {
+        const { data: logItems } = await supabase
+          .from('agent_logs')
+          .select('*')
+          .eq('agent', 'email')
+          .eq('action', 'email_sent')
+          .order('created_at', { ascending: false })
+          .limit(200);
+
+        if (logItems && logItems.length > 0) {
+          items = logItems.map((log: any) => ({
+            id: log.id,
+            prospect_id: log.data?.prospect_id,
+            type: 'email',
+            description: `Email step ${log.data?.step || '?'} envoyé: "${log.data?.subject || ''}"`,
+            data: {
+              step: log.data?.step,
+              subject: log.data?.subject,
+              category: log.data?.category || '',
+              provider: log.data?.provider,
+              message_id: log.data?.message_id,
+            },
+            prospect: { company: log.data?.company || '', email: log.data?.prospect_email || '' },
+            created_at: log.created_at,
+          }));
+        }
+      }
+
+      // Compute type distribution from all emails
+      const typeDist: Record<string, number> = {};
+      for (const item of items) {
+        const cat = item.data?.category || (item.prospect as any)?.type || 'autre';
+        typeDist[cat] = (typeDist[cat] || 0) + 1;
+      }
+      setEmailTypeStats(typeDist);
+
+      // Use total from crm_activities if available, otherwise use items count
+      const total = (totalEmails ?? 0) > 0 ? (totalEmails ?? 0) : items.length;
+      setTabStats({ pending: total, sent: openedEmails ?? 0, responded: repliedEmails ?? 0 });
 
       // Filter by step in JS (data is JSONB)
       if (emailSubTab === 'step1') {
@@ -653,6 +694,17 @@ function SuiviPublicationsPage() {
               >
                 {t.label}
               </button>
+            ))}
+          </div>
+        )}
+
+        {/* Email Type Distribution */}
+        {isEmailTab && Object.keys(emailTypeStats).length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {Object.entries(emailTypeStats).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
+              <span key={type} className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100 font-medium">
+                {type}: {count}
+              </span>
             ))}
           </div>
         )}

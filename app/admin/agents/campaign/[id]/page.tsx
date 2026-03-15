@@ -102,10 +102,13 @@ export default function CampaignDetailPage() {
     }
   };
 
-  const handleContentAction = async (postId: string, action: 'approve' | 'publish' | 'skip') => {
-    const data = await doAction('/api/agents/content', { action, postId }, `${action}_${postId}`);
+  const handleContentAction = async (postId: string, action: 'approve' | 'publish' | 'skip', platform?: string) => {
+    const payload: any = { action, postId };
+    if (platform) payload.platform = platform;
+    const data = await doAction('/api/agents/content', payload, `${action}_${postId}`);
     if (data?.ok) {
       setContentPosts(prev => prev.map(p => p.id === postId ? { ...p, status: action === 'approve' ? 'approved' : action === 'publish' ? 'published' : 'skipped', ...(action === 'publish' ? { published_at: new Date().toISOString() } : {}) } : p));
+      if (data.errors?.length) alert('Publié avec erreurs: ' + data.errors.join(', '));
     }
   };
 
@@ -442,13 +445,22 @@ export default function CampaignDetailPage() {
                       {(post.status === 'draft' || post.status === 'approved') && (
                         <>
                           {post.status === 'draft' && (
-                            <LoadingBtn loading={actionLoading === `approve_${post.id}`} onClick={() => handleContentAction(post.id, 'approve')} className="bg-blue-100 text-blue-700 hover:bg-blue-200">Approuver</LoadingBtn>
+                            <>
+                              <LoadingBtn loading={actionLoading === `approve_${post.id}`} onClick={() => handleContentAction(post.id, 'approve')} className="bg-blue-100 text-blue-700 hover:bg-blue-200">Approuver</LoadingBtn>
+                              <LoadingBtn loading={actionLoading === `skip_${post.id}`} onClick={() => handleContentAction(post.id, 'skip')} className="bg-neutral-100 text-neutral-500 hover:bg-neutral-200">Ignorer</LoadingBtn>
+                            </>
                           )}
-                          <LoadingBtn loading={actionLoading === `publish_${post.id}`} onClick={() => handleContentAction(post.id, 'publish')} className="bg-green-100 text-green-700 hover:bg-green-200">Publier</LoadingBtn>
-                          <LoadingBtn loading={actionLoading === `skip_${post.id}`} onClick={() => handleContentAction(post.id, 'skip')} className="bg-neutral-100 text-neutral-500 hover:bg-neutral-200">Ignorer</LoadingBtn>
+                          <LoadingBtn loading={actionLoading === `publish_${post.id}`} onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="bg-pink-100 text-pink-700 hover:bg-pink-200">Insta</LoadingBtn>
+                          <LoadingBtn loading={actionLoading === `publish_${post.id}`} onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="bg-neutral-200 text-neutral-800 hover:bg-neutral-300">TikTok</LoadingBtn>
+                          <LoadingBtn loading={actionLoading === `publish_${post.id}`} onClick={() => handleContentAction(post.id, 'publish', 'all')} className="bg-green-100 text-green-700 hover:bg-green-200">Tous</LoadingBtn>
                         </>
                       )}
-                      {post.status === 'published' && <span className="text-xs text-green-600 font-medium">Publié</span>}
+                      {post.status === 'published' && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-green-600 font-medium">Publié</span>
+                          <LoadingBtn loading={actionLoading === `publish_${post.id}`} onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="bg-neutral-200 text-neutral-800 hover:bg-neutral-300">TikTok</LoadingBtn>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
