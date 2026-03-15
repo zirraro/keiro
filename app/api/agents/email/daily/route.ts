@@ -644,9 +644,9 @@ export async function GET(request: NextRequest) {
   let skippedMaxDaily = 0;
   let prospectCount = 0;
 
-  // ── BREVO FREE PLAN LIMITER: 300 emails/day max ──
-  // Count emails already sent today to stay under the limit
-  const DAILY_EMAIL_LIMIT = 280; // 280 safety margin (Brevo free = 300/day)
+  // ── DAILY EMAIL LIMITER ──
+  // Brevo free = 300/day + Resend overflow. Target: 280+ emails/day.
+  const DAILY_EMAIL_LIMIT = 300; // Brevo free max
   const todayStart = new Date(now);
   todayStart.setUTCHours(0, 0, 0, 0);
   const { count: emailsSentToday } = await supabase
@@ -664,7 +664,7 @@ export async function GET(request: NextRequest) {
     if (process.env.RESEND_API_KEY) {
       console.log('[EmailDaily] Brevo quota exhausted — switching to Resend-only mode.');
       resendOnlyMode = true;
-      remainingQuota = 100; // Resend has its own limits but allow batch
+      remainingQuota = 200; // Resend overflow to reach 280+ total/day
     } else {
       console.log('[EmailDaily] Daily email limit reached (300/day Brevo free) and no Resend. Skipping.');
       return NextResponse.json({
@@ -868,8 +868,8 @@ export async function GET(request: NextRequest) {
       const RUN_TIME_LIMIT_MS = 240_000; // 240s hard limit (leave 60s for reporting)
       const runStart = Date.now();
 
-      // Cap batch to remaining daily quota (no point generating AI emails we can't send)
-      const maxBatchSize = Math.min(remainingQuota, 40); // Max 40 per cron slot to spread across the day
+      // Cap batch to remaining daily quota — 60 per slot allows ~280/day across 5-6 slots
+      const maxBatchSize = Math.min(remainingQuota, 60);
 
       for (const prospect of prospects) {
         // Quota guard — stop when we've queued enough for this slot
