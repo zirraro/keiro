@@ -145,13 +145,73 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        case 'soft_bounce': {
-          // Just log, don't change status
+        case 'soft_bounce':
+        case 'blocked':
+        case 'deferred':
+        case 'error': {
+          // Brevo failed to deliver — retry via Resend if available
+          const RESEND_KEY = process.env.RESEND_API_KEY;
+          let retried = false;
+
+          if (RESEND_KEY && prospect.email_sequence_step) {
+            try {
+              // Re-send the email via Resend as fallback
+              const { getEmailTemplate: getTemplate } = await import('@/lib/agents/email-templates');
+              const { getSequenceForProspect: getSeq } = await import('@/lib/agents/scoring');
+
+              const cat = getSeq(prospect);
+              const vars: Record<string, string> = {
+                first_name: prospect.first_name || '',
+                company: prospect.company || '',
+                type: prospect.type || '',
+                quartier: prospect.quartier || '',
+                note_google: prospect.note_google != null ? String(prospect.note_google) : '',
+              };
+              const tmpl = getTemplate(cat, prospect.email_sequence_step, vars, prospect.email_subject_variant || 0);
+
+              const resendRes = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${RESEND_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: 'Victor de KeiroAI <contact@keiroai.com>',
+                  to: [prospect.email],
+                  subject: tmpl.subject,
+                  html: tmpl.htmlBody,
+                  text: tmpl.textBody,
+                  tags: [
+                    { name: 'type', value: 'retry-brevo-fail' },
+                    { name: 'step', value: String(prospect.email_sequence_step) },
+                    { name: 'prospect_id', value: prospect.id },
+                  ],
+                }),
+              });
+
+              if (resendRes.ok) {
+                retried = true;
+                const resendData = await resendRes.json();
+                console.log(`[BrevoWebhook] ${eventType} for ${prospect.email} — retried via Resend OK:`, resendData.id);
+
+                // Update provider in prospect
+                await supabase.from('crm_prospects').update({
+                  email_provider: 'resend',
+                  updated_at: now,
+                }).eq('id', prospect.id);
+              } else {
+                console.warn(`[BrevoWebhook] Resend retry failed for ${prospect.email}:`, await resendRes.text().catch(() => ''));
+              }
+            } catch (retryErr: any) {
+              console.error(`[BrevoWebhook] Resend retry error for ${prospect.email}:`, retryErr.message);
+            }
+          }
+
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
-            type: 'email_soft_bounce',
-            description: `Soft bounce pour ${prospect.email}`,
-            data: { bounce_reason: event.reason },
+            type: `email_${eventType}`,
+            description: `${eventType} pour ${prospect.email}${retried ? ' — renvoyé via Resend' : ''}`,
+            data: { bounce_reason: event.reason, retried_via_resend: retried },
             created_at: now,
           });
           break;

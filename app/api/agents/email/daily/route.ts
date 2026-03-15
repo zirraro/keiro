@@ -658,16 +658,42 @@ export async function GET(request: NextRequest) {
   let remainingQuota = Math.max(0, DAILY_EMAIL_LIMIT - sentToday);
   console.log(`[EmailDaily] Daily quota: ${sentToday}/${DAILY_EMAIL_LIMIT} sent today, ${remainingQuota} remaining`);
 
+  // If Brevo quota exhausted but Resend available, switch to Resend-only mode
+  let resendOnlyMode = false;
   if (remainingQuota === 0) {
-    console.log('[EmailDaily] Daily email limit reached (300/day Brevo free). Skipping this run.');
-    return NextResponse.json({
-      ok: true,
-      message: `Limite quotidienne atteinte (${sentToday}/${DAILY_EMAIL_LIMIT}). Les emails reprendront demain.`,
-      sent: 0, skipped_quota: true,
-    });
+    if (process.env.RESEND_API_KEY) {
+      console.log('[EmailDaily] Brevo quota exhausted — switching to Resend-only mode.');
+      resendOnlyMode = true;
+      remainingQuota = 100; // Resend has its own limits but allow batch
+    } else {
+      console.log('[EmailDaily] Daily email limit reached (300/day Brevo free) and no Resend. Skipping.');
+      return NextResponse.json({
+        ok: true,
+        message: `Limite quotidienne Brevo atteinte (${sentToday}/${DAILY_EMAIL_LIMIT}). Pas de Resend configuré.`,
+        sent: 0, skipped_quota: true,
+      });
+    }
   }
 
   try {
+    // Recovery: reset send_failed prospects older than 24h so they retry (via Resend this time)
+    if (process.env.RESEND_API_KEY) {
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: failedProspects } = await supabase
+        .from('crm_prospects')
+        .select('id')
+        .eq('email_sequence_status', 'send_failed')
+        .lt('updated_at', oneDayAgo);
+
+      if (failedProspects && failedProspects.length > 0) {
+        await supabase
+          .from('crm_prospects')
+          .update({ email_sequence_status: 'in_progress', email_send_failures: 0, updated_at: nowISO })
+          .in('id', failedProspects.map(p => p.id));
+        console.log(`[EmailDaily] Recovered ${failedProspects.length} send_failed prospects for retry via Resend`);
+      }
+    }
+
     // Load agent learnings for AI generation
     const learnings = await loadAgentLearnings();
 
