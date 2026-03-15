@@ -9,13 +9,13 @@ interface FeedbackPopupProps {
 export default function FeedbackPopup({ show, onAccept, onDismiss }: FeedbackPopupProps) {
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 max-w-sm transition-all duration-500 ease-out ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}`}
+      className={`fixed bottom-24 right-6 z-[60] max-w-sm transition-all duration-500 ease-out ${show ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none'}`}
     >
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl p-5">
+      <div className="bg-white border border-neutral-200 rounded-2xl shadow-2xl p-5">
         {/* Content */}
         <div>
-          <p className="font-bold text-gray-900 text-base">Votre avis compte !</p>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="font-bold text-neutral-900 text-base">Votre avis compte !</p>
+          <p className="text-sm text-neutral-600 mt-1">
             Un retour rapide pour améliorer Keiro ? (~30 secondes)
           </p>
         </div>
@@ -30,7 +30,7 @@ export default function FeedbackPopup({ show, onAccept, onDismiss }: FeedbackPop
           </button>
           <button
             onClick={onDismiss}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap"
+            className="text-sm text-neutral-700 hover:text-neutral-900 font-medium transition-colors whitespace-nowrap"
           >
             Plus tard
           </button>
