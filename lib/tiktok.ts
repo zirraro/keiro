@@ -467,15 +467,12 @@ export async function initTikTokPhotoUpload(
   console.log('[TikTok] Proxied photo URLs:', proxiedUrls.map(u => u.substring(0, 100)));
 
   // Step 1: Get creator info to determine available privacy levels
-  let privacyLevel = 'PUBLIC_TO_EVERYONE';
+  // TikTok photo posting via content/init may have different audit status than video/init
+  // Try PUBLIC_TO_EVERYONE first, fallback to SELF_ONLY if 403
+  let privacyLevel = 'SELF_ONLY';
   try {
     const creatorInfo = await getCreatorInfo(accessToken);
     console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
-    if (creatorInfo.privacy_level_options?.includes('PUBLIC_TO_EVERYONE')) {
-      privacyLevel = 'PUBLIC_TO_EVERYONE';
-    } else if (creatorInfo.privacy_level_options?.includes('SELF_ONLY')) {
-      privacyLevel = 'SELF_ONLY';
-    }
   } catch (e: any) {
     console.warn('[TikTok] Could not get creator info:', e.message);
   }
