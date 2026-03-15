@@ -455,22 +455,16 @@ export async function initTikTokPhotoUpload(
   }
 
   // Step 1: Get creator info to determine available privacy levels
-  // Prefer PUBLIC_TO_EVERYONE for validated apps, fallback to SELF_ONLY
-  let privacyLevel = 'PUBLIC_TO_EVERYONE';
+  // IMPORTANT: Unaudited apps MUST use SELF_ONLY (TikTok sandbox restriction)
+  // Once app passes TikTok audit, can switch to PUBLIC_TO_EVERYONE
+  let privacyLevel = 'SELF_ONLY';
   try {
     const creatorInfo = await getCreatorInfo(accessToken);
     console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
-    if (creatorInfo.privacy_level_options?.length > 0) {
-      if (creatorInfo.privacy_level_options.includes('PUBLIC_TO_EVERYONE')) {
-        privacyLevel = 'PUBLIC_TO_EVERYONE';
-      } else if (creatorInfo.privacy_level_options.includes('SELF_ONLY')) {
-        privacyLevel = 'SELF_ONLY';
-      } else {
-        privacyLevel = creatorInfo.privacy_level_options[0];
-      }
-    }
+    // Always use SELF_ONLY for sandbox/unaudited apps
+    // TikTok returns 403 "unaudited_client_can_only_post_to_private_accounts" otherwise
   } catch (e: any) {
-    console.warn('[TikTok] Could not get creator info, using PUBLIC_TO_EVERYONE:', e.message);
+    console.warn('[TikTok] Could not get creator info, using SELF_ONLY:', e.message);
   }
 
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
