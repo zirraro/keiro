@@ -478,7 +478,21 @@ async function generateBrief(): Promise<NextResponse> {
       }
     }
 
+    // Paying clients = active Stripe subscription (real money received)
+    const { count: payingClientsCount } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .not('stripe_subscription_id', 'is', null);
+
+    // Total registered users (non-admin, non-free info)
+    const { count: totalUsers } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .neq('is_admin', true);
+
     const metrics24h = {
+      paying_clients: payingClientsCount ?? 0,
+      total_users: totalUsers ?? 0,
       leads: (newProspects24h ?? 0),
       leads_from_chatbot: leadsEmail24h + leadsPhone24h,
       emails_sent: emailsSent24h,

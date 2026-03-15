@@ -303,11 +303,12 @@ export default function AdminCRMPage() {
       const now = new Date();
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+      // A paying client = has an active Stripe subscription (real money received)
+      // subscription_plan != 'free' alone is NOT enough (promos, admin tests)
       const { data: clients } = await supabase
         .from('profiles')
-        .select('id, email, first_name, subscription_plan, credits_balance, credits_monthly_allowance, created_at')
-        .neq('subscription_plan', 'free')
-        .not('subscription_plan', 'is', null);
+        .select('id, email, first_name, subscription_plan, credits_balance, credits_monthly_allowance, created_at, stripe_customer_id, stripe_subscription_id')
+        .not('stripe_subscription_id', 'is', null);
 
       if (!clients || clients.length === 0) { setPayingClients([]); return; }
 
