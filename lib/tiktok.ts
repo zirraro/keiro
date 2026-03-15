@@ -455,20 +455,22 @@ export async function initTikTokPhotoUpload(
   }
 
   // Step 1: Get creator info to determine available privacy levels
-  let privacyLevel = 'SELF_ONLY';
+  // Prefer PUBLIC_TO_EVERYONE for validated apps, fallback to SELF_ONLY
+  let privacyLevel = 'PUBLIC_TO_EVERYONE';
   try {
     const creatorInfo = await getCreatorInfo(accessToken);
     console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
     if (creatorInfo.privacy_level_options?.length > 0) {
-      // Prefer SELF_ONLY, fallback to first available
-      if (creatorInfo.privacy_level_options.includes('SELF_ONLY')) {
+      if (creatorInfo.privacy_level_options.includes('PUBLIC_TO_EVERYONE')) {
+        privacyLevel = 'PUBLIC_TO_EVERYONE';
+      } else if (creatorInfo.privacy_level_options.includes('SELF_ONLY')) {
         privacyLevel = 'SELF_ONLY';
       } else {
         privacyLevel = creatorInfo.privacy_level_options[0];
       }
     }
   } catch (e: any) {
-    console.warn('[TikTok] Could not get creator info, using SELF_ONLY:', e.message);
+    console.warn('[TikTok] Could not get creator info, using PUBLIC_TO_EVERYONE:', e.message);
   }
 
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
@@ -476,22 +478,31 @@ export async function initTikTokPhotoUpload(
   console.log('[TikTok] Title:', (title || '').substring(0, 80));
   console.log('[TikTok] Privacy level:', privacyLevel);
 
-  // Build clean title — TikTok PHOTO posts are VERY strict:
-  // - No newlines, no special unicode, no emojis
-  // - ASCII + basic French accents only
-  // - Max 150 chars
-  const cleanTitle = (title || 'Photo')
+  // Build clean title — TikTok PHOTO posts: max 90 UTF-16 chars
+  // title = short headline, description = full caption
+  const fullText = (title || 'Photo')
     .replace(/\n+/g, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/[^\w\s.,!?éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ]/g, '') // Strip everything except letters, digits, basic punct, accents
-    .substring(0, 100)
     .trim() || 'Photo';
 
+  // Title: max 90 chars, cut at word boundary
+  let cleanTitle = fullText.substring(0, 90);
+  if (fullText.length > 90) {
+    const lastSpace = cleanTitle.lastIndexOf(' ');
+    if (lastSpace > 40) cleanTitle = cleanTitle.substring(0, lastSpace);
+  }
+  cleanTitle = cleanTitle.trim() || 'Photo';
+
+  // Description: full text up to 4000 chars (includes hashtags etc.)
+  const cleanDescription = fullText.substring(0, 4000);
+
   // TikTok PHOTO post via Content Posting API v2
-  // Required fields: title, privacy_level, disable_comment, auto_add_music
+  // Endpoint: /v2/post/publish/content/init/
+  // title max 90 chars, description max 4000 chars
   const requestBody: Record<string, any> = {
     post_info: {
       title: cleanTitle,
+      description: cleanDescription,
       privacy_level: privacyLevel,
       disable_comment: false,
       auto_add_music: true,
@@ -499,15 +510,11 @@ export async function initTikTokPhotoUpload(
     source_info: {
       source: 'PULL_FROM_URL',
       photo_images: photoUrls,
-    } as Record<string, any>,
+      photo_cover_index: 0,
+    },
     post_mode: 'DIRECT_POST',
     media_type: 'PHOTO',
   };
-
-  // Only add photo_cover_index for multi-image posts
-  if (photoUrls.length > 1) {
-    (requestBody.source_info as any).photo_cover_index = 0;
-  }
 
   console.log('[TikTok] Photo request body:', JSON.stringify(requestBody));
 
