@@ -160,6 +160,18 @@ export async function GET(request: NextRequest) {
   const results: { id: string; to_agent: string; order_type: string; status: string; result?: string; api_response?: any }[] = [];
 
   try {
+    // --- Unstick orders stuck in_progress for more than 10 minutes ---
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: stuckOrders } = await supabase
+      .from('agent_orders')
+      .update({ status: 'pending', result: { unstuck_at: now, reason: 'timeout_reset' } })
+      .eq('status', 'in_progress')
+      .lt('created_at', tenMinAgo)
+      .select('id');
+    if (stuckOrders?.length) {
+      console.log(`[OrderExecutor] Unstuck ${stuckOrders.length} orders from in_progress → pending`);
+    }
+
     // Fetch all pending orders (max 20 per run)
     const { data: orders, error } = await supabase
       .from('agent_orders')
@@ -170,74 +182,68 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
     if (!orders || orders.length === 0) {
-      return NextResponse.json({ ok: true, message: 'No pending orders', processed: 0 });
+      return NextResponse.json({ ok: true, message: 'No pending orders', processed: 0, unstuck: stuckOrders?.length || 0 });
     }
 
-    console.log(`[OrderExecutor] Processing ${orders.length} pending orders...`);
+    console.log(`[OrderExecutor] Processing ${orders.length} pending orders in PARALLEL...`);
 
-    for (const order of orders) {
+    // Mark all as in_progress at once
+    const orderIds = orders.map((o: any) => o.id);
+    await supabase.from('agent_orders').update({
+      status: 'in_progress',
+      result: { started_at: now },
+    }).in('id', orderIds);
+
+    // Execute ALL orders in parallel (not sequentially)
+    const execPromises = orders.map(async (order: any) => {
       try {
-        // Mark as in_progress
-        await supabase.from('agent_orders').update({
-          status: 'in_progress',
-          result: { started_at: now },
-        }).eq('id', order.id);
-
-        // Report to CEO: task started
         await reportToCeo(supabase, order.id, order.to_agent, 'started', order.order_type);
 
         const executionResult = await executeOrder(supabase, order, baseUrl, cronSecret);
 
-        // Mark as completed
         await supabase.from('agent_orders').update({
           status: executionResult.ok ? 'completed' : 'failed',
           result: {
             message: executionResult.summary,
             api_response: executionResult.data,
-            executed_at: now,
+            executed_at: new Date().toISOString(),
             executed_by: 'cron',
           },
-          completed_at: now,
+          completed_at: new Date().toISOString(),
         }).eq('id', order.id);
 
-        // Report to CEO: task completed or failed
         await reportToCeo(
-          supabase,
-          order.id,
-          order.to_agent,
+          supabase, order.id, order.to_agent,
           executionResult.ok ? 'completed' : 'failed',
-          order.order_type,
-          executionResult.summary
+          order.order_type, executionResult.summary
         );
 
-        results.push({
-          id: order.id,
-          to_agent: order.to_agent,
-          order_type: order.order_type,
-          status: executionResult.ok ? 'completed' : 'failed',
-          result: executionResult.summary,
-          api_response: executionResult.data,
-        });
         console.log(`[OrderExecutor] Order ${order.id} → ${order.to_agent}: ${executionResult.summary}`);
-
+        return {
+          id: order.id, to_agent: order.to_agent, order_type: order.order_type,
+          status: executionResult.ok ? 'completed' : 'failed',
+          result: executionResult.summary, api_response: executionResult.data,
+        };
       } catch (orderError: any) {
         await supabase.from('agent_orders').update({
           status: 'failed',
-          result: { error: orderError.message, failed_at: now },
+          result: { error: orderError.message, failed_at: new Date().toISOString() },
         }).eq('id', order.id);
 
-        // Report to CEO: task failed with error
         await reportToCeo(supabase, order.id, order.to_agent, 'failed', order.order_type, orderError.message);
-
-        results.push({
-          id: order.id,
-          to_agent: order.to_agent,
-          order_type: order.order_type,
-          status: 'failed',
-          result: orderError.message,
-        });
         console.error(`[OrderExecutor] Order ${order.id} failed:`, orderError.message);
+
+        return {
+          id: order.id, to_agent: order.to_agent, order_type: order.order_type,
+          status: 'failed', result: orderError.message,
+        };
       }
+    });
+
+    const settled = await Promise.allSettled(execPromises);
+    for (const s of settled) {
+      if (s.status === 'fulfilled') results.push(s.value);
+      else results.push({ id: 'unknown', to_agent: 'unknown', order_type: 'unknown', status: 'failed', result: s.reason?.message || 'Promise rejected' });
     }
 
     // Log summary

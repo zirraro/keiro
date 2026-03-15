@@ -96,15 +96,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, message: 'Aucun ordre pending trouvé', processed: 0 });
   }
 
-  console.log(`[ExecuteNow] Admin executing ${orders.length} orders...`);
+  console.log(`[ExecuteNow] Admin executing ${orders.length} orders in PARALLEL...`);
 
-  for (const order of orders) {
+  // Mark all as in_progress at once
+  await supabase.from('agent_orders').update({
+    status: 'in_progress',
+    result: { started_at: now, executed_by: 'admin_manual' },
+  }).in('id', orders.map((o: any) => o.id));
+
+  // Execute ALL orders in parallel
+  const execPromises = orders.map(async (order: any) => {
     try {
-      await supabase.from('agent_orders').update({
-        status: 'in_progress',
-        result: { started_at: now, executed_by: 'admin_manual' },
-      }).eq('id', order.id);
-
       const executionResult = await executeOrder(supabase, order, baseUrl, cronSecret);
 
       await supabase.from('agent_orders').update({
@@ -112,26 +114,30 @@ export async function POST(request: NextRequest) {
         result: {
           message: executionResult.summary,
           api_response: executionResult.data,
-          executed_at: now,
+          executed_at: new Date().toISOString(),
           executed_by: 'admin_manual',
         },
-        completed_at: now,
+        completed_at: new Date().toISOString(),
       }).eq('id', order.id);
 
-      results.push({
-        id: order.id,
-        to_agent: order.to_agent,
+      return {
+        id: order.id, to_agent: order.to_agent,
         status: executionResult.ok ? 'completed' : 'failed',
-        result: executionResult.summary,
-        api_response: executionResult.data,
-      });
+        result: executionResult.summary, api_response: executionResult.data,
+      };
     } catch (e: any) {
       await supabase.from('agent_orders').update({
         status: 'failed',
-        result: { error: e.message, failed_at: now },
+        result: { error: e.message, failed_at: new Date().toISOString() },
       }).eq('id', order.id);
-      results.push({ id: order.id, to_agent: order.to_agent, status: 'failed', result: e.message });
+      return { id: order.id, to_agent: order.to_agent, status: 'failed', result: e.message };
     }
+  });
+
+  const settled = await Promise.allSettled(execPromises);
+  for (const s of settled) {
+    if (s.status === 'fulfilled') results.push(s.value);
+    else results.push({ id: 'unknown', to_agent: 'unknown', status: 'failed', result: s.reason?.message || 'Promise rejected' });
   }
 
   const succeeded = results.filter(r => r.status === 'completed').length;
