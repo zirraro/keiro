@@ -454,17 +454,30 @@ export async function initTikTokPhotoUpload(
     throw new Error('TikTok photo posts support max 35 images');
   }
 
+  // TikTok PHOTO posts require images from a VERIFIED DOMAIN.
+  // Our verified domain is keiroai.com, but images are on Supabase.
+  // Proxy Supabase URLs through keiroai.com/api/tiktok/image-proxy
+  const KEIROAI_DOMAIN = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+  const proxiedUrls = photoUrls.map(url => {
+    if (url.includes('supabase.co/storage/')) {
+      return `${KEIROAI_DOMAIN}/api/tiktok/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  });
+  console.log('[TikTok] Proxied photo URLs:', proxiedUrls.map(u => u.substring(0, 100)));
+
   // Step 1: Get creator info to determine available privacy levels
-  // IMPORTANT: Unaudited apps MUST use SELF_ONLY (TikTok sandbox restriction)
-  // Once app passes TikTok audit, can switch to PUBLIC_TO_EVERYONE
-  let privacyLevel = 'SELF_ONLY';
+  let privacyLevel = 'PUBLIC_TO_EVERYONE';
   try {
     const creatorInfo = await getCreatorInfo(accessToken);
     console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
-    // Always use SELF_ONLY for sandbox/unaudited apps
-    // TikTok returns 403 "unaudited_client_can_only_post_to_private_accounts" otherwise
+    if (creatorInfo.privacy_level_options?.includes('PUBLIC_TO_EVERYONE')) {
+      privacyLevel = 'PUBLIC_TO_EVERYONE';
+    } else if (creatorInfo.privacy_level_options?.includes('SELF_ONLY')) {
+      privacyLevel = 'SELF_ONLY';
+    }
   } catch (e: any) {
-    console.warn('[TikTok] Could not get creator info, using SELF_ONLY:', e.message);
+    console.warn('[TikTok] Could not get creator info:', e.message);
   }
 
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
@@ -505,7 +518,7 @@ export async function initTikTokPhotoUpload(
     },
     source_info: {
       source: 'PULL_FROM_URL',
-      photo_images: photoUrls,
+      photo_images: proxiedUrls,
       photo_cover_index: 0,
     },
     post_mode: 'DIRECT_POST',
