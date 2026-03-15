@@ -308,6 +308,14 @@ function SuiviPublicationsPage() {
 
       setCalendarPosts((data as any) || []);
     } else if (isEmailTab) {
+      // Load email stats for mini dashboard
+      const [{ count: totalEmails }, { count: openedEmails }, { count: repliedEmails }] = await Promise.all([
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email'),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_opened'),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'email_replied'),
+      ]);
+      setTabStats({ pending: totalEmails ?? 0, sent: openedEmails ?? 0, responded: repliedEmails ?? 0 });
+
       // Load email activities from crm_activities
       let query = supabase
         .from('crm_activities')
@@ -315,18 +323,10 @@ function SuiviPublicationsPage() {
         .eq('type', 'email')
         .order('created_at', { ascending: false });
 
-      if (emailSubTab === 'step1') {
-        // Filter step 1 emails only (in JS after fetch since data is JSONB)
-      } else if (emailSubTab === 'step2') {
-        // Filter step 2
-      } else if (emailSubTab === 'step3_plus') {
-        // Filter step 3+
-      }
-
-      const { data } = await query.limit(100);
+      const { data } = await query.limit(200);
       let items = (data as any) || [];
 
-      // Filter by step in JS (data is JSONB, can't filter in PostgREST easily)
+      // Filter by step in JS (data is JSONB)
       if (emailSubTab === 'step1') {
         items = items.filter((e: any) => e.data?.step === 1);
       } else if (emailSubTab === 'step2') {
@@ -599,19 +599,19 @@ function SuiviPublicationsPage() {
         </div>
 
         {/* Mini Dashboard */}
-        {(isDmTab || isCommentTab || isFollowTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (
+        {(isDmTab || isCommentTab || isFollowTab || isEmailTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-100">
               <p className="text-2xl font-bold text-amber-700">{tabStats.pending}</p>
-              <p className="text-[10px] text-amber-600 font-medium">{isFollowTab ? 'A suivre' : isCommentTab ? 'A poster' : 'En attente'}</p>
+              <p className="text-[10px] text-amber-600 font-medium">{isEmailTab ? 'Emails envoyes' : isFollowTab ? 'A suivre' : isCommentTab ? 'A poster' : 'En attente'}</p>
             </div>
             <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
               <p className="text-2xl font-bold text-green-700">{tabStats.sent}</p>
-              <p className="text-[10px] text-green-600 font-medium">{isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyes'}</p>
+              <p className="text-[10px] text-green-600 font-medium">{isEmailTab ? 'Ouverts' : isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyes'}</p>
             </div>
             <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
               <p className="text-2xl font-bold text-blue-700">{tabStats.responded}</p>
-              <p className="text-[10px] text-blue-600 font-medium">{isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
+              <p className="text-[10px] text-blue-600 font-medium">{isEmailTab ? 'Reponses' : isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
             </div>
           </div>
         )}

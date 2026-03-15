@@ -151,7 +151,9 @@ export async function GET(request: NextRequest) {
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   if (isCron) {
-    return runDMPreparation();
+    const url = new URL(request.url);
+    const platform = url.searchParams.get('platform') === 'tiktok' ? 'tiktok' as const : 'instagram' as const;
+    return runDMPreparation(platform);
   }
 
   const supabase = getSupabaseAdmin();
@@ -169,25 +171,39 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/agents/dm-instagram — manual trigger
+ * Body: { platform?: 'instagram' | 'tiktok' }
  */
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  return runDMPreparation();
+
+  let platform: 'instagram' | 'tiktok' = 'instagram';
+  try {
+    const body = await request.json().catch(() => ({}));
+    if (body.platform === 'tiktok') platform = 'tiktok';
+  } catch {}
+
+  // Also check query param
+  const url = new URL(request.url);
+  if (url.searchParams.get('platform') === 'tiktok') platform = 'tiktok';
+
+  return runDMPreparation(platform);
 }
 
 /**
- * DM-specific verification: unlike email, DMs only need Instagram handle + company + type.
+ * DM-specific verification: DMs need platform handle + not dead/client.
  */
-function verifyDMProspectData(prospect: any): { valid: boolean; issues: string[] } {
+function verifyDMProspectData(prospect: any, platform: 'instagram' | 'tiktok' = 'instagram'): { valid: boolean; issues: string[] } {
   const issues: string[] = [];
 
-  if (!prospect.instagram || prospect.instagram === 'A_VERIFIER') {
-    issues.push('instagram_missing');
-  }
-  // company_missing is a warning, not blocking — we can still DM with just the handle
-  if (!prospect.company || prospect.company.trim().length < 2) {
-    // Non-blocking: continue without company name
+  if (platform === 'instagram') {
+    if (!prospect.instagram || prospect.instagram === 'A_VERIFIER') {
+      issues.push('instagram_missing');
+    }
+  } else {
+    if (!prospect.tiktok_handle || prospect.tiktok_handle === 'A_VERIFIER') {
+      issues.push('tiktok_missing');
+    }
   }
   if (prospect.temperature === 'dead' || prospect.status === 'perdu') {
     issues.push('prospect_dead');
@@ -195,24 +211,27 @@ function verifyDMProspectData(prospect: any): { valid: boolean; issues: string[]
   if (prospect.status === 'client' || prospect.status === 'sprint') {
     issues.push('already_client');
   }
-  // type is NOT required for DMs — getSequenceForProspect() defaults to 'pme'
 
   return { valid: issues.length === 0, issues };
 }
 
-async function runDMPreparation(): Promise<NextResponse> {
+async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
+  const isTikTok = platform === 'tiktok';
+  const handleField = isTikTok ? 'tiktok_handle' : 'instagram';
+  const channelName = isTikTok ? 'tiktok' : 'instagram';
+  const agentName = isTikTok ? 'dm_tiktok' : 'dm_instagram';
 
-  console.log('[DMAgent] Preparing and sending daily DMs...');
+  console.log(`[DMAgent] Preparing daily DMs for ${platform}...`);
 
-  // Select prospects with Instagram that haven't been DMed yet
-  const { data: allWithIG, error } = await supabase
+  // Select prospects with handle that haven't been DMed yet
+  const { data: allWithHandle, error } = await supabase
     .from('crm_prospects')
     .select('*')
-    .not('instagram', 'is', null)
-    .neq('instagram', '')
-    .neq('instagram', 'A_VERIFIER')
+    .not(handleField, 'is', null)
+    .neq(handleField, '')
+    .neq(handleField, 'A_VERIFIER')
     .order('score', { ascending: false })
     .limit(200);
 
@@ -222,19 +241,19 @@ async function runDMPreparation(): Promise<NextResponse> {
   }
 
   // Filter in JS for reliability
-  const prospects = (allWithIG || []).filter(p => {
-    const dmOk = !p.dm_status || p.dm_status === 'none';
+  // For TikTok DMs, also check that we haven't already queued a TikTok DM for this prospect
+  const prospects = (allWithHandle || []).filter(p => {
+    const dmOk = isTikTok ? true : (!p.dm_status || p.dm_status === 'none'); // TikTok DMs are separate from IG dm_status
     const tempOk = !p.temperature || p.temperature !== 'dead';
     const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);
     return dmOk && tempOk && statusOk;
   }).slice(0, MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
-    // Diagnostic
-    const { count: totalIG } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null).neq('instagram', '').neq('instagram', 'A_VERIFIER');
+    const { count: totalHandle } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not(handleField, 'is', null).neq(handleField, '').neq(handleField, 'A_VERIFIER');
     const { count: totalCRM } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true });
-    console.log(`[DMAgent] No eligible prospects. CRM: ${totalCRM} total, ${totalIG} with Instagram, all filtered by dm_status/temperature/status`);
-    return NextResponse.json({ ok: true, prepared: 0, sent: 0, message: `Aucun prospect éligible. ${totalIG} avec Instagram sur ${totalCRM} total.` });
+    console.log(`[DMAgent] No eligible ${platform} prospects. CRM: ${totalCRM} total, ${totalHandle} with ${platform} handle`);
+    return NextResponse.json({ ok: true, platform, prepared: 0, sent: 0, message: `Aucun prospect éligible pour DM ${platform}. ${totalHandle} avec handle sur ${totalCRM} total.` });
   }
 
   console.log(`[DMAgent] Found ${prospects.length} eligible prospects`);
@@ -263,7 +282,7 @@ async function runDMPreparation(): Promise<NextResponse> {
     if (fixes.temperature === 'dead' || fixes.status === 'perdu') { skippedVerification++; continue; }
 
     const category = getSequenceForProspect(prospect);
-    const verification = verifyDMProspectData(prospect);
+    const verification = verifyDMProspectData(prospect, platform);
     if (!verification.valid) {
       skippedVerification++;
       console.log(`[DMAgent] Skipped ${prospect.company}: ${verification.issues.join(', ')}`);
@@ -324,11 +343,12 @@ async function runDMPreparation(): Promise<NextResponse> {
       console.log(`[DMAgent] Using fallback template for ${prospect.company || prospect.instagram}`);
     }
 
-    // Insert into dm_queue with status 'pending' — founder must manually send via Instagram
+    // Insert into dm_queue with status 'pending' — founder must manually send
+    const handle = isTikTok ? prospect.tiktok_handle : prospect.instagram;
     const { error: queueError } = await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
-      channel: 'instagram',
-      handle: prospect.instagram,
+      channel: channelName,
+      handle,
       message: dm.dm_text,
       followup_message: dm.follow_up_3d,
       personalization: JSON.stringify({
@@ -368,10 +388,11 @@ async function runDMPreparation(): Promise<NextResponse> {
     // Log CRM activity
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,
-      type: 'dm_instagram',
-      description: `DM Instagram préparé pour @${prospect.instagram}`,
+      type: isTikTok ? 'dm_tiktok' : 'dm_instagram',
+      description: `DM ${platform} préparé pour @${handle}`,
       data: {
-        handle: prospect.instagram,
+        handle,
+        platform,
         message_preview: dm.dm_text.substring(0, 100),
         business_type: category,
         followup_date: followupDate,
@@ -381,32 +402,33 @@ async function runDMPreparation(): Promise<NextResponse> {
 
     prepared++;
     sent++;
-    preparedNames.push(`${prospect.company} (@${prospect.instagram})`);
+    preparedNames.push(`${prospect.company} (@${handle})`);
 
     if (!byBusinessType[category]) byBusinessType[category] = { count: 0, handles: [] };
     byBusinessType[category].count++;
-    byBusinessType[category].handles.push(prospect.instagram);
+    byBusinessType[category].handles.push(handle);
 
-    console.log(`[DMAgent] DM sent to ${prospect.company} (@${prospect.instagram}) [${category}]`);
+    console.log(`[DMAgent] DM ${platform} prepared for ${prospect.company} (@${handle}) [${category}]`);
     await new Promise(r => setTimeout(r, 300));
   }
 
-  // Also check for followups
-  const { data: followups } = await supabase
-    .from('crm_prospects')
-    .select('*')
-    .eq('dm_status', 'sent')
-    .lte('dm_followup_date', new Date().toISOString().split('T')[0])
-    .lt('dm_followup_count', 1);
-
+  // Also check for followups (only for Instagram — TikTok DMs are one-shot copy-paste)
   let followupCount = 0;
-  if (followups) {
-    for (const p of followups) {
-      if (p.dm_followup_message) {
-        await supabase.from('dm_queue').insert({
-          prospect_id: p.id,
-          channel: 'instagram',
-          handle: p.instagram,
+  if (!isTikTok) {
+    const { data: followups } = await supabase
+      .from('crm_prospects')
+      .select('*')
+      .eq('dm_status', 'sent')
+      .lte('dm_followup_date', new Date().toISOString().split('T')[0])
+      .lt('dm_followup_count', 1);
+
+    if (followups) {
+      for (const p of followups) {
+        if (p.dm_followup_message) {
+          await supabase.from('dm_queue').insert({
+            prospect_id: p.id,
+            channel: 'instagram',
+            handle: p.instagram,
           message: p.dm_followup_message,
           personalization: 'Relance J+3',
           priority: (p.score || 50) + 10,
@@ -420,9 +442,10 @@ async function runDMPreparation(): Promise<NextResponse> {
         }).eq('id', p.id);
 
         followupCount++;
+        }
       }
     }
-  }
+  } // end if !isTikTok
 
   const report = {
     prepared,
@@ -437,22 +460,23 @@ async function runDMPreparation(): Promise<NextResponse> {
 
   // Report to CEO agent
   await supabase.from('agent_logs').insert({
-    agent: 'dm_instagram',
+    agent: agentName,
     action: 'report_to_ceo',
     data: {
       phase: 'completed',
-      message: `DM Instagram: ${sent} envoyés, ${failed} échoués, ${followupCount} relances`,
+      platform,
+      message: `DM ${platform}: ${sent} préparés, ${failed} échoués, ${followupCount} relances`,
     },
     created_at: now,
   });
 
   await supabase.from('agent_logs').insert({
-    agent: 'dm_instagram',
+    agent: agentName,
     action: 'daily_preparation',
-    data: report,
+    data: { ...report, platform },
     created_at: now,
   });
 
-  console.log(`[DMAgent] Done: ${sent} sent, ${failed} failed, ${skippedVerification} skipped(verif), ${followupCount} followups`);
-  return NextResponse.json({ ok: true, ...report });
+  console.log(`[DMAgent] ${platform} Done: ${sent} prepared, ${failed} failed, ${skippedVerification} skipped, ${followupCount} followups`);
+  return NextResponse.json({ ok: true, platform, ...report });
 }

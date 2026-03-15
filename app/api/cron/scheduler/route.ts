@@ -194,8 +194,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep + SEO + Content (all fire-and-forget, each can be long)
+      // 07:00 UTC — DM prep (IG+TT) + SEO + Content (all fire-and-forget, each can be long)
       fireAndForget('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
+      fireAndForget('DM TikTok (morning)', '/api/agents/dm-instagram?platform=tiktok', 'POST');
       fireAndForget('SEO', '/api/agents/seo');
       fireAndForget('Content', '/api/agents/content');
       break;
@@ -239,9 +240,10 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM + TikTok (parallel)
+      // 17:00 UTC — Evening DM (IG+TT) + TikTok comments (parallel)
       await callParallel(
         ['DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST'],
+        ['DM TikTok (evening)', '/api/agents/dm-instagram?platform=tiktok', 'POST'],
         ['TikTok Comments', '/api/agents/tiktok-comments'],
       );
       break;

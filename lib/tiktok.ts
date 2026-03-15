@@ -476,13 +476,22 @@ export async function initTikTokPhotoUpload(
   console.log('[TikTok] Title:', (title || '').substring(0, 80));
   console.log('[TikTok] Privacy level:', privacyLevel);
 
-  // Build clean title — TikTok rejects special chars and empty titles
-  const cleanTitle = (title || 'Photo').replace(/[^\w\s.,!?éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ#@\-]/g, ' ').substring(0, 150).trim() || 'Photo';
+  // Build clean title — TikTok PHOTO posts reject:
+  // - Newlines (\n) in title
+  // - Special characters that aren't simple text
+  // - 'description' field (video-only, causes "post info is empty or incorrect" for PHOTO)
+  const cleanTitle = (title || 'Photo')
+    .replace(/\n+/g, ' ')           // Remove all newlines
+    .replace(/\s+/g, ' ')           // Collapse multiple spaces
+    .replace(/[^\w\s.,!?'éèêëàâäùûüôöîïçÉÈÊËÀÂÄÙÛÜÔÖÎÏÇ#@\-:]/g, '') // Only safe chars
+    .substring(0, 150)
+    .trim() || 'Photo';
 
+  // IMPORTANT: For PHOTO posts, only 'title' and 'privacy_level' in post_info
+  // 'description' is a VIDEO-ONLY field and causes "invalid_params" error for photos
   const requestBody = {
     post_info: {
       title: cleanTitle,
-      description: (description || cleanTitle).substring(0, 150),
       privacy_level: privacyLevel,
     },
     source_info: {
