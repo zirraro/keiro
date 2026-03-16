@@ -2636,8 +2636,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
       }
 
       // Générer le texte des sous-titres si activé (overlay CSS, PAS envoyé à Seedream)
+      let subtitleText = '';
       if (enableAIText) {
-        let subtitleText = '';
 
         // When music is selected with a trending song → use lyrics-style subtitles matching the song
         const isTrendingMusic = selectedMusic && selectedMusic.startsWith('trending:');
@@ -2902,6 +2902,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 // Audio TTS + background music merge
                 const resolvedMusicUrl = musicUrlPromise ? await musicUrlPromise : null;
                 const needsAudioMerge = addAudio || resolvedMusicUrl;
+                let finalAudioUrl: string | null = null;
 
                 if (needsAudioMerge) {
                   try {
@@ -2912,9 +2913,11 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       setVideoProgress(t.generate.finalizingVideoProgress);
                       let textForAudio = '';
                       if (audioTextSource === 'ai') {
-                        textForAudio = useNewsMode && selectedNews
+                        // Use the already-generated Claude narration text (natural, fluid)
+                        // Falls back to raw context only if no subtitle was generated
+                        textForAudio = subtitleText || (useNewsMode && selectedNews
                           ? `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
-                          : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`;
+                          : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`);
                       } else {
                         textForAudio = audioText.trim();
                       }
@@ -2927,6 +2930,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         const audioData = await audioRes.json();
                         if (audioData.ok && audioData.audioUrl) {
                           audioUrlForMerge = audioData.audioUrl;
+                          finalAudioUrl = audioData.audioUrl;
                           setGeneratedAudioUrl(audioData.audioUrl);
                         }
                       }
@@ -2977,8 +2981,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         title: selectedNews?.title ? selectedNews.title.substring(0, 50) : t.generate.generatedVideo,
                         sourceType: 'seedream_i2v',
                         duration: videoDuration,
-                        subtitleText: generatedSubtitleText || null,
-                        audioUrl: generatedAudioUrl || null,
+                        subtitleText: subtitleText || generatedSubtitleText || null,
+                        audioUrl: finalAudioUrl || generatedAudioUrl || null,
                       })
                     });
                   }
@@ -3855,7 +3859,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            {/* Panel Assistant Prompt */}
+            {/* Panel Assistant Prompt — masqué pendant/après génération */}
+            {!generating && !generatingVideo && !generatedImageUrl && !generatedVideoUrl && (
             <div ref={assistantPanelRef} className="bg-white rounded-xl border p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">{t.generate.assistantMarketing}</h3>
@@ -5261,6 +5266,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </>)}
               </div>
             </div>
+            )}
 
             {/* ═══ SIDEBAR: indicateur compact + lien vers résultat ═══ */}
             {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl && (

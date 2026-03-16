@@ -1545,6 +1545,92 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, published: publishedCount, posts: publishedPosts });
       }
 
+      case 'fix_captions': {
+        // Reformate all draft/approved/published captions to new airy UX format
+        const { data: postsToFix } = await supabase
+          .from('content_calendar')
+          .select('id, caption, platform, hook, visual_description, status, hashtags')
+          .in('status', ['draft', 'approved', 'published'])
+          .not('caption', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(body.limit || 50);
+
+        let fixed = 0;
+        let skipped = 0;
+        const fixResults: Array<{ id: string; status: string; preview?: string }> = [];
+
+        for (const post of postsToFix || []) {
+          if (!post.caption || post.caption.trim().length < 20) {
+            skipped++;
+            continue;
+          }
+
+          // Check if already well-formatted (has multiple section breaks)
+          const sectionBreaks = (post.caption.match(/\n\n/g) || []).length;
+          if (sectionBreaks >= 2 && !body.force) {
+            skipped++;
+            fixResults.push({ id: post.id, status: 'already_formatted' });
+            continue;
+          }
+
+          try {
+            // Remove hashtags from caption if they're embedded
+            let cleanCaption = post.caption;
+            if (post.hashtags && Array.isArray(post.hashtags)) {
+              cleanCaption = cleanCaption.replace(/\n*[・.]*\n*#[\w\u00C0-\u024F]+(\s+#[\w\u00C0-\u024F]+)*/g, '').trim();
+            }
+
+            const newCaption = await callClaude({
+              system: `Tu reformates des captions de réseaux sociaux pour qu'elles soient VISUELLEMENT AGRÉABLES sur mobile.
+
+RÈGLES :
+1. Hook punch sur la première ligne (5-10 mots) avec 1 emoji
+2. Ligne vide (\\n\\n) après le hook
+3. Corps : 2-4 lignes courtes avec emoji en début de ligne comme bullet points
+4. Ligne vide (\\n\\n)
+5. CTA clair sur sa propre ligne
+6. NE PAS inclure de hashtags
+7. Max 3-5 emojis total
+8. La caption DOIT rester cohérente avec le hook et le visuel
+9. Garde le MÊME MESSAGE que l'original, reformate juste la mise en page
+10. Max 800 chars Instagram, 500 chars TikTok
+11. JAMAIS de pavé — chaque section séparée par \\n\\n
+
+Output UNIQUEMENT la nouvelle caption.`,
+              message: `Plateforme: ${post.platform || 'instagram'}
+Hook: ${post.hook || 'N/A'}
+Description visuelle: ${(post.visual_description || '').substring(0, 200)}
+Caption originale à reformater:
+${cleanCaption}`,
+              maxTokens: 800,
+            });
+
+            if (newCaption && newCaption.trim().length > 20) {
+              // Remove any hashtags Claude might have added
+              const finalCaption = newCaption.replace(/\n*[・.]*\n*#[\w\u00C0-\u024F]+(\s+#[\w\u00C0-\u024F]+)*/g, '').trim();
+
+              await supabase
+                .from('content_calendar')
+                .update({ caption: finalCaption, updated_at: new Date().toISOString() })
+                .eq('id', post.id);
+
+              fixed++;
+              fixResults.push({ id: post.id, status: 'fixed', preview: finalCaption.substring(0, 80) });
+            }
+          } catch (err: any) {
+            fixResults.push({ id: post.id, status: 'error', preview: err.message });
+          }
+        }
+
+        return NextResponse.json({
+          ok: true,
+          total: postsToFix?.length || 0,
+          fixed,
+          skipped,
+          results: fixResults,
+        });
+      }
+
       case 'stats': {
         const { count: totalPosts } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true });
         const { count: published } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'published');

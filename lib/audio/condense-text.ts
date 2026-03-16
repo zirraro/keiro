@@ -61,6 +61,7 @@ CONTRAINTES:
 - Tutoyer le spectateur
 - Adapté pour narration audio (pas de texte écrit)
 
+JAMAIS de préfixe comme "Script voix off:", "Narration:" — commence DIRECTEMENT par le texte parlé.
 Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'développé'}, sans introduction ni explication.`;
 
   console.log(`[Condense] Calling Claude to ${action} text (${currentWords} → ${targetWords} words)...`);
@@ -98,23 +99,26 @@ export async function generateNarrationSuggestions(
 ): Promise<{ informative: string; catchy: string; storytelling: string }> {
   const targetDuration = Math.ceil(targetWords / 2.5);
 
-  const prompt = `Tu es un expert en scripts audio viraux pour TikTok/Instagram Reels. Tu écris des textes qui sonnent NATURELS quand ils sont lus à voix haute — comme une vraie personne qui parle, pas un robot.
+  const prompt = `Tu es un expert en scripts audio viraux pour TikTok/Instagram Reels. Tu écris des textes qui sonnent NATURELS quand ils sont lus à voix haute — comme une vraie personne qui parle à son audience, pas un robot.
 
 CONTEXTE: ${context}
 
 Génère 3 scripts de narration audio (~${targetWords} mots chacun, durée ~${targetDuration}s) avec ces styles:
 
-1. INFORMATIF: Style journalistique fluide et engageant. Phrases courtes et percutantes. Ton conversationnel mais crédible.
-2. ACCROCHEUR: Style viral TikTok. Hook puissant dans les 3 premiers mots. Rythme rapide. Langage familier et direct. Phrases qui créent l'urgence.
-3. STORYTELLING: Style narratif captivant. Commence par une situation, crée du suspense, résolution surprenante. Ton intime comme si on racontait une histoire à un ami.
+1. INFORMATIF: Style journalistique fluide et engageant. Phrases courtes et percutantes. Ton conversationnel mais crédible. Lie l'actualité/tendance au business de façon naturelle.
+2. ACCROCHEUR: Style viral TikTok. Hook puissant dans les 3 premiers mots. Rythme rapide. Langage familier et direct. Phrases qui créent l'urgence ou la curiosité.
+3. STORYTELLING: Style narratif captivant. Commence par une situation concrète, crée du suspense, résolution surprenante. Ton intime comme si on racontait une histoire à un ami.
 
-RÈGLES DE FLUIDITÉ:
+RÈGLES CRITIQUES:
+- JAMAIS commencer par "Script voix off", "Narration:", "Voix off:" ou tout autre préfixe méta — le texte commence DIRECTEMENT par le contenu parlé
 - Phrases courtes (max 15 mots par phrase)
 - Éviter les mots compliqués ou techniques
 - Utiliser des pauses naturelles (virgules, points)
 - Le texte doit être agréable à ÉCOUTER, pas juste à lire
 - Tutoyer le spectateur pour créer de la proximité
-- Si le contexte mentionne une actualité, FAIRE LE LIEN entre l'actualité et le business
+- Si le contexte mentionne une actualité ou tendance, ANALYSER et FAIRE LE LIEN INTELLIGENT entre l'actu et le business — c'est là que Claude brille
+- Le texte doit apporter de la VALEUR : insight, conseil, révélation, perspective unique
+- Pas de phrases bateau ou génériques — chaque mot doit compter
 
 Format JSON strict:
 {
