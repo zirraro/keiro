@@ -105,6 +105,9 @@ export default function GeneratePage() {
   /* --- Wizard step (1-4) --- */
   const [formStep, setFormStep] = useState(1);
 
+  /* --- Wizard phase (top-level UX flow) --- */
+  const [wizardPhase, setWizardPhase] = useState<'entry' | 'news-select' | 'configure' | 'generate' | 'result'>('entry');
+
   /* --- États pour les actualités --- */
   const [category, setCategory] = useState<string>('Derni\u00E8res news');
   const [newsRegion, setNewsRegion] = useState<string>('fr');
@@ -750,6 +753,12 @@ export default function GeneratePage() {
         if (state.desiredVisualIdea) setDesiredVisualIdea(state.desiredVisualIdea);
         if (state.contentFocus !== undefined) setContentFocus(state.contentFocus);
 
+        // Auto-detect wizard phase from restored state
+        if (state.businessType) {
+          setWizardPhase('configure');
+          setFormStep(1);
+        }
+
         // Nettoyer après restauration
         localStorage.removeItem(storageKey);
       } catch (error) {
@@ -1381,6 +1390,7 @@ export default function GeneratePage() {
     setGenerating(true);
     setModalMinimized(false);
     setGenerationError(null);
+    setWizardPhase('result');
     setGeneratedImageUrl(null);
     setImageLoadingProgress(0);
     setLoadingStep('api');
@@ -2563,6 +2573,7 @@ export default function GeneratePage() {
     setGeneratingVideo(true);
     setModalMinimized(false);
     setGeneratedVideoUrl(null);
+    setWizardPhase('result');
     setVideoTaskId(null);
     setVideoProgress(t.generate.creatingVideoTask);
     setGenerationError(null);
@@ -3222,30 +3233,168 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
       <AdminBadge />
 
       <div className="max-w-7xl mx-auto">
-        <p className="text-sm text-neutral-400 mb-6 tracking-wide">
-          {useNewsMode
-            ? t.generate.subtitleWithNews
-            : t.generate.subtitleWithoutNews}
-        </p>
+        {/* ═══ WIZARD PHASE: ENTRY — Choix du mode ═══ */}
+        {wizardPhase === 'entry' && (
+          <div className="max-w-3xl mx-auto py-8">
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+                {locale === 'fr' ? 'Quel contenu voulez-vous cr\u00e9er ?' : 'What content do you want to create?'}
+              </h1>
+              <p className="text-sm text-neutral-500">
+                {locale === 'fr' ? 'Choisissez votre approche pour un contenu unique' : 'Choose your approach for unique content'}
+              </p>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ===== COLONNE GAUCHE : Tendances + Actualités ===== */}
-          <div className="lg:col-span-8">
-            {/* ─── Pays/Régions — filtre commun tendances + actualités ─── */}
-            <div className={`mb-3 -mx-1 overflow-x-auto scrollbar-hide ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Card: Avec actualit\u00e9 */}
+              <button
+                onClick={() => {
+                  setUseNewsMode(true);
+                  setWizardPhase('news-select');
+                }}
+                className="group relative bg-white rounded-2xl border-2 border-neutral-200 hover:border-blue-400 p-6 text-left transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+              >
+                <div className="absolute top-3 right-3">
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                    {locale === 'fr' ? 'Recommand\u00e9' : 'Recommended'}
+                  </span>
+                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">
+                  {locale === 'fr' ? 'Avec actualit\u00e9' : 'With news'}
+                </h3>
+                <p className="text-sm text-neutral-600 leading-relaxed mb-3">
+                  {locale === 'fr'
+                    ? 'Surfez sur les tendances du moment. Les algorithmes favorisent les contenus li\u00e9s \u00e0 l\u2019actualit\u00e9.'
+                    : 'Ride the latest trends. Algorithms favor content tied to current events.'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Tendances' : 'Trends'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Newsjacking' : 'Newsjacking'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Viral' : 'Viral'}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center gap-1.5 text-blue-600 text-sm font-semibold group-hover:gap-3 transition-all">
+                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>&rarr;</span>
+                </div>
+              </button>
+
+              {/* Card: Sans actualit\u00e9 */}
+              <button
+                onClick={() => {
+                  setUseNewsMode(false);
+                  setSelectedNews(null);
+                  setWizardPhase('configure');
+                  setFormStep(1);
+                }}
+                className="group relative bg-white rounded-2xl border-2 border-neutral-200 hover:border-purple-400 p-6 text-left transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+              >
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">
+                  {locale === 'fr' ? 'Cr\u00e9ation libre' : 'Free creation'}
+                </h3>
+                <p className="text-sm text-neutral-600 leading-relaxed mb-3">
+                  {locale === 'fr'
+                    ? 'Cr\u00e9ez du contenu 100% centr\u00e9 sur votre business, votre expertise et vos valeurs.'
+                    : 'Create content 100% focused on your business, expertise and values.'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Expertise' : 'Expertise'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Branding' : 'Branding'}
+                  </span>
+                  <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-medium rounded-full">
+                    {locale === 'fr' ? 'Libert\u00e9' : 'Freedom'}
+                  </span>
+                </div>
+                <div className="mt-4 flex items-center gap-1.5 text-purple-600 text-sm font-semibold group-hover:gap-3 transition-all">
+                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>&rarr;</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Daily tip + credits below */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Astuce du jour */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">{dailyTip.icon}</span>
+                <div>
+                  <h4 className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">{t.generate.dailyTip}</h4>
+                  <p className="text-xs text-amber-800 leading-snug">{dailyTip.text}</p>
+                </div>
+              </div>
+              {/* Credits mini */}
+              {!credits.loading && credits.plan && (
+                <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold text-neutral-500 uppercase">{t.generate.yourUsage}</p>
+                    <p className="text-lg font-bold text-neutral-900">{credits.balance} <span className="text-xs font-normal text-neutral-400">cr</span></p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-neutral-400 capitalize">{credits.plan}</p>
+                    {credits.plan === 'free' && (
+                      <button onClick={() => router.push('/pricing')} className="text-[10px] text-blue-600 font-semibold hover:underline">
+                        {locale === 'fr' ? 'Passer Pro' : 'Go Pro'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ WIZARD PHASE: NEWS-SELECT — S\u00e9lection actualit\u00e9/tendance ═══ */}
+        {wizardPhase === 'news-select' && (
+          <div>
+            {/* Phase indicator */}
+            <div className="flex items-center gap-3 mb-5">
+              <button
+                onClick={() => setWizardPhase('entry')}
+                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                {locale === 'fr' ? 'Retour' : 'Back'}
+              </button>
+              <div className="flex-1 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                <span className="text-sm font-semibold text-neutral-900">{locale === 'fr' ? 'Choisissez une actualit\u00e9 ou tendance' : 'Choose a news item or trend'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">2</div>
+                <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">3</div>
+              </div>
+            </div>
+
+            {/* Region selector */}
+            <div className="mb-3 -mx-1 overflow-x-auto scrollbar-hide">
               <div className="flex gap-1.5 px-1 pb-1">
                 {NEWS_REGIONS.map((r) => {
                   const isActive = newsRegion === r.code;
                   return (
                     <button
                       key={r.code}
-                      onClick={() => useNewsMode && setNewsRegion(r.code)}
+                      onClick={() => setNewsRegion(r.code)}
                       className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                         isActive
                           ? 'bg-blue-500 text-white shadow-sm'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
-                      disabled={!useNewsMode}
                     >
                       {locale === 'fr' ? r.nameFr : r.nameEn}
                     </button>
@@ -3254,16 +3403,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            {/* ─── Tendances réseaux sociaux (style magazine) ─── */}
-            <div className={`mb-4 relative ${!useNewsMode ? 'opacity-40 pointer-events-none' : ''}`}>
+            {/* Trends section */}
+            <div className="mb-4 relative">
               <div className="flex items-center gap-1 mb-2">
-                <span className="text-base mr-0.5">🔥</span>
+                <span className="text-base mr-0.5">&#x1F525;</span>
                 <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
-                  { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
-                  { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
-                  { key: 'google' as const, label: '🔍 Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
-                  { key: 'linkedin' as const, label: '💼 LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
+                  { key: 'instagram' as const, label: '&#x1F4F8; Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
+                  { key: 'tiktok' as const, label: '&#x1F3B5; TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
+                  { key: 'google' as const, label: '&#x1F50D; Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
+                  { key: 'linkedin' as const, label: '&#x1F4BC; LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
                 ] as const).map((tab) => (
                   <button
                     key={tab.key}
@@ -3281,13 +3430,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {trendingData && <span className="text-[9px] text-neutral-400 ml-auto">{t.generate.updatedToday}</span>}
               </div>
 
-              {/* Magazine-style trend cards */}
+              {/* Trend cards — reuse existing tabConfig logic */}
               {(() => {
-                // Resolve trend list + config per tab
                 const tabConfig: Record<string, { data: any[]; badge: string; badgeCls: string; fallbackGrad: string; getTitle: (t: any) => string; getSubtitle: (t: any) => string | null; getImage: (t: any) => string | undefined; getTraffic: (t: any) => string | undefined; getNewsCard: (t: any, i: number) => any }> = {
                   instagram: {
                     data: trendingData?.instagramTrends || [],
-                    badge: '📸 Instagram', badgeCls: 'bg-gradient-to-r from-purple-500 to-pink-500',
+                    badge: '&#x1F4F8; Instagram', badgeCls: 'bg-gradient-to-r from-purple-500 to-pink-500',
                     fallbackGrad: 'from-purple-600 to-pink-700',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3295,7 +3443,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   tiktok: {
                     data: trendingData?.tiktokTrends || [],
-                    badge: '🎵 TikTok', badgeCls: 'bg-blue-500/90',
+                    badge: '&#x1F3B5; TikTok', badgeCls: 'bg-blue-500/90',
                     fallbackGrad: 'from-blue-600 to-cyan-700',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3303,7 +3451,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   google: {
                     data: trendingData?.googleTrends || [],
-                    badge: '🔍 Google', badgeCls: 'bg-orange-500/90',
+                    badge: '&#x1F50D; Google', badgeCls: 'bg-orange-500/90',
                     fallbackGrad: 'from-orange-600 to-rose-700',
                     getTitle: (t) => t.articleTitle || t.title, getSubtitle: (t) => t.articleTitle && t.title !== t.articleTitle ? t.title : null,
                     getImage: (t) => t.pictureUrl, getTraffic: (t) => t.traffic,
@@ -3311,7 +3459,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   linkedin: {
                     data: trendingData?.linkedinTrends || [],
-                    badge: '💼 LinkedIn', badgeCls: 'bg-sky-600',
+                    badge: '&#x1F4BC; LinkedIn', badgeCls: 'bg-sky-600',
                     fallbackGrad: 'from-sky-700 to-blue-900',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3331,12 +3479,11 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <article
                           key={`${trendTab}-${i}`}
                           onClick={() => {
-                            setUseNewsMode(true);
                             setSelectedNews(cfg.getNewsCard(trend, i));
-                            const el = document.getElementById('business-description');
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }}
-                          className="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                          className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
+                            selectedNews?.id === cfg.getNewsCard(trend, i).id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+                          }`}
                           style={{ height: i >= 3 ? '100px' : '120px' }}
                         >
                           {cfg.getImage(trend) ? (
@@ -3361,7 +3508,6 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <span className="text-[10px] text-neutral-400 animate-pulse col-span-3">{t.generate.loadingTrends}</span>
                       )}
                     </div>
-                    {/* Voir plus / moins */}
                     {hasMore && (
                       <button
                         type="button"
@@ -3381,2702 +3527,1111 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               })()}
             </div>
 
-            {/* Section actualités — grisée en mode "Sans actualité" */}
-            <div className="relative">
-              {/* Overlay mode sans actualité */}
-              {!useNewsMode && (
-                <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-[2px] rounded-xl flex items-start justify-center pt-16">
-                  <div className="text-center max-w-sm px-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
+            {/* News category + search */}
+            <div className="mb-3 flex gap-2">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+              >
+                {availableCategories.map((cat) => {
+                  const categoryLabels: Record<string, string> = {
+                    'Les bonnes nouvelles': t.generate.catGoodNews,
+                    'Derni\u00e8res news': t.generate.catLatestNews,
+                    'Tech & Gaming': t.generate.catTechGaming,
+                    'Business & Finance': t.generate.catBusinessFinance,
+                    'Sant\u00e9 & Bien-\u00eatre': t.generate.catHealthWellness,
+                    'Sport': t.generate.catSport,
+                    'Cin\u00e9ma & S\u00e9ries': t.generate.catMoviesSeries,
+                    'Musique & Festivals': t.generate.catMusicFestivals,
+                    'Politique': t.generate.catPolitics,
+                    'Science & Environnement': t.generate.catScienceEnvironment,
+                    'Nature & Animaux': t.generate.catNatureAnimals,
+                    'International': t.generate.catInternational,
+                    'Moteurs & Adr\u00e9naline': t.generate.catMotorsAdrenaline,
+                    'Food & Gastronomie': t.generate.catFoodGastronomy,
+                    'Lifestyle & People': t.generate.catLifestylePeople,
+                  };
+                  return (
+                    <option key={cat} value={cat}>
+                      {categoryLabels[cat] || cat}
+                    </option>
+                  );
+                })}
+              </select>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder={t.generate.searchPlaceholder}
+                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* News cards grid */}
+            <div>
+              {loading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-xl overflow-hidden bg-neutral-100 animate-pulse" style={{ height: '180px' }}>
+                      <div className="h-full flex flex-col justify-end p-3">
+                        <div className="h-3 bg-neutral-200 rounded w-3/4 mb-2" />
+                        <div className="h-3 bg-neutral-200 rounded w-1/2" />
+                      </div>
                     </div>
-                    <h4 className="font-bold text-neutral-900 text-sm mb-2">
-                      {locale === 'fr' ? 'Boostez votre visibilité' : 'Boost your visibility'}
-                    </h4>
-                    <p className="text-xs text-neutral-600 mb-4 leading-relaxed">
-                      {locale === 'fr'
-                        ? 'Activez le mode actualité pour surfer sur les tendances du moment. Les algorithmes favorisent les contenus liés à l\'actualité — profitez-en pour être mis en avant !'
-                        : 'Enable news mode to ride the latest trends. Algorithms favor content tied to current events — take advantage to get featured!'}
-                    </p>
-                    <button
-                      onClick={() => setUseNewsMode(true)}
-                      className="px-5 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-semibold rounded-lg hover:shadow-lg transition-all"
-                    >
-                      {locale === 'fr' ? 'Activer le mode actualité' : 'Enable news mode'}
-                    </button>
-                  </div>
+                  ))}
                 </div>
               )}
 
-              {/* Filtres : Catégorie + Recherche */}
-              <div className={`mb-3 flex gap-2 ${!useNewsMode ? 'opacity-30' : ''}`}>
-                {/* Dropdown Catégories */}
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
-                  disabled={!useNewsMode}
-                >
-                  {availableCategories.map((cat) => {
-                    const categoryLabels: Record<string, string> = {
-                      'Les bonnes nouvelles': t.generate.catGoodNews,
-                      'Dernières news': t.generate.catLatestNews,
-                      'Tech & Gaming': t.generate.catTechGaming,
-                      'Business & Finance': t.generate.catBusinessFinance,
-                      'Santé & Bien-être': t.generate.catHealthWellness,
-                      'Sport': t.generate.catSport,
-                      'Cinéma & Séries': t.generate.catMoviesSeries,
-                      'Musique & Festivals': t.generate.catMusicFestivals,
-                      'Politique': t.generate.catPolitics,
-                      'Science & Environnement': t.generate.catScienceEnvironment,
-                      'Nature & Animaux': t.generate.catNatureAnimals,
-                      'International': t.generate.catInternational,
-                      'Moteurs & Adrénaline': t.generate.catMotorsAdrenaline,
-                      'Food & Gastronomie': t.generate.catFoodGastronomy,
-                      'Lifestyle & People': t.generate.catLifestylePeople,
-                    };
-                    return (
-                      <option key={cat} value={cat}>
-                        {categoryLabels[cat] || cat}
-                      </option>
-                    );
-                  })}
-                </select>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                  {error}
+                </div>
+              )}
 
-                {/* Barre de recherche */}
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder={t.generate.searchPlaceholder}
-                  className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!useNewsMode}
-                />
-              </div>
+              {!loading && !error && filteredNews.length === 0 && (
+                <div className="text-center py-8 text-neutral-500">
+                  {t.generate.noNewsFound}
+                </div>
+              )}
 
-              {/* Cartes d'actualités (3 colonnes) */}
-              <div className={!useNewsMode ? 'opacity-30' : ''}>
-                {loading && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="rounded-xl overflow-hidden bg-neutral-100 animate-pulse" style={{ height: '180px' }}>
-                        <div className="h-full flex flex-col justify-end p-3">
-                          <div className="h-3 bg-neutral-200 rounded w-3/4 mb-2" />
-                          <div className="h-3 bg-neutral-200 rounded w-1/2" />
+              {!loading && filteredNews.length > 0 && (<>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {filteredNews.slice(0, visibleNewsCount).map((item) => (
+                    <article
+                      key={item.id}
+                      onClick={() => {
+                        if (selectedNews?.id === item.id) {
+                          setSelectedNews(null);
+                        } else {
+                          setSelectedNews(item);
+                        }
+                      }}
+                      className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
+                        selectedNews?.id === item.id
+                          ? 'ring-2 ring-blue-500 ring-offset-1'
+                          : ''
+                      }`}
+                      style={{ height: '180px' }}
+                    >
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-neutral-900" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                      {selectedNews?.id === item.id && (
+                        <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
+                          {t.generate.selected}
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 className="font-semibold text-[13px] leading-tight text-white line-clamp-2 drop-shadow-sm">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center justify-between mt-1.5">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-white/70 hover:text-white transition-colors"
+                          >
+                            {item.source || 'Source'}
+                          </a>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </article>
+                  ))}
+                </div>
+                {visibleNewsCount < filteredNews.length && visibleNewsCount < 9 && (
+                  <button
+                    onClick={() => setVisibleNewsCount(prev => Math.min(prev + 3, 9))}
+                    className="mt-3 mx-auto flex items-center gap-1.5 text-xs text-neutral-400 hover:text-blue-500 transition-colors"
+                  >
+                    {t.generate.showMoreNews}
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
                 )}
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-                    {error}
-                  </div>
-                )}
-
-                {!loading && !error && filteredNews.length === 0 && (
-                  <div className="text-center py-8 text-neutral-500">
-                    {t.generate.noNewsFound}
-                  </div>
-                )}
-
-                {!loading && filteredNews.length > 0 && (<>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {filteredNews.slice(0, visibleNewsCount).map((item) => (
-                      <article
-                        key={item.id}
-                        onClick={() => {
-                          if (!useNewsMode) return;
-                          if (selectedNews?.id === item.id) {
-                            setSelectedNews(null);
-                          } else {
-                            setSelectedNews(item);
-                          }
-                        }}
-                        className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
-                          selectedNews?.id === item.id
-                            ? 'ring-2 ring-blue-500 ring-offset-1'
-                            : ''
-                        }`}
-                        style={{ height: '180px' }}
-                      >
-                        {/* Image de fond */}
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 to-neutral-900" />
-                        )}
-
-                        {/* Gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-                        {/* Badge sélectionné */}
-                        {selectedNews?.id === item.id && (
-                          <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
-                            {t.generate.selected}
-                          </div>
-                        )}
-
-                        {/* Contenu en overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
-                          <h3 className="font-semibold text-[13px] leading-tight text-white line-clamp-2 drop-shadow-sm">
-                            {item.title}
-                          </h3>
-                          <div className="flex items-center justify-between mt-1.5">
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-[10px] text-white/70 hover:text-white transition-colors"
-                            >
-                              {item.source || 'Source'}
-                            </a>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                  {visibleNewsCount < filteredNews.length && visibleNewsCount < 9 && (
-                    <button
-                      onClick={() => setVisibleNewsCount(prev => Math.min(prev + 3, 9))}
-                      className="mt-3 mx-auto flex items-center gap-1.5 text-xs text-neutral-400 hover:text-blue-500 transition-colors"
-                    >
-                      {t.generate.showMoreNews}
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                  )}
-                </>)}
-              </div>
+              </>)}
             </div>
 
-            {/* ===== WIDGETS SECTION (toujours visible, ne dépend pas du chargement des news) ===== */}
-            <div className="space-y-3 mt-6">
-              {/* Widget Sprint Countdown */}
-              {!credits.loading && credits.plan === 'sprint' && credits.resetAt && (() => {
-                void sprintTick; // force re-render on tick
-                const sprintEnd = new Date(credits.resetAt).getTime() + 3 * 24 * 60 * 60 * 1000;
-                const now = Date.now();
-                const remaining = Math.max(0, sprintEnd - now);
-                const totalMs = 3 * 24 * 60 * 60 * 1000;
-                const pct = Math.round((remaining / totalMs) * 100);
-                const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-                const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-                const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-                return (
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm">⏱️</span>
-                      <span className="text-xs font-bold text-amber-900">{t.generate.sprintFounder}</span>
-                    </div>
-                    <p className="text-sm font-bold text-amber-800 mb-2">
-                      {remaining > 0 ? `${t.generate.sprintTimeRemaining} ${days}j ${hours}h ${mins}min` : t.generate.sprintFinished}
-                    </p>
-                    <div className="w-full bg-amber-200 rounded-full h-2 mb-3">
-                      <div
-                        className={`h-2 rounded-full transition-all ${pct > 30 ? 'bg-amber-500' : 'bg-red-500'}`}
-                        style={{ width: `${Math.max(2, pct)}%` }}
-                      />
-                    </div>
-                    <button
-                      onClick={() => startCheckout('fondateurs')}
-                      className="block w-full py-2 text-center text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg hover:shadow-lg transition-all"
-                    >
-                      {t.generate.upgradeFounders}
-                    </button>
-                    <p className="text-[9px] text-amber-700 text-center mt-1.5">{t.generate.sprintDeducted}</p>
-                  </div>
-                );
-              })()}
-
-              {/* Widget 1 : Crédits */}
-              <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-                {!credits.loading && credits.plan ? (
-                  (() => {
-                    const bal = credits.balance;
-                    const total = credits.monthlyAllowance;
-                    const usedPct = total > 0 ? Math.round(((total - bal) / total) * 100) : 0;
-                    const isCreditsOut = bal < 1;
-                    const cantMakeImage = bal < 5;
-                    const isFree = credits.plan === 'free';
-                    const isProOrPromo = credits.plan === 'pro' || credits.plan === 'pro_promo';
-
-                    // Niveaux d'usage par feature : combien on peut encore en faire
-                    const features = [
-                      { label: 'Images', icon: '🖼️', cost: 5, remaining: Math.floor(bal / 5) },
-                      { label: t.generate.featureVideos, icon: '🎬', cost: 25, remaining: Math.floor(bal / 25) },
-                      { label: t.generate.featureAudioText, icon: '✨', cost: 1, remaining: Math.floor(bal / 1) },
-                    ];
-
-                    const getIntensity = (remaining: number, cost: number) => {
-                      const maxPossible = total > 0 ? Math.floor(total / cost) : 0;
-                      if (maxPossible === 0) return { label: '—', color: 'text-neutral-400', bg: 'bg-neutral-100' };
-                      const usedRatio = maxPossible > 0 ? 1 - (remaining / maxPossible) : 1;
-                      if (remaining === 0) return { label: t.generate.exhausted, color: 'text-red-700', bg: 'bg-red-100' };
-                      if (usedRatio < 0.4) return { label: t.generate.light, color: 'text-green-700', bg: 'bg-green-100' };
-                      if (usedRatio < 0.75) return { label: t.generate.moderate, color: 'text-amber-700', bg: 'bg-amber-100' };
-                      return { label: t.generate.intensive, color: 'text-red-700', bg: 'bg-red-100' };
-                    };
-
-                    return (
-                      <div>
-                        {/* Bannière crédits épuisés */}
-                        {cantMakeImage && (
-                          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg text-center">
-                            <p className="text-xs font-bold text-red-700 mb-1">
-                              {isCreditsOut ? t.generate.creditsExhausted : `${bal} ${t.generate.creditsRemaining}`}
-                            </p>
-                            <p className="text-[10px] text-red-600 mb-2">
-                              {isProOrPromo
-                                ? t.generate.promoQuotaReached
-                                : isFree
-                                ? t.generate.freePlanLimited
-                                : t.generate.notEnoughCredits}
-                            </p>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => startCheckout('pro')}
-                                className="flex-1 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-100 border border-blue-200 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
-                              >
-                                {t.generate.proPrice}
-                              </button>
-                              <button
-                                onClick={() => startCheckout('fondateurs')}
-                                className="flex-1 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
-                              >
-                                {t.generate.foundersPrice}
-                              </button>
-                            </div>
-                            <p className="text-[9px] text-purple-600 mt-1.5 font-medium">
-                              {t.generate.foundersFeatures}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
-                          <span className="text-[10px] text-neutral-400 capitalize">
-                            {new Date().toLocaleDateString('fr-FR', { month: 'long' })}
-                          </span>
-                        </div>
-
-                        <div className="space-y-2">
-                          {features.map((f) => {
-                            const intensity = getIntensity(f.remaining, f.cost);
-                            return (
-                              <div key={f.label} className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm">{f.icon}</span>
-                                  <span className="text-xs text-neutral-700 font-medium">{f.label}</span>
-                                </div>
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${intensity.bg} ${intensity.color}`}>
-                                  {f.remaining === 0 ? t.generate.exhausted : intensity.label}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Barre globale */}
-                        <div className="flex items-center gap-2 mt-3">
-                          <div className="flex-1 bg-neutral-200 rounded-full h-1">
-                            <div
-                              className={`h-1 rounded-full transition-all ${usedPct >= 75 ? 'bg-red-400' : usedPct >= 40 ? 'bg-amber-400' : 'bg-green-400'}`}
-                              style={{ width: `${Math.min(100, Math.max(2, usedPct))}%` }}
-                            />
-                          </div>
-                          <span className="text-[9px] text-neutral-400">{usedPct}%</span>
-                        </div>
-
-                        {/* CTA upgrade pour plan gratuit (quand pas déjà en bannière épuisé) */}
-                        {isFree && !cantMakeImage && (
-                          <button
-                            onClick={() => router.push('/pricing')}
-                            className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer"
-                          >
-                            {t.generate.freePlanLimitedCta}
-                          </button>
-                        )}
-
-                        {/* CTA Pro / Pro Promo → Fondateurs (quand pas déjà en bannière épuisé) */}
-                        {isProOrPromo && !cantMakeImage && (
-                          <>
-                            <button
-                              onClick={() => startCheckout('fondateurs')}
-                              className="block w-full mt-3 py-1.5 text-center text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
-                            >
-                              {t.generate.tiktokLinkedinMore}
-                            </button>
-                            {credits.expiresAt && (
-                              <p className="text-[10px] text-red-500 mt-1 text-center font-medium">
-                                {t.generate.promoExpiresOn} {new Date(credits.expiresAt).toLocaleDateString('fr-FR')} — <a href="/pricing" className="underline cursor-pointer">{t.generate.subscribe}</a>
-                              </p>
-                            )}
-                          </>
-                        )}
-                        {/* CTA Fondateurs promo → S'abonner */}
-                        {credits.plan === 'fondateurs' && credits.expiresAt && (
-                          <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg text-center">
-                            <p className="text-[11px] text-purple-800 font-semibold">{t.generate.foundersExpiresOn} {new Date(credits.expiresAt).toLocaleDateString('fr-FR')}</p>
-                            <button
-                              onClick={() => startCheckout('fondateurs')}
-                              className="inline-block mt-1 px-4 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors cursor-pointer"
-                            >
-                              {t.generate.keepFoundersAdvantages}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <p className="text-xs text-neutral-500 text-center">{t.generate.loginToSeeUsage}</p>
-                )}
-              </div>
-
-              {/* Astuce du jour — compact */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
-                <span className="text-2xl">{dailyTip.icon}</span>
-                <div>
-                  <h4 className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">{t.generate.dailyTip}</h4>
-                  <p className="text-xs text-amber-800 leading-snug">{dailyTip.text}</p>
+            {/* Selected news summary + Continue button */}
+            <div className="mt-6 flex items-center justify-between gap-4">
+              {selectedNews ? (
+                <div className={`flex-1 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
+                  <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
+                    {selectedNews.category === 'Tendance' ? '&#x1F525;' : '&#x2713;'} {selectedNews.title}
+                  </p>
                 </div>
-              </div>
-
-              {/* Widget 4 : CTA Assistant - lien vers la page assistant */}
-              <div
-                onClick={() => router.push('/assistant')}
-                className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg px-4 py-2 cursor-pointer hover:shadow-sm transition-all group flex items-center gap-2"
-              >
-                <span className="text-sm">💡</span>
-                <p className="text-[11px] text-purple-700">
-                  {t.generate.needIdeas}{' '}
-                  <span className="font-semibold group-hover:text-purple-900">{t.generate.askAssistant}</span>
+              ) : (
+                <p className="text-sm text-neutral-400 flex-1">
+                  {locale === 'fr' ? 'S\u00e9lectionnez une actualit\u00e9 ou tendance pour continuer' : 'Select a news item or trend to continue'}
                 </p>
-              </div>
+              )}
+              <button
+                onClick={() => { setWizardPhase('configure'); setFormStep(1); }}
+                disabled={!selectedNews}
+                className="px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {locale === 'fr' ? 'Continuer' : 'Continue'} <span>&rarr;</span>
+              </button>
             </div>
           </div>
+        )}
 
-          {/* ===== COLONNE DROITE : Upload + Assistant ===== */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Zone Upload Logo/Photo (optionnel) */}
-            <div ref={uploadSectionRef}>
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={handleDrop}
-                className={`border border-dashed rounded-lg p-3 text-center transition ${
-                  dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-neutral-300 hover:border-neutral-400'
-                }`}
+        {/* ═══ WIZARD PHASE: CONFIGURE — Business + Direction + G\u00e9n\u00e9ration ═══ */}
+        {wizardPhase === 'configure' && (
+          <div>
+            {/* Phase indicator */}
+            <div className="flex items-center gap-3 mb-5">
+              <button
+                onClick={() => setWizardPhase(useNewsMode ? 'news-select' : 'entry')}
+                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
               >
-                {logoUrl ? (
-                  <div className="space-y-3">
-                    <img
-                      src={logoUrl}
-                      alt="Logo"
-                      className="w-40 h-40 object-contain rounded mx-auto border bg-white p-2"
-                      crossOrigin="anonymous"
-                      loading="eager"
-                    />
-
-                    {/* Options mode logo */}
-                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                      <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.howToUseImage}</p>
-                      <div className="space-y-2">
-                        <label className="flex items-start gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="logoMode"
-                            checked={logoMode === 'overlay'}
-                            onChange={() => setLogoMode('overlay')}
-                            className="mt-0.5"
-                          />
-                          <div>
-                            <p className="text-xs font-semibold text-blue-900">🎨 {t.generate.addAsOverlay}</p>
-                            <p className="text-[10px] text-blue-700">{t.generate.logoOverlayDesc}</p>
-                          </div>
-                        </label>
-                        <label className="flex items-start gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="logoMode"
-                            checked={logoMode === 'modify'}
-                            onChange={() => setLogoMode('modify')}
-                            className="mt-0.5"
-                          />
-                          <div>
-                            <p className="text-xs font-semibold text-blue-900">✏️ {t.generate.modifyImage}</p>
-                            <p className="text-[10px] text-blue-700">{t.generate.modifyImageDesc}</p>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setLogoUrl(null)}
-                      className="text-xs text-red-600 hover:underline font-medium"
-                    >
-                      🗑️ {t.generate.deleteImage}
-                    </button>
-                  </div>
-                ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                {locale === 'fr' ? 'Retour' : 'Back'}
+              </button>
+              <div className="flex-1 flex items-center gap-2">
+                {useNewsMode && (
                   <>
-                    <div className="text-2xl mb-1">📸</div>
-                    <p className="text-xs text-neutral-600 mb-2">
-                      {t.generate.dropOrClickLogo}
-                    </p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload(file);
-                      }}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50"
-                    >
-                      {uploading ? t.generate.uploading : t.generate.choose}
-                    </button>
+                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">&#x2713;</span>
+                    <span className="w-5 h-0.5 bg-emerald-400"></span>
                   </>
                 )}
+                <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">{useNewsMode ? '2' : '1'}</span>
+                <span className="text-sm font-semibold text-neutral-900">{locale === 'fr' ? 'Configurez votre contenu' : 'Configure your content'}</span>
               </div>
             </div>
 
-            {/* Panel Assistant Prompt — masqué pendant/après génération */}
-            {!generating && !generatingVideo && !generatedImageUrl && !generatedVideoUrl && (
-            <div ref={assistantPanelRef} className="bg-white rounded-xl border p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">{t.generate.assistantMarketing}</h3>
-                {/* Switch Actualité / Sans actualité */}
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-neutral-400' : 'text-blue-600'}`}>{t.generate.withoutNews}</span>
-                  <button
-                    onClick={() => {
-                      setUseNewsMode(!useNewsMode);
-                      if (useNewsMode) {
-                        // Passage en mode "sans actualité" - on ne force plus la sélection d'actu
-                        setSelectedNews(null);
-                      }
-                    }}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                      useNewsMode ? 'bg-blue-600' : 'bg-neutral-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                        useNewsMode ? 'translate-x-[18px]' : 'translate-x-[3px]'
-                      }`}
-                    />
-                  </button>
-                  <span className={`text-[10px] font-medium ${useNewsMode ? 'text-blue-600' : 'text-neutral-400'}`}>{t.generate.withNews}</span>
-                  {/* Info tooltip */}
-                  <div className="relative group">
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold cursor-help hover:bg-blue-100 hover:text-blue-600 transition-colors">i</span>
-                    <div className="absolute right-0 top-6 z-50 hidden group-hover:block w-56 p-2.5 bg-neutral-900 text-white text-[10px] rounded-lg shadow-xl leading-relaxed">
-                      <p className="font-semibold mb-1">{t.generate.tooltipWithNews}</p>
-                      <p className="mb-2">{t.generate.tooltipWithNewsDesc}</p>
-                      <p className="font-semibold mb-1">{t.generate.tooltipWithoutNews}</p>
-                      <p>{t.generate.tooltipWithoutNewsDesc}</p>
-                      <div className="absolute -top-1 right-3 w-2 h-2 bg-neutral-900 rotate-45"></div>
-                    </div>
-                  </div>
-                </div>
+            {/* Selected news reminder (news mode) */}
+            {useNewsMode && selectedNews && (
+              <div className={`mb-4 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
+                <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
+                  {selectedNews.category === 'Tendance' ? '&#x1F525; Tendance s\u00e9lectionn\u00e9e' : '&#x2713; Actualit\u00e9 s\u00e9lectionn\u00e9e'} : {selectedNews.title}
+                </p>
               </div>
+            )}
 
-              {/* Afficher la carte sélectionnée (mode avec actualité ou sélection optionnelle) */}
-              {selectedNews && (
-                <div className={`mb-3 p-2 rounded border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
-                  <p className={`text-[10px] font-medium mb-1 ${selectedNews.category === 'Tendance' ? 'text-purple-900' : 'text-blue-900'}`}>
-                    {selectedNews.category === 'Tendance'
-                      ? (useNewsMode ? `🔥 ${t.generate.selectedTrend}` : `🔥 ${t.generate.optionalSelectedTrend}`)
-                      : (useNewsMode ? `✓ ${t.generate.selectedNews}` : `📰 ${t.generate.optionalSelectedNews}`)
-                    }
-                  </p>
-                  <p className={`text-xs font-semibold line-clamp-2 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
-                    {selectedNews.source && <span className="text-[9px] font-normal opacity-70">{selectedNews.source} · </span>}
-                    {selectedNews.title}
-                  </p>
-                  {!useNewsMode && (
-                    <button
-                      onClick={() => setSelectedNews(null)}
-                      className="text-[10px] text-red-500 hover:underline mt-1"
-                    >
-                      {t.generate.remove}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Mode sans actualité : encouragement à décrire le business */}
-              {!useNewsMode && !selectedNews && (
-                <div className="mb-3 p-3 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <h4 className="text-xs font-bold text-purple-900 mb-2 flex items-center gap-1">
-                    🎯 {t.generate.freeCreationTitle}
-                  </h4>
-                  <div className="text-[10px] text-purple-800 space-y-1.5">
-                    <p className="font-medium">{t.generate.freeCreationForBestResult}</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li><strong>{t.generate.freeCreationActivity}</strong> {t.generate.freeCreationActivityDesc}</li>
-                      <li><strong>{t.generate.freeCreationSpecialty}</strong> {t.generate.freeCreationSpecialtyDesc}</li>
-                      <li><strong>{t.generate.freeCreationValues}</strong> {t.generate.freeCreationValuesDesc}</li>
-                      <li><strong>{t.generate.freeCreationAudience}</strong> {t.generate.freeCreationAudienceDesc}</li>
-                    </ul>
-                    <p className="mt-2 text-purple-600 italic">
-                      {t.generate.freeCreationDetailHint}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Section d'aide pour créer le lien actualité ou tendance / business */}
-              {selectedNews && useNewsMode && selectedNews.category === 'Tendance' && (
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3 mb-3">
-                  <h4 className="text-xs font-bold text-purple-900 mb-2 flex items-center gap-1">
-                    🔥 {locale === 'fr' ? 'Comment surfer sur cette tendance ?' : 'How to ride this trend?'}
-                  </h4>
-                  <div className="text-[10px] text-purple-800 space-y-1.5">
-                    <p className="font-medium">{locale === 'fr' ? 'Pour un contenu viral, réfléchissez à :' : 'For viral content, think about:'}</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li><strong>{locale === 'fr' ? 'Le format :' : 'Format:'}</strong> {locale === 'fr' ? 'Comment votre métier peut reprendre le format de cette trend (transition, before/after, POV...)' : 'How your business can adapt this trend format (transition, before/after, POV...)'}</li>
-                      <li><strong>{locale === 'fr' ? 'Le twist :' : 'The twist:'}</strong> {locale === 'fr' ? 'Quel est votre angle unique qui rend l\'adaptation mémorable ?' : 'What\'s your unique angle that makes the adaptation memorable?'}</li>
-                      <li><strong>{locale === 'fr' ? 'L\'authenticité :' : 'Authenticity:'}</strong> {locale === 'fr' ? 'Montrez votre savoir-faire DANS le format de la trend' : 'Show your expertise WITHIN the trend format'}</li>
-                      <li><strong>{locale === 'fr' ? 'Le timing :' : 'Timing:'}</strong> {locale === 'fr' ? 'Publiez vite, les tendances ont une durée de vie courte !' : 'Post quickly, trends have a short lifespan!'}</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-              {selectedNews && useNewsMode && selectedNews.category !== 'Tendance' && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3 mb-3">
-                  <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">
-                    💡 {t.generate.newsLinkingTitle}
-                  </h4>
-                  <div className="text-[10px] text-blue-800 space-y-1.5">
-                    <p className="font-medium">{t.generate.newsLinkingQuestions}</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      <li><strong>{t.generate.newsLinkingImpact}</strong> {t.generate.newsLinkingImpactDesc}</li>
-                      <li><strong>{t.generate.newsLinkingOpportunity}</strong> {t.generate.newsLinkingOpportunityDesc}</li>
-                      <li><strong>{t.generate.newsLinkingSolution}</strong> {t.generate.newsLinkingSolutionDesc}</li>
-                      <li><strong>{t.generate.newsLinkingExpertise}</strong> {t.generate.newsLinkingExpertiseDesc}</li>
-                    </ul>
-                    <div className="mt-2 pt-2 border-t border-blue-300">
-                      <p className="font-medium mb-1">{t.generate.newsLinkingExample}</p>
-                      <p className="italic text-blue-700">
-                        {t.generate.newsLinkingExampleText}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Sélecteur de Profil de Communication - Stratégies Marketing */}
-              <div ref={promptSectionRef} className="mb-4">
-                <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                  🎭 {t.generate.chooseStrategy}
-                </label>
-
-                {/* Sélection simple en ligne */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-                  {Object.entries(tonePresets).map(([key, preset]) => {
-                    const isSelected = communicationProfile === key;
-
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setCommunicationProfile(key as any)}
-                        className={`p-3 rounded-lg border-2 text-center transition-all ${
-                          isSelected
-                            ? 'border-blue-500 bg-blue-50 shadow-md'
-                            : 'border-neutral-200 hover:border-blue-300 bg-white'
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">{preset.icon}</div>
-                        <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Détails de la stratégie sélectionnée - Compact */}
-                {communicationProfile && (
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-neutral-900 text-xs mb-1">
-                          {tonePresets[communicationProfile].marketingStrategy}
-                        </h4>
-                        <p className="text-[11px] text-neutral-700 leading-snug mb-2">
-                          {tonePresets[communicationProfile].description}
-                        </p>
-
-                        {/* Points clés inline */}
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}
-                          </p>
-                          <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}
-                          </p>
-                          <p className="text-[10px] text-neutral-600">
-                            <span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                )}
-              </div>
-
-              {/* === WIZARD STEP INDICATOR === */}
-              <div className="flex items-center justify-between mb-3 px-1">
-                {[
-                  { step: 1, label: t.generate.stepBusiness },
-                  { step: 2, label: t.generate.stepDirection },
-                  { step: 3, label: t.generate.stepCreative },
-                  { step: 4, label: t.generate.stepExpert },
-                  { step: 5, label: t.generate.stepGenerate },
-                ].map(({ step, label }, i) => (
-                  <div key={step} className="flex items-center">
-                    <button
-                      onClick={() => setFormStep(step)}
-                      className={`flex items-center gap-1 transition-all ${
-                        formStep === step
-                          ? 'text-blue-700'
-                          : formStep > step
-                          ? 'text-emerald-600'
-                          : 'text-neutral-400'
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
-                        formStep === step
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : formStep > step
-                          ? 'bg-emerald-500 text-white border-emerald-500'
-                          : 'bg-white text-neutral-400 border-neutral-300'
-                      }`}>
-                        {formStep > step ? '✓' : step}
-                      </span>
-                      <span className="text-[9px] font-semibold hidden sm:inline">{label}</span>
-                    </button>
-                    {i < 4 && <div className={`w-3 sm:w-4 h-0.5 mx-0.5 ${formStep > step ? 'bg-emerald-400' : 'bg-neutral-200'}`} />}
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                {/* ===== ÉTAPE 1 : VOTRE BUSINESS ===== */}
-                {formStep === 1 && (<>
-                {/* Type de business */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.businessLabel} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    placeholder={t.generate.businessPlaceholder}
-                    autoComplete="off"
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                  />
-                </div>
-
-                {/* Description business */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
-                    {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">{t.generate.descriptionRequired}</span>}
-                  </label>
-                  <textarea
-                    id="business-description"
-                    value={businessDescription}
-                    onChange={(e) => setBusinessDescription(e.target.value)}
-                    placeholder={useNewsMode
-                      ? t.generate.descriptionPlaceholderNews
-                      : t.generate.descriptionPlaceholderFree
-                    }
-                    rows={useNewsMode ? 2 : 4}
-                    className={`w-full text-xs rounded-lg border-2 px-3 py-2 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
-                      !useNewsMode
-                        ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
-                        : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
-                    }`}
-                  />
-                </div>
-
-                {/* Audience cible */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.audienceLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder={t.generate.audiencePlaceholder}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                  />
-                </div>
-
-                {/* Bouton Suivant étape 1 */}
-                <button
-                  onClick={() => setFormStep(2)}
-                  disabled={!businessType.trim() || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim())}
-                  className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {t.generate.next} <span className="text-xs">{'\u2192'}</span>
-                </button>
-                {useNewsMode && !selectedNews && (
-                  <p className="text-[10px] text-amber-600 text-center mt-1">
-                    {locale === 'fr' ? '\u26A0\uFE0F S\u00E9lectionnez une actualit\u00E9 ci-dessus pour continuer' : '\u26A0\uFE0F Select a news article above to continue'}
-                  </p>
-                )}
-                {!useNewsMode && !businessDescription.trim() && (
-                  <p className="text-[10px] text-amber-600 text-center mt-1">
-                    {locale === 'fr' ? '\u26A0\uFE0F D\u00E9crivez votre business pour continuer' : '\u26A0\uFE0F Describe your business to continue'}
-                  </p>
-                )}
-                </>)}
-
-                {/* ===== ÉTAPE 2 : DIRECTION CRÉATIVE ===== */}
-                {formStep === 2 && (<>
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
-
-                    {/* Bouton IA pour remplir la direction */}
-                    <button
-                      type="button"
-                      onClick={() => handleAiAutoFill('direction')}
-                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                    >
-                      {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                      ) : (
-                        <><span>✨</span> {t.generate.autoFill}</>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Curseur orientation business/actualité */}
-                  {useNewsMode && selectedNews && (
-                  <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                    <label className="block text-xs font-semibold mb-2 text-neutral-700">
-                      {t.generate.visualOrientation}
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={contentFocus}
-                        onChange={(e) => setContentFocus(Number(e.target.value))}
-                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                        style={{
-                          background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)`,
-                        }}
-                      />
-                      <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
-                    </div>
-                    <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
-                      {contentFocus <= 30
-                        ? `🏢 ${t.generate.focusBusiness}`
-                        : contentFocus >= 70
-                        ? `📰 ${t.generate.focusNews}`
-                        : `⚖️ ${t.generate.focusBalance}`}
-                    </p>
-                  </div>
-                  )}
-
-                  {/* Angle de l'image */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.imageAngleLabel}
-                    </label>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value !== 'custom') {
-                          setImageAngle(e.target.value);
-                        } else {
-                          setImageAngle('');
-                        }
-                      }}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                    >
-                      <option value="">{t.generate.chooseSuggestion}</option>
-                      {useNewsMode ? (<>
-                        <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">{t.generate.harmonious}</option>
-                        <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">{t.generate.focusSolution}</option>
-                        <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">{t.generate.visualMetaphor}</option>
-                        <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">{t.generate.depthComposition}</option>
-                        <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">{t.generate.narrativeEnvironment}</option>
-                      </>) : (<>
-                        <option value="Gros plan sur un détail clé du métier : texture, outil, geste précis">{t.generate.freeAngleMacro}</option>
-                        <option value="Montrer les coulisses de l'activité, le travail en cours, l'énergie du métier">{t.generate.freeAngleBehindScenes}</option>
-                        <option value="Transformation spectaculaire : l'état avant et le résultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
-                        <option value="Capturer l'ambiance unique du lieu ou de l'activité, lumière et décor">{t.generate.freeAngleAmbiance}</option>
-                        <option value="Mettre en valeur le produit ou la création phare dans une composition soignée">{t.generate.freeAngleProduct}</option>
-                      </>)}
-                      <option value="custom">✏️ {t.generate.customOption}</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={imageAngle}
-                      onChange={(e) => setImageAngle(e.target.value)}
-                      placeholder={t.generate.customizeImageAngle}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                  {/* Angle marketing */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.marketingAngleLabel}
-                    </label>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value !== 'custom') {
-                          setMarketingAngle(e.target.value);
-                        } else {
-                          setMarketingAngle('');
-                        }
-                      }}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                    >
-                      <option value="">{t.generate.chooseSuggestion}</option>
-                      {useNewsMode ? (<>
-                        <option value="Profiter de l'opportunité créée par l'actualité">{t.generate.opportunityFromNews}</option>
-                        <option value="Résoudre le problème soulevé par l'actualité">{t.generate.solveProblem}</option>
-                        <option value="Se positionner en expert face à l'actualité">{t.generate.expertFacingNews}</option>
-                        <option value="Surfer sur la tendance de l'actualité">{t.generate.surfTrend}</option>
-                        <option value="Anticiper les conséquences de l'actualité">{t.generate.anticipateConsequences}</option>
-                      </>) : (<>
-                        <option value="Démontrer le savoir-faire unique et la maîtrise du métier">{t.generate.freeMarketingExpertise}</option>
-                        <option value="Toucher le public avec un moment authentique et sincère">{t.generate.freeMarketingEmotion}</option>
-                        <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
-                        <option value="Montrer l'expérience que vivent les clients, le résultat obtenu">{t.generate.freeMarketingClient}</option>
-                        <option value="Partager les valeurs, la passion ou le parcours derrière l'activité">{t.generate.freeMarketingStory}</option>
-                      </>)}
-                      <option value="custom">✏️ {t.generate.customOption}</option>
-                    </select>
-                    <textarea
-                      value={marketingAngle}
-                      onChange={(e) => setMarketingAngle(e.target.value)}
-                      placeholder={t.generate.customizeMarketingAngle}
-                      rows={2}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                    />
-                  </div>
-
-                  {/* Angle du contenu (éditorial) */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.contentAngleLabel}
-                    </label>
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value !== 'custom') {
-                          setContentAngle(e.target.value);
-                        } else {
-                          setContentAngle('');
-                        }
-                      }}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                    >
-                      <option value="">{t.generate.chooseSuggestion}</option>
-                      <option value="Témoignage client ou étude de cas concret">{t.generate.testimonialCase}</option>
-                      <option value="Contenu éducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
-                      <option value="Behind-the-scenes, coulisses du métier">{t.generate.behindTheScenes}</option>
-                      <option value="Prise de position forte et opinion tranchée">{t.generate.opinionStance}</option>
-                      <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
-                      <option value="custom">✏️ {t.generate.customOption}</option>
-                    </select>
-                    <input
-                      type="text"
-                      value={contentAngle}
-                      onChange={(e) => setContentAngle(e.target.value)}
-                      placeholder={t.generate.customizeContentAngle}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                </div>
-                {/* Navigation étape 2 */}
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    ← {t.generate.back}
-                  </button>
-                  <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    {t.generate.next} →
-                  </button>
-                </div>
-                <button onClick={() => setFormStep(3)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  {t.generate.skipStep}
-                </button>
-                </>)}
-
-                {/* ===== ÉTAPE 3 : CRÉATIF ===== */}
-                {formStep === 3 && (<>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-medium text-neutral-600">{t.generate.customizeContent}</p>
-                    <button
-                      type="button"
-                      onClick={() => handleAiAutoFill('creatif')}
-                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                    >
-                      {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                      ) : (
-                        <><span>✨</span> {t.generate.autoFill}</>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Histoire à raconter */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.storyToTell}
-                    </label>
-                    <textarea
-                      value={storyToTell}
-                      onChange={(e) => setStoryToTell(e.target.value)}
-                      placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree}
-                      rows={2}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                    />
-                  </div>
-
-                  {/* But de la publication */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.publicationGoal}
-                    </label>
-                    <input
-                      type="text"
-                      value={publicationGoal}
-                      onChange={(e) => setPublicationGoal(e.target.value)}
-                      placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                  {/* Émotion à transmettre */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.emotionToConvey}
-                    </label>
-                    <input
-                      type="text"
-                      value={emotionToConvey}
-                      onChange={(e) => setEmotionToConvey(e.target.value)}
-                      placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                  {/* Texte à ajouter (optionnel) */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
-                        {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleGenerateTextSuggestions}
-                        className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
-                      >
-                        💡 {t.generate.suggestText}
-                      </button>
-                    </div>
-
-                    <input
-                      type="text"
-                      value={optionalText}
-                      onChange={(e) => setOptionalText(e.target.value)}
-                      placeholder={t.generate.textPlaceholder}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-
-                    {/* Suggestions intelligentes */}
-                    {showTextSuggestions && textSuggestions.length > 0 && (
-                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs font-semibold text-blue-900 mb-2">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
-                        <div className="space-y-1.5">
-                          {textSuggestions.map((suggestion, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => {
-                                setOptionalText(suggestion);
-                                setShowTextSuggestions(false);
-                              }}
-                              className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
-                            >
-                              <span className="text-neutral-700">{suggestion}</span>
-                              <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">{t.generate.use}</span>
-                            </button>
-                          ))}
-                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Main configure panel */}
+              <div className="lg:col-span-8">
+                <div className="bg-white rounded-xl border p-5">
+                  {/* Inner wizard step indicator */}
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    {[
+                      { step: 1, label: t.generate.stepBusiness },
+                      { step: 2, label: t.generate.stepDirection },
+                      { step: 3, label: t.generate.stepCreative },
+                      { step: 4, label: t.generate.stepExpert },
+                      { step: 5, label: t.generate.stepGenerate },
+                    ].map(({ step, label }, i) => (
+                      <div key={step} className="flex items-center">
                         <button
-                          type="button"
-                          onClick={() => setShowTextSuggestions(false)}
-                          className="mt-2 text-[10px] text-neutral-500 hover:text-neutral-700 transition-colors"
+                          onClick={() => setFormStep(step)}
+                          className={`flex items-center gap-1 transition-all ${
+                            formStep === step
+                              ? 'text-blue-700'
+                              : formStep > step
+                              ? 'text-emerald-600'
+                              : 'text-neutral-400'
+                          }`}
                         >
-                          {t.generate.hideSuggestions}
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all ${
+                            formStep === step
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : formStep > step
+                              ? 'bg-emerald-500 text-white border-emerald-500'
+                              : 'bg-white text-neutral-400 border-neutral-300'
+                          }`}>
+                            {formStep > step ? '\u2713' : step}
+                          </span>
+                          <span className="text-[10px] font-semibold hidden sm:inline">{label}</span>
                         </button>
+                        {i < 4 && <div className={`w-4 sm:w-6 h-0.5 mx-1 ${formStep > step ? 'bg-emerald-400' : 'bg-neutral-200'}`} />}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Communication profile selector (visible on all steps) */}
+                  <div ref={promptSectionRef} className="mb-4">
+                    <label className="block text-sm font-semibold text-neutral-900 mb-3">
+                      &#x1F3AD; {t.generate.chooseStrategy}
+                    </label>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                      {Object.entries(tonePresets).map(([key, preset]) => {
+                        const isSelected = communicationProfile === key;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setCommunicationProfile(key as any)}
+                            className={`p-3 rounded-lg border-2 text-center transition-all ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 shadow-md'
+                                : 'border-neutral-200 hover:border-blue-300 bg-white'
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">{preset.icon}</div>
+                            <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {communicationProfile && (
+                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-neutral-900 text-xs mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
+                            <p className="text-[11px] text-neutral-700 leading-snug mb-2">{tonePresets[communicationProfile].description}</p>
+                            <div className="space-y-1">
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
-
                   </div>
 
-                </div>
-                {/* Navigation étape 3 */}
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    {t.generate.back}
-                  </button>
-                  <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    {t.generate.next}
-                  </button>
-                </div>
-                <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  {t.generate.skipOptionalSteps}
-                </button>
-                </>)}
-
-                {/* ===== ÉTAPE 4 : EXPERT ===== */}
-                {formStep === 4 && (<>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-[10px] font-medium text-neutral-600">{t.generate.expertQuestions}</p>
-                      <p className="text-[9px] text-neutral-400">{t.generate.multiplyImpact}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleAiAutoFill('expert')}
-                      disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                    >
-                      {autoFillLoading ? (
-                        <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                      ) : (
-                        <><span>✨</span> {t.generate.autoFill}</>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Question 1 : Problème résolu */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}
-                    </label>
-                    <input
-                      type="text"
-                      value={problemSolved}
-                      onChange={(e) => setProblemSolved(e.target.value)}
-                      placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                  {/* Question 2 : Avantage unique */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.uniqueAdvantage}
-                    </label>
-                    <input
-                      type="text"
-                      value={uniqueAdvantage}
-                      onChange={(e) => setUniqueAdvantage(e.target.value)}
-                      placeholder={t.generate.advantagePlaceholder}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                    />
-                  </div>
-
-                  {/* Question 3 : Idée visuelle */}
-                  <div className="mb-2">
-                    <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                      {t.generate.visualIdea}
-                    </label>
-                    <textarea
-                      value={desiredVisualIdea}
-                      onChange={(e) => setDesiredVisualIdea(e.target.value)}
-                      placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree}
-                      rows={2}
-                      className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                    />
-                  </div>
-                </div>
-                {/* Navigation étape 4 */}
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                    {t.generate.back}
-                  </button>
-                  <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                    {t.generate.next}
-                  </button>
-                </div>
-                <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                  {t.generate.skipThisStep}
-                </button>
-                </>)}
-
-                {/* ===== ÉTAPE 5 : GÉNÉRER ===== */}
-                {formStep === 5 && (<>
-                {/* Plateforme */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.platformLabel}</label>
-                  <select
-                    value={platform}
-                    onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
-                  >
-                    <option>Instagram</option>
-                    <option>LinkedIn</option>
-                    <option>Twitter/X</option>
-                    <option>TikTok</option>
-                  </select>
-                </div>
-
-                {/* Tonalité (auto-géré par profil) */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.toneLabel} <span className="text-blue-600">{t.generate.fromProfile}</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={tone}
-                    readOnly
-                    className="w-full text-xs rounded-lg border-2 border-blue-100 bg-blue-50 px-3 py-2 text-neutral-700 cursor-default"
-                  />
-                </div>
-
-                {/* Style visuel */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.styleLabel} <span className="text-blue-600">{t.generate.suggestedByProfile}</span>
-                  </label>
-                  <select
-                    value={visualStyle}
-                    onChange={(e) => setVisualStyle(e.target.value)}
-                    className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
-                  >
-                    <optgroup label={t.generate.profileStyles}>
-                      <option value="Lumineux et épuré">{t.generate.styleBrightClean}</option>
-                      <option value="Moderne et structuré">{t.generate.styleModernStructured}</option>
-                      <option value="Énergique et contrasté">{t.generate.styleEnergeticContrast}</option>
-                      <option value="Naturel et chaleureux">{t.generate.styleWarmNatural}</option>
-                    </optgroup>
-                    <optgroup label={t.generate.otherStyles}>
-                      <option value="Minimaliste et clean">{t.generate.styleMinimalist}</option>
-                      <option value="Coloré et vibrant">{t.generate.styleColorful}</option>
-                      <option value="Sombre et dramatique">{t.generate.styleDarkDramatic}</option>
-                      <option value="Pastel et doux">{t.generate.stylePastel}</option>
-                      <option value="Bold et audacieux">{t.generate.styleBold}</option>
-                      <option value="Vintage et rétro">{t.generate.styleVintage}</option>
-                      <option value="Futuriste et tech">{t.generate.styleFuturistic}</option>
-                      <option value="Organique et naturel">{t.generate.styleOrganic}</option>
-                      <option value="Luxe et premium">{t.generate.styleLuxury}</option>
-                      <option value="Playful et fun">{t.generate.stylePlayful}</option>
-                      <option value="Élégant et sophistiqué">{t.generate.styleElegant}</option>
-                      <option value="Dynamique et sportif">{t.generate.styleDynamic}</option>
-                    </optgroup>
-                  </select>
-                </div>
-
-                {/* Style de rendu */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.renderLabel}
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setRenderStyle('photo')}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
-                        renderStyle === 'photo'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      }`}
-                    >
-                      {t.generate.photoRealistic}
-                    </button>
-                    <button
-                      onClick={() => setRenderStyle('illustration')}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
-                        renderStyle === 'illustration'
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      }`}
-                    >
-                      {t.generate.illustration3D}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Style de personnages */}
-                <div>
-                  <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                    {t.generate.charactersLabel}
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCharacterStyle('real')}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
-                        characterStyle === 'real'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      }`}
-                    >
-                      {t.generate.humans}
-                    </button>
-                    <button
-                      onClick={() => setCharacterStyle('fiction')}
-                      className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${
-                        characterStyle === 'fiction'
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'
-                      }`}
-                    >
-                      {t.generate.fictionCharacters}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Sélecteur mode de génération */}
-                <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
-                  <button
-                    onClick={() => setGenerationMode('image')}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
-                      generationMode === 'image'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-neutral-500 hover:text-neutral-700'
-                    }`}
-                  >
-                    🖼️ {t.generate.visualMode}
-                  </button>
-                  <button
-                    onClick={() => setGenerationMode('video')}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${
-                      generationMode === 'video'
-                        ? 'bg-white text-purple-700 shadow-sm'
-                        : 'text-neutral-500 hover:text-neutral-700'
-                    }`}
-                  >
-                    🎬 {t.generate.videoMode}
-                  </button>
-                </div>
-
-                {/* Options vidéo uniquement */}
-                {generationMode === 'video' && (
-                  <>
-                    {/* Résumé audio — indication claire du mode choisi */}
-                    <div className={`rounded-lg p-2.5 border text-[10px] font-medium ${
-                      addAudio && selectedMusic !== 'none'
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                        : addAudio
-                          ? 'bg-blue-50 border-blue-200 text-blue-700'
-                          : selectedMusic !== 'none'
-                            ? 'bg-purple-50 border-purple-200 text-purple-700'
-                            : 'bg-neutral-50 border-neutral-200 text-neutral-500'
-                    }`}>
-                      {addAudio && selectedMusic !== 'none'
-                        ? `🎙️🎵 ${locale === 'fr' ? 'Voix off + Musique de fond' : 'Voice + Background music'}`
-                        : addAudio
-                          ? `🎙️ ${locale === 'fr' ? 'Voix off uniquement' : 'Voice narration only'}`
-                          : selectedMusic !== 'none'
-                            ? `🎵 ${locale === 'fr' ? 'Musique de fond uniquement (pas de voix)' : 'Background music only (no voice)'}`
-                            : `🔇 ${locale === 'fr' ? 'Aucun audio' : 'No audio'}`
-                      }
-                    </div>
-
-                    {/* Section Voix / Narration */}
-                    <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={addAudio}
-                          onChange={(e) => setAddAudio(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-xs font-semibold text-neutral-900">
-                          🎙️ {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}
-                        </span>
-                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
-                      </label>
-
-                      {addAudio && (
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setAudioTextSource('ai')}
-                              className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                                audioTextSource === 'ai'
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
-                              }`}
-                            >
-                              ✨ {t.generate.automatic}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAudioTextSource('manual')}
-                              className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${
-                                audioTextSource === 'manual'
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-white text-neutral-700 hover:bg-neutral-50'
-                              }`}
-                            >
-                              ✍️ {t.generate.writeYourText}
-                            </button>
-                          </div>
-
-                          {audioTextSource === 'manual' && (
-                            <div>
-                              <textarea
-                                value={audioText}
-                                onChange={(e) => setAudioText(e.target.value)}
-                                placeholder={t.generate.audioTextPlaceholder}
-                                rows={2}
-                                maxLength={150}
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                              />
-                              <p className="text-[10px] text-neutral-500 mt-1">
-                                ~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} {t.generate.wordsCount} ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)
-                              </p>
-                            </div>
-                          )}
-
-                          {audioTextSource === 'ai' && (
-                            <p className="text-[10px] text-neutral-600 italic">
-                              💡 {t.generate.audioAutoGenerated}
-                            </p>
-                          )}
-
-                          {/* Voice Selector (ElevenLabs) */}
-                          <div>
-                            <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.voiceLabel}</label>
-                            <div className="grid grid-cols-2 gap-1">
-                              {([
-                                { value: 'pFZP5JQG7iQjIQuC4Bku', label: `♀ ${t.generate.femaleSoft}` },
-                                { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
-                                { value: 'Xb7hH8MSUJpSbSDYk0k2', label: `♀ ${t.generate.femalePro}` },
-                                { value: 'cgSgspJ2msm6clMCkdW9', label: `♀ ${t.generate.femaleEnergetic}` },
-                                { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
-                                { value: 'onwK4e9ZLuTAKqWW03F9', label: `♂ ${t.generate.maleDynamic}` },
-                                { value: 'nPczCjzI2devNBz1zQrb', label: `♂ ${t.generate.maleDeep}` },
-                                { value: 'cjVigY5qzO86Huf0OWal', label: `♂ ${t.generate.maleAuthoritative}` },
-                              ]).map((v) => (
-                                <button
-                                  key={v.value}
-                                  type="button"
-                                  onClick={() => setSelectedVoice(v.value)}
-                                  className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${
-                                    selectedVoice === v.value
-                                      ? 'bg-blue-600 text-white border-blue-600'
-                                      : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'
-                                  }`}
-                                >
-                                  {v.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Section Musique de fond (optionnelle, comme la voix) */}
-                    <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={addMusic}
-                          onChange={(e) => {
-                            setAddMusic(e.target.checked);
-                            if (!e.target.checked) setSelectedMusic('none');
-                            else if (selectedMusic === 'none') setSelectedMusic('energetic');
-                          }}
-                          className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500"
-                        />
-                        <span className="text-xs font-semibold text-neutral-900">
-                          🎵 {t.generate.backgroundMusic}
-                        </span>
-                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
-                      </label>
-
-                      {addMusic && (
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-1">
-                            {([
-                              { value: 'corporate', label: t.generate.musicCorporate },
-                              { value: 'energetic', label: t.generate.musicEnergetic },
-                              { value: 'calm', label: t.generate.musicCalm },
-                              { value: 'inspiring', label: t.generate.musicInspiring },
-                              { value: 'trendy', label: t.generate.musicTrendy },
-                            ]).map((m) => (
-                              <button
-                                key={m.value}
-                                type="button"
-                                onClick={() => setSelectedMusic(m.value)}
-                                className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
-                                  selectedMusic === m.value
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
-                                }`}
-                              >
-                                {m.label}
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Trending Music */}
-                          {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
-                            <div className="pt-2 border-t border-purple-200">
-                              <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
-                              <div className="space-y-1 max-h-[140px] overflow-y-auto">
-                                {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
-                                  const songKey = `trending:${song.title}`;
-                                  const isSelected = selectedMusic === songKey;
-                                  return (
-                                    <div
-                                      key={i}
-                                      onClick={() => setSelectedMusic(isSelected ? 'energetic' : songKey)}
-                                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${
-                                        isSelected
-                                          ? 'bg-purple-600 text-white border border-purple-600'
-                                          : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
-                                      }`}
-                                    >
-                                      {song.coverUrl && (
-                                        <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
-                                      )}
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                                        <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                                      </div>
-                                      {isSelected ? (
-                                        <span className="text-white text-[10px] font-bold">✓</span>
-                                      ) : song.trend === 'up' ? (
-                                        <span className="text-emerald-500 font-bold">↑</span>
-                                      ) : null}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Option sous-titres / texte animé dans la vidéo */}
-                    <div className="bg-purple-50 rounded-lg p-3 border-2 border-purple-300">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={enableAIText}
-                          onChange={(e) => setEnableAIText(e.target.checked)}
-                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                        />
-                        <span className="text-xs font-semibold text-purple-900">
-                          ✨ {t.generate.addSubtitles}
-                        </span>
-                        <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">{t.generate.recommended}</span>
-                      </label>
-
-                      {enableAIText && (
-                        <div className="mt-2 space-y-2">
-                          <p className="text-[10px] text-purple-700">{t.generate.textStyleLabel}</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {[
-                              { key: 'wordflash', label: t.generate.subtitleWordByWord },
-                              { key: 'wordstay', label: t.generate.subtitleKaraoke },
-                              { key: 'neon', label: t.generate.subtitleNeon },
-                              { key: 'cinema', label: t.generate.subtitleCinema },
-                              { key: 'impact', label: t.generate.subtitleBold },
-                              { key: 'minimal', label: t.generate.subtitleSubtle },
-                            ].map((style) => (
-                              <button
-                                key={style.key}
-                                onClick={() => setAITextStyle(style.key)}
-                                className={`px-2 py-1.5 text-[10px] rounded border transition-all ${
-                                  aiTextStyle === style.key
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                                }`}
-                              >
-                                {style.label}
-                              </button>
-                            ))}
-                          </div>
-                          {/* Taille du texte */}
-                          <div className="mt-1.5">
-                            <p className="text-[9px] text-purple-600 mb-1">{t.generate.sizeLabel}</p>
-                            <div className="flex gap-1">
-                              {([
-                                { key: 'sm', label: t.generate.subtitleSizeSmall },
-                                { key: 'md', label: t.generate.subtitleSizeMedium },
-                                { key: 'lg', label: t.generate.subtitleSizeLarge },
-                                { key: 'xl', label: t.generate.subtitleSizeXL },
-                              ] as const).map((s) => (
-                                <button
-                                  key={s.key}
-                                  onClick={() => setSubtitleFontSize(s.key)}
-                                  className={`px-1.5 py-1 text-[9px] rounded border transition-all ${
-                                    subtitleFontSize === s.key
-                                      ? 'bg-purple-600 text-white border-purple-600'
-                                      : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                                  }`}
-                                >
-                                  {s.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          {/* Position du texte */}
-                          <div className="mt-1.5">
-                            <p className="text-[9px] text-purple-600 mb-1">{t.generate.positionLabel}</p>
-                            <div className="flex gap-1">
-                              {([
-                                { key: 'top', label: t.generate.subtitlePositionTop },
-                                { key: 'center', label: t.generate.subtitlePositionCenter },
-                                { key: 'bottom', label: t.generate.subtitlePositionBottom },
-                              ] as const).map((p) => (
-                                <button
-                                  key={p.key}
-                                  onClick={() => setSubtitlePosition(p.key)}
-                                  className={`px-1.5 py-1 text-[9px] rounded border transition-all ${
-                                    subtitlePosition === p.key
-                                      ? 'bg-purple-600 text-white border-purple-600'
-                                      : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'
-                                  }`}
-                                >
-                                  {p.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-[9px] text-purple-600 italic mt-1.5">
-                            {addAudio
-                              ? `💡 ${t.generate.subtitleSyncAudio}`
-                              : `💡 ${t.generate.subtitleAutoGenerated}`}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Durée de la vidéo — Chips */}
-                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                      <label className="block text-xs font-semibold text-neutral-900 mb-2">
-                        ⏱️ {t.generate.videoDuration}
-                      </label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {([10, 15, 30, 45, 60, 90] as const).map((dur) => (
-                          <button
-                            key={dur}
-                            type="button"
-                            onClick={() => setVideoDuration(dur)}
-                            className={`relative py-2 px-1 rounded-lg text-center transition-all border ${
-                              videoDuration === dur
-                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                                : 'bg-white text-neutral-700 border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50'
-                            }`}
-                          >
-                            <span className="block text-sm font-bold">{dur}s</span>
-                            <span className={`block text-[9px] mt-0.5 ${videoDuration === dur ? 'text-indigo-200' : 'text-neutral-400'}`}>
-                              {getVideoCreditCost(dur)} cr
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-[9px] text-indigo-500 mt-2 italic">
-                        💡 {t.generate.socialMediaIdeal}
-                      </p>
-
-                      {/* Mode avancé toggle pour vidéos longues */}
-                      {videoDuration > 10 && (
-                        <div className="mt-3 pt-3 border-t border-indigo-200">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-medium text-neutral-700">
-                              🎬 {t.generate.videoLongMode}
-                            </span>
-                            <div className="flex bg-white rounded-md border border-neutral-200 overflow-hidden">
-                              <button
-                                type="button"
-                                onClick={() => setVideoGenerationMode('simple')}
-                                className={`px-2.5 py-1 text-[10px] font-medium transition ${
-                                  videoGenerationMode === 'simple'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'text-neutral-600 hover:bg-neutral-50'
-                                }`}
-                              >
-                                {t.generate.videoSimpleMode}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                            setVideoGenerationMode('advanced');
-                            if (advancedSegments.length === 0) initAdvancedSegments();
-                          }}
-                                className={`px-2.5 py-1 text-[10px] font-medium transition ${
-                                  videoGenerationMode === 'advanced'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'text-neutral-600 hover:bg-neutral-50'
-                                }`}
-                              >
-                                {t.generate.videoAdvancedMode}
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-[9px] text-neutral-400 mt-1">
-                            {videoGenerationMode === 'simple' ? t.generate.videoSimpleDesc : t.generate.videoAdvancedDesc}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Advanced segment editor */}
-                    {videoDuration > 10 && videoGenerationMode === 'advanced' && (
-              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                {/* Header + Auto-fill button */}
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-neutral-900">
-                    🎬 Séquences — {advancedSegments.length} segments ({advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={autoFillSegments}
-                    disabled={isDecomposing}
-                    className="px-2.5 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 transition"
-                  >
-                    {isDecomposing ? '⏳ Génération...' : '✨ Remplir auto'}
-                  </button>
-                </div>
-
-                {/* Segments list */}
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {advancedSegments.map((seg, idx) => (
-                    <div key={idx} className="bg-white rounded-lg border border-neutral-200 p-2.5">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold text-purple-700">Segment {idx + 1}</span>
-                        <div className="flex items-center gap-1.5">
-                          {/* Duration toggle */}
-                          <div className="flex bg-neutral-100 rounded overflow-hidden">
-                            {([5, 10] as const).map((d) => (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => updateSegment(idx, 'duration', d)}
-                                className={`px-2 py-0.5 text-[9px] font-medium transition ${
-                                  seg.duration === d
-                                    ? 'bg-purple-600 text-white'
-                                    : 'text-neutral-500 hover:bg-neutral-200'
-                                }`}
-                              >
-                                {d}s
-                              </button>
-                            ))}
-                          </div>
-                          {advancedSegments.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => removeSegment(idx)}
-                              className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded text-xs"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Prompt textarea */}
-                      <textarea
-                        value={seg.prompt}
-                        onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
-                        placeholder={idx === 0 ? 'Plan d\'ouverture : description de la scène...' : `Segment ${idx + 1} : suite de la scène...`}
-                        rows={2}
-                        className="w-full text-[11px] rounded border border-neutral-200 px-2 py-1.5 mb-1.5 resize-none focus:ring-1 focus:ring-purple-400 focus:border-purple-400 outline-none"
-                      />
-
-                      {/* Camera + Transition selects */}
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <label className="text-[9px] text-neutral-500 mb-0.5 block">Caméra</label>
-                          <select
-                            value={seg.cameraMovement}
-                            onChange={(e) => updateSegment(idx, 'cameraMovement', e.target.value)}
-                            className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none"
-                          >
-                            <option value="dolly_in">Dolly in (rapprochement)</option>
-                            <option value="pan_left">Pan gauche</option>
-                            <option value="pan_right">Pan droite</option>
-                            <option value="tracking">Tracking (suivi)</option>
-                            <option value="crane">Grue (plongée)</option>
-                            <option value="steadicam">Steadicam (fluide)</option>
-                            <option value="tilt_up">Tilt haut</option>
-                            <option value="tilt_down">Tilt bas</option>
-                            <option value="static">Fixe</option>
-                          </select>
-                        </div>
-                        {idx < advancedSegments.length - 1 && (
-                          <div className="flex-1">
-                            <label className="text-[9px] text-neutral-500 mb-0.5 block">Transition</label>
-                            <select
-                              value={seg.transition}
-                              onChange={(e) => updateSegment(idx, 'transition', e.target.value)}
-                              className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none"
-                            >
-                              <option value="smooth">Fluide</option>
-                              <option value="cut">Cut</option>
-                              <option value="fade">Fondu</option>
-                              <option value="zoom">Zoom</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add segment + total */}
-                <div className="flex items-center justify-between mt-2">
-                  <button
-                    type="button"
-                    onClick={addSegment}
-                    className="text-[10px] text-purple-600 font-medium hover:text-purple-800 transition"
-                  >
-                    + Ajouter un segment
-                  </button>
-                  <span className="text-[10px] font-bold text-neutral-600">
-                    Total : {advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Read-only progress timeline (shows ONLY during video generation, advanced mode only) */}
-            {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && videoGenerationMode === 'advanced' && (
-              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-neutral-900">
-                    🎞️ Progression — {videoLongSegments.length} segments
-                  </span>
-                  <span className="text-[10px] text-purple-600 font-medium">
-                    {videoLongProgress}%
-                  </span>
-                </div>
-                <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
-                  <div
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${videoLongProgress}%` }}
-                  />
-                </div>
-                <div className="flex gap-1.5 overflow-x-auto pb-1">
-                  {videoLongSegments.map((seg: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${
-                        seg.status === 'completed'
-                          ? 'bg-green-50 border-green-300'
-                          : seg.status === 'generating'
-                          ? 'bg-amber-50 border-amber-300 animate-pulse'
-                          : seg.status === 'failed'
-                          ? 'bg-red-50 border-red-300'
-                          : 'bg-white border-neutral-200'
-                      }`}
-                    >
-                      <span className="block text-[10px] font-medium text-neutral-600">
-                        Seg. {idx + 1}
-                      </span>
-                      <span className="block text-[9px] mt-0.5">
-                        {seg.status === 'completed' ? '✅' : seg.status === 'generating' ? '⏳' : seg.status === 'failed' ? '❌' : '⏸️'}
-                      </span>
-                      {seg.status === 'completed' && seg.videoUrl && (
-                        <video src={seg.videoUrl} className="w-full h-10 object-cover rounded mt-1" muted />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {videoLongStatus && (
-                  <p className="text-[10px] text-purple-600 mt-2 text-center font-medium">
-                    {videoLongStatus}
-                  </p>
-                )}
-              </div>
-            )}
-                  </>
-                )}
-
-                {/* Bouton de génération */}
-                <button
-                  onClick={generationMode === 'video' ? handleGenerateVideo : handleGenerate}
-                  disabled={generating || generatingVideo || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim()) || !businessType.trim()}
-                  className={`w-full py-2.5 text-xs font-semibold rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    generationMode === 'video'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {generationMode === 'video'
-                    ? (generatingVideo ? videoProgress || t.generate.generating : `🎬 ${t.generate.createVideo} (${videoDuration}s) — ${getVideoCreditCost(videoDuration)} cr`)
-                    : (generating ? t.generate.generating : `🖼️ ${t.generate.generateVisual} — ${CREDIT_COSTS.image_t2i} cr`)
-                  }
-                </button>
-
-                {useNewsMode && !selectedNews && (
-                  <p className="text-[10px] text-amber-600 text-center">
-                    ⚠️ {t.generate.selectNewsWarning}
-                  </p>
-                )}
-                {!useNewsMode && !businessDescription.trim() && (
-                  <p className="text-[10px] text-amber-600 text-center">
-                    ⚠️ {t.generate.describeBusinessWarning}
-                  </p>
-                )}
-                {/* Navigation étape 4 */}
-                <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
-                  ← {t.generate.modifyDetails}
-                </button>
-                </>)}
-              </div>
-            </div>
-            )}
-
-            {/* ═══ SIDEBAR: indicateur compact + lien vers résultat ═══ */}
-            {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl && (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <div>
-                    <p className="text-sm font-semibold text-blue-900">
-                      {generatingVideo ? t.generate.videoGenerationInProgress : t.generate.generatingInProgress}
-                    </p>
-                    <p className="text-xs text-blue-600">{generatingVideo ? videoProgress : t.generate.creatingVisual}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {(generatedImageUrl || generatedVideoUrl) && !showEditStudio && (
-              <div className="space-y-3">
-                {/* Résultat inline dans la sidebar */}
-                <div className="bg-white rounded-xl border overflow-hidden">
-                  {generatedVideoUrl ? (
-                    <video
-                      src={generatedVideoUrl}
-                      controls
-                      autoPlay
-                      loop
-                      muted
-                      className="w-full rounded-t-xl"
-                      style={{ maxHeight: '50vh' }}
-                    />
-                  ) : generatedImageUrl ? (
-                    <img
-                      src={generatedImageUrl}
-                      alt={t.generate.generatedVisualAlt}
-                      className="w-full rounded-t-xl cursor-pointer"
-                      style={{ maxHeight: '50vh', objectFit: 'contain' }}
-                      onClick={() => setModalMinimized(false)}
-                    />
-                  ) : null}
-                  <div className="p-3 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setModalMinimized(false)}
-                      className="flex-1 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                    >
-                      {generatedVideoUrl ? '🎬' : '🖼️'} {locale === 'fr' ? 'Voir en grand' : 'View full'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (generatedVideoUrl) { setGeneratedVideoUrl(null); setGeneratedAudioUrl(null); setGeneratedSubtitleText(''); setVideoSavedToLibrary(false); }
-                        if (generatedImageUrl) { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }
-                      }}
-                      className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-50 font-medium"
-                    >
-                      {t.generate.newGeneration}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {generationError && (
-              <div className="bg-red-50 border border-red-200 rounded p-2 text-red-700 text-xs">
-                {generationError}
-              </div>
-            )}
-
-            {/* ═══ ANCIENS BLOCS RÉSULTAT (masqués — remplacés par le modal overlay) ═══ */}
-            {false && (<>
-            {/* Skeleton pendant la génération */}
-            {generating && !generatedImageUrl && (
-              <div className="bg-white rounded-xl border p-3 animate-pulse">
-                <div className="h-4 bg-neutral-200 rounded w-20 mb-3"></div>
-                <div className="aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded border">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-neutral-300 rounded w-32 mx-auto"></div>
-                        <div className="h-2 bg-neutral-200 rounded w-24 mx-auto"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Visuel généré */}
-            {generatedImageUrl && !showEditStudio && (
-              <div className="bg-white rounded-xl border p-3">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  {t.generate.visual}
-                  {lastProvider && (
-                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-                  )}
-                </h3>
-                <div className="relative w-full aspect-square bg-neutral-100 rounded border overflow-hidden">
-                  <img
-                    src={generatedImageUrl || undefined}
-                    alt={t.generate.generatedVisualAlt}
-                    className="w-full h-full object-contain relative z-10"
-                    onLoad={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = '1';
-                      setImageLoadingProgress(100);
-                      setLoadingStep('ready');
-                      // Nettoyer après 500ms
-                      setTimeout(() => {
-                        setImageLoadingProgress(0);
-                        setLoadingStep('api');
-                      }, 500);
-                    }}
-                    onError={() => {
-                      console.error('[Image] Failed to load');
-                      setImageLoadingProgress(100);
-                    }}
-                    style={{ opacity: 0, transition: 'opacity 0.5s ease-in-out' }}
-                  />
-
-                  {/* Loader avancé pendant le chargement */}
-                  {imageLoadingProgress > 0 && imageLoadingProgress < 100 && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-neutral-50 to-neutral-100">
-
-                      {/* Animation de génération */}
-                      <div className="relative mb-6">
-                        {/* Cercle extérieur pulsant */}
-                        <div className="absolute inset-0 w-24 h-24 border-4 border-blue-200 rounded-full animate-ping opacity-20"></div>
-
-                        {/* Cercle principal avec progression */}
-                        <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-                          {/* Background circle */}
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            fill="none"
-                            stroke="#e5e7eb"
-                            strokeWidth="8"
-                          />
-                          {/* Progress circle */}
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            fill="none"
-                            stroke="url(#gradient)"
-                            strokeWidth="8"
-                            strokeLinecap="round"
-                            strokeDasharray={`${imageLoadingProgress * 2.827} 282.7`}
-                            style={{ transition: 'stroke-dasharray 0.3s ease' }}
-                          />
-                          <defs>
-                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#3b82f6" />
-                              <stop offset="100%" stopColor="#06b6d4" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-
-                        {/* Icône centrale */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-3xl">
-                            {loadingStep === 'api' && '🎨'}
-                            {loadingStep === 'download' && '📥'}
-                            {loadingStep === 'ready' && '✓'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Texte de statut */}
-                      <div className="text-center space-y-2 px-4">
-                        <p className="text-base font-semibold text-neutral-900">
-                          {loadingStep === 'api' && t.generate.generatingInProgress}
-                          {loadingStep === 'download' && t.generate.loadingImage}
-                          {loadingStep === 'ready' && t.generate.ready}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {loadingStep === 'api' && t.generate.creatingVisual}
-                          {loadingStep === 'download' && t.generate.optimizingDownload}
-                          {loadingStep === 'ready' && t.generate.visualAvailable}
-                        </p>
-
-                        {/* Barre de progression */}
-                        <div className="w-full max-w-xs mx-auto">
-                          <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300 ease-out"
-                              style={{ width: `${imageLoadingProgress}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs text-neutral-400 mt-1">{imageLoadingProgress}%</p>
-                        </div>
-                      </div>
-
-                      {/* Animation de points */}
-                      <div className="flex gap-1.5 mt-4">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 space-y-2">
-                  {/* Boutons d'action */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async () => {
-                        setShowEditStudio(true);
-                        // Utiliser l'image PROPRE (sans texte overlay) comme base
-                        const cleanBase = imageWithWatermarkOnly || originalImageUrl || generatedImageUrl;
-                        if (!cleanBase) return;
-                        setEditVersions([cleanBase]);
-                        setSelectedEditVersion(cleanBase);
-                        setBaseOriginalImageUrl(cleanBase);
-                        // Pré-charger le texte overlay de la génération comme premier item modifiable
-                        if (overlayText.trim()) {
-                          const overlayId = `overlay-gen-${Date.now()}`;
-                          const items: GenerateTextOverlay[] = [{
-                            id: overlayId,
-                            text: overlayText,
-                            position: textPosition ?? 50,
-                            fontSize: fontSize || 60,
-                            fontFamily: fontFamily || 'inter',
-                            textColor: textColor || '#ffffff',
-                            backgroundColor: textBackgroundColor || 'rgba(0, 0, 0, 0.5)',
-                            backgroundStyle: backgroundStyle || 'none',
-                          }];
-                          setTextOverlayItems(items);
-                          // Auto-entrer en mode édition pour cet overlay
-                          setEditingOverlayId(overlayId);
-                          // Générer immédiatement la preview avec texte
-                          try {
-                            const preview = await renderOverlaysOnImage(cleanBase, items);
-                            setTextPreviewUrl(preview);
-                            setVersionPreviews({ [cleanBase]: preview });
-                          } catch (e) { console.warn('[EditStudio] Initial preview failed:', e); }
-                        } else {
-                          setTextOverlayItems([]);
-                          setVersionPreviews({});
-                          setEditingOverlayId(null);
-                        }
-                      }}
-                      className="flex-1 py-2 text-xs bg-blue-600 text-white text-center rounded hover:bg-blue-700 transition-colors"
-                    >
-                      {t.generate.edit}
-                    </button>
-                    <a
-                      href={selectedEditVersion || generatedImageUrl || undefined}
-                      download
-                      className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
-                    >
-                      {t.generate.download}
-                    </a>
-                  </div>
-                  {/* Deuxième ligne de boutons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={saveToLibrary}
-                      disabled={savingToLibrary || imageSavedToLibrary}
-                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
-                        imageSavedToLibrary
-                          ? 'bg-green-600 cursor-not-allowed'
-                          : savingToLibrary
-                          ? 'bg-blue-400 cursor-wait'
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
-                    >
-                      {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : `📁 ${t.generate.save}`}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setGeneratedImageUrl(null);
-                        setOriginalImageUrl(null);
-                        setGeneratedPrompt(null);
-                        setImageSavedToLibrary(false);
-                        setGeneratedAudioUrl(null); // Reset audio aussi
-                      }}
-                      className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
-                    >
-                      {t.generate.newGeneration}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Audio généré - masqué au client, stocké en interne pour fusion */}
-            {/* L'audio est automatiquement fusionné dans la vidéo, le client ne voit que le résultat final */}
-
-            {/* Vidéo générée */}
-            {generatedVideoUrl && !showEditStudio && (
-              <div className="bg-white rounded-xl border p-3">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  {t.generate.generatedVideo}
-                  {lastVideoProvider && (
-                    <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-                  )}
-                </h3>
-                <div className={`relative w-full bg-neutral-900 rounded border overflow-hidden ${
-                  videoAspectRatio === '9:16' ? 'aspect-[9/16] max-h-[500px] mx-auto'
-                  : videoAspectRatio === '4:5' ? 'aspect-[4/5] max-h-[500px] mx-auto'
-                  : 'aspect-video'
-                }`}>
-                  <video
-                    ref={videoPreviewRef}
-                    src={generatedVideoUrl || undefined}
-                    controls
-                    autoPlay
-                    loop
-                    className="w-full h-full object-cover"
-                    onTimeUpdate={() => {
-                      if (!generatedSubtitleText || !['wordstay', 'wordflash', 'neon'].includes(aiTextStyle)) return;
-                      const v = videoPreviewRef.current;
-                      if (!v || !v.duration) return;
-                      const words = generatedSubtitleText.trim().split(/\s+/);
-                      const progress = v.currentTime / v.duration;
-                      setCurrentWordIndex(Math.min(Math.floor(progress * words.length), words.length - 1));
-                    }}
-                  />
-                  {generatedSubtitleText && (() => {
-                    const words = generatedSubtitleText.trim().split(/\s+/);
-                    const displayText = generatedSubtitleText.length > 80 ? generatedSubtitleText.substring(0, 80) + '...' : generatedSubtitleText;
-                    const sizeMap: Record<string, Record<string, string>> = {
-                      wordflash: { sm: 'text-lg', md: 'text-2xl', lg: 'text-4xl', xl: 'text-5xl' },
-                      wordstay: { sm: 'text-xs', md: 'text-sm', lg: 'text-base', xl: 'text-lg' },
-                      neon: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
-                      cinema: { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm', xl: 'text-base' },
-                      impact: { sm: 'text-base', md: 'text-xl', lg: 'text-3xl', xl: 'text-4xl' },
-                      minimal: { sm: 'text-[8px]', md: 'text-[10px]', lg: 'text-xs', xl: 'text-sm' },
-                    };
-                    const fontSize = sizeMap[aiTextStyle]?.[subtitleFontSize] || sizeMap.wordflash[subtitleFontSize];
-                    const posClass = subtitlePosition === 'top' ? 'top-4'
-                      : subtitlePosition === 'center' ? 'inset-0 flex items-center justify-center'
-                      : 'bottom-4';
-                    return (
-                      <div className={`absolute left-2 right-2 text-center pointer-events-none ${posClass}`}>
-                        {aiTextStyle === 'wordflash' ? (
-                          <span className={`text-white ${fontSize} font-black uppercase tracking-wide [text-shadow:_0_0_20px_rgb(0_0_0),_0_0_40px_rgb(0_0_0)]`}>
-                            {words[currentWordIndex] || ''}
-                          </span>
-                        ) : aiTextStyle === 'wordstay' ? (
-                          <span className="inline-block max-w-[95%]">
-                            {words.slice(0, currentWordIndex + 1).map((w, i) => (
-                              <span key={i} className={`${i === currentWordIndex ? 'text-yellow-300' : 'text-white'} ${fontSize} font-extrabold [text-shadow:_2px_2px_4px_rgb(0_0_0_/_90%)]`}>
-                                {w}{' '}
-                              </span>
-                            ))}
-                          </span>
-                        ) : aiTextStyle === 'neon' ? (
-                          <span className={`text-fuchsia-400 ${fontSize} font-black [text-shadow:_0_0_10px_rgb(192_38_211),_0_0_20px_rgb(192_38_211),_0_0_40px_rgb(192_38_211)]`}>
-                            {words[currentWordIndex] || ''}
-                          </span>
-                        ) : aiTextStyle === 'cinema' ? (
-                          <span className={`inline-block max-w-[95%] text-white ${fontSize} font-medium bg-black/80 px-4 py-2 tracking-wider`}>
-                            {displayText}
-                          </span>
-                        ) : aiTextStyle === 'impact' ? (
-                          <span className={`text-white ${fontSize} font-black uppercase tracking-tight [text-shadow:_3px_3px_0_rgb(0_0_0),_-1px_-1px_0_rgb(0_0_0)]`}>
-                            {displayText}
-                          </span>
-                        ) : (
-                          <span className={`inline-block max-w-[95%] text-white/90 ${fontSize} font-medium bg-black/30 px-2 py-1 rounded-full backdrop-blur-sm`}>
-                            {displayText}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowVideoEditor(!showVideoEditor)}
-                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
-                        showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'
-                      }`}
-                    >
-                      {showVideoEditor ? `✕ ${t.generate.closeEditor}` : t.generate.edit}
-                    </button>
-                    <a
-                      href={generatedVideoUrl || undefined}
-                      download="keiro-video.mp4"
-                      className="flex-1 py-2 text-xs bg-neutral-900 text-white text-center rounded hover:bg-neutral-800 transition-colors"
-                    >
-                      {t.generate.download}
-                    </a>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={saveVideoToLibrary}
-                      disabled={videoSavedToLibrary || savingToLibrary}
-                      className={`flex-1 py-2 text-xs text-white text-center rounded transition-colors ${
-                        videoSavedToLibrary
-                          ? 'bg-green-600 cursor-default'
-                          : 'bg-cyan-600 hover:bg-cyan-700'
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {savingToLibrary ? t.generate.saving : videoSavedToLibrary ? `✓ ${t.generate.saved}` : `📁 ${t.generate.saveToGallery}`}
-                    </button>
-                    <button
-                      onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); }}
-                      className="flex-1 py-2 text-xs border rounded hover:bg-neutral-50 transition-colors"
-                    >
-                      {t.generate.newGeneration}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Panneau d'édition vidéo */}
-                {showVideoEditor && (
-                  <div className="mt-3 border-t pt-3 space-y-3">
-                    {/* Texte / Sous-titres */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-semibold text-neutral-900">
-                        📝 {t.generate.textSubtitles}
-                      </label>
-                      <textarea
-                        value={generatedSubtitleText}
-                        onChange={(e) => setGeneratedSubtitleText(e.target.value)}
-                        rows={2}
-                        className="w-full px-2 py-1.5 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                        placeholder={t.generate.textOnVideoPlaceholder}
-                      />
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { key: 'wordflash', label: t.generate.subtitleWordByWord },
-                          { key: 'wordstay', label: t.generate.subtitleKaraoke },
-                          { key: 'neon', label: t.generate.subtitleNeon },
-                          { key: 'cinema', label: t.generate.subtitleCinema },
-                          { key: 'impact', label: t.generate.subtitleBold },
-                          { key: 'minimal', label: t.generate.subtitleSubtle },
-                        ].map((style) => (
-                          <button
-                            key={style.key}
-                            onClick={() => setAITextStyle(style.key)}
-                            className={`px-2 py-1 text-[10px] rounded border transition-all ${
-                              aiTextStyle === style.key
-                                ? 'bg-green-600 text-white border-green-600'
-                                : 'bg-white text-green-700 border-green-300 hover:border-green-400'
-                            }`}
-                          >
-                            {style.label}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Taille du texte */}
-                      <div className="mt-2">
-                        <p className="text-[10px] text-green-700 mb-1">{t.generate.textSize}</p>
-                        <div className="flex gap-1.5">
-                          {([
-                            { key: 'sm', label: t.generate.subtitleSizeSmall },
-                            { key: 'md', label: t.generate.subtitleSizeMedium },
-                            { key: 'lg', label: t.generate.subtitleSizeLarge },
-                            { key: 'xl', label: t.generate.subtitleSizeXL },
-                          ] as const).map((s) => (
-                            <button
-                              key={s.key}
-                              onClick={() => setSubtitleFontSize(s.key)}
-                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
-                                subtitleFontSize === s.key
-                                  ? 'bg-green-600 text-white border-green-600'
-                                  : 'bg-white text-green-700 border-green-300 hover:border-green-400'
-                              }`}
-                            >
-                              {s.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Position du texte */}
-                      <div className="mt-2">
-                        <p className="text-[10px] text-green-700 mb-1">{t.generate.positionLabel}</p>
-                        <div className="flex gap-1.5">
-                          {([
-                            { key: 'top', label: t.generate.subtitlePositionTop },
-                            { key: 'center', label: t.generate.subtitlePositionCenter },
-                            { key: 'bottom', label: t.generate.subtitlePositionBottom },
-                          ] as const).map((p) => (
-                            <button
-                              key={p.key}
-                              onClick={() => setSubtitlePosition(p.key)}
-                              className={`px-2 py-1 text-[10px] rounded border transition-all ${
-                                subtitlePosition === p.key
-                                  ? 'bg-green-600 text-white border-green-600'
-                                  : 'bg-white text-green-700 border-green-300 hover:border-green-400'
-                              }`}
-                            >
-                              {p.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Voix off */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-semibold text-neutral-900">
-                        🎙️ {locale === 'fr' ? 'Voix off' : 'Voice narration'}
-                      </label>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {[
-                          { value: 'pFZP5JQG7iQjIQuC4Bku', label: `♀ ${t.generate.femaleSoft}` },
-                          { value: 'EXAVITQu4vr4xnSDxMaL', label: `♀ ${t.generate.femaleNatural}` },
-                          { value: 'Xb7hH8MSUJpSbSDYk0k2', label: `♀ ${t.generate.femalePro}` },
-                          { value: 'cgSgspJ2msm6clMCkdW9', label: `♀ ${t.generate.femaleEnergetic}` },
-                          { value: 'JBFqnCBsd6RMkjVDRZzb', label: `♂ ${t.generate.maleNarrator}` },
-                          { value: 'onwK4e9ZLuTAKqWW03F9', label: `♂ ${t.generate.maleDynamic}` },
-                          { value: 'nPczCjzI2devNBz1zQrb', label: `♂ ${t.generate.maleDeep}` },
-                          { value: 'cjVigY5qzO86Huf0OWal', label: `♂ ${t.generate.maleAuthoritative}` },
-                        ].map((voice) => (
-                          <button
-                            key={voice.value}
-                            onClick={() => setSelectedVoice(voice.value)}
-                            className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${
-                              selectedVoice === voice.value
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'
-                            }`}
-                          >
-                            {voice.label}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={async () => {
-                          if (!generatedSubtitleText.trim() || !generatedVideoUrl) return;
-                          setVideoEditorMerging(true);
-                          try {
-                            // 1. Générer audio voix
-                            const audioRes = await fetch('/api/generate-audio-tts', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ text: generatedSubtitleText.trim(), targetDuration: videoDuration || 10, voice: selectedVoice, speed: 1.0 })
-                            });
-                            const audioData = await audioRes.json();
-                            if (!audioData.ok) throw new Error(audioData.error);
-                            setGeneratedSubtitleText(audioData.condensedText || generatedSubtitleText);
-
-                            // 2. Fusionner avec la vidéo
-                            const mergeRes = await fetch('/api/merge-audio-video', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ videoUrl: generatedVideoUrl, audioUrl: audioData.audioUrl })
-                            });
-                            const mergeData = await mergeRes.json();
-                            if (mergeData.ok && mergeData.mergedUrl) {
-                              setGeneratedVideoUrl(mergeData.mergedUrl);
-                              if (lastSavedVideoId) {
-                                fetch('/api/library/save-video', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ id: lastSavedVideoId, videoUrl: mergeData.mergedUrl })
-                                }).catch(() => {});
-                              }
-                            } else {
-                              alert(`${t.generate.alertError} ${mergeData.error}`);
-                            }
-                          } catch (err: any) {
-                            alert(`${t.generate.alertError} ${err.message}`);
-                          } finally { setVideoEditorMerging(false); }
-                        }}
-                        disabled={videoEditorMerging || !generatedSubtitleText.trim()}
-                        className={`w-full px-3 py-2 rounded text-xs font-medium transition-colors ${
-                          videoEditorMerging || !generatedSubtitleText.trim()
-                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎙️ ${t.generate.generateModifyAudio}`}
-                      </button>
-                    </div>
-
-                    {/* Musique de fond (éditeur) */}
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={addMusic}
-                          onChange={(e) => {
-                            setAddMusic(e.target.checked);
-                            if (!e.target.checked) setSelectedMusic('none');
-                            else if (selectedMusic === 'none') setSelectedMusic('energetic');
-                          }}
-                          className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500"
-                        />
-                        <span className="text-xs font-semibold text-neutral-900">
-                          🎵 {t.generate.backgroundMusic}
-                        </span>
-                        <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
-                      </label>
-                      {addMusic && (
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-1">
-                            {([
-                              { value: 'corporate', label: t.generate.musicCorporate },
-                              { value: 'energetic', label: t.generate.musicEnergetic },
-                              { value: 'calm', label: t.generate.musicCalm },
-                              { value: 'inspiring', label: t.generate.musicInspiring },
-                              { value: 'trendy', label: t.generate.musicTrendy },
-                            ]).map((m) => (
-                              <button
-                                key={m.value}
-                                type="button"
-                                onClick={() => setSelectedMusic(m.value)}
-                                className={`px-2 py-1 text-[10px] rounded-full border transition-all ${
-                                  selectedMusic === m.value
-                                    ? 'bg-purple-600 text-white border-purple-600'
-                                    : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
-                                }`}
-                              >
-                                {m.label}
-                              </button>
-                            ))}
-                          </div>
-                          {(trendingData?.trendingMusic?.length ?? 0) > 0 && (
-                            <div className="pt-1 border-t border-purple-200">
-                              <p className="text-[9px] font-semibold text-purple-700 mb-1">🎵 {t.generate.backgroundMusicTrending}</p>
-                              <div className="space-y-1 max-h-[100px] overflow-y-auto">
-                                {trendingData!.trendingMusic.slice(0, 5).map((song: any, i: number) => {
-                                  const songKey = `trending:${song.title}`;
-                                  const isSelected = selectedMusic === songKey;
-                                  return (
-                                    <div
-                                      key={i}
-                                      onClick={() => setSelectedMusic(isSelected ? 'energetic' : songKey)}
-                                      className={`flex items-center gap-2 px-2 py-1 rounded-md text-[9px] cursor-pointer transition-all ${
-                                        isSelected
-                                          ? 'bg-purple-600 text-white border border-purple-600'
-                                          : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'
-                                      }`}
-                                    >
-                                      {song.coverUrl && (
-                                        <img src={song.coverUrl} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                                      )}
-                                      <div className="flex-1 min-w-0">
-                                        <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
-                                        <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
-                                      </div>
-                                      {isSelected && <span className="text-white text-[10px] font-bold">✓</span>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      <button
-                        onClick={async () => {
-                          if (selectedMusic === 'none' || !generatedVideoUrl) return;
-                          setVideoEditorMerging(true);
-                          try {
-                            const musicRes = await fetch('/api/generate-music', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ style: selectedMusic, duration: videoDuration || 10 }),
-                            });
-                            const musicData = await musicRes.json();
-                            if (!musicData.ok || !musicData.musicUrl) throw new Error(musicData.error || 'Music generation failed');
-
-                            const mergeRes = await fetch('/api/merge-audio-video', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ videoUrl: generatedVideoUrl, musicUrl: musicData.musicUrl }),
-                            });
-                            const mergeData = await mergeRes.json();
-                            if (mergeData.ok && mergeData.mergedUrl) {
-                              setGeneratedVideoUrl(mergeData.mergedUrl);
-                              if (lastSavedVideoId) {
-                                fetch('/api/library/save-video', {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ id: lastSavedVideoId, videoUrl: mergeData.mergedUrl })
-                                }).catch(() => {});
-                              }
-                            } else {
-                              alert(`${t.generate.alertError} ${mergeData.error}`);
-                            }
-                          } catch (err: any) {
-                            alert(`${t.generate.alertError} ${err.message}`);
-                          } finally { setVideoEditorMerging(false); }
-                        }}
-                        disabled={videoEditorMerging || !addMusic || selectedMusic === 'none'}
-                        className={`w-full px-3 py-2 rounded text-xs font-medium transition-colors ${
-                          videoEditorMerging || !addMusic || selectedMusic === 'none'
-                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                            : 'bg-purple-600 text-white hover:bg-purple-700'
-                        }`}
-                      >
-                        {videoEditorMerging ? `⏳ ${t.generate.finalizingVideo}` : `🎵 ${locale === 'fr' ? 'Ajouter la musique' : 'Add music'}`}
-                      </button>
-                    </div>
-
-                    {/* Segments editor (advanced mode, long videos only) */}
-                    {videoDuration > 10 && videoGenerationMode === 'advanced' && videoLongSegments.length > 0 && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2">
-                        <label className="block text-xs font-semibold text-neutral-900">
-                          {locale === 'fr' ? 'Segments de la vidéo' : 'Video segments'}
+                  {/* Steps content - reuse existing formStep logic */}
+                  <div className="space-y-2">
+                    {/* STEP 1: BUSINESS */}
+                    {formStep === 1 && (<>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                          {t.generate.businessLabel} <span className="text-red-500">*</span>
                         </label>
-                        <div className="bg-amber-100/60 border border-amber-300 rounded-md p-2">
-                          <p className="text-[10px] text-amber-800 leading-relaxed">
-                            {locale === 'fr'
-                              ? `Modifier un segment relancera sa génération et coûtera ${getVideoCreditCost(10)} crédits par segment régénéré. Si seule la fin vous déplaît, le coût de régénération peut ne pas en valoir la peine.`
-                              : `Modifying a segment will regenerate it and cost ${getVideoCreditCost(10)} credits per segment. If only the ending bothers you, the regeneration cost may not be worth it.`}
-                          </p>
+                        <input
+                          type="text"
+                          value={businessType}
+                          onChange={(e) => setBusinessType(e.target.value)}
+                          placeholder={t.generate.businessPlaceholder}
+                          autoComplete="off"
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                          {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
+                          {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">{t.generate.descriptionRequired}</span>}
+                        </label>
+                        <textarea
+                          id="business-description"
+                          value={businessDescription}
+                          onChange={(e) => setBusinessDescription(e.target.value)}
+                          placeholder={useNewsMode ? t.generate.descriptionPlaceholderNews : t.generate.descriptionPlaceholderFree}
+                          rows={useNewsMode ? 2 : 4}
+                          className={`w-full text-xs rounded-lg border-2 px-3 py-2 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
+                            !useNewsMode
+                              ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
+                              : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.audienceLabel}</label>
+                        <input
+                          type="text"
+                          value={targetAudience}
+                          onChange={(e) => setTargetAudience(e.target.value)}
+                          placeholder={t.generate.audiencePlaceholder}
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                        />
+                      </div>
+                      <button
+                        onClick={() => setFormStep(2)}
+                        disabled={!businessType.trim() || (!useNewsMode && !businessDescription.trim())}
+                        className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {t.generate.next} <span>&#x2192;</span>
+                      </button>
+                    </>)}
+
+                    {/* STEP 2: DIRECTION */}
+                    {formStep === 2 && (<>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-medium text-neutral-600">&#x1F4DD; {t.generate.contentDirection}</p>
+                          <button
+                            type="button"
+                            onClick={() => handleAiAutoFill('direction')}
+                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                          >
+                            {autoFillLoading ? (
+                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                            ) : (
+                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                            )}
+                          </button>
                         </div>
-                        <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                          {videoLongSegments.map((seg: any, idx: number) => (
-                            <div key={idx} className="bg-white rounded border border-neutral-200 p-2 space-y-1.5">
-                              <div className="flex items-start gap-2">
-                                <div className="flex-shrink-0 w-16">
-                                  {seg.videoUrl ? (
-                                    <video src={seg.videoUrl} className="w-full h-10 object-cover rounded" muted />
-                                  ) : (
-                                    <div className="w-full h-10 bg-neutral-100 rounded flex items-center justify-center text-[9px] text-neutral-400">
-                                      {seg.status === 'generating' ? (
-                                        <span className="animate-pulse">...</span>
-                                      ) : seg.status === 'failed' ? (
-                                        <span className="text-red-400">✕</span>
-                                      ) : '-'}
-                                    </div>
-                                  )}
-                                  <span className="block text-[9px] text-neutral-500 text-center mt-0.5">
-                                    Seg. {idx + 1}
-                                  </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[10px] text-neutral-600 line-clamp-2">{seg.prompt?.substring(0, 80) || '-'}</p>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors disabled:opacity-50"
-                                  disabled={regeneratingSegment || seg.status === 'generating'}
-                                  onClick={() => {
-                                    if (editingSegmentIdx === idx) {
-                                      setEditingSegmentIdx(null);
-                                      setEditingSegmentPrompt('');
-                                    } else {
-                                      setEditingSegmentIdx(idx);
-                                      setEditingSegmentPrompt(seg.prompt || '');
-                                    }
-                                  }}
-                                >
-                                  {editingSegmentIdx === idx
-                                    ? (locale === 'fr' ? 'Annuler' : 'Cancel')
-                                    : (locale === 'fr' ? 'Modifier' : 'Edit')}
-                                </button>
+
+                        {useNewsMode && selectedNews && (
+                          <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                            <label className="block text-xs font-semibold mb-2 text-neutral-700">{t.generate.visualOrientation}</label>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">&#x1F3E2; {t.generate.businessFocus}</span>
+                              <input
+                                type="range"
+                                min={0} max={100} step={5}
+                                value={contentFocus}
+                                onChange={(e) => setContentFocus(Number(e.target.value))}
+                                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
+                              />
+                              <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">&#x1F4F0; {t.generate.newsFocus}</span>
+                            </div>
+                            <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
+                              {contentFocus <= 30 ? `&#x1F3E2; ${t.generate.focusBusiness}` : contentFocus >= 70 ? `&#x1F4F0; ${t.generate.focusNews}` : `&#x2696;&#xFE0F; ${t.generate.focusBalance}`}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.imageAngleLabel}</label>
+                          <select
+                            onChange={(e) => { if (e.target.value !== 'custom') { setImageAngle(e.target.value); } else { setImageAngle(''); } }}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                          >
+                            <option value="">{t.generate.chooseSuggestion}</option>
+                            {useNewsMode ? (<>
+                              <option value="Int\u00e9grer harmonieusement l'actualit\u00e9 et le business dans une seule sc\u00e8ne coh\u00e9sive">{t.generate.harmonious}</option>
+                              <option value="Focus sur la solution que nous apportons face \u00e0 l'actualit\u00e9, int\u00e9gr\u00e9e naturellement">{t.generate.focusSolution}</option>
+                              <option value="M\u00e9taphore visuelle symbolique reliant l'actu et le business dans une composition unifi\u00e9e">{t.generate.visualMetaphor}</option>
+                              <option value="Composition dramatique avec actualit\u00e9 en arri\u00e8re-plan et business au premier plan">{t.generate.depthComposition}</option>
+                              <option value="Raconter l'histoire dans un environnement coh\u00e9rent \u00e9voquant l'actualit\u00e9">{t.generate.narrativeEnvironment}</option>
+                            </>) : (<>
+                              <option value="Gros plan sur un d\u00e9tail cl\u00e9 du m\u00e9tier : texture, outil, geste pr\u00e9cis">{t.generate.freeAngleMacro}</option>
+                              <option value="Montrer les coulisses de l'activit\u00e9, le travail en cours, l'\u00e9nergie du m\u00e9tier">{t.generate.freeAngleBehindScenes}</option>
+                              <option value="Transformation spectaculaire : l'\u00e9tat avant et le r\u00e9sultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
+                              <option value="Capturer l'ambiance unique du lieu ou de l'activit\u00e9, lumi\u00e8re et d\u00e9cor">{t.generate.freeAngleAmbiance}</option>
+                              <option value="Mettre en valeur le produit ou la cr\u00e9ation phare dans une composition soign\u00e9e">{t.generate.freeAngleProduct}</option>
+                            </>)}
+                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={imageAngle}
+                            onChange={(e) => setImageAngle(e.target.value)}
+                            placeholder={t.generate.customizeImageAngle}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.marketingAngleLabel}</label>
+                          <select
+                            onChange={(e) => { if (e.target.value !== 'custom') { setMarketingAngle(e.target.value); } else { setMarketingAngle(''); } }}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                          >
+                            <option value="">{t.generate.chooseSuggestion}</option>
+                            {useNewsMode ? (<>
+                              <option value="Profiter de l'opportunit\u00e9 cr\u00e9\u00e9e par l'actualit\u00e9">{t.generate.opportunityFromNews}</option>
+                              <option value="R\u00e9soudre le probl\u00e8me soulev\u00e9 par l'actualit\u00e9">{t.generate.solveProblem}</option>
+                              <option value="Se positionner en expert face \u00e0 l'actualit\u00e9">{t.generate.expertFacingNews}</option>
+                              <option value="Surfer sur la tendance de l'actualit\u00e9">{t.generate.surfTrend}</option>
+                              <option value="Anticiper les cons\u00e9quences de l'actualit\u00e9">{t.generate.anticipateConsequences}</option>
+                            </>) : (<>
+                              <option value="D\u00e9montrer le savoir-faire unique et la ma\u00eetrise du m\u00e9tier">{t.generate.freeMarketingExpertise}</option>
+                              <option value="Toucher le public avec un moment authentique et sinc\u00e8re">{t.generate.freeMarketingEmotion}</option>
+                              <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
+                              <option value="Montrer l'exp\u00e9rience que vivent les clients, le r\u00e9sultat obtenu">{t.generate.freeMarketingClient}</option>
+                              <option value="Partager les valeurs, la passion ou le parcours derri\u00e8re l'activit\u00e9">{t.generate.freeMarketingStory}</option>
+                            </>)}
+                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                          </select>
+                          <textarea
+                            value={marketingAngle}
+                            onChange={(e) => setMarketingAngle(e.target.value)}
+                            placeholder={t.generate.customizeMarketingAngle}
+                            rows={2}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                          />
+                        </div>
+
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.contentAngleLabel}</label>
+                          <select
+                            onChange={(e) => { if (e.target.value !== 'custom') { setContentAngle(e.target.value); } else { setContentAngle(''); } }}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
+                          >
+                            <option value="">{t.generate.chooseSuggestion}</option>
+                            <option value="T\u00e9moignage client ou \u00e9tude de cas concret">{t.generate.testimonialCase}</option>
+                            <option value="Contenu \u00e9ducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
+                            <option value="Behind-the-scenes, coulisses du m\u00e9tier">{t.generate.behindTheScenes}</option>
+                            <option value="Prise de position forte et opinion tranch\u00e9e">{t.generate.opinionStance}</option>
+                            <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
+                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={contentAngle}
+                            onChange={(e) => setContentAngle(e.target.value)}
+                            placeholder={t.generate.customizeContentAngle}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                          &#x2190; {t.generate.back}
+                        </button>
+                        <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                          {t.generate.next} &#x2192;
+                        </button>
+                      </div>
+                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                        {t.generate.skipStep}
+                      </button>
+                    </>)}
+
+                    {/* STEP 3: CREATIVE */}
+                    {formStep === 3 && (<>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-medium text-neutral-600">{t.generate.customizeContent}</p>
+                          <button
+                            type="button"
+                            onClick={() => handleAiAutoFill('creatif')}
+                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                          >
+                            {autoFillLoading ? (
+                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                            ) : (
+                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                            )}
+                          </button>
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.storyToTell}</label>
+                          <textarea
+                            value={storyToTell}
+                            onChange={(e) => setStoryToTell(e.target.value)}
+                            placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree}
+                            rows={2}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.publicationGoal}</label>
+                          <input
+                            type="text"
+                            value={publicationGoal}
+                            onChange={(e) => setPublicationGoal(e.target.value)}
+                            placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.emotionToConvey}</label>
+                          <input
+                            type="text"
+                            value={emotionToConvey}
+                            onChange={(e) => setEmotionToConvey(e.target.value)}
+                            placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
+                              {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleGenerateTextSuggestions}
+                              className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
+                            >
+                              &#x1F4A1; {t.generate.suggestText}
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={optionalText}
+                            onChange={(e) => setOptionalText(e.target.value)}
+                            placeholder={t.generate.textPlaceholder}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                          {showTextSuggestions && textSuggestions.length > 0 && (
+                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-xs font-semibold text-blue-900 mb-2">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
+                              <div className="space-y-1.5">
+                                {textSuggestions.map((suggestion, index) => (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => { setOptionalText(suggestion); setShowTextSuggestions(false); }}
+                                    className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
+                                  >
+                                    <span className="text-neutral-700">{suggestion}</span>
+                                    <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">{t.generate.use}</span>
+                                  </button>
+                                ))}
                               </div>
-                              {editingSegmentIdx === idx && (
-                                <div className="space-y-1.5 pt-1 border-t border-neutral-100">
-                                  <textarea
-                                    className="w-full text-[10px] text-neutral-700 border border-neutral-200 rounded p-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400"
-                                    rows={3}
-                                    value={editingSegmentPrompt}
-                                    onChange={e => setEditingSegmentPrompt(e.target.value)}
-                                    placeholder={locale === 'fr' ? 'Décrivez la scène...' : 'Describe the scene...'}
-                                  />
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[9px] text-neutral-400">
-                                      {locale === 'fr'
-                                        ? `Coût : ${getVideoCreditCost(10)} crédits`
-                                        : `Cost: ${getVideoCreditCost(10)} credits`}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className="text-[10px] px-2 py-1 rounded bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      disabled={regeneratingSegment || !editingSegmentPrompt.trim()}
-                                      onClick={() => regenerateSegment(idx, editingSegmentPrompt)}
-                                    >
-                                      {regeneratingSegment
-                                        ? (locale === 'fr' ? 'Régénération...' : 'Regenerating...')
-                                        : (locale === 'fr' ? 'Régénérer ce segment' : 'Regenerate segment')}
+                              <button
+                                type="button"
+                                onClick={() => setShowTextSuggestions(false)}
+                                className="mt-2 text-[10px] text-neutral-500 hover:text-neutral-700 transition-colors"
+                              >
+                                {t.generate.hideSuggestions}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                          {t.generate.back}
+                        </button>
+                        <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                          {t.generate.next}
+                        </button>
+                      </div>
+                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                        {t.generate.skipOptionalSteps}
+                      </button>
+                    </>)}
+
+                    {/* STEP 4: EXPERT */}
+                    {formStep === 4 && (<>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-[10px] font-medium text-neutral-600">{t.generate.expertQuestions}</p>
+                            <p className="text-[9px] text-neutral-400">{t.generate.multiplyImpact}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAiAutoFill('expert')}
+                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                          >
+                            {autoFillLoading ? (
+                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                            ) : (
+                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                            )}
+                          </button>
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
+                          <input
+                            type="text"
+                            value={problemSolved}
+                            onChange={(e) => setProblemSolved(e.target.value)}
+                            placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.uniqueAdvantage}</label>
+                          <input
+                            type="text"
+                            value={uniqueAdvantage}
+                            onChange={(e) => setUniqueAdvantage(e.target.value)}
+                            placeholder={t.generate.advantagePlaceholder}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                          />
+                        </div>
+                        <div className="mb-2">
+                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.visualIdea}</label>
+                          <textarea
+                            value={desiredVisualIdea}
+                            onChange={(e) => setDesiredVisualIdea(e.target.value)}
+                            placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree}
+                            rows={2}
+                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                          {t.generate.back}
+                        </button>
+                        <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                          {t.generate.next}
+                        </button>
+                      </div>
+                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
+                        {t.generate.skipThisStep}
+                      </button>
+                    </>)}
+
+                    {/* STEP 5: GENERATE - platform, style, mode, generate button */}
+                    {formStep === 5 && (<>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.platformLabel}</label>
+                        <select
+                          value={platform}
+                          onChange={(e) => setPlatform(e.target.value)}
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                        >
+                          <option>Instagram</option>
+                          <option>LinkedIn</option>
+                          <option>Twitter/X</option>
+                          <option>TikTok</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                          {t.generate.toneLabel} <span className="text-blue-600">{t.generate.fromProfile}</span>
+                        </label>
+                        <input type="text" value={tone} readOnly className="w-full text-xs rounded-lg border-2 border-blue-100 bg-blue-50 px-3 py-2 text-neutral-700 cursor-default" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
+                          {t.generate.styleLabel} <span className="text-blue-600">{t.generate.suggestedByProfile}</span>
+                        </label>
+                        <select
+                          value={visualStyle}
+                          onChange={(e) => setVisualStyle(e.target.value)}
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                        >
+                          <optgroup label={t.generate.profileStyles}>
+                            <option value="Lumineux et \u00e9pur\u00e9">{t.generate.styleBrightClean}</option>
+                            <option value="Moderne et structur\u00e9">{t.generate.styleModernStructured}</option>
+                            <option value="\u00c9nergique et contrast\u00e9">{t.generate.styleEnergeticContrast}</option>
+                            <option value="Naturel et chaleureux">{t.generate.styleWarmNatural}</option>
+                          </optgroup>
+                          <optgroup label={t.generate.otherStyles}>
+                            <option value="Minimaliste et clean">{t.generate.styleMinimalist}</option>
+                            <option value="Color\u00e9 et vibrant">{t.generate.styleColorful}</option>
+                            <option value="Sombre et dramatique">{t.generate.styleDarkDramatic}</option>
+                            <option value="Pastel et doux">{t.generate.stylePastel}</option>
+                            <option value="Bold et audacieux">{t.generate.styleBold}</option>
+                            <option value="Vintage et r\u00e9tro">{t.generate.styleVintage}</option>
+                            <option value="Futuriste et tech">{t.generate.styleFuturistic}</option>
+                            <option value="Organique et naturel">{t.generate.styleOrganic}</option>
+                            <option value="Luxe et premium">{t.generate.styleLuxury}</option>
+                            <option value="Playful et fun">{t.generate.stylePlayful}</option>
+                            <option value="\u00c9l\u00e9gant et sophistiqu\u00e9">{t.generate.styleElegant}</option>
+                            <option value="Dynamique et sportif">{t.generate.styleDynamic}</option>
+                          </optgroup>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.renderLabel}</label>
+                        <div className="flex gap-2">
+                          <button onClick={() => setRenderStyle('photo')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'photo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            {t.generate.photoRealistic}
+                          </button>
+                          <button onClick={() => setRenderStyle('illustration')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'illustration' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            {t.generate.illustration3D}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.charactersLabel}</label>
+                        <div className="flex gap-2">
+                          <button onClick={() => setCharacterStyle('real')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'real' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            {t.generate.humans}
+                          </button>
+                          <button onClick={() => setCharacterStyle('fiction')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'fiction' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            {t.generate.fictionCharacters}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
+                        <button onClick={() => setGenerationMode('image')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'image' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
+                          &#x1F5BC;&#xFE0F; {t.generate.visualMode}
+                        </button>
+                        <button onClick={() => setGenerationMode('video')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'video' ? 'bg-white text-purple-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
+                          &#x1F3AC; {t.generate.videoMode}
+                        </button>
+                      </div>
+
+                      {/* Video options — kept inline, renders from existing state */}
+                      {generationMode === 'video' && (
+                        <>
+                          <div className={`rounded-lg p-2.5 border text-[10px] font-medium ${
+                            addAudio && selectedMusic !== 'none' ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : addAudio ? 'bg-blue-50 border-blue-200 text-blue-700'
+                              : selectedMusic !== 'none' ? 'bg-purple-50 border-purple-200 text-purple-700'
+                              : 'bg-neutral-50 border-neutral-200 text-neutral-500'
+                          }`}>
+                            {addAudio && selectedMusic !== 'none' ? `&#x1F399;&#xFE0F;&#x1F3B5; ${locale === 'fr' ? 'Voix off + Musique de fond' : 'Voice + Background music'}`
+                              : addAudio ? `&#x1F399;&#xFE0F; ${locale === 'fr' ? 'Voix off uniquement' : 'Voice narration only'}`
+                              : selectedMusic !== 'none' ? `&#x1F3B5; ${locale === 'fr' ? 'Musique de fond uniquement (pas de voix)' : 'Background music only (no voice)'}`
+                              : `&#x1F507; ${locale === 'fr' ? 'Aucun audio' : 'No audio'}`}
+                          </div>
+
+                          {/* Voice section */}
+                          <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={addAudio} onChange={(e) => setAddAudio(e.target.checked)} className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500" />
+                              <span className="text-xs font-semibold text-neutral-900">&#x1F399;&#xFE0F; {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}</span>
+                              <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
+                            </label>
+                            {addAudio && (
+                              <div className="space-y-2">
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={() => setAudioTextSource('ai')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'ai' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
+                                    &#x2728; {t.generate.automatic}
+                                  </button>
+                                  <button type="button" onClick={() => setAudioTextSource('manual')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'manual' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
+                                    &#x270D;&#xFE0F; {t.generate.writeYourText}
+                                  </button>
+                                </div>
+                                {audioTextSource === 'manual' && (
+                                  <div>
+                                    <textarea value={audioText} onChange={(e) => setAudioText(e.target.value)} placeholder={t.generate.audioTextPlaceholder} rows={2} maxLength={150} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                                    <p className="text-[10px] text-neutral-500 mt-1">~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} {t.generate.wordsCount} ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)</p>
+                                  </div>
+                                )}
+                                {audioTextSource === 'ai' && (
+                                  <p className="text-[10px] text-neutral-600 italic">&#x1F4A1; {t.generate.audioAutoGenerated}</p>
+                                )}
+                                <div>
+                                  <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.voiceLabel}</label>
+                                  <div className="grid grid-cols-2 gap-1">
+                                    {([
+                                      { value: 'pFZP5JQG7iQjIQuC4Bku', label: `\u2640 ${t.generate.femaleSoft}` },
+                                      { value: 'EXAVITQu4vr4xnSDxMaL', label: `\u2640 ${t.generate.femaleNatural}` },
+                                      { value: 'Xb7hH8MSUJpSbSDYk0k2', label: `\u2640 ${t.generate.femalePro}` },
+                                      { value: 'cgSgspJ2msm6clMCkdW9', label: `\u2640 ${t.generate.femaleEnergetic}` },
+                                      { value: 'JBFqnCBsd6RMkjVDRZzb', label: `\u2642 ${t.generate.maleNarrator}` },
+                                      { value: 'onwK4e9ZLuTAKqWW03F9', label: `\u2642 ${t.generate.maleDynamic}` },
+                                      { value: 'nPczCjzI2devNBz1zQrb', label: `\u2642 ${t.generate.maleDeep}` },
+                                      { value: 'cjVigY5qzO86Huf0OWal', label: `\u2642 ${t.generate.maleAuthoritative}` },
+                                    ]).map((v) => (
+                                      <button key={v.value} type="button" onClick={() => setSelectedVoice(v.value)} className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${selectedVoice === v.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'}`}>
+                                        {v.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Music section */}
+                          <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={addMusic} onChange={(e) => { setAddMusic(e.target.checked); if (!e.target.checked) setSelectedMusic('none'); else if (selectedMusic === 'none') setSelectedMusic('energetic'); }} className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500" />
+                              <span className="text-xs font-semibold text-neutral-900">&#x1F3B5; {t.generate.backgroundMusic}</span>
+                              <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
+                            </label>
+                            {addMusic && (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {([
+                                    { value: 'corporate', label: t.generate.musicCorporate },
+                                    { value: 'energetic', label: t.generate.musicEnergetic },
+                                    { value: 'calm', label: t.generate.musicCalm },
+                                    { value: 'inspiring', label: t.generate.musicInspiring },
+                                    { value: 'trendy', label: t.generate.musicTrendy },
+                                  ]).map((m) => (
+                                    <button key={m.value} type="button" onClick={() => setSelectedMusic(m.value)} className={`px-2 py-1 text-[10px] rounded-full border transition-all ${selectedMusic === m.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'}`}>
+                                      {m.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
+                                  <div className="pt-2 border-t border-purple-200">
+                                    <p className="text-[9px] font-semibold text-purple-700 mb-1.5">&#x1F3B5; {t.generate.backgroundMusicTrending}</p>
+                                    <div className="space-y-1 max-h-[140px] overflow-y-auto">
+                                      {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
+                                        const songKey = `trending:${song.title}`;
+                                        const isSelected = selectedMusic === songKey;
+                                        return (
+                                          <div key={i} onClick={() => setSelectedMusic(isSelected ? 'energetic' : songKey)} className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[9px] cursor-pointer transition-all ${isSelected ? 'bg-purple-600 text-white border border-purple-600' : 'bg-purple-50/50 border border-purple-100 hover:border-purple-300'}`}>
+                                            {song.coverUrl && <img src={song.coverUrl} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />}
+                                            <div className="flex-1 min-w-0">
+                                              <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
+                                              <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
+                                            </div>
+                                            {isSelected ? <span className="text-white text-[10px] font-bold">&#x2713;</span> : song.trend === 'up' ? <span className="text-emerald-500 font-bold">&#x2191;</span> : null}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <p className="text-[8px] text-neutral-400 mt-1 italic">{t.generate.backgroundMusicTrendingDesc}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Subtitles */}
+                          <div className="bg-purple-50 rounded-lg p-3 border-2 border-purple-300">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={enableAIText} onChange={(e) => setEnableAIText(e.target.checked)} className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+                              <span className="text-xs font-semibold text-purple-900">&#x2728; {t.generate.addSubtitles}</span>
+                              <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">{t.generate.recommended}</span>
+                            </label>
+                            {enableAIText && (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-[10px] text-purple-700">{t.generate.textStyleLabel}</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {[
+                                    { key: 'wordflash', label: t.generate.subtitleWordByWord },
+                                    { key: 'wordstay', label: t.generate.subtitleKaraoke },
+                                    { key: 'neon', label: t.generate.subtitleNeon },
+                                    { key: 'cinema', label: t.generate.subtitleCinema },
+                                    { key: 'impact', label: t.generate.subtitleBold },
+                                    { key: 'minimal', label: t.generate.subtitleSubtle },
+                                  ].map((style) => (
+                                    <button key={style.key} onClick={() => setAITextStyle(style.key)} className={`px-2 py-1.5 text-[10px] rounded border transition-all ${aiTextStyle === style.key ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'}`}>
+                                      {style.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="mt-1.5">
+                                  <p className="text-[9px] text-purple-600 mb-1">{t.generate.sizeLabel}</p>
+                                  <div className="flex gap-1">
+                                    {([{ key: 'sm', label: t.generate.subtitleSizeSmall }, { key: 'md', label: t.generate.subtitleSizeMedium }, { key: 'lg', label: t.generate.subtitleSizeLarge }, { key: 'xl', label: t.generate.subtitleSizeXL }] as const).map((s) => (
+                                      <button key={s.key} onClick={() => setSubtitleFontSize(s.key)} className={`px-1.5 py-1 text-[9px] rounded border transition-all ${subtitleFontSize === s.key ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'}`}>
+                                        {s.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="mt-1.5">
+                                  <p className="text-[9px] text-purple-600 mb-1">{t.generate.positionLabel}</p>
+                                  <div className="flex gap-1">
+                                    {([{ key: 'top', label: t.generate.subtitlePositionTop }, { key: 'center', label: t.generate.subtitlePositionCenter }, { key: 'bottom', label: t.generate.subtitlePositionBottom }] as const).map((p) => (
+                                      <button key={p.key} onClick={() => setSubtitlePosition(p.key)} className={`px-1.5 py-1 text-[9px] rounded border transition-all ${subtitlePosition === p.key ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-700 border-purple-300 hover:border-purple-400'}`}>
+                                        {p.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-[9px] text-purple-600 italic mt-1.5">
+                                  {addAudio ? `&#x1F4A1; ${t.generate.subtitleSyncAudio}` : `&#x1F4A1; ${t.generate.subtitleAutoGenerated}`}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Duration chips */}
+                          <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                            <label className="block text-xs font-semibold text-neutral-900 mb-2">&#x23F1;&#xFE0F; {t.generate.videoDuration}</label>
+                            <div className="grid grid-cols-3 gap-1.5">
+                              {([10, 15, 30, 45, 60, 90] as const).map((dur) => (
+                                <button key={dur} type="button" onClick={() => setVideoDuration(dur)} className={`relative py-2 px-1 rounded-lg text-center transition-all border ${videoDuration === dur ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-neutral-700 border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50'}`}>
+                                  <span className="block text-sm font-bold">{dur}s</span>
+                                  <span className={`block text-[9px] mt-0.5 ${videoDuration === dur ? 'text-indigo-200' : 'text-neutral-400'}`}>{getVideoCreditCost(dur)} cr</span>
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-[9px] text-indigo-500 mt-2 italic">&#x1F4A1; {t.generate.socialMediaIdeal}</p>
+
+                            {videoDuration > 10 && (
+                              <div className="mt-3 pt-3 border-t border-indigo-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-medium text-neutral-700">&#x1F3AC; {t.generate.videoLongMode}</span>
+                                  <div className="flex bg-white rounded-md border border-neutral-200 overflow-hidden">
+                                    <button type="button" onClick={() => setVideoGenerationMode('simple')} className={`px-2.5 py-1 text-[10px] font-medium transition ${videoGenerationMode === 'simple' ? 'bg-indigo-600 text-white' : 'text-neutral-600 hover:bg-neutral-50'}`}>
+                                      {t.generate.videoSimpleMode}
+                                    </button>
+                                    <button type="button" onClick={() => { setVideoGenerationMode('advanced'); if (advancedSegments.length === 0) initAdvancedSegments(); }} className={`px-2.5 py-1 text-[10px] font-medium transition ${videoGenerationMode === 'advanced' ? 'bg-indigo-600 text-white' : 'text-neutral-600 hover:bg-neutral-50'}`}>
+                                      {t.generate.videoAdvancedMode}
                                     </button>
                                   </div>
                                 </div>
-                              )}
+                                <p className="text-[9px] text-neutral-400 mt-1">{videoGenerationMode === 'simple' ? t.generate.videoSimpleDesc : t.generate.videoAdvancedDesc}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Advanced segment editor */}
+                          {videoDuration > 10 && videoGenerationMode === 'advanced' && (
+                            <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-semibold text-neutral-900">&#x1F3AC; S\u00e9quences \u2014 {advancedSegments.length} segments ({advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s)</span>
+                                <button type="button" onClick={autoFillSegments} disabled={isDecomposing} className="px-2.5 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 transition">
+                                  {isDecomposing ? '&#x23F3; G\u00e9n\u00e9ration...' : '&#x2728; Remplir auto'}
+                                </button>
+                              </div>
+                              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                                {advancedSegments.map((seg, idx) => (
+                                  <div key={idx} className="bg-white rounded-lg border border-neutral-200 p-2.5">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="text-[10px] font-bold text-purple-700">Segment {idx + 1}</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="flex bg-neutral-100 rounded overflow-hidden">
+                                          {([5, 10] as const).map((d) => (
+                                            <button key={d} type="button" onClick={() => updateSegment(idx, 'duration', d)} className={`px-2 py-0.5 text-[9px] font-medium transition ${seg.duration === d ? 'bg-purple-600 text-white' : 'text-neutral-500 hover:bg-neutral-200'}`}>{d}s</button>
+                                          ))}
+                                        </div>
+                                        {advancedSegments.length > 2 && (
+                                          <button type="button" onClick={() => removeSegment(idx)} className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded text-xs">&#x2715;</button>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <textarea value={seg.prompt} onChange={(e) => updateSegment(idx, 'prompt', e.target.value)} placeholder={idx === 0 ? 'Plan d\'ouverture : description de la sc\u00e8ne...' : `Segment ${idx + 1} : suite de la sc\u00e8ne...`} rows={2} className="w-full text-[11px] rounded border border-neutral-200 px-2 py-1.5 mb-1.5 resize-none focus:ring-1 focus:ring-purple-400 focus:border-purple-400 outline-none" />
+                                    <div className="flex gap-2">
+                                      <div className="flex-1">
+                                        <label className="text-[9px] text-neutral-500 mb-0.5 block">Cam\u00e9ra</label>
+                                        <select value={seg.cameraMovement} onChange={(e) => updateSegment(idx, 'cameraMovement', e.target.value)} className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none">
+                                          <option value="dolly_in">Dolly in</option>
+                                          <option value="pan_left">Pan gauche</option>
+                                          <option value="pan_right">Pan droite</option>
+                                          <option value="tracking">Tracking</option>
+                                          <option value="crane">Grue</option>
+                                          <option value="steadicam">Steadicam</option>
+                                          <option value="tilt_up">Tilt haut</option>
+                                          <option value="tilt_down">Tilt bas</option>
+                                          <option value="static">Fixe</option>
+                                        </select>
+                                      </div>
+                                      {idx < advancedSegments.length - 1 && (
+                                        <div className="flex-1">
+                                          <label className="text-[9px] text-neutral-500 mb-0.5 block">Transition</label>
+                                          <select value={seg.transition} onChange={(e) => updateSegment(idx, 'transition', e.target.value)} className="w-full text-[10px] rounded border border-neutral-200 px-1.5 py-1 bg-white focus:ring-1 focus:ring-purple-400 outline-none">
+                                            <option value="smooth">Fluide</option>
+                                            <option value="cut">Cut</option>
+                                            <option value="fade">Fondu</option>
+                                            <option value="zoom">Zoom</option>
+                                          </select>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <button type="button" onClick={addSegment} className="text-[10px] text-purple-600 font-medium hover:text-purple-800 transition">+ Ajouter un segment</button>
+                                <span className="text-[10px] font-bold text-neutral-600">Total : {advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s</span>
+                              </div>
                             </div>
-                          ))}
+                          )}
+
+                          {/* Progress timeline during generation */}
+                          {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && videoGenerationMode === 'advanced' && (
+                            <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-neutral-900">&#x1F39E;&#xFE0F; Progression \u2014 {videoLongSegments.length} segments</span>
+                                <span className="text-[10px] text-purple-600 font-medium">{videoLongProgress}%</span>
+                              </div>
+                              <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
+                                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${videoLongProgress}%` }} />
+                              </div>
+                              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                {videoLongSegments.map((seg: any, idx: number) => (
+                                  <div key={idx} className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${seg.status === 'completed' ? 'bg-green-50 border-green-300' : seg.status === 'generating' ? 'bg-amber-50 border-amber-300 animate-pulse' : seg.status === 'failed' ? 'bg-red-50 border-red-300' : 'bg-white border-neutral-200'}`}>
+                                    <span className="block text-[10px] font-medium text-neutral-600">Seg. {idx + 1}</span>
+                                    <span className="block text-[9px] mt-0.5">{seg.status === 'completed' ? '&#x2705;' : seg.status === 'generating' ? '&#x23F3;' : seg.status === 'failed' ? '&#x274C;' : '&#x23F8;&#xFE0F;'}</span>
+                                    {seg.status === 'completed' && seg.videoUrl && <video src={seg.videoUrl} className="w-full h-10 object-cover rounded mt-1" muted />}
+                                  </div>
+                                ))}
+                              </div>
+                              {videoLongStatus && <p className="text-[10px] text-purple-600 mt-2 text-center font-medium">{videoLongStatus}</p>}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Generate button */}
+                      <button
+                        onClick={generationMode === 'video' ? handleGenerateVideo : handleGenerate}
+                        disabled={generating || generatingVideo || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim()) || !businessType.trim()}
+                        className={`w-full py-3 text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                          generationMode === 'video'
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {generationMode === 'video'
+                          ? (generatingVideo ? videoProgress || t.generate.generating : `&#x1F3AC; ${t.generate.createVideo} (${videoDuration}s) \u2014 ${getVideoCreditCost(videoDuration)} cr`)
+                          : (generating ? t.generate.generating : `&#x1F5BC;&#xFE0F; ${t.generate.generateVisual} \u2014 ${CREDIT_COSTS.image_t2i} cr`)
+                        }
+                      </button>
+
+                      {useNewsMode && !selectedNews && (
+                        <p className="text-[10px] text-amber-600 text-center">&#x26A0;&#xFE0F; {t.generate.selectNewsWarning}</p>
+                      )}
+                      {!useNewsMode && !businessDescription.trim() && (
+                        <p className="text-[10px] text-amber-600 text-center">&#x26A0;&#xFE0F; {t.generate.describeBusinessWarning}</p>
+                      )}
+                      <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
+                        &#x2190; {t.generate.modifyDetails}
+                      </button>
+                    </>)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right sidebar: upload + credits */}
+              <div className="lg:col-span-4 space-y-4">
+                {/* Upload zone */}
+                <div ref={uploadSectionRef}>
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                    onDragLeave={() => setDragActive(false)}
+                    onDrop={handleDrop}
+                    className={`border border-dashed rounded-lg p-3 text-center transition ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-neutral-300 hover:border-neutral-400'}`}
+                  >
+                    {logoUrl ? (
+                      <div className="space-y-3">
+                        <img src={logoUrl} alt="Logo" className="w-40 h-40 object-contain rounded mx-auto border bg-white p-2" crossOrigin="anonymous" loading="eager" />
+                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                          <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.howToUseImage}</p>
+                          <div className="space-y-2">
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input type="radio" name="logoMode" checked={logoMode === 'overlay'} onChange={() => setLogoMode('overlay')} className="mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-blue-900">&#x1F3A8; {t.generate.addAsOverlay}</p>
+                                <p className="text-[10px] text-blue-700">{t.generate.logoOverlayDesc}</p>
+                              </div>
+                            </label>
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input type="radio" name="logoMode" checked={logoMode === 'modify'} onChange={() => setLogoMode('modify')} className="mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-blue-900">&#x270F;&#xFE0F; {t.generate.modifyImage}</p>
+                                <p className="text-[10px] text-blue-700">{t.generate.modifyImageDesc}</p>
+                              </div>
+                            </label>
+                          </div>
                         </div>
+                        <button onClick={() => setLogoUrl(null)} className="text-xs text-red-600 hover:underline font-medium">&#x1F5D1;&#xFE0F; {t.generate.deleteImage}</button>
                       </div>
+                    ) : (
+                      <>
+                        <div className="text-2xl mb-1">&#x1F4F8;</div>
+                        <p className="text-xs text-neutral-600 mb-2">{t.generate.dropOrClickLogo}</p>
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }} className="hidden" />
+                        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
+                          {uploading ? t.generate.uploading : t.generate.choose}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Credits widget */}
+                {!credits.loading && credits.plan && (
+                  <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
+                      <span className="text-[10px] text-neutral-400 capitalize">{new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-neutral-900">{credits.balance}</span>
+                      <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} cr</span>
+                    </div>
+                    <div className="w-full bg-neutral-200 rounded-full h-1 mt-2">
+                      <div className={`h-1 rounded-full transition-all ${(credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0) >= 75 ? 'bg-red-400' : 'bg-green-400'}`} style={{ width: `${Math.min(100, credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0)}%` }} />
+                    </div>
+                    {credits.plan === 'free' && (
+                      <button onClick={() => router.push('/pricing')} className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
+                        {t.generate.freePlanLimitedCta}
+                      </button>
                     )}
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Indicateur de génération vidéo en cours */}
-            {generatingVideo && !generatedVideoUrl && (
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                  <div>
-                    <p className="text-sm font-semibold text-orange-900 flex items-center gap-2">
-                      {t.generate.videoGenerationInProgress}
-                      {lastVideoProvider && (
-                        <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastVideoProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
-                      )}
-                    </p>
-                    <p className="text-xs text-orange-600">{videoProgress}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {generationError && (
-              <div className="bg-red-50 border border-red-200 rounded p-2 text-red-700 text-xs">
-                {generationError}
-              </div>
-            )}
-            </>)}
-            {/* ═══ FIN ANCIENS BLOCS MASQUÉS ═══ */}
+            </div>
           </div>
-        </div>
+        )}
+
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {/* MODAL OVERLAY : Résultat de génération en grand, centré           */}
@@ -6260,7 +4815,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : t.generate.save}
                       </button>
                       <button
-                        onClick={() => { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }}
+                        onClick={() => { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); setWizardPhase('entry'); }}
                         className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                       >
                         {t.generate.newGeneration}
@@ -6351,7 +4906,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         {savingToLibrary ? t.generate.saving : videoSavedToLibrary ? `✓ ${t.generate.saved}` : t.generate.saveToGallery}
                       </button>
                       <button
-                        onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); }}
+                        onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); setWizardPhase('entry'); }}
                         className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                       >
                         {t.generate.newGeneration}
