@@ -250,18 +250,15 @@ export function calculateScore(prospect: any): number {
  */
 export function calculateTemperature(score: number, prospect?: any): 'cold' | 'warm' | 'hot' {
   if (prospect) {
-    const events: string[] = prospect.events ?? [];
-    const hasClicked = events.includes('email_clicked') || !!prospect.last_email_clicked_at;
-    const hasReplied = events.includes('email_replied');
-    const hasOpened = events.includes('email_opened') || events.includes('email_opened_step2') || !!prospect.last_email_opened_at;
-    const startedTrial = events.includes('started_free_trial');
-    const visitedPricing = events.includes('visited_pricing');
+    // Temperature based on real engagement signals (DB columns)
+    const hasClicked = !!prospect.last_email_clicked_at;
+    const hasOpened = !!prospect.last_email_opened_at;
 
-    if (hasReplied || hasClicked || startedTrial) return 'hot';
-    if (hasOpened || visitedPricing) return 'warm';
+    if (hasClicked) return 'hot';
+    if (hasOpened) return 'warm';
     return 'cold';
   }
-  // Fallback for score-only calls (legacy)
+  // Fallback for score-only calls (legacy / new prospects without DB data)
   if (score >= 51) return 'hot';
   if (score >= 26) return 'warm';
   return 'cold';

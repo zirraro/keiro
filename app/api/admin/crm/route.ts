@@ -177,26 +177,29 @@ export async function POST(req: NextRequest) {
 
     // ─── Recalculate all temperatures based on real engagement ──────────
     if (body.action === 'recalculate_temperatures') {
-      const { data: allProspects } = await supabase.from('crm_prospects').select('id, last_email_opened_at, last_email_clicked_at, events, temperature, score');
-      if (!allProspects) return NextResponse.json({ ok: true, updated: 0 });
+      // Only use columns that exist in DB (no 'events' column)
+      const { data: allProspects, error: fetchErr } = await supabase.from('crm_prospects').select('id, last_email_opened_at, last_email_clicked_at, temperature, score, source');
+      if (fetchErr || !allProspects) {
+        console.error('[Admin CRM] Recalculate fetch error:', fetchErr);
+        return NextResponse.json({ ok: false, error: fetchErr?.message || 'Fetch failed', updated: 0, total: 0 });
+      }
 
       let updated = 0;
+      const now = new Date().toISOString();
       for (const p of allProspects) {
-        if (p.temperature === 'dead') continue; // don't touch dead
-        const events: string[] = p.events ?? [];
-        const hasClicked = events.includes('email_clicked') || !!p.last_email_clicked_at;
-        const hasReplied = events.includes('email_replied');
-        const hasOpened = events.includes('email_opened') || events.includes('email_opened_step2') || !!p.last_email_opened_at;
-        const startedTrial = events.includes('started_free_trial');
-        const visitedPricing = events.includes('visited_pricing');
+        if (p.temperature === 'dead') continue;
+
+        // Temperature based on real engagement signals from DB columns
+        const hasClicked = !!p.last_email_clicked_at;
+        const hasOpened = !!p.last_email_opened_at;
 
         let newTemp: string;
-        if (hasReplied || hasClicked || startedTrial) newTemp = 'hot';
-        else if (hasOpened || visitedPricing) newTemp = 'warm';
+        if (hasClicked) newTemp = 'hot';
+        else if (hasOpened) newTemp = 'warm';
         else newTemp = 'cold';
 
         if (newTemp !== p.temperature) {
-          await supabase.from('crm_prospects').update({ temperature: newTemp, updated_at: new Date().toISOString() }).eq('id', p.id);
+          await supabase.from('crm_prospects').update({ temperature: newTemp, updated_at: now }).eq('id', p.id);
           updated++;
         }
       }
