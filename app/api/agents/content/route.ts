@@ -1524,15 +1524,26 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 
   let weekPlan: any[];
   try {
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
     const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       weekPlan = JSON.parse(jsonMatch[0]);
     } else {
-      throw new Error('No JSON array found in response');
+      // Try to salvage truncated JSON array
+      const partialMatch = cleanText.match(/\[[\s\S]*/);
+      if (partialMatch) {
+        let salvaged = partialMatch[0]
+          .replace(/,\s*\{[^}]*$/, '') // remove last incomplete object
+          .replace(/,\s*$/, '');
+        if (!salvaged.endsWith(']')) salvaged += ']';
+        weekPlan = JSON.parse(salvaged);
+        console.log('[Content] Salvaged truncated weekly plan JSON');
+      } else {
+        throw new Error('No JSON array found in response');
+      }
     }
   } catch (parseError) {
-    console.error('[Content] Parse error:', parseError);
+    console.error('[Content] Parse error:', parseError, 'Raw:', rawText.substring(0, 300));
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'weekly_plan_failed',
       data: { raw: rawText.substring(0, 500), error: String(parseError) },
@@ -1565,10 +1576,17 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       }
     }
 
-    const postPlatform = filterPlatform || post.platform || 'instagram';
+    // Sanitize values to match DB check constraints
+    const VALID_PLATFORMS = ['instagram', 'tiktok', 'linkedin'];
+    const VALID_FORMATS = ['carrousel', 'reel', 'story', 'post', 'video', 'text'];
+    const rawPlatform = (filterPlatform || post.platform || 'instagram').toLowerCase();
+    const rawFormat = (post.format || 'post').toLowerCase().replace('carousel', 'carrousel');
+    const postPlatform = VALID_PLATFORMS.includes(rawPlatform) ? rawPlatform : 'instagram';
+    const postFormat = VALID_FORMATS.includes(rawFormat) ? rawFormat : 'post';
+
     const { error: insertError } = await supabase.from('content_calendar').insert({
       platform: postPlatform,
-      format: post.format || 'post',
+      format: postFormat,
       pillar: post.pillar || 'tips',
       hook: post.hook || null,
       caption: post.caption || '',
@@ -2036,9 +2054,17 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     if (timeMatch) scheduledTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
   }
 
+  // Sanitize values to match DB check constraints
+  const VALID_PLATFORMS_D = ['instagram', 'tiktok', 'linkedin'];
+  const VALID_FORMATS_D = ['carrousel', 'reel', 'story', 'post', 'video', 'text'];
+  const rawPlatformD = (post.platform || platform).toLowerCase();
+  const rawFormatD = (post.format || schedule.format).toLowerCase().replace('carousel', 'carrousel');
+  const safePlatform = VALID_PLATFORMS_D.includes(rawPlatformD) ? rawPlatformD : platform;
+  const safeFormat = VALID_FORMATS_D.includes(rawFormatD) ? rawFormatD : schedule.format;
+
   const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
-    platform: post.platform || platform,
-    format: post.format || schedule.format,
+    platform: safePlatform,
+    format: safeFormat,
     pillar: post.pillar || pillar,
     hook: post.hook || null,
     caption: post.caption || '',
