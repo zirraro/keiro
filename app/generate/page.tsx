@@ -3403,8 +3403,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            {/* Trends section */}
-            <div className="mb-4 relative">
+            {/* ─── 2 colonnes : Tendances à gauche, Actualités à droite ─── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+            {/* === COLONNE GAUCHE : Tendances === */}
+            <div>
+            <div className="relative">
               <div className="flex items-center gap-1 mb-2">
                 <span className="text-base mr-0.5">&#x1F525;</span>
                 <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
@@ -3527,6 +3531,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               })()}
             </div>
 
+            </div>
+
+            {/* === COLONNE DROITE : Actualités === */}
+            <div>
             {/* News category + search */}
             <div className="mb-3 flex gap-2">
               <select
@@ -3658,6 +3666,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   </button>
                 )}
               </>)}
+            </div>
+
+            </div>
             </div>
 
             {/* Selected news summary + Continue button */}
