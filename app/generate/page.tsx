@@ -3689,9 +3689,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
 
             {/* Hint — click to auto-advance */}
-            <p className="mt-6 text-center text-xs text-neutral-400">
-              {locale === 'fr' ? 'Cliquez sur une actualité ou tendance pour continuer' : 'Click a news item or trend to continue'}
-            </p>
+            <div className="mt-6 flex items-center justify-center gap-2 py-3 px-4 bg-blue-50 border border-blue-200 rounded-xl max-w-md mx-auto">
+              <span className="text-blue-500 animate-pulse text-lg">👆</span>
+              <p className="text-sm font-medium text-blue-700">
+                {locale === 'fr' ? 'Cliquez sur une actualité ou tendance pour continuer' : 'Click a news item or trend to continue'}
+              </p>
+            </div>
           </div>
         )}
 
@@ -3819,54 +3822,93 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   <div className="space-y-2">
                     {/* STEP 1: BUSINESS */}
                     {formStep === 1 && (<>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                          {t.generate.businessLabel} <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={businessType}
-                          onChange={(e) => setBusinessType(e.target.value)}
-                          placeholder={t.generate.businessPlaceholder}
-                          autoComplete="off"
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                        />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left: form */}
+                        <div className="space-y-3">
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-neutral-700">
+                              <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">1</span>
+                              {t.generate.businessLabel} <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={businessType}
+                              onChange={(e) => setBusinessType(e.target.value)}
+                              placeholder={t.generate.businessPlaceholder}
+                              autoComplete="off"
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-neutral-700">
+                              <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">2</span>
+                              {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
+                            </label>
+                            <textarea
+                              id="business-description"
+                              value={businessDescription}
+                              onChange={(e) => setBusinessDescription(e.target.value)}
+                              placeholder={useNewsMode ? t.generate.descriptionPlaceholderNews : t.generate.descriptionPlaceholderFree}
+                              rows={useNewsMode ? 3 : 4}
+                              className={`w-full text-sm rounded-xl border-2 px-4 py-2.5 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
+                                !useNewsMode
+                                  ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
+                                  : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
+                              }`}
+                            />
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-neutral-700">
+                              <span className="w-5 h-5 rounded-md bg-neutral-100 text-neutral-400 flex items-center justify-center text-[10px]">3</span>
+                              {t.generate.audienceLabel} <span className="text-neutral-400 font-normal text-[10px]">{t.generate.optional}</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={targetAudience}
+                              onChange={(e) => setTargetAudience(e.target.value)}
+                              placeholder={t.generate.audiencePlaceholder}
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+                        </div>
+                        {/* Right: tips */}
+                        <div className="hidden lg:flex flex-col gap-3">
+                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 flex-1">
+                            <h4 className="text-xs font-bold text-blue-900 mb-3 flex items-center gap-1.5">
+                              <span className="text-base">💡</span> {locale === 'fr' ? 'Conseils pour un bon résultat' : 'Tips for great results'}
+                            </h4>
+                            <div className="space-y-2.5">
+                              <div className="flex items-start gap-2">
+                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'Soyez précis sur votre métier : "Boulangerie artisanale" plutôt que "Commerce"' : 'Be specific about your business: "Artisan bakery" rather than "Shop"'}</p>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'Décrivez ce qui vous rend unique : spécialités, valeurs, ambiance' : 'Describe what makes you unique: specialties, values, ambiance'}</p>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'L\'audience aide l\'IA à adapter le ton et le style visuel' : 'The audience helps AI adapt tone and visual style'}</p>
+                              </div>
+                            </div>
+                          </div>
+                          {useNewsMode && selectedNews && (
+                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 px-4 py-3 flex items-center gap-3">
+                              <span className="text-lg">📰</span>
+                              <p className="text-[11px] text-amber-800 leading-snug line-clamp-2">{selectedNews.title}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                          {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
-                          {!useNewsMode && <span className="text-purple-600 text-[10px] ml-1">{t.generate.descriptionRequired}</span>}
-                        </label>
-                        <textarea
-                          id="business-description"
-                          value={businessDescription}
-                          onChange={(e) => setBusinessDescription(e.target.value)}
-                          placeholder={useNewsMode ? t.generate.descriptionPlaceholderNews : t.generate.descriptionPlaceholderFree}
-                          rows={useNewsMode ? 2 : 4}
-                          className={`w-full text-xs rounded-lg border-2 px-3 py-2 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
-                            !useNewsMode
-                              ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
-                              : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
-                          }`}
-                        />
+                      <div className="flex justify-end mt-4">
+                        <button
+                          onClick={() => setFormStep(2)}
+                          disabled={!businessType.trim() || (!useNewsMode && !businessDescription.trim())}
+                          className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.audienceLabel}</label>
-                        <input
-                          type="text"
-                          value={targetAudience}
-                          onChange={(e) => setTargetAudience(e.target.value)}
-                          placeholder={t.generate.audiencePlaceholder}
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                        />
-                      </div>
-                      <button
-                        onClick={() => setFormStep(2)}
-                        disabled={!businessType.trim() || (!useNewsMode && !businessDescription.trim())}
-                        className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        {t.generate.next} <span>→</span>
-                      </button>
                     </>)}
 
                     {/* STEP 2: STRATEGY — communication profile selection */}
@@ -3917,12 +3959,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2 mt-4">
-                        <button onClick={() => setFormStep(1)} className="flex-1 py-2.5 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          ← {t.generate.back}
+                      <div className="flex items-center justify-between mt-4">
+                        <button onClick={() => setFormStep(1)} className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 transition">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          {t.generate.back}
                         </button>
-                        <button onClick={() => setFormStep(3)} className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                          {t.generate.next} <span>→</span>
+                        <button onClick={() => setFormStep(3)} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                          {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                       </div>
                     </>)}
@@ -4033,20 +4076,23 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          ← {t.generate.back}
+                      <div className="flex items-center justify-between mt-3">
+                        <button onClick={() => setFormStep(2)} className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 transition">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          {t.generate.back}
                         </button>
-                        <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                          {t.generate.next} →
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setFormStep(5)} className="text-xs text-neutral-400 hover:text-neutral-600 transition">
+                            {t.generate.skipStep}
+                          </button>
+                          <button onClick={() => setFormStep(4)} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                            {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </button>
+                        </div>
                       </div>
-                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                        {t.generate.skipStep}
-                      </button>
                     </>)}
 
-                    {/* STEP 3: CREATIVE */}
+                    {/* STEP 4: CREATIVE + EXPERT — merged, 2 columns */}
                     {/* STEP 4: CREATIVE + EXPERT — merged, 2 columns */}
                     {formStep === 4 && (<>
                       <div className="flex items-center justify-between mb-2">
@@ -4066,9 +4112,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {/* Left: Creative */}
                         <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">{locale === 'fr' ? 'Contenu & message' : 'Content & message'}</p>
                           <div>
                             <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.storyToTell}</label>
                             <textarea value={storyToTell} onChange={(e) => setStoryToTell(e.target.value)} placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
@@ -4107,7 +4154,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </div>
                         </div>
                         {/* Right: Expert */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 lg:border-l lg:pl-5 lg:border-neutral-200">
+                          <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">{locale === 'fr' ? 'Expertise & valeur' : 'Expertise & value'}</p>
                           <div>
                             <label className="block text-xs font-semibold mb-1 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
                             <input type="text" value={problemSolved} onChange={(e) => setProblemSolved(e.target.value)} placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
@@ -4122,17 +4170,20 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          ← {t.generate.back}
+                      <div className="flex items-center justify-between mt-3">
+                        <button onClick={() => setFormStep(3)} className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 transition">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                          {t.generate.back}
                         </button>
-                        <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                          {t.generate.next} →
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => setFormStep(5)} className="text-xs text-neutral-400 hover:text-neutral-600 transition">
+                            {t.generate.skipOptionalSteps}
+                          </button>
+                          <button onClick={() => setFormStep(5)} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                            {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </button>
+                        </div>
                       </div>
-                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                        {t.generate.skipOptionalSteps}
-                      </button>
                     </>)}
 
                     {/* STEP 5: GENERATE - platform, style, mode, generate button */}
@@ -4522,8 +4573,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       {!useNewsMode && !businessDescription.trim() && (
                         <p className="text-[10px] text-amber-600 text-center">⚠️ {t.generate.describeBusinessWarning}</p>
                       )}
-                      <button onClick={() => setFormStep(4)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
-                        ← {t.generate.modifyDetails}
+                      <button onClick={() => setFormStep(4)} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700 transition mt-2 mx-auto">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        {t.generate.modifyDetails}
                       </button>
                     </>)}
                   </div>
