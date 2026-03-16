@@ -219,6 +219,7 @@ export async function POST(request: NextRequest) {
         message_id: messageId,
         step: template_step,
         subject: template.subject,
+        body: template.textBody,
         variant: selectedVariant,
         category,
         provider,

@@ -84,7 +84,7 @@ async function generateSeoImage(prompt: string, slug?: string, index: number = 0
       body: JSON.stringify({
         model: 'seedream-4-5-251128',
         prompt: optimizedPrompt,
-        size: '1792x1024',
+        size: '2560x1440',
         response_format: 'url',
         seed: -1,
         watermark: false,

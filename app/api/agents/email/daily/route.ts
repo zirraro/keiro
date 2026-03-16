@@ -575,6 +575,7 @@ async function sendEmail(
         message_id: messageId,
         step,
         subject: template.subject,
+        body: template.textBody,
         category,
         source: 'daily_cron',
         provider,

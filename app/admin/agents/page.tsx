@@ -102,6 +102,8 @@ function AdminAgentsContent() {
   const [prospectEdits, setProspectEdits] = useState<Partial<WarmProspect>>({});
   const [savingProspect, setSavingProspect] = useState(false);
   const [warmFilter, setWarmFilter] = useState<'all' | 'hot' | 'warm'>('all');
+  const [prospectEmails, setProspectEmails] = useState<Array<{ id: string; created_at: string; description: string; data: any }>>([]);
+  const [loadingEmails, setLoadingEmails] = useState(false);
 
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
@@ -474,6 +476,22 @@ function AdminAgentsContent() {
       console.error('[Warm Prospects] Save error:', e);
     }
     setSavingProspect(false);
+  };
+
+  const loadProspectEmails = async (prospectId: string) => {
+    setLoadingEmails(true);
+    setProspectEmails([]);
+    try {
+      const res = await fetch(`/api/admin/crm?type=activities&prospect_id=${prospectId}`);
+      const json = await res.json();
+      if (json.ok && json.activities) {
+        const emails = json.activities.filter((a: any) => a.type === 'email');
+        setProspectEmails(emails);
+      }
+    } catch (e) {
+      console.error('[Warm Prospects] Load emails error:', e);
+    }
+    setLoadingEmails(false);
   };
 
   // ─── Client activity loader ─────────────────────────
@@ -1680,8 +1698,8 @@ function AdminAgentsContent() {
                         <div
                           className="px-5 py-3 cursor-pointer flex items-center gap-3"
                           onClick={() => {
-                            if (isEditing) { setEditingProspect(null); setProspectEdits({}); }
-                            else { setEditingProspect(prospect); setProspectEdits({}); }
+                            if (isEditing) { setEditingProspect(null); setProspectEdits({}); setProspectEmails([]); }
+                            else { setEditingProspect(prospect); setProspectEdits({}); loadProspectEmails(prospect.id); }
                           }}
                         >
                           {/* Temperature badge */}
@@ -1857,6 +1875,42 @@ function AdminAgentsContent() {
                                 onChange={e => setProspectEdits(prev => ({ ...prev, notes: e.target.value }))}
                                 placeholder="Notes sur l'appel, le contact..."
                               />
+                            </div>
+
+                            {/* Emails envoyés */}
+                            <div className="mb-3">
+                              <label className="text-[10px] font-semibold text-neutral-500 uppercase mb-1 block">Emails envoyes ({prospectEmails.length})</label>
+                              {loadingEmails ? (
+                                <div className="flex items-center gap-2 py-2">
+                                  <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                                  <span className="text-[10px] text-neutral-400">Chargement...</span>
+                                </div>
+                              ) : prospectEmails.length === 0 ? (
+                                <p className="text-[10px] text-neutral-400 py-1">Aucun email envoye</p>
+                              ) : (
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                  {prospectEmails.map(email => (
+                                    <div key={email.id} className="bg-white border border-neutral-200 rounded-lg p-3">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[11px] font-semibold text-neutral-800">{email.data?.subject || 'Sans objet'}</span>
+                                        <span className="text-[10px] text-neutral-400">{new Date(email.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mb-1.5">
+                                        {email.data?.step != null && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">Step {email.data.step}</span>}
+                                        {email.data?.category && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{email.data.category}</span>}
+                                        {email.data?.provider && <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{email.data.provider}</span>}
+                                      </div>
+                                      {email.data?.body ? (
+                                        <div className="text-[11px] text-neutral-600 whitespace-pre-line leading-relaxed bg-neutral-50 rounded p-2 border border-neutral-100 max-h-[200px] overflow-y-auto">
+                                          {email.data.body}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[10px] text-neutral-400 italic">Corps non disponible (ancien envoi)</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             {/* Save button */}
