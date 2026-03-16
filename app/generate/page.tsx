@@ -3328,19 +3328,19 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </button>
             </div>
 
-            {/* Daily tip + credits below */}
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Astuce du jour */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+            {/* Daily tip + credits below — centered */}
+            <div className="mt-8 flex flex-col items-center gap-4">
+              {/* Astuce du jour — centered */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-5 py-3 flex items-center gap-3 max-w-lg w-full">
                 <span className="text-2xl">{dailyTip.icon}</span>
                 <div>
                   <h4 className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">{t.generate.dailyTip}</h4>
                   <p className="text-xs text-amber-800 leading-snug">{dailyTip.text}</p>
                 </div>
               </div>
-              {/* Credits mini */}
+              {/* Credits mini — centered */}
               {!credits.loading && credits.plan && (
-                <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="bg-neutral-50 border border-neutral-200 rounded-xl px-5 py-3 flex items-center justify-between max-w-xs w-full">
                   <div>
                     <p className="text-[10px] font-semibold text-neutral-500 uppercase">{t.generate.yourUsage}</p>
                     <p className="text-lg font-bold text-neutral-900">{credits.balance} <span className="text-xs font-normal text-neutral-400">cr</span></p>
@@ -3484,7 +3484,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <article
                           key={`${trendTab}-${i}`}
                           onClick={() => {
-                            setSelectedNews(cfg.getNewsCard(trend, i));
+                            const card = cfg.getNewsCard(trend, i);
+                            if (selectedNews?.id === card.id) {
+                              setSelectedNews(null);
+                            } else {
+                              setSelectedNews(card);
+                              setWizardPhase('configure');
+                              setFormStep(1);
+                            }
                           }}
                           className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
                             selectedNews?.id === cfg.getNewsCard(trend, i).id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
@@ -3614,6 +3621,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           setSelectedNews(null);
                         } else {
                           setSelectedNews(item);
+                          setWizardPhase('configure');
+                          setFormStep(1);
                         }
                       }}
                       className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
@@ -3672,26 +3681,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
             </div>
 
-            {/* Continue button — centered, full width */}
-            <div className="mt-6 max-w-md mx-auto text-center">
-              {selectedNews && (
-                <div className={`mb-3 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
-                  <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
-                    {selectedNews.category === 'Tendance' ? '🔥' : '✓'} {selectedNews.title}
-                  </p>
-                </div>
-              )}
-              <button
-                onClick={() => { setWizardPhase('configure'); setFormStep(1); }}
-                disabled={!selectedNews}
-                className="w-full py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {selectedNews
-                  ? (locale === 'fr' ? 'Continuer avec cette s\u00e9lection' : 'Continue with this selection')
-                  : (locale === 'fr' ? 'S\u00e9lectionnez une actu ou tendance' : 'Select a news or trend')
-                } {selectedNews && <span>→</span>}
-              </button>
-            </div>
+            {/* Hint — click to auto-advance */}
+            <p className="mt-6 text-center text-xs text-neutral-400">
+              {locale === 'fr' ? 'Cliquez sur une actualité ou tendance pour continuer' : 'Click a news item or trend to continue'}
+            </p>
           </div>
         )}
 
@@ -3730,6 +3723,44 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </p>
               </div>
             )}
+
+            {/* Upload zone — compact, full width above the form */}
+            <div ref={uploadSectionRef} className="mb-4">
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={handleDrop}
+                className={`border border-dashed rounded-lg p-2 transition ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'}`}
+              >
+                {logoUrl ? (
+                  <div className="flex items-center gap-4">
+                    <img src={logoUrl} alt="Logo" className="w-16 h-16 object-contain rounded border bg-white p-1" crossOrigin="anonymous" loading="eager" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                          <input type="radio" name="logoModeTop" checked={logoMode === 'overlay'} onChange={() => setLogoMode('overlay')} className="w-3 h-3" />
+                          <span className="text-neutral-700">🎨 {t.generate.addAsOverlay}</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+                          <input type="radio" name="logoModeTop" checked={logoMode === 'modify'} onChange={() => setLogoMode('modify')} className="w-3 h-3" />
+                          <span className="text-neutral-700">✏️ {t.generate.modifyImage}</span>
+                        </label>
+                      </div>
+                      <button onClick={() => setLogoUrl(null)} className="text-[10px] text-red-500 hover:underline">🗑️ {t.generate.deleteImage}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-3 py-1">
+                    <span className="text-lg">📸</span>
+                    <p className="text-xs text-neutral-500">{t.generate.dropOrClickLogo}</p>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }} className="hidden" />
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
+                      {uploading ? t.generate.uploading : t.generate.choose}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Main configure panel */}
@@ -3771,44 +3802,58 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     ))}
                   </div>
 
-                  {/* Communication profile selector (visible on all steps) */}
+                  {/* Communication profile selector — full on step 1, compact on others */}
                   <div ref={promptSectionRef} className="mb-4">
-                    <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                      🎭 {t.generate.chooseStrategy}
-                    </label>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-                      {Object.entries(tonePresets).map(([key, preset]) => {
-                        const isSelected = communicationProfile === key;
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => setCommunicationProfile(key as any)}
-                            className={`p-3 rounded-lg border-2 text-center transition-all ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 shadow-md'
-                                : 'border-neutral-200 hover:border-blue-300 bg-white'
-                            }`}
-                          >
-                            <div className="text-2xl mb-1">{preset.icon}</div>
-                            <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {communicationProfile && (
-                      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
-                        <div className="flex items-start gap-2">
-                          <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-neutral-900 text-xs mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
-                            <p className="text-[11px] text-neutral-700 leading-snug mb-2">{tonePresets[communicationProfile].description}</p>
-                            <div className="space-y-1">
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                    {formStep === 1 ? (
+                      <>
+                        <label className="block text-sm font-semibold text-neutral-900 mb-3">
+                          🎭 {t.generate.chooseStrategy}
+                        </label>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+                          {Object.entries(tonePresets).map(([key, preset]) => {
+                            const isSelected = communicationProfile === key;
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setCommunicationProfile(key as any)}
+                                className={`p-3 rounded-lg border-2 text-center transition-all ${
+                                  isSelected
+                                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                                    : 'border-neutral-200 hover:border-blue-300 bg-white'
+                                }`}
+                              >
+                                <div className="text-2xl mb-1">{preset.icon}</div>
+                                <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {communicationProfile && (
+                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
+                            <div className="flex items-start gap-2">
+                              <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-neutral-900 text-xs mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
+                                <p className="text-[11px] text-neutral-700 leading-snug mb-2">{tonePresets[communicationProfile].description}</p>
+                                <div className="space-y-1">
+                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 bg-blue-50 rounded-lg border border-blue-200 px-3 py-2">
+                        <span className="text-lg">{tonePresets[communicationProfile].icon}</span>
+                        <span className="text-xs font-semibold text-neutral-900">{tonePresets[communicationProfile].label}</span>
+                        <span className="text-[10px] text-neutral-500">—</span>
+                        <span className="text-[10px] text-neutral-600 truncate flex-1">{tonePresets[communicationProfile].marketingStrategy}</span>
+                        <button onClick={() => setFormStep(1)} className="text-[10px] text-blue-600 font-semibold hover:underline flex-shrink-0">
+                          {locale === 'fr' ? 'Modifier' : 'Change'}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -4573,53 +4618,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </div>
               </div>
 
-              {/* Right sidebar: upload + credits */}
+              {/* Right sidebar: credits */}
               <div className="lg:col-span-4 space-y-4">
-                {/* Upload zone */}
-                <div ref={uploadSectionRef}>
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={handleDrop}
-                    className={`border border-dashed rounded-lg p-3 text-center transition ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-neutral-300 hover:border-neutral-400'}`}
-                  >
-                    {logoUrl ? (
-                      <div className="space-y-3">
-                        <img src={logoUrl} alt="Logo" className="w-40 h-40 object-contain rounded mx-auto border bg-white p-2" crossOrigin="anonymous" loading="eager" />
-                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                          <p className="text-xs font-semibold text-blue-900 mb-2">{t.generate.howToUseImage}</p>
-                          <div className="space-y-2">
-                            <label className="flex items-start gap-2 cursor-pointer">
-                              <input type="radio" name="logoMode" checked={logoMode === 'overlay'} onChange={() => setLogoMode('overlay')} className="mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-blue-900">🎨 {t.generate.addAsOverlay}</p>
-                                <p className="text-[10px] text-blue-700">{t.generate.logoOverlayDesc}</p>
-                              </div>
-                            </label>
-                            <label className="flex items-start gap-2 cursor-pointer">
-                              <input type="radio" name="logoMode" checked={logoMode === 'modify'} onChange={() => setLogoMode('modify')} className="mt-0.5" />
-                              <div>
-                                <p className="text-xs font-semibold text-blue-900">✏️ {t.generate.modifyImage}</p>
-                                <p className="text-[10px] text-blue-700">{t.generate.modifyImageDesc}</p>
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                        <button onClick={() => setLogoUrl(null)} className="text-xs text-red-600 hover:underline font-medium">🗑️ {t.generate.deleteImage}</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-2xl mb-1">📸</div>
-                        <p className="text-xs text-neutral-600 mb-2">{t.generate.dropOrClickLogo}</p>
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }} className="hidden" />
-                        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
-                          {uploading ? t.generate.uploading : t.generate.choose}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
                 {/* Credits widget */}
                 {!credits.loading && credits.plan && (
                   <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
