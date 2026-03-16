@@ -3765,8 +3765,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            <div>
-              {/* Main configure panel — full width */}
+            <div className="max-w-4xl mx-auto">
+              {/* Main configure panel */}
               <div>
                 <div className="bg-white rounded-xl border p-5">
                   {/* Inner wizard step indicator */}
