@@ -71,6 +71,38 @@ function AdminAgentsContent() {
   const [resettingDead, setResettingDead] = useState(false);
   const [resetResult, setResetResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Warm prospects panel
+  type WarmProspect = {
+    id: string;
+    company: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    type: string | null;
+    quartier: string | null;
+    temperature: string;
+    score: number | null;
+    status: string | null;
+    plan_interest: string | null;
+    instagram: string | null;
+    tiktok: string | null;
+    notes: string | null;
+    last_email_opened_at: string | null;
+    last_email_clicked_at: string | null;
+    last_email_sent_at: string | null;
+    last_contact_at: string | null;
+    email_sequence_step: number | null;
+    created_at: string;
+  };
+  const [warmProspects, setWarmProspects] = useState<WarmProspect[]>([]);
+  const [warmProspectsLoading, setWarmProspectsLoading] = useState(false);
+  const [showWarmPanel, setShowWarmPanel] = useState(false);
+  const [editingProspect, setEditingProspect] = useState<WarmProspect | null>(null);
+  const [prospectEdits, setProspectEdits] = useState<Partial<WarmProspect>>({});
+  const [savingProspect, setSavingProspect] = useState(false);
+  const [warmFilter, setWarmFilter] = useState<'all' | 'hot' | 'warm'>('all');
+
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [expandedBrief, setExpandedBrief] = useState<string | null>(null);
@@ -396,6 +428,47 @@ function AdminAgentsContent() {
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
     }
+  };
+
+  // ─── Warm prospects loader ─────────────────────────
+  const loadWarmProspects = async () => {
+    setWarmProspectsLoading(true);
+    try {
+      const { data } = await supabase
+        .from('crm_prospects')
+        .select('id, company, first_name, last_name, email, phone, type, quartier, temperature, score, status, plan_interest, instagram, tiktok, notes, last_email_opened_at, last_email_clicked_at, last_email_sent_at, last_contact_at, email_sequence_step, created_at')
+        .in('temperature', ['hot', 'warm'])
+        .order('score', { ascending: false })
+        .limit(100);
+      setWarmProspects(data || []);
+    } catch (e) {
+      console.error('[Warm Prospects] Load error:', e);
+    }
+    setWarmProspectsLoading(false);
+  };
+
+  const saveProspectEdits = async () => {
+    if (!editingProspect) return;
+    setSavingProspect(true);
+    try {
+      const updates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(prospectEdits)) {
+        if (value !== undefined && value !== (editingProspect as any)[key]) {
+          updates[key] = value;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        const { error } = await supabase.from('crm_prospects').update(updates).eq('id', editingProspect.id);
+        if (!error) {
+          // Update local state
+          setWarmProspects(prev => prev.map(p => p.id === editingProspect.id ? { ...p, ...updates } : p));
+          setEditingProspect(prev => prev ? { ...prev, ...updates } : null);
+        }
+      }
+    } catch (e) {
+      console.error('[Warm Prospects] Save error:', e);
+    }
+    setSavingProspect(false);
   };
 
   // ─── Client activity loader ─────────────────────────
@@ -1527,11 +1600,21 @@ function AdminAgentsContent() {
             {/* Global metrics */}
             {dashboardAgent === 'global' && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {metrics.map((m, i) => (
+                {metrics.map((m, i) => {
+                  const isWarm = m.label === 'Prospects chauds/warm';
+                  const isClients = m.label === 'Clients payants';
+                  const isClickable = isWarm || isClients;
+                  return (
                   <div
                     key={i}
-                    className={`bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow ${m.label === 'Clients payants' ? 'cursor-pointer ring-purple-200 hover:ring-2' : ''}`}
-                    onClick={() => { if (m.label === 'Clients payants') document.getElementById('client-activity-section')?.scrollIntoView({ behavior: 'smooth' }); }}
+                    className={`bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow ${isClickable ? 'cursor-pointer ring-purple-200 hover:ring-2' : ''} ${isWarm && showWarmPanel ? 'ring-2 ring-orange-400' : ''}`}
+                    onClick={() => {
+                      if (isClients) document.getElementById('client-activity-section')?.scrollIntoView({ behavior: 'smooth' });
+                      if (isWarm) {
+                        setShowWarmPanel(!showWarmPanel);
+                        if (!showWarmPanel && warmProspects.length === 0) loadWarmProspects();
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-2xl">{m.icon}</span>
@@ -1549,8 +1632,257 @@ function AdminAgentsContent() {
                     </div>
                     <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
                     <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
+                    {isWarm && <p className="text-[10px] text-orange-500 mt-1">Cliquer pour voir les contacts</p>}
                   </div>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Warm prospects panel */}
+            {dashboardAgent === 'global' && showWarmPanel && (
+              <div className="bg-white rounded-xl shadow-sm border border-orange-200 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-200">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-sm font-semibold text-orange-900">Prospects chauds — Appeler maintenant</h3>
+                    <div className="flex gap-1">
+                      {(['all', 'hot', 'warm'] as const).map(f => (
+                        <button key={f} onClick={() => setWarmFilter(f)} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${warmFilter === f ? 'bg-orange-600 text-white' : 'bg-white text-orange-600 border border-orange-300'}`}>
+                          {f === 'all' ? 'Tous' : f === 'hot' ? 'Hot' : 'Warm'} ({f === 'all' ? warmProspects.length : warmProspects.filter(p => p.temperature === f).length})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={loadWarmProspects} className="text-[10px] text-orange-600 hover:underline">Actualiser</button>
+                    <button onClick={() => setShowWarmPanel(false)} className="text-neutral-400 hover:text-neutral-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+                </div>
+
+                {warmProspectsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-neutral-100 max-h-[600px] overflow-y-auto">
+                    {warmProspects.filter(p => warmFilter === 'all' || p.temperature === warmFilter).map(prospect => {
+                      const isEditing = editingProspect?.id === prospect.id;
+                      return (
+                      <div key={prospect.id} className={`hover:bg-orange-50/50 transition ${isEditing ? 'bg-orange-50' : ''}`}>
+                        {/* Prospect summary row */}
+                        <div
+                          className="px-5 py-3 cursor-pointer flex items-center gap-3"
+                          onClick={() => {
+                            if (isEditing) { setEditingProspect(null); setProspectEdits({}); }
+                            else { setEditingProspect(prospect); setProspectEdits({}); }
+                          }}
+                        >
+                          {/* Temperature badge */}
+                          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${prospect.temperature === 'hot' ? 'bg-red-500' : 'bg-orange-400'}`} />
+
+                          {/* Name + company */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-neutral-900 truncate">
+                              {prospect.company || `${prospect.first_name || ''} ${prospect.last_name || ''}`.trim() || prospect.email || '?'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {prospect.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">{prospect.type}</span>}
+                              {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{prospect.quartier}</span>}
+                              {prospect.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{prospect.status}</span>}
+                            </div>
+                          </div>
+
+                          {/* Contact actions — direct call/email */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {prospect.phone && (
+                              <a href={`tel:${prospect.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 px-2.5 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition" title={prospect.phone}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                {prospect.phone}
+                              </a>
+                            )}
+                            {prospect.email && (
+                              <a href={`mailto:${prospect.email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition" title={prospect.email}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                Email
+                              </a>
+                            )}
+                            {prospect.instagram && (
+                              <a href={`https://instagram.com/${prospect.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-[10px] px-2 py-1 bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition">
+                                @{prospect.instagram.replace('@', '')}
+                              </a>
+                            )}
+                          </div>
+
+                          {/* Score */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${prospect.temperature === 'hot' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                              {prospect.temperature.toUpperCase()}
+                            </span>
+                            {prospect.score !== null && (
+                              <span className={`text-xs font-bold ${prospect.score >= 50 ? 'text-red-600' : prospect.score >= 25 ? 'text-orange-600' : 'text-neutral-500'}`}>
+                                {prospect.score}pts
+                              </span>
+                            )}
+                            <svg className={`w-4 h-4 text-neutral-400 transition-transform ${isEditing ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                          </div>
+                        </div>
+
+                        {/* Expanded edit panel */}
+                        {isEditing && (
+                          <div className="px-5 pb-4 pt-1 border-t border-orange-100" onClick={e => e.stopPropagation()}>
+                            {/* Info cards */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                              {prospect.last_email_sent_at && (
+                                <div className="bg-neutral-50 rounded-lg border p-2">
+                                  <p className="text-[10px] font-semibold text-neutral-400 uppercase">Dernier email</p>
+                                  <p className="text-xs text-neutral-800">{new Date(prospect.last_email_sent_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                              )}
+                              {prospect.last_email_opened_at && (
+                                <div className="bg-blue-50 rounded-lg border border-blue-100 p-2">
+                                  <p className="text-[10px] font-semibold text-blue-500 uppercase">Ouvert le</p>
+                                  <p className="text-xs text-blue-700">{new Date(prospect.last_email_opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                              )}
+                              {prospect.last_email_clicked_at && (
+                                <div className="bg-purple-50 rounded-lg border border-purple-100 p-2">
+                                  <p className="text-[10px] font-semibold text-purple-500 uppercase">Clique le</p>
+                                  <p className="text-xs text-purple-700">{new Date(prospect.last_email_clicked_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                              )}
+                              {prospect.email_sequence_step !== null && (
+                                <div className="bg-neutral-50 rounded-lg border p-2">
+                                  <p className="text-[10px] font-semibold text-neutral-400 uppercase">Sequence</p>
+                                  <p className="text-xs text-neutral-800">Step {prospect.email_sequence_step}</p>
+                                </div>
+                              )}
+                              {prospect.plan_interest && (
+                                <div className="bg-green-50 rounded-lg border border-green-100 p-2">
+                                  <p className="text-[10px] font-semibold text-green-500 uppercase">Plan interesse</p>
+                                  <p className="text-xs text-green-700">{prospect.plan_interest}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Editable fields */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Entreprise</label>
+                                <input
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.company || ''}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, company: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Telephone</label>
+                                <input
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.phone || ''}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, phone: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Email</label>
+                                <input
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.email || ''}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, email: e.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Temperature</label>
+                                <select
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.temperature}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, temperature: e.target.value }))}
+                                >
+                                  <option value="hot">Hot</option>
+                                  <option value="warm">Warm</option>
+                                  <option value="cold">Cold</option>
+                                  <option value="dead">Dead</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Statut</label>
+                                <select
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.status || ''}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, status: e.target.value }))}
+                                >
+                                  <option value="identifie">Identifie</option>
+                                  <option value="contacte">Contacte</option>
+                                  <option value="relance_1">Relance 1</option>
+                                  <option value="relance_2">Relance 2</option>
+                                  <option value="relance_3">Relance 3</option>
+                                  <option value="repondu">Repondu</option>
+                                  <option value="demo">Demo</option>
+                                  <option value="sprint">Sprint</option>
+                                  <option value="client">Client</option>
+                                  <option value="perdu">Perdu</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-neutral-500 uppercase">Plan interesse</label>
+                                <select
+                                  className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300"
+                                  defaultValue={prospect.plan_interest || ''}
+                                  onChange={e => setProspectEdits(prev => ({ ...prev, plan_interest: e.target.value }))}
+                                >
+                                  <option value="">-</option>
+                                  <option value="sprint">Sprint</option>
+                                  <option value="solo">Solo</option>
+                                  <option value="fondateurs">Fondateurs</option>
+                                  <option value="standard">Standard</option>
+                                  <option value="business">Business</option>
+                                  <option value="elite">Elite</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Notes */}
+                            <div className="mb-3">
+                              <label className="text-[10px] font-semibold text-neutral-500 uppercase">Notes</label>
+                              <textarea
+                                className="w-full mt-0.5 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-1 focus:ring-orange-300 focus:border-orange-300 resize-none"
+                                rows={2}
+                                defaultValue={prospect.notes || ''}
+                                onChange={e => setProspectEdits(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="Notes sur l'appel, le contact..."
+                              />
+                            </div>
+
+                            {/* Save button */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={saveProspectEdits}
+                                disabled={savingProspect || Object.keys(prospectEdits).length === 0}
+                                className="px-4 py-1.5 text-xs font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                              >
+                                {savingProspect ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                              </button>
+                              <button
+                                onClick={() => { setEditingProspect(null); setProspectEdits({}); }}
+                                className="px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-700"
+                              >
+                                Annuler
+                              </button>
+                              {Object.keys(prospectEdits).length > 0 && (
+                                <span className="text-[10px] text-orange-500">{Object.keys(prospectEdits).length} modification(s)</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      );
+                    })}
+                    {warmProspects.filter(p => warmFilter === 'all' || p.temperature === warmFilter).length === 0 && (
+                      <div className="px-5 py-8 text-center text-xs text-neutral-400">Aucun prospect {warmFilter === 'all' ? 'chaud' : warmFilter}</div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
