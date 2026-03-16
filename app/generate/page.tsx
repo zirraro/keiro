@@ -3770,9 +3770,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   <div className="flex items-center justify-between mb-4 px-1">
                     {[
                       { step: 1, label: t.generate.stepBusiness },
-                      { step: 2, label: t.generate.stepDirection },
-                      { step: 3, label: t.generate.stepCreative },
-                      { step: 4, label: t.generate.stepExpert },
+                      { step: 2, label: t.generate.stepStrategy },
+                      { step: 3, label: t.generate.stepDirection },
+                      { step: 4, label: t.generate.stepCreative },
                       { step: 5, label: t.generate.stepGenerate },
                     ].map(({ step, label }, i) => (
                       <div key={step} className="flex items-center">
@@ -3802,63 +3802,20 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     ))}
                   </div>
 
-                  {/* Communication profile selector — full on step 1, compact on others */}
-                  <div ref={promptSectionRef} className="mb-4">
-                    {formStep === 1 ? (
-                      <>
-                        <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                          🎭 {t.generate.chooseStrategy}
-                        </label>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-                          {Object.entries(tonePresets).map(([key, preset]) => {
-                            const isSelected = communicationProfile === key;
-                            return (
-                              <button
-                                key={key}
-                                onClick={() => setCommunicationProfile(key as any)}
-                                className={`p-3 rounded-lg border-2 text-center transition-all ${
-                                  isSelected
-                                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                                    : 'border-neutral-200 hover:border-blue-300 bg-white'
-                                }`}
-                              >
-                                <div className="text-2xl mb-1">{preset.icon}</div>
-                                <div className="text-xs font-bold text-neutral-900">{preset.label}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {communicationProfile && (
-                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-3">
-                            <div className="flex items-start gap-2">
-                              <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
-                              <div className="flex-1">
-                                <h4 className="font-bold text-neutral-900 text-xs mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
-                                <p className="text-[11px] text-neutral-700 leading-snug mb-2">{tonePresets[communicationProfile].description}</p>
-                                <div className="space-y-1">
-                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
-                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
-                                  <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-2 bg-blue-50 rounded-lg border border-blue-200 px-3 py-2">
-                        <span className="text-lg">{tonePresets[communicationProfile].icon}</span>
-                        <span className="text-xs font-semibold text-neutral-900">{tonePresets[communicationProfile].label}</span>
-                        <span className="text-[10px] text-neutral-500">—</span>
-                        <span className="text-[10px] text-neutral-600 truncate flex-1">{tonePresets[communicationProfile].marketingStrategy}</span>
-                        <button onClick={() => setFormStep(1)} className="text-[10px] text-blue-600 font-semibold hover:underline flex-shrink-0">
-                          {locale === 'fr' ? 'Modifier' : 'Change'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  {/* Strategy compact banner — visible on steps 3+ */}
+                  {formStep >= 3 && (
+                    <div ref={promptSectionRef} className="mb-4 flex items-center gap-2 bg-blue-50 rounded-lg border border-blue-200 px-3 py-2">
+                      <span className="text-lg">{tonePresets[communicationProfile].icon}</span>
+                      <span className="text-xs font-semibold text-neutral-900">{tonePresets[communicationProfile].label}</span>
+                      <span className="text-[10px] text-neutral-500">—</span>
+                      <span className="text-[10px] text-neutral-600 truncate flex-1">{tonePresets[communicationProfile].marketingStrategy}</span>
+                      <button onClick={() => setFormStep(2)} className="text-[10px] text-blue-600 font-semibold hover:underline flex-shrink-0">
+                        {locale === 'fr' ? 'Modifier' : 'Change'}
+                      </button>
+                    </div>
+                  )}
 
-                  {/* Steps content - reuse existing formStep logic */}
+                  {/* Steps content */}
                   <div className="space-y-2">
                     {/* STEP 1: BUSINESS */}
                     {formStep === 1 && (<>
@@ -3912,45 +3869,102 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </button>
                     </>)}
 
-                    {/* STEP 2: DIRECTION — 2-column layout */}
+                    {/* STEP 2: STRATEGY — communication profile selection */}
                     {formStep === 2 && (<>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Left: form fields */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
-                            <button
-                              type="button"
-                              onClick={() => handleAiAutoFill('direction')}
-                              disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                            >
-                              {autoFillLoading ? (
-                                <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                              ) : (
-                                <><span>✨</span> {t.generate.autoFill}</>
-                              )}
-                            </button>
-                          </div>
-
-                          {useNewsMode && selectedNews && (
-                            <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                              <label className="block text-[10px] font-semibold mb-1.5 text-neutral-700">{t.generate.visualOrientation}</label>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
-                                <input
-                                  type="range"
-                                  min={0} max={100} step={5}
-                                  value={contentFocus}
-                                  onChange={(e) => setContentFocus(Number(e.target.value))}
-                                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                                  style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
-                                />
-                                <span className="text-[9px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
+                      <div ref={promptSectionRef}>
+                        <label className="block text-sm font-semibold text-neutral-900 mb-3">
+                          🎭 {t.generate.chooseStrategy}
+                        </label>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                          {Object.entries(tonePresets).map(([key, preset]) => {
+                            const isSelected = communicationProfile === key;
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setCommunicationProfile(key as any)}
+                                className={`p-4 rounded-xl border-2 text-center transition-all ${
+                                  isSelected
+                                    ? 'border-blue-500 bg-blue-50 shadow-lg scale-[1.02]'
+                                    : 'border-neutral-200 hover:border-blue-300 bg-white hover:shadow-md'
+                                }`}
+                              >
+                                <div className="text-3xl mb-2">{preset.icon}</div>
+                                <div className="text-sm font-bold text-neutral-900">{preset.label}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {communicationProfile && (
+                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-neutral-900 text-sm mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
+                                <p className="text-xs text-neutral-700 leading-relaxed mb-3">{tonePresets[communicationProfile].description}</p>
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                                  <div className="bg-white/60 rounded-lg p-2.5">
+                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                                  </div>
+                                  <div className="bg-white/60 rounded-lg p-2.5">
+                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                                  </div>
+                                  <div className="bg-white/60 rounded-lg p-2.5">
+                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={() => setFormStep(1)} className="flex-1 py-2.5 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                          ← {t.generate.back}
+                        </button>
+                        <button onClick={() => setFormStep(3)} className="flex-1 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                          {t.generate.next} <span>→</span>
+                        </button>
+                      </div>
+                    </>)}
 
+                    {/* STEP 3: DIRECTION — compact, full-width */}
+                    {formStep === 3 && (<>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
+                          <button
+                            type="button"
+                            onClick={() => handleAiAutoFill('direction')}
+                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                          >
+                            {autoFillLoading ? (
+                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                            ) : (
+                              <><span>✨</span> {t.generate.autoFill}</>
+                            )}
+                          </button>
+                        </div>
+
+                        {useNewsMode && selectedNews && (
+                          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                            <label className="block text-[10px] font-semibold mb-1.5 text-neutral-700">{t.generate.visualOrientation}</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
+                              <input
+                                type="range"
+                                min={0} max={100} step={5}
+                                value={contentFocus}
+                                onChange={(e) => setContentFocus(Number(e.target.value))}
+                                className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
+                              />
+                              <span className="text-[9px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                           <div>
                             <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.imageAngleLabel}</label>
                             <select
@@ -3959,27 +3973,21 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             >
                               <option value="">{t.generate.chooseSuggestion}</option>
                               {useNewsMode ? (<>
-                                <option value="Int\u00e9grer harmonieusement l'actualit\u00e9 et le business dans une seule sc\u00e8ne coh\u00e9sive">{t.generate.harmonious}</option>
-                                <option value="Focus sur la solution que nous apportons face \u00e0 l'actualit\u00e9, int\u00e9gr\u00e9e naturellement">{t.generate.focusSolution}</option>
-                                <option value="M\u00e9taphore visuelle symbolique reliant l'actu et le business dans une composition unifi\u00e9e">{t.generate.visualMetaphor}</option>
-                                <option value="Composition dramatique avec actualit\u00e9 en arri\u00e8re-plan et business au premier plan">{t.generate.depthComposition}</option>
-                                <option value="Raconter l'histoire dans un environnement coh\u00e9rent \u00e9voquant l'actualit\u00e9">{t.generate.narrativeEnvironment}</option>
+                                <option value="Intégrer harmonieusement l'actualité et le business dans une seule scène cohésive">{t.generate.harmonious}</option>
+                                <option value="Focus sur la solution que nous apportons face à l'actualité, intégrée naturellement">{t.generate.focusSolution}</option>
+                                <option value="Métaphore visuelle symbolique reliant l'actu et le business dans une composition unifiée">{t.generate.visualMetaphor}</option>
+                                <option value="Composition dramatique avec actualité en arrière-plan et business au premier plan">{t.generate.depthComposition}</option>
+                                <option value="Raconter l'histoire dans un environnement cohérent évoquant l'actualité">{t.generate.narrativeEnvironment}</option>
                               </>) : (<>
-                                <option value="Gros plan sur un d\u00e9tail cl\u00e9 du m\u00e9tier : texture, outil, geste pr\u00e9cis">{t.generate.freeAngleMacro}</option>
-                                <option value="Montrer les coulisses de l'activit\u00e9, le travail en cours, l'\u00e9nergie du m\u00e9tier">{t.generate.freeAngleBehindScenes}</option>
-                                <option value="Transformation spectaculaire : l'\u00e9tat avant et le r\u00e9sultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
-                                <option value="Capturer l'ambiance unique du lieu ou de l'activit\u00e9, lumi\u00e8re et d\u00e9cor">{t.generate.freeAngleAmbiance}</option>
-                                <option value="Mettre en valeur le produit ou la cr\u00e9ation phare dans une composition soign\u00e9e">{t.generate.freeAngleProduct}</option>
+                                <option value="Gros plan sur un détail clé du métier : texture, outil, geste précis">{t.generate.freeAngleMacro}</option>
+                                <option value="Montrer les coulisses de l'activité, le travail en cours, l'énergie du métier">{t.generate.freeAngleBehindScenes}</option>
+                                <option value="Transformation spectaculaire : l'état avant et le résultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
+                                <option value="Capturer l'ambiance unique du lieu ou de l'activité, lumière et décor">{t.generate.freeAngleAmbiance}</option>
+                                <option value="Mettre en valeur le produit ou la création phare dans une composition soignée">{t.generate.freeAngleProduct}</option>
                               </>)}
                               <option value="custom">✏️ {t.generate.customOption}</option>
                             </select>
-                            <input
-                              type="text"
-                              value={imageAngle}
-                              onChange={(e) => setImageAngle(e.target.value)}
-                              placeholder={t.generate.customizeImageAngle}
-                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                            />
+                            <input type="text" value={imageAngle} onChange={(e) => setImageAngle(e.target.value)} placeholder={t.generate.customizeImageAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
                           </div>
 
                           <div>
@@ -3990,27 +3998,21 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             >
                               <option value="">{t.generate.chooseSuggestion}</option>
                               {useNewsMode ? (<>
-                                <option value="Profiter de l'opportunit\u00e9 cr\u00e9\u00e9e par l'actualit\u00e9">{t.generate.opportunityFromNews}</option>
-                                <option value="R\u00e9soudre le probl\u00e8me soulev\u00e9 par l'actualit\u00e9">{t.generate.solveProblem}</option>
-                                <option value="Se positionner en expert face \u00e0 l'actualit\u00e9">{t.generate.expertFacingNews}</option>
-                                <option value="Surfer sur la tendance de l'actualit\u00e9">{t.generate.surfTrend}</option>
-                                <option value="Anticiper les cons\u00e9quences de l'actualit\u00e9">{t.generate.anticipateConsequences}</option>
+                                <option value="Profiter de l'opportunité créée par l'actualité">{t.generate.opportunityFromNews}</option>
+                                <option value="Résoudre le problème soulevé par l'actualité">{t.generate.solveProblem}</option>
+                                <option value="Se positionner en expert face à l'actualité">{t.generate.expertFacingNews}</option>
+                                <option value="Surfer sur la tendance de l'actualité">{t.generate.surfTrend}</option>
+                                <option value="Anticiper les conséquences de l'actualité">{t.generate.anticipateConsequences}</option>
                               </>) : (<>
-                                <option value="D\u00e9montrer le savoir-faire unique et la ma\u00eetrise du m\u00e9tier">{t.generate.freeMarketingExpertise}</option>
-                                <option value="Toucher le public avec un moment authentique et sinc\u00e8re">{t.generate.freeMarketingEmotion}</option>
+                                <option value="Démontrer le savoir-faire unique et la maîtrise du métier">{t.generate.freeMarketingExpertise}</option>
+                                <option value="Toucher le public avec un moment authentique et sincère">{t.generate.freeMarketingEmotion}</option>
                                 <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
-                                <option value="Montrer l'exp\u00e9rience que vivent les clients, le r\u00e9sultat obtenu">{t.generate.freeMarketingClient}</option>
-                                <option value="Partager les valeurs, la passion ou le parcours derri\u00e8re l'activit\u00e9">{t.generate.freeMarketingStory}</option>
+                                <option value="Montrer l'expérience que vivent les clients, le résultat obtenu">{t.generate.freeMarketingClient}</option>
+                                <option value="Partager les valeurs, la passion ou le parcours derrière l'activité">{t.generate.freeMarketingStory}</option>
                               </>)}
                               <option value="custom">✏️ {t.generate.customOption}</option>
                             </select>
-                            <textarea
-                              value={marketingAngle}
-                              onChange={(e) => setMarketingAngle(e.target.value)}
-                              placeholder={t.generate.customizeMarketingAngle}
-                              rows={2}
-                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                            />
+                            <textarea value={marketingAngle} onChange={(e) => setMarketingAngle(e.target.value)} placeholder={t.generate.customizeMarketingAngle} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
                           </div>
 
                           <div>
@@ -4020,53 +4022,22 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
                             >
                               <option value="">{t.generate.chooseSuggestion}</option>
-                              <option value="T\u00e9moignage client ou \u00e9tude de cas concret">{t.generate.testimonialCase}</option>
-                              <option value="Contenu \u00e9ducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
-                              <option value="Behind-the-scenes, coulisses du m\u00e9tier">{t.generate.behindTheScenes}</option>
-                              <option value="Prise de position forte et opinion tranch\u00e9e">{t.generate.opinionStance}</option>
+                              <option value="Témoignage client ou étude de cas concret">{t.generate.testimonialCase}</option>
+                              <option value="Contenu éducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
+                              <option value="Behind-the-scenes, coulisses du métier">{t.generate.behindTheScenes}</option>
+                              <option value="Prise de position forte et opinion tranchée">{t.generate.opinionStance}</option>
                               <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
                               <option value="custom">✏️ {t.generate.customOption}</option>
                             </select>
-                            <input
-                              type="text"
-                              value={contentAngle}
-                              onChange={(e) => setContentAngle(e.target.value)}
-                              placeholder={t.generate.customizeContentAngle}
-                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                            />
+                            <input type="text" value={contentAngle} onChange={(e) => setContentAngle(e.target.value)} placeholder={t.generate.customizeContentAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
                           </div>
-                        </div>
-
-                        {/* Right: strategy explanation */}
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 flex flex-col">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="text-xl">{tonePresets[communicationProfile].icon}</span>
-                            <h4 className="font-bold text-neutral-900 text-sm">{tonePresets[communicationProfile].label}</h4>
-                          </div>
-                          <p className="text-xs font-semibold text-blue-800 mb-2">{tonePresets[communicationProfile].marketingStrategy}</p>
-                          <p className="text-[11px] text-neutral-700 leading-relaxed mb-3">{tonePresets[communicationProfile].description}</p>
-                          <div className="space-y-2 flex-1">
-                            <div className="bg-white/60 rounded-lg p-2.5">
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
-                            </div>
-                            <div className="bg-white/60 rounded-lg p-2.5">
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
-                            </div>
-                            <div className="bg-white/60 rounded-lg p-2.5">
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
-                            </div>
-                          </div>
-                          <button onClick={() => setFormStep(1)} className="mt-3 text-[10px] text-blue-600 font-semibold hover:underline self-start">
-                            🎭 {locale === 'fr' ? 'Changer de stratégie' : 'Change strategy'}
-                          </button>
                         </div>
                       </div>
-
                       <div className="flex gap-2 mt-3">
-                        <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
+                        <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
                           ← {t.generate.back}
                         </button>
-                        <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                        <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
                           {t.generate.next} →
                         </button>
                       </div>
@@ -4076,10 +4047,11 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     </>)}
 
                     {/* STEP 3: CREATIVE */}
-                    {formStep === 3 && (<>
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-medium text-neutral-600">{t.generate.customizeContent}</p>
+                    {/* STEP 4: CREATIVE + EXPERT — merged, 2 columns */}
+                    {formStep === 4 && (<>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-medium text-neutral-600">{t.generate.customizeContent}</p>
+                        <div className="flex gap-2">
                           <button
                             type="button"
                             onClick={() => handleAiAutoFill('creatif')}
@@ -4093,158 +4065,73 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             )}
                           </button>
                         </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.storyToTell}</label>
-                          <textarea
-                            value={storyToTell}
-                            onChange={(e) => setStoryToTell(e.target.value)}
-                            placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree}
-                            rows={2}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.publicationGoal}</label>
-                          <input
-                            type="text"
-                            value={publicationGoal}
-                            onChange={(e) => setPublicationGoal(e.target.value)}
-                            placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.emotionToConvey}</label>
-                          <input
-                            type="text"
-                            value={emotionToConvey}
-                            onChange={(e) => setEmotionToConvey(e.target.value)}
-                            placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
-                              {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
-                            </label>
-                            <button
-                              type="button"
-                              onClick={handleGenerateTextSuggestions}
-                              className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
-                            >
-                              💡 {t.generate.suggestText}
-                            </button>
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left: Creative */}
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.storyToTell}</label>
+                            <textarea value={storyToTell} onChange={(e) => setStoryToTell(e.target.value)} placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
                           </div>
-                          <input
-                            type="text"
-                            value={optionalText}
-                            onChange={(e) => setOptionalText(e.target.value)}
-                            placeholder={t.generate.textPlaceholder}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                          {showTextSuggestions && textSuggestions.length > 0 && (
-                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <p className="text-xs font-semibold text-blue-900 mb-2">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
-                              <div className="space-y-1.5">
-                                {textSuggestions.map((suggestion, index) => (
-                                  <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => { setOptionalText(suggestion); setShowTextSuggestions(false); }}
-                                    className="w-full text-left text-xs px-3 py-2 bg-white rounded-lg hover:bg-blue-100 hover:border-blue-300 border border-blue-100 transition-all flex items-center justify-between group"
-                                  >
-                                    <span className="text-neutral-700">{suggestion}</span>
-                                    <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">{t.generate.use}</span>
-                                  </button>
-                                ))}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setShowTextSuggestions(false)}
-                                className="mt-2 text-[10px] text-neutral-500 hover:text-neutral-700 transition-colors"
-                              >
-                                {t.generate.hideSuggestions}
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.publicationGoal}</label>
+                            <input type="text" value={publicationGoal} onChange={(e) => setPublicationGoal(e.target.value)} placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.emotionToConvey}</label>
+                            <input type="text" value={emotionToConvey} onChange={(e) => setEmotionToConvey(e.target.value)} placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
+                                {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
+                              </label>
+                              <button type="button" onClick={handleGenerateTextSuggestions} className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1">
+                                💡 {t.generate.suggestText}
                               </button>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-3">
-                        <button onClick={() => setFormStep(2)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          {t.generate.back}
-                        </button>
-                        <button onClick={() => setFormStep(4)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                          {t.generate.next}
-                        </button>
-                      </div>
-                      <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                        {t.generate.skipOptionalSteps}
-                      </button>
-                    </>)}
-
-                    {/* STEP 4: EXPERT */}
-                    {formStep === 4 && (<>
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="text-[10px] font-medium text-neutral-600">{t.generate.expertQuestions}</p>
-                            <p className="text-[9px] text-neutral-400">{t.generate.multiplyImpact}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleAiAutoFill('expert')}
-                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                          >
-                            {autoFillLoading ? (
-                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                            ) : (
-                              <><span>✨</span> {t.generate.autoFill}</>
+                            <input type="text" value={optionalText} onChange={(e) => setOptionalText(e.target.value)} placeholder={t.generate.textPlaceholder} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            {showTextSuggestions && textSuggestions.length > 0 && (
+                              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-[10px] font-semibold text-blue-900 mb-1">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
+                                <div className="space-y-1">
+                                  {textSuggestions.map((suggestion, index) => (
+                                    <button key={index} type="button" onClick={() => { setOptionalText(suggestion); setShowTextSuggestions(false); }} className="w-full text-left text-[10px] px-2 py-1.5 bg-white rounded hover:bg-blue-100 border border-blue-100 transition-all">
+                                      {suggestion}
+                                    </button>
+                                  ))}
+                                </div>
+                                <button type="button" onClick={() => setShowTextSuggestions(false)} className="mt-1 text-[9px] text-neutral-500 hover:text-neutral-700">{t.generate.hideSuggestions}</button>
+                              </div>
                             )}
-                          </button>
+                          </div>
                         </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
-                          <input
-                            type="text"
-                            value={problemSolved}
-                            onChange={(e) => setProblemSolved(e.target.value)}
-                            placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.uniqueAdvantage}</label>
-                          <input
-                            type="text"
-                            value={uniqueAdvantage}
-                            onChange={(e) => setUniqueAdvantage(e.target.value)}
-                            placeholder={t.generate.advantagePlaceholder}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.visualIdea}</label>
-                          <textarea
-                            value={desiredVisualIdea}
-                            onChange={(e) => setDesiredVisualIdea(e.target.value)}
-                            placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree}
-                            rows={2}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                          />
+                        {/* Right: Expert */}
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
+                            <input type="text" value={problemSolved} onChange={(e) => setProblemSolved(e.target.value)} placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.uniqueAdvantage}</label>
+                            <input type="text" value={uniqueAdvantage} onChange={(e) => setUniqueAdvantage(e.target.value)} placeholder={t.generate.advantagePlaceholder} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.visualIdea}</label>
+                            <textarea value={desiredVisualIdea} onChange={(e) => setDesiredVisualIdea(e.target.value)} placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
+                          </div>
                         </div>
                       </div>
                       <div className="flex gap-2 mt-3">
                         <button onClick={() => setFormStep(3)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          {t.generate.back}
+                          ← {t.generate.back}
                         </button>
                         <button onClick={() => setFormStep(5)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                          {t.generate.next}
+                          {t.generate.next} →
                         </button>
                       </div>
                       <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
-                        {t.generate.skipThisStep}
+                        {t.generate.skipOptionalSteps}
                       </button>
                     </>)}
 
@@ -4635,7 +4522,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       {!useNewsMode && !businessDescription.trim() && (
                         <p className="text-[10px] text-amber-600 text-center">⚠️ {t.generate.describeBusinessWarning}</p>
                       )}
-                      <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
+                      <button onClick={() => setFormStep(4)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
                         ← {t.generate.modifyDetails}
                       </button>
                     </>)}

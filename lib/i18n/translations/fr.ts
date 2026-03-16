@@ -887,10 +887,10 @@ export const fr: Translations = {
     toneDialogWhenToUse: 'Construire une communaut\u00e9 engag\u00e9e et fid\u00e8le',
     // Wizard steps
     stepBusiness: 'Business',
+    stepStrategy: 'Stratégie',
     stepDirection: 'Direction',
-    stepCreative: 'Cr\u00e9atif',
-    stepExpert: 'Expert',
-    stepGenerate: 'G\u00e9n\u00e9rer',
+    stepCreative: 'Créatif',
+    stepGenerate: 'Générer',
     // Step 1 - Business
     businessLabel: 'Business',
     businessPlaceholder: 'Ex: Restaurant bio, Agence marketing digital, Coach sportif...',
