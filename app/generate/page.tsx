@@ -3672,25 +3672,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
             </div>
 
-            {/* Selected news summary + Continue button */}
-            <div className="mt-6 flex items-center justify-between gap-4">
-              {selectedNews ? (
-                <div className={`flex-1 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
+            {/* Continue button — centered, full width */}
+            <div className="mt-6 max-w-md mx-auto text-center">
+              {selectedNews && (
+                <div className={`mb-3 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
                   <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
                     {selectedNews.category === 'Tendance' ? '&#x1F525;' : '&#x2713;'} {selectedNews.title}
                   </p>
                 </div>
-              ) : (
-                <p className="text-sm text-neutral-400 flex-1">
-                  {locale === 'fr' ? 'S\u00e9lectionnez une actualit\u00e9 ou tendance pour continuer' : 'Select a news item or trend to continue'}
-                </p>
               )}
               <button
                 onClick={() => { setWizardPhase('configure'); setFormStep(1); }}
                 disabled={!selectedNews}
-                className="px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full py-3 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {locale === 'fr' ? 'Continuer' : 'Continue'} <span>&rarr;</span>
+                {selectedNews
+                  ? (locale === 'fr' ? 'Continuer avec cette s\u00e9lection' : 'Continue with this selection')
+                  : (locale === 'fr' ? 'S\u00e9lectionnez une actu ou tendance' : 'Select a news or trend')
+                } {selectedNews && <span>&rarr;</span>}
               </button>
             </div>
           </div>
