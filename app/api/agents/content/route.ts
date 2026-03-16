@@ -915,8 +915,19 @@ async function publishToTikTok(
     console.log(`[Content] TikTok video published: ${result.publish_id}`);
     return { success: true, publish_id: result.publish_id };
   } catch (error: any) {
-    console.error('[Content] TikTok publish error:', error.message || error);
-    return { success: false, error: error.message || 'Unknown TikTok publishing error' };
+    const msg = error.message || 'Unknown TikTok publishing error';
+    console.error('[Content] TikTok publish error:', msg);
+
+    // Detect unaudited app — don't retry, just flag clearly
+    if (msg.includes('unaudited_client')) {
+      return {
+        success: false,
+        error: 'TikTok Content Posting API non audité. Soumettez App Review sur developers.tiktok.com pour activer la publication.',
+        unaudited: true,
+      };
+    }
+
+    return { success: false, error: msg };
   }
 }
 
