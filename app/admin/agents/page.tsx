@@ -214,11 +214,12 @@ function AdminAgentsContent() {
   const [clientActivityFilter, setClientActivityFilter] = useState<string>('all');
 
   // Content state
-  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
+  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; video_url?: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
   const [contentDraftOnly, setContentDraftOnly] = useState(true);
+  const [previewPost, setPreviewPost] = useState<ContentPost | null>(null);
 
   // Logs state
   const [logs, setLogs] = useState<AgentLog[]>([]);
@@ -434,13 +435,13 @@ function AdminAgentsContent() {
   const loadWarmProspects = async () => {
     setWarmProspectsLoading(true);
     try {
-      const { data } = await supabase
-        .from('crm_prospects')
-        .select('id, company, first_name, last_name, email, phone, type, quartier, temperature, score, status, plan_interest, instagram, tiktok, notes, last_email_opened_at, last_email_clicked_at, last_email_sent_at, last_contact_at, email_sequence_step, created_at')
-        .in('temperature', ['hot', 'warm'])
-        .order('score', { ascending: false })
-        .limit(100);
-      setWarmProspects(data || []);
+      const res = await fetch('/api/admin/crm?temperature=hot,warm&sort=score&order=desc');
+      const json = await res.json();
+      if (json.ok && json.prospects) {
+        setWarmProspects(json.prospects.slice(0, 100));
+      } else {
+        console.error('[Warm Prospects] API error:', json.error);
+      }
     } catch (e) {
       console.error('[Warm Prospects] Load error:', e);
     }
@@ -458,9 +459,13 @@ function AdminAgentsContent() {
         }
       }
       if (Object.keys(updates).length > 0) {
-        const { error } = await supabase.from('crm_prospects').update(updates).eq('id', editingProspect.id);
-        if (!error) {
-          // Update local state
+        const res = await fetch(`/api/admin/crm/${editingProspect.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        const json = await res.json();
+        if (json.ok) {
           setWarmProspects(prev => prev.map(p => p.id === editingProspect.id ? { ...p, ...updates } : p));
           setEditingProspect(prev => prev ? { ...prev, ...updates } : null);
         }
@@ -3452,7 +3457,7 @@ function AdminAgentsContent() {
                     return dateB.localeCompare(dateA);
                   })
                   .map(post => (
-                  <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4">
+                  <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setPreviewPost(post)}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
@@ -3484,7 +3489,7 @@ function AdminAgentsContent() {
                       <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
                     )}
                     {(post.status === 'draft' || post.status === 'approved') && (
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
                         {post.status === 'draft' && (
                           <>
                             <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100">Approuver</button>
@@ -3497,7 +3502,7 @@ function AdminAgentsContent() {
                       </div>
                     )}
                     {post.status === 'published' && !post.instagram_permalink && (
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
                         <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
                         <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Republier TikTok</button>
                       </div>
@@ -3616,6 +3621,61 @@ function AdminAgentsContent() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+        {/* Post Preview Modal */}
+        {previewPost && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewPost(null)}>
+            <div className="relative w-full max-w-[380px]" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setPreviewPost(null)} className="absolute -top-10 right-0 text-white text-xl font-bold hover:opacity-70">X</button>
+              {/* Phone frame */}
+              <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden border-[6px] border-neutral-800" style={{ aspectRatio: previewPost.platform === 'tiktok' ? '9/16' : (previewPost.format === 'story' || previewPost.format === 'reel' ? '9/16' : '4/5') }}>
+                {/* Header */}
+                <div className="flex items-center gap-2 p-3 border-b border-neutral-100">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[10px] font-bold">K</div>
+                  <div>
+                    <div className="text-[12px] font-semibold text-neutral-900">keiroai</div>
+                    <div className="text-[10px] text-neutral-400">{previewPost.platform === 'tiktok' ? 'TikTok' : previewPost.platform === 'linkedin' ? 'LinkedIn' : 'Instagram'}</div>
+                  </div>
+                  <div className="ml-auto">
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
+                      previewPost.status === 'published' ? 'bg-green-100 text-green-700' : previewPost.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                    }`}>{previewPost.status}</span>
+                  </div>
+                </div>
+                {/* Media */}
+                <div className="relative bg-neutral-100 flex items-center justify-center" style={{ minHeight: '200px', maxHeight: '400px' }}>
+                  {previewPost.video_url ? (
+                    <video src={previewPost.video_url} controls autoPlay muted loop className="w-full h-full object-cover" style={{ maxHeight: '400px' }} />
+                  ) : previewPost.visual_url ? (
+                    <img src={previewPost.visual_url} alt="" className="w-full h-full object-cover" style={{ maxHeight: '400px' }} />
+                  ) : (
+                    <div className="p-6 text-center text-neutral-400 text-sm">
+                      <div className="text-3xl mb-2">{previewPost.format === 'reel' || previewPost.format === 'video' ? '🎬' : '🖼️'}</div>
+                      <div>{previewPost.visual_description || 'Pas de visuel'}</div>
+                    </div>
+                  )}
+                  {(previewPost.format === 'reel' || previewPost.format === 'video') && (
+                    <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">{previewPost.format === 'reel' ? 'Reel' : 'Video'}</div>
+                  )}
+                </div>
+                {/* Engagement icons */}
+                <div className="flex items-center gap-4 px-3 py-2">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </div>
+                {/* Caption */}
+                <div className="px-3 pb-3 overflow-y-auto" style={{ maxHeight: '160px' }}>
+                  {previewPost.hook && <div className="text-[12px] font-bold text-neutral-900 mb-1">{previewPost.hook}</div>}
+                  <div className="text-[11px] text-neutral-700 whitespace-pre-line leading-relaxed">{previewPost.caption}</div>
+                </div>
+                {/* Date */}
+                <div className="px-3 py-2 border-t border-neutral-100">
+                  <div className="text-[10px] text-neutral-400">{previewPost.scheduled_date} {previewPost.scheduled_time} - {previewPost.pillar}</div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

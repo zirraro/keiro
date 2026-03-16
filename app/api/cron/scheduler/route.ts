@@ -146,6 +146,11 @@ export async function GET(request: NextRequest) {
       fireAndForget('Content (evening)', '/api/agents/content?slot=evening');
       break;
 
+    case 'content_tiktok':
+      // 18:30 UTC — Content: daily TikTok video (1/day)
+      fireAndForget('Content (TikTok)', '/api/agents/content?slot=tiktok');
+      break;
+
     case 'discovery_6':
       // 16:30 UTC — Commercial: full run (end of day cleanup) — can be long
       fireAndForget('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });

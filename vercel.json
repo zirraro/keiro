@@ -89,8 +89,12 @@
       "schedule": "30 17 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_7",
+      "path": "/api/cron/scheduler?slot=content_tiktok",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=discovery_7",
+      "schedule": "15 18 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=email_recap",

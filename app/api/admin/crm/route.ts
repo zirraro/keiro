@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const source = searchParams.get('source') || '';
+    const temperature = searchParams.get('temperature') || '';
     const sort = searchParams.get('sort') || 'created_at';
     const order = searchParams.get('order') || 'desc';
 
@@ -119,6 +120,10 @@ export async function GET(req: NextRequest) {
       }
       if (status) pageQuery = pageQuery.eq('status', status);
       if (source) pageQuery = pageQuery.eq('source', source);
+      if (temperature) {
+        const temps = temperature.split(',');
+        pageQuery = temps.length > 1 ? pageQuery.in('temperature', temps) : pageQuery.eq('temperature', temperature);
+      }
 
       const { data, error } = await pageQuery;
       if (error) {

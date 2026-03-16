@@ -770,6 +770,13 @@ export async function GET(request: NextRequest) {
       return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__');
     }
 
+    // TikTok slot: generate 4th post (1 tiktok/day) if no tiktok post exists today
+    const hasTiktokToday = todayPosts.some((p: any) => p.platform === 'tiktok');
+    if (slot === 'tiktok' && !hasTiktokToday) {
+      console.log('[Content] TikTok slot — generating daily TikTok video');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
+    }
+
     // If posts exist but none are published yet, auto-publish them
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
     if (unpublished.length > 0 && isCron) {
@@ -1576,15 +1583,19 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     // Sanitize values to match DB check constraints
     const VALID_PLATFORMS = ['instagram', 'tiktok', 'linkedin'];
     const VALID_FORMATS = ['carrousel', 'reel', 'story', 'post', 'video', 'text'];
-    const rawPlatform = (filterPlatform || post.platform || 'instagram').toLowerCase();
+    const VALID_PILLARS = ['tips', 'demo', 'social_proof', 'trends'];
+    const PILLAR_MAP: Record<string, string> = { giving_value: 'tips', educational: 'tips', cta: 'demo', behind_the_scenes: 'demo', pain_point: 'tips' };
+    const rawPlatform = ((filterPlatform && filterPlatform !== 'all' ? filterPlatform : null) || post.platform || 'instagram').toLowerCase();
     const rawFormat = (post.format || 'post').toLowerCase().replace('carousel', 'carrousel');
     const postPlatform = VALID_PLATFORMS.includes(rawPlatform) ? rawPlatform : 'instagram';
     const postFormat = VALID_FORMATS.includes(rawFormat) ? rawFormat : 'post';
+    const rawPillar = (post.pillar || 'tips').toLowerCase();
+    const postPillar = VALID_PILLARS.includes(rawPillar) ? rawPillar : (PILLAR_MAP[rawPillar] || 'tips');
 
     const { error: insertError } = await supabase.from('content_calendar').insert({
       platform: postPlatform,
       format: postFormat,
-      pillar: post.pillar || 'tips',
+      pillar: postPillar,
       hook: post.hook || null,
       caption: post.caption || '',
       hashtags: post.hashtags || [],
@@ -1871,47 +1882,54 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
-  // 3x/day content strategy: morning + midday + evening
-  // Each slot has a different marketing pillar to maximize variety and engagement
-  // Pillars: giving_value (tips/how-to), cta (direct conversion), social_proof (testimonials/results),
-  //          educational (teach something), trends (news/tendances), behind_the_scenes (BTS/process),
-  //          pain_point (identify problem → solution), demo (product showcase)
-  // Content strategy: alternates Instagram (Reels + posts) and TikTok (videos)
-  // Reels & TikTok videos get Seedance T2V pipeline (5s AI-generated video)
+  // 4x/day content strategy: 3 Instagram (morning/midday/evening) + 1 TikTok (tiktok slot)
+  // DB pillar constraint: tips, demo, social_proof, trends
+  // Reels & TikTok videos get Kling/Seedance T2V pipeline (5s AI-generated video)
   const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'giving_value' },          // Mon AM: tips reel
-    2: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Tue AM: tuto vidéo
-    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Wed AM: démo reel
-    4: { platform: 'tiktok', format: 'video', pillar: 'pain_point' },              // Thu AM: problème→solution
-    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri AM: tendances reel
-    6: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },       // Sat AM: BTS vidéo
+    1: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Mon AM: tips reel
+    2: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Tue AM: démo reel
+    3: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Wed AM: témoignage reel
+    4: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Thu AM: tendances reel
+    5: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Fri AM: tips reel
+    6: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sat AM: démo reel
     0: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Sun AM: résultats reel
   };
   const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'tiktok', format: 'video', pillar: 'behind_the_scenes' },       // Mon MID: BTS vidéo
+    1: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Mon MID: démo reel
     2: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Tue MID: témoignage reel
-    3: { platform: 'tiktok', format: 'video', pillar: 'giving_value' },            // Wed MID: tips vidéo
-    4: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Thu MID: CTA reel
-    5: { platform: 'tiktok', format: 'video', pillar: 'giving_value' },            // Fri MID: tips vidéo
-    6: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sat MID: démo reel
-    0: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Sun MID: tuto vidéo
+    3: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Wed MID: tips reel
+    4: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Thu MID: démo reel
+    5: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Fri MID: social proof reel
+    6: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Sat MID: tendances reel
+    0: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Sun MID: tips reel
   };
   const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Mon EVE: démo reel
-    2: { platform: 'tiktok', format: 'video', pillar: 'cta' },                     // Tue EVE: CTA vidéo
-    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Wed EVE: témoignage post
-    4: { platform: 'tiktok', format: 'video', pillar: 'trends' },                  // Thu EVE: tendances
-    5: { platform: 'instagram', format: 'story', pillar: 'behind_the_scenes' },    // Fri EVE: coulisses story
-    6: { platform: 'instagram', format: 'reel', pillar: 'pain_point' },             // Sat EVE: problème→solution
-    0: { platform: 'instagram', format: 'reel', pillar: 'cta' },                   // Sun EVE: CTA reel
+    1: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Mon EVE: témoignage post
+    2: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Tue EVE: tendances reel
+    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Wed EVE: démo reel
+    4: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Thu EVE: témoignage post
+    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri EVE: tendances reel
+    6: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Sat EVE: tips reel
+    0: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sun EVE: démo reel
+  };
+  // TikTok slot: 1 video per day (published at 21h30 Paris via tiktok_publish cron)
+  const tiktokSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'tiktok', format: 'video', pillar: 'tips' },
+    2: { platform: 'tiktok', format: 'video', pillar: 'demo' },
+    3: { platform: 'tiktok', format: 'video', pillar: 'social_proof' },
+    4: { platform: 'tiktok', format: 'video', pillar: 'trends' },
+    5: { platform: 'tiktok', format: 'video', pillar: 'tips' },
+    6: { platform: 'tiktok', format: 'video', pillar: 'demo' },
+    0: { platform: 'tiktok', format: 'video', pillar: 'social_proof' },
   };
 
-  // Determine which slot we're in (morning by default, midday or evening if specified)
-  const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : 'morning';
-  const activeSchedule = slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : morningSchedule;
+  // Determine which slot we're in (morning by default, midday, evening, or tiktok)
+  const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : 'morning';
+  const activeSchedule = slotType === 'tiktok' ? tiktokSchedule : slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : morningSchedule;
   const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
-  const platform = forcePlatform || schedule.platform;
-  const pillar = (slotType !== 'morning' ? undefined : forcePillar) || schedule.pillar;
+  const platform = (forcePlatform && forcePlatform !== 'all') ? forcePlatform : schedule.platform;
+  const rawForcePillar = (slotType !== 'morning' ? undefined : forcePillar);
+  const pillar = (rawForcePillar && !rawForcePillar.startsWith('__')) ? rawForcePillar : schedule.pillar;
 
   // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
@@ -2054,15 +2072,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   // Sanitize values to match DB check constraints
   const VALID_PLATFORMS_D = ['instagram', 'tiktok', 'linkedin'];
   const VALID_FORMATS_D = ['carrousel', 'reel', 'story', 'post', 'video', 'text'];
+  const VALID_PILLARS_D = ['tips', 'demo', 'social_proof', 'trends'];
+  const PILLAR_MAP_D: Record<string, string> = { giving_value: 'tips', educational: 'tips', cta: 'demo', behind_the_scenes: 'demo', pain_point: 'tips' };
   const rawPlatformD = (post.platform || platform).toLowerCase();
   const rawFormatD = (post.format || schedule.format).toLowerCase().replace('carousel', 'carrousel');
   const safePlatform = VALID_PLATFORMS_D.includes(rawPlatformD) ? rawPlatformD : platform;
   const safeFormat = VALID_FORMATS_D.includes(rawFormatD) ? rawFormatD : schedule.format;
+  const rawPillarD = (post.pillar || pillar || 'tips').toLowerCase();
+  const safePillar = VALID_PILLARS_D.includes(rawPillarD) ? rawPillarD : (PILLAR_MAP_D[rawPillarD] || 'tips');
 
   const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
     platform: safePlatform,
     format: safeFormat,
-    pillar: post.pillar || pillar,
+    pillar: safePillar,
     hook: post.hook || null,
     caption: post.caption || '',
     hashtags: post.hashtags || [],
