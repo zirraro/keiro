@@ -140,18 +140,39 @@ Réponds UNIQUEMENT en JSON valide :
 - Email : ${prospect.email || '(inconnu)'}
 
 Cherche sur Google Maps, Instagram, TikTok, et le web en général.`,
-      maxTokens: 1000,
+      maxTokens: 1500,
     });
 
     // Strip ALL markdown code fences
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
+    let result: SocialSearchResult;
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('[CommercialAgent] No JSON from Google search:', rawText.substring(0, 300));
-      return null;
+    if (jsonMatch) {
+      try {
+        result = JSON.parse(jsonMatch[0]);
+      } catch {
+        console.error('[CommercialAgent] Invalid JSON from Google search:', rawText.substring(0, 300));
+        return null;
+      }
+    } else {
+      // Salvage truncated JSON
+      const partialMatch = cleanText.match(/\{[\s\S]*/);
+      if (!partialMatch) {
+        console.error('[CommercialAgent] No JSON from Google search:', rawText.substring(0, 300));
+        return null;
+      }
+      let partial = partialMatch[0].replace(/,?\s*"[^"]*$/, '').replace(/,?\s*$/, '');
+      const open = (partial.match(/\{/g) || []).length;
+      const close = (partial.match(/\}/g) || []).length;
+      if (open > close) partial += '}'.repeat(open - close);
+      try {
+        result = JSON.parse(partial);
+        console.log('[CommercialAgent] Salvaged truncated JSON for social search');
+      } catch {
+        console.error('[CommercialAgent] No JSON from Google search:', rawText.substring(0, 300));
+        return null;
+      }
     }
-
-    const result: SocialSearchResult = JSON.parse(jsonMatch[0]);
 
     // Validate handles format
     if (result.instagram && !result.instagram.startsWith('@')) {
@@ -216,29 +237,42 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
     const rawText = await callGemini({
       system: getCommercialSystemPrompt(),
       message: prospectAnalysisPrompt,
-      maxTokens: 1000,
+      maxTokens: 2000,
     });
 
-    // Strip ALL markdown code fences
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    // Strip ALL markdown code fences and trim
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      // Try to salvage truncated JSON by adding closing brace
-      const partialMatch = cleanText.match(/\{[\s\S]*/);
-      if (partialMatch) {
-        try {
-          const fixed = partialMatch[0].replace(/,?\s*$/, '') + '}';
-          const result: EnrichmentResult = JSON.parse(fixed);
-          console.log('[CommercialAgent] Salvaged truncated JSON for prospect');
-          return result;
-        } catch { /* couldn't salvage */ }
-      }
-      console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 300));
-      return null;
+    if (jsonMatch) {
+      try {
+        const result: EnrichmentResult = JSON.parse(jsonMatch[0]);
+        return result;
+      } catch { /* fall through to salvage */ }
     }
 
-    const result: EnrichmentResult = JSON.parse(jsonMatch[0]);
-    return result;
+    // Salvage truncated JSON: find opening brace, strip trailing garbage, close all open braces
+    const partialMatch = cleanText.match(/\{[\s\S]*/);
+    if (partialMatch) {
+      let partial = partialMatch[0];
+      // Remove trailing incomplete strings (e.g. "key": "value that got cut...)
+      partial = partial.replace(/,?\s*"[^"]*$/, ''); // remove trailing incomplete key or value
+      partial = partial.replace(/,?\s*$/, '');        // remove trailing comma
+      // Count open vs close braces and add missing ones
+      const openBraces = (partial.match(/\{/g) || []).length;
+      const closeBraces = (partial.match(/\}/g) || []).length;
+      const missing = openBraces - closeBraces;
+      if (missing > 0) {
+        partial += '}'.repeat(missing);
+      }
+      try {
+        const result: EnrichmentResult = JSON.parse(partial);
+        console.log('[CommercialAgent] Salvaged truncated JSON for prospect');
+        return result;
+      } catch { /* couldn't salvage */ }
+    }
+
+    console.error('[CommercialAgent] No JSON found in response:', rawText.substring(0, 300));
+    return null;
   } catch (error: any) {
     console.error(`[CommercialAgent] Error enriching prospect ${prospect.id}:`, error.message);
     return null;
