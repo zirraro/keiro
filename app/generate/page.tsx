@@ -1390,7 +1390,6 @@ export default function GeneratePage() {
     setGenerating(true);
     setModalMinimized(false);
     setGenerationError(null);
-    setWizardPhase('result');
     setGeneratedImageUrl(null);
     setImageLoadingProgress(0);
     setLoadingStep('api');
@@ -2573,7 +2572,6 @@ export default function GeneratePage() {
     setGeneratingVideo(true);
     setModalMinimized(false);
     setGeneratedVideoUrl(null);
-    setWizardPhase('result');
     setVideoTaskId(null);
     setVideoProgress(t.generate.creatingVideoTask);
     setGenerationError(null);
@@ -3771,9 +3769,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className={`grid gap-6 ${formStep === 1 ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
               {/* Main configure panel */}
-              <div className="lg:col-span-8">
+              <div className={formStep === 1 ? 'lg:col-span-8' : ''}>
                 <div className="bg-white rounded-xl border p-5">
                   {/* Inner wizard step indicator */}
                   <div className="flex items-center justify-between mb-4 px-1">
@@ -3921,131 +3919,156 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </button>
                     </>)}
 
-                    {/* STEP 2: DIRECTION */}
+                    {/* STEP 2: DIRECTION — 2-column layout */}
                     {formStep === 2 && (<>
-                      <div className="border-t pt-2 mt-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
-                          <button
-                            type="button"
-                            onClick={() => handleAiAutoFill('direction')}
-                            disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
-                          >
-                            {autoFillLoading ? (
-                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
-                            ) : (
-                              <><span>✨</span> {t.generate.autoFill}</>
-                            )}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left: form fields */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
+                            <button
+                              type="button"
+                              onClick={() => handleAiAutoFill('direction')}
+                              disabled={autoFillLoading || (useNewsMode && !selectedNews)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                            >
+                              {autoFillLoading ? (
+                                <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                              ) : (
+                                <><span>✨</span> {t.generate.autoFill}</>
+                              )}
+                            </button>
+                          </div>
+
+                          {useNewsMode && selectedNews && (
+                            <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                              <label className="block text-[10px] font-semibold mb-1.5 text-neutral-700">{t.generate.visualOrientation}</label>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
+                                <input
+                                  type="range"
+                                  min={0} max={100} step={5}
+                                  value={contentFocus}
+                                  onChange={(e) => setContentFocus(Number(e.target.value))}
+                                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                  style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
+                                />
+                                <span className="text-[9px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.imageAngleLabel}</label>
+                            <select
+                              onChange={(e) => { if (e.target.value !== 'custom') { setImageAngle(e.target.value); } else { setImageAngle(''); } }}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                            >
+                              <option value="">{t.generate.chooseSuggestion}</option>
+                              {useNewsMode ? (<>
+                                <option value="Int\u00e9grer harmonieusement l'actualit\u00e9 et le business dans une seule sc\u00e8ne coh\u00e9sive">{t.generate.harmonious}</option>
+                                <option value="Focus sur la solution que nous apportons face \u00e0 l'actualit\u00e9, int\u00e9gr\u00e9e naturellement">{t.generate.focusSolution}</option>
+                                <option value="M\u00e9taphore visuelle symbolique reliant l'actu et le business dans une composition unifi\u00e9e">{t.generate.visualMetaphor}</option>
+                                <option value="Composition dramatique avec actualit\u00e9 en arri\u00e8re-plan et business au premier plan">{t.generate.depthComposition}</option>
+                                <option value="Raconter l'histoire dans un environnement coh\u00e9rent \u00e9voquant l'actualit\u00e9">{t.generate.narrativeEnvironment}</option>
+                              </>) : (<>
+                                <option value="Gros plan sur un d\u00e9tail cl\u00e9 du m\u00e9tier : texture, outil, geste pr\u00e9cis">{t.generate.freeAngleMacro}</option>
+                                <option value="Montrer les coulisses de l'activit\u00e9, le travail en cours, l'\u00e9nergie du m\u00e9tier">{t.generate.freeAngleBehindScenes}</option>
+                                <option value="Transformation spectaculaire : l'\u00e9tat avant et le r\u00e9sultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
+                                <option value="Capturer l'ambiance unique du lieu ou de l'activit\u00e9, lumi\u00e8re et d\u00e9cor">{t.generate.freeAngleAmbiance}</option>
+                                <option value="Mettre en valeur le produit ou la cr\u00e9ation phare dans une composition soign\u00e9e">{t.generate.freeAngleProduct}</option>
+                              </>)}
+                              <option value="custom">✏️ {t.generate.customOption}</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={imageAngle}
+                              onChange={(e) => setImageAngle(e.target.value)}
+                              placeholder={t.generate.customizeImageAngle}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.marketingAngleLabel}</label>
+                            <select
+                              onChange={(e) => { if (e.target.value !== 'custom') { setMarketingAngle(e.target.value); } else { setMarketingAngle(''); } }}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                            >
+                              <option value="">{t.generate.chooseSuggestion}</option>
+                              {useNewsMode ? (<>
+                                <option value="Profiter de l'opportunit\u00e9 cr\u00e9\u00e9e par l'actualit\u00e9">{t.generate.opportunityFromNews}</option>
+                                <option value="R\u00e9soudre le probl\u00e8me soulev\u00e9 par l'actualit\u00e9">{t.generate.solveProblem}</option>
+                                <option value="Se positionner en expert face \u00e0 l'actualit\u00e9">{t.generate.expertFacingNews}</option>
+                                <option value="Surfer sur la tendance de l'actualit\u00e9">{t.generate.surfTrend}</option>
+                                <option value="Anticiper les cons\u00e9quences de l'actualit\u00e9">{t.generate.anticipateConsequences}</option>
+                              </>) : (<>
+                                <option value="D\u00e9montrer le savoir-faire unique et la ma\u00eetrise du m\u00e9tier">{t.generate.freeMarketingExpertise}</option>
+                                <option value="Toucher le public avec un moment authentique et sinc\u00e8re">{t.generate.freeMarketingEmotion}</option>
+                                <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
+                                <option value="Montrer l'exp\u00e9rience que vivent les clients, le r\u00e9sultat obtenu">{t.generate.freeMarketingClient}</option>
+                                <option value="Partager les valeurs, la passion ou le parcours derri\u00e8re l'activit\u00e9">{t.generate.freeMarketingStory}</option>
+                              </>)}
+                              <option value="custom">✏️ {t.generate.customOption}</option>
+                            </select>
+                            <textarea
+                              value={marketingAngle}
+                              onChange={(e) => setMarketingAngle(e.target.value)}
+                              placeholder={t.generate.customizeMarketingAngle}
+                              rows={2}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.contentAngleLabel}</label>
+                            <select
+                              onChange={(e) => { if (e.target.value !== 'custom') { setContentAngle(e.target.value); } else { setContentAngle(''); } }}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                            >
+                              <option value="">{t.generate.chooseSuggestion}</option>
+                              <option value="T\u00e9moignage client ou \u00e9tude de cas concret">{t.generate.testimonialCase}</option>
+                              <option value="Contenu \u00e9ducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
+                              <option value="Behind-the-scenes, coulisses du m\u00e9tier">{t.generate.behindTheScenes}</option>
+                              <option value="Prise de position forte et opinion tranch\u00e9e">{t.generate.opinionStance}</option>
+                              <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
+                              <option value="custom">✏️ {t.generate.customOption}</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={contentAngle}
+                              onChange={(e) => setContentAngle(e.target.value)}
+                              placeholder={t.generate.customizeContentAngle}
+                              className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Right: strategy explanation */}
+                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 flex flex-col">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xl">{tonePresets[communicationProfile].icon}</span>
+                            <h4 className="font-bold text-neutral-900 text-sm">{tonePresets[communicationProfile].label}</h4>
+                          </div>
+                          <p className="text-xs font-semibold text-blue-800 mb-2">{tonePresets[communicationProfile].marketingStrategy}</p>
+                          <p className="text-[11px] text-neutral-700 leading-relaxed mb-3">{tonePresets[communicationProfile].description}</p>
+                          <div className="space-y-2 flex-1">
+                            <div className="bg-white/60 rounded-lg p-2.5">
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                            </div>
+                            <div className="bg-white/60 rounded-lg p-2.5">
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                            </div>
+                            <div className="bg-white/60 rounded-lg p-2.5">
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => setFormStep(1)} className="mt-3 text-[10px] text-blue-600 font-semibold hover:underline self-start">
+                            🎭 {locale === 'fr' ? 'Changer de stratégie' : 'Change strategy'}
                           </button>
                         </div>
-
-                        {useNewsMode && selectedNews && (
-                          <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                            <label className="block text-xs font-semibold mb-2 text-neutral-700">{t.generate.visualOrientation}</label>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
-                              <input
-                                type="range"
-                                min={0} max={100} step={5}
-                                value={contentFocus}
-                                onChange={(e) => setContentFocus(Number(e.target.value))}
-                                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                                style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
-                              />
-                              <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
-                            </div>
-                            <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
-                              {contentFocus <= 30 ? `🏢 ${t.generate.focusBusiness}` : contentFocus >= 70 ? `📰 ${t.generate.focusNews}` : `⚖️ ${t.generate.focusBalance}`}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.imageAngleLabel}</label>
-                          <select
-                            onChange={(e) => { if (e.target.value !== 'custom') { setImageAngle(e.target.value); } else { setImageAngle(''); } }}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                          >
-                            <option value="">{t.generate.chooseSuggestion}</option>
-                            {useNewsMode ? (<>
-                              <option value="Int\u00e9grer harmonieusement l'actualit\u00e9 et le business dans une seule sc\u00e8ne coh\u00e9sive">{t.generate.harmonious}</option>
-                              <option value="Focus sur la solution que nous apportons face \u00e0 l'actualit\u00e9, int\u00e9gr\u00e9e naturellement">{t.generate.focusSolution}</option>
-                              <option value="M\u00e9taphore visuelle symbolique reliant l'actu et le business dans une composition unifi\u00e9e">{t.generate.visualMetaphor}</option>
-                              <option value="Composition dramatique avec actualit\u00e9 en arri\u00e8re-plan et business au premier plan">{t.generate.depthComposition}</option>
-                              <option value="Raconter l'histoire dans un environnement coh\u00e9rent \u00e9voquant l'actualit\u00e9">{t.generate.narrativeEnvironment}</option>
-                            </>) : (<>
-                              <option value="Gros plan sur un d\u00e9tail cl\u00e9 du m\u00e9tier : texture, outil, geste pr\u00e9cis">{t.generate.freeAngleMacro}</option>
-                              <option value="Montrer les coulisses de l'activit\u00e9, le travail en cours, l'\u00e9nergie du m\u00e9tier">{t.generate.freeAngleBehindScenes}</option>
-                              <option value="Transformation spectaculaire : l'\u00e9tat avant et le r\u00e9sultat final du travail">{t.generate.freeAngleBeforeAfter}</option>
-                              <option value="Capturer l'ambiance unique du lieu ou de l'activit\u00e9, lumi\u00e8re et d\u00e9cor">{t.generate.freeAngleAmbiance}</option>
-                              <option value="Mettre en valeur le produit ou la cr\u00e9ation phare dans une composition soign\u00e9e">{t.generate.freeAngleProduct}</option>
-                            </>)}
-                            <option value="custom">✏️ {t.generate.customOption}</option>
-                          </select>
-                          <input
-                            type="text"
-                            value={imageAngle}
-                            onChange={(e) => setImageAngle(e.target.value)}
-                            placeholder={t.generate.customizeImageAngle}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
-
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.marketingAngleLabel}</label>
-                          <select
-                            onChange={(e) => { if (e.target.value !== 'custom') { setMarketingAngle(e.target.value); } else { setMarketingAngle(''); } }}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                          >
-                            <option value="">{t.generate.chooseSuggestion}</option>
-                            {useNewsMode ? (<>
-                              <option value="Profiter de l'opportunit\u00e9 cr\u00e9\u00e9e par l'actualit\u00e9">{t.generate.opportunityFromNews}</option>
-                              <option value="R\u00e9soudre le probl\u00e8me soulev\u00e9 par l'actualit\u00e9">{t.generate.solveProblem}</option>
-                              <option value="Se positionner en expert face \u00e0 l'actualit\u00e9">{t.generate.expertFacingNews}</option>
-                              <option value="Surfer sur la tendance de l'actualit\u00e9">{t.generate.surfTrend}</option>
-                              <option value="Anticiper les cons\u00e9quences de l'actualit\u00e9">{t.generate.anticipateConsequences}</option>
-                            </>) : (<>
-                              <option value="D\u00e9montrer le savoir-faire unique et la ma\u00eetrise du m\u00e9tier">{t.generate.freeMarketingExpertise}</option>
-                              <option value="Toucher le public avec un moment authentique et sinc\u00e8re">{t.generate.freeMarketingEmotion}</option>
-                              <option value="Mettre en avant ce que les autres ne font pas, la touche unique">{t.generate.freeMarketingDifference}</option>
-                              <option value="Montrer l'exp\u00e9rience que vivent les clients, le r\u00e9sultat obtenu">{t.generate.freeMarketingClient}</option>
-                              <option value="Partager les valeurs, la passion ou le parcours derri\u00e8re l'activit\u00e9">{t.generate.freeMarketingStory}</option>
-                            </>)}
-                            <option value="custom">✏️ {t.generate.customOption}</option>
-                          </select>
-                          <textarea
-                            value={marketingAngle}
-                            onChange={(e) => setMarketingAngle(e.target.value)}
-                            placeholder={t.generate.customizeMarketingAngle}
-                            rows={2}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
-                          />
-                        </div>
-
-                        <div className="mb-2">
-                          <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.contentAngleLabel}</label>
-                          <select
-                            onChange={(e) => { if (e.target.value !== 'custom') { setContentAngle(e.target.value); } else { setContentAngle(''); } }}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-2"
-                          >
-                            <option value="">{t.generate.chooseSuggestion}</option>
-                            <option value="T\u00e9moignage client ou \u00e9tude de cas concret">{t.generate.testimonialCase}</option>
-                            <option value="Contenu \u00e9ducatif qui apporte de la valeur au lecteur">{t.generate.educationalValue}</option>
-                            <option value="Behind-the-scenes, coulisses du m\u00e9tier">{t.generate.behindTheScenes}</option>
-                            <option value="Prise de position forte et opinion tranch\u00e9e">{t.generate.opinionStance}</option>
-                            <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
-                            <option value="custom">✏️ {t.generate.customOption}</option>
-                          </select>
-                          <input
-                            type="text"
-                            value={contentAngle}
-                            onChange={(e) => setContentAngle(e.target.value)}
-                            placeholder={t.generate.customizeContentAngle}
-                            className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
-                          />
-                        </div>
                       </div>
+
                       <div className="flex gap-2 mt-3">
                         <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
                           ← {t.generate.back}
@@ -4627,30 +4650,31 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </div>
               </div>
 
-              {/* Right sidebar: credits */}
-              <div className="lg:col-span-4 space-y-4">
-                {/* Credits widget */}
-                {!credits.loading && credits.plan && (
-                  <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
-                      <span className="text-[10px] text-neutral-400 capitalize">{new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
+              {/* Right sidebar: credits — only on step 1 */}
+              {formStep === 1 && (
+                <div className="lg:col-span-4 space-y-4">
+                  {!credits.loading && credits.plan && (
+                    <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
+                        <span className="text-[10px] text-neutral-400 capitalize">{new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-neutral-900">{credits.balance}</span>
+                        <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} cr</span>
+                      </div>
+                      <div className="w-full bg-neutral-200 rounded-full h-1 mt-2">
+                        <div className={`h-1 rounded-full transition-all ${(credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0) >= 75 ? 'bg-red-400' : 'bg-green-400'}`} style={{ width: `${Math.min(100, credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0)}%` }} />
+                      </div>
+                      {credits.plan === 'free' && (
+                        <button onClick={() => router.push('/pricing')} className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
+                          {t.generate.freePlanLimitedCta}
+                        </button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-neutral-900">{credits.balance}</span>
-                      <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} cr</span>
-                    </div>
-                    <div className="w-full bg-neutral-200 rounded-full h-1 mt-2">
-                      <div className={`h-1 rounded-full transition-all ${(credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0) >= 75 ? 'bg-red-400' : 'bg-green-400'}`} style={{ width: `${Math.min(100, credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0)}%` }} />
-                    </div>
-                    {credits.plan === 'free' && (
-                      <button onClick={() => router.push('/pricing')} className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
-                        {t.generate.freePlanLimitedCta}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

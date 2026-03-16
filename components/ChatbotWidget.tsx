@@ -46,7 +46,7 @@ export default function ChatbotWidget() {
   const reengagementShownRef = useRef(false);
 
   // ─── Hide on admin/login pages ─────────────────────────
-  const shouldHide = pathname?.startsWith('/admin') || pathname?.startsWith('/login');
+  const shouldHide = pathname?.startsWith('/admin') || pathname?.startsWith('/login') || pathname?.startsWith('/generate');
 
   // ─── Initialize visitor ID and UTM source ──────────────
   useEffect(() => {
