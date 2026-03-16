@@ -3722,15 +3722,6 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            {/* Selected news reminder (news mode) */}
-            {useNewsMode && selectedNews && (
-              <div className={`mb-4 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
-                <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
-                  {selectedNews.category === 'Tendance' ? '🔥 Tendance s\u00e9lectionn\u00e9e' : '✓ Actualit\u00e9 s\u00e9lectionn\u00e9e'} : {selectedNews.title}
-                </p>
-              </div>
-            )}
-
             {/* Upload zone — compact, full width above the form */}
             <div ref={uploadSectionRef} className="mb-4">
               <div
@@ -3769,9 +3760,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            <div className={`grid gap-6 ${formStep === 1 ? 'grid-cols-1 lg:grid-cols-12' : 'grid-cols-1'}`}>
-              {/* Main configure panel */}
-              <div className={formStep === 1 ? 'lg:col-span-8' : ''}>
+            <div>
+              {/* Main configure panel — full width */}
+              <div>
                 <div className="bg-white rounded-xl border p-5">
                   {/* Inner wizard step indicator */}
                   <div className="flex items-center justify-between mb-4 px-1">
@@ -4650,31 +4641,6 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 </div>
               </div>
 
-              {/* Right sidebar: credits — only on step 1 */}
-              {formStep === 1 && (
-                <div className="lg:col-span-4 space-y-4">
-                  {!credits.loading && credits.plan && (
-                    <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider">{t.generate.yourUsage}</span>
-                        <span className="text-[10px] text-neutral-400 capitalize">{new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-neutral-900">{credits.balance}</span>
-                        <span className="text-xs text-neutral-400">/ {credits.monthlyAllowance} cr</span>
-                      </div>
-                      <div className="w-full bg-neutral-200 rounded-full h-1 mt-2">
-                        <div className={`h-1 rounded-full transition-all ${(credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0) >= 75 ? 'bg-red-400' : 'bg-green-400'}`} style={{ width: `${Math.min(100, credits.monthlyAllowance > 0 ? ((credits.monthlyAllowance - credits.balance) / credits.monthlyAllowance * 100) : 0)}%` }} />
-                      </div>
-                      {credits.plan === 'free' && (
-                        <button onClick={() => router.push('/pricing')} className="w-full mt-3 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer">
-                          {t.generate.freePlanLimitedCta}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
