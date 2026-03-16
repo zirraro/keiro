@@ -876,8 +876,8 @@ export async function publishTikTokVideoViaFileUpload(
 
   const requestBody = {
     post_info: {
-      title: caption.substring(0, 150), // TikTok max title length
-      privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
+      title: caption.substring(0, 2200), // TikTok allows up to 2200 chars
+      privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE',
       disable_duet: options?.disable_duet ?? false,
       disable_comment: options?.disable_comment ?? false,
       disable_stitch: options?.disable_stitch ?? false,
@@ -925,20 +925,36 @@ export async function publishTikTokVideoViaFileUpload(
     console.error('[TikTok] Init error:', errorMsg);
     console.error('[TikTok] Error code:', errorCode);
 
-    // Provide helpful error messages
-    if (errorCode === 'unaudited_client_can_only_post_to_private_accounts') {
-      throw new Error(
-        `❌ Erreur TikTok: unaudited_client_can_only_post_to_private_accounts\n\n` +
-        `Cette erreur signifie que votre app TikTok est en mode "In Review" (pas Sandbox).\n\n` +
-        `Solutions:\n` +
-        `1. Vérifier dans TikTok Developer Dashboard → App Status → Doit être "Sandbox"\n` +
-        `2. OU rendre votre compte TikTok privé temporairement\n` +
-        `3. Vérifier que mushu1330 est bien dans Target Users\n\n` +
-        `privacy_level envoyé: ${requestBody.post_info.privacy_level}`
-      );
-    }
+    // Auto-fallback: if PUBLIC_TO_EVERYONE fails with unaudited_client, retry with SELF_ONLY
+    if (errorCode === 'unaudited_client_can_only_post_to_private_accounts' && requestBody.post_info.privacy_level !== 'SELF_ONLY') {
+      console.warn('[TikTok] PUBLIC_TO_EVERYONE rejected — retrying with SELF_ONLY fallback...');
+      requestBody.post_info.privacy_level = 'SELF_ONLY';
+      const retryResponse = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+      const retryData = await retryResponse.json();
+      console.log('[TikTok] SELF_ONLY retry response:', JSON.stringify(retryData, null, 2).substring(0, 500));
 
-    throw new Error(errorMsg);
+      const retryError = retryData.error && retryData.error.code && retryData.error.code !== 'ok';
+      if (!retryError && retryData.data?.upload_url) {
+        console.log('[TikTok] ✓ SELF_ONLY fallback succeeded — continuing upload');
+        // Override initData with retry result and continue
+        Object.assign(initData, retryData);
+      } else {
+        throw new Error(
+          `❌ TikTok: unaudited_client — PUBLIC_TO_EVERYONE et SELF_ONLY ont échoué.\n` +
+          `Vérifiez le TikTok Developer Dashboard → App review status.\n` +
+          `privacy_level: ${requestBody.post_info.privacy_level}`
+        );
+      }
+    } else {
+      throw new Error(errorMsg);
+    }
   }
 
   if (!initResponse.ok) {

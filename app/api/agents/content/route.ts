@@ -246,9 +246,13 @@ async function publishToInstagram(
       return { success: false, error: 'No visual_url or video_url available for publishing' };
     }
 
-    // Build caption with hashtags
+    // Build caption with hashtags — visually clean formatting
     const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
-    const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
+    const rawCaption = (post.caption || '').trim();
+    // Ensure caption ends with proper spacing before hashtags
+    const captionNeedsSeparator = rawCaption.length > 0 && !rawCaption.endsWith('\n');
+    const hashtagLine = hashtagsArr.length > 0 ? hashtagsArr.map(h => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
+    const fullCaption = rawCaption + (hashtagLine ? (captionNeedsSeparator ? '\n\n・・・\n\n' : '\n\n') + hashtagLine : '');
 
     const format = (post.format || 'post').toLowerCase();
 
@@ -847,7 +851,9 @@ async function publishToTikTok(
     }
 
     const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
-    const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
+    const rawCaptionTT = (post.caption || '').trim();
+    const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
+    const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
 
     // TikTok: ALWAYS publish as video (photo API not supported/audited)
     // Priority: 1) existing video_url, 2) Seedance/Kling T2V
@@ -867,7 +873,7 @@ async function publishToTikTok(
     const result = await publishTikTokVideoViaFileUpload(
       accessToken,
       videoUrl,
-      fullCaption.substring(0, 150),
+      fullCaption.substring(0, 2200),
       { privacy_level: 'PUBLIC_TO_EVERYONE' }
     );
     console.log(`[Content] TikTok video published: ${result.publish_id}`);
@@ -2171,10 +2177,27 @@ RÈGLES :
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
 - Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet gradient background, clean minimalist composition, studio lighting, sharp details, no text no letters no words"
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
-- Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier
-- Le champ "caption" DOIT être complet avec emojis, sauts de ligne, et CTA final
+- Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier (NE PAS les mettre dans caption)
 - Pense à la MINIATURE dans la grille (carrée, lisible en petit)
 - Alterne les couleurs de fond par rapport aux posts précédents
+
+CAPTION — FORMAT UX VISUEL (ULTRA IMPORTANT) :
+- La caption DOIT être AÉRÉE avec des sauts de ligne (\\n)
+- Structure obligatoire :
+  Ligne 1 : Hook punch (5-10 mots max) 🔥
+  \\n
+  Ligne 2-4 : Valeur (1 idée par ligne, emoji en début de ligne)
+  \\n
+  Ligne finale : CTA clair
+- NE PAS inclure les hashtags dans le caption (ils sont dans le champ "hashtags")
+- Max 800 chars Instagram, 500 chars TikTok
+- JAMAIS de pavé de texte — chaque section séparée par une ligne vide
+
+COHÉRENCE VISUEL ↔ CAPTION (CRITIQUE) :
+- Le visual_description et le caption doivent parler du MÊME SUJET
+- Si le hook parle d'un "restaurant qui a doublé ses réservations", le visuel DOIT montrer un restaurant
+- Le prospect doit voir l'image ET lire la caption comme une seule histoire cohérente
+- Le visuel ILLUSTRE le message, le message DÉCRIT ce que le visuel évoque
 
 Retourne UN SEUL objet JSON valide (PAS de markdown, PAS de \`\`\`).
 Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_description, best_time, grid_color, content_angle`;

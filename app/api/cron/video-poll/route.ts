@@ -269,10 +269,9 @@ async function publishToTikTok(
       }
     }
 
-    const fullCaption = [
-      post.caption || '',
-      ...(post.hashtags || []).map((h: string) => h.startsWith('#') ? h : `#${h}`),
-    ].join(' ').trim().substring(0, 2200);
+    const rawCaption = (post.caption || '').trim();
+    const hashtags = (post.hashtags || []).map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ');
+    const fullCaption = (rawCaption + (hashtags ? '\n\n' + hashtags : '')).substring(0, 2200);
 
     const result = await publishTikTokVideoViaFileUpload(
       accessToken,
@@ -305,10 +304,9 @@ async function publishToInstagramReel(
       return { success: false, error: 'No Instagram admin tokens found' };
     }
 
-    const fullCaption = [
-      post.caption || '',
-      ...(post.hashtags || []).map((h: string) => h.startsWith('#') ? h : `#${h}`),
-    ].join('\n').trim();
+    const rawCaptionIG = (post.caption || '').trim();
+    const hashtagsIG = (post.hashtags || []).map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ');
+    const fullCaption = rawCaptionIG + (hashtagsIG ? '\n\n・・・\n\n' + hashtagsIG : '');
 
     const result = await publishReelToInstagram(
       adminProfile.instagram_user_id,

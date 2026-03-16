@@ -63,12 +63,31 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
     });
     console.log('[publishImageToInstagram] Container created:', container.id);
 
-    console.log('[publishImageToInstagram] Step 2: Publishing media...');
-    // 2) Publier
-    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
-      creation_id: container.id,
-    });
-    console.log('[publishImageToInstagram] Media published:', publish.id);
+    // 2) Wait for media to be ready (Facebook needs time to process the image)
+    console.log('[publishImageToInstagram] Step 2: Waiting for media to be ready...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // 3) Publish with retry (in case media is still processing)
+    let publish: { id: string } | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[publishImageToInstagram] Publishing attempt ${attempt}/3...`);
+        publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+          creation_id: container.id,
+        });
+        console.log('[publishImageToInstagram] Media published:', publish.id);
+        break;
+      } catch (pubErr: any) {
+        const errMsg = pubErr.message || '';
+        if (errMsg.includes('Media ID is not available') && attempt < 3) {
+          console.log(`[publishImageToInstagram] Media not ready yet, retrying in ${5 + attempt * 3}s...`);
+          await new Promise(resolve => setTimeout(resolve, (5 + attempt * 3) * 1000));
+        } else {
+          throw pubErr;
+        }
+      }
+    }
+    if (!publish) throw new Error('Failed to publish after 3 attempts');
 
     // 3) Récupérer le permalink du post publié
     try {
@@ -232,11 +251,26 @@ export async function publishReelToInstagram(
     }
 
     console.log('[publishReelToInstagram] Step 2: Publishing reel...');
-    // 3) Publish
-    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
-      creation_id: container.id,
-    });
-    console.log('[publishReelToInstagram] Reel published:', publish.id);
+    // 3) Publish with retry (media may still be processing)
+    let publish: { id: string } | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+          creation_id: container.id,
+        });
+        console.log('[publishReelToInstagram] Reel published:', publish.id);
+        break;
+      } catch (pubErr: any) {
+        const errMsg = pubErr.message || '';
+        if (errMsg.includes('Media ID is not available') && attempt < 3) {
+          console.log(`[publishReelToInstagram] Media not ready, retrying in ${8 * attempt}s...`);
+          await new Promise(resolve => setTimeout(resolve, 8000 * attempt));
+        } else {
+          throw pubErr;
+        }
+      }
+    }
+    if (!publish) throw new Error('Failed to publish reel after 3 attempts');
 
     // 4) Get permalink
     try {

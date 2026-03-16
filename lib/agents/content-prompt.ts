@@ -136,16 +136,45 @@ HOOKS (les 3 premières secondes/mots = TOUT) :
 - Relatabilité : "Si tu postes 1 story par mois en te disant 'c'est mieux que rien'..."
 - Résultat direct : "Ce coiffeur a doublé ses rdv en 3 semaines. Voici comment."
 
-STRUCTURE DE CAPTION INSTAGRAM :
-1. Hook explosif (1 ligne qui STOPPE le scroll)
-2. Développement en phrases courtes (pas de pavés)
-3. Utilise des sauts de ligne ↵ pour aérer
-4. Bullet points avec emojis pertinents (pas de spam d'emojis)
-5. CTA clair et spécifique : "Enregistre ce post" / "Tag un commerçant" / "Lien en bio"
-6. Maximum 800 caractères pour Instagram, 500 pour TikTok
-7. CONCIS ET PERCUTANT : chaque mot doit avoir sa place, ZERO remplissage
-8. Pas de paragraphes. Des phrases-chocs. 1 idée = 1 ligne.
-9. Si tu peux le dire en 3 mots, ne le dis pas en 10
+STRUCTURE DE CAPTION INSTAGRAM (UX VISUELLE — C'EST CRUCIAL) :
+La caption doit être AGRÉABLE À LIRE sur mobile. Comme un texto stylé, pas un pavé.
+
+1. 🔥 HOOK (1 ligne punch qui STOPPE le scroll)
+2. ↵ (ligne vide)
+3. 2-3 phrases courtes de VALEUR (1 idée = 1 ligne, max 10 mots/ligne)
+   Utilise des emojis en début de ligne comme bullet points visuels
+4. ↵ (ligne vide)
+5. CTA clair et spécifique sur sa propre ligne
+6. ↵ (ligne vide)
+7. Hashtags sur une ligne séparée
+
+EXEMPLE DE CAPTION PARFAITE :
+---
+Ce coiffeur a doublé ses réservations en 3 semaines 🔥
+
+💇 Il postait 1 photo floue par mois
+📱 On a automatisé tout son Instagram
+📈 Résultat : +127% de visites profil
+
+Teste gratuitement → lien en bio 👆
+---
+(les hashtags vont dans le champ "hashtags", PAS dans la caption)
+
+RÈGLES VISUELLES CAPTION :
+- JAMAIS de paragraphe de plus de 2 lignes d'affilée
+- Chaque section séparée par une LIGNE VIDE (\n\n)
+- Max 3-5 emojis stratégiques (pas de spam)
+- Max 800 chars Instagram, 500 chars TikTok
+- Chaque mot doit avoir sa place, ZERO remplissage
+- Si tu peux le dire en 3 mots, ne le dis pas en 10
+
+COHÉRENCE VISUEL ↔ CAPTION (ULTRA IMPORTANT) :
+- La caption DOIT décrire/commenter ce que l'image MONTRE
+- Si le visuel montre un restaurant → la caption parle de restaurant
+- Si le visuel montre un smartphone avec des stats → la caption parle de résultats
+- JAMAIS de décalage entre ce qu'on voit et ce qu'on lit
+- Le hook doit donner envie de REGARDER l'image, et l'image doit ILLUSTRER le hook
+- Le prospect doit se dire "je veux ce résultat pour MON commerce"
 
 STRUCTURE CARROUSEL (10 slides) :
 - Slide 1 (COVER) : Titre GROS (5 mots max) + fond coloré contrasté + logo KeiroAI discret
@@ -243,7 +272,7 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "format": "carrousel|reel|story|post|video|text",
   "pillar": "tips|demo|social_proof|trends",
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
-  "caption": "Texte COURT et PERCUTANT. Instagram max 800 chars, TikTok max 500 chars, LinkedIn max 1200 chars. Chaque ligne = un impact. Pas de remplissage. Tutoiement sur Insta/TikTok, vouvoiement LinkedIn. Max 3-5 emojis stratégiques.",
+  "caption": "Texte AÉRÉ et PERCUTANT avec des \\n pour les sauts de ligne. Structure : Hook\\n\\nValeur (2-3 lignes avec emojis)\\n\\nCTA\\n\\nNE PAS inclure les hashtags ici (ils sont dans le champ hashtags). Instagram max 800 chars, TikTok max 500 chars. Tutoiement. Max 3-5 emojis. DOIT être cohérent avec le visual_description.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
   "visual_description": "Description détaillée du visuel principal : composition, couleurs (utiliser la palette KeiroAI), style (flat design/3D soft/photo réaliste), éléments visuels, ambiance. AUCUN texte dans l'image.",
   "thumbnail_description": "Description EXACTE de ce que la miniature 100x100px montre dans la grille : couleur de fond dominante, forme centrale, contraste. Doit être LISIBLE en petit et DISTINCT des posts adjacents.",
