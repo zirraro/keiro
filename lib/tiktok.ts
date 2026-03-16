@@ -466,13 +466,14 @@ export async function initTikTokPhotoUpload(
   });
   console.log('[TikTok] Proxied photo URLs:', proxiedUrls.map(u => u.substring(0, 100)));
 
-  // Step 1: Get creator info to determine available privacy levels
-  // TikTok photo posting via content/init may have different audit status than video/init
-  // Try PUBLIC_TO_EVERYONE first, fallback to SELF_ONLY if 403
-  let privacyLevel = 'SELF_ONLY';
+  // Try PUBLIC_TO_EVERYONE first, auto-fallback to SELF_ONLY if rejected
+  let privacyLevel = 'PUBLIC_TO_EVERYONE';
   try {
     const creatorInfo = await getCreatorInfo(accessToken);
     console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
+    if (!creatorInfo.privacy_level_options?.includes('PUBLIC_TO_EVERYONE')) {
+      privacyLevel = creatorInfo.privacy_level_options?.[0] || 'SELF_ONLY';
+    }
   } catch (e: any) {
     console.warn('[TikTok] Could not get creator info:', e.message);
   }
@@ -497,8 +498,8 @@ export async function initTikTokPhotoUpload(
   }
   cleanTitle = cleanTitle.trim() || 'Photo';
 
-  // Description: full text up to 4000 chars (includes hashtags etc.)
-  const cleanDescription = fullText.substring(0, 4000);
+  // Description: use dedicated description param if provided, otherwise full text
+  const cleanDescription = (description || fullText).substring(0, 4000);
 
   // TikTok PHOTO post via Content Posting API v2
   // Endpoint: /v2/post/publish/content/init/
@@ -549,8 +550,29 @@ export async function initTikTokPhotoUpload(
 
   // TikTok ALWAYS returns an error object, even on success
   const isRealError = data.error && data.error.code && data.error.code !== 'ok';
+  const errorCode = data.error?.code || data.error_code;
   if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok photo';
+
+    // Auto-fallback: if PUBLIC rejected, retry with SELF_ONLY
+    if (String(errorCode) === 'unaudited_client_can_only_post_to_private_accounts' && requestBody.post_info.privacy_level !== 'SELF_ONLY') {
+      console.warn('[TikTok] PUBLIC_TO_EVERYONE rejected for photo — retrying with SELF_ONLY...');
+      requestBody.post_info.privacy_level = 'SELF_ONLY';
+      const retryRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/content/init/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      const retryText = await retryRes.text();
+      let retryData: any;
+      try { retryData = JSON.parse(retryText); } catch { retryData = { error: { message: retryText } }; }
+      const retryPublishId = retryData.data?.publish_id || retryData.publish_id;
+      if (retryPublishId) {
+        console.log('[TikTok] Photo published (SELF_ONLY fallback):', retryPublishId);
+        return { publish_id: retryPublishId };
+      }
+    }
+
     console.error('[TikTok] Photo upload error:', errorMsg, '| Full:', JSON.stringify(data));
     throw new Error(errorMsg);
   }

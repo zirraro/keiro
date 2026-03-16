@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAuthUser } from '@/lib/auth-server';
 import { getContentSystemPrompt, getWeeklyPlanPrompt } from '@/lib/agents/content-prompt';
 import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInstagram } from '@/lib/meta';
-import { publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
+import { publishTikTokVideoViaFileUpload, initTikTokPhotoUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
@@ -855,10 +855,36 @@ async function publishToTikTok(
     const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
 
-    // TikTok: ALWAYS publish as video (photo API not supported/audited)
-    // Priority: 1) existing video_url, 2) Seedance/Kling T2V
+    // TikTok: publish as VIDEO or PHOTO depending on content
+    // Priority: 1) existing video_url → video, 2) image with photo-friendly format → photo, 3) generate video
     let videoUrl = post.video_url;
+    const visualUrl = post.visual_url;
+    const format = (post.format || '').toLowerCase();
 
+    // Decide: photo or video?
+    // Video formats always get video; photo/carousel/static formats can use photo
+    const isVideoFormat = format.includes('reel') || format.includes('vidéo') || format.includes('video');
+    const hasVideo = !!videoUrl;
+    const hasImage = !!visualUrl;
+
+    // Vary between photo and video: if no video exists and format isn't video-specific, publish as photo
+    if (!hasVideo && hasImage && !isVideoFormat) {
+      console.log(`[Content] TikTok: publishing as PHOTO (format: ${format}, has image: ${hasImage})`);
+      try {
+        const result = await initTikTokPhotoUpload(
+          accessToken,
+          [visualUrl],
+          fullCaption.substring(0, 2200),
+        );
+        console.log(`[Content] TikTok PHOTO published: ${result.publish_id}`);
+        return { success: true, publish_id: result.publish_id };
+      } catch (photoErr: any) {
+        console.warn('[Content] TikTok photo publish failed, falling back to video:', photoErr.message);
+        // Fall through to video generation
+      }
+    }
+
+    // Video path
     if (!videoUrl) {
       const visualDesc = (post as any).visual_description || post.caption || 'Professional marketing content for local business';
       console.log('[Content] TikTok: no video_url — generating via Seedance/Kling T2V...');
@@ -866,7 +892,17 @@ async function publishToTikTok(
     }
 
     if (!videoUrl) {
-      return { success: false, error: 'No video available for TikTok publishing (Seedance + Kling T2V both failed)' };
+      // Last resort: try photo if we have an image
+      if (hasImage) {
+        console.log('[Content] TikTok: video generation failed, attempting photo as last resort');
+        try {
+          const result = await initTikTokPhotoUpload(accessToken, [visualUrl!], fullCaption.substring(0, 2200));
+          return { success: true, publish_id: result.publish_id };
+        } catch (e: any) {
+          return { success: false, error: `Both video and photo failed: ${e.message}` };
+        }
+      }
+      return { success: false, error: 'No video or image available for TikTok publishing' };
     }
 
     console.log(`[Content] Publishing TikTok VIDEO: ${videoUrl.substring(0, 60)}...`);
