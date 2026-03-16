@@ -220,6 +220,7 @@ function AdminAgentsContent() {
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
+  const [fixingCaptions, setFixingCaptions] = useState(false);
   const [contentDraftOnly, setContentDraftOnly] = useState(true);
   const [previewPost, setPreviewPost] = useState<ContentPost | null>(null);
 
@@ -1411,6 +1412,28 @@ function AdminAgentsContent() {
       alert('Erreur: ' + err.message);
     } finally {
       setContentGenerating(false);
+    }
+  };
+
+  const handleFixCaptions = async () => {
+    if (!confirm('Reformater toutes les captions (draft/approved/published) au nouveau format aéré ?')) return;
+    setFixingCaptions(true);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'fix_captions', limit: 50 }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert(`✅ ${data.fixed}/${data.total} captions reformatées`);
+        loadContentData();
+      } else alert('Erreur: ' + (data.error || 'Echec'));
+    } catch (err: any) {
+      alert('Erreur: ' + err.message);
+    } finally {
+      setFixingCaptions(false);
     }
   };
 
@@ -3502,6 +3525,13 @@ function AdminAgentsContent() {
                 className="text-sm text-purple-600 border border-purple-300 px-4 py-2 rounded-lg hover:bg-purple-50 disabled:opacity-50"
               >
                 Post du jour
+              </button>
+              <button
+                onClick={handleFixCaptions}
+                disabled={fixingCaptions}
+                className="text-sm text-amber-600 border border-amber-300 px-4 py-2 rounded-lg hover:bg-amber-50 disabled:opacity-50"
+              >
+                {fixingCaptions ? 'Reformatage...' : '✨ Fix Captions'}
               </button>
               <button onClick={loadContentData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
             </div>
