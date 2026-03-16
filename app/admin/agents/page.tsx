@@ -1668,6 +1668,14 @@ function AdminAgentsContent() {
                 <div className="flex items-center justify-between px-5 py-3 bg-orange-50 border-b border-orange-200">
                   <div className="flex items-center gap-3">
                     <h3 className="text-sm font-semibold text-orange-900">Prospects chauds — Appeler maintenant</h3>
+                    <button
+                      onClick={async () => {
+                        const res = await fetch('/api/admin/crm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'recalculate_temperatures' }) });
+                        const json = await res.json();
+                        if (json.ok) { alert(`${json.updated} prospects recalcules sur ${json.total}`); loadWarmProspects(); loadDashboard(); }
+                      }}
+                      className="text-[10px] px-2 py-0.5 rounded bg-orange-100 text-orange-600 hover:bg-orange-200 transition"
+                    >Recalculer temp.</button>
                     <div className="flex gap-1">
                       {(['all', 'hot', 'warm'] as const).map(f => (
                         <button key={f} onClick={() => setWarmFilter(f)} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${warmFilter === f ? 'bg-orange-600 text-white' : 'bg-white text-orange-600 border border-orange-300'}`}>

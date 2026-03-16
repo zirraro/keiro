@@ -242,9 +242,26 @@ export function calculateScore(prospect: any): number {
 }
 
 /**
- * Determine temperature label from a numeric score.
+ * Determine temperature label based on REAL engagement signals.
+ * - cold: no email engagement (just imported or contacted)
+ * - warm: opened at least one email (last_email_opened_at set by Brevo webhook)
+ * - hot: clicked a link OR replied to an email
+ * Score alone does NOT determine temperature — engagement does.
  */
-export function calculateTemperature(score: number): 'cold' | 'warm' | 'hot' {
+export function calculateTemperature(score: number, prospect?: any): 'cold' | 'warm' | 'hot' {
+  if (prospect) {
+    const events: string[] = prospect.events ?? [];
+    const hasClicked = events.includes('email_clicked') || !!prospect.last_email_clicked_at;
+    const hasReplied = events.includes('email_replied');
+    const hasOpened = events.includes('email_opened') || events.includes('email_opened_step2') || !!prospect.last_email_opened_at;
+    const startedTrial = events.includes('started_free_trial');
+    const visitedPricing = events.includes('visited_pricing');
+
+    if (hasReplied || hasClicked || startedTrial) return 'hot';
+    if (hasOpened || visitedPricing) return 'warm';
+    return 'cold';
+  }
+  // Fallback for score-only calls (legacy)
   if (score >= 51) return 'hot';
   if (score >= 26) return 'warm';
   return 'cold';
@@ -265,7 +282,7 @@ export function recalculateProspect(
   };
 
   const score = calculateScore(updatedProspect);
-  const temperature = calculateTemperature(score);
+  const temperature = calculateTemperature(score, updatedProspect);
 
   return { score, temperature };
 }

@@ -474,7 +474,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         // Auto-score calculation based on all data
         const prospectWithUpdates = { ...prospect, ...updates };
         const autoScore = calculateScore(prospectWithUpdates);
-        const autoTemp = calculateTemperature(autoScore);
+        const autoTemp = calculateTemperature(autoScore, prospectWithUpdates);
         if (autoScore > 0) {
           updates.score = Math.max(autoScore, result.priority_score || 0);
           updates.temperature = autoTemp;
@@ -602,7 +602,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
             const enrichedProspect = { ...prospect, ...socialUpdates };
             const newScore = calculateScore(enrichedProspect);
-            const newTemp = calculateTemperature(newScore);
+            const newTemp = calculateTemperature(newScore, enrichedProspect);
             if (newScore > (prospect.score || 0)) {
               socialUpdates.score = newScore;
               socialUpdates.temperature = newTemp;
@@ -961,15 +961,16 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
           }
 
           // Create new prospect (igHandle already normalized above for dedup)
-          const newScore = calculateScore({
+          const newProspectData = {
             email: np.email,
             instagram: igHandle,
             website: np.website,
             google_rating: np.google_rating,
             google_reviews: np.google_reviews,
             type: np.type,
-          });
-          const newTemp = calculateTemperature(newScore);
+          };
+          const newScore = calculateScore(newProspectData);
+          const newTemp = calculateTemperature(newScore, newProspectData);
 
           // Mark as verified if has enough data (email or instagram + company + type)
           const hasEnoughData = !!(np.email || igHandle) && !!np.company;

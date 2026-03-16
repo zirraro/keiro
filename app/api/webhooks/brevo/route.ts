@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         case 'opened': {
           const scoreBonus = prospect.email_sequence_step === 2 ? 15 : 10;
           const newScore = Math.min(100, currentScore + scoreBonus);
-          const newTemp = calculateTemperature(newScore);
+          const newTemp = calculateTemperature(newScore, { ...prospect, last_email_opened_at: now, score: newScore });
 
           await supabase
             .from('crm_prospects')
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
         case 'click': {
           const newScore = Math.min(100, currentScore + 25);
-          const newClickTemp = calculateTemperature(newScore);
+          const newClickTemp = calculateTemperature(newScore, { ...prospect, last_email_clicked_at: now, score: newScore });
 
           await supabase
             .from('crm_prospects')

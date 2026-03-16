@@ -175,6 +175,34 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
+    // ─── Recalculate all temperatures based on real engagement ──────────
+    if (body.action === 'recalculate_temperatures') {
+      const { data: allProspects } = await supabase.from('crm_prospects').select('id, last_email_opened_at, last_email_clicked_at, events, temperature, score');
+      if (!allProspects) return NextResponse.json({ ok: true, updated: 0 });
+
+      let updated = 0;
+      for (const p of allProspects) {
+        if (p.temperature === 'dead') continue; // don't touch dead
+        const events: string[] = p.events ?? [];
+        const hasClicked = events.includes('email_clicked') || !!p.last_email_clicked_at;
+        const hasReplied = events.includes('email_replied');
+        const hasOpened = events.includes('email_opened') || events.includes('email_opened_step2') || !!p.last_email_opened_at;
+        const startedTrial = events.includes('started_free_trial');
+        const visitedPricing = events.includes('visited_pricing');
+
+        let newTemp: string;
+        if (hasReplied || hasClicked || startedTrial) newTemp = 'hot';
+        else if (hasOpened || visitedPricing) newTemp = 'warm';
+        else newTemp = 'cold';
+
+        if (newTemp !== p.temperature) {
+          await supabase.from('crm_prospects').update({ temperature: newTemp, updated_at: new Date().toISOString() }).eq('id', p.id);
+          updated++;
+        }
+      }
+      return NextResponse.json({ ok: true, updated, total: allProspects.length });
+    }
+
     // ─── Purge prospects (all or by status) ─────────────────────────────
     if (body.action === 'purge' || body.action === 'purge_all') {
       let query = supabase.from('crm_prospects').delete();
