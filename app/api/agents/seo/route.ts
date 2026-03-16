@@ -73,7 +73,7 @@ async function cacheImageToStorage(tempUrl: string, slug: string, index: number)
  */
 async function generateSeoImage(prompt: string, slug?: string, index: number = 0): Promise<string | null> {
   try {
-    const optimizedPrompt = `Ultra high quality professional photograph for a premium blog article. ${prompt}. Shot on Canon EOS R5, 85mm f/1.4 lens, natural lighting, cinematic color grading. Editorial magazine style, clean composition, rich colors, sharp details. Absolutely no text, no letters, no words, no numbers, no writing, no signs, no labels, no watermarks, no logos in the image. Pure visual only. 16:9 aspect ratio.`;
+    const optimizedPrompt = `Ultra high quality professional photograph for a premium blog article. ${prompt}. Shot on Canon EOS R5, 85mm f/1.4 lens, natural lighting, cinematic color grading. Editorial magazine style, clean composition, rich colors, sharp details. Absolutely no text, no letters, no words, no numbers, no writing, no signs, no labels, no watermarks, no logos in the image. Pure visual only. Wide horizontal format.`;
 
     const response = await fetch(SEEDREAM_API_URL, {
       method: 'POST',
@@ -121,10 +121,23 @@ async function generateSeoImage(prompt: string, slug?: string, index: number = 0
 async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ alt: string; prompt: string }>, slug?: string): Promise<string> {
   let html = contentHtml;
 
-  // Flexible regex: matches <img> with data-seo-generate="true" regardless of attribute order
+  // STEP 0: Convert any markdown images ![alt](url) or ![alt] to HTML <img> placeholders
+  // Gemini sometimes outputs markdown instead of HTML despite instructions
+  // Pattern 1: ![alt text](url) — replace with <img src="url" alt="alt text">
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    if (url.startsWith('http')) {
+      return `<img src="${url}" alt="${alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
+    }
+    return `<img data-seo-generate="true" alt="${alt}" />`;
+  });
+  // Pattern 2: ![alt text] alone (no URL) — treat as placeholder for generation
+  html = html.replace(/!\[([^\]]{10,})\](?!\()/g, (_, alt) => {
+    return `<img data-seo-generate="true" alt="${alt}" />`;
+  });
+
+  // STEP 1: Use explicit image_prompts from the article JSON
   const seoImgRegex = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/gi;
 
-  // If we have explicit image_prompts from the article JSON, use those
   if (imagePrompts && imagePrompts.length > 0) {
     let match;
     let promptIndex = 0;
@@ -139,20 +152,18 @@ async function processArticleImages(contentHtml: string, imagePrompts?: Array<{ 
       if (imageUrl) {
         const newTag = `<img src="${imageUrl}" alt="${imgPrompt.alt}" style="width:100%;border-radius:8px;margin:16px 0;" loading="lazy" />`;
         html = html.replace(fullTag, newTag);
-        // Reset regex since we modified the string
         seoImgRegex.lastIndex = 0;
       }
       promptIndex++;
     }
   }
 
-  // Also handle any remaining placeholder tags that don't have prompts yet (use alt as prompt)
+  // STEP 2: Handle remaining placeholder tags (use alt as prompt)
   const remainingRegex = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/gi;
   let remainingMatch;
   let fallbackIndex = 10;
   while ((remainingMatch = remainingRegex.exec(html)) !== null) {
     const fullTag = remainingMatch[0];
-    // Extract alt text regardless of position
     const altMatch = fullTag.match(/alt\s*=\s*"([^"]*)"/i);
     const altText = altMatch ? altMatch[1] : 'professional commercial photo for blog article';
 

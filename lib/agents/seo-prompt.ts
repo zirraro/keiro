@@ -48,7 +48,8 @@ STRUCTURE SEO ELITE :
 
 IMAGES — GÉNÉRÉES PAR IA (SEEDREAM) — TRÈS IMPORTANT :
 - L'agent va automatiquement générer 5-7 images IA de qualité éditoriale pour l'article via Seedream
-- Dans ton content_html, insère des balises d'image placeholder : <img data-seo-generate="true" alt="description precise et SEO du visuel souhaite" />
+- Dans ton content_html, insère des balises d'image placeholder en HTML PUR (JAMAIS de markdown !) : <img data-seo-generate="true" alt="description precise et SEO du visuel souhaite" />
+- INTERDIT : ![alt text] ou ![alt](url) — utilise UNIQUEMENT la balise HTML <img> ci-dessus
 - Le alt text doit être ultra descriptif (30+ mots) : c'est lui qui sera utilisé comme prompt pour générer l'image
 - PLACEMENT OBLIGATOIRE DES IMAGES :
   1. Image HERO juste après le paragraphe d'intro (la plus spectaculaire, définit le ton de l'article)
