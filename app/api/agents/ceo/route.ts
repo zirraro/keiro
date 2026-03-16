@@ -629,9 +629,10 @@ async function generateBrief(): Promise<NextResponse> {
     const rawText = await callGemini({
       system: getCeoSystemPrompt(),
       message: `${sharedDataPool}\n\nMETRIQUES DÉTAILLÉES 24h:\n${JSON.stringify(metrics24h, null, 2)}\n\nMetriques semaine precedente pour comparaison:\n${JSON.stringify(metrics7d, null, 2)}${agentReportsText}\n\nÉTAT DES AGENTS (dernières 24h):\n${agentStatusText}${marketingInsights}${previousOrdersText}\n\nAnalyse et genere le brief quotidien. Tiens compte des rapports des agents pour evaluer l'execution des ordres precedents. Vérifie quels agents ont bien tourné et lesquels non.\n\nIMPORTANT: Inclus une section "## DIRECTIVES STRATEGIQUES" avec des directives claires pour chaque agent. Format:\n- [DIRECTIVE email] Directive pour l'agent email\n- [DIRECTIVE content] Directive pour l'agent contenu\n- [DIRECTIVE dm_instagram] Directive pour les DMs\nCes directives seront automatiquement transmises et chaque agent devra les suivre.`,
-      maxTokens: 4000,
+      maxTokens: 8000,
     });
-    console.log('[CEOAgent] Raw response:', rawText.substring(0, 200));
+    console.log('[CEOAgent] Raw response length:', rawText.length, 'chars');
+    console.log('[CEOAgent] Raw response preview:', rawText.substring(0, 200));
 
     // --- Store raw natural language brief (no JSON parsing) ---
     const brief = rawText;
