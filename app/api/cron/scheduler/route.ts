@@ -52,9 +52,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'slot parameter required' }, { status: 400 });
   }
 
+  // Use VERCEL_URL or NEXT_PUBLIC_SITE_URL for reliable self-referencing
+  // (host header can fail for internal fetch on Vercel serverless)
+  const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || null;
   const host = request.headers.get('host') || 'localhost:3000';
   const proto = request.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = siteUrl || vercelUrl || `${proto}://${host}`;
+  console.log(`[Scheduler] baseUrl resolved to: ${baseUrl}`);
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${cronSecret}`,
     'Content-Type': 'application/json',
@@ -87,12 +92,13 @@ export async function GET(request: NextRequest) {
 
   // Fire-and-forget: trigger endpoint without waiting for response (avoids scheduler timeout)
   function fireAndForget(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
-    console.log(`[Scheduler/${slot}] 🚀 ${name}: ${method} ${path} (fire-and-forget)`);
+    const fullUrl = `${baseUrl}${path}`;
+    console.log(`[Scheduler/${slot}] 🚀 ${name}: ${method} ${fullUrl} (fire-and-forget)`);
     const opts: RequestInit = { method, headers };
     if (body && method === 'POST') opts.body = JSON.stringify(body);
-    fetch(`${baseUrl}${path}`, opts)
+    fetch(fullUrl, opts)
       .then(res => console.log(`[Scheduler/${slot}] ← ${name}: ${res.status}`))
-      .catch(e => console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message}`));
+      .catch(e => console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message} | URL: ${fullUrl}`));
     results.push({ task: name, ok: true, data: { fired: true } });
   }
 
