@@ -37,6 +37,7 @@ export const maxDuration = 300;
  * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
  * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
+ * Every 10m  slot=video_poll      → Poll & advance async video generation jobs (30s+ TikTok)
  * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
  */
 export async function GET(request: NextRequest) {
@@ -271,6 +272,12 @@ export async function GET(request: NextRequest) {
       fireAndForget('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
       fireAndForget('Marketing Analysis', '/api/agents/marketing');
       fireAndForget('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
+      break;
+
+    case 'video_poll':
+      // Every 10 min (via external cron) — Poll & advance async video generation jobs
+      // Advances multi-segment video jobs (30s+ TikTok) and publishes when complete
+      await callEndpoint('Video Poll', '/api/cron/video-poll');
       break;
 
     case 'tiktok_publish':

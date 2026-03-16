@@ -10,6 +10,8 @@ import { publishReelToInstagram } from '@/lib/meta';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
+import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
+import { createVideoJob } from '@/lib/video-jobs-db';
 
 // ──────────────────────────────────────
 // Claude Haiku for text generation (captions, hashtags, descriptions)
@@ -469,6 +471,158 @@ async function cacheVideoToStorage(tempUrl: string, videoId: string): Promise<st
   } catch (e: any) {
     console.error('[Content] Video caching failed:', e.message);
     return null;
+  }
+}
+
+// ──────────────────────────────────────
+// Create an async long video job (30s+) via the video-long pipeline
+// Returns the job ID — the video-poll cron will advance and publish
+// ──────────────────────────────────────
+async function createAsyncLongVideo(
+  visualDescription: string,
+  caption: string,
+  duration: number = 30,
+  aspectRatio: string = '9:16',
+  postId: string,
+): Promise<{ jobId: string | null; coverUrl: string | null }> {
+  try {
+    console.log(`[Content] === ASYNC LONG VIDEO PIPELINE (${duration}s) ===`);
+
+    // Step 1: Generate cover image via Seedream
+    const imageUrl = await generateVisual(visualDescription, 'video');
+    console.log(`[Content] Cover image: ${imageUrl ? imageUrl.substring(0, 80) : 'failed'}`);
+
+    // Step 2: Create elite cinematic video brief via Claude
+    // This brief will be decomposed into multiple scenes by decomposePromptIntoScenes
+    const videoPromptRaw = await callClaude({
+      system: `Tu es un directeur de photographie primé qui crée des vidéos virales pour TikTok. Tu transformes un brief marketing en une DESCRIPTION CINÉMATIQUE détaillée qui servira de base pour une vidéo de ${duration} secondes découpée en plusieurs segments.
+
+OBJECTIF : Créer une vidéo qui semble être UN SEUL PLAN CONTINU filmé dans un même lieu, avec une progression narrative fluide.
+
+RÈGLES ABSOLUES :
+- Décris UN SEUL LIEU/DÉCOR précis et détaillé (type de mur, matériaux, lumière exacte, palette de couleurs)
+- Le lieu doit être VISUELLEMENT RICHE : textures, objets décoratifs, profondeur
+- Inclus une PROGRESSION NARRATIVE : révélation → action → détail → conclusion
+- Précise la LUMIÈRE exacte : "golden hour amber light streaming through tall windows" pas juste "belle lumière"
+- Précise la PALETTE : "warm honey tones, deep mahogany wood, soft cream accents"
+- JAMAIS de texte, lettres, mots, logos, panneaux dans la vidéo
+- JAMAIS de visages en gros plan (l'IA fait des visages artificiels) — mains, silhouettes, plans larges
+- EN ANGLAIS uniquement
+- 200-350 caractères
+
+Le prompt doit contenir assez de détails visuels pour qu'un directeur photo puisse en tirer ${Math.ceil(duration / 10)} plans différents dans le MÊME décor.
+
+Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
+      message: `Brief marketing: ${visualDescription}\nCaption: ${caption}\nDurée: ${duration}s (sera découpé en ${Math.ceil(duration / 10)} segments de 10s)\nFormat: vertical 9:16 TikTok`,
+      maxTokens: 400,
+    });
+
+    const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 400);
+    console.log(`[Content] Video prompt (${duration}s): "${videoPrompt.substring(0, 100)}..."`);
+
+    // Step 3: Decompose into scenes via Claude
+    const scenes = await decomposePromptIntoScenes(videoPrompt, duration, {
+      aspectRatio,
+      renderStyle: 'photorealistic',
+      tone: 'professional',
+      visualStyle: 'cinematic',
+    });
+
+    console.log(`[Content] Decomposed into ${scenes.length} scenes for ${duration}s`);
+
+    // Step 4: Build job segments
+    const jobSegments = scenes.map((scene) => ({
+      index: scene.index,
+      duration: scene.duration,
+      prompt: scene.prompt,
+      type: scene.type,
+      taskId: null as string | null,
+      videoUrl: null as string | null,
+      status: 'pending' as 'pending' | 'generating' | 'completed' | 'failed',
+      provider: null as ('s' | 'k' | null),
+    }));
+
+    // Step 5: Start generating segment 0 via Kling T2V (primary)
+    let firstTaskId: string | null = null;
+    let firstProvider: 's' | 'k' = 'k';
+
+    // Try Kling T2V first
+    try {
+      console.log('[Content] Starting segment 0 via Kling T2V...');
+      const klingTaskId = await createT2VTask({
+        prompt: scenes[0].prompt,
+        duration: String(scenes[0].duration >= 10 ? 10 : 5),
+        aspect_ratio: aspectRatio,
+      });
+      firstTaskId = klingTaskId;
+      firstProvider = 'k';
+      console.log(`[Content] Segment 0 started: Kling taskId=${klingTaskId}`);
+    } catch (klingErr: any) {
+      console.warn('[Content] Kling T2V failed for segment 0:', klingErr.message);
+
+      // Fallback: Seedance T2V
+      try {
+        const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
+        const segDuration = scenes[0].duration >= 10 ? 10 : 5;
+        const formattedPrompt = `${scenes[0].prompt.substring(0, 200)} --camerafixed false --ratio ${aspectRatio} --duration ${segDuration}`;
+        const SEEDANCE_T2V_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+        const seedanceRes = await fetch(SEEDANCE_T2V_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'seedance-1-5-pro-251215', content: [{ type: 'text', text: formattedPrompt }] }),
+        });
+        if (!seedanceRes.ok) throw new Error(`Seedance HTTP ${seedanceRes.status}`);
+        const seedanceData = await seedanceRes.json();
+        const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
+        if (!taskId) throw new Error('Seedance returned no task ID');
+        firstTaskId = `seedream_${taskId}`;
+        firstProvider = 's';
+        console.log(`[Content] Segment 0 started: Seedance taskId=${firstTaskId}`);
+      } catch (seedanceErr: any) {
+        console.error('[Content] Both Kling and Seedance failed for segment 0:', seedanceErr.message);
+        return { jobId: null, coverUrl: imageUrl };
+      }
+    }
+
+    // Step 6: Create the video job in DB
+    jobSegments[0].taskId = firstTaskId;
+    jobSegments[0].status = 'generating';
+    jobSegments[0].provider = firstProvider;
+
+    const supabase = getSupabaseAdmin();
+    // Use a system user ID for cron-created jobs
+    const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000001';
+    const job = await createVideoJob(supabase, {
+      user_id: SYSTEM_USER_ID,
+      status: 'generating',
+      total_segments: jobSegments.length,
+      completed_segments: 0,
+      current_segment_task_id: firstTaskId!,
+      segments: jobSegments,
+      prompt: videoPrompt,
+      duration,
+      aspect_ratio: aspectRatio,
+    });
+
+    if (!job) {
+      console.error('[Content] Failed to create video job via RPC');
+      return { jobId: null, coverUrl: imageUrl };
+    }
+
+    console.log(`[Content] Video job created: ${job.id} (${scenes.length} segments, ${duration}s)`);
+
+    // Step 7: Link job to content_calendar post
+    await supabase.from('content_calendar').update({
+      video_job_id: job.id,
+      visual_url: imageUrl,
+      status: 'video_generating',
+      updated_at: new Date().toISOString(),
+    }).eq('id', postId);
+
+    return { jobId: job.id, coverUrl: imageUrl };
+  } catch (e: any) {
+    console.error('[Content] Async long video creation error:', e.message);
+    return { jobId: null, coverUrl: null };
   }
 }
 
@@ -1238,13 +1392,31 @@ export async function POST(request: NextRequest) {
           // For reel/video formats: generate video with narration if not already done
           const pFormat = (post.format || 'post').toLowerCase();
           let videoUrl = post.video_url || null;
-          if ((pFormat === 'reel' || pFormat === 'video') && !videoUrl) {
-            console.log(`[Content] execute_pub: ${pFormat} needs video — generating...`);
+          if ((pFormat === 'reel' || pFormat === 'video') && !videoUrl && !post.video_job_id) {
             const desc = post.visual_description || post.hook || post.caption;
             if (desc) {
-              const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 30);
-              videoUrl = vr.videoUrl;
-              if (videoUrl) updateData.video_url = videoUrl;
+              if (post.platform === 'tiktok') {
+                // TikTok: async 30s pipeline — video-poll cron will publish
+                console.log(`[Content] execute_pub: TikTok needs 30s video — starting async pipeline`);
+                const asyncResult = await createAsyncLongVideo(desc, post.caption || desc, 30, '9:16', post.id);
+                if (asyncResult.jobId) {
+                  console.log(`[Content] execute_pub: async job ${asyncResult.jobId} started for TikTok post ${post.id}`);
+                  // Skip publishing — video-poll cron will handle it
+                  publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '', publication_error: 'async_video_generating' });
+                  continue;
+                }
+                // Fallback to sync 10s if async fails
+                console.warn('[Content] execute_pub: async failed, fallback to sync 10s');
+                const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 10);
+                videoUrl = vr.videoUrl;
+                if (videoUrl) updateData.video_url = videoUrl;
+              } else {
+                // Instagram: sync 5s video
+                console.log(`[Content] execute_pub: Instagram reel needs 5s video — generating...`);
+                const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 5);
+                videoUrl = vr.videoUrl;
+                if (videoUrl) updateData.video_url = videoUrl;
+              }
             }
           }
 
@@ -2118,19 +2290,78 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   let publicationError: string | undefined;
 
   if (visualDesc && inserted?.id) {
-    if (needsVideo) {
-      // Video pipeline: cover image → Seedance T2V → Kling T2V fallback
-      // TikTok gets 10s videos, Instagram Reels get 5s (faster generation)
-      const videoDuration = postPlatform === 'tiktok' ? 10 : 5;
-      console.log(`[Content] ${postPlatform} ${postFormat} — generating ${videoDuration}s video via Kling/Seedance T2V`);
+    if (needsVideo && postPlatform === 'tiktok') {
+      // TikTok: async long video pipeline (30s) — video-poll cron will advance & publish
+      console.log(`[Content] TikTok video — starting async 30s pipeline for post ${inserted.id}`);
+      const asyncResult = await createAsyncLongVideo(
+        visualDesc,
+        post.caption || visualDesc,
+        30, // 30s TikTok video
+        '9:16',
+        inserted.id,
+      );
+      if (asyncResult.jobId) {
+        console.log(`[Content] TikTok async job started: ${asyncResult.jobId} — video-poll cron will handle the rest`);
+        visualUrl = asyncResult.coverUrl;
+
+        // Log and return — don't publish now, video-poll cron will do it
+        await supabase.from('agent_logs').insert({
+          agent: 'content', action: 'tiktok_long_video_started',
+          data: {
+            postId: inserted.id,
+            jobId: asyncResult.jobId,
+            duration: 30,
+            platform: 'tiktok',
+            hook: post.hook,
+          },
+          status: 'success', created_at: nowISO,
+        });
+
+        // Notify founder
+        if (process.env.RESEND_API_KEY) {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'KeiroAI Content <contact@keiroai.com>',
+              to: ['mrzirraro@gmail.com'],
+              subject: `🎬 Vidéo TikTok 30s en cours — ${post.hook || 'Nouveau contenu'}`,
+              html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
+                <h2 style="color:#9333ea;">🎬 Vidéo TikTok 30s en génération</h2>
+                <p>Job ID: <code>${asyncResult.jobId}</code></p>
+                <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
+                <p>La vidéo sera publiée automatiquement quand elle sera prête (via le cron video-poll).</p>
+                ${asyncResult.coverUrl ? `<img src="${asyncResult.coverUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Cover"/>` : ''}
+                <p><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Voir dans l'admin</a></p>
+              </div>`,
+            }),
+          });
+        }
+
+        return NextResponse.json({
+          ok: true,
+          post: inserted,
+          async_video: true,
+          video_job_id: asyncResult.jobId,
+        });
+      } else {
+        // Async failed — fallback to synchronous 10s video
+        console.warn('[Content] Async long video failed — falling back to sync 10s');
+        const videoResult = await generateVideoWithNarration(visualDesc, post.caption || visualDesc, postFormat, 10);
+        videoUrl = videoResult.videoUrl;
+        visualUrl = videoResult.coverUrl || asyncResult.coverUrl;
+      }
+    } else if (needsVideo) {
+      // Instagram Reels: synchronous 5s video (fast generation)
+      console.log(`[Content] ${postPlatform} reel — generating 5s video via Kling/Seedance T2V`);
       const videoResult = await generateVideoWithNarration(
         visualDesc,
         post.caption || visualDesc,
         postFormat,
-        videoDuration
+        5
       );
       videoUrl = videoResult.videoUrl;
-      visualUrl = videoResult.coverUrl; // Cover image for preview
+      visualUrl = videoResult.coverUrl;
 
       // If video failed but we have a cover image, downgrade to image post
       if (!videoUrl && visualUrl) {

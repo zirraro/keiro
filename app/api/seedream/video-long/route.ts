@@ -415,22 +415,30 @@ export async function GET(request: Request) {
       return Response.json({ ok: false, error: 'jobId est requis' }, { status: 400 });
     }
 
-    // 2. Authenticate user
-    const { user } = await getAuthUser();
-    if (!user) {
-      return Response.json({
-        ok: false,
-        blocked: true,
-        reason: 'requires_account',
-      }, { status: 403 });
+    // 2. Authenticate user OR cron
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('authorization');
+    const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+    let userId: string | null = null;
+    if (!isCron) {
+      const { user } = await getAuthUser();
+      if (!user) {
+        return Response.json({
+          ok: false,
+          blocked: true,
+          reason: 'requires_account',
+        }, { status: 403 });
+      }
+      userId = user.id;
     }
 
     // 3. Fetch the job from DB via RPC
     const supabaseAdmin = getSupabaseAdmin();
     const job = await getVideoJob(supabaseAdmin, jobId);
 
-    if (!job || job.user_id !== user.id) {
-      console.log(`[video-long] GET: job not found. jobId=${jobId}, user=${user.id}`);
+    if (!job || (!isCron && job.user_id !== userId)) {
+      console.log(`[video-long] GET: job not found. jobId=${jobId}, user=${userId}, isCron=${isCron}`);
       return Response.json({ ok: false, error: 'Job non trouvé' }, { status: 404 });
     }
 

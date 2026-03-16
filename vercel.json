@@ -105,6 +105,22 @@
       "schedule": "0 19 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "15 18 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "30 18 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "45 18 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "0 19 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=tiktok_publish",
       "schedule": "30 19 * * *"
     }
