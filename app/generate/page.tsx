@@ -3709,8 +3709,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               <div className="flex items-center gap-2">
                 {useNewsMode && (
                   <>
-                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">✓</span>
-                    <span className="text-xs text-emerald-600">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
+                    <button onClick={() => setWizardPhase('news-select')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity cursor-pointer">
+                      <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">✓</span>
+                      <span className="text-xs text-emerald-600">{locale === 'fr' ? 'Actualité' : 'News'}</span>
+                    </button>
                     <div className="w-6 h-0.5 bg-emerald-400"></div>
                   </>
                 )}
