@@ -711,7 +711,7 @@ async function publishToTikTok(
       accessToken,
       videoUrl,
       fullCaption.substring(0, 150),
-      { privacy_level: 'SELF_ONLY' }
+      { privacy_level: (process.env.TIKTOK_PRIVACY_LEVEL as any) || 'PUBLIC_TO_EVERYONE' }
     );
     console.log(`[Content] TikTok video published: ${result.publish_id}`);
     return { success: true, publish_id: result.publish_id };
