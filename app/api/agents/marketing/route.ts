@@ -414,7 +414,7 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
 
         // Log
         await supabase.from('agent_logs').insert({
-          agent: 'marketing',
+          agent: 'community',
           action: 'find_follow_targets',
           data: {
             platform,
@@ -654,7 +654,7 @@ UNIQUEMENT du JSON, pas de markdown.`,
         }
 
         await supabase.from('agent_logs').insert({
-          agent: 'marketing',
+          agent: 'community',
           action: 'prepare_comments',
           data: {
             prospects_checked: Math.min(prospects.length, maxProspects),

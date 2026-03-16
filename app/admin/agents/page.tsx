@@ -3066,6 +3066,22 @@ function AdminAgentsContent() {
                     )}
                   </button>
                 )}
+                {orders.filter(o => o.status === 'failed').length > 0 && (
+                  <button
+                    onClick={async () => {
+                      const failedIds = orders.filter(o => o.status === 'failed').map(o => o.id);
+                      const ok = confirm(`Relancer les ${failedIds.length} ordres echoues ?`);
+                      if (!ok) return;
+                      for (const id of failedIds) {
+                        await supabase.from('agent_orders').update({ status: 'pending', result: null }).eq('id', id);
+                      }
+                      loadOrders();
+                    }}
+                    className="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition"
+                  >
+                    Relancer les echoues ({orders.filter(o => o.status === 'failed').length})
+                  </button>
+                )}
                 <button
                   onClick={loadOrders}
                   className="text-xs text-purple-600 hover:underline"
@@ -3201,6 +3217,31 @@ function AdminAgentsContent() {
                               )}
                             </div>
                           </div>
+
+                          {/* Retry failed orders */}
+                          {(order.status === 'failed' || order.status === 'completed') && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const ok = confirm(`Relancer cet ordre vers ${order.to_agent} ?`);
+                                if (!ok) return;
+                                try {
+                                  await supabase.from('agent_orders').update({
+                                    status: 'pending',
+                                    result: null,
+                                  }).eq('id', order.id);
+                                  loadOrders();
+                                } catch (err) { console.error('Retry error:', err); }
+                              }}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
+                                order.status === 'failed'
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              }`}
+                            >
+                              {order.status === 'failed' ? 'Relancer cet ordre' : 'Re-executer'}
+                            </button>
+                          )}
 
                           {/* Payload brut */}
                           <details className="text-xs">
@@ -3402,7 +3443,15 @@ function AdminAgentsContent() {
               <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun contenu planifié. Clique sur &quot;Planifier la semaine&quot;.</div>
             ) : (
               <div className="space-y-3">
-                {contentPosts.map(post => (
+                {contentPosts
+                  .filter(post => contentPlatform === 'all' || post.platform === contentPlatform)
+                  .sort((a, b) => {
+                    // Most recent first (by scheduled_date desc, then scheduled_time desc)
+                    const dateA = `${a.scheduled_date}T${a.scheduled_time}`;
+                    const dateB = `${b.scheduled_date}T${b.scheduled_time}`;
+                    return dateB.localeCompare(dateA);
+                  })
+                  .map(post => (
                   <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
