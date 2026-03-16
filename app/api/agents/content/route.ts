@@ -807,7 +807,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 async function publishToTikTok(
   post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
-): Promise<{ success: boolean; publish_id?: string; error?: string }> {
+): Promise<{ success: boolean; publish_id?: string; error?: string; unaudited?: boolean }> {
   try {
     // Get admin's TikTok tokens
     const { data: adminProfile, error: profileError } = await supabase
