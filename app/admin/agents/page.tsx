@@ -1820,6 +1820,19 @@ function AdminAgentsContent() {
                               )}
                             </div>
 
+                            {/* Dernier email - apercu rapide */}
+                            {!loadingEmails && prospectEmails.length > 0 && prospectEmails[0]?.data?.subject && (
+                              <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <p className="text-[10px] font-semibold text-amber-700 uppercase mb-1">Dernier email envoye</p>
+                                <p className="text-xs font-semibold text-amber-900 mb-1">{prospectEmails[0].data.subject}</p>
+                                {prospectEmails[0].data?.body ? (
+                                  <p className="text-[11px] text-amber-800 whitespace-pre-line line-clamp-3">{prospectEmails[0].data.body.substring(0, 300)}{prospectEmails[0].data.body.length > 300 ? '...' : ''}</p>
+                                ) : (
+                                  <p className="text-[10px] text-amber-600 italic">{prospectEmails[0].description || 'Contenu non enregistre (ancien envoi)'}</p>
+                                )}
+                              </div>
+                            )}
+
                             {/* Editable fields */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                               <div>
