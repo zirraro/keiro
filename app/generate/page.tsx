@@ -3284,7 +3284,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   </span>
                 </div>
                 <div className="mt-4 flex items-center gap-1.5 text-blue-600 text-sm font-semibold group-hover:gap-3 transition-all">
-                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>&rarr;</span>
+                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>→</span>
                 </div>
               </button>
 
@@ -3323,7 +3323,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   </span>
                 </div>
                 <div className="mt-4 flex items-center gap-1.5 text-purple-600 text-sm font-semibold group-hover:gap-3 transition-all">
-                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>&rarr;</span>
+                  {locale === 'fr' ? 'Commencer' : 'Start'} <span>→</span>
                 </div>
               </button>
             </div>
@@ -3382,9 +3382,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             </div>
 
-            {/* Region selector */}
-            <div className="mb-3 -mx-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-1.5 px-1 pb-1">
+            {/* Region selector — centered */}
+            <div className="mb-3 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5 justify-center pb-1">
                 {NEWS_REGIONS.map((r) => {
                   const isActive = newsRegion === r.code;
                   return (
@@ -3411,13 +3411,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             <div>
             <div className="relative">
               <div className="flex items-center gap-1 mb-2">
-                <span className="text-base mr-0.5">&#x1F525;</span>
+                <span className="text-base mr-0.5">🔥</span>
                 <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
-                  { key: 'instagram' as const, label: '&#x1F4F8; Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
-                  { key: 'tiktok' as const, label: '&#x1F3B5; TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
-                  { key: 'google' as const, label: '&#x1F50D; Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
-                  { key: 'linkedin' as const, label: '&#x1F4BC; LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
+                  { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
+                  { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
+                  { key: 'google' as const, label: '🔍 Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
+                  { key: 'linkedin' as const, label: '💼 LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
                 ] as const).map((tab) => (
                   <button
                     key={tab.key}
@@ -3440,7 +3440,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 const tabConfig: Record<string, { data: any[]; badge: string; badgeCls: string; fallbackGrad: string; getTitle: (t: any) => string; getSubtitle: (t: any) => string | null; getImage: (t: any) => string | undefined; getTraffic: (t: any) => string | undefined; getNewsCard: (t: any, i: number) => any }> = {
                   instagram: {
                     data: trendingData?.instagramTrends || [],
-                    badge: '&#x1F4F8; Instagram', badgeCls: 'bg-gradient-to-r from-purple-500 to-pink-500',
+                    badge: '📸 Instagram', badgeCls: 'bg-gradient-to-r from-purple-500 to-pink-500',
                     fallbackGrad: 'from-purple-600 to-pink-700',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3448,7 +3448,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   tiktok: {
                     data: trendingData?.tiktokTrends || [],
-                    badge: '&#x1F3B5; TikTok', badgeCls: 'bg-blue-500/90',
+                    badge: '🎵 TikTok', badgeCls: 'bg-blue-500/90',
                     fallbackGrad: 'from-blue-600 to-cyan-700',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3456,7 +3456,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   google: {
                     data: trendingData?.googleTrends || [],
-                    badge: '&#x1F50D; Google', badgeCls: 'bg-orange-500/90',
+                    badge: '🔍 Google', badgeCls: 'bg-orange-500/90',
                     fallbackGrad: 'from-orange-600 to-rose-700',
                     getTitle: (t) => t.articleTitle || t.title, getSubtitle: (t) => t.articleTitle && t.title !== t.articleTitle ? t.title : null,
                     getImage: (t) => t.pictureUrl, getTraffic: (t) => t.traffic,
@@ -3464,7 +3464,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   linkedin: {
                     data: trendingData?.linkedinTrends || [],
-                    badge: '&#x1F4BC; LinkedIn', badgeCls: 'bg-sky-600',
+                    badge: '💼 LinkedIn', badgeCls: 'bg-sky-600',
                     fallbackGrad: 'from-sky-700 to-blue-900',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
@@ -3677,7 +3677,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               {selectedNews && (
                 <div className={`mb-3 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
                   <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
-                    {selectedNews.category === 'Tendance' ? '&#x1F525;' : '&#x2713;'} {selectedNews.title}
+                    {selectedNews.category === 'Tendance' ? '🔥' : '✓'} {selectedNews.title}
                   </p>
                 </div>
               )}
@@ -3689,7 +3689,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {selectedNews
                   ? (locale === 'fr' ? 'Continuer avec cette s\u00e9lection' : 'Continue with this selection')
                   : (locale === 'fr' ? 'S\u00e9lectionnez une actu ou tendance' : 'Select a news or trend')
-                } {selectedNews && <span>&rarr;</span>}
+                } {selectedNews && <span>→</span>}
               </button>
             </div>
           </div>
@@ -3709,7 +3709,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               <div className="flex items-center gap-2">
                 {useNewsMode && (
                   <>
-                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">&#x2713;</span>
+                    <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">✓</span>
                     <span className="text-xs text-emerald-600">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
                     <div className="w-6 h-0.5 bg-emerald-400"></div>
                   </>
@@ -3726,7 +3726,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             {useNewsMode && selectedNews && (
               <div className={`mb-4 p-3 rounded-lg border ${selectedNews.category === 'Tendance' ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'}`}>
                 <p className={`text-xs font-semibold line-clamp-1 ${selectedNews.category === 'Tendance' ? 'text-purple-800' : 'text-blue-800'}`}>
-                  {selectedNews.category === 'Tendance' ? '&#x1F525; Tendance s\u00e9lectionn\u00e9e' : '&#x2713; Actualit\u00e9 s\u00e9lectionn\u00e9e'} : {selectedNews.title}
+                  {selectedNews.category === 'Tendance' ? '🔥 Tendance s\u00e9lectionn\u00e9e' : '✓ Actualit\u00e9 s\u00e9lectionn\u00e9e'} : {selectedNews.title}
                 </p>
               </div>
             )}
@@ -3774,7 +3774,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   {/* Communication profile selector (visible on all steps) */}
                   <div ref={promptSectionRef} className="mb-4">
                     <label className="block text-sm font-semibold text-neutral-900 mb-3">
-                      &#x1F3AD; {t.generate.chooseStrategy}
+                      🎭 {t.generate.chooseStrategy}
                     </label>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
                       {Object.entries(tonePresets).map(([key, preset]) => {
@@ -3803,9 +3803,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             <h4 className="font-bold text-neutral-900 text-xs mb-1">{tonePresets[communicationProfile].marketingStrategy}</h4>
                             <p className="text-[11px] text-neutral-700 leading-snug mb-2">{tonePresets[communicationProfile].description}</p>
                             <div className="space-y-1">
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
-                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">&#x25B8;</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                              <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
                             </div>
                           </div>
                         </div>
@@ -3863,7 +3863,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         disabled={!businessType.trim() || (!useNewsMode && !businessDescription.trim())}
                         className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {t.generate.next} <span>&#x2192;</span>
+                        {t.generate.next} <span>→</span>
                       </button>
                     </>)}
 
@@ -3871,7 +3871,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     {formStep === 2 && (<>
                       <div className="border-t pt-2 mt-2">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-[10px] font-medium text-neutral-600">&#x1F4DD; {t.generate.contentDirection}</p>
+                          <p className="text-[10px] font-medium text-neutral-600">📝 {t.generate.contentDirection}</p>
                           <button
                             type="button"
                             onClick={() => handleAiAutoFill('direction')}
@@ -3881,7 +3881,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             {autoFillLoading ? (
                               <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                             ) : (
-                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                              <><span>✨</span> {t.generate.autoFill}</>
                             )}
                           </button>
                         </div>
@@ -3890,7 +3890,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <div className="mb-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
                             <label className="block text-xs font-semibold mb-2 text-neutral-700">{t.generate.visualOrientation}</label>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">&#x1F3E2; {t.generate.businessFocus}</span>
+                              <span className="text-[10px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
                               <input
                                 type="range"
                                 min={0} max={100} step={5}
@@ -3899,10 +3899,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
                                 style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
                               />
-                              <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">&#x1F4F0; {t.generate.newsFocus}</span>
+                              <span className="text-[10px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
                             </div>
                             <p className="text-[9px] text-neutral-500 mt-1.5 text-center">
-                              {contentFocus <= 30 ? `&#x1F3E2; ${t.generate.focusBusiness}` : contentFocus >= 70 ? `&#x1F4F0; ${t.generate.focusNews}` : `&#x2696;&#xFE0F; ${t.generate.focusBalance}`}
+                              {contentFocus <= 30 ? `🏢 ${t.generate.focusBusiness}` : contentFocus >= 70 ? `📰 ${t.generate.focusNews}` : `⚖️ ${t.generate.focusBalance}`}
                             </p>
                           </div>
                         )}
@@ -3927,7 +3927,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               <option value="Capturer l'ambiance unique du lieu ou de l'activit\u00e9, lumi\u00e8re et d\u00e9cor">{t.generate.freeAngleAmbiance}</option>
                               <option value="Mettre en valeur le produit ou la cr\u00e9ation phare dans une composition soign\u00e9e">{t.generate.freeAngleProduct}</option>
                             </>)}
-                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                            <option value="custom">✏️ {t.generate.customOption}</option>
                           </select>
                           <input
                             type="text"
@@ -3958,7 +3958,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               <option value="Montrer l'exp\u00e9rience que vivent les clients, le r\u00e9sultat obtenu">{t.generate.freeMarketingClient}</option>
                               <option value="Partager les valeurs, la passion ou le parcours derri\u00e8re l'activit\u00e9">{t.generate.freeMarketingStory}</option>
                             </>)}
-                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                            <option value="custom">✏️ {t.generate.customOption}</option>
                           </select>
                           <textarea
                             value={marketingAngle}
@@ -3981,7 +3981,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             <option value="Behind-the-scenes, coulisses du m\u00e9tier">{t.generate.behindTheScenes}</option>
                             <option value="Prise de position forte et opinion tranch\u00e9e">{t.generate.opinionStance}</option>
                             <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
-                            <option value="custom">&#x270F;&#xFE0F; {t.generate.customOption}</option>
+                            <option value="custom">✏️ {t.generate.customOption}</option>
                           </select>
                           <input
                             type="text"
@@ -3994,10 +3994,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </div>
                       <div className="flex gap-2 mt-3">
                         <button onClick={() => setFormStep(1)} className="flex-1 py-2 border border-neutral-300 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition">
-                          &#x2190; {t.generate.back}
+                          ← {t.generate.back}
                         </button>
                         <button onClick={() => setFormStep(3)} className="flex-1 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                          {t.generate.next} &#x2192;
+                          {t.generate.next} →
                         </button>
                       </div>
                       <button onClick={() => setFormStep(5)} className="w-full py-1.5 text-neutral-500 text-xs hover:text-neutral-700 transition">
@@ -4019,7 +4019,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             {autoFillLoading ? (
                               <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                             ) : (
-                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                              <><span>✨</span> {t.generate.autoFill}</>
                             )}
                           </button>
                         </div>
@@ -4063,7 +4063,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               onClick={handleGenerateTextSuggestions}
                               className="text-xs px-2 py-1 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1"
                             >
-                              &#x1F4A1; {t.generate.suggestText}
+                              💡 {t.generate.suggestText}
                             </button>
                           </div>
                           <input
@@ -4130,7 +4130,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             {autoFillLoading ? (
                               <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
                             ) : (
-                              <><span>&#x2728;</span> {t.generate.autoFill}</>
+                              <><span>✨</span> {t.generate.autoFill}</>
                             )}
                           </button>
                         </div>
@@ -4254,10 +4254,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </div>
                       <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
                         <button onClick={() => setGenerationMode('image')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'image' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
-                          &#x1F5BC;&#xFE0F; {t.generate.visualMode}
+                          🖼️ {t.generate.visualMode}
                         </button>
                         <button onClick={() => setGenerationMode('video')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'video' ? 'bg-white text-purple-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
-                          &#x1F3AC; {t.generate.videoMode}
+                          🎬 {t.generate.videoMode}
                         </button>
                       </div>
 
@@ -4270,27 +4270,27 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               : selectedMusic !== 'none' ? 'bg-purple-50 border-purple-200 text-purple-700'
                               : 'bg-neutral-50 border-neutral-200 text-neutral-500'
                           }`}>
-                            {addAudio && selectedMusic !== 'none' ? `&#x1F399;&#xFE0F;&#x1F3B5; ${locale === 'fr' ? 'Voix off + Musique de fond' : 'Voice + Background music'}`
-                              : addAudio ? `&#x1F399;&#xFE0F; ${locale === 'fr' ? 'Voix off uniquement' : 'Voice narration only'}`
-                              : selectedMusic !== 'none' ? `&#x1F3B5; ${locale === 'fr' ? 'Musique de fond uniquement (pas de voix)' : 'Background music only (no voice)'}`
-                              : `&#x1F507; ${locale === 'fr' ? 'Aucun audio' : 'No audio'}`}
+                            {addAudio && selectedMusic !== 'none' ? `🎙️🎵 ${locale === 'fr' ? 'Voix off + Musique de fond' : 'Voice + Background music'}`
+                              : addAudio ? `🎙️ ${locale === 'fr' ? 'Voix off uniquement' : 'Voice narration only'}`
+                              : selectedMusic !== 'none' ? `🎵 ${locale === 'fr' ? 'Musique de fond uniquement (pas de voix)' : 'Background music only (no voice)'}`
+                              : `🔇 ${locale === 'fr' ? 'Aucun audio' : 'No audio'}`}
                           </div>
 
                           {/* Voice section */}
                           <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" checked={addAudio} onChange={(e) => setAddAudio(e.target.checked)} className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500" />
-                              <span className="text-xs font-semibold text-neutral-900">&#x1F399;&#xFE0F; {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}</span>
+                              <span className="text-xs font-semibold text-neutral-900">🎙️ {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}</span>
                               <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                             </label>
                             {addAudio && (
                               <div className="space-y-2">
                                 <div className="flex gap-2">
                                   <button type="button" onClick={() => setAudioTextSource('ai')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'ai' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
-                                    &#x2728; {t.generate.automatic}
+                                    ✨ {t.generate.automatic}
                                   </button>
                                   <button type="button" onClick={() => setAudioTextSource('manual')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'manual' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
-                                    &#x270D;&#xFE0F; {t.generate.writeYourText}
+                                    ✍️ {t.generate.writeYourText}
                                   </button>
                                 </div>
                                 {audioTextSource === 'manual' && (
@@ -4300,7 +4300,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   </div>
                                 )}
                                 {audioTextSource === 'ai' && (
-                                  <p className="text-[10px] text-neutral-600 italic">&#x1F4A1; {t.generate.audioAutoGenerated}</p>
+                                  <p className="text-[10px] text-neutral-600 italic">💡 {t.generate.audioAutoGenerated}</p>
                                 )}
                                 <div>
                                   <label className="block text-[10px] font-medium text-neutral-700 mb-1">{t.generate.voiceLabel}</label>
@@ -4329,7 +4329,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <div className="border border-purple-200 bg-purple-50 rounded-lg p-3 space-y-2">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" checked={addMusic} onChange={(e) => { setAddMusic(e.target.checked); if (!e.target.checked) setSelectedMusic('none'); else if (selectedMusic === 'none') setSelectedMusic('energetic'); }} className="w-4 h-4 text-purple-600 bg-white border-gray-300 rounded focus:ring-purple-500" />
-                              <span className="text-xs font-semibold text-neutral-900">&#x1F3B5; {t.generate.backgroundMusic}</span>
+                              <span className="text-xs font-semibold text-neutral-900">🎵 {t.generate.backgroundMusic}</span>
                               <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                             </label>
                             {addMusic && (
@@ -4349,7 +4349,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 </div>
                                 {trendingData?.trendingMusic && trendingData.trendingMusic.length > 0 && (
                                   <div className="pt-2 border-t border-purple-200">
-                                    <p className="text-[9px] font-semibold text-purple-700 mb-1.5">&#x1F3B5; {t.generate.backgroundMusicTrending}</p>
+                                    <p className="text-[9px] font-semibold text-purple-700 mb-1.5">🎵 {t.generate.backgroundMusicTrending}</p>
                                     <div className="space-y-1 max-h-[140px] overflow-y-auto">
                                       {trendingData.trendingMusic.slice(0, 8).map((song: any, i: number) => {
                                         const songKey = `trending:${song.title}`;
@@ -4361,7 +4361,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                               <p className={`font-medium truncate ${isSelected ? 'text-white' : 'text-purple-900'}`}>{song.title}</p>
                                               <p className={`truncate ${isSelected ? 'text-purple-200' : 'text-purple-500'}`}>{song.artist}</p>
                                             </div>
-                                            {isSelected ? <span className="text-white text-[10px] font-bold">&#x2713;</span> : song.trend === 'up' ? <span className="text-emerald-500 font-bold">&#x2191;</span> : null}
+                                            {isSelected ? <span className="text-white text-[10px] font-bold">✓</span> : song.trend === 'up' ? <span className="text-emerald-500 font-bold">↑</span> : null}
                                           </div>
                                         );
                                       })}
@@ -4377,7 +4377,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <div className="bg-purple-50 rounded-lg p-3 border-2 border-purple-300">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input type="checkbox" checked={enableAIText} onChange={(e) => setEnableAIText(e.target.checked)} className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
-                              <span className="text-xs font-semibold text-purple-900">&#x2728; {t.generate.addSubtitles}</span>
+                              <span className="text-xs font-semibold text-purple-900">✨ {t.generate.addSubtitles}</span>
                               <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded ml-auto">{t.generate.recommended}</span>
                             </label>
                             {enableAIText && (
@@ -4418,7 +4418,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   </div>
                                 </div>
                                 <p className="text-[9px] text-purple-600 italic mt-1.5">
-                                  {addAudio ? `&#x1F4A1; ${t.generate.subtitleSyncAudio}` : `&#x1F4A1; ${t.generate.subtitleAutoGenerated}`}
+                                  {addAudio ? `💡 ${t.generate.subtitleSyncAudio}` : `💡 ${t.generate.subtitleAutoGenerated}`}
                                 </p>
                               </div>
                             )}
@@ -4426,7 +4426,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
                           {/* Duration chips */}
                           <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                            <label className="block text-xs font-semibold text-neutral-900 mb-2">&#x23F1;&#xFE0F; {t.generate.videoDuration}</label>
+                            <label className="block text-xs font-semibold text-neutral-900 mb-2">⏱️ {t.generate.videoDuration}</label>
                             <div className="grid grid-cols-3 gap-1.5">
                               {([10, 15, 30, 45, 60, 90] as const).map((dur) => (
                                 <button key={dur} type="button" onClick={() => setVideoDuration(dur)} className={`relative py-2 px-1 rounded-lg text-center transition-all border ${videoDuration === dur ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-neutral-700 border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50'}`}>
@@ -4435,12 +4435,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 </button>
                               ))}
                             </div>
-                            <p className="text-[9px] text-indigo-500 mt-2 italic">&#x1F4A1; {t.generate.socialMediaIdeal}</p>
+                            <p className="text-[9px] text-indigo-500 mt-2 italic">💡 {t.generate.socialMediaIdeal}</p>
 
                             {videoDuration > 10 && (
                               <div className="mt-3 pt-3 border-t border-indigo-200">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-medium text-neutral-700">&#x1F3AC; {t.generate.videoLongMode}</span>
+                                  <span className="text-[10px] font-medium text-neutral-700">🎬 {t.generate.videoLongMode}</span>
                                   <div className="flex bg-white rounded-md border border-neutral-200 overflow-hidden">
                                     <button type="button" onClick={() => setVideoGenerationMode('simple')} className={`px-2.5 py-1 text-[10px] font-medium transition ${videoGenerationMode === 'simple' ? 'bg-indigo-600 text-white' : 'text-neutral-600 hover:bg-neutral-50'}`}>
                                       {t.generate.videoSimpleMode}
@@ -4459,9 +4459,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           {videoDuration > 10 && videoGenerationMode === 'advanced' && (
                             <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                               <div className="flex items-center justify-between mb-3">
-                                <span className="text-xs font-semibold text-neutral-900">&#x1F3AC; S\u00e9quences \u2014 {advancedSegments.length} segments ({advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s)</span>
+                                <span className="text-xs font-semibold text-neutral-900">🎬 S\u00e9quences \u2014 {advancedSegments.length} segments ({advancedSegments.reduce((s, seg) => s + seg.duration, 0)}s)</span>
                                 <button type="button" onClick={autoFillSegments} disabled={isDecomposing} className="px-2.5 py-1 text-[10px] font-medium bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 transition">
-                                  {isDecomposing ? '&#x23F3; G\u00e9n\u00e9ration...' : '&#x2728; Remplir auto'}
+                                  {isDecomposing ? '⏳ G\u00e9n\u00e9ration...' : '✨ Remplir auto'}
                                 </button>
                               </div>
                               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -4476,7 +4476,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                           ))}
                                         </div>
                                         {advancedSegments.length > 2 && (
-                                          <button type="button" onClick={() => removeSegment(idx)} className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded text-xs">&#x2715;</button>
+                                          <button type="button" onClick={() => removeSegment(idx)} className="w-5 h-5 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded text-xs">✕</button>
                                         )}
                                       </div>
                                     </div>
@@ -4522,7 +4522,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           {videoDuration > 10 && generatingVideo && videoLongSegments.length > 0 && videoGenerationMode === 'advanced' && (
                             <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-neutral-900">&#x1F39E;&#xFE0F; Progression \u2014 {videoLongSegments.length} segments</span>
+                                <span className="text-xs font-semibold text-neutral-900">🎞️ Progression \u2014 {videoLongSegments.length} segments</span>
                                 <span className="text-[10px] text-purple-600 font-medium">{videoLongProgress}%</span>
                               </div>
                               <div className="w-full bg-purple-200 rounded-full h-1.5 mb-3">
@@ -4532,7 +4532,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 {videoLongSegments.map((seg: any, idx: number) => (
                                   <div key={idx} className={`flex-shrink-0 w-20 rounded-lg border p-2 text-center transition-all ${seg.status === 'completed' ? 'bg-green-50 border-green-300' : seg.status === 'generating' ? 'bg-amber-50 border-amber-300 animate-pulse' : seg.status === 'failed' ? 'bg-red-50 border-red-300' : 'bg-white border-neutral-200'}`}>
                                     <span className="block text-[10px] font-medium text-neutral-600">Seg. {idx + 1}</span>
-                                    <span className="block text-[9px] mt-0.5">{seg.status === 'completed' ? '&#x2705;' : seg.status === 'generating' ? '&#x23F3;' : seg.status === 'failed' ? '&#x274C;' : '&#x23F8;&#xFE0F;'}</span>
+                                    <span className="block text-[9px] mt-0.5">{seg.status === 'completed' ? '✅' : seg.status === 'generating' ? '⏳' : seg.status === 'failed' ? '❌' : '⏸️'}</span>
                                     {seg.status === 'completed' && seg.videoUrl && <video src={seg.videoUrl} className="w-full h-10 object-cover rounded mt-1" muted />}
                                   </div>
                                 ))}
@@ -4554,19 +4554,19 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         }`}
                       >
                         {generationMode === 'video'
-                          ? (generatingVideo ? videoProgress || t.generate.generating : `&#x1F3AC; ${t.generate.createVideo} (${videoDuration}s) \u2014 ${getVideoCreditCost(videoDuration)} cr`)
-                          : (generating ? t.generate.generating : `&#x1F5BC;&#xFE0F; ${t.generate.generateVisual} \u2014 ${CREDIT_COSTS.image_t2i} cr`)
+                          ? (generatingVideo ? videoProgress || t.generate.generating : `🎬 ${t.generate.createVideo} (${videoDuration}s) \u2014 ${getVideoCreditCost(videoDuration)} cr`)
+                          : (generating ? t.generate.generating : `🖼️ ${t.generate.generateVisual} \u2014 ${CREDIT_COSTS.image_t2i} cr`)
                         }
                       </button>
 
                       {useNewsMode && !selectedNews && (
-                        <p className="text-[10px] text-amber-600 text-center">&#x26A0;&#xFE0F; {t.generate.selectNewsWarning}</p>
+                        <p className="text-[10px] text-amber-600 text-center">⚠️ {t.generate.selectNewsWarning}</p>
                       )}
                       {!useNewsMode && !businessDescription.trim() && (
-                        <p className="text-[10px] text-amber-600 text-center">&#x26A0;&#xFE0F; {t.generate.describeBusinessWarning}</p>
+                        <p className="text-[10px] text-amber-600 text-center">⚠️ {t.generate.describeBusinessWarning}</p>
                       )}
                       <button onClick={() => setFormStep(3)} className="w-full py-1.5 border border-neutral-300 text-neutral-600 text-xs font-medium rounded-lg hover:bg-neutral-50 transition mt-2">
-                        &#x2190; {t.generate.modifyDetails}
+                        ← {t.generate.modifyDetails}
                       </button>
                     </>)}
                   </div>
@@ -4592,24 +4592,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             <label className="flex items-start gap-2 cursor-pointer">
                               <input type="radio" name="logoMode" checked={logoMode === 'overlay'} onChange={() => setLogoMode('overlay')} className="mt-0.5" />
                               <div>
-                                <p className="text-xs font-semibold text-blue-900">&#x1F3A8; {t.generate.addAsOverlay}</p>
+                                <p className="text-xs font-semibold text-blue-900">🎨 {t.generate.addAsOverlay}</p>
                                 <p className="text-[10px] text-blue-700">{t.generate.logoOverlayDesc}</p>
                               </div>
                             </label>
                             <label className="flex items-start gap-2 cursor-pointer">
                               <input type="radio" name="logoMode" checked={logoMode === 'modify'} onChange={() => setLogoMode('modify')} className="mt-0.5" />
                               <div>
-                                <p className="text-xs font-semibold text-blue-900">&#x270F;&#xFE0F; {t.generate.modifyImage}</p>
+                                <p className="text-xs font-semibold text-blue-900">✏️ {t.generate.modifyImage}</p>
                                 <p className="text-[10px] text-blue-700">{t.generate.modifyImageDesc}</p>
                               </div>
                             </label>
                           </div>
                         </div>
-                        <button onClick={() => setLogoUrl(null)} className="text-xs text-red-600 hover:underline font-medium">&#x1F5D1;&#xFE0F; {t.generate.deleteImage}</button>
+                        <button onClick={() => setLogoUrl(null)} className="text-xs text-red-600 hover:underline font-medium">🗑️ {t.generate.deleteImage}</button>
                       </div>
                     ) : (
                       <>
-                        <div className="text-2xl mb-1">&#x1F4F8;</div>
+                        <div className="text-2xl mb-1">📸</div>
                         <p className="text-xs text-neutral-600 mb-2">{t.generate.dropOrClickLogo}</p>
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); }} className="hidden" />
                         <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-3 py-1 text-xs bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
