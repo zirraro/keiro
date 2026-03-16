@@ -339,9 +339,44 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 
     const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
 
-    // --- Try Seedance T2V first ---
+    // ═══ PROVIDER ORDER: Kling primary, Seedance fallback ═══
+    // To swap on 2026-03-24: move Seedance block above Kling block
+
+    // --- Try Kling T2V first (primary) ---
     try {
-      console.log('[Content] Trying Seedance T2V (primary)...');
+      console.log('[Content] Trying Kling T2V (primary)...');
+      const klingTaskId = await createT2VTask({
+        prompt: videoPrompt,
+        duration: '5',
+        aspect_ratio: '9:16',
+      });
+      console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
+
+      const maxWait = 180_000;
+      const pollInterval = 8_000;
+      const start = Date.now();
+
+      while (Date.now() - start < maxWait) {
+        await new Promise(r => setTimeout(r, pollInterval));
+        const result = await checkT2VTask(klingTaskId);
+        if (result.status === 'completed' && result.videoUrl) {
+          console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
+          const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
+          return cachedUrl || result.videoUrl;
+        }
+        if (result.status === 'failed') {
+          console.error(`[Content] Kling T2V failed: ${result.error}`);
+          break;
+        }
+        console.log(`[Content] Kling T2V polling... status: ${result.status}`);
+      }
+    } catch (klingErr: any) {
+      console.warn('[Content] Kling T2V failed:', klingErr.message);
+    }
+
+    // --- Fallback to Seedance T2V ---
+    try {
+      console.log('[Content] Kling failed — falling back to Seedance T2V...');
       const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
       const seedanceRes = await fetch(SEEDANCE_API_URL, {
         method: 'POST',
@@ -364,9 +399,8 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
       if (!taskId) throw new Error('Seedance returned no task ID');
 
-      console.log(`[Content] Seedance task created: ${taskId}`);
+      console.log(`[Content] Seedance fallback task created: ${taskId}`);
 
-      // Poll for completion (max 4 minutes, every 10s)
       const maxWait = 240_000;
       const pollInterval = 10_000;
       const start = Date.now();
@@ -399,38 +433,10 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
         console.log(`[Content] Seedance polling... status: ${status}`);
       }
     } catch (seedanceErr: any) {
-      console.warn('[Content] Seedance T2V failed:', seedanceErr.message);
+      console.warn('[Content] Seedance T2V also failed:', seedanceErr.message);
     }
 
-    // --- Fallback to Kling T2V ---
-    console.log('[Content] Falling back to Kling T2V...');
-    const klingTaskId = await createT2VTask({
-      prompt: videoPrompt,
-      duration: '5',
-      aspect_ratio: '9:16',
-    });
-    console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
-
-    const maxWait = 180_000;
-    const pollInterval = 8_000;
-    const start = Date.now();
-
-    while (Date.now() - start < maxWait) {
-      await new Promise(r => setTimeout(r, pollInterval));
-      const result = await checkT2VTask(klingTaskId);
-      if (result.status === 'completed' && result.videoUrl) {
-        console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
-        const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
-        return cachedUrl || result.videoUrl;
-      }
-      if (result.status === 'failed') {
-        console.error(`[Content] Kling T2V failed: ${result.error}`);
-        return null;
-      }
-      console.log(`[Content] Kling T2V polling... status: ${result.status}`);
-    }
-
-    console.error('[Content] Kling T2V timeout after 3 minutes');
+    console.error('[Content] Both Kling and Seedance T2V failed');
     return null;
   } catch (e: any) {
     console.error('[Content] Video generation error:', e.message);
@@ -511,121 +517,112 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
     const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 250);
     console.log(`[Content] Video prompt: "${videoPrompt.substring(0, 100)}..."`);
 
-    // Step 3: Try Seedance T2V first
-    console.log('[Content] Step 3: Calling Seedance T2V API...');
+    // ═══ PROVIDER ORDER: Kling primary, Seedance fallback ═══
+    // To swap on 2026-03-24: move Seedance block above Kling block
+
+    // Step 3: Try Kling T2V first (primary)
+    console.log('[Content] Step 3: Calling Kling T2V API (primary)...');
     let videoUrl: string | null = null;
     const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
 
     try {
-      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
-      const seedanceRes = await fetch(SEEDANCE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'seedance-1-5-pro-251215',
-          content: [{ type: 'text', text: formattedPrompt }],
-        }),
+      const klingTaskId = await createT2VTask({
+        prompt: videoPrompt,
+        duration: '5',
+        aspect_ratio: '9:16',
       });
+      console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
 
-      if (!seedanceRes.ok) {
-        const errText = await seedanceRes.text().catch(() => '');
-        throw new Error(`Seedance HTTP ${seedanceRes.status}: ${errText.substring(0, 200)}`);
-      }
+      const maxWaitK = 180_000;
+      const pollIntervalK = 8_000;
+      const startK = Date.now();
 
-      const seedanceData = await seedanceRes.json();
-      const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
-      if (!taskId) throw new Error('Seedance returned no task ID');
-
-      console.log(`[Content] Seedance task created: ${taskId}`);
-
-      // Step 4: Poll for completion (max 4 minutes, every 10s)
-      const maxWait = 240_000;
-      const pollInterval = 10_000;
-      const start = Date.now();
-
-      while (Date.now() - start < maxWait) {
-        await new Promise(r => setTimeout(r, pollInterval));
-
-        const statusRes = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-
-        if (!statusRes.ok) {
-          console.warn(`[Content] Seedance status check error: ${statusRes.status}`);
-          continue;
-        }
-
-        const statusData = await statusRes.json();
-        const status = statusData.status || statusData.data?.status || statusData.state || statusData.data?.state;
-
-        if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
-          videoUrl = extractSeedanceVideoUrl(statusData);
-          if (videoUrl) {
-            console.log(`[Content] Seedance T2V completed: ${videoUrl.substring(0, 80)}...`);
-          } else {
-            console.warn('[Content] Seedance completed but no video URL found in response');
-          }
+      while (Date.now() - startK < maxWaitK) {
+        await new Promise(r => setTimeout(r, pollIntervalK));
+        const result = await checkT2VTask(klingTaskId);
+        if (result.status === 'completed' && result.videoUrl) {
+          videoUrl = result.videoUrl;
+          console.log(`[Content] Kling T2V completed: ${videoUrl.substring(0, 80)}...`);
           break;
         }
-
-        if (status === 'failed' || status === 'error' || status === 'cancelled') {
-          console.error(`[Content] Seedance T2V failed: ${statusData.error || status}`);
+        if (result.status === 'failed') {
+          console.error(`[Content] Kling T2V failed: ${result.error}`);
           break;
         }
-
-        console.log(`[Content] Seedance polling... status: ${status} (${Math.round((Date.now() - start) / 1000)}s)`);
+        console.log(`[Content] Kling T2V polling... status: ${result.status}`);
       }
 
-      if (!videoUrl && Date.now() - start >= maxWait) {
-        console.error('[Content] Seedance T2V timeout after 4 minutes');
+      if (!videoUrl && Date.now() - startK >= maxWaitK) {
+        console.error('[Content] Kling T2V timeout after 3 minutes');
       }
-    } catch (seedanceErr: any) {
-      console.warn('[Content] Seedance T2V failed:', seedanceErr.message);
+    } catch (klingErr: any) {
+      console.warn('[Content] Kling T2V failed:', klingErr.message);
     }
 
-    // Step 5: If Seedance failed, fallback to Kling T2V
+    // Step 4: If Kling failed, fallback to Seedance T2V
     if (!videoUrl) {
-      console.log('[Content] Seedance failed — falling back to Kling T2V...');
+      console.log('[Content] Kling failed — falling back to Seedance T2V...');
       try {
-        const klingTaskId = await createT2VTask({
-          prompt: videoPrompt,
-          duration: '5',
-          aspect_ratio: '9:16',
+        const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
+        const seedanceRes = await fetch(SEEDANCE_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'seedance-1-5-pro-251215',
+            content: [{ type: 'text', text: formattedPrompt }],
+          }),
         });
-        console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
 
-        const maxWait = 180_000;
-        const pollInterval = 8_000;
-        const start = Date.now();
-
-        while (Date.now() - start < maxWait) {
-          await new Promise(r => setTimeout(r, pollInterval));
-          const result = await checkT2VTask(klingTaskId);
-          if (result.status === 'completed' && result.videoUrl) {
-            videoUrl = result.videoUrl;
-            console.log(`[Content] Kling T2V completed: ${videoUrl.substring(0, 80)}...`);
-            break;
-          }
-          if (result.status === 'failed') {
-            console.error(`[Content] Kling T2V failed: ${result.error}`);
-            break;
-          }
-          console.log(`[Content] Kling T2V polling... status: ${result.status}`);
+        if (!seedanceRes.ok) {
+          const errText = await seedanceRes.text().catch(() => '');
+          throw new Error(`Seedance HTTP ${seedanceRes.status}: ${errText.substring(0, 200)}`);
         }
 
-        if (!videoUrl && Date.now() - start >= maxWait) {
-          console.error('[Content] Kling T2V timeout after 3 minutes');
+        const seedanceData = await seedanceRes.json();
+        const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
+        if (!taskId) throw new Error('Seedance returned no task ID');
+
+        console.log(`[Content] Seedance fallback task created: ${taskId}`);
+
+        const maxWaitS = 240_000;
+        const pollIntervalS = 10_000;
+        const startS = Date.now();
+
+        while (Date.now() - startS < maxWaitS) {
+          await new Promise(r => setTimeout(r, pollIntervalS));
+          const statusRes = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+          });
+          if (!statusRes.ok) { console.warn(`[Content] Seedance status error: ${statusRes.status}`); continue; }
+
+          const statusData = await statusRes.json();
+          const status = statusData.status || statusData.data?.status || statusData.state || statusData.data?.state;
+
+          if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
+            videoUrl = extractSeedanceVideoUrl(statusData);
+            if (videoUrl) {
+              console.log(`[Content] Seedance T2V completed: ${videoUrl.substring(0, 80)}...`);
+            } else {
+              console.warn('[Content] Seedance completed but no video URL');
+            }
+            break;
+          }
+          if (status === 'failed' || status === 'error' || status === 'cancelled') {
+            console.error(`[Content] Seedance T2V failed: ${statusData.error || status}`);
+            break;
+          }
+          console.log(`[Content] Seedance polling... status: ${status}`);
         }
-      } catch (klingErr: any) {
-        console.error('[Content] Kling T2V fallback failed:', klingErr.message);
+      } catch (seedanceErr: any) {
+        console.warn('[Content] Seedance T2V also failed:', seedanceErr.message);
       }
     }
 
-    // Step 6: Cache the video to Supabase Storage for permanent URL
+    // Step 5: Cache the video to Supabase Storage for permanent URL
     if (videoUrl) {
       const videoId = `reel-${Date.now()}`;
       const cachedUrl = await cacheVideoToStorage(videoUrl, videoId);
