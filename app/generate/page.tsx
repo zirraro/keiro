@@ -185,7 +185,7 @@ export default function GeneratePage() {
   }, [allNewsItems, category, searchQuery]);
 
   // Nombre d'articles visibles (3 → 6 → 9 via bouton "Afficher plus")
-  const [visibleNewsCount, setVisibleNewsCount] = useState(3);
+  const [visibleNewsCount, setVisibleNewsCount] = useState(6);
   // Reset à 3 quand on change de catégorie ou de recherche
   useEffect(() => { setVisibleNewsCount(3); }, [category, searchQuery]);
 
@@ -3412,10 +3412,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
 
             {/* ─── 2 colonnes : Tendances à gauche, Actualités à droite ─── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
 
             {/* === COLONNE GAUCHE : Tendances === */}
-            <div>
+            <div className="flex flex-col">
             <div className="relative">
               <div className="flex items-center gap-1 mb-2">
                 <span className="text-base mr-0.5">🔥</span>
@@ -3549,7 +3549,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
 
             {/* === COLONNE DROITE : Actualités === */}
-            <div>
+            <div className="flex flex-col">
             {/* News category + search */}
             <div className="mb-3 flex gap-2">
               <select
@@ -3619,7 +3619,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               )}
 
               {!loading && filteredNews.length > 0 && (<>
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-2.5">
                   {filteredNews.slice(0, visibleNewsCount).map((item) => (
                     <article
                       key={item.id}
