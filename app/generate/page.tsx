@@ -3362,22 +3362,23 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {/* ═══ WIZARD PHASE: NEWS-SELECT — S\u00e9lection actualit\u00e9/tendance ═══ */}
         {wizardPhase === 'news-select' && (
           <div>
-            {/* Phase indicator */}
+            {/* Phase indicator — compact stepper */}
             <div className="flex items-center gap-3 mb-5">
               <button
                 onClick={() => setWizardPhase('entry')}
                 className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                {locale === 'fr' ? 'Retour' : 'Back'}
               </button>
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-                <span className="text-sm font-semibold text-neutral-900">{locale === 'fr' ? 'Choisissez une actualit\u00e9 ou tendance' : 'Choose a news item or trend'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">2</div>
-                <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">3</div>
+                <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
+                <div className="w-6 h-0.5 bg-neutral-200"></div>
+                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">2</span>
+                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
+                <div className="w-6 h-0.5 bg-neutral-200"></div>
+                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">3</span>
+                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
               </div>
             </div>
 
@@ -3698,24 +3699,27 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {/* ═══ WIZARD PHASE: CONFIGURE — Business + Direction + G\u00e9n\u00e9ration ═══ */}
         {wizardPhase === 'configure' && (
           <div>
-            {/* Phase indicator */}
+            {/* Phase indicator — compact stepper */}
             <div className="flex items-center gap-3 mb-5">
               <button
                 onClick={() => setWizardPhase(useNewsMode ? 'news-select' : 'entry')}
                 className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                {locale === 'fr' ? 'Retour' : 'Back'}
               </button>
-              <div className="flex-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {useNewsMode && (
                   <>
                     <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">&#x2713;</span>
-                    <span className="w-5 h-0.5 bg-emerald-400"></span>
+                    <span className="text-xs text-emerald-600">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
+                    <div className="w-6 h-0.5 bg-emerald-400"></div>
                   </>
                 )}
                 <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">{useNewsMode ? '2' : '1'}</span>
-                <span className="text-sm font-semibold text-neutral-900">{locale === 'fr' ? 'Configurez votre contenu' : 'Configure your content'}</span>
+                <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
+                <div className="w-6 h-0.5 bg-neutral-200"></div>
+                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">{useNewsMode ? '3' : '2'}</span>
+                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
               </div>
             </div>
 
