@@ -7,9 +7,8 @@ import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInst
 import { publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
-import { convertImageToVideoKenBurns, mergeVideoWithAudio } from '@/lib/video-converter';
-import { generateNarrationSuggestions } from '@/lib/audio/condense-text';
-import { generateAudioWithElevenLabs, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
+// Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
+// Video pipeline now uses Seedance T2V / Kling T2V
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
 
 // ──────────────────────────────────────
@@ -289,61 +288,145 @@ async function publishToInstagram(
 }
 
 // ──────────────────────────────────────
-// Generate TikTok video via Kling T2V (5s, 9:16 vertical)
+// Seedance T2V API constants (same as /api/seedream/t2v)
+// ──────────────────────────────────────
+const SEEDANCE_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
+
+/**
+ * Extract video URL from Seedance task status response (mirrors checkSeedanceTaskStatus in t2v route).
+ */
+function extractSeedanceVideoUrl(data: any): string | null {
+  if (data.content && typeof data.content === 'object' && !Array.isArray(data.content)) {
+    if (data.content.video_url) return typeof data.content.video_url === 'string' ? data.content.video_url : data.content.video_url.url || null;
+  }
+  if (data.content && Array.isArray(data.content)) {
+    for (const item of data.content) {
+      if (item.type === 'video_url' && item.video_url?.url) return item.video_url.url;
+      if (item.type === 'video' && item.url) return item.url;
+      if (item.video_url) return typeof item.video_url === 'string' ? item.video_url : item.video_url.url;
+    }
+  }
+  return data.output?.video_url || data.output?.url || data.result?.video_url || data.result?.url || data.video_url || data.url || data.data?.video_url || null;
+}
+
+// ──────────────────────────────────────
+// Generate TikTok/short video via Seedance T2V (+ Kling T2V fallback)
 // Returns permanent Supabase Storage URL or null
 // ──────────────────────────────────────
 async function generateTikTokVideo(visualDescription: string): Promise<string | null> {
   try {
-    // Optimize prompt for video generation
+    // Optimize prompt for viral video generation
     const optimizedPrompt = await callClaude({
-      system: `You are an expert at writing video generation prompts for Kling AI.
-Convert the user's visual brief into a cinematic 5-second video prompt.
-Rules:
-- Max 200 characters
-- Describe MOTION and CAMERA movement (pan, zoom, dolly, tracking shot)
-- Focus on ONE dynamic visual scene
-- NO text, NO logos, NO UI elements
-- Professional quality, 4K cinematic look
-- Output ONLY the prompt, nothing else`,
+      system: `Tu es le meilleur créateur de vidéos virales pour les réseaux sociaux. Tu convertis des briefs marketing en prompts vidéo EXCEPTIONNELS pour Seedance AI.
+
+RÈGLES POUR UN PROMPT VIDÉO VIRAL :
+- Décris une SCÈNE UNIQUE avec du MOUVEMENT captivant (pas statique)
+- Inclus des MOUVEMENTS DE CAMÉRA (dolly in, pan, tracking shot, drone aerial)
+- Lumière cinématique : golden hour, néons, rétro-éclairage dramatique
+- Émotions fortes : surprise, satisfaction, émerveillement
+- Style : ultra réaliste 4K cinématique, profondeur de champ
+- JAMAIS de texte, lettres, mots, logos dans la vidéo
+- Max 200 caractères, EN ANGLAIS uniquement
+- Le prompt doit donner une vidéo qui ARRÊTE le scroll
+
+Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       message: `Create a 5s vertical video prompt from this brief: ${visualDescription}`,
       maxTokens: 200,
     });
 
     const videoPrompt = (optimizedPrompt || visualDescription).substring(0, 250);
-    console.log(`[Content] Generating TikTok video via Kling T2V: "${videoPrompt.substring(0, 80)}..."`);
+    console.log(`[Content] Generating video: "${videoPrompt.substring(0, 80)}..."`);
 
-    // Create Kling T2V task (5s, 9:16 vertical for TikTok)
-    const taskId = await createT2VTask({
+    const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
+
+    // --- Try Seedance T2V first ---
+    try {
+      console.log('[Content] Trying Seedance T2V (primary)...');
+      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
+      const seedanceRes = await fetch(SEEDANCE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'seedance-1-5-pro-251215',
+          content: [{ type: 'text', text: formattedPrompt }],
+        }),
+      });
+
+      if (!seedanceRes.ok) {
+        const errText = await seedanceRes.text().catch(() => '');
+        throw new Error(`Seedance HTTP ${seedanceRes.status}: ${errText.substring(0, 200)}`);
+      }
+
+      const seedanceData = await seedanceRes.json();
+      const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
+      if (!taskId) throw new Error('Seedance returned no task ID');
+
+      console.log(`[Content] Seedance task created: ${taskId}`);
+
+      // Poll for completion (max 4 minutes, every 10s)
+      const maxWait = 240_000;
+      const pollInterval = 10_000;
+      const start = Date.now();
+
+      while (Date.now() - start < maxWait) {
+        await new Promise(r => setTimeout(r, pollInterval));
+        const statusRes = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+        if (!statusRes.ok) { console.warn(`[Content] Seedance status error: ${statusRes.status}`); continue; }
+
+        const statusData = await statusRes.json();
+        const status = statusData.status || statusData.data?.status || statusData.state || statusData.data?.state;
+
+        if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
+          const videoUrl = extractSeedanceVideoUrl(statusData);
+          if (videoUrl) {
+            console.log(`[Content] Seedance T2V completed: ${videoUrl.substring(0, 80)}...`);
+            const cachedUrl = await cacheVideoToStorage(videoUrl, `tiktok-${Date.now()}`);
+            return cachedUrl || videoUrl;
+          }
+          console.warn('[Content] Seedance completed but no video URL');
+          break;
+        }
+        if (status === 'failed' || status === 'error' || status === 'cancelled') {
+          console.error(`[Content] Seedance T2V failed: ${statusData.error || status}`);
+          break;
+        }
+        console.log(`[Content] Seedance polling... status: ${status}`);
+      }
+    } catch (seedanceErr: any) {
+      console.warn('[Content] Seedance T2V failed:', seedanceErr.message);
+    }
+
+    // --- Fallback to Kling T2V ---
+    console.log('[Content] Falling back to Kling T2V...');
+    const klingTaskId = await createT2VTask({
       prompt: videoPrompt,
       duration: '5',
       aspect_ratio: '9:16',
     });
+    console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
 
-    console.log(`[Content] Kling T2V task created: ${taskId}`);
-
-    // Poll for completion (max 3 minutes)
     const maxWait = 180_000;
     const pollInterval = 8_000;
     const start = Date.now();
 
     while (Date.now() - start < maxWait) {
       await new Promise(r => setTimeout(r, pollInterval));
-
-      const result = await checkT2VTask(taskId);
-
+      const result = await checkT2VTask(klingTaskId);
       if (result.status === 'completed' && result.videoUrl) {
         console.log(`[Content] Kling T2V completed: ${result.videoUrl.substring(0, 80)}...`);
-
-        // Cache video to Supabase Storage for permanent URL
         const cachedUrl = await cacheVideoToStorage(result.videoUrl, `tiktok-${Date.now()}`);
         return cachedUrl || result.videoUrl;
       }
-
       if (result.status === 'failed') {
         console.error(`[Content] Kling T2V failed: ${result.error}`);
         return null;
       }
-
       console.log(`[Content] Kling T2V polling... status: ${result.status}`);
     }
 
@@ -384,130 +467,179 @@ async function cacheVideoToStorage(tempUrl: string, videoId: string): Promise<st
 }
 
 // ──────────────────────────────────────
-// Generate a 30s video with Ken Burns + narration (for Reels & TikTok)
-// Pipeline: image → Ken Burns video → narration text → TTS → merge audio+video
+// Generate video via Seedance T2V (+ Kling T2V fallback) for Reels & TikTok
+// Pipeline: cover image (Seedream) → elite video prompt → Seedance T2V → cache
 // ──────────────────────────────────────
 async function generateVideoWithNarration(
   visualDescription: string,
   caption: string,
   format: string = 'reel',
-  duration: number = 30
+  duration: number = 5
 ): Promise<{ videoUrl: string | null; coverUrl: string | null }> {
   try {
-    console.log(`[Content] === VIDEO+NARRATION PIPELINE (${duration}s) ===`);
+    console.log(`[Content] === VIDEO PIPELINE (Seedance T2V + Kling fallback) ===`);
 
     // Step 1: Generate the cover image via Seedream
-    console.log('[Content] Step 1: Generating Seedream image...');
+    console.log('[Content] Step 1: Generating Seedream cover image...');
     const imageUrl = await generateVisual(visualDescription, format);
     if (!imageUrl) {
       console.error('[Content] Image generation failed — aborting video pipeline');
       return { videoUrl: null, coverUrl: null };
     }
-    console.log('[Content] Image generated:', imageUrl.substring(0, 80));
+    console.log('[Content] Cover image generated:', imageUrl.substring(0, 80));
 
-    // Step 2: Download image and create Ken Burns video
-    console.log(`[Content] Step 2: Creating ${duration}s Ken Burns video...`);
-    const imgResponse = await fetch(imageUrl);
-    if (!imgResponse.ok) {
-      console.error('[Content] Failed to download image for Ken Burns');
-      return { videoUrl: null, coverUrl: imageUrl };
-    }
-    const imgBuffer = Buffer.from(await imgResponse.arrayBuffer());
+    // Step 2: Create an elite viral video prompt via Claude Haiku
+    console.log('[Content] Step 2: Creating elite video prompt...');
+    const videoPromptRaw = await callClaude({
+      system: `Tu es le meilleur créateur de vidéos virales pour les réseaux sociaux. Tu convertis des briefs marketing en prompts vidéo EXCEPTIONNELS pour Seedance AI.
 
-    const videoBuffer = await convertImageToVideoKenBurns(imgBuffer, {
-      width: 1080,
-      height: 1920,
-      duration,
-      fps: 30,
+RÈGLES POUR UN PROMPT VIDÉO VIRAL :
+- Décris une SCÈNE UNIQUE avec du MOUVEMENT captivant (pas statique)
+- Inclus des MOUVEMENTS DE CAMÉRA (dolly in, pan, tracking shot, drone aerial)
+- Lumière cinématique : golden hour, néons, rétro-éclairage dramatique
+- Émotions fortes : surprise, satisfaction, émerveillement
+- Style : ultra réaliste 4K cinématique, profondeur de champ
+- JAMAIS de texte, lettres, mots, logos dans la vidéo
+- Max 200 caractères, EN ANGLAIS uniquement
+- Le prompt doit donner une vidéo qui ARRÊTE le scroll
+
+Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
+      message: `Brief marketing: ${visualDescription}\nCaption: ${caption}`,
+      maxTokens: 200,
     });
-    console.log(`[Content] Ken Burns video: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
 
-    // Step 3: Generate narration text
-    console.log('[Content] Step 3: Generating narration text...');
-    const targetWords = Math.floor(duration * 2.5); // ~2.5 words/sec for natural speech
-    const narrationContext = `${caption}\n\nVisuel: ${visualDescription}`;
-    let narrationText: string;
+    const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 250);
+    console.log(`[Content] Video prompt: "${videoPrompt.substring(0, 100)}..."`);
+
+    // Step 3: Try Seedance T2V first
+    console.log('[Content] Step 3: Calling Seedance T2V API...');
+    let videoUrl: string | null = null;
+    const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
 
     try {
-      const suggestions = await generateNarrationSuggestions(narrationContext, targetWords);
-      // Pick catchy style for social media
-      narrationText = suggestions.catchy || suggestions.informative || suggestions.storytelling;
-      console.log('[Content] Narration text:', narrationText.substring(0, 100));
-    } catch (narErr: any) {
-      console.warn('[Content] Narration generation failed:', narErr.message);
-      // Fallback: use the caption as narration
-      narrationText = caption.replace(/#\w+/g, '').replace(/\n+/g, '. ').trim().substring(0, 300);
-      console.log('[Content] Using caption as fallback narration');
+      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
+      const seedanceRes = await fetch(SEEDANCE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'seedance-1-5-pro-251215',
+          content: [{ type: 'text', text: formattedPrompt }],
+        }),
+      });
+
+      if (!seedanceRes.ok) {
+        const errText = await seedanceRes.text().catch(() => '');
+        throw new Error(`Seedance HTTP ${seedanceRes.status}: ${errText.substring(0, 200)}`);
+      }
+
+      const seedanceData = await seedanceRes.json();
+      const taskId = seedanceData.id || seedanceData.task_id || seedanceData.data?.id || seedanceData.data?.task_id;
+      if (!taskId) throw new Error('Seedance returned no task ID');
+
+      console.log(`[Content] Seedance task created: ${taskId}`);
+
+      // Step 4: Poll for completion (max 4 minutes, every 10s)
+      const maxWait = 240_000;
+      const pollInterval = 10_000;
+      const start = Date.now();
+
+      while (Date.now() - start < maxWait) {
+        await new Promise(r => setTimeout(r, pollInterval));
+
+        const statusRes = await fetch(`${SEEDANCE_API_URL}/${taskId}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        });
+
+        if (!statusRes.ok) {
+          console.warn(`[Content] Seedance status check error: ${statusRes.status}`);
+          continue;
+        }
+
+        const statusData = await statusRes.json();
+        const status = statusData.status || statusData.data?.status || statusData.state || statusData.data?.state;
+
+        if (status === 'succeeded' || status === 'completed' || status === 'success' || status === 'done') {
+          videoUrl = extractSeedanceVideoUrl(statusData);
+          if (videoUrl) {
+            console.log(`[Content] Seedance T2V completed: ${videoUrl.substring(0, 80)}...`);
+          } else {
+            console.warn('[Content] Seedance completed but no video URL found in response');
+          }
+          break;
+        }
+
+        if (status === 'failed' || status === 'error' || status === 'cancelled') {
+          console.error(`[Content] Seedance T2V failed: ${statusData.error || status}`);
+          break;
+        }
+
+        console.log(`[Content] Seedance polling... status: ${status} (${Math.round((Date.now() - start) / 1000)}s)`);
+      }
+
+      if (!videoUrl && Date.now() - start >= maxWait) {
+        console.error('[Content] Seedance T2V timeout after 4 minutes');
+      }
+    } catch (seedanceErr: any) {
+      console.warn('[Content] Seedance T2V failed:', seedanceErr.message);
     }
 
-    // Step 4: Generate TTS audio
-    console.log('[Content] Step 4: Generating TTS audio...');
-    let audioUrl: string;
-    try {
-      // Use Daniel voice (posé, professional) — good for all content types
-      audioUrl = await generateAudioWithElevenLabs(narrationText, DEFAULT_VOICE_ID);
-      console.log('[Content] Audio generated:', audioUrl.substring(0, 80));
-    } catch (ttsErr: any) {
-      console.warn('[Content] TTS failed:', ttsErr.message);
-      // If TTS fails, still return the silent video — it's better than nothing
-      const videoId = `reel-silent-${Date.now()}`;
-      const cachedUrl = await cacheVideoBufferToStorage(videoBuffer, videoId);
-      return { videoUrl: cachedUrl, coverUrl: imageUrl };
+    // Step 5: If Seedance failed, fallback to Kling T2V
+    if (!videoUrl) {
+      console.log('[Content] Seedance failed — falling back to Kling T2V...');
+      try {
+        const klingTaskId = await createT2VTask({
+          prompt: videoPrompt,
+          duration: '5',
+          aspect_ratio: '9:16',
+        });
+        console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
+
+        const maxWait = 180_000;
+        const pollInterval = 8_000;
+        const start = Date.now();
+
+        while (Date.now() - start < maxWait) {
+          await new Promise(r => setTimeout(r, pollInterval));
+          const result = await checkT2VTask(klingTaskId);
+          if (result.status === 'completed' && result.videoUrl) {
+            videoUrl = result.videoUrl;
+            console.log(`[Content] Kling T2V completed: ${videoUrl.substring(0, 80)}...`);
+            break;
+          }
+          if (result.status === 'failed') {
+            console.error(`[Content] Kling T2V failed: ${result.error}`);
+            break;
+          }
+          console.log(`[Content] Kling T2V polling... status: ${result.status}`);
+        }
+
+        if (!videoUrl && Date.now() - start >= maxWait) {
+          console.error('[Content] Kling T2V timeout after 3 minutes');
+        }
+      } catch (klingErr: any) {
+        console.error('[Content] Kling T2V fallback failed:', klingErr.message);
+      }
     }
 
-    // Step 5: Merge audio + video
-    console.log('[Content] Step 5: Merging audio + video...');
-    let mergedBuffer: Buffer;
-    try {
-      // Download the audio file
-      const audioResponse = await fetch(audioUrl);
-      if (!audioResponse.ok) throw new Error('Failed to download audio');
-      const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-      mergedBuffer = await mergeVideoWithAudio(videoBuffer, audioBuffer);
-      console.log(`[Content] Merged video: ${(mergedBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
-    } catch (mergeErr: any) {
-      console.warn('[Content] Audio merge failed:', mergeErr.message, '— using silent video');
-      mergedBuffer = videoBuffer;
+    // Step 6: Cache the video to Supabase Storage for permanent URL
+    if (videoUrl) {
+      const videoId = `reel-${Date.now()}`;
+      const cachedUrl = await cacheVideoToStorage(videoUrl, videoId);
+      const finalUrl = cachedUrl || videoUrl;
+      console.log(`[Content] === VIDEO PIPELINE COMPLETE: ${finalUrl.substring(0, 80)} ===`);
+      return { videoUrl: finalUrl, coverUrl: imageUrl };
     }
 
-    // Step 6: Upload final video to Supabase Storage
-    console.log('[Content] Step 6: Uploading to Supabase Storage...');
-    const videoId = `reel-${Date.now()}`;
-    const finalUrl = await cacheVideoBufferToStorage(mergedBuffer, videoId);
-
-    if (!finalUrl) {
-      console.error('[Content] Failed to cache video to storage');
-      return { videoUrl: null, coverUrl: imageUrl };
-    }
-
-    console.log(`[Content] === VIDEO PIPELINE COMPLETE: ${finalUrl.substring(0, 80)} ===`);
-    return { videoUrl: finalUrl, coverUrl: imageUrl };
+    // Video generation failed entirely — return cover image anyway
+    console.warn('[Content] Video generation failed (both Seedance + Kling) — returning cover only');
+    return { videoUrl: null, coverUrl: imageUrl };
   } catch (e: any) {
-    console.error('[Content] Video+narration pipeline error:', e.message);
+    console.error('[Content] Video pipeline error:', e.message);
     return { videoUrl: null, coverUrl: null };
-  }
-}
-
-/**
- * Cache a video Buffer directly to Supabase Storage.
- */
-async function cacheVideoBufferToStorage(buffer: Buffer, videoId: string): Promise<string | null> {
-  try {
-    const supabase = getSupabaseAdmin();
-    const fileName = `content/videos/${videoId}.mp4`;
-    const blob = new Blob([new Uint8Array(buffer)], { type: 'video/mp4' });
-    const { error: uploadError } = await supabase.storage
-      .from('generated-images').upload(fileName, blob, { contentType: 'video/mp4', upsert: false });
-    if (uploadError) {
-      console.error('[Content] Video buffer cache error:', uploadError.message);
-      return null;
-    }
-    const { data: { publicUrl } } = supabase.storage.from('generated-images').getPublicUrl(fileName);
-    console.log('[Content] Video buffer cached to storage');
-    return publicUrl || null;
-  } catch (e: any) {
-    console.error('[Content] Video buffer caching failed:', e.message);
-    return null;
   }
 }
 
@@ -564,22 +696,17 @@ async function publishToTikTok(
     const fullCaption = (post.caption || '') + (hashtagsArr.length > 0 ? '\n\n' + hashtagsArr.join(' ') : '');
 
     // TikTok: ALWAYS publish as video (photo API not supported/audited)
-    // If we have a video_url, use it directly. Otherwise generate video from image.
+    // Priority: 1) existing video_url, 2) Seedance/Kling T2V
     let videoUrl = post.video_url;
 
-    if (!videoUrl && post.visual_url) {
-      console.log('[Content] TikTok: no video_url — generating video from image...');
-      const result = await generateVideoWithNarration(
-        post.visual_url,
-        post.caption || 'Découvrez KeiroAI',
-        'video',
-        30
-      );
-      videoUrl = result.videoUrl || undefined;
+    if (!videoUrl) {
+      const visualDesc = (post as any).visual_description || post.caption || 'Professional marketing content for local business';
+      console.log('[Content] TikTok: no video_url — generating via Seedance/Kling T2V...');
+      videoUrl = await generateTikTokVideo(visualDesc) || undefined;
     }
 
     if (!videoUrl) {
-      return { success: false, error: 'No video available for TikTok publishing' };
+      return { success: false, error: 'No video available for TikTok publishing (Seedance + Kling T2V both failed)' };
     }
 
     console.log(`[Content] Publishing TikTok VIDEO: ${videoUrl.substring(0, 60)}...`);
@@ -1735,7 +1862,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   //          educational (teach something), trends (news/tendances), behind_the_scenes (BTS/process),
   //          pain_point (identify problem → solution), demo (product showcase)
   // Content strategy: alternates Instagram (Reels + posts) and TikTok (videos)
-  // Reels & TikTok videos get full video+narration pipeline (30s Ken Burns + voiceover)
+  // Reels & TikTok videos get Seedance T2V pipeline (5s AI-generated video)
   const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
     1: { platform: 'instagram', format: 'reel', pillar: 'giving_value' },          // Mon AM: tips reel
     2: { platform: 'tiktok', format: 'video', pillar: 'educational' },             // Tue AM: tuto vidéo
@@ -1944,16 +2071,21 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
 
   if (visualDesc && inserted?.id) {
     if (needsVideo) {
-      // Full video pipeline: image → Ken Burns → narration → TTS → merge
-      console.log(`[Content] ${postPlatform} ${postFormat} — generating video with narration (30s)`);
+      // Video pipeline: cover image → Seedance T2V → Kling T2V fallback
+      console.log(`[Content] ${postPlatform} ${postFormat} — generating video via Seedance/Kling T2V`);
       const videoResult = await generateVideoWithNarration(
         visualDesc,
         post.caption || visualDesc,
         postFormat,
-        30
+        5
       );
       videoUrl = videoResult.videoUrl;
       visualUrl = videoResult.coverUrl; // Cover image for preview
+
+      // If video failed but we have a cover image, downgrade to image post
+      if (!videoUrl && visualUrl) {
+        console.log('[Content] Video generation failed — publishing as image post instead of reel');
+      }
     } else {
       // Image-based post (Instagram post, carousel, story)
       visualUrl = await generateVisual(visualDesc, postFormat);

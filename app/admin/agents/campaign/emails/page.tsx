@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ type EmailActivity = {
   description: string;
   data: any;
   created_at: string;
+  date_activite: string | null;
   prospect?: {
     company: string | null;
     email: string | null;
@@ -66,6 +67,36 @@ function EmailsTrackingContent() {
   const [failedEmails, setFailedEmails] = useState<EmailActivity[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [stats, setStats] = useState({ total: 0, sent: 0, opened: 0, clicked: 0, drafts: 0, failed: 0 });
+  const [feedbackText, setFeedbackText] = useState('');
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [feedbackSaved, setFeedbackSaved] = useState(false);
+
+  // Load feedback when expanding an email
+  useEffect(() => {
+    if (!expandedId) { setFeedbackText(''); return; }
+    const activity = sentEmails.find(a => a.id === expandedId) || failedEmails.find(a => a.id === expandedId);
+    setFeedbackText(activity?.data?.agent_feedback || '');
+    setFeedbackSaved(false);
+  }, [expandedId]);
+
+  const saveFeedback = useCallback(async () => {
+    if (!expandedId) return;
+    setSavingFeedback(true);
+    setFeedbackSaved(false);
+    const currentActivity = sentEmails.find(a => a.id === expandedId) || failedEmails.find(a => a.id === expandedId);
+    if (currentActivity) {
+      const updatedData = { ...currentActivity.data, agent_feedback: feedbackText };
+      await supabase.from('crm_activities').update({ data: updatedData }).eq('id', expandedId);
+      // Update local state
+      const updateList = (list: EmailActivity[]) =>
+        list.map(a => a.id === expandedId ? { ...a, data: updatedData } : a);
+      setSentEmails(updateList);
+      setFailedEmails(updateList);
+      setFeedbackSaved(true);
+      setTimeout(() => setFeedbackSaved(false), 2000);
+    }
+    setSavingFeedback(false);
+  }, [expandedId, feedbackText, sentEmails, failedEmails, supabase]);
 
   useEffect(() => {
     (async () => {
@@ -77,7 +108,7 @@ function EmailsTrackingContent() {
       // Fetch sent emails from crm_activities
       const { data: activities } = await supabase
         .from('crm_activities')
-        .select('id, prospect_id, description, data, created_at, prospect:crm_prospects(company, email, type, quartier, temperature, score, status, last_email_opened_at, last_email_clicked_at)')
+        .select('id, prospect_id, description, data, created_at, date_activite, prospect:crm_prospects(company, email, type, quartier, temperature, score, status, last_email_opened_at, last_email_clicked_at)')
         .eq('type', 'email')
         .order('created_at', { ascending: false })
         .limit(200);
@@ -279,7 +310,7 @@ function EmailsTrackingContent() {
                         )}
                         {d.ai_generated && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">IA</span>}
                         <span className="text-[10px] text-neutral-400 ml-1">
-                          {new Date(activity.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {'Envoye le ' + new Date(activity.date_activite || activity.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </div>
@@ -343,6 +374,39 @@ function EmailsTrackingContent() {
                             <p className="text-xs text-red-700">{d.error}</p>
                           </div>
                         )}
+                        {/* Email body preview */}
+                        {(d.body || d.html) && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-neutral-400 uppercase mb-1">Contenu de l&apos;email</p>
+                            <div
+                              className="bg-white rounded-lg border p-3 text-xs text-neutral-700 max-h-80 overflow-y-auto leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: d.body || d.html || '' }}
+                            />
+                          </div>
+                        )}
+                        {/* Feedback / notes */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-neutral-400 uppercase mb-1">Notes / feedback agent</p>
+                          <textarea
+                            className="w-full rounded-lg border border-neutral-200 p-2 text-xs text-neutral-700 resize-y min-h-[60px] focus:outline-none focus:ring-1 focus:ring-purple-300"
+                            placeholder="Notes sur cet email, ameliorations pour l'agent..."
+                            value={feedbackText}
+                            onChange={e => setFeedbackText(e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                          />
+                          <div className="flex items-center gap-2 mt-1">
+                            <button
+                              onClick={e => { e.stopPropagation(); saveFeedback(); }}
+                              disabled={savingFeedback}
+                              className="px-3 py-1 rounded-md text-[10px] font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 transition"
+                            >
+                              {savingFeedback ? 'Enregistrement...' : 'Enregistrer'}
+                            </button>
+                            {feedbackSaved && (
+                              <span className="text-[10px] text-green-600 font-medium">Enregistre !</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
