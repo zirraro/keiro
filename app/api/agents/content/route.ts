@@ -330,7 +330,7 @@ RÈGLES POUR UN PROMPT VIDÉO VIRAL :
 - Le prompt doit donner une vidéo qui ARRÊTE le scroll
 
 Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
-      message: `Create a 5s vertical video prompt from this brief: ${visualDescription}`,
+      message: `Create a 10s vertical video prompt from this brief: ${visualDescription}`,
       maxTokens: 200,
     });
 
@@ -347,7 +347,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
       console.log('[Content] Trying Kling T2V (primary)...');
       const klingTaskId = await createT2VTask({
         prompt: videoPrompt,
-        duration: '5',
+        duration: '10',
         aspect_ratio: '9:16',
       });
       console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
@@ -377,7 +377,7 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
     // --- Fallback to Seedance T2V ---
     try {
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
-      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
+      const formattedPrompt = `${videoPrompt} --camerafixed false --duration 10`;
       const seedanceRes = await fetch(SEEDANCE_API_URL, {
         method: 'POST',
         headers: {
@@ -526,12 +526,14 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
     const apiKey = process.env.SEEDREAM_API_KEY || SEEDREAM_API_KEY;
 
     try {
+      // Kling supports '5' and '10' second durations
+      const klingDuration = duration >= 10 ? '10' : '5';
       const klingTaskId = await createT2VTask({
         prompt: videoPrompt,
-        duration: '5',
+        duration: klingDuration,
         aspect_ratio: '9:16',
       });
-      console.log(`[Content] Kling T2V task created: ${klingTaskId}`);
+      console.log(`[Content] Kling T2V task created: ${klingTaskId} (${klingDuration}s)`);
 
       const maxWaitK = 180_000;
       const pollIntervalK = 8_000;
@@ -563,7 +565,8 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
     if (!videoUrl) {
       console.log('[Content] Kling failed — falling back to Seedance T2V...');
       try {
-        const formattedPrompt = `${videoPrompt} --camerafixed false --duration 5`;
+        const seedanceDur = Math.min(duration, 10); // Seedance max ~10s per segment
+        const formattedPrompt = `${videoPrompt} --camerafixed false --duration ${seedanceDur}`;
         const seedanceRes = await fetch(SEEDANCE_API_URL, {
           method: 'POST',
           headers: {
@@ -711,7 +714,7 @@ async function publishToTikTok(
       accessToken,
       videoUrl,
       fullCaption.substring(0, 150),
-      { privacy_level: 'SELF_ONLY' }
+      { privacy_level: 'PUBLIC_TO_EVERYONE' }
     );
     console.log(`[Content] TikTok video published: ${result.publish_id}`);
     return { success: true, publish_id: result.publish_id };
@@ -2117,12 +2120,14 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   if (visualDesc && inserted?.id) {
     if (needsVideo) {
       // Video pipeline: cover image → Seedance T2V → Kling T2V fallback
-      console.log(`[Content] ${postPlatform} ${postFormat} — generating video via Seedance/Kling T2V`);
+      // TikTok gets 10s videos, Instagram Reels get 5s (faster generation)
+      const videoDuration = postPlatform === 'tiktok' ? 10 : 5;
+      console.log(`[Content] ${postPlatform} ${postFormat} — generating ${videoDuration}s video via Kling/Seedance T2V`);
       const videoResult = await generateVideoWithNarration(
         visualDesc,
         post.caption || visualDesc,
         postFormat,
-        5
+        videoDuration
       );
       videoUrl = videoResult.videoUrl;
       visualUrl = videoResult.coverUrl; // Cover image for preview

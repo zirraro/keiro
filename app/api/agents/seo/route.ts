@@ -791,6 +791,43 @@ async function publishArticle(articleId: string): Promise<NextResponse> {
 
     console.log(`[SEOAgent] Article published: "${article.slug}"`);
 
+    // Notify Google Indexing API (fire-and-forget)
+    try {
+      const articleUrl = `https://www.keiroai.com/blog/${article.slug}`;
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const googleRefreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+      if (googleClientId && googleClientSecret && googleRefreshToken) {
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            client_id: googleClientId,
+            client_secret: googleClientSecret,
+            refresh_token: googleRefreshToken,
+            grant_type: 'refresh_token',
+          }),
+        });
+        const tokenData = await tokenRes.json();
+        if (tokenData.access_token) {
+          const indexRes = await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: articleUrl, type: 'URL_UPDATED' }),
+          });
+          const indexData = await indexRes.json();
+          console.log(`[SEOAgent] Google Indexing API notified for ${articleUrl}:`, indexData);
+        }
+      } else {
+        console.log('[SEOAgent] Google credentials not configured — skipping Indexing API');
+      }
+    } catch (indexErr: any) {
+      console.warn('[SEOAgent] Google Indexing API notification failed:', indexErr.message);
+    }
+
     return NextResponse.json({
       ok: true,
       article: {
