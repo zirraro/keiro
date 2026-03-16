@@ -3229,13 +3229,22 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
   return (
     <div className="min-h-screen bg-neutral-50 p-6">
+      <style jsx>{`
+        @keyframes wizardFadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .wizard-phase-enter {
+          animation: wizardFadeIn 0.35s ease-out both;
+        }
+      `}</style>
       {/* Badge Admin */}
       <AdminBadge />
 
       <div className="max-w-7xl mx-auto">
         {/* ═══ WIZARD PHASE: ENTRY — Choix du mode ═══ */}
         {wizardPhase === 'entry' && (
-          <div className="max-w-3xl mx-auto py-8">
+          <div className="max-w-3xl mx-auto py-8 wizard-phase-enter">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-neutral-900 mb-2">
                 {locale === 'fr' ? 'Quel contenu voulez-vous cr\u00e9er ?' : 'What content do you want to create?'}
@@ -3361,7 +3370,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
         {/* ═══ WIZARD PHASE: NEWS-SELECT — S\u00e9lection actualit\u00e9/tendance ═══ */}
         {wizardPhase === 'news-select' && (
-          <div>
+          <div className="wizard-phase-enter">
             {/* Phase indicator — compact stepper */}
             <div className="flex items-center gap-3 mb-5">
               <button
@@ -3473,7 +3482,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 };
                 const cfg = tabConfig[trendTab];
                 if (!cfg) return null;
-                const limit = showMoreTrends ? 6 : 3;
+                const limit = showMoreTrends ? 9 : 6;
                 const items = cfg.data.slice(0, limit);
                 const hasMore = cfg.data.length > 3;
 
@@ -3496,7 +3505,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
                             selectedNews?.id === cfg.getNewsCard(trend, i).id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
                           }`}
-                          style={{ height: i >= 3 ? '100px' : '120px' }}
+                          style={{ height: '140px' }}
                         >
                           {cfg.getImage(trend) ? (
                             <img src={cfg.getImage(trend)} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -3531,7 +3540,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         </svg>
                         {showMoreTrends
                           ? (locale === 'fr' ? 'Voir moins' : 'Show less')
-                          : (locale === 'fr' ? 'Voir 3 de plus' : 'Show 3 more')}
+                          : (locale === 'fr' ? 'Voir plus' : 'Show more')}
                       </button>
                     )}
                   </div>
@@ -3612,7 +3621,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               )}
 
               {!loading && filteredNews.length > 0 && (<>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
                   {filteredNews.slice(0, visibleNewsCount).map((item) => (
                     <article
                       key={item.id}
@@ -3630,7 +3639,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           ? 'ring-2 ring-blue-500 ring-offset-1'
                           : ''
                       }`}
-                      style={{ height: '180px' }}
+                      style={{ height: '140px' }}
                     >
                       {item.image ? (
                         <img
@@ -3690,7 +3699,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
         {/* ═══ WIZARD PHASE: CONFIGURE — Business + Direction + G\u00e9n\u00e9ration ═══ */}
         {wizardPhase === 'configure' && (
-          <div>
+          <div className="wizard-phase-enter">
             {/* Phase indicator — compact stepper */}
             <div className="flex items-center gap-3 mb-5">
               <button
