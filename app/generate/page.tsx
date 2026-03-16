@@ -5283,16 +5283,44 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               </div>
             )}
             {(generatedImageUrl || generatedVideoUrl) && !showEditStudio && (
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl">
-                    {generatedVideoUrl ? '🎬' : '🖼️'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-green-900">
-                      {generatedVideoUrl ? t.generate.generatedVideo : t.generate.visual} ✓
-                    </p>
-                    <p className="text-xs text-green-600">{locale === 'fr' ? 'Résultat visible ci-dessous' : 'Result visible below'}</p>
+              <div className="space-y-3">
+                {/* Résultat inline dans la sidebar */}
+                <div className="bg-white rounded-xl border overflow-hidden">
+                  {generatedVideoUrl ? (
+                    <video
+                      src={generatedVideoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      className="w-full rounded-t-xl"
+                      style={{ maxHeight: '50vh' }}
+                    />
+                  ) : generatedImageUrl ? (
+                    <img
+                      src={generatedImageUrl}
+                      alt={t.generate.generatedVisualAlt}
+                      className="w-full rounded-t-xl cursor-pointer"
+                      style={{ maxHeight: '50vh', objectFit: 'contain' }}
+                      onClick={() => setModalMinimized(false)}
+                    />
+                  ) : null}
+                  <div className="p-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setModalMinimized(false)}
+                      className="flex-1 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    >
+                      {generatedVideoUrl ? '🎬' : '🖼️'} {locale === 'fr' ? 'Voir en grand' : 'View full'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (generatedVideoUrl) { setGeneratedVideoUrl(null); setGeneratedAudioUrl(null); setGeneratedSubtitleText(''); setVideoSavedToLibrary(false); }
+                        if (generatedImageUrl) { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); }
+                      }}
+                      className="flex-1 py-2 text-xs border rounded-lg hover:bg-neutral-50 font-medium"
+                    >
+                      {t.generate.newGeneration}
+                    </button>
                   </div>
                 </div>
               </div>
