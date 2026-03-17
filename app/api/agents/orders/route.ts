@@ -88,19 +88,33 @@ async function callAgentEndpoint(
     headers['Authorization'] = `Bearer ${cronSecret}`;
   }
 
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  // 60s timeout to prevent orders from hanging forever
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60_000);
 
-  const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+  try {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
 
-  if (!res.ok || !data.ok) {
-    return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+    const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+
+    if (!res.ok || !data.ok) {
+      return { ok: false, summary: `Erreur: ${data.error || `HTTP ${res.status}`}`, data };
+    }
+
+    return { ok: true, summary: buildSummary(path, data), data };
+  } catch (e: any) {
+    if (e.name === 'AbortError') {
+      return { ok: false, summary: `Timeout (60s) pour ${path}` };
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return { ok: true, summary: buildSummary(path, data), data };
 }
 
 function buildSummary(path: string, data: any): string {
@@ -160,16 +174,15 @@ export async function GET(request: NextRequest) {
   const results: { id: string; to_agent: string; order_type: string; status: string; result?: string; api_response?: any }[] = [];
 
   try {
-    // --- Unstick orders stuck in_progress for more than 10 minutes ---
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    // --- Unstick ALL orders stuck in_progress (they should never stay in_progress between runs) ---
+    // Any order still in_progress when a new execution starts means the previous run failed/timed out
     const { data: stuckOrders } = await supabase
       .from('agent_orders')
-      .update({ status: 'pending', result: { unstuck_at: now, reason: 'timeout_reset' } })
+      .update({ status: 'failed', result: { unstuck_at: now, reason: 'stuck_in_progress_reset' }, completed_at: now })
       .eq('status', 'in_progress')
-      .lt('created_at', tenMinAgo)
       .select('id');
     if (stuckOrders?.length) {
-      console.log(`[OrderExecutor] Unstuck ${stuckOrders.length} orders from in_progress → pending`);
+      console.log(`[OrderExecutor] Force-failed ${stuckOrders.length} stuck in_progress orders`);
     }
 
     // Fetch all pending orders (max 20 per run)
@@ -187,11 +200,11 @@ export async function GET(request: NextRequest) {
 
     console.log(`[OrderExecutor] Processing ${orders.length} pending orders in PARALLEL...`);
 
-    // Mark all as in_progress at once
+    // Mark all as in_progress at once (with started_at for tracking)
     const orderIds = orders.map((o: any) => o.id);
     await supabase.from('agent_orders').update({
       status: 'in_progress',
-      result: { started_at: now },
+      result: { started_at: now, executor: 'cron' },
     }).in('id', orderIds);
 
     // Execute ALL orders in parallel (not sequentially)
@@ -375,6 +388,19 @@ async function executeOrder(
         return callAgentEndpoint(baseUrl, '/api/agents/content', 'POST', cronSecret, { action: 'generate_weekly' });
       }
       return callAgentEndpoint(baseUrl, '/api/agents/content', 'GET', cronSecret);
+
+    case 'marketing':
+      if (orderType.includes('analys') || orderType.includes('rapport')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/marketing', 'GET', cronSecret);
+      }
+      if (orderType.includes('advise') || orderType.includes('conseil')) {
+        return callAgentEndpoint(baseUrl, '/api/agents/marketing', 'POST', cronSecret, { action: 'advise_agents' });
+      }
+      return callAgentEndpoint(baseUrl, '/api/agents/marketing', 'GET', cronSecret);
+
+    case 'all':
+      // Broadcast: acknowledge only, individual agents handle their own execution
+      return { ok: true, summary: `Ordre broadcast "${orderType}" noté pour tous les agents.` };
 
     default:
       return { ok: false, summary: `Agent inconnu: ${order.to_agent}` };
