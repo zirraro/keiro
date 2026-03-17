@@ -205,19 +205,19 @@ export async function GET(req: NextRequest) {
         elapsedMs: Date.now() - startTime
       });
 
-      // Use open_id as temporary username (always available from token exchange)
-      const tempUsername = `TikTok User (${tokenData.open_id.substring(0, 8)}...)`;
-      console.log('[TikTokCallback] Using open_id as temporary username:', tempUsername);
+      // Use clean display name (don't show garbled hash to user)
+      const cleanName = 'Compte TikTok';
+      console.log('[TikTokCallback] Using clean fallback name (user info unavailable)');
 
-      displayName = tempUsername;
-      username = tempUsername;
+      displayName = cleanName;
+      username = cleanName;
 
-      // Save temporary username so user can see they're connected
+      // Save clean username so user can see they're connected
       await supabase
         .from('profiles')
         .update({
-          tiktok_username: tempUsername,
-          tiktok_display_name: tempUsername
+          tiktok_username: cleanName,
+          tiktok_display_name: cleanName
         })
         .eq('id', userId);
     }

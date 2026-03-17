@@ -775,19 +775,14 @@ export async function publishTikTokVideoViaFileUpload(
   let totalChunkCount: number;
 
   // UNIVERSAL ALGORITHM - Works for ANY video size
-  if (videoSize < MIN_CHUNK_SIZE) {
-    // Case 1: Video < 5MB
-    // Must upload as single chunk (can't split below minimum)
-    console.log('[TikTok] Case 1: Video < 5MB → single chunk = videoSize');
-    chunkSize = videoSize;
+  // TikTok REQUIRES chunk_size >= 5MB (even for single chunk uploads)
+  // The last chunk is allowed to be smaller than chunk_size
+  if (videoSize <= PREFERRED_CHUNK_SIZE) {
+    // Case 1: Video <= 10MB → single chunk
+    // chunk_size must be >= 5MB per TikTok rules, so use max(videoSize, 5MB)
+    chunkSize = Math.max(videoSize, MIN_CHUNK_SIZE);
     totalChunkCount = 1;
-
-  } else if (videoSize <= PREFERRED_CHUNK_SIZE) {
-    // Case 2: Video 5MB - 10MB
-    // Upload as single chunk (more efficient than splitting)
-    console.log('[TikTok] Case 2: Video 5-10MB → single chunk = videoSize');
-    chunkSize = videoSize;
-    totalChunkCount = 1;
+    console.log(`[TikTok] Case 1: Video <= 10MB → single chunk, declared chunk_size=${(chunkSize / (1024 * 1024)).toFixed(2)}MB`);
 
   } else {
     // Case 3: Video > 10MB
@@ -915,6 +910,14 @@ export async function publishTikTokVideoViaFileUpload(
   if (totalBytes !== videoSize) {
     console.error('[TikTok] ❌ VERIFICATION FAILED: Chunk sizes do not sum to video size!');
     throw new Error(`Chunk sizes sum to ${totalBytes} but video size is ${videoSize}`);
+  }
+
+  // SAFETY: Force totalChunkCount to match TikTok's own calculation
+  // TikTok validates: ceil(video_size / chunk_size) == total_chunk_count
+  const expectedChunks = Math.ceil(videoSize / chunkSize);
+  if (expectedChunks !== totalChunkCount) {
+    console.warn(`[TikTok] ⚠ Adjusting totalChunkCount from ${totalChunkCount} to ${expectedChunks} (TikTok expects ceil(${videoSize}/${chunkSize})=${expectedChunks})`);
+    totalChunkCount = expectedChunks;
   }
 
   console.log('[TikTok] ✅ All chunk size verifications passed!');
