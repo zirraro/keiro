@@ -293,16 +293,20 @@ Reponds en francais, sois direct et actionnable.`;
     // Extract and insert orders from CEO chat reply
     const chatOrdersCount = await extractAndInsertOrders(supabase, reply, now.toISOString());
 
-    // Fire-and-forget: trigger order execution without waiting (avoids timeout)
+    // Trigger order execution (awaited)
     if (chatOrdersCount > 0) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3000');
       const cronSecretVal = process.env.CRON_SECRET;
-      fetch(`${appUrl}/api/agents/orders`, {
-        method: 'GET',
-        headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
-      }).catch(e => console.error('[CEOAgent Chat] Order exec fire-and-forget error:', e.message));
+      try {
+        await fetch(`${appUrl}/api/agents/orders`, {
+          method: 'GET',
+          headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
+        });
+      } catch (e: any) {
+        console.error('[CEOAgent Chat] Order exec error:', e.message);
+      }
     }
 
     return NextResponse.json({
@@ -742,15 +746,20 @@ async function generateBrief(): Promise<NextResponse> {
 
     console.log('[CEOAgent] Brief generated successfully');
 
-    // Fire-and-forget: trigger order execution for orders just created in this brief
+    // Trigger order execution for orders just created in this brief (awaited)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000');
     const cronSecretVal = process.env.CRON_SECRET;
-    fetch(`${appUrl}/api/agents/orders`, {
-      method: 'GET',
-      headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
-    }).catch(e => console.error('[CEOAgent] Order exec fire-and-forget error:', e.message));
+    try {
+      await fetch(`${appUrl}/api/agents/orders`, {
+        method: 'GET',
+        headers: cronSecretVal ? { 'Authorization': `Bearer ${cronSecretVal}` } : {},
+      });
+      console.log('[CEOAgent] Order execution triggered successfully');
+    } catch (e: any) {
+      console.error('[CEOAgent] Order exec error:', e.message);
+    }
 
     return NextResponse.json({
       ok: true,

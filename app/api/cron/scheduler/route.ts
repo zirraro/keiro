@@ -91,18 +91,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fire-and-forget: trigger endpoint without waiting for response (avoids scheduler timeout)
-  function fireAndForget(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
-    const fullUrl = `${baseUrl}${path}`;
-    console.log(`[Scheduler/${slot}] 🚀 ${name}: ${method} ${fullUrl} (fire-and-forget)`);
-    const opts: RequestInit = { method, headers };
-    if (body && method === 'POST') opts.body = JSON.stringify(body);
-    fetch(fullUrl, opts)
-      .then(res => console.log(`[Scheduler/${slot}] ← ${name}: ${res.status}`))
-      .catch(e => console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message} | URL: ${fullUrl}`));
-    results.push({ task: name, ok: true, data: { fired: true } });
-  }
-
   // Run multiple endpoints in parallel (all awaited but concurrently — much faster)
   async function callParallel(...calls: [string, string, ('GET' | 'POST')?, any?][]) {
     await Promise.all(calls.map(([name, path, method, body]) => callEndpoint(name, path, method || 'GET', body)));
@@ -139,22 +127,22 @@ export async function GET(request: NextRequest) {
 
     case 'content_2':
       // 13:30 UTC — Content: 2nd post of the day (midday pillar)
-      fireAndForget('Content (midday)', '/api/agents/content?slot=midday');
+      await callEndpoint('Content (midday)', '/api/agents/content?slot=midday');
       break;
 
     case 'content_3':
       // 17:30 UTC — Content: 3rd post of the day (evening pillar)
-      fireAndForget('Content (evening)', '/api/agents/content?slot=evening');
+      await callEndpoint('Content (evening)', '/api/agents/content?slot=evening');
       break;
 
     case 'content_tiktok':
       // 18:30 UTC — Content: daily TikTok video (1/day)
-      fireAndForget('Content (TikTok)', '/api/agents/content?slot=tiktok');
+      await callEndpoint('Content (TikTok)', '/api/agents/content?slot=tiktok');
       break;
 
     case 'discovery_6':
-      // 16:30 UTC — Commercial: full run (end of day cleanup) — can be long
-      fireAndForget('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      // 16:30 UTC — Commercial: full run (end of day cleanup)
+      await callEndpoint('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
       break;
 
     case 'email_warm_2':
@@ -186,13 +174,10 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo':
-      // 05:00 UTC — CEO brief + auto-execute orders
-      // Fire-and-forget: CEO brief takes 2-4 min, would timeout scheduler
-      // CEO route handles orders internally after brief generation
-      fireAndForget('CEO Brief', '/api/agents/ceo');
-      // Also fire orders execution — will pick up any existing pending orders
-      // (new ones from this CEO brief will be caught by ceo_evening or next ceo slot)
-      fireAndForget('Execute Orders', '/api/agents/orders');
+      // 05:00 UTC — CEO brief + then execute orders
+      // CEO brief can take 2-4 min but maxDuration=300 gives us 5 min
+      await callEndpoint('CEO Brief', '/api/agents/ceo');
+      await callEndpoint('Execute Orders', '/api/agents/orders');
       break;
 
     case 'trends':
@@ -206,11 +191,13 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep (IG+TT) + SEO + Content (all fire-and-forget, each can be long)
-      fireAndForget('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
-      fireAndForget('DM TikTok (morning)', '/api/agents/dm-instagram?platform=tiktok', 'POST');
-      fireAndForget('SEO', '/api/agents/seo');
-      fireAndForget('Content', '/api/agents/content');
+      // 07:00 UTC — DM prep (IG+TT) + SEO + Content (all in parallel)
+      await callParallel(
+        ['DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST'],
+        ['DM TikTok (morning)', '/api/agents/dm-instagram?platform=tiktok', 'POST'],
+        ['SEO', '/api/agents/seo'],
+        ['Content', '/api/agents/content'],
+      );
       break;
 
     case 'morning':
@@ -241,9 +228,8 @@ export async function GET(request: NextRequest) {
 
     case 'ceo_evening':
       // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
-      fireAndForget('CEO Brief (afternoon)', '/api/agents/ceo');
-      // Execute any pending orders from morning + new ones
-      fireAndForget('Execute Orders', '/api/agents/orders');
+      await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
+      await callEndpoint('Execute Orders', '/api/agents/orders');
       break;
 
     case 'evening':
@@ -267,11 +253,15 @@ export async function GET(request: NextRequest) {
 
     case 'marketing_learn':
       // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
-      // All fire-and-forget: each can take 1-2 min, total would exceed 300s if sequential
-      fireAndForget('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
-      fireAndForget('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
-      fireAndForget('Marketing Analysis', '/api/agents/marketing');
-      fireAndForget('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
+      // Run in parallel to stay within 300s
+      await callParallel(
+        ['Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
+        ['Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 }],
+      );
+      await callParallel(
+        ['Marketing Analysis', '/api/agents/marketing'],
+        ['Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' }],
+      );
       break;
 
     case 'video_poll':
@@ -282,10 +272,7 @@ export async function GET(request: NextRequest) {
 
     case 'tiktok_publish':
       // 19:30 UTC (21h30 Paris) — Publish ALL pending content (Reels + TikTok videos)
-      // Peak engagement: 19h-21h Paris for most business types
-      // Catches any posts generated earlier that weren't published yet
-      // Both Instagram Reels and TikTok videos go through video+narration pipeline
-      fireAndForget('Publish Reels+TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' });
+      await callEndpoint('Publish Reels+TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' });
       break;
 
     default:
