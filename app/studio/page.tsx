@@ -685,58 +685,58 @@ function StudioContent() {
   const displayImage = activeTab === 'text' && textPreviewUrl ? textPreviewUrl : loadedImage;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-12">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* Header premium */}
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-4">
-            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-6">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header compact */}
+        <div className="mb-5 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-2">
+            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
             </svg>
-            <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+            <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
               {t.studio.badgeLabel}
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 mb-3">
-            {t.studio.headerTitle}<br/>
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-1">
+            {t.studio.headerTitle}{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
               {t.studio.headerTitleHighlight}
             </span>
           </h1>
-          <p className="text-neutral-600 max-w-2xl mx-auto text-lg">
+          <p className="text-neutral-500 max-w-xl mx-auto text-sm">
             {t.studio.headerSubtitle}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-5">
           {/* Colonne gauche - Image */}
-          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200/50 p-8 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl shadow-lg border border-neutral-200/50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">{t.studio.yourMedia}</h2>
+              <h2 className="text-base font-bold text-neutral-900">{t.studio.yourMedia}</h2>
             </div>
 
             {!loadedImage ? (
-              <div className="space-y-6">
-                {/* Zone de drag & drop premium */}
+              <div className="space-y-4">
+                {/* Zone de drag & drop */}
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 ${
                     isDragging
                       ? "border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 scale-[1.02] shadow-lg"
                       : "border-neutral-300 bg-gradient-to-br from-neutral-50 to-neutral-100 hover:border-blue-400 hover:shadow-md"
                   }`}
                 >
                   <div className={`transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
                       <svg
-                        className="h-8 w-8 text-white"
+                        className="h-6 w-6 text-white"
                         stroke="currentColor"
                         fill="none"
                         viewBox="0 0 48 48"
@@ -750,14 +750,14 @@ function StudioContent() {
                       </svg>
                     </div>
                   </div>
-                  <p className="text-base text-neutral-700 mb-3 font-medium">
+                  <p className="text-sm text-neutral-700 mb-2 font-medium">
                     <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                       {t.studio.dragImageHere}
                     </span>
                   </p>
-                  <p className="text-sm text-neutral-500 mb-4">{t.studio.or}</p>
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-105 font-semibold">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <p className="text-xs text-neutral-500 mb-3">{t.studio.or}</p>
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-105 font-semibold text-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     <input
@@ -812,7 +812,7 @@ function StudioContent() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {generatedVideoUrl && activeTab === 'video' ? (
                   <div className="relative rounded-xl overflow-hidden shadow-lg bg-black">
                     <video
@@ -820,15 +820,16 @@ function StudioContent() {
                       controls
                       autoPlay
                       loop
-                      className="w-full"
+                      className="w-full max-h-[50vh]"
                     />
                   </div>
                 ) : (
-                  <div className="relative aspect-square bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group">
+                  <div className="relative bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl overflow-hidden shadow-lg group" style={{ maxHeight: '50vh' }}>
                     <img
                       src={displayImage}
                       alt={t.studio.imageToEdit}
                       className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                      style={{ maxHeight: '50vh' }}
                     />
                     {textLoading && activeTab === 'text' && (
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
@@ -918,15 +919,15 @@ function StudioContent() {
             )}
           </div>
 
-          {/* Colonne droite - Édition premium */}
-          <div className="bg-white rounded-2xl shadow-xl border border-neutral-200/50 p-8 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {/* Colonne droite - Édition */}
+          <div className="bg-white rounded-xl shadow-lg border border-neutral-200/50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+              <h2 className="text-base font-bold text-neutral-900 flex items-center gap-2">
                 Studio
                 {editProvider && (
                   <span className={`w-3 h-3 rounded-full inline-block ${editProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
@@ -935,7 +936,7 @@ function StudioContent() {
             </div>
 
             {/* === ONGLETS === */}
-            <div className="flex border-b border-neutral-200 mb-6">
+            <div className="flex border-b border-neutral-200 mb-4">
               <button
                 onClick={() => setActiveTab('image')}
                 className={`flex-1 py-3 text-sm font-semibold text-center transition-all relative ${
@@ -989,7 +990,7 @@ function StudioContent() {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* === ONGLET RETOUCHE IMAGE === */}
               {activeTab === 'image' && (
                 <>
