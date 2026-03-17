@@ -262,11 +262,23 @@ export default function InstagramWidget({
             {/* Bouton refresh/sync - Seulement visible quand déplié */}
             {!isCollapsed && (
               <button
-                onClick={() => loadData()}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    // Trigger a real sync from Instagram API
+                    const res = await fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' });
+                    const data = await res.json();
+                    console.log('[InstagramWidget] Manual sync result:', data);
+                  } catch (err) {
+                    console.error('[InstagramWidget] Manual sync error:', err);
+                  }
+                  // Reload posts from DB after sync
+                  await loadData();
+                }}
                 className="bg-white border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-all p-2"
-                title="Actualiser les posts"
+                title="Synchroniser avec Instagram"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>

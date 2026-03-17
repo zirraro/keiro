@@ -202,14 +202,14 @@ export function ArticleBody({ html }: { html: string }) {
       id="article-body"
       className="prose prose-lg prose-neutral max-w-none
         prose-headings:text-neutral-900 prose-headings:font-bold prose-headings:tracking-tight
-        prose-h2:text-[1.65rem] prose-h2:mt-12 prose-h2:mb-5 prose-h2:pb-3 prose-h2:border-b prose-h2:border-neutral-100
-        prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-        prose-p:text-neutral-600 prose-p:leading-[1.85] prose-p:mb-5 prose-p:text-[1.05rem]
+        prose-h2:text-[1.75rem] prose-h2:mt-16 prose-h2:mb-6 prose-h2:pb-4 prose-h2:border-b prose-h2:border-neutral-100
+        prose-h3:text-xl prose-h3:mt-12 prose-h3:mb-4
+        prose-p:text-neutral-600 prose-p:leading-[1.9] prose-p:mb-6 prose-p:text-[1.05rem]
         prose-a:text-purple-600 prose-a:font-medium prose-a:no-underline prose-a:border-b prose-a:border-purple-200 hover:prose-a:border-purple-500 prose-a:transition-colors
-        prose-ul:my-5 prose-ul:space-y-1 prose-li:text-neutral-600 prose-li:leading-relaxed
-        prose-ol:my-5 prose-ol:space-y-1
+        prose-ul:my-6 prose-ul:space-y-2 prose-li:text-neutral-600 prose-li:leading-relaxed
+        prose-ol:my-6 prose-ol:space-y-2
         prose-strong:text-neutral-800 prose-strong:font-semibold
-        prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-gradient-to-r prose-blockquote:from-purple-50 prose-blockquote:to-transparent prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:text-neutral-700 prose-blockquote:my-8
+        prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-gradient-to-r prose-blockquote:from-purple-50 prose-blockquote:to-transparent prose-blockquote:py-5 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:text-neutral-700 prose-blockquote:my-10
         prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-normal prose-code:before:content-none prose-code:after:content-none"
       dangerouslySetInnerHTML={{ __html: html }}
     />
