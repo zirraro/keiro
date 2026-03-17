@@ -331,6 +331,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, deleted: true });
       }
 
+      case 'refresh_all_articles':
+        return refreshAllArticles(body.limit || 5);
+
       default:
         return NextResponse.json({ ok: false, error: `Action inconnue: ${action}` }, { status: 400 });
     }
@@ -1064,6 +1067,170 @@ Retourne le JSON complet mis à jour.`,
     console.error('[SEOAgent] reviseArticle error:', error);
     return NextResponse.json({ ok: false, error: error.message || 'Erreur revision article' }, { status: 500 });
   }
+}
+
+/**
+ * Refresh all published articles: make them more airy/visual, improve SEO, add internal links.
+ * Processes articles one by one via Gemini revision, regenerates new images.
+ */
+async function refreshAllArticles(limit: number): Promise<NextResponse> {
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  // Fetch all published articles, oldest first
+  const { data: articles, error } = await supabase
+    .from('blog_posts')
+    .select('id, title, slug, content_html, meta_title, meta_description, keywords_primary, updated_at')
+    .eq('status', 'published')
+    .order('updated_at', { ascending: true })
+    .limit(limit);
+
+  if (error || !articles?.length) {
+    return NextResponse.json({ ok: true, message: 'Aucun article à rafraîchir', refreshed: 0 });
+  }
+
+  // Fetch all article slugs/titles for internal links
+  const { data: allPosts } = await supabase
+    .from('blog_posts')
+    .select('slug, title, keywords_primary')
+    .eq('status', 'published');
+
+  const internalLinksContext = (allPosts || [])
+    .map((p: any) => `- /blog/${p.slug} : "${p.title}" (mot-clé: ${p.keywords_primary || ''})`)
+    .join('\n');
+
+  // Get GSC data for keyword context
+  let gscContext = '';
+  try {
+    const gscData = await getGscReport();
+    if (gscData) {
+      gscContext = `\nDonnées Google Search Console :\n${JSON.stringify(gscData).substring(0, 2000)}`;
+    }
+  } catch { /* ignore */ }
+
+  const results: { id: string; title: string; ok: boolean; error?: string }[] = [];
+
+  for (const article of articles) {
+    try {
+      console.log(`[SEOAgent] Refreshing article: "${article.title}" (${article.id})`);
+
+      const rawText = await callGemini({
+        system: `Tu es un rédacteur SEO expert et designer éditorial. Ta mission : AMÉLIORER un article existant pour le rendre :
+
+1. PLUS AÉRÉ VISUELLEMENT :
+   - Paragraphes courts (3-4 lignes max)
+   - Espacement généreux entre sections
+   - Sous-titres h2 et h3 clairs et engageants
+   - Listes à puces quand pertinent
+   - Blockquotes pour les stats ou insights clés
+   - AJOUTER des balises <img data-seo-generate="true" alt="description ultra détaillée de 30+ mots pour Seedream, style photo magazine"> après chaque h2 et après l'intro
+   - Minimum 5-7 images dans l'article
+
+2. OPTIMISÉ SEO :
+   - Mot-clé principal naturellement intégré (titre, h2, intro, conclusion)
+   - Meta title < 60 chars, meta description < 155 chars avec CTA
+   - Questions dans les h2 (People Also Ask)
+   - Schema FAQ : 3-5 questions/réponses pertinentes
+
+3. LIENS INTERNES vers les autres articles du blog :
+${internalLinksContext}
+   - Ajoute 2-4 liens internes pertinents dans le texte (balises <a href="/blog/slug">ancre naturelle</a>)
+   - Ancres naturelles, pas "cliquez ici"
+
+4. STYLE :
+   - Ton professionnel mais accessible, tutoiement
+   - Phrases d'accroche engageantes
+   - CTA vers keiroai.com dans la conclusion
+   - Style Medium/Substack : agréable à lire, aéré, visuel
+${gscContext}
+
+IMAGES — TRÈS IMPORTANT :
+- Les images existantes avec src= Supabase (supabase.co) doivent être CONSERVÉES
+- Les images avec src= ark.ap-southeast.bytepluses.com sont EXPIRÉES → remplace-les par <img data-seo-generate="true" alt="...">
+- Le alt DOIT être ultra descriptif (30+ mots) car il sert de PROMPT pour le générateur d'image IA
+- JAMAIS de texte/lettres/mots dans les descriptions d'images
+- Style : photo réaliste éditoriale, lumière naturelle, Canon EOS R5
+
+Retourne UNIQUEMENT un JSON :
+{
+  "title": "...",
+  "content_html": "...",
+  "meta_title": "...",
+  "meta_description": "...",
+  "excerpt": "...",
+  "schema_faq": [{"question": "...", "answer": "..."}]
+}`,
+        message: `Article à améliorer :
+
+Titre : ${article.title}
+Mot-clé principal : ${article.keywords_primary || ''}
+Meta title : ${article.meta_title || ''}
+Meta description : ${article.meta_description || ''}
+
+Contenu HTML actuel :
+${article.content_html}
+
+Améliore cet article : plus aéré, plus visuel, mieux optimisé SEO, avec des liens internes.`,
+        maxTokens: 12000,
+      });
+
+      // Parse JSON
+      let revised: any;
+      const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        revised = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON in Gemini response');
+      }
+
+      // Process images
+      let finalHtml = revised.content_html || article.content_html;
+      const hasPlaceholders = /<img\s+[^>]*data-seo-generate\s*=\s*"true"[^>]*\/?>/i.test(finalHtml);
+      if (hasPlaceholders) {
+        console.log(`[SEOAgent] Generating images for "${article.title}"...`);
+        try {
+          finalHtml = await processArticleImages(finalHtml, revised.image_prompts, article.slug);
+        } catch (imgErr: any) {
+          console.warn(`[SEOAgent] Image gen failed for "${article.title}":`, imgErr.message);
+        }
+      }
+
+      // Update
+      const updateFields: Record<string, any> = {
+        content_html: finalHtml,
+        updated_at: now,
+      };
+      if (revised.title) updateFields.title = revised.title;
+      if (revised.meta_title) updateFields.meta_title = revised.meta_title;
+      if (revised.meta_description) updateFields.meta_description = revised.meta_description;
+      if (revised.excerpt) updateFields.excerpt = revised.excerpt;
+      if (revised.schema_faq?.length) updateFields.schema_faq = revised.schema_faq;
+
+      await supabase.from('blog_posts').update(updateFields).eq('id', article.id);
+      results.push({ id: article.id, title: article.title, ok: true });
+      console.log(`[SEOAgent] ✅ Refreshed "${article.title}"`);
+
+    } catch (err: any) {
+      console.error(`[SEOAgent] ❌ Failed to refresh "${article.title}":`, err.message);
+      results.push({ id: article.id, title: article.title, ok: false, error: err.message });
+    }
+  }
+
+  await supabase.from('agent_logs').insert({
+    agent: 'seo',
+    action: 'refresh_all_articles',
+    data: { total: articles.length, succeeded: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results },
+    status: results.every(r => r.ok) ? 'success' : 'partial',
+    created_at: now,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    refreshed: results.filter(r => r.ok).length,
+    failed: results.filter(r => !r.ok).length,
+    results,
+  });
 }
 
 /**
