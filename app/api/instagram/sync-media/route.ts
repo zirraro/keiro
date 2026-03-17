@@ -42,8 +42,8 @@ export async function POST() {
       return NextResponse.json({ ok: false, error: 'Instagram non connecté' }, { status: 400 });
     }
 
-    // 2. Récupérer posts Instagram via API Graph
-    const fields = 'id,media_url,thumbnail_url,media_type,timestamp,permalink';
+    // 2. Récupérer posts Instagram via API Graph (caption + thumbnail pour Reels)
+    const fields = 'id,caption,media_url,thumbnail_url,media_type,timestamp,permalink';
     const instagramApiUrl = `https://graph.facebook.com/v20.0/${profile.instagram_business_account_id}/media?fields=${fields}&limit=24&access_token=${profile.instagram_access_token}`;
 
     console.log('[SyncMedia] Fetching Instagram posts...');
@@ -58,14 +58,22 @@ export async function POST() {
     const posts = data.data || [];
     const cachedPosts = [];
 
-    // 3. Télécharger et cacher chaque image dans Supabase Storage
+    // 3. Télécharger et cacher chaque image/thumbnail dans Supabase Storage
     for (const post of posts) {
       try {
-        const imageUrl = post.media_url || post.thumbnail_url;
+        // For VIDEO/REELS: use thumbnail_url (media_url is the video file, not an image)
+        // For IMAGE/CAROUSEL_ALBUM: use media_url
+        const isVideo = post.media_type === 'VIDEO';
+        const imageUrl = isVideo
+          ? (post.thumbnail_url || post.media_url)
+          : (post.media_url || post.thumbnail_url);
+
         if (!imageUrl) {
-          console.log(`[SyncMedia] Skipping ${post.id} - no image URL`);
+          console.log(`[SyncMedia] Skipping ${post.id} - no image URL (type: ${post.media_type})`);
           continue;
         }
+
+        console.log(`[SyncMedia] Processing ${post.id} (${post.media_type}): ${isVideo ? 'using thumbnail' : 'using media_url'}`);
 
         // Télécharger l'image depuis Instagram avec retry
         let imageResponse;

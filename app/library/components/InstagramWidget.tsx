@@ -102,10 +102,10 @@ export default function InstagramWidget({
             caption: post.caption || '',
             media_url: post.original_media_url,
             thumbnail_url: post.cached_media_url,
-            cached_media_url: post.cached_media_url, // ✅ FIX: Ajouter cached_media_url
-            cachedUrl: post.cached_media_url, // URL stable depuis Storage
-            permalink: post.permalink, // Lien vers le vrai post Instagram
-            media_type: post.media_type,
+            cached_media_url: post.cached_media_url,
+            cachedUrl: post.cached_media_url,
+            permalink: post.permalink,
+            media_type: post.media_type || 'IMAGE',
             timestamp: post.posted_at
           }));
 
@@ -361,6 +361,14 @@ export default function InstagramWidget({
                     console.error('[InstagramWidget] ❌ Failed URL:', img.src);
                   }}
                 />
+                {/* Video/Reel indicator */}
+                {post.media_type === 'VIDEO' && (
+                  <div className="absolute top-1.5 right-1.5 z-10">
+                    <svg className="w-4 h-4 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                )}
                 {/* Overlay hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
                   <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
