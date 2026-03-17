@@ -61,6 +61,29 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [tiktokUsername, setTikTokUsername] = useState<string | null>(null);
   const [checkingConnection, setCheckingConnection] = useState(true);
 
+  // TikTok pre-publication review (required by TikTok Content Sharing Guidelines)
+  const [showReviewScreen, setShowReviewScreen] = useState(false);
+  const [creatorInfo, setCreatorInfo] = useState<{
+    username?: string;
+    display_name?: string;
+    can_post: boolean;
+    max_video_post_duration_sec: number;
+    privacy_level_options: string[];
+    comment_disabled: boolean;
+    duet_disabled: boolean;
+    stitch_disabled: boolean;
+  } | null>(null);
+  const [loadingCreatorInfo, setLoadingCreatorInfo] = useState(false);
+  const [privacyLevel, setPrivacyLevel] = useState<string>('');
+  const [allowComments, setAllowComments] = useState(false);
+  const [allowDuet, setAllowDuet] = useState(false);
+  const [allowStitch, setAllowStitch] = useState(false);
+  const [contentDisclosure, setContentDisclosure] = useState(false);
+  const [brandOrganic, setBrandOrganic] = useState(false);
+  const [brandContent, setBrandContent] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [reviewVideoUrl, setReviewVideoUrl] = useState<string | null>(null);
+
   // États pour la prévisualisation vidéo
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [generatingPreview, setGeneratingPreview] = useState(false);
@@ -676,193 +699,200 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   };
 
 
+  // STEP 1: Open review screen (fetch creator info + prepare video)
   const handlePublishNow = async () => {
-    // Check what's selected based on active tab
     const hasSelectedItem = activeTab === 'images' ? selectedImage : selectedVideo;
     if (!hasSelectedItem) {
       alert(activeTab === 'images' ? t.library.selectAnImageFirst : t.library.selectAVideo);
       return;
     }
-
     if (!caption.trim()) {
       alert(t.library.writeDescriptionForTikTok);
       return;
     }
-
     if (!isTikTokConnected) {
       alert(t.library.connectTikTokFirst);
       return;
     }
-
-    // If it's an image and no video preview yet, generate one first
     if (activeTab === 'images' && selectedImage && !isVideo(selectedImage.image_url) && !videoPreview) {
       alert(t.library.generateVideoFirst);
       return;
     }
 
-    // Determine video URL and ID based on active tab
-    // Priorité: vidéo fusionnée (audio intégré) > vidéo originale
+    // Determine video URL
     let videoUrlToPublish: string;
-    let videoIdToUpdate: string | null = null;
-
     if (mergedVideoUrl) {
-      // Vidéo avec audio intégré - toujours prioritaire
       videoUrlToPublish = mergedVideoUrl;
-      videoIdToUpdate = selectedVideo?.id || null;
-      console.log('[TikTokModal] Using merged video (audio intégré)');
     } else if (activeTab === 'videos' && selectedVideo) {
       videoUrlToPublish = selectedVideo.video_url;
-      videoIdToUpdate = selectedVideo.id;
     } else if (activeTab === 'images' && selectedImage) {
       videoUrlToPublish = videoPreview || selectedImage.image_url;
     } else {
-      throw new Error('No video selected');
+      return;
+    }
+
+    setReviewVideoUrl(videoUrlToPublish);
+    setLoadingCreatorInfo(true);
+    setShowReviewScreen(true);
+
+    // Reset review fields
+    setAllowComments(false);
+    setAllowDuet(false);
+    setAllowStitch(false);
+    setContentDisclosure(false);
+    setBrandOrganic(false);
+    setBrandContent(false);
+    setLegalAccepted(false);
+    setPrivacyLevel('');
+
+    // Fetch creator info from TikTok
+    try {
+      const res = await fetch('/api/tiktok/creator-info');
+      const data = await res.json();
+      if (data.ok && data.creator) {
+        setCreatorInfo(data.creator);
+        // Don't set a default privacy — TikTok requires user to choose
+      } else {
+        console.error('[TikTokModal] Creator info error:', data.error);
+        // Allow publishing with defaults if creator_info fails
+        setCreatorInfo({
+          can_post: true,
+          max_video_post_duration_sec: 600,
+          privacy_level_options: ['SELF_ONLY'],
+          comment_disabled: false,
+          duet_disabled: false,
+          stitch_disabled: false,
+        });
+      }
+    } catch (err: any) {
+      console.error('[TikTokModal] Creator info fetch error:', err);
+      setCreatorInfo({
+        can_post: true,
+        max_video_post_duration_sec: 600,
+        privacy_level_options: ['SELF_ONLY'],
+        comment_disabled: false,
+        duet_disabled: false,
+        stitch_disabled: false,
+      });
+    } finally {
+      setLoadingCreatorInfo(false);
+    }
+  };
+
+  // STEP 2: Actual publish after user confirms in review screen
+  const handleConfirmPublish = async () => {
+    if (!privacyLevel) {
+      alert('Veuillez choisir un niveau de confidentialité');
+      return;
+    }
+    if (!legalAccepted) {
+      alert('Veuillez accepter les conditions de publication');
+      return;
+    }
+    if (contentDisclosure && !brandOrganic && !brandContent) {
+      alert('Veuillez sélectionner au moins une option de divulgation commerciale');
+      return;
+    }
+    if (brandContent && privacyLevel !== 'PUBLIC_TO_EVERYONE' && privacyLevel !== 'MUTUAL_FOLLOW_FRIENDS') {
+      alert('Le contenu de marque (Branded Content) nécessite une visibilité publique ou amis');
+      return;
+    }
+
+    let videoUrlToPublish = reviewVideoUrl!;
+    let videoIdToUpdate: string | null = null;
+
+    if (mergedVideoUrl) {
+      videoIdToUpdate = selectedVideo?.id || null;
+    } else if (activeTab === 'videos' && selectedVideo) {
+      videoIdToUpdate = selectedVideo.id;
     }
 
     setPublishing(true);
 
-    // STEP 1: Ensure video is on Supabase (permanent URL)
+    // Ensure video is on Supabase
     let tiktokReadyVideoUrl: string;
     try {
       const isOnSupabase = videoUrlToPublish.includes('supabase.co') || videoUrlToPublish.includes('supabase.in');
-
       if (isOnSupabase) {
-        console.log('[TikTokModal] ✅ Video already on Supabase');
         tiktokReadyVideoUrl = videoUrlToPublish;
       } else {
-        console.log('[TikTokModal] URL temporaire détectée, stockage Supabase...');
-
         const storeResponse = await fetch('/api/seedream/download-and-store', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            videoUrl: videoUrlToPublish,
-            title: caption.substring(0, 50) || t.library.tiktokVideoTitle
-          })
+          body: JSON.stringify({ videoUrl: videoUrlToPublish, title: caption.substring(0, 50) || 'TikTok Video' })
         });
-
         const storeData = await storeResponse.json();
-
         if (storeData.ok && storeData.videoUrl) {
-          console.log('[TikTokModal] ✅ Stocké sur Supabase:', storeData.videoUrl);
           tiktokReadyVideoUrl = storeData.videoUrl;
-          if (storeData.videoId && !videoIdToUpdate) {
-            videoIdToUpdate = storeData.videoId;
-          }
+          if (storeData.videoId && !videoIdToUpdate) videoIdToUpdate = storeData.videoId;
         } else {
           setPublishing(false);
-          alert(`❌ ${t.library.preparationError}\n\n${storeData.error}\n\n${t.library.pleaseRetry}`);
+          alert(`Erreur de préparation: ${storeData.error}`);
           return;
         }
       }
-    } catch (storeError: any) {
-      console.error('[TikTokModal] ❌ Store failed:', storeError);
+    } catch (e: any) {
       setPublishing(false);
-      alert(`❌ ${t.library.cannotPrepareVideo}\n\n${t.library.checkConnectionAndRetry}`);
+      alert('Erreur de préparation vidéo');
       return;
     }
 
-    // STEP 2: Validate video format
+    // Validate video format
     let needsConversion = false;
     try {
-      console.log('[TikTokModal] Validation du format vidéo...');
       const validateResponse = await fetch('/api/library/tiktok/validate-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoUrl: tiktokReadyVideoUrl })
       });
-
       const validateData = await validateResponse.json();
+      if (validateData.ok && !validateData.isValid) needsConversion = true;
+    } catch {}
 
-      if (validateData.ok && validateData.isValid) {
-        console.log('[TikTokModal] ✅ Format vidéo OK, publication directe');
-        if (validateData.warnings?.length > 0) {
-          console.warn('[TikTokModal] Warnings:', validateData.warnings);
-        }
-      } else if (validateData.ok && !validateData.isValid) {
-        console.warn('[TikTokModal] ⚠️ Format incompatible:', validateData.errors);
-        needsConversion = true;
-      } else {
-        // Erreur de validation non bloquante - on tente quand même
-        console.warn('[TikTokModal] Validation échouée, on tente la publication directe');
-      }
-    } catch (validationError: any) {
-      console.warn('[TikTokModal] Validation error (non bloquant):', validationError.message);
-    }
-
-    // STEP 2b: CloudConvert UNIQUEMENT si le format est incompatible
     if (needsConversion) {
-      console.log('[TikTokModal] Conversion CloudConvert nécessaire (format incompatible)...');
       try {
         const conversionResponse = await fetch('/api/convert-video-tiktok', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            videoUrl: tiktokReadyVideoUrl,
-            videoId: videoIdToUpdate
-          })
+          body: JSON.stringify({ videoUrl: tiktokReadyVideoUrl, videoId: videoIdToUpdate })
         });
-
         const conversionData = await conversionResponse.json();
-
         if (conversionData.ok && conversionData.convertedUrl) {
-          console.log('[TikTokModal] ✅ CloudConvert: conversion réussie');
           tiktokReadyVideoUrl = conversionData.convertedUrl;
-        } else {
-          console.warn('[TikTokModal] ⚠️ CloudConvert échoué:', conversionData.error);
-          const continueAnyway = window.confirm(t.library.conversionFailedContinue);
-          if (!continueAnyway) {
-            setPublishing(false);
-            return;
-          }
         }
-      } catch (convError: any) {
-        console.warn('[TikTokModal] CloudConvert request failed:', convError.message);
-        // Non bloquant - on tente la publication directe
-      }
+      } catch {}
     }
 
-    // STEP 3: Confirm with user
-    const confirm = window.confirm(t.library.publishTikTokConfirm);
-
-    if (!confirm) {
-      setPublishing(false);
-      return;
-    }
-
-    // STEP 4: Publish to TikTok
+    // Publish to TikTok with all user-selected options
     try {
-      console.log('[TikTokModal] Publishing to TikTok with URL:', tiktokReadyVideoUrl);
-
       const response = await fetch('/api/library/tiktok/publish', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           videoUrl: tiktokReadyVideoUrl,
           caption,
-          hashtags
+          hashtags,
+          privacyLevel,
+          disableComment: !allowComments,
+          disableDuet: !allowDuet,
+          disableStitch: !allowStitch,
+          brandContentToggle: contentDisclosure ? brandContent : false,
+          brandOrganicToggle: contentDisclosure ? brandOrganic : false,
         })
       });
 
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = t.library.tiktokPublishSuccess + '\n\n' + t.library.tiktokPublishSuccessDetails + '\n\n' + t.library.congratulations;
+        setShowReviewScreen(false);
+        const successMessage = t.library.tiktokPublishSuccess + '\n\n' + t.library.tiktokPublishSuccessDetails;
         alert(successMessage);
-
         if (data.post?.share_url) {
           const openPost = window.confirm(t.library.openTikTokToSeeVideo);
-          if (openPost) {
-            window.open(data.post.share_url, '_blank');
-          }
+          if (openPost) window.open(data.post.share_url, '_blank');
         }
-
-        // Rafraîchir le widget TikTok pour afficher la nouvelle publication
         await onPublishSuccess?.();
-
         onClose();
       } else {
         throw new Error(data.error || t.library.publishError);
@@ -1938,6 +1968,175 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           images={availableImages}
           onClose={() => setShowCarouselModal(false)}
         />
+      )}
+
+      {/* TikTok Pre-Publication Review Screen (required by TikTok Content Sharing Guidelines) */}
+      {showReviewScreen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-neutral-900">Publier sur TikTok</h3>
+                <button onClick={() => setShowReviewScreen(false)} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
+                  <span className="text-neutral-500 text-xl">&times;</span>
+                </button>
+              </div>
+              {creatorInfo?.username && (
+                <p className="text-sm text-neutral-500 mt-1">@{creatorInfo.username}{creatorInfo.display_name ? ` (${creatorInfo.display_name})` : ''}</p>
+              )}
+            </div>
+
+            {loadingCreatorInfo ? (
+              <div className="p-8 text-center">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm text-neutral-500">Chargement des paramètres TikTok...</p>
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                {/* Content Preview */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu du contenu</label>
+                  <div className="bg-neutral-50 rounded-xl p-3 border">
+                    {reviewVideoUrl && (
+                      <video src={reviewVideoUrl} className="w-full max-h-40 rounded-lg object-contain bg-black" controls muted />
+                    )}
+                    <p className="text-xs text-neutral-600 mt-2 line-clamp-3">{caption}</p>
+                    {hashtags.length > 0 && (
+                      <p className="text-xs text-blue-500 mt-1">{hashtags.map(h => `#${h}`).join(' ')}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Privacy Level (required, no default) */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">
+                    Qui peut voir cette vidéo <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    {(creatorInfo?.privacy_level_options || ['SELF_ONLY']).map((option) => (
+                      <label key={option} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${privacyLevel === option ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                        <input
+                          type="radio"
+                          name="privacyLevel"
+                          value={option}
+                          checked={privacyLevel === option}
+                          onChange={() => setPrivacyLevel(option)}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-neutral-900">
+                            {option === 'PUBLIC_TO_EVERYONE' ? 'Public' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Amis' : option === 'SELF_ONLY' ? 'Moi uniquement' : option}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {option === 'PUBLIC_TO_EVERYONE' ? 'Tout le monde peut voir' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Seuls vos amis mutuels' : option === 'SELF_ONLY' ? 'Visible uniquement par vous' : ''}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interaction Settings (all unchecked by default per TikTok guidelines) */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Interactions autorisées</label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                      <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les commentaires</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                      <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les Duets</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                      <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les Stitch</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Content Disclosure (off by default per TikTok guidelines) */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Divulgation de contenu commercial</label>
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                    <input type="checkbox" checked={contentDisclosure} onChange={(e) => { setContentDisclosure(e.target.checked); if (!e.target.checked) { setBrandOrganic(false); setBrandContent(false); } }} className="w-4 h-4 rounded text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-neutral-700">Ce contenu fait la promotion de biens ou services</p>
+                      <p className="text-xs text-neutral-500">Activez si cette vidéo contient du contenu promotionnel</p>
+                    </div>
+                  </label>
+
+                  {contentDisclosure && (
+                    <div className="mt-3 ml-4 space-y-2">
+                      <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                        <input type="checkbox" checked={brandOrganic} onChange={(e) => setBrandOrganic(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-neutral-700">Votre marque</p>
+                          <p className="text-xs text-neutral-400">Votre vidéo sera étiquetée &quot;Contenu promotionnel&quot;</p>
+                        </div>
+                      </label>
+                      <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                        <input type="checkbox" checked={brandContent} onChange={(e) => setBrandContent(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-neutral-700">Contenu de marque (partenariat)</p>
+                          <p className="text-xs text-neutral-400">Votre vidéo sera étiquetée &quot;Partenariat rémunéré&quot;</p>
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Legal Compliance */}
+                <div className="border-t pt-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} className="w-4 h-4 rounded text-blue-600 mt-0.5" />
+                    <p className="text-xs text-neutral-600">
+                      En publiant, vous acceptez les{' '}
+                      <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        Conditions d&apos;utilisation musicale de TikTok
+                      </a>
+                      {(brandContent) && (
+                        <>{' '}et la{' '}
+                          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            Politique de contenu de marque
+                          </a>
+                        </>
+                      )}
+                      . <span className="text-red-500">*</span>
+                    </p>
+                  </label>
+                </div>
+
+                {/* Processing notice */}
+                <p className="text-xs text-neutral-400 text-center">
+                  La publication peut prendre quelques minutes. Vous serez notifié quand elle sera terminée.
+                </p>
+
+                {/* Action buttons */}
+                <div className="flex gap-3">
+                  <button onClick={() => setShowReviewScreen(false)} className="flex-1 py-2.5 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-xl hover:bg-neutral-200 transition">
+                    Retour
+                  </button>
+                  <button
+                    onClick={handleConfirmPublish}
+                    disabled={publishing || !privacyLevel || !legalAccepted || (contentDisclosure && !brandOrganic && !brandContent)}
+                    className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {publishing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Publication...
+                      </span>
+                    ) : (
+                      'Publier maintenant'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Modal Édition d'image */}

@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { videoUrl, caption, hashtags } = await req.json();
+    const { videoUrl, caption, hashtags, privacyLevel, disableComment, disableDuet, disableStitch, brandContentToggle, brandOrganicToggle } = await req.json();
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -135,11 +135,13 @@ export async function POST(req: NextRequest) {
         videoUrl,
         finalCaption,
         {
-          privacy_level: 'SELF_ONLY', // Required for Sandbox mode
-          disable_duet: false,
-          disable_comment: false,
-          disable_stitch: false,
-          video_cover_timestamp_ms: 1000
+          privacy_level: privacyLevel || 'SELF_ONLY',
+          disable_duet: disableDuet ?? false,
+          disable_comment: disableComment ?? false,
+          disable_stitch: disableStitch ?? false,
+          video_cover_timestamp_ms: 1000,
+          brand_content_toggle: brandContentToggle ?? false,
+          brand_organic_toggle: brandOrganicToggle ?? false,
         }
       );
     } catch (publishError: any) {

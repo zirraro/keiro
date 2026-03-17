@@ -704,6 +704,8 @@ export async function publishTikTokVideoViaFileUpload(
     disable_comment?: boolean;
     disable_stitch?: boolean;
     video_cover_timestamp_ms?: number;
+    brand_content_toggle?: boolean;
+    brand_organic_toggle?: boolean;
   }
 ): Promise<{ publish_id: string }> {
   console.log('[TikTok] Publishing video via FILE_UPLOAD method');
@@ -920,15 +922,23 @@ export async function publishTikTokVideoViaFileUpload(
   // Step 3: Initialize upload with TikTok
   console.log('[TikTok] Initializing TikTok upload...');
 
+  const postInfo: Record<string, any> = {
+    title: caption.substring(0, 2200), // TikTok allows up to 2200 chars
+    privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE',
+    disable_duet: options?.disable_duet ?? false,
+    disable_comment: options?.disable_comment ?? false,
+    disable_stitch: options?.disable_stitch ?? false,
+    video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+  };
+
+  // Content disclosure (required by TikTok guidelines)
+  if (options?.brand_content_toggle || options?.brand_organic_toggle) {
+    postInfo.brand_content_toggle = options.brand_content_toggle ?? false;
+    postInfo.brand_organic_toggle = options.brand_organic_toggle ?? false;
+  }
+
   const requestBody = {
-    post_info: {
-      title: caption.substring(0, 2200), // TikTok allows up to 2200 chars
-      privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE',
-      disable_duet: options?.disable_duet ?? false,
-      disable_comment: options?.disable_comment ?? false,
-      disable_stitch: options?.disable_stitch ?? false,
-      video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
-    },
+    post_info: postInfo,
     source_info: {
       source: 'FILE_UPLOAD',
       video_size: videoSize,
