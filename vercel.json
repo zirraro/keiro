@@ -21,6 +21,10 @@
       "schedule": "0 7 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=tiktok_dm_morning",
+      "schedule": "30 7 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=morning",
       "schedule": "0 8 * * *"
     },
@@ -53,6 +57,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=tiktok_dm_midday",
+      "schedule": "30 12 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=content_2",
       "schedule": "30 13 * * *"
     },
@@ -83,6 +91,10 @@
     {
       "path": "/api/cron/scheduler?slot=evening_prep",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=tiktok_dm_evening",
+      "schedule": "15 17 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=content_3",

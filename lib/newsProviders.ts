@@ -45,7 +45,6 @@ const RSS_FEEDS = [
 
   // Bonnes nouvelles (flux feel-good dédiés)
   { url: 'https://positivr.fr/feed/', category: 'Les bonnes nouvelles', timeout: 5000 },
-  { url: 'https://www.demotivateur.fr/feed', category: 'Les bonnes nouvelles', timeout: 5000 },
 
   // Tech & Gaming
   { url: 'https://www.numerama.com/feed/', category: 'Tech & Gaming', timeout: 5000 },
@@ -107,10 +106,8 @@ const RSS_FEEDS = [
   // Moteurs & Adrénaline
   { url: 'https://www.automobile-magazine.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
   { url: 'https://www.largus.fr/rss.xml', category: 'Moteurs & Adrénaline', timeout: 5000 },
-  { url: 'https://www.caradisiac.com/rss/', category: 'Moteurs & Adrénaline', timeout: 5000 },
 
   // Food & Gastronomie
-  { url: 'https://www.atabula.com/feed/', category: 'Food & Gastronomie', timeout: 5000 },
   { url: 'https://www.lhotellerie-restauration.fr/rss/', category: 'Food & Gastronomie', timeout: 5000 },
 
   // Lifestyle & People
@@ -119,7 +116,6 @@ const RSS_FEEDS = [
   { url: 'https://www.purepeople.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.gala.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.voici.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
-  { url: 'https://www.closermag.fr/rss.xml', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.konbini.com/fr/feed/', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.madmoizelle.com/feed/', category: 'Lifestyle & People', timeout: 5000 },
   { url: 'https://www.aufeminin.com/rss.xml', category: 'Lifestyle & People', timeout: 5000 },

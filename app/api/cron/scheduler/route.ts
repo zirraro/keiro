@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -96,6 +97,11 @@ export async function GET(request: NextRequest) {
     await Promise.all(calls.map(([name, path, method, body]) => callEndpoint(name, path, method || 'GET', body)));
   }
 
+  // Fire-and-forget via waitUntil — runs after response is sent, won't be killed by Vercel
+  function fireBackground(fn: () => Promise<void>) {
+    waitUntil(fn().catch(e => console.error(`[Scheduler/${slot}] background error:`, e.message)));
+  }
+
   switch (slot) {
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM (audit existing prospects)
@@ -142,7 +148,10 @@ export async function GET(request: NextRequest) {
 
     case 'discovery_6':
       // 16:30 UTC — Commercial: full run (end of day cleanup)
-      await callEndpoint('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      fireBackground(async () => {
+        await callEndpoint('Commercial Full EOD', '/api/agents/commercial', 'POST', { action: 'full' });
+      });
+      results.push({ task: 'Commercial Full EOD', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'email_warm_2':
@@ -175,9 +184,12 @@ export async function GET(request: NextRequest) {
 
     case 'ceo':
       // 05:00 UTC — CEO brief + then execute orders
-      // CEO brief can take 2-4 min but maxDuration=300 gives us 5 min
-      await callEndpoint('CEO Brief', '/api/agents/ceo');
-      await callEndpoint('Execute Orders', '/api/agents/orders');
+      // Uses waitUntil to avoid 300s timeout (CEO brief can take 2-4 min)
+      fireBackground(async () => {
+        await callEndpoint('CEO Brief', '/api/agents/ceo');
+        await callEndpoint('Execute Orders', '/api/agents/orders');
+      });
+      results.push({ task: 'CEO Brief + Orders', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'trends':
@@ -191,13 +203,15 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep (IG+TT) + SEO + Content (all in parallel)
-      await callParallel(
-        ['DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST'],
-        ['DM TikTok (morning)', '/api/agents/dm-instagram?platform=tiktok', 'POST'],
-        ['SEO', '/api/agents/seo'],
-        ['Content', '/api/agents/content'],
-      );
+      // 07:00 UTC — DM prep (IG only) + SEO + Content (all in parallel)
+      fireBackground(async () => {
+        await callParallel(
+          ['DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST'],
+          ['SEO', '/api/agents/seo'],
+          ['Content', '/api/agents/content'],
+        );
+      });
+      results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'morning':
@@ -228,8 +242,11 @@ export async function GET(request: NextRequest) {
 
     case 'ceo_evening':
       // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
-      await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
-      await callEndpoint('Execute Orders', '/api/agents/orders');
+      fireBackground(async () => {
+        await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
+        await callEndpoint('Execute Orders', '/api/agents/orders');
+      });
+      results.push({ task: 'CEO Brief PM + Orders', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'evening':
@@ -238,12 +255,44 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM (IG+TT) + TikTok comments (parallel)
-      await callParallel(
-        ['DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST'],
-        ['DM TikTok (evening)', '/api/agents/dm-instagram?platform=tiktok', 'POST'],
-        ['TikTok Comments', '/api/agents/tiktok-comments'],
-      );
+      // 17:00 UTC — Evening DM (IG only) + TikTok comments (parallel)
+      fireBackground(async () => {
+        await callParallel(
+          ['DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST'],
+          ['TikTok Comments', '/api/agents/tiktok-comments'],
+        );
+      });
+      results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
+    case 'tiktok_dm_morning':
+      // 07:30 UTC — TikTok DM preparation: 5x volume (morning batch)
+      fireBackground(async () => {
+        await callParallel(
+          ['DM TikTok Batch 1', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
+          ['DM TikTok Batch 2', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
+        );
+      });
+      results.push({ task: 'TikTok DM Morning', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
+    case 'tiktok_dm_midday':
+      // 12:30 UTC — TikTok DM preparation: midday batch
+      fireBackground(async () => {
+        await callParallel(
+          ['DM TikTok Batch 3', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
+          ['DM TikTok Batch 4', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
+        );
+      });
+      results.push({ task: 'TikTok DM Midday', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
+    case 'tiktok_dm_evening':
+      // 17:30 UTC — TikTok DM preparation: evening batch
+      fireBackground(async () => {
+        await callEndpoint('DM TikTok Evening', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+      });
+      results.push({ task: 'TikTok DM Evening', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'discovery_7':
@@ -253,15 +302,17 @@ export async function GET(request: NextRequest) {
 
     case 'marketing_learn':
       // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
-      // Run in parallel to stay within 300s
-      await callParallel(
-        ['Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-        ['Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 }],
-      );
-      await callParallel(
-        ['Marketing Analysis', '/api/agents/marketing'],
-        ['Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' }],
-      );
+      fireBackground(async () => {
+        await callParallel(
+          ['Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
+          ['Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 }],
+        );
+        await callParallel(
+          ['Marketing Analysis', '/api/agents/marketing'],
+          ['Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' }],
+        );
+      });
+      results.push({ task: 'Marketing Learn', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'video_poll':

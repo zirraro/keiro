@@ -74,10 +74,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     stitch_disabled: boolean;
   } | null>(null);
   const [loadingCreatorInfo, setLoadingCreatorInfo] = useState(false);
-  const [privacyLevel, setPrivacyLevel] = useState<string>('');
-  const [allowComments, setAllowComments] = useState(false);
-  const [allowDuet, setAllowDuet] = useState(false);
-  const [allowStitch, setAllowStitch] = useState(false);
+  const [privacyLevel, setPrivacyLevel] = useState<string>('SELF_ONLY');
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowDuet, setAllowDuet] = useState(true);
+  const [allowStitch, setAllowStitch] = useState(true);
   const [contentDisclosure, setContentDisclosure] = useState(false);
   const [brandOrganic, setBrandOrganic] = useState(false);
   const [brandContent, setBrandContent] = useState(false);
@@ -735,15 +735,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     setLoadingCreatorInfo(true);
     setShowReviewScreen(true);
 
-    // Reset review fields
-    setAllowComments(false);
-    setAllowDuet(false);
-    setAllowStitch(false);
+    // Set review fields with sensible defaults (user can uncheck if needed)
+    setAllowComments(true);
+    setAllowDuet(true);
+    setAllowStitch(true);
     setContentDisclosure(false);
     setBrandOrganic(false);
     setBrandContent(false);
     setLegalAccepted(false);
-    setPrivacyLevel('');
+    setPrivacyLevel('SELF_ONLY');
 
     // Fetch creator info from TikTok
     try {
@@ -751,7 +751,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       const data = await res.json();
       if (data.ok && data.creator) {
         setCreatorInfo(data.creator);
-        // Don't set a default privacy — TikTok requires user to choose
+        // Pre-select SELF_ONLY if available, user can change
+        if (data.creator.privacy_level_options?.includes('SELF_ONLY')) {
+          setPrivacyLevel('SELF_ONLY');
+        }
+        // Enable interactions unless creator has disabled them
+        setAllowComments(!data.creator.comment_disabled);
+        setAllowDuet(!data.creator.duet_disabled);
+        setAllowStitch(!data.creator.stitch_disabled);
       } else {
         console.error('[TikTokModal] Creator info error:', data.error);
         // Allow publishing with defaults if creator_info fails
@@ -1994,17 +2001,43 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               </div>
             ) : (
               <div className="p-6 space-y-5">
-                {/* Content Preview */}
+                {/* Content Preview — TikTok phone frame */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu du contenu</label>
-                  <div className="bg-neutral-50 rounded-xl p-3 border">
-                    {reviewVideoUrl && (
-                      <video src={reviewVideoUrl} className="w-full max-h-40 rounded-lg object-contain bg-black" controls muted />
-                    )}
-                    <p className="text-xs text-neutral-600 mt-2 line-clamp-3">{caption}</p>
-                    {hashtags.length > 0 && (
-                      <p className="text-xs text-blue-500 mt-1">{hashtags.map(h => `#${h}`).join(' ')}</p>
-                    )}
+                  <div className="flex justify-center">
+                    <div className="relative w-[180px] bg-black rounded-[20px] overflow-hidden border-[3px] border-neutral-800 shadow-lg" style={{ aspectRatio: '9/16' }}>
+                      {/* Video */}
+                      {reviewVideoUrl && (
+                        <video src={reviewVideoUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay loop muted playsInline />
+                      )}
+                      {/* TikTok overlay UI */}
+                      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
+                        {/* Right sidebar icons */}
+                        <div className="absolute right-2 bottom-20 flex flex-col items-center gap-3">
+                          <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm" />
+                          <div className="flex flex-col items-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            <span className="text-[8px] text-white mt-0.5">0</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span className="text-[8px] text-white mt-0.5">0</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                            <span className="text-[8px] text-white mt-0.5">0</span>
+                          </div>
+                        </div>
+                        {/* Bottom caption overlay */}
+                        <div className="p-2.5 bg-gradient-to-t from-black/70 to-transparent">
+                          <p className="text-[9px] font-semibold text-white mb-0.5">@{creatorInfo?.username || 'vous'}</p>
+                          {caption && <p className="text-[8px] text-white/90 line-clamp-2 leading-tight">{caption}</p>}
+                          {hashtags.length > 0 && (
+                            <p className="text-[8px] text-white/80 mt-0.5">{hashtags.map(h => `#${h}`).join(' ')}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

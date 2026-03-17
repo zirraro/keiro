@@ -857,10 +857,12 @@ export async function GET(request: NextRequest) {
       const MAX_STEP1_PER_DAY = isManualTrigger ? 500 : 500; // Max emails per run — send as many as possible
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
-      // For cron: respect normal spacing between steps
+      // For cron: respect normal spacing between steps (min 3 days between any email to same prospect)
       const STEP_GAP_DAYS = forceMode ? { 1: 0, 2: 0, 3: 0, 4: 0 } :
         isManualTrigger ? { 1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5 } :
-        { 1: 3, 2: 2, 3: 3, 4: 4 };
+        { 1: 4, 2: 4, 3: 5, 4: 5 };
+      // Per-prospect rate limit: never send more than 1 email per 3 days regardless of step
+      const MIN_DAYS_BETWEEN_ANY_EMAIL = forceMode ? 0 : isManualTrigger ? 0.5 : 3;
       prospectCount = prospects.length;
 
       // Collect prospects for AI batch generation
@@ -919,6 +921,12 @@ export async function GET(request: NextRequest) {
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
         const daysSinceLastSent = lastSent ? (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
 
+        // DEDUP: Per-prospect rate limit — never email same person more than once per 3 days
+        if (lastSent && daysSinceLastSent < MIN_DAYS_BETWEEN_ANY_EMAIL) {
+          skippedWaitingNextStep++;
+          continue;
+        }
+
         if (step === 0) {
           // Step 0 → send step 1 (premier contact)
           if (hoursSinceCreation < MIN_HOURS_BEFORE_FIRST_EMAIL) { skippedTooRecent++; continue; }
@@ -959,21 +967,24 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Auto-recycle: completed prospects after 21 days get a second cycle (max 2 cycles)
+      // Auto-recycle: completed prospects after 45 days get a second cycle (max 2 cycles, max 5 recycled per run)
+      const MAX_RECYCLE_PER_RUN = 5;
       const { data: completedProspects } = await supabase
         .from('crm_prospects')
         .select('*')
         .eq('email_sequence_status', 'completed')
-        .not('email', 'is', null);
+        .not('email', 'is', null)
+        .not('status', 'in', '("client","repondu","demo","sprint")');
 
       if (completedProspects && completedProspects.length > 0) {
         for (const prospect of completedProspects) {
+          if (recycledCount >= MAX_RECYCLE_PER_RUN) break;
           const cycle = (prospect as any).email_cycle || 1;
-          if (cycle >= 2) continue; // Max 2 cycles
+          if (cycle >= 2) continue; // Max 2 cycles — no infinite loop
           const lastSent = prospect.last_email_sent_at ? new Date(prospect.last_email_sent_at) : null;
           if (!lastSent) continue;
           const daysSinceLastSent = (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysSinceLastSent < 21) continue;
+          if (daysSinceLastSent < 45) continue; // 45 days instead of 21 — more respectful
 
           // Recycle: reset to step 0, cycle 2
           await supabase.from('crm_prospects').update({

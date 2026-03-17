@@ -1202,11 +1202,15 @@ export function getEmailTemplate(
     subject = replaceVars(templates.subjects[variantIndex], vars);
   } else if (step === 2) {
     subject = replaceVars(
-      `Re: un visuel pour un ${category} de {{quartier}}`,
+      `Une idée pour {{company}} — visuel offert`,
       vars
     );
+  } else if (step === 3) {
+    subject = replaceVars('Vos concurrents utilisent déjà l\'IA, {{company}}', vars);
+  } else if (step === 4) {
+    subject = replaceVars('Dernière chance : votre visuel gratuit, {{company}}', vars);
   } else {
-    subject = replaceVars('Derni\u00E8re question pour {{company}}', vars);
+    subject = replaceVars('On reste en contact, {{company}} ?', vars);
   }
 
   return {
