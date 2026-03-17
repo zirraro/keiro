@@ -226,7 +226,7 @@ ${psLineHtml('On offre 3 cr\u00E9ations gratuites pour tester, sans carte bancai
 
 J\u2019ai pris 2 minutes pour cr\u00E9er un visuel type pour un resto comme {{company}}.
 
-C\u2019est en pi\u00E8ce jointe \u2014 dites-moi ce que vous en pensez.
+Cliquez ici pour voir le r\u00E9sultat : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=restaurant_e2
 
 Imaginez \u00E7a avec VOTRE logo, VOS plats, VOS couleurs. G\u00E9n\u00E9r\u00E9 en 3 min. Pr\u00EAt \u00E0 poster sur Instagram.
 
@@ -238,12 +238,11 @@ Victor
 KeiroAI${psLineText('Offre Sprint : testez 3 jours complets pour 4.99\u20AC. Sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
 <p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai pris 2 minutes pour cr\u00E9er un visuel type pour un resto comme <strong>{{company}}</strong>.</p>
-<p style="margin:0 0 14px 0;font-size:15px;">C\u2019est en pi\u00E8ce jointe \u2014 dites-moi ce que vous en pensez.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Voici le genre de r\u00E9sultat que vous pourriez obtenir \u2014 <strong>en 3 min</strong>, sans graphiste.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez \u00E7a avec <strong>VOTRE</strong> logo, <strong>VOS</strong> plats, <strong>VOS</strong> couleurs. G\u00E9n\u00E9r\u00E9 en 3 min. Pr\u00EAt \u00E0 poster sur Instagram.</p>
 <p style="margin:0 0 14px 0;font-size:15px;background:#f9fafb;padding:12px;border-radius:6px;"><strong>5 couverts en plus par mois et c\u2019est pay\u00E9. Tout le reste, c\u2019est du profit pur.</strong></p>
 ${ctaButtonHtml('Testez gratuitement avec vos plats \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=restaurant_e2')}
 ${psLineHtml('Offre Sprint : testez 3 jours complets pour 4.99\u20AC. Sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -306,7 +305,9 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-J\u2019ai cr\u00E9\u00E9 un visuel type pour une boutique comme la v\u00F4tre \u2014 c\u2019est en pi\u00E8ce jointe.
+J\u2019ai imagin\u00E9 un visuel type pour une boutique comme la v\u00F4tre.
+
+Testez par vous-m\u00EAme ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=boutique_e2
 
 Imaginez vos produits mis en valeur comme \u00E7a, avec votre identit\u00E9 visuelle. G\u00E9n\u00E9r\u00E9 en 3 min. Pr\u00EAt \u00E0 poster.
 
@@ -317,12 +318,11 @@ Imaginez vos produits mis en valeur comme \u00E7a, avec votre identit\u00E9 visu
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour une boutique comme la v\u00F4tre \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel type pour une boutique comme la v\u00F4tre \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez vos produits mis en valeur comme \u00E7a, avec <strong>votre identit\u00E9 visuelle</strong>. G\u00E9n\u00E9r\u00E9 en 3 min. Pr\u00EAt \u00E0 poster.</p>
 <p style="margin:0 0 14px 0;font-size:15px;background:#f9fafb;padding:12px;border-radius:6px;"><strong>1 vente en plus. 1 seule. Et votre abonnement est rembours\u00E9.</strong></p>
 ${ctaButtonHtml('Testez avec vos produits \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=boutique_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer
       {
@@ -385,7 +385,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Voici un exemple de visuel type pour un coach \u2014 en pi\u00E8ce jointe.
+J\u2019ai cr\u00E9\u00E9 un exemple de visuel pour un coach \u2014 testez vous-m\u00EAme ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=coach_e2
 
 Imaginez \u00E7a avec votre marque, vos couleurs, votre offre. 3 min chrono.
 
@@ -396,12 +396,11 @@ Imaginez \u00E7a avec votre marque, vos couleurs, votre offre. 3 min chrono.
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Voici un exemple de visuel type pour un coach \u2014 en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un exemple de visuel pour un coach \u2014 testez vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez \u00E7a avec <strong>votre marque</strong>, <strong>vos couleurs</strong>, <strong>votre offre</strong>. 3 min chrono.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>1 nouveau client = 8 mois de s\u00E9ances.</strong> C\u2019est le meilleur investissement marketing possible.</p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=coach_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -464,7 +463,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Un visuel type pour un salon comme le v\u00F4tre en pi\u00E8ce jointe.
+J\u2019ai imagin\u00E9 un visuel pour un salon comme le v\u00F4tre \u2014 testez ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=coiffeur_e2
 
 Avec vos r\u00E9alisations et votre logo, \u00E7a d\u00E9chire. 3 min de cr\u00E9ation.
 
@@ -475,12 +474,11 @@ Avec vos r\u00E9alisations et votre logo, \u00E7a d\u00E9chire. 3 min de cr\u00E
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un salon comme le v\u00F4tre en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour un salon comme le v\u00F4tre \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Avec vos r\u00E9alisations et votre logo, \u00E7a d\u00E9chire. <strong>3 min</strong> de cr\u00E9ation.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>3 coupes en plus. Client fid\u00E8le = 1000\u20AC sur 2 ans.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=coiffeur_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -543,7 +541,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Un visuel type pour un caviste en pi\u00E8ce jointe \u2014 imaginez \u00E7a avec vos bouteilles.
+J\u2019ai imagin\u00E9 un visuel pour un caviste \u2014 testez ici avec vos bouteilles : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=caviste_e2
 
 2 paniers en plus par mois. Avant No\u00EBl, 1 post = 10 commandes.
 
@@ -552,11 +550,10 @@ Un visuel type pour un caviste en pi\u00E8ce jointe \u2014 imaginez \u00E7a avec
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un caviste en pi\u00E8ce jointe \u2014 imaginez \u00E7a avec vos bouteilles.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour un caviste \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>2 paniers en plus par mois. Avant No\u00EBl, 1 post = 10 commandes.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=caviste_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -616,7 +613,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Un visuel type pour un fleuriste en pi\u00E8ce jointe \u2014 imaginez avec vos compositions.
+J\u2019ai imagin\u00E9 un visuel pour un fleuriste \u2014 testez ici avec vos compositions : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=fleuriste_e2
 
 2 bouquets en plus par mois. Et la f\u00EAte des m\u00E8res arrive...
 
@@ -625,11 +622,10 @@ Un visuel type pour un fleuriste en pi\u00E8ce jointe \u2014 imaginez avec vos c
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Un visuel type pour un fleuriste en pi\u00E8ce jointe \u2014 imaginez avec vos compositions.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour un fleuriste \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>2 bouquets en plus par mois. Et la f\u00EAte des m\u00E8res arrive...</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=fleuriste_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -692,7 +688,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-J\u2019ai cr\u00E9\u00E9 un visuel type pour un freelance \u2014 c\u2019est en pi\u00E8ce jointe.
+J\u2019ai imagin\u00E9 un visuel pour un freelance \u2014 testez ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=freelance_e2
 
 Imaginez \u00E7a avec votre marque personnelle. G\u00E9n\u00E9r\u00E9 en 3 min.
 
@@ -703,12 +699,11 @@ Imaginez \u00E7a avec votre marque personnelle. G\u00E9n\u00E9r\u00E9 en 3 min.
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un freelance \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour un freelance \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez \u00E7a avec <strong>votre marque personnelle</strong>. G\u00E9n\u00E9r\u00E9 en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>1 client en plus = des mois de missions.</strong> C\u2019est le meilleur investissement marketing possible.</p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=freelance_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -771,7 +766,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-J\u2019ai cr\u00E9\u00E9 un visuel type pour mettre en valeur vos r\u00E9alisations \u2014 c\u2019est en pi\u00E8ce jointe.
+J\u2019ai imagin\u00E9 un visuel pour mettre en valeur vos r\u00E9alisations \u2014 testez ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=services_e2
 
 Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. G\u00E9n\u00E9r\u00E9 en 3 min.
 
@@ -782,12 +777,11 @@ Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. 
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour mettre en valeur vos r\u00E9alisations \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour mettre en valeur vos r\u00E9alisations \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez vos chantiers et votre savoir-faire pr\u00E9sent\u00E9s comme \u00E7a. G\u00E9n\u00E9r\u00E9 en <strong>3 min</strong>.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>1 devis en plus par mois et c\u2019est rembours\u00E9.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=services_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -850,7 +844,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-J\u2019ai cr\u00E9\u00E9 un visuel type pour un professionnel comme vous \u2014 c\u2019est en pi\u00E8ce jointe.
+J\u2019ai imagin\u00E9 un visuel pour un professionnel comme vous \u2014 testez ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=professionnel_e2
 
 Imaginez votre image de marque mise en valeur comme \u00E7a. G\u00E9n\u00E9r\u00E9 en 3 min.
 
@@ -861,12 +855,11 @@ Une pr\u00E9sence en ligne professionnelle attire la confiance et les nouveaux c
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai cr\u00E9\u00E9 un visuel type pour un professionnel comme vous \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">J\u2019ai imagin\u00E9 un visuel pour un professionnel comme vous \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Imaginez votre image de marque mise en valeur comme \u00E7a. G\u00E9n\u00E9r\u00E9 en <strong>3 min</strong>.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>Une pr\u00E9sence en ligne professionnelle attire la confiance et les nouveaux clients.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=professionnel_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -926,7 +919,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez du contenu pour vos clients en 3 min.
+Testez par vous-m\u00EAme ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=agence_e2 \u2014 imaginez du contenu pour vos clients en 3 min.
 
 Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer votre portfolio, et gagner du temps.
 
@@ -937,12 +930,11 @@ Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer vo
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez du contenu pour vos clients en <strong>3 min</strong>.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Testez par vous-m\u00EAme \u2014 imaginez du contenu pour vos clients en <strong>3 min</strong>.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Vous pourriez livrer du contenu de qualit\u00E9 \u00E0 chaque client, montrer votre portfolio, et gagner du temps.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>2h gagn\u00E9es par client par semaine = plus de clients sans embaucher.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=agence_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -1005,7 +997,7 @@ ${psLineHtml('3 cr\u00E9ations offertes pour essayer, sans carte bancaire.')}`,
       {
         text: `{{first_name}},
 
-Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez votre marque sur tous les r\u00E9seaux.
+Testez par vous-m\u00EAme ici : https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=pme_e2 \u2014 imaginez votre marque sur tous les r\u00E9seaux.
 
 Une image professionnelle coh\u00E9rente, g\u00E9n\u00E9r\u00E9e en 3 min.
 
@@ -1016,12 +1008,11 @@ Communication corporate pro = confiance, recrutement et visibilit\u00E9.
 Victor
 KeiroAI${psLineText('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
         html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Voici un visuel type en pi\u00E8ce jointe \u2014 imaginez votre marque sur tous les r\u00E9seaux.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Testez par vous-m\u00EAme \u2014 imaginez votre marque sur tous les r\u00E9seaux.</p>
 <p style="margin:0 0 14px 0;font-size:15px;">Une image professionnelle coh\u00E9rente, g\u00E9n\u00E9r\u00E9e en <strong>3 min</strong>.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>Communication corporate pro = confiance, recrutement et visibilit\u00E9.</strong></p>
 ${ctaButtonHtml('Testez gratuitement \u2192', 'https://keiroai.com/generate?utm_source=email&utm_medium=cold&utm_campaign=pme_e2')}
 ${psLineHtml('Offre Sprint : 3 jours complets pour 4.99\u20AC, sans engagement.')}`,
-        attachmentName: 'visuel-vitrine-{{company}}.png',
       },
       // Email 3 — Urgency closer + FOMO
       {
@@ -1090,7 +1081,7 @@ function warmTemplateBody(roiPhrase: string): BodyTemplate {
   return {
     text: `{{first_name}},
 
-Suite \u00E0 notre \u00E9change sur le site, j\u2019ai pr\u00E9par\u00E9 un visuel pour {{company}} \u2014 c\u2019est en pi\u00E8ce jointe.
+Suite \u00E0 notre \u00E9change sur le site, j\u2019ai pr\u00E9par\u00E9 quelque chose pour {{company}} \u2014 testez ici : https://keiroai.com/generate?utm_source=email&utm_medium=warm&utm_campaign=chatbot
 
 ${roiPhrase}
 
@@ -1105,14 +1096,13 @@ R\u00E9pondez \u00E0 cet email et je m\u2019occupe de tout.
 Victor
 KeiroAI${psLineText('Plus de 200 entrepreneurs utilisent d\u00E9j\u00E0 KeiroAI pour leur marketing. Rejoignez-les.')}`,
     html: `<p style="margin:0 0 14px 0;font-size:15px;">{{first_name}},</p>
-<p style="margin:0 0 14px 0;font-size:15px;">Suite \u00E0 notre \u00E9change sur le site, j\u2019ai pr\u00E9par\u00E9 un visuel pour <strong>{{company}}</strong> \u2014 c\u2019est en pi\u00E8ce jointe.</p>
+<p style="margin:0 0 14px 0;font-size:15px;">Suite \u00E0 notre \u00E9change sur le site, j\u2019ai pr\u00E9par\u00E9 quelque chose pour <strong>{{company}}</strong> \u2014 testez par vous-m\u00EAme en 3 min.</p>
 <p style="margin:0 0 14px 0;font-size:15px;"><strong>${roiPhrase}</strong></p>
 <p style="margin:0 0 14px 0;font-size:15px;">Deux options pour d\u00E9marrer :</p>
 <p style="margin:0 0 14px 0;font-size:15px;padding-left:16px;">&bull; <strong>Sprint \u00E0 4.99\u20AC</strong> (3 jours pour tester)<br/>&bull; <strong>D\u00E9mo de 15 min</strong> avec moi</p>
 ${ctaButtonHtml('Commencer maintenant \u2192', 'https://keiroai.com/pricing?utm_source=email&utm_medium=warm&utm_campaign=chatbot')}
 <p style="margin:0 0 14px 0;font-size:15px;">R\u00E9pondez \u00E0 cet email et je m\u2019occupe de tout.</p>
 ${psLineHtml('Plus de 200 entrepreneurs utilisent d\u00E9j\u00E0 KeiroAI pour leur marketing. Rejoignez-les.')}`,
-    attachmentName: 'visuel-{{company}}.png',
   };
 }
 
