@@ -425,8 +425,29 @@ async function generateBrief(): Promise<NextResponse> {
       .from('crm_activities').select('id', { count: 'exact', head: true })
       .eq('type', 'email').gte('created_at', twentyFourHoursAgo);
     const emailsSent24h = emailsSentCount24h ?? 0;
-    const emailsOpened24h = logCounts24h['email_webhook_opened'] || 0;
-    const emailsClicked24h = logCounts24h['email_webhook_click'] || 0;
+
+    // Count UNIQUE prospects who opened/clicked (not raw event count)
+    // A prospect clicking 5 links = 1 unique click, not 5
+    const { data: openLogs24h } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'email')
+      .eq('action', 'webhook_opened')
+      .gte('created_at', twentyFourHoursAgo)
+      .limit(2000);
+    const uniqueOpened24h = new Set((openLogs24h || []).map(l => l.data?.prospect_id).filter(Boolean));
+    const emailsOpened24h = uniqueOpened24h.size;
+
+    const { data: clickLogs24h } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'email')
+      .eq('action', 'webhook_click')
+      .gte('created_at', twentyFourHoursAgo)
+      .limit(2000);
+    const uniqueClicked24h = new Set((clickLogs24h || []).map(l => l.data?.prospect_id).filter(Boolean));
+    const emailsClicked24h = uniqueClicked24h.size;
+
     const emailsReplied24h = logCounts24h['email_webhook_replied'] || 0;
     const chatbotConversations24h = logCounts24h['chatbot_conversation'] || 0;
     const leadsEmail24h = logCounts24h['chatbot_lead_captured_email'] || 0;
@@ -449,33 +470,41 @@ async function generateBrief(): Promise<NextResponse> {
       }
     }
 
-    // Count opens/clicks by type from webhook logs
-    const { data: openLogs } = await supabase
+    // Count UNIQUE opens/clicks by type from webhook logs (deduplicate by prospect_id)
+    const { data: openLogs7d } = await supabase
       .from('agent_logs')
       .select('data')
       .eq('agent', 'email')
       .eq('action', 'webhook_opened')
       .gte('created_at', sevenDaysAgo)
-      .limit(500);
+      .limit(2000);
 
-    if (openLogs) {
-      for (const log of openLogs) {
+    if (openLogs7d) {
+      const seenOpens = new Set<string>();
+      for (const log of openLogs7d) {
+        const pid = log.data?.prospect_id;
+        if (!pid || seenOpens.has(pid)) continue;
+        seenOpens.add(pid);
         const bizType = log.data?.category || 'autre';
         if (!emailByType[bizType]) emailByType[bizType] = { sent: 0, opened: 0, clicked: 0 };
         emailByType[bizType].opened++;
       }
     }
 
-    const { data: clickLogs } = await supabase
+    const { data: clickLogs7d } = await supabase
       .from('agent_logs')
       .select('data')
       .eq('agent', 'email')
       .eq('action', 'webhook_click')
       .gte('created_at', sevenDaysAgo)
-      .limit(500);
+      .limit(2000);
 
-    if (clickLogs) {
-      for (const log of clickLogs) {
+    if (clickLogs7d) {
+      const seenClicks = new Set<string>();
+      for (const log of clickLogs7d) {
+        const pid = log.data?.prospect_id;
+        if (!pid || seenClicks.has(pid)) continue;
+        seenClicks.add(pid);
         const bizType = log.data?.category || 'autre';
         if (!emailByType[bizType]) emailByType[bizType] = { sent: 0, opened: 0, clicked: 0 };
         emailByType[bizType].clicked++;
@@ -506,7 +535,7 @@ async function generateBrief(): Promise<NextResponse> {
       chatbot_conversations: chatbotConversations24h,
       open_rate_percent: emailsSent24h > 0 ? Math.round((emailsOpened24h / emailsSent24h) * 100) : 0,
       click_through_rate_percent: emailsOpened24h > 0 ? Math.round((emailsClicked24h / emailsOpened24h) * 100) : 0,
-      note: 'OR = ouverts/envoyés, CTR = clics/OUVERTS (pas clics/envoyés)',
+      note: 'OR = prospects uniques ouverts / envoyés, CTR = prospects uniques cliqués / ouverts (dédupliqué par prospect_id)',
       prospects_by_temperature: tempCounts,
       prospects_by_status: statusCounts,
       ab_test_data: abTestData,
@@ -517,8 +546,20 @@ async function generateBrief(): Promise<NextResponse> {
       .from('crm_activities').select('id', { count: 'exact', head: true })
       .eq('type', 'email').gte('created_at', sevenDaysAgo);
     const emailsSent7d = emailsSentCount7d ?? 0;
-    const emailsOpened7d = logCounts7d['email_webhook_opened'] || 0;
-    const emailsClicked7d = logCounts7d['email_webhook_click'] || 0;
+
+    // 7d: count UNIQUE prospects opened/clicked (not raw events)
+    const { data: openLogs7dAll } = await supabase
+      .from('agent_logs').select('data')
+      .eq('agent', 'email').eq('action', 'webhook_opened')
+      .gte('created_at', sevenDaysAgo).limit(5000);
+    const emailsOpened7d = new Set((openLogs7dAll || []).map(l => l.data?.prospect_id).filter(Boolean)).size;
+
+    const { data: clickLogs7dAll } = await supabase
+      .from('agent_logs').select('data')
+      .eq('agent', 'email').eq('action', 'webhook_click')
+      .gte('created_at', sevenDaysAgo).limit(5000);
+    const emailsClicked7d = new Set((clickLogs7dAll || []).map(l => l.data?.prospect_id).filter(Boolean)).size;
+
     const emailsReplied7d = logCounts7d['email_webhook_replied'] || 0;
     const chatbotConversations7d = logCounts7d['chatbot_conversation'] || 0;
 
@@ -526,7 +567,14 @@ async function generateBrief(): Promise<NextResponse> {
       .from('crm_activities').select('id', { count: 'exact', head: true })
       .eq('type', 'email').gte('created_at', fourteenDaysAgo).lt('created_at', sevenDaysAgo);
     const prevEmailsSent = prevEmailsSentCount ?? 0;
-    const prevEmailsOpened = logCountsPrev7d['email_webhook_opened'] || 0;
+
+    // Previous 7d: also deduplicate
+    const { data: prevOpenLogs } = await supabase
+      .from('agent_logs').select('data')
+      .eq('agent', 'email').eq('action', 'webhook_opened')
+      .gte('created_at', fourteenDaysAgo).lt('created_at', sevenDaysAgo).limit(5000);
+    const prevEmailsOpened = new Set((prevOpenLogs || []).map(l => l.data?.prospect_id).filter(Boolean)).size;
+
     const prevChatbot = logCountsPrev7d['chatbot_conversation'] || 0;
 
     const metrics7d = {
